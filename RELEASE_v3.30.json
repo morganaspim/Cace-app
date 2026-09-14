@@ -20,6 +20,7 @@
     "closed distributional H1 graph relation and regularization criterion",
     "exact L2 graph representatives for InL2, InH1, and InHDiv data",
     "representation equivalence between InHDiv and existence of a closed distributional H(div) graph datum",
+    "bounded Bessel/Riesz multiplier reduction of the H1 converse to one exact reconstruction identity",
     "kernel axiom audit for new formal endpoints",
     "framework-level fail-closed open-problem claim promotion policy",
     "artifact-bound independent reproduction and external-review requirements",
@@ -47,7 +48,15 @@
       "CACEFormal.Continuum.complexL2ToDistribution_l2RepresentativeOfInL2",
       "CACEFormal.Continuum.inH1GraphRepresentative_mem",
       "CACEFormal.Continuum.inHDivGraphRepresentative_mem",
-      "CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative"
+      "CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative",
+      "CACEFormal.Continuum.besselRieszSymbol_norm_le",
+      "CACEFormal.Continuum.h1RieszSymbol_norm_le_one",
+      "CACEFormal.Continuum.h1RieszSymbol_hasTemperateGrowth",
+      "CACEFormal.Continuum.besselPotential_neg_two_inH1_of_inL2",
+      "CACEFormal.Continuum.besselPotential_neg_one_weakPartial_inH1_of_inL2",
+      "CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2",
+      "CACEFormal.Continuum.h1RieszCorrection_inH1",
+      "CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction"
     ],
     "lean_toolchain": "pinned by formal/cace_formal/lean-toolchain",
     "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
@@ -90,7 +99,7 @@
   },
   "remaining_hard_analysis": {
     "primary_obligation": "construct unconditional graph-norm regularizers for the whole-space H(div) and H1 distributional graph relations",
-    "secondary_obligation": "prove the converse identification from the new distributional H1 graph relation to Mathlib Bessel-potential InH1",
+    "secondary_obligation": "prove the exact Bessel/Riesz reconstruction identity, yielding the converse from the distributional H1 graph relation to Mathlib Bessel-potential InH1",
     "ranked_routes": [
       {
         "rank": 1,
@@ -110,19 +119,21 @@
     ]
   },
   "verification": {
-    "latest_observed_v330_workflow_run": 34856134292,
-    "latest_observed_job": 104016057998,
+    "latest_observed_v330_workflow_run": 34866491780,
+    "latest_observed_job": 104051518562,
+    "attempted_commit": "6c9ecf19cb10a99bed6e2a2833777517b4ab7af4",
+    "run_attempt": 1,
     "runner_id": 0,
     "executed_steps": 0,
-    "observed_runner_pattern": "v3.30 GitHub Actions jobs have repeatedly been created with runner_id=0 and zero executed steps",
-    "interpretation": "runner infrastructure failure; neither a proof pass nor a Lean/Python proof failure",
+    "observed_runner_pattern": "both an explicit rerun of the prior exact head and a fresh post-audit push were assigned runner_id=0 and executed zero steps",
+    "interpretation": "runner infrastructure or billing-allocation failure; neither a proof pass nor a Lean/Python proof failure",
     "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION",
     "python_policy_test_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
   },
   "nonclaims": [
     "The unconditional reverse inclusion from arbitrary distributional H(div) graph data into the Schwartz graph closure is not yet proved.",
     "The unconditional reverse inclusion for the new distributional H1 graph relation is not yet proved.",
-    "The converse equivalence between the new H1 graph relation and Bessel-potential InH1 is not yet proved.",
+    "The exact Bessel/Riesz reconstruction identity—and therefore the converse equivalence from the new H1 graph relation to Bessel-potential InH1—is not yet proved.",
     "The new v3.30 Lean endpoints and Python policy tests are not marked verified until pinned CI executes on a real runner and emits an attestation.",
     "Independent external mathematical review remains mandatory before CACE permits public resolution wording for a famous open problem."
   ]

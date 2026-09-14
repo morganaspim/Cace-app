@@ -83,6 +83,23 @@ The endpoint
 
 is an exact representation theorem. It is distinct from the harder Schwartz-core density theorem.
 
+### 5a. Bessel/Riesz reduction of the H1 converse
+
+`H1BesselRieszReduction.lean` now discharges the low-frequency Sobolev lift, each normalized
+weak-derivative correction, bounded coordinate multiplier preservation, and finite-sum closure.
+The full converse is reduced to the exact identity
+
+`u = besselPotential (-2) u + h1RieszCorrection u`.
+
+The coefficient convention has been checked against pinned Mathlib's theorem
+`besselPotential_neg_one_lineDerivOp_eq`: its `2 * π * I` factor is canceled by the correction's
+inverse factor. The remaining coordinate-symbol sum is the Euclidean identity
+`Σ_i ξ_i² / (1 + ‖ξ‖²) + 1 / (1 + ‖ξ‖²) = 1`.
+
+The v3.30 workflow now treats this module as first-class proof surface: changes trigger CI, unfinished
+tokens are rejected, it is compiled directly, and all eight current endpoints are included in the
+kernel axiom audit. This source is still pending actual runner execution.
+
 ### 6. Kernel axiom audit
 
 `V330AxiomAudit.lean` runs `#print axioms` on the new proof-strengthening endpoints. The workflow
@@ -182,9 +199,11 @@ Prager-Synge.
 The source changes are committed, but the new Lean theorems and Python policy tests are **not
 reported as verified yet**.
 
-The latest observed v3.30 run is `34856134292`, with job `104016057998`. GitHub assigned no runner
-(`runner_id = 0`) and executed zero steps. Therefore the observed workflow failure is an
-infrastructure failure: it is neither a Lean/Python failure nor passing evidence.
+An explicit retry of the prior exact head and a fresh post-audit push were both attempted. The
+fresh v3.30 run is `34866491780`, with job `104051518562`, at commit
+`6c9ecf19cb10a99bed6e2a2833777517b4ab7af4`. GitHub again assigned no runner
+(`runner_id = 0`) and executed zero steps. Therefore the observed workflow failure remains an
+infrastructure or billing-allocation failure: it is neither a Lean/Python failure nor passing evidence.
 
 The release remains `IMPLEMENTED_PENDING_RUNNER_EXECUTION` until a pinned workflow actually executes
 and emits its success attestation.
