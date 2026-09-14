@@ -112,6 +112,20 @@ def cellFacePairing (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
     edgePairing v q T.p1 T.p2 +
     edgePairing v q T.p2 T.p0
 
+/-- Face contribution associated with local slot 0, 1, or 2. -/
+def localFacePairing (T : Triangle2) (v : P1Affine) (q : RT0Affine)
+    (s : Fin 3) : ℝ :=
+  match s.val with
+  | 0 => edgePairing v q T.p0 T.p1
+  | 1 => edgePairing v q T.p1 T.p2
+  | _ => edgePairing v q T.p2 T.p0
+
+/-- The three local face contributions are exactly the element boundary sum. -/
+theorem sum_localFacePairing (T : Triangle2) (v : P1Affine) (q : RT0Affine) :
+    (∑ s : Fin 3, localFacePairing T v q s) = cellFacePairing T v q := by
+  rw [Fin.sum_univ_three]
+  rfl
+
 /--
 Closed elementwise P1/RT0 Green identity, derived from the polynomial formulae.
 No Green identity is assumed as a certificate field in this theorem.

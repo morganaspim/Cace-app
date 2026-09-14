@@ -10,7 +10,9 @@ import CACEFormal.DiscreteMeshAdmissibility
 import CACEFormal.ConcreteMeshCertificate
 import CACEFormal.MeshCertificate
 import CACEFormal.P1RT0Element
+import CACEFormal.MeshFaceAssembly
 import CACEFormal.RT0P1Assembly
+import CACEFormal.RT0P1DerivedAssembly
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
