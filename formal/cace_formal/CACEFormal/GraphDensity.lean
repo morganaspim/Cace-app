@@ -9,6 +9,8 @@ open scoped BigOperators LineDeriv SchwartzMap
 
 namespace Continuum
 
+noncomputable section
+
 /-- Real whole-space `L²` used by the graph-norm closure models. -/
 abbrev RealL2 (n : Nat) :=
   Lp ℝ 2 (volume : Measure (EuclideanDomain n))
@@ -38,14 +40,14 @@ noncomputable def smoothH1GraphMap (n : Nat) :
       fun i => schwartzRealL2 n (∂_{basisVector i} u))
   map_add' u v := by
     apply Prod.ext
-    · simp [schwartzRealL2]
+    · simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
     · funext i
-      simp [schwartzRealL2]
+      simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
   map_smul' c u := by
     apply Prod.ext
-    · simp [schwartzRealL2]
+    · simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
     · funext i
-      simp [schwartzRealL2]
+      simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
 
 /-- Smooth vector graph map `q ↦ ((qᵢ)ᵢ, ∑ᵢ ∂ᵢqᵢ)`. -/
 noncomputable def smoothHDivGraphMap (n : Nat) :
@@ -56,13 +58,13 @@ noncomputable def smoothHDivGraphMap (n : Nat) :
   map_add' q r := by
     apply Prod.ext
     · funext i
-      simp [schwartzRealL2]
-    · simp [schwartzRealL2, Finset.sum_add_distrib]
+      simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
+    · simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul, Finset.sum_add_distrib]
   map_smul' c q := by
     apply Prod.ext
     · funext i
-      simp [schwartzRealL2]
-    · simp [schwartzRealL2, Finset.smul_sum]
+      simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
+    · simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul, Finset.smul_sum]
 
 /-- The smooth H¹ graph core as an honest normed subspace of graph data. -/
 noncomputable def H1SmoothGraphCore (n : Nat) : Submodule ℝ (H1GraphAmbient n) :=
@@ -96,6 +98,8 @@ theorem denseRange_H1SmoothGraphCore (n : Nat) :
 theorem denseRange_HDivSmoothGraphCore (n : Nat) :
     DenseRange ((↑) : HDivSmoothGraphCore n → HDivGraphCompletion n) :=
   UniformSpace.Completion.denseRange_coe
+
+end
 
 end Continuum
 

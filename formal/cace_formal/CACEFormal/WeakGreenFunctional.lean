@@ -47,9 +47,9 @@ theorem normalTrace_unique_of_dense_agreement
     (hagree : ∀ q, q ∈ Q0 → ∀ v, v ∈ V0 →
       G.normalTrace q v = H.normalTrace q v) :
     G.normalTrace = H.normalTrace := by
-  apply ContinuousLinearMap.ext_on hQ
+  apply ContinuousLinearMap.ext_on (s := (Q0 : Set Q)) (by simpa using hQ)
   intro q hq
-  apply ContinuousLinearMap.ext_on hV
+  apply ContinuousLinearMap.ext_on (s := (V0 : Set V)) (by simpa using hV)
   intro v hv
   exact hagree q hq v hv
 
@@ -81,9 +81,9 @@ theorem weakGreen_of_denseSmoothCore
     (q : Q) (v : V) :
     G.normalTrace q v = G.volumePairing q v := by
   have houter : G.normalTrace = G.volumePairing := by
-    apply ContinuousLinearMap.ext_on C.denseQ
+    apply ContinuousLinearMap.ext_on (s := (C.smoothQ : Set Q)) (by simpa using C.denseQ)
     intro q hq
-    apply ContinuousLinearMap.ext_on C.denseV
+    apply ContinuousLinearMap.ext_on (s := (C.smoothV : Set V)) (by simpa using C.denseV)
     intro v hv
     exact C.smoothGreen q hq v hv
   rw [houter]
@@ -107,7 +107,7 @@ def zeroBoundarySubmodule
     intro q
     simp [HasZeroBoundaryTrace]
   add_mem' := by
-    intro v hv w hw q
+    intro v w hv hw q
     simp [map_add, hv q, hw q]
   smul_mem' := by
     intro c v hv q

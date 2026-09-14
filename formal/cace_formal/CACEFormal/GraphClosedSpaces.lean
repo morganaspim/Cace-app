@@ -4,6 +4,8 @@ import Mathlib.Topology.Sequences
 
 namespace CACEFormal
 
+open Filter
+
 namespace Continuum
 
 /-- A submodule viewed inside its own topological closure. -/
