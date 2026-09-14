@@ -134,7 +134,7 @@ theorem v322_boundary_trace_zero (b : V322BoundaryFace) :
 theorem v322_divergence_free :
     ∀ K : V322Cell, v322CellDivergence K = 0 := by
   intro K
-  fin_cases K <;> rfl
+  fin_cases K <;> norm_num [v322CellDivergence, v322FluxError]
 
 theorem v322_boundary_terms_zero :
     ∀ K : V322Cell, v322BoundaryPairing K = 0 := by
