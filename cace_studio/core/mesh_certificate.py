@@ -48,6 +48,24 @@ def _edge_text(edge: tuple[int, int]) -> str:
     return f"{edge[0]}-{edge[1]}"
 
 
+def _normalize_boundary_labels(labels: Mapping[str, Any]) -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    for raw_key, raw_value in labels.items():
+        if not isinstance(raw_key, str) or not re.fullmatch(r"\d+-\d+", raw_key):
+            raise ValueError(
+                f"invalid boundary label key {raw_key!r}; expected canonical vertex pair text such as '0-1'"
+            )
+        a_text, b_text = raw_key.split("-", 1)
+        key = _edge_text(_edge_key(int(a_text), int(b_text)))
+        value = str(raw_value)
+        if not value:
+            raise ValueError(f"boundary edge {key} has an empty label")
+        if key in normalized and normalized[key] != value:
+            raise ValueError(f"conflicting labels supplied for boundary edge {key}")
+        normalized[key] = value
+    return normalized
+
+
 def generate_mesh_certificate(
     vertices: Sequence[Sequence[Any]],
     triangles: Sequence[Sequence[int]],
@@ -55,12 +73,12 @@ def generate_mesh_certificate(
 ) -> dict[str, Any]:
     """Generate a deterministic exact certificate for an oriented triangular 2D mesh.
 
-    Triangles must be counter-clockwise.  Every canonical edge must have one
-    (boundary) or two (interior) owners.  For an interior edge the two local edge
-    orientations must be opposite.  The result is JSON-safe and contains no
+    Triangles must be counter-clockwise. Every canonical edge must have one
+    (boundary) or two (interior) owners. For an interior edge the two local edge
+    orientations must be opposite. The result is JSON-safe and contains no
     floating-point geometry.
     """
-    labels = dict(boundary_labels or {})
+    labels = _normalize_boundary_labels(dict(boundary_labels or {}))
     if not vertices:
         raise ValueError("mesh has no vertices")
     if not triangles:
@@ -114,6 +132,7 @@ def generate_mesh_certificate(
     edge_records: list[dict[str, Any]] = []
     interior_count = 0
     boundary_count = 0
+    boundary_keys: set[str] = set()
 
     for edge in sorted_edges:
         owners = occurrences[edge]
@@ -143,7 +162,9 @@ def generate_mesh_certificate(
             )
             interior_count += 1
         else:
-            label = str(labels.get(_edge_text(edge), "boundary"))
+            key_text = _edge_text(edge)
+            boundary_keys.add(key_text)
+            label = labels.get(key_text, "boundary")
             edge_records.append(
                 {
                     "id": gid,
@@ -155,13 +176,15 @@ def generate_mesh_certificate(
             )
             boundary_count += 1
 
+    invalid_label_edges = sorted(set(labels) - boundary_keys)
+    if invalid_label_edges:
+        raise ValueError(
+            "boundary labels reference non-boundary or absent edges: "
+            + ", ".join(invalid_label_edges)
+        )
+
     normalized_vertices = [[_qstr(x), _qstr(y)] for x, y in points]
     normalized_triangles = [list(t) for t in tri_data]
-    normalized_labels = {
-        _edge_text(_edge_key(int(k.split("-", 1)[0]), int(k.split("-", 1)[1]))): str(v)
-        for k, v in labels.items()
-        if re.fullmatch(r"\d+-\d+", k)
-    }
 
     cert: dict[str, Any] = {
         "schema": SCHEMA,
@@ -176,16 +199,17 @@ def generate_mesh_certificate(
         "source": {
             "vertices": normalized_vertices,
             "triangles": normalized_triangles,
-            "boundary_labels": normalized_labels,
+            "boundary_labels": labels,
         },
         "signed_jacobians": [_qstr(x) for x in jacobians],
         "local_edges": local_edges,
         "edges": edge_records,
         "claims": [
-            "all triangle signed Jacobians are positive",
-            "global edge ids are canonical and deterministic",
+            "all triangle signed Jacobians are computed exactly from source vertices and are positive",
+            "global edge ids and endpoint ordering are canonical and deterministic",
+            "every local edge occurrence is tied to its triangle endpoints and global edge orientation",
             "each interior edge has exactly two oppositely oriented local owners",
-            "each boundary edge has exactly one local owner and a boundary label",
+            "each boundary edge has exactly one local owner and a nonempty boundary label",
         ],
         "nonclaims": [
             "This Python certificate is not by itself a Lean proof.",
@@ -248,9 +272,9 @@ def _lean_string(text: str) -> str:
 def render_lean_mesh_certificate(
     certificate: Mapping[str, Any], definition_name: str = "generatedMeshCertificate"
 ) -> str:
-    """Render a closed Lean witness against `CACEFormal.MeshCertificate`.
+    """Render a closed, geometry-linked Lean witness against `CACEFormal.MeshCertificate`.
 
-    The returned source is intended for the pinned Lean CI gate.  Rendering does
+    The returned source is intended for the pinned Lean CI gate. Rendering does
     not claim that CI has run; callers must report Lean status separately.
     """
     check = verify_mesh_certificate(certificate)
@@ -260,6 +284,8 @@ def render_lean_mesh_certificate(
         raise ValueError("definition_name must be a simple Lean identifier")
 
     cert = dict(certificate)
+    source = cert["source"]
+    nvert = cert["counts"]["vertices"]
     ntri = cert["counts"]["triangles"]
     nedge = cert["counts"]["edges"]
     interior = [e for e in cert["edges"] if e["kind"] == "interior"]
@@ -289,34 +315,52 @@ def render_lean_mesh_certificate(
         lines.append(f"  | _ => {values[-1]}")
         lines.append("")
 
+    def emit_fin3_function(name: str, n: int, ret: str, rows: Sequence[Sequence[str]]) -> None:
+        lines.append(f"def {name} (K : Fin {n}) (s : Fin 3) : {ret} :=")
+        lines.append("  match K.val, s.val with")
+        for k, row in enumerate(rows):
+            for s, value in enumerate(row):
+                if k == n - 1 and s == 2:
+                    lines.append(f"  | _, _ => {value}")
+                elif s == 2:
+                    lines.append(f"  | {k}, _ => {value}")
+                else:
+                    lines.append(f"  | {k}, {s} => {value}")
+        lines.append("")
+
+    emit_fin_function(
+        prefix + "VertexX", nvert, "ℚ", [_lean_q(v[0]) for v in source["vertices"]]
+    )
+    emit_fin_function(
+        prefix + "VertexY", nvert, "ℚ", [_lean_q(v[1]) for v in source["vertices"]]
+    )
+    emit_fin3_function(
+        prefix + "TriangleVertex",
+        ntri,
+        f"Fin {nvert}",
+        [[str(v) for v in tri] for tri in source["triangles"]],
+    )
     emit_fin_function(
         prefix + "SignedJacobian", ntri, "ℚ", [_lean_q(x) for x in cert["signed_jacobians"]]
     )
-
-    lines.append(f"def {prefix}LocalEdge (K : Fin {ntri}) (s : Fin 3) : Fin {nedge} :=")
-    lines.append("  match K.val, s.val with")
-    for k, row in enumerate(cert["local_edges"]):
-        for s, item in enumerate(row):
-            if k == ntri - 1 and s == 2:
-                lines.append(f"  | _, _ => {item['edge']}")
-            elif s == 2:
-                lines.append(f"  | {k}, _ => {item['edge']}")
-            else:
-                lines.append(f"  | {k}, {s} => {item['edge']}")
-    lines.append("")
-
-    lines.append(f"def {prefix}LocalSign (K : Fin {ntri}) (s : Fin 3) : OrientationSign :=")
-    lines.append("  match K.val, s.val with")
-    for k, row in enumerate(cert["local_edges"]):
-        for s, item in enumerate(row):
-            value = ".pos" if item["sign"] == "pos" else ".neg"
-            if k == ntri - 1 and s == 2:
-                lines.append(f"  | _, _ => {value}")
-            elif s == 2:
-                lines.append(f"  | {k}, _ => {value}")
-            else:
-                lines.append(f"  | {k}, {s} => {value}")
-    lines.append("")
+    emit_fin_function(
+        prefix + "EdgeVertexLo", nedge, f"Fin {nvert}", [str(e["vertices"][0]) for e in cert["edges"]]
+    )
+    emit_fin_function(
+        prefix + "EdgeVertexHi", nedge, f"Fin {nvert}", [str(e["vertices"][1]) for e in cert["edges"]]
+    )
+    emit_fin3_function(
+        prefix + "LocalEdge",
+        ntri,
+        f"Fin {nedge}",
+        [[str(item["edge"]) for item in row] for row in cert["local_edges"]],
+    )
+    emit_fin3_function(
+        prefix + "LocalSign",
+        ntri,
+        "OrientationSign",
+        [[".pos" if item["sign"] == "pos" else ".neg" for item in row] for row in cert["local_edges"]],
+    )
 
     emit_fin_function(prefix + "InteriorEdge", len(interior), f"Fin {nedge}", [str(e["id"]) for e in interior])
     emit_fin_function(prefix + "InteriorLeftCell", len(interior), f"Fin {ntri}", [str(e["owners"][0]["cell"]) for e in interior])
@@ -343,41 +387,79 @@ def render_lean_mesh_certificate(
         owner_values,
     )
 
+    local_complete_defs = ", ".join(
+        [
+            prefix + "LocalEdge",
+            prefix + "EdgeOwner",
+            prefix + "InteriorLeftCell",
+            prefix + "InteriorLeftSlot",
+            prefix + "InteriorRightCell",
+            prefix + "InteriorRightSlot",
+            prefix + "BoundaryCell",
+            prefix + "BoundarySlot",
+        ]
+    )
+
     lines.extend(
         [
             f"def {definition_name} : MeshCertificate where",
+            f"  vertexCount := {nvert}",
             f"  triangleCount := {ntri}",
             f"  edgeCount := {nedge}",
             f"  interiorEdgeCount := {len(interior)}",
             f"  boundaryEdgeCount := {len(boundary)}",
+            f"  vertexX := {prefix}VertexX",
+            f"  vertexY := {prefix}VertexY",
+            f"  triangleVertex := {prefix}TriangleVertex",
+            "  triangle_v01_ne := by",
+            f"    intro K; fin_cases K <;> simp [{prefix}TriangleVertex]",
+            "  triangle_v12_ne := by",
+            f"    intro K; fin_cases K <;> simp [{prefix}TriangleVertex]",
+            "  triangle_v20_ne := by",
+            f"    intro K; fin_cases K <;> simp [{prefix}TriangleVertex]",
             f"  signedJacobian := {prefix}SignedJacobian",
+            "  signedJacobian_formula := by",
+            "    intro K",
+            f"    fin_cases K <;> norm_num [{prefix}SignedJacobian, {prefix}VertexX, {prefix}VertexY, {prefix}TriangleVertex]",
             "  signedJacobian_pos := by",
             "    intro K",
             f"    fin_cases K <;> norm_num [{prefix}SignedJacobian]",
+            f"  edgeVertexLo := {prefix}EdgeVertexLo",
+            f"  edgeVertexHi := {prefix}EdgeVertexHi",
+            "  edge_vertices_canonical := by",
+            f"    intro e; fin_cases e <;> norm_num [{prefix}EdgeVertexLo, {prefix}EdgeVertexHi]",
             f"  localEdge := {prefix}LocalEdge",
             f"  localSign := {prefix}LocalSign",
+            "  local_edge_geometry := by",
+            "    intro K s; fin_cases K <;> fin_cases s <;> rfl",
             f"  interiorEdge := {prefix}InteriorEdge",
             f"  interiorLeftCell := {prefix}InteriorLeftCell",
             f"  interiorLeftSlot := {prefix}InteriorLeftSlot",
             f"  interiorRightCell := {prefix}InteriorRightCell",
             f"  interiorRightSlot := {prefix}InteriorRightSlot",
+            "  interior_cells_distinct := by",
+            f"    intro i; fin_cases i <;> simp [{prefix}InteriorLeftCell, {prefix}InteriorRightCell]",
             "  interior_left_edge := by",
-            f"    intro i; fin_cases i <;> rfl",
+            "    intro i; fin_cases i <;> rfl",
             "  interior_right_edge := by",
-            f"    intro i; fin_cases i <;> rfl",
+            "    intro i; fin_cases i <;> rfl",
             "  interior_signs_opposite := by",
-            f"    intro i; fin_cases i <;> rfl",
+            "    intro i; fin_cases i <;> rfl",
             f"  boundaryEdge := {prefix}BoundaryEdge",
             f"  boundaryCell := {prefix}BoundaryCell",
             f"  boundarySlot := {prefix}BoundarySlot",
             f"  boundaryLabel := {prefix}BoundaryLabel",
+            "  boundary_label_nonempty := by",
+            f"    intro b; fin_cases b <;> simp [{prefix}BoundaryLabel]",
             "  boundary_edge_matches := by",
-            f"    intro b; fin_cases b <;> rfl",
+            "    intro b; fin_cases b <;> rfl",
             f"  edgeOwner := {prefix}EdgeOwner",
             "  interior_owned := by",
-            f"    intro i; fin_cases i <;> rfl",
+            "    intro i; fin_cases i <;> rfl",
             "  boundary_owned := by",
-            f"    intro b; fin_cases b <;> rfl",
+            "    intro b; fin_cases b <;> rfl",
+            "  local_edge_complete := by",
+            f"    intro K s; fin_cases K <;> fin_cases s <;> simp [{local_complete_defs}]",
             "",
             "end CACEFormal.Generated",
             "",
