@@ -13,7 +13,10 @@
     "exact L2 graph representatives for InL2, InH1, and InHDiv data",
     "representation equivalence between InHDiv and existence of a closed distributional H(div) graph datum",
     "kernel axiom audit for new formal endpoints",
-    "repository-wide fail-closed open-problem claim promotion policy",
+    "framework-level fail-closed open-problem claim promotion policy",
+    "artifact-bound independent reproduction and external-review requirements",
+    "executor rejection of reserved self-promotion flags",
+    "claim-decision sidecars hashed into graph certificates and emitted in run reports",
     "adversarial promotion tests including the existing reliability proof DAG"
   ],
   "formal_targets": {
@@ -52,7 +55,7 @@
     }
   },
   "claim_promotion": {
-    "status": "IMPLEMENTED_TESTS_COMMITTED_PENDING_RUNNER",
+    "status": "FRAMEWORK_ENFORCEMENT_IMPLEMENTED_TESTS_COMMITTED_PENDING_RUNNER",
     "open_problem_stages": [
       "research-candidate",
       "formal-candidate",
@@ -64,12 +67,18 @@
       "Lean kernel verification",
       "axiom audit pass",
       "pinned CI pass",
-      "exact statement artifact digest",
-      "at least one independent reproduction",
-      "valid external review attestation bound to an artifact digest"
+      "valid SHA-256 digest of the exact theorem/statement artifact",
+      "at least one independent reproduction attestation bound to that exact SHA-256 digest",
+      "at least one external review attestation bound to that same SHA-256 digest"
     ],
+    "legacy_reproduction_count_is_sufficient": false,
+    "review_of_different_artifact_is_sufficient": false,
     "numerical_symbolic_interval_evidence_can_self_promote": false,
-    "external_reviewer_identity_and_independence_proved_by_cace": false
+    "module_output_can_self_assert_public_resolution": false,
+    "reserved_truthy_self_promotion_flags_rejected_by_executor": true,
+    "claim_decisions_emitted_in_run_result": true,
+    "claim_decisions_hashed_into_graph_certificate": true,
+    "external_reproducer_or_reviewer_identity_and_independence_proved_by_cace": false
   },
   "remaining_hard_analysis": {
     "primary_obligation": "construct unconditional graph-norm regularizers for the whole-space H(div) and H1 distributional graph relations",
@@ -93,19 +102,20 @@
     ]
   },
   "verification": {
-    "latest_observed_v330_workflow_run": 34855119850,
-    "latest_observed_job": 104012566771,
+    "latest_observed_v330_workflow_run": 34856134292,
+    "latest_observed_job": 104016057998,
     "runner_id": 0,
     "executed_steps": 0,
     "observed_runner_pattern": "v3.30 GitHub Actions jobs have repeatedly been created with runner_id=0 and zero executed steps",
-    "interpretation": "runner infrastructure failure; neither a proof pass nor a Lean proof failure",
-    "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
+    "interpretation": "runner infrastructure failure; neither a proof pass nor a Lean/Python proof failure",
+    "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION",
+    "python_policy_test_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
   },
   "nonclaims": [
     "The unconditional reverse inclusion from arbitrary distributional H(div) graph data into the Schwartz graph closure is not yet proved.",
     "The unconditional reverse inclusion for the new distributional H1 graph relation is not yet proved.",
     "The converse equivalence between the new H1 graph relation and Bessel-potential InH1 is not yet proved.",
-    "The new v3.30 Lean endpoints are not marked verified until pinned CI executes on a real runner and emits an attestation.",
+    "The new v3.30 Lean endpoints and Python policy tests are not marked verified until pinned CI executes on a real runner and emits an attestation.",
     "Independent external mathematical review remains mandatory before CACE permits public resolution wording for a famous open problem."
   ]
 }
