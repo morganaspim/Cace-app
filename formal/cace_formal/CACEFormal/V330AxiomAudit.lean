@@ -1,6 +1,8 @@
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
+import CACEFormal.RealGraphRegularizationCriterion
+import CACEFormal.H1DomainBridge
 
 /-!
 # v3.30 kernel-assumption audit
@@ -15,6 +17,14 @@ or on any axiom outside the small foundational whitelist enforced by the workflo
 #print axioms CACEFormal.Continuum.smoothBoxGreen_schwartz
 #print axioms CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto
 #print axioms CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer
+#print axioms CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer
+#print axioms CACEFormal.Continuum.ker_le_topologicalClosure_of_regularizer
 #print axioms CACEFormal.Continuum.topologicalClosure_eq_top_of_regularizer
 #print axioms CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer
 #print axioms CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer
+#print axioms CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer
+#print axioms CACEFormal.Continuum.realDistributionalPreimage_le_HDivSmoothGraphClosure_of_regularizer
+#print axioms CACEFormal.Continuum.mem_H1DistributionalGraphSubmodule_iff
+#print axioms CACEFormal.Continuum.smoothComplexH1GraphMap_mem_distributional
+#print axioms CACEFormal.Continuum.complexH1SmoothGraphClosure_le_distributional
+#print axioms CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer
