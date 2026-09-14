@@ -1,4 +1,5 @@
 import Mathlib.LinearAlgebra.AffineSpace.AffineSubspace.Basic
+import Mathlib.Data.Real.Basic
 
 namespace CACEFormal
 
