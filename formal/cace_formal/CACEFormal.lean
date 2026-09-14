@@ -24,6 +24,7 @@ import CACEFormal.Sobolev2Model
 import CACEFormal.GraphDensity
 import CACEFormal.GraphClosedSpaces
 import CACEFormal.GraphGreenPairing
+import CACEFormal.GraphPragerSynge
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
