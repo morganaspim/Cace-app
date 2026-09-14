@@ -1,33 +1,86 @@
 {
-  "blueprint_sha256": "4cb3fa73332df88c1ccbb9939ba96466c74ac439d30ff704392204a036f0176f",
+  "schema_version": 2,
   "dependencies": {
-    "continuum_prager_synge": [
-      "discrete_prager_synge",
-      "continuum_hdiv_trace"
-    ],
-    "discrete_prager_synge": [
+    "v322_concrete_prager_synge": [
       "hilbert_pythagoras",
       "weighted_energy",
-      "mesh_admissibility_to_orthogonality"
+      "v322_concrete_mesh_orthogonality"
     ],
-    "mesh_admissibility_to_orthogonality": [
-      "simplex_green",
-      "face_cancellation",
-      "finite_mesh_hdiv"
+    "v322_concrete_mesh_orthogonality": [
+      "v322_concrete_green_identity",
+      "v322_equilibrium",
+      "v322_boundary_zero",
+      "v322_interior_cancellation"
+    ],
+    "v323_general_mesh_certificate": [
+      "positive_signed_jacobians",
+      "canonical_edge_ids",
+      "local_global_orientation",
+      "interior_boundary_ownership",
+      "boundary_labels"
+    ],
+    "v324_generic_discrete_prager_synge": [
+      "v323_general_mesh_certificate",
+      "rt0_p1_assembly_certificate",
+      "discrete_green_identity",
+      "equilibrium",
+      "boundary_admissibility",
+      "interior_cancellation"
+    ],
+    "v325_studio_certificate_generation": [
+      "v323_general_mesh_certificate",
+      "python_exact_regeneration_checker",
+      "lean_witness_renderer",
+      "pinned_lean_ci_gate"
+    ],
+    "continuum_prager_synge": [
+      "continuum_h1_hdiv_spaces",
+      "continuum_hdiv_normal_trace",
+      "continuum_density_bridge",
+      "continuum_green_identity",
+      "weighted_energy"
     ]
   },
   "nodes": {
-    "admissible_spaces": "source/spec-ready",
-    "continuum_hdiv_trace": "open",
-    "discrete_prager_synge": "lean-source-ready-after-orthogonality",
-    "face_cancellation": "exact-kernel-closed",
-    "finite_mesh_hdiv": "exact-kernel-closed",
-    "hilbert_pythagoras": "source-ready",
-    "mesh_admissibility_to_orthogonality": "lean-open",
-    "simplex_green": "exact-kernel-closed",
-    "toolchain": "blocked-runtime-network",
-    "weighted_energy": "source/spec-ready"
+    "hilbert_pythagoras": "lean-closed",
+    "weighted_energy": "lean-source-ready",
+    "v322_concrete_green_identity": "lean-closed",
+    "v322_equilibrium": "lean-closed",
+    "v322_boundary_zero": "lean-closed",
+    "v322_interior_cancellation": "lean-closed",
+    "v322_concrete_mesh_orthogonality": "lean-closed",
+    "v322_concrete_prager_synge": "github-ci-pass-at-a69dd2bd83082baa20106eabb8baab30eb49302a",
+    "positive_signed_jacobians": "implemented-v3.23-pending-roadmap-ci",
+    "canonical_edge_ids": "implemented-v3.23-pending-roadmap-ci",
+    "local_global_orientation": "implemented-v3.23-pending-roadmap-ci",
+    "interior_boundary_ownership": "implemented-v3.23-pending-roadmap-ci",
+    "boundary_labels": "implemented-v3.23-pending-roadmap-ci",
+    "v323_general_mesh_certificate": "implemented-pending-roadmap-ci",
+    "rt0_p1_assembly_certificate": "implemented-v3.24-pending-roadmap-ci",
+    "discrete_green_identity": "certificate-api-implemented-pending-roadmap-ci",
+    "equilibrium": "certificate-api-implemented-pending-roadmap-ci",
+    "boundary_admissibility": "certificate-api-implemented-pending-roadmap-ci",
+    "interior_cancellation": "certificate-api-implemented-pending-roadmap-ci",
+    "v324_generic_discrete_prager_synge": "implemented-pending-roadmap-ci",
+    "python_exact_regeneration_checker": "implemented-v3.25-pending-roadmap-ci",
+    "lean_witness_renderer": "implemented-v3.25-pending-roadmap-ci",
+    "pinned_lean_ci_gate": "queued-run-34807646500",
+    "v325_studio_certificate_generation": "implemented-pending-roadmap-ci",
+    "continuum_h1_hdiv_spaces": "open-post-v3.25",
+    "continuum_hdiv_normal_trace": "open-post-v3.25",
+    "continuum_density_bridge": "open-post-v3.25",
+    "continuum_green_identity": "open-post-v3.25",
+    "continuum_prager_synge": "open-post-v3.25"
   },
-  "pass": true
+  "baseline": {
+    "v322_commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
+    "v322_ci_run": 34806285322,
+    "v322_ci_conclusion": "success"
+  },
+  "roadmap_ci": {
+    "tested_commit": "c964aec5c736671ee4e6ce71753c0ec194be39d8",
+    "run_id": 34807646500,
+    "status": "PENDING"
+  }
 }
 
