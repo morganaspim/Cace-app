@@ -97,6 +97,15 @@ jobs:
             exit 1
           fi
 
+      - name: Build CACE Formal prerequisites
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          lake build CACEFormal
+
       - name: Compile generated Studio Lean witness
         working-directory: formal/cace_formal
         shell: bash
@@ -105,15 +114,6 @@ jobs:
         run: |
           set -euo pipefail
           lake env lean CACEFormal/Generated/StudioSmoke.lean
-
-      - name: Build CACE Formal
-        working-directory: formal/cace_formal
-        shell: bash
-        env:
-          LEAN_ABORT_ON_PANIC: '1'
-        run: |
-          set -euo pipefail
-          lake build CACEFormal
 
       - name: Write roadmap attestation
         if: success()
