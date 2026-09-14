@@ -9,6 +9,7 @@ import CACEFormal.Piola
 import CACEFormal.DiscreteMeshAdmissibility
 import CACEFormal.ConcreteMeshCertificate
 import CACEFormal.MeshCertificate
+import CACEFormal.P1RT0Element
 import CACEFormal.RT0P1Assembly
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
