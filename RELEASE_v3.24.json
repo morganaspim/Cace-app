@@ -1,0 +1,33 @@
+{
+  "release": "3.24.0",
+  "title": "Affine P1/RT0 Local Green + Topology-Derived Face Assembly",
+  "status": "FORMAL_CI_PASS",
+  "tested_commit": "f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+  "workflow_run_id": 34812655115,
+  "formal_modules": [
+    "CACEFormal.P1RT0Element",
+    "CACEFormal.MeshFaceAssembly",
+    "CACEFormal.RT0P1DerivedAssembly",
+    "CACEFormal.RT0P1Assembly",
+    "CACEFormal.Generated.V324AssemblyInstance"
+  ],
+  "primary_element_green_theorem": "CACEFormal.P1RT0Element.local_green_identity",
+  "primary_topology_theorem": "CACEFormal.local_face_sum_decomposition",
+  "primary_derived_assembly": "CACEFormal.RT0P1DerivedAssemblyCertificate",
+  "primary_prager_synge_theorem": "CACEFormal.discrete_prager_synge_of_derived_rt0_p1_assembly",
+  "scope": [
+    "actual affine P1 and RT0 element formulas",
+    "elementwise Green identity derived in Lean",
+    "bijection between certified local edge occurrences and interior/boundary ownership records",
+    "global face sum decomposition derived from MeshCertificate ownership rather than accepted as an independent faceAssembly axiom",
+    "derived RT0/P1 assembly certificate generated from exact element data",
+    "equilibrium, boundary admissibility, and interior cancellation as physical admissibility obligations",
+    "exact discrete orthogonality and Prager-Synge endpoint"
+  ],
+  "compatibility": "The earlier RT0P1AssemblyCertificate API remains available; RT0P1DerivedAssemblyCertificate is the stronger topology-derived path.",
+  "nonclaims": [
+    "This is a finite discrete finite-element theorem, not the continuum H1/H(div) Green identity.",
+    "General-domain normal traces and Sobolev density are not supplied by v3.24."
+  ]
+}
+

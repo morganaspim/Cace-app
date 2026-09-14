@@ -1,0 +1,184 @@
+name: CACE Formal v3.23-v3.25
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'formal/cace_formal/**'
+      - 'cace_studio/core/mesh_certificate.py'
+      - 'cace_studio/modules/formal_v325.py'
+      - 'cace_studio/app.py'
+      - 'tests/test_mesh_certificate_v325.py'
+      - '.github/workflows/cace-formal-v325.yml'
+  pull_request:
+    paths:
+      - 'formal/cace_formal/**'
+      - 'cace_studio/core/mesh_certificate.py'
+      - 'cace_studio/modules/formal_v325.py'
+      - 'cace_studio/app.py'
+      - 'tests/test_mesh_certificate_v325.py'
+      - '.github/workflows/cace-formal-v325.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v325-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  formal-and-generator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[test]'
+
+      - name: Run exact certificate generator tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_mesh_certificate_v325.py
+
+      - name: Generate Studio Lean smoke witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from cace_studio.core.mesh_certificate import generate_mesh_certificate, render_lean_mesh_certificate
+
+          vertices = [["0", "0"], ["1", "0"], ["1", "1"], ["0", "1"], ["1/2", "1/2"]]
+          triangles = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]]
+          labels = {"0-1": "bottom", "1-2": "right", "2-3": "top", "0-3": "left"}
+          cert = generate_mesh_certificate(vertices, triangles, labels)
+          lean = render_lean_mesh_certificate(cert, "studioSmokeMesh")
+          Path("formal/cace_formal/CACEFormal/Generated/StudioSmoke.lean").write_text(lean, encoding="utf-8")
+          print(cert["sha256"])
+
+          single = generate_mesh_certificate(
+              [["0", "0"], ["1", "0"], ["0", "1"]],
+              [[0, 1, 2]],
+          )
+          single_lean = render_lean_mesh_certificate(single, "studioSingleTriangleMesh")
+          Path("formal/cace_formal/CACEFormal/Generated/StudioSingleTriangleSmoke.lean").write_text(
+              single_lean, encoding="utf-8"
+          )
+          print(single["sha256"])
+          PY
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned Lean toolchain
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve pinned mathlib
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake update
+          lake exe cache get
+
+      - name: Check proof sources are closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn --include='*.lean' -E '\bsorry\b|\badmit\b|OPEN OBLIGATION' \
+              formal/cace_formal/CACEFormal formal/cace_formal/CACEFormal.lean; then
+            echo 'Unclosed Lean proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Build CACE Formal prerequisites
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          lake build CACEFormal
+
+      - name: Compile generated Studio Lean witnesses
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          lake env lean CACEFormal/Generated/StudioSmoke.lean
+          lake env lean CACEFormal/Generated/StudioSingleTriangleSmoke.lean
+
+      - name: Write roadmap attestation
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess
+          def out(cmd, cwd=None):
+              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+          data = {
+              "release_track": "3.23-3.25",
+              "status": "PASS",
+              "commit": out(["git", "rev-parse", "HEAD"]),
+              "lean_version": out(["lean", "--version"]),
+              "lake_version": out(["lake", "--version"]),
+              "v323": {
+                  "mesh_certificate": "CACEFormal.MeshCertificate",
+                  "fixture": "CACEFormal.Generated.v323SquareCenterMesh",
+                  "geometry_linked": True,
+                  "complete_local_edge_ownership": True,
+              },
+              "v324": {
+                  "polynomial_element_identity": "CACEFormal.P1RT0Element.local_green_identity",
+                  "topology_assembly": "CACEFormal.local_face_sum_decomposition",
+                  "derived_assembly_certificate": "CACEFormal.RT0P1DerivedAssemblyCertificate",
+                  "legacy_assembly_certificate": "CACEFormal.RT0P1AssemblyCertificate",
+                  "theorem": "CACEFormal.discrete_prager_synge_of_derived_rt0_p1_assembly",
+              },
+              "v325": {
+                  "python_exact_checker_tests": "PASS",
+                  "strict_triangle_vertex_ids": True,
+                  "zero_interior_edge_renderer": True,
+                  "studio_module": "formal325.mesh_certificate_generator",
+                  "generated_lean_smoke_witnesses": "PASS",
+              },
+              "nonclaims": [
+                  "Arbitrary generated Lean witnesses require their own pinned CI build before FORMAL labeling.",
+                  "Continuum H1/H(div) trace closure remains a later-release target.",
+              ],
+          }
+          open("v325_github_formal_build_attestation.json", "w", encoding="utf-8").write(
+              json.dumps(data, indent=2, sort_keys=True) + "\n\n"
+          )
+          print(json.dumps(data, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload attestation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cace-v323-v325-formal-attestation
+          path: v325_github_formal_build_attestation.json

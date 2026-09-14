@@ -1,0 +1,33 @@
+{
+  "release": "3.26.0",
+  "title": "Whole-Space Sobolev and Distributional H(div) Interfaces",
+  "status": "IMPLEMENTED_PENDING_PINNED_CI",
+  "primary_module": "CACEFormal.ContinuumSobolev",
+  "mathlib_basis": "Mathlib.Analysis.Distribution.Sobolev",
+  "interfaces": [
+    "CACEFormal.Continuum.InH1",
+    "CACEFormal.Continuum.InL2",
+    "CACEFormal.Continuum.weakPartial",
+    "CACEFormal.Continuum.distributionalDivergence",
+    "CACEFormal.Continuum.InHDiv"
+  ],
+  "proved_theorems": [
+    "CACEFormal.Continuum.h1_weakPartial_l2",
+    "CACEFormal.Continuum.h1_l2",
+    "CACEFormal.Continuum.hdiv_component_l2",
+    "CACEFormal.Continuum.hdiv_divergence_l2"
+  ],
+  "scope": [
+    "actual Mathlib Bessel-potential H^{1,2} membership for scalar tempered distributions on R^n",
+    "distributional coordinate derivatives using Mathlib line derivative operators",
+    "componentwise distributional divergence",
+    "H(div) predicate requiring L2 vector components and L2 distributional divergence",
+    "machine-checked H1-to-L2 coordinate derivative bridge"
+  ],
+  "nonclaims": [
+    "This release is whole-space and does not yet define a bounded-domain H1_0 trace condition.",
+    "No H(div) normal trace is claimed; that is v3.27.",
+    "No density bridge, weak boundary Green identity, or continuum Prager-Synge endpoint is claimed here."
+  ]
+}
+
