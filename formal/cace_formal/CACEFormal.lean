@@ -33,6 +33,8 @@ import CACEFormal.BoxClassicalAgreement
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
+import CACEFormal.RealGraphRegularizationCriterion
+import CACEFormal.H1DomainBridge
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
