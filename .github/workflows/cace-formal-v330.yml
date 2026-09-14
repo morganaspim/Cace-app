@@ -15,6 +15,8 @@ on:
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'cace_studio/core/claim_promotion.py'
+      - 'cace_studio/core/executor.py'
+      - 'cace_studio/core/report.py'
       - 'cace_studio/modules/fem_v076.py'
       - 'tests/test_claim_promotion_v330.py'
       - 'RELEASE_v3.30.json'
@@ -31,6 +33,8 @@ on:
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'cace_studio/core/claim_promotion.py'
+      - 'cace_studio/core/executor.py'
+      - 'cace_studio/core/report.py'
       - 'cace_studio/modules/fem_v076.py'
       - 'tests/test_claim_promotion_v330.py'
       - 'RELEASE_v3.30.json'
@@ -197,7 +201,7 @@ jobs:
               'commit': out(['git', 'rev-parse', 'HEAD']),
               'lean_version': out(['lean', '--version']),
               'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
-              'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and global proof/claim promotion gates.',
+              'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.',
               'theorems': [
                   'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
                   'CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume',
@@ -215,14 +219,15 @@ jobs:
                   'sorryAx_rejected': True,
                   'nonfoundation_axioms_rejected': True,
                   'allowed_foundational_axioms': ['propext', 'Classical.choice', 'Quot.sound'],
-                  'open_problem_requires_independent_reproduction': True,
-                  'open_problem_requires_external_review': True,
+                  'open_problem_requires_artifact_bound_independent_reproduction': True,
+                  'open_problem_requires_artifact_bound_external_review': True,
+                  'module_self_promotion_reserved_flags_rejected': True,
                   'numerical_symbolic_interval_evidence_cannot_self_promote': True
               },
               'nonclaims': [
                   'The v3.30 H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.',
                   'The new H1 distributional graph relation is not yet identified with Mathlib Bessel-potential InH1 in the converse direction.',
-                  'CACE does not establish external reviewer identity or independence; those remain external trust boundaries.'
+                  'CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries.'
               ]
           }
           open('v330_github_formal_build_attestation.json', 'w', encoding='utf-8').write(
