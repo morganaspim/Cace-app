@@ -201,7 +201,6 @@ theorem local_face_sum_decomposition (mesh : MeshCertificate)
         (∑ b : Fin mesh.boundaryEdgeCount,
           f (localOfOwned mesh (Sum.inr b))) := by
       rw [Fintype.sum_sum_type]
-      rfl
     _ = _ := by
       rw [hinterior, hboundary]
 
