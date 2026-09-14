@@ -7,13 +7,13 @@ conjecture, and Lean may certify a formal statement, but CACE must not silently 
 very different states into the word "solved".
 
 In particular, an open-problem-resolution claim is never public-claim eligible from CACE's own
-numerical, symbolic, interval, or formal output alone.  It additionally needs independent
-reproduction and a recorded external review attestation.
+numerical, symbolic, interval, or formal output alone. It additionally needs an independently
+reproduced *same artifact* and an external review bound to that same artifact digest.
 """
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Iterable
+from typing import Any, Iterable
 
 
 class ClaimScope(str, Enum):
@@ -28,11 +28,41 @@ class ClaimStage(str, Enum):
     EXTERNALLY_REVIEWED_RESOLUTION = "externally-reviewed-resolution"
 
 
+def _is_sha256_digest(value: str | None) -> bool:
+    if value is None:
+        return False
+    digest = value.strip().lower()
+    return len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
+
+
+@dataclass(frozen=True)
+class IndependentReproductionAttestation:
+    """Externally supplied record that a concrete claim artifact was independently reproduced."""
+
+    reproducer_identity: str
+    artifact_sha256: str
+    decision: str = "reproduced"
+    independent: bool = True
+    source: str = "external"
+
+    def valid_for_promotion(self, expected_artifact_sha256: str | None = None) -> bool:
+        digest = self.artifact_sha256.strip().lower()
+        expected = expected_artifact_sha256.strip().lower() if expected_artifact_sha256 else None
+        return (
+            self.source == "external"
+            and self.independent
+            and bool(self.reproducer_identity.strip())
+            and self.decision.lower() in {"reproduced", "verified", "pass", "passed"}
+            and _is_sha256_digest(digest)
+            and (expected is None or digest == expected)
+        )
+
+
 @dataclass(frozen=True)
 class ExternalReviewAttestation:
     """A record supplied from outside the theorem-producing CACE run.
 
-    `artifact_sha256` binds the review to a concrete manuscript/proof artifact.  This dataclass does
+    `artifact_sha256` binds the review to a concrete manuscript/proof artifact. This dataclass does
     not pretend to establish the human reviewer's identity cryptographically; that remains an
     external trust boundary and is reported as such.
     """
@@ -43,15 +73,16 @@ class ExternalReviewAttestation:
     independent: bool = True
     source: str = "external"
 
-    def valid_for_promotion(self) -> bool:
-        digest = self.artifact_sha256.lower()
+    def valid_for_promotion(self, expected_artifact_sha256: str | None = None) -> bool:
+        digest = self.artifact_sha256.strip().lower()
+        expected = expected_artifact_sha256.strip().lower() if expected_artifact_sha256 else None
         return (
             self.source == "external"
             and self.independent
             and bool(self.reviewer_identity.strip())
             and self.decision.lower() in {"approve", "accepted", "verified"}
-            and len(digest) == 64
-            and all(c in "0123456789abcdef" for c in digest)
+            and _is_sha256_digest(digest)
+            and (expected is None or digest == expected)
         )
 
 
@@ -62,7 +93,9 @@ class ClaimEvidence:
     axiom_audit_passed: bool = False
     pinned_ci_passed: bool = False
     exact_statement_digest: str | None = None
+    # Legacy informational count retained for compatibility. It is never sufficient for promotion.
     independent_reproductions: int = 0
+    reproduction_attestations: tuple[IndependentReproductionAttestation, ...] = ()
     external_reviews: tuple[ExternalReviewAttestation, ...] = ()
     numerical_evidence: bool = False
     symbolic_evidence: bool = False
@@ -77,7 +110,7 @@ class ClaimDecision:
     blockers: tuple[str, ...] = field(default_factory=tuple)
     trust_boundary: tuple[str, ...] = field(default_factory=tuple)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["scope"] = self.scope.value
         d["stage"] = self.stage.value
@@ -94,17 +127,19 @@ def _formal_gate(evidence: ClaimEvidence) -> tuple[bool, list[str]]:
         blockers.append("axiom-audit-missing")
     if not evidence.pinned_ci_passed:
         blockers.append("pinned-ci-missing")
-    if not evidence.exact_statement_digest:
+    if evidence.exact_statement_digest is None:
         blockers.append("exact-statement-digest-missing")
+    elif not _is_sha256_digest(evidence.exact_statement_digest):
+        blockers.append("exact-statement-digest-invalid")
     return not blockers, blockers
 
 
 def evaluate_claim(scope: ClaimScope, evidence: ClaimEvidence) -> ClaimDecision:
     """Evaluate the strongest wording CACE is permitted to use for a claim.
 
-    This is fail-closed.  Numerical/symbolic/interval evidence cannot substitute for the formal
-    gate.  For an open-problem resolution, even a fully kernel-checked theorem remains only a
-    formal candidate until it has an independent reproduction and external review.
+    This is fail-closed. Numerical/symbolic/interval evidence cannot substitute for the formal
+    gate. For an open-problem resolution, even a fully kernel-checked theorem remains only a formal
+    candidate until the *same exact artifact* has an independent reproduction and external review.
     """
 
     formal_ok, blockers = _formal_gate(evidence)
@@ -131,23 +166,32 @@ def evaluate_claim(scope: ClaimScope, evidence: ClaimEvidence) -> ClaimDecision:
             trust_boundary=tuple(trust_boundary),
         )
 
-    if evidence.independent_reproductions < 1:
+    digest = evidence.exact_statement_digest
+    valid_reproductions = tuple(
+        r for r in evidence.reproduction_attestations if r.valid_for_promotion(digest)
+    )
+    if not valid_reproductions:
+        blocker = (
+            "artifact-bound-independent-reproduction-missing"
+            if evidence.independent_reproductions <= 0
+            else "legacy-reproduction-count-not-artifact-bound"
+        )
         return ClaimDecision(
             scope=scope,
             stage=ClaimStage.FORMAL_CANDIDATE,
             public_resolution_claim_allowed=False,
-            blockers=("independent-reproduction-missing", "external-review-missing"),
+            blockers=(blocker, "external-review-missing"),
             trust_boundary=tuple(trust_boundary),
         )
 
-    valid_reviews = tuple(r for r in evidence.external_reviews if r.valid_for_promotion())
-    trust_boundary.append("independent reproduction provenance")
+    trust_boundary.append("independent reproduction identity/independence provenance")
+    valid_reviews = tuple(r for r in evidence.external_reviews if r.valid_for_promotion(digest))
     if not valid_reviews:
         return ClaimDecision(
             scope=scope,
             stage=ClaimStage.REPRODUCED_FORMAL_CANDIDATE,
             public_resolution_claim_allowed=False,
-            blockers=("external-review-missing-or-invalid",),
+            blockers=("artifact-bound-external-review-missing-or-invalid",),
             trust_boundary=tuple(trust_boundary),
         )
 
@@ -180,4 +224,48 @@ def research_candidate_decision(
             symbolic_evidence=symbolic_evidence,
             interval_evidence=interval_evidence,
         ),
+    )
+
+
+OPEN_PROBLEM_MODULE_CATEGORIES = frozenset({"Theorem Discovery", "Reliability Theorem"})
+
+
+def _collect_open_obligations(value: Any) -> set[str]:
+    """Conservatively recover named open obligations from nested discovery-module outputs."""
+
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in {"unresolved", "open", "blocking_nodes", "unresolved_obligations"}:
+                if isinstance(child, (list, tuple, set)):
+                    found.update(str(x) for x in child)
+            found.update(_collect_open_obligations(child))
+    elif isinstance(value, (list, tuple, set)):
+        for child in value:
+            found.update(_collect_open_obligations(child))
+    return found
+
+
+def fail_closed_module_decision(category: str, proof_status: Any, outputs: Any) -> ClaimDecision | None:
+    """Framework-level guard for theorem-discovery/reliability modules.
+
+    Module outputs are deliberately *not* trusted to self-assert formal verification, reproduction,
+    review, or public resolution status. For open-problem research categories, the executor records
+    a research-candidate sidecar decision using only conservative evidence classification and any
+    named open obligations discoverable in the output. Formal promotion must go through
+    `evaluate_claim` with externally supplied, artifact-bound evidence.
+    """
+
+    if category not in OPEN_PROBLEM_MODULE_CATEGORIES:
+        return None
+
+    evidence_values = {
+        getattr(item, "value", str(item)) for item in getattr(proof_status, "evidence", set())
+    }
+    unresolved = _collect_open_obligations(outputs)
+    return research_candidate_decision(
+        unresolved_obligations=unresolved,
+        numerical_evidence="numerical" in evidence_values,
+        symbolic_evidence="symbolic" in evidence_values,
+        interval_evidence="interval-certified" in evidence_values,
     )
