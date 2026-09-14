@@ -61,12 +61,11 @@ def v324SquareCenterAssembly : RT0P1AssemblyCertificate v323SquareCenterMesh whe
     simp [v324CellPairing, v324CellFacePairing, v324CellDivergence,
       v322CellDivergence, v322FluxError]
   faceAssembly := by
-    norm_num [Fin.sum_univ_four, v324CellFacePairing, v324CellPairing,
-      v324BoundaryPairing, v324InteriorFacePairing, v324CellIndex,
-      v324InteriorFaceIndex, v322CellPairing, v322CellArea,
-      RationalVector2.dot, v322FluxError, v322CellGradient,
-      v322BoundaryPairing, v322InteriorFacePairing,
-      v322InteriorFluxCertificate, v322LeftNormalFlux, v322RightNormalFlux]
+    change (∑ K : V322Cell, v322CellPairing K) =
+      (∑ K : V322Cell, v322BoundaryPairing K) +
+      (∑ F : V322InteriorFace, v322InteriorFacePairing F)
+    simpa [v322CellDivergence, v322FluxError, add_assoc] using
+      v322_global_green_identity
   equilibrium := by
     intro K
     exact v322_divergence_free (v324CellIndex K)
