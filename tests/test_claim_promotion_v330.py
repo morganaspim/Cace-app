@@ -1,3 +1,5 @@
+import pytest
+
 from cace_studio.core.claim_promotion import (
     ClaimEvidence,
     ClaimScope,
@@ -7,9 +9,11 @@ from cace_studio.core.claim_promotion import (
     evaluate_claim,
     fail_closed_module_decision,
     research_candidate_decision,
+    unsafe_self_promotion_paths,
 )
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Experiment, Node
+from cace_studio.core.module import ValidationError
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.report import graph_certificate
 from cace_studio.core.types import EvidenceKind, Maturity, ModuleMetadata, ProofStatus
@@ -202,6 +206,7 @@ def test_framework_module_guard_ignores_self_asserted_promotion():
     assert d.stage is ClaimStage.RESEARCH_CANDIDATE
     assert d.public_resolution_claim_allowed is False
     assert "unresolved-proof-obligations" in d.blockers
+    assert unsafe_self_promotion_paths(outputs) == ("result.public_resolution_claim_allowed",)
 
 
 def test_non_open_problem_category_has_no_forced_claim_decision():
@@ -212,13 +217,34 @@ def test_non_open_problem_category_has_no_forced_claim_decision():
 class _DummyOpenProblemModule(ResultModule):
     fn = staticmethod(lambda: {
         "pass": True,
-        "public_resolution_claim_allowed": True,
         "blocking_nodes": ["unproved-density"],
     })
     module_id = "test.open_problem"
-    label = "Adversarial Open Problem Module"
+    label = "Open Problem Research Module"
     version = "0.0.1"
-    description = "Test module that attempts to self-promote."
+    description = "Test research module with unresolved obligations."
+    evidence_kind = EvidenceKind.SYMBOLIC
+    metadata = ModuleMetadata(
+        module_id,
+        label,
+        version,
+        "Reliability Theorem",
+        description,
+        Maturity.EXPERIMENTAL,
+    )
+    proof_status = ProofStatus(evidence={EvidenceKind.SYMBOLIC}, unit_tests=True)
+
+
+class _DummyUnsafeOpenProblemModule(ResultModule):
+    fn = staticmethod(lambda: {
+        "pass": True,
+        "public_resolution_claim_allowed": True,
+        "blocking_nodes": ["unproved-density"],
+    })
+    module_id = "test.unsafe_open_problem"
+    label = "Unsafe Open Problem Module"
+    version = "0.0.1"
+    description = "Test module that attempts reserved self-promotion."
     evidence_kind = EvidenceKind.SYMBOLIC
     metadata = ModuleMetadata(
         module_id,
@@ -243,3 +269,11 @@ def test_executor_and_report_add_fail_closed_claim_sidecar():
     cert = graph_certificate(result)
     assert cert["claim_decision_nodes"] == 1
     assert cert["public_resolution_claims_allowed"] == 0
+
+
+def test_executor_rejects_reserved_public_self_promotion():
+    registry = ModuleRegistry()
+    registry.register(_DummyUnsafeOpenProblemModule)
+    exp = Experiment(name="unsafe-claim", nodes=[Node(id="n1", module_id="test.unsafe_open_problem")])
+    with pytest.raises(ValidationError, match="attempted reserved public promotion"):
+        GraphExecutor(registry).run(exp)
