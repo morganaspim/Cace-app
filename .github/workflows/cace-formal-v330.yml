@@ -7,6 +7,7 @@ on:
       - roadmap/v3.30-proof-strengthening
     paths:
       - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/RegularizationClosure.lean'
       - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/RegularizationClosure.lean'
       - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
@@ -90,6 +92,7 @@ jobs:
           set -euo pipefail
           files=(
             formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean
+            formal/cace_formal/CACEFormal/RegularizationClosure.lean
             formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean
             formal/cace_formal/CACEFormal/V330AxiomAudit.lean
           )
@@ -106,6 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           lake env lean CACEFormal/SmoothBoxGreenAuto.lean
+          lake env lean CACEFormal/RegularizationClosure.lean
           lake env lean CACEFormal/GraphRegularizationCriterion.lean
           lake build CACEFormal
 
@@ -128,6 +132,8 @@ jobs:
               'smoothBoxProduct_divergence_eq_greenVolume',
               'smoothBoxGreen_schwartz',
               'boxGraphNormalTrace_smooth_eq_classical_auto',
+              'submodule_topologicalClosure_eq_of_regularizer',
+              'topologicalClosure_eq_top_of_regularizer',
               'complexSmoothGraphClosure_eq_distributional_of_regularizer',
               'distributional_le_complexSmoothGraphClosure_of_regularizer',
           ]
@@ -167,12 +173,14 @@ jobs:
               'commit': out(['git', 'rev-parse', 'HEAD']),
               'lean_version': out(['lean', '--version']),
               'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
-              'scope': 'Automatic smooth product calculus, graph-regularization closure criterion, and global proof/claim promotion gates.',
+              'scope': 'Automatic smooth product calculus, generic regularization-to-closure automation, H(div) graph-density reduction, and global proof/claim promotion gates.',
               'theorems': [
                   'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
                   'CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume',
                   'CACEFormal.Continuum.smoothBoxGreen_schwartz',
                   'CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto',
+                  'CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer',
+                  'CACEFormal.Continuum.topologicalClosure_eq_top_of_regularizer',
                   'CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer',
                   'CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer'
               ],
@@ -186,7 +194,7 @@ jobs:
                   'numerical_symbolic_interval_evidence_cannot_self_promote': True
               },
               'nonclaims': [
-                  'The v3.30 regularization criterion reduces but does not itself construct the Fourier/mollifier regularizer required for unconditional reverse H(div) graph inclusion.',
+                  'The v3.30 H(div) regularization criterion reduces but does not itself construct the mollifier/cutoff regularizer required for unconditional reverse H(div) graph inclusion.',
                   'CACE does not establish external reviewer identity or independence; those remain external trust boundaries.'
               ]
           }
