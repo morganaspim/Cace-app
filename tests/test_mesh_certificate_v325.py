@@ -61,6 +61,16 @@ def test_float_geometry_is_rejected_instead_of_silently_rounded():
         )
 
 
+@pytest.mark.parametrize("bad_id", [0.0, "0", False, 1.5])
+def test_triangle_vertex_ids_are_not_coerced(bad_id):
+    mesh = square_center_mesh()
+    mesh["triangles"][0][0] = bad_id
+    with pytest.raises(ValueError, match="must be an integer"):
+        generate_mesh_certificate(
+            mesh["vertices"], mesh["triangles"], mesh["boundary_labels"]
+        )
+
+
 def test_tampered_certificate_is_rejected():
     mesh = square_center_mesh()
     cert = generate_mesh_certificate(
@@ -116,6 +126,19 @@ def test_lean_renderer_emits_closed_geometry_linked_meshcertificate_source():
     assert "signedJacobian_pos" in source
     assert "sorry" not in source
     assert "admit" not in source
+
+
+def test_lean_renderer_supports_single_triangle_with_zero_interior_edges():
+    vertices = [["0", "0"], ["1", "0"], ["0", "1"]]
+    triangles = [[0, 1, 2]]
+    cert = generate_mesh_certificate(vertices, triangles)
+    assert cert["counts"]["interior_edges"] == 0
+    assert cert["counts"]["boundary_edges"] == 3
+    source = render_lean_mesh_certificate(cert, "singleTriangleMesh")
+    assert "interiorEdgeCount := 0" in source
+    assert "def singleTriangleMeshInteriorEdge (i : Fin 0)" in source
+    assert "exact Fin.elim0 i" in source
+    assert "def singleTriangleMesh : MeshCertificate where" in source
 
 
 def test_studio_registry_exposes_verified_baseline_and_generator():

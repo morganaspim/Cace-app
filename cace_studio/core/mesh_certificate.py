@@ -26,6 +26,15 @@ def _q(value: Any) -> Fraction:
     )
 
 
+def _strict_vertex_id(value: Any, *, cell: int, slot: int) -> int:
+    """Accept only genuine integer vertex ids; never coerce floats/strings/bools."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(
+            f"triangle {cell} vertex id at slot {slot} must be an integer, got {value!r}"
+        )
+    return value
+
+
 def _qstr(value: Fraction) -> str:
     return str(value.numerator) if value.denominator == 1 else f"{value.numerator}/{value.denominator}"
 
@@ -97,10 +106,11 @@ def generate_mesh_certificate(
     for cell, raw in enumerate(triangles):
         if len(raw) != 3:
             raise ValueError(f"triangle {cell} must have exactly three vertex ids")
-        try:
-            a, b, c = (int(raw[0]), int(raw[1]), int(raw[2]))
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"triangle {cell} contains a non-integer vertex id") from exc
+        a, b, c = (
+            _strict_vertex_id(raw[0], cell=cell, slot=0),
+            _strict_vertex_id(raw[1], cell=cell, slot=1),
+            _strict_vertex_id(raw[2], cell=cell, slot=2),
+        )
         if len({a, b, c}) != 3:
             raise ValueError(f"triangle {cell} repeats a vertex")
         for v in (a, b, c):
@@ -290,11 +300,6 @@ def render_lean_mesh_certificate(
     nedge = cert["counts"]["edges"]
     interior = [e for e in cert["edges"] if e["kind"] == "interior"]
     boundary = [e for e in cert["edges"] if e["kind"] == "boundary"]
-    if not interior or not boundary:
-        raise ValueError(
-            "Lean renderer currently requires at least one interior and one boundary edge; "
-            "the Python certificate format itself has no such restriction"
-        )
 
     prefix = definition_name
     lines: list[str] = [
@@ -309,6 +314,10 @@ def render_lean_mesh_certificate(
 
     def emit_fin_function(name: str, n: int, ret: str, values: Sequence[str]) -> None:
         lines.append(f"def {name} (i : Fin {n}) : {ret} :=")
+        if n == 0:
+            lines.append("  exact Fin.elim0 i")
+            lines.append("")
+            return
         lines.append("  match i.val with")
         for i, value in enumerate(values[:-1]):
             lines.append(f"  | {i} => {value}")

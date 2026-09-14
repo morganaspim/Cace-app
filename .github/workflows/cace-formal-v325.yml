@@ -22,6 +22,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cace-formal-v325-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   formal-and-generator:
     runs-on: ubuntu-latest
@@ -43,7 +47,7 @@ jobs:
           set -euo pipefail
           python -m pytest -q tests/test_mesh_certificate_v325.py
 
-      - name: Generate Studio Lean smoke witness
+      - name: Generate Studio Lean smoke witnesses
         shell: bash
         run: |
           set -euo pipefail
@@ -58,6 +62,16 @@ jobs:
           lean = render_lean_mesh_certificate(cert, "studioSmokeMesh")
           Path("formal/cace_formal/CACEFormal/Generated/StudioSmoke.lean").write_text(lean, encoding="utf-8")
           print(cert["sha256"])
+
+          single = generate_mesh_certificate(
+              [["0", "0"], ["1", "0"], ["0", "1"]],
+              [[0, 1, 2]],
+          )
+          single_lean = render_lean_mesh_certificate(single, "studioSingleTriangleMesh")
+          Path("formal/cace_formal/CACEFormal/Generated/StudioSingleTriangleSmoke.lean").write_text(
+              single_lean, encoding="utf-8"
+          )
+          print(single["sha256"])
           PY
 
       - name: Install elan
@@ -106,7 +120,7 @@ jobs:
           set -euo pipefail
           lake build CACEFormal
 
-      - name: Compile generated Studio Lean witness
+      - name: Compile generated Studio Lean witnesses
         working-directory: formal/cace_formal
         shell: bash
         env:
@@ -114,6 +128,7 @@ jobs:
         run: |
           set -euo pipefail
           lake env lean CACEFormal/Generated/StudioSmoke.lean
+          lake env lean CACEFormal/Generated/StudioSingleTriangleSmoke.lean
 
       - name: Write roadmap attestation
         if: success()
@@ -137,14 +152,18 @@ jobs:
                   "complete_local_edge_ownership": True,
               },
               "v324": {
-                  "assembly_certificate": "CACEFormal.RT0P1AssemblyCertificate",
-                  "theorem": "CACEFormal.discrete_prager_synge_of_rt0_p1_assembly",
-                  "fixture_theorem": "CACEFormal.Generated.v324_square_center_prager_synge",
+                  "polynomial_element_identity": "CACEFormal.P1RT0Element.local_green_identity",
+                  "topology_assembly": "CACEFormal.local_face_sum_decomposition",
+                  "derived_assembly_certificate": "CACEFormal.RT0P1DerivedAssemblyCertificate",
+                  "legacy_assembly_certificate": "CACEFormal.RT0P1AssemblyCertificate",
+                  "theorem": "CACEFormal.discrete_prager_synge_of_derived_rt0_p1_assembly",
               },
               "v325": {
                   "python_exact_checker_tests": "PASS",
+                  "strict_triangle_vertex_ids": True,
+                  "zero_interior_edge_renderer": True,
                   "studio_module": "formal325.mesh_certificate_generator",
-                  "generated_lean_smoke_witness": "PASS",
+                  "generated_lean_smoke_witnesses": "PASS",
               },
               "nonclaims": [
                   "Arbitrary generated Lean witnesses require their own pinned CI build before FORMAL labeling.",
