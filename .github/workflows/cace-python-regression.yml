@@ -1,0 +1,28 @@
+name: CACE Python regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, roadmap/v3.30-proof-strengthening]
+    paths: ['cace_studio/**', 'tests/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Isolated Python and full regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/0.12.13/install.sh |
+            env UV_INSTALL_DIR="$RUNNER_TEMP/cace-uv" UV_NO_MODIFY_PATH=1 sh
+          "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-regression"
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip install -e '.[test]'
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pytest --junitxml=regression-results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-regression-results
+          path: regression-results.xml
