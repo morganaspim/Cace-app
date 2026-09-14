@@ -69,15 +69,25 @@ class GraphExecutor:
             out=dict(module.execute(ins,params,ctx)); expected={p.name for p in module.outputs}; unknown=set(out)-expected
             if unknown: raise ValidationError(f"{node_id}: undeclared outputs {sorted(unknown)}")
             out={k:DeviceManager.to_host(v) for k,v in out.items()}; outputs[node_id]=out
+
+            # Public/open-problem promotion fields are globally reserved. Ordinary computational
+            # modules cannot authorize their own resolution status merely by changing category.
+            attempted=unsafe_self_promotion_paths(out)
             decision=fail_closed_module_decision(module.metadata.category,module.proof_status,out)
-            if decision is not None:
-                attempted=unsafe_self_promotion_paths(out)
-                if attempted and not decision.public_resolution_claim_allowed:
+            if attempted:
+                if decision is None:
+                    raise ValidationError(
+                        f"{node_id}: module attempted reserved public promotion at {list(attempted)}; "
+                        "ordinary module outputs cannot authorize open-problem resolution"
+                    )
+                if not decision.public_resolution_claim_allowed:
                     raise ValidationError(
                         f"{node_id}: open-problem module attempted reserved public promotion at {list(attempted)}; "
                         "promotion must go through artifact-bound claim evaluation"
                     )
+            if decision is not None:
                 claim_decisions[node_id]=decision.to_dict()
+
             records=list(module.verify(ins,params,out,ctx)); verification[node_id]=records
             if any(r.state is VerificationState.FAIL for r in records):
                 # Failure is evidence, not a crash: preserve outputs/certificate for investigation.
