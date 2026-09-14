@@ -11,7 +11,7 @@ v3.22 concrete finite-mesh certificate.
 This module intentionally formalizes a small, exact rational fixture before the
 general continuum trace theorem.  The represented mesh is the unit square with a
 center vertex and four counter-clockwise triangles.  The primal field is P1 by
-nodal values, the flux-error field is constant per cell (an RT0 subspace in this
+odal values, the flux-error field is constant per cell (an RT0 subspace in this
 fixture), and the interior normal-flux contributions cancel pairwise.
 -/
 
@@ -134,12 +134,12 @@ theorem v322_boundary_trace_zero (b : V322BoundaryFace) :
 theorem v322_divergence_free :
     ∀ K : V322Cell, v322CellDivergence K = 0 := by
   intro K
-  rfl
+  fin_cases K <;> rfl
 
 theorem v322_boundary_terms_zero :
     ∀ K : V322Cell, v322BoundaryPairing K = 0 := by
   intro K
-  rfl
+  fin_cases K <;> rfl
 
 theorem v322_interior_faces_cancel :
     ∀ F : V322InteriorFace, v322InteriorFacePairing F = 0 := by
