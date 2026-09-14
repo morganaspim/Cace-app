@@ -187,7 +187,9 @@ def v323SquareCenterMesh : MeshCertificate where
   localSign := v323LocalSign
   local_edge_geometry := by
     intro K s
-    fin_cases K <;> fin_cases s <;> rfl
+    fin_cases K <;> fin_cases s <;>
+      simp [v323LocalEdge, v323LocalSign, v323EdgeVertexLo, v323EdgeVertexHi,
+        v323TriangleVertex, localEdgeStartSlot, localEdgeEndSlot]
   interiorEdge := v323InteriorEdge
   interiorLeftCell := v323InteriorLeftCell
   interiorLeftSlot := v323InteriorLeftSlot
