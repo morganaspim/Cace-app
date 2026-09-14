@@ -11,6 +11,7 @@ on:
       - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
       - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
@@ -29,6 +30,7 @@ on:
       - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
       - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
@@ -106,6 +108,7 @@ jobs:
             formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean
             formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean
             formal/cace_formal/CACEFormal/H1DomainBridge.lean
+            formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean
             formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean
             formal/cace_formal/CACEFormal/V330AxiomAudit.lean
           )
@@ -126,6 +129,7 @@ jobs:
           lake env lean CACEFormal/GraphRegularizationCriterion.lean
           lake env lean CACEFormal/RealGraphRegularizationCriterion.lean
           lake env lean CACEFormal/H1DomainBridge.lean
+          lake env lean CACEFormal/H1BesselRieszReduction.lean
           lake env lean CACEFormal/DistributionalGraphRepresentatives.lean
           lake build CACEFormal
 
@@ -164,6 +168,14 @@ jobs:
               'inH1GraphRepresentative_mem',
               'inHDivGraphRepresentative_mem',
               'inHDiv_iff_exists_distributionalGraphRepresentative',
+              'besselRieszSymbol_norm_le',
+              'h1RieszSymbol_norm_le_one',
+              'h1RieszSymbol_hasTemperateGrowth',
+              'besselPotential_neg_two_inH1_of_inL2',
+              'besselPotential_neg_one_weakPartial_inH1_of_inL2',
+              'rieszFiltered_weakPartial_inH1_of_inL2',
+              'h1RieszCorrection_inH1',
+              'inH1_of_besselRiesz_reconstruction',
           ]
           allowed = {'propext', 'Classical.choice', 'Quot.sound'}
           found = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", text)
@@ -212,7 +224,11 @@ jobs:
                   'CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer',
                   'CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer',
                   'CACEFormal.Continuum.inH1GraphRepresentative_mem',
-                  'CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative'
+                  'CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative',
+                  'CACEFormal.Continuum.h1RieszSymbol_norm_le_one',
+                  'CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2',
+                  'CACEFormal.Continuum.h1RieszCorrection_inH1',
+                  'CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction'
               ],
               'promotion_guards': {
                   'unfinished_tokens_rejected': True,

@@ -4,6 +4,7 @@ import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.H1DomainBridge
 import CACEFormal.DistributionalGraphRepresentatives
+import CACEFormal.H1BesselRieszReduction
 
 /-!
 # v3.30 kernel-assumption audit
@@ -33,3 +34,12 @@ or on any axiom outside the small foundational whitelist enforced by the workflo
 #print axioms CACEFormal.Continuum.inH1GraphRepresentative_mem
 #print axioms CACEFormal.Continuum.inHDivGraphRepresentative_mem
 #print axioms CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative
+
+#print axioms CACEFormal.Continuum.besselRieszSymbol_norm_le
+#print axioms CACEFormal.Continuum.h1RieszSymbol_norm_le_one
+#print axioms CACEFormal.Continuum.h1RieszSymbol_hasTemperateGrowth
+#print axioms CACEFormal.Continuum.besselPotential_neg_two_inH1_of_inL2
+#print axioms CACEFormal.Continuum.besselPotential_neg_one_weakPartial_inH1_of_inL2
+#print axioms CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2
+#print axioms CACEFormal.Continuum.h1RieszCorrection_inH1
+#print axioms CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction
