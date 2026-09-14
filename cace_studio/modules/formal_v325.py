@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Mapping
 
 from cace_studio.core.mesh_certificate import (
@@ -20,6 +21,16 @@ from cace_studio.core.types import (
 from cace_studio.core.verification import VerificationRecord, VerificationState
 
 
+_DEFAULT_MESH_JSON = json.dumps(
+    {
+        "vertices": [["0", "0"], ["1", "0"], ["1", "1"], ["0", "1"], ["1/2", "1/2"]],
+        "triangles": [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]],
+        "boundary_labels": {"0-1": "bottom", "1-2": "right", "2-3": "top", "0-3": "left"},
+    },
+    sort_keys=True,
+)
+
+
 class MeshCertificateGeneratorV325(Module):
     metadata = ModuleMetadata(
         module_id="formal325.mesh_certificate_generator",
@@ -37,13 +48,19 @@ class MeshCertificateGeneratorV325(Module):
             "Continuum H1/H(div) closure is outside v3.25 scope.",
         ),
     )
-    inputs = (PortSpec("mesh", "mapping"),)
+    inputs = (PortSpec("mesh", "mapping", required=False),)
     outputs = (
         PortSpec("certificate", "mapping"),
         PortSpec("lean_source", "text"),
         PortSpec("verification_chain", "mapping"),
     )
     parameters = (
+        ParameterSpec(
+            "mesh_json",
+            "text",
+            _DEFAULT_MESH_JSON,
+            "Exact mesh JSON used when no mesh is connected to the input port.",
+        ),
         ParameterSpec(
             "definition_name",
             "text",
@@ -71,7 +88,12 @@ class MeshCertificateGeneratorV325(Module):
         params: Mapping[str, Any],
         ctx: ExecutionContext,
     ) -> Mapping[str, Any]:
-        mesh = inputs["mesh"]
+        mesh = inputs.get("mesh")
+        if mesh is None:
+            try:
+                mesh = json.loads(str(params.get("mesh_json", _DEFAULT_MESH_JSON)))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"mesh_json is not valid JSON: {exc}") from exc
         if not isinstance(mesh, Mapping):
             raise ValueError("mesh input must be a mapping")
         cert = generate_mesh_certificate(
