@@ -59,13 +59,25 @@ def enforce_formal_claim_qualification(
 
         ledger_entry = proof_ledger.for_claim(claim.claim_id)
         blockers: list[str] = []
+        if claim.qualification_status != "PASS":
+            blockers.append("claim-registry-status-not-pass")
+        if claim.evidence_ceiling not in {"formally-verified", "cross-verified"}:
+            blockers.append("claim-registry-evidence-ceiling-below-formal")
         if not claim.current_head_qualified:
             blockers.append("claim-registry-current-head-qualification-missing")
         if ledger_entry is None:
             blockers.append("proof-ledger-entry-missing")
         else:
+            if ledger_entry.status != "PASS":
+                blockers.append("proof-ledger-status-not-pass")
             if not ledger_entry.current_head_qualified:
                 blockers.append("proof-ledger-current-head-qualification-missing")
+            if ledger_entry.workflow_run_id is None or ledger_entry.workflow_run_id <= 0:
+                blockers.append("proof-ledger-workflow-run-missing")
+            if not ledger_entry.checks:
+                blockers.append("proof-ledger-qualification-checks-missing")
+            if ledger_entry.blockers:
+                blockers.append("proof-ledger-retains-blockers")
             if claim.proof_artifact_sha256 != ledger_entry.proof_artifact_sha256:
                 blockers.append("proof-artifact-hash-mismatch")
             if claim.attested_commit != ledger_entry.commit:
@@ -116,8 +128,9 @@ def enforce_formal_claim_qualification(
                 notes=record.notes
                 + (
                     f"Formal evidence bound to canonical claim {claim.claim_id}, commit "
-                    f"{ledger_entry.commit}, and proof artifact "
-                    f"{ledger_entry.proof_artifact_sha256}.",
+                    f"{ledger_entry.commit}, proof artifact "
+                    f"{ledger_entry.proof_artifact_sha256}, and workflow run "
+                    f"{ledger_entry.workflow_run_id}.",
                 ),
             )
         )

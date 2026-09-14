@@ -2,7 +2,7 @@ name: CACE Python regression
 on:
   workflow_dispatch:
   push:
-    branches: [main, roadmap/v3.30-proof-strengthening]
+    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
     paths: ['cace_studio/**', 'tests/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
   pull_request:
     paths: ['cace_studio/**', 'tests/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Isolated Python and full regression
         shell: bash
         run: |

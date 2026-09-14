@@ -14,6 +14,13 @@ def _is_sha256(value: str | None) -> bool:
     return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
 
 
+def _is_git_commit(value: str | None) -> bool:
+    if not value:
+        return False
+    value = value.strip().lower()
+    return len(value) == 40 and all(c in "0123456789abcdef" for c in value)
+
+
 @dataclass(frozen=True)
 class ClaimEntry:
     claim_id: str
@@ -39,7 +46,9 @@ class ClaimEntry:
             evidence_ceiling=str(raw.get("evidence_ceiling", "experimental")),
             qualification_status=str(q.get("status", "UNQUALIFIED")),
             current_head_qualified=bool(q.get("current_head_qualified", False)),
-            attested_commit=(str(q["attested_commit"]) if q.get("attested_commit") else None),
+            attested_commit=(
+                str(q["attested_commit"]).lower() if q.get("attested_commit") else None
+            ),
             proof_artifact_sha256=(
                 str(q["proof_artifact_sha256"]).lower()
                 if q.get("proof_artifact_sha256")
@@ -50,11 +59,26 @@ class ClaimEntry:
         )
         if not entry.claim_id.strip():
             raise ValueError("claim_id must be non-empty")
-        if entry.current_head_qualified and not _is_sha256(entry.proof_artifact_sha256):
-            raise ValueError(
-                f"{entry.claim_id}: a current-head formal qualification requires "
-                "a 64-hex proof_artifact_sha256"
-            )
+        if entry.current_head_qualified:
+            if entry.qualification_status != "PASS":
+                raise ValueError(
+                    f"{entry.claim_id}: current-head qualification requires status PASS"
+                )
+            if entry.evidence_ceiling not in {"formally-verified", "cross-verified"}:
+                raise ValueError(
+                    f"{entry.claim_id}: current-head FORMAL qualification requires "
+                    "a formally-verified or cross-verified evidence ceiling"
+                )
+            if not _is_git_commit(entry.attested_commit):
+                raise ValueError(
+                    f"{entry.claim_id}: current-head formal qualification requires "
+                    "a 40-hex attested_commit"
+                )
+            if not _is_sha256(entry.proof_artifact_sha256):
+                raise ValueError(
+                    f"{entry.claim_id}: current-head formal qualification requires "
+                    "a 64-hex proof_artifact_sha256"
+                )
         return entry
 
 

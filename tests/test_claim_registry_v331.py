@@ -1,3 +1,7 @@
+from copy import deepcopy
+
+import pytest
+
 from cace_studio.core.claim_registry import ClaimRegistry
 from cace_studio.core.formal_gate import enforce_formal_claim_qualification
 from cace_studio.core.proof_ledger import ProofLedger
@@ -13,6 +17,50 @@ def rec(kind=EvidenceKind.FORMAL, state=VerificationState.PASS):
         state=state,
         method="unit-method",
     )
+
+
+def qualified_claim_mapping():
+    return {
+        "schema_version": 1,
+        "policy": "fail-closed",
+        "claims": [
+            {
+                "claim_id": "unit.claim",
+                "module_ids": ["unit.module"],
+                "statement": "unit statement",
+                "scope": "unit",
+                "evidence_ceiling": "formally-verified",
+                "qualification": {
+                    "status": "PASS",
+                    "current_head_qualified": True,
+                    "attested_commit": "b" * 40,
+                    "proof_artifact_sha256": "a" * 64,
+                    "reason": "",
+                },
+                "nonclaims": [],
+            }
+        ],
+    }
+
+
+def qualified_ledger_mapping():
+    return {
+        "schema_version": 1,
+        "policy": "fail-closed",
+        "entries": [
+            {
+                "release": "unit",
+                "claim_ids": ["unit.claim"],
+                "status": "PASS",
+                "current_head_qualified": True,
+                "commit": "b" * 40,
+                "proof_artifact_sha256": "a" * 64,
+                "workflow_run_id": 1,
+                "checks": ["pinned-build", "axiom-audit"],
+                "blockers": [],
+            }
+        ],
+    }
 
 
 def test_default_registry_and_ledger_load_fail_closed():
@@ -57,54 +105,54 @@ def test_nonformal_and_existing_fail_states_are_not_upgraded():
 
 
 def test_matching_current_head_registry_and_ledger_preserve_formal_pass():
-    digest = "a" * 64
-    commit = "b" * 40
-    registry = ClaimRegistry.from_mapping(
-        {
-            "schema_version": 1,
-            "policy": "fail-closed",
-            "claims": [
-                {
-                    "claim_id": "unit.claim",
-                    "module_ids": ["unit.module"],
-                    "statement": "unit statement",
-                    "scope": "unit",
-                    "evidence_ceiling": "formally-verified",
-                    "qualification": {
-                        "status": "PASS",
-                        "current_head_qualified": True,
-                        "attested_commit": commit,
-                        "proof_artifact_sha256": digest,
-                        "reason": "",
-                    },
-                    "nonclaims": [],
-                }
-            ],
-        }
-    )
-    ledger = ProofLedger.from_mapping(
-        {
-            "schema_version": 1,
-            "policy": "fail-closed",
-            "entries": [
-                {
-                    "release": "unit",
-                    "claim_ids": ["unit.claim"],
-                    "status": "PASS",
-                    "current_head_qualified": True,
-                    "commit": commit,
-                    "proof_artifact_sha256": digest,
-                    "workflow_run_id": 1,
-                    "checks": ["unit"],
-                    "blockers": [],
-                }
-            ],
-        }
-    )
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    ledger = ProofLedger.from_mapping(qualified_ledger_mapping())
     out = enforce_formal_claim_qualification(
         "unit.module", [rec()], registry=registry, ledger=ledger
     )[0]
     assert out.state is VerificationState.PASS
     assert out.metrics["formal_gate"] == "PASS"
     assert out.metrics["claim_id"] == "unit.claim"
-    assert out.metrics["proof_artifact_sha256"] == digest
+    assert out.metrics["proof_artifact_sha256"] == "a" * 64
+    assert out.metrics["workflow_run_id"] == 1
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("qualification", "status"), "NOT_RUN"),
+        (("qualification", "attested_commit"), None),
+        (("qualification", "attested_commit"), "b" * 39),
+        (("qualification", "proof_artifact_sha256"), None),
+        (("qualification", "proof_artifact_sha256"), "a" * 63),
+        (("evidence_ceiling",), "symbolic"),
+    ],
+)
+def test_current_head_claim_rejects_incomplete_or_nonformal_qualification(path, value):
+    raw = qualified_claim_mapping()
+    target = raw["claims"][0]
+    if len(path) == 1:
+        target[path[0]] = value
+    else:
+        target[path[0]][path[1]] = value
+    with pytest.raises(ValueError):
+        ClaimRegistry.from_mapping(raw)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("status", "NOT_RUN"),
+        ("commit", None),
+        ("proof_artifact_sha256", None),
+        ("workflow_run_id", None),
+        ("workflow_run_id", 0),
+        ("checks", []),
+        ("blockers", ["open-obligation"]),
+    ],
+)
+def test_current_head_ledger_rejects_incomplete_provenance(field, value):
+    raw = qualified_ledger_mapping()
+    raw["entries"][0][field] = value
+    with pytest.raises(ValueError):
+        ProofLedger.from_mapping(raw)

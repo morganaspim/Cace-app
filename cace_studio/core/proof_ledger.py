@@ -52,6 +52,10 @@ class ProofLedgerEntry:
             checks=tuple(str(x) for x in raw.get("checks", ())),
             blockers=tuple(str(x) for x in raw.get("blockers", ())),
         )
+        if not entry.release.strip():
+            raise ValueError("proof-ledger release must be non-empty")
+        if not entry.claim_ids or any(not claim_id.strip() for claim_id in entry.claim_ids):
+            raise ValueError(f"{entry.release}: proof-ledger claim_ids must be non-empty")
         if entry.current_head_qualified:
             if entry.status != "PASS":
                 raise ValueError(
@@ -64,6 +68,18 @@ class ProofLedgerEntry:
             if not _is_sha256(entry.proof_artifact_sha256):
                 raise ValueError(
                     f"{entry.release}: current-head qualification requires a 64-hex artifact hash"
+                )
+            if entry.workflow_run_id is None or entry.workflow_run_id <= 0:
+                raise ValueError(
+                    f"{entry.release}: current-head qualification requires a positive workflow_run_id"
+                )
+            if not entry.checks:
+                raise ValueError(
+                    f"{entry.release}: current-head qualification requires recorded qualification checks"
+                )
+            if entry.blockers:
+                raise ValueError(
+                    f"{entry.release}: current-head qualification cannot retain blockers"
                 )
         return entry
 
