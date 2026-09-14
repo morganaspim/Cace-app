@@ -15,13 +15,13 @@ noncomputable section
 # v3.30 automatic smooth box calculus
 
 The v3.29 classical-agreement theorem deliberately exposed the local product-rule derivative as an
-explicit hypothesis.  This file discharges that hypothesis for the actual Schwartz smooth core used
-by the box graph spaces.  The resulting endpoint theorem needs only the box ordering hypothesis and
-smooth core fields: the Fréchet derivative, product rule, continuity and integrability obligations are
-constructed by Lean.
+explicit hypothesis. This file discharges that hypothesis for the actual Schwartz smooth core used
+by the box graph spaces. The resulting endpoint theorem needs only the box ordering hypothesis and
+smooth core fields: the Frechet derivative, product rule, continuity and integrability obligations
+are constructed by Lean.
 -/
 
-/-- Fréchet derivative of the smooth product field `x ↦ v x • q x`, coordinate by coordinate. -/
+/-- Frechet derivative of the smooth product field `x ↦ v x * q x`, coordinate by coordinate. -/
 noncomputable def smoothBoxProductFDeriv {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     BoxPoint n →L[ℝ] BoxPoint n :=
@@ -29,16 +29,16 @@ noncomputable def smoothBoxProductFDeriv {n : Nat}
     v x • fderiv ℝ (q i) x + q i x • fderiv ℝ v x
 
 /-- The derivative used by the box divergence theorem is generated automatically from the
-Schwartz smooth-core data by the Fréchet product rule. -/
+Schwartz smooth-core data by the Frechet product rule. -/
 theorem smoothBoxProduct_hasFDerivAt {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     HasFDerivAt (scalarTimesVector v (smoothBoxVectorFunction q))
       (smoothBoxProductFDeriv q v x) x := by
-  simpa [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using
+  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using
     (hasFDerivAt_pi.2 fun i => (v.hasFDerivAt x).mul ((q i).hasFDerivAt x))
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
-`q · ∇v + (div q) v`.  This is the local calculus obligation that v3.29 left explicit. -/
+`q · ∇v + (div q) v`. This is the local calculus obligation that v3.29 left explicit. -/
 theorem smoothBoxProduct_divergence_eq_greenVolume {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     (∑ i : Fin (n + 1),
@@ -46,19 +46,32 @@ theorem smoothBoxProduct_divergence_eq_greenVolume {n : Nat}
       smoothGreenVolumeTerm (smoothBoxVectorFunction q) v
         (smoothBoxGradientFunction v) (smoothBoxDivergence q) x := by
   classical
-  simp only [smoothBoxProductFDeriv, ContinuousLinearMap.pi_apply,
-    ContinuousLinearMap.add_apply, ContinuousLinearMap.smul_apply, smul_eq_mul,
-    smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction,
-    smoothBoxDivergence, SchwartzMap.lineDerivOp_apply_eq_fderiv, boxBasisVector]
-  rw [Finset.sum_add_distrib, ← Finset.mul_sum]
-  ring
+  calc
+    (∑ i : Fin (n + 1),
+        smoothBoxProductFDeriv q v x (Pi.single i (1 : ℝ)) i) =
+      ∑ i : Fin (n + 1),
+        (v x * (∂_{boxBasisVector i} (q i)) x +
+          q i x * (∂_{boxBasisVector i} v) x) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      simp [smoothBoxProductFDeriv, SchwartzMap.lineDerivOp_apply_eq_fderiv,
+        boxBasisVector]
+    _ = (∑ i : Fin (n + 1), q i x * (∂_{boxBasisVector i} v) x) +
+        (∑ i : Fin (n + 1), (∂_{boxBasisVector i} (q i)) x) * v x := by
+      rw [Finset.sum_add_distrib, ← Finset.mul_sum]
+      ring
+    _ = smoothGreenVolumeTerm (smoothBoxVectorFunction q) v
+        (smoothBoxGradientFunction v) (smoothBoxDivergence q) x := by
+      simp [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction,
+        smoothBoxDivergence]
 
 /-- The automatically generated product field is continuous everywhere. -/
 theorem smoothBoxProduct_continuous {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) :
     Continuous (scalarTimesVector v (smoothBoxVectorFunction q)) := by
-  exact differentiable_pi.2 (fun i =>
-    (v.differentiable.mul (q i).differentiable)) |>.continuous
+  apply continuous_pi
+  intro i
+  exact v.continuous.mul (q i).continuous
 
 /-- The divergence integrand produced by the automatic derivative is integrable on every closed
 box because it is pointwise the smooth Green volume term. -/
@@ -92,8 +105,8 @@ theorem smoothBoxProduct_divergence_integrableOn {n : Nat}
   simpa only [smoothBoxProduct_divergence_eq_greenVolume] using hgreen
 
 /-- Fully automatic smooth Green identity on the actual Schwartz core used by CACE's bounded-box
-graph spaces.  No caller-supplied `F'`, exceptional set, continuity proof, integrability proof or
-product-rule certificate remains. -/
+graph spaces. No caller-supplied derivative family, exceptional set, continuity proof,
+integrability proof, or product-rule certificate remains. -/
 theorem smoothBoxGreen_schwartz {n : Nat}
     {a b : BoxPoint n} (hle : a ≤ b)
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) :
@@ -120,11 +133,14 @@ theorem boxGraphNormalTrace_smooth_eq_classical_auto {n : Nat}
         (smoothBoxH1ClosedPoint a b v) =
       smoothBoxNormalTrace a b
         (scalarTimesVector v (smoothBoxVectorFunction q)) := by
-  rw [boxGraphNormalTrace_smoothPoint,
-    ambientBoxGraphGreenPairing_smooth_eq_graphVolume,
-    smoothBoxGraphVolume_eq_greenVolumeIntegral]
-  rw [smoothBoxGreen_schwartz hle q v]
-  exact smoothNormalFluxPairing_eq_trace_product a b (smoothBoxVectorFunction q) v
+  exact boxGraphNormalTrace_smooth_eq_classical hle q v
+    (smoothBoxProductFDeriv q v) (∅ : Set (BoxPoint n)) Set.countable_empty
+    (smoothBoxProduct_continuous q v).continuousOn
+    (by
+      intro x hx
+      exact smoothBoxProduct_hasFDerivAt q v x)
+    (smoothBoxProduct_divergence_integrableOn a b q v)
+    (smoothBoxProduct_divergence_eq_greenVolume q v)
 
 end
 
