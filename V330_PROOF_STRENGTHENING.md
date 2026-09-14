@@ -22,13 +22,9 @@ external scrutiny remains an independent trust boundary.
 
 ### 1. Automatic smooth product calculus for the box Green bridge
 
-New file: `formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean`
-
-The v3.29 endpoint `boxGraphNormalTrace_smooth_eq_classical` required the caller to supply a Frechet
-derivative family for the product field, a countable exceptional set, continuity, integrability, and
-the pointwise product/divergence identity.
-
-v3.30 constructs those obligations directly from the actual Schwartz core. The endpoint
+`formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean` removes the v3.29 caller burden of supplying
+a Frechet derivative family for the product field, a countable exceptional set, continuity,
+integrability, and the pointwise product/divergence identity. The endpoint
 
 `CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto`
 
@@ -36,184 +32,180 @@ needs only the box order hypothesis and smooth Schwartz fields.
 
 ### 2. Generic regularization-to-closure automation
 
-New file: `formal/cace_formal/CACEFormal/RegularizationClosure.lean`
-
-CACE now has reusable theorems of the form
+`formal/cace_formal/CACEFormal/RegularizationClosure.lean` packages recurring topology used in hard
+analysis proofs. It proves reusable forms of:
 
 - closed target + core inclusion + convergent core-valued regularizer => closure equality;
 - continuous defect kernel + core inclusion + convergent core-valued regularizer => closure equality;
 - ambient regularizer => density in the whole space.
 
-The kernel-specialized form is particularly important for PDE graph spaces because closed derivative
-or divergence relations are naturally represented as kernels of continuous defect maps. It removes
-repeated closedness and closure bookkeeping from future analysis proofs.
+The kernel-specialized form is particularly useful for PDE graph spaces, where weak derivative and
+divergence relations are naturally kernels of continuous defect maps.
 
 ### 3. H(div) graph-density criteria in complex and real coordinates
 
-Files:
+`GraphRegularizationCriterion.lean` and `RealGraphRegularizationCriterion.lean` reduce the missing
+reverse H(div) inclusion to two concrete analytic obligations for a regularizer:
 
-- `formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean`
-- `formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean`
+1. it lands in the Schwartz H(div) graph core; and
+2. it converges to the original datum in the ambient L2 graph topology.
 
-v3.29 had already proved that the Schwartz H(div) graph closure lies in the closed distributional
-H(div) relation. v3.30 now proves that any graph regularizer satisfying only
-
-1. core preservation, and
-2. graph-norm convergence
-
-forces equality between the smooth graph closure and the distributional relation. The same criterion
-is available both in the complex distributional coordinates and in the real graph coordinates used
-by the earlier continuum track.
-
-The remaining H(div) difficulty is therefore not a vague density theorem. It is the concrete
-construction of a regularizer satisfying those two obligations.
+Once those are supplied, closure equality is automatic. The criterion is available both in the
+complex distributional graph model and in the real graph coordinates used by the earlier continuum
+track.
 
 ### 4. Closed distributional H1 graph relation
 
-New file: `formal/cace_formal/CACEFormal/H1DomainBridge.lean`
+`H1DomainBridge.lean` adds the scalar analogue of the H(div) graph relation. Complex L2 graph data
+`(u, g)` belong to the relation exactly when `weakPartial_i(u) = g_i` as tempered distributions in
+every coordinate. The relation is a continuous-defect kernel, hence closed.
 
-v3.30 adds the scalar analogue that was missing from the H(div) track. Complex L2 graph data
-`(u, g)` are placed in the distributional H1 graph relation exactly when
-
-`weakPartial_i(u) = g_i`
-
-as tempered distributions for every coordinate. This relation is the kernel of a continuous defect
-map and is therefore closed.
-
-CACE proves:
-
-- exact membership characterization;
-- the Schwartz H1 graph core satisfies the distributional derivative equations;
-- the entire smooth graph closure lies in the closed relation; and
-- any convergent core-valued regularizer upgrades the one-way inclusion to equality.
-
-This is intentionally not mislabeled as the full Bessel-potential H1 equivalence. The converse
-identification with Mathlib's `InH1` remains a separately named analytic obligation.
+CACE proves the exact membership characterization, Schwartz-core inclusion, smooth-closure
+inclusion, and a regularizer-to-equality theorem. This is intentionally not mislabeled as the full
+Bessel-potential H1 equivalence; the converse identification with Mathlib `InH1` remains separate.
 
 ### 5. Exact L2 representatives for distributional predicates
 
-New file: `formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean`
+`DistributionalGraphRepresentatives.lean` uses Mathlib's order-zero Sobolev characterization to
+choose an actual L2 representative of any `InL2` tempered distribution and prove that it maps back
+to the original distribution.
 
-Using Mathlib's order-zero Sobolev characterization, CACE now chooses an actual L2 representative of
-any `InL2` tempered distribution and proves it maps back to the original distribution.
-
-This gives two stronger bridge results:
+Consequently:
 
 - every Bessel-potential `InH1` distribution has L2 graph coordinates satisfying the new
-  distributional H1 graph relation;
-- `InHDiv q` is equivalent to the existence of an L2 graph datum in the closed distributional
-  H(div) relation whose field distribution is exactly `q`.
+  distributional H1 relation; and
+- `InHDiv q` is equivalent to the existence of L2 graph data in the closed distributional H(div)
+  relation whose field distribution is exactly `q`.
 
-The theorem
+The endpoint
 
 `CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative`
 
-is a representation-level equivalence. It is distinct from, and does not pretend to solve, the
-harder smooth-core density theorem.
+is an exact representation theorem. It is distinct from the harder Schwartz-core density theorem.
 
 ### 6. Kernel axiom audit
 
-File: `formal/cace_formal/CACEFormal/V330AxiomAudit.lean`
-
-The v3.30 workflow runs `#print axioms` on the new endpoints. Promotion fails if output contains
-`sorryAx` or any non-whitelisted axiom. The whitelist is restricted to the standard foundational
-axioms currently expected from Mathlib:
+`V330AxiomAudit.lean` runs `#print axioms` on the new proof-strengthening endpoints. The workflow
+rejects `sorry`, `admit`, `OPEN OBLIGATION`, `sorryAx`, and axioms outside the small foundational
+whitelist currently expected from Mathlib:
 
 - `propext`
 - `Classical.choice`
 - `Quot.sound`
 
-The workflow also rejects `sorry`, `admit`, and the marker `OPEN OBLIGATION` in v3.30 formal sources.
+### 7. Artifact-bound claim-promotion state machine
 
-### 7. Repository-wide claim-promotion state machine
-
-New file: `cace_studio/core/claim_promotion.py`
-
-Open-problem claims have fail-closed stages:
+`cace_studio/core/claim_promotion.py` now treats famous/open-problem promotion as an artifact-bound
+process rather than a collection of booleans. Stages remain:
 
 - `research-candidate`
 - `formal-candidate`
 - `reproduced-formal-candidate`
 - `externally-reviewed-resolution`
 
-For open-problem resolution wording, CACE requires all of:
+Resolution wording requires all of the following:
 
 - no unresolved proof obligations;
 - Lean kernel verification;
 - axiom audit pass;
 - pinned CI pass;
-- an exact theorem/statement artifact digest;
-- at least one independent reproduction; and
-- at least one valid external review attestation bound to an artifact digest.
+- a valid SHA-256 digest of the exact theorem/statement artifact;
+- an independent reproduction attestation bound to that exact digest; and
+- an external review attestation bound to that same digest.
 
-Numerical, symbolic, and interval evidence can guide discovery but cannot substitute for the formal
-promotion gates.
+A legacy reproduction count is explicitly insufficient. A reproduction or review of a different
+artifact is explicitly insufficient. Numerical, symbolic, and interval evidence cannot substitute
+for the formal gates.
 
-### 8. Adversarial promotion tests
+CACE still does not claim to prove the real-world identity or independence of a reproducer/reviewer;
+those remain external trust boundaries.
 
-File: `tests/test_claim_promotion_v330.py`
+### 8. Framework-level enforcement, not module-local discipline
 
-Tests cover numerical/symbolic/interval self-promotion, unresolved obligations, formal proofs without
-reproduction or review, malformed review attestations, and the existing v0.76 reliability proof DAG
-passing through the global fail-closed policy.
+`cace_studio/core/executor.py` now attaches an authoritative claim-decision sidecar to theorem-
+discovery and reliability runs. Module output is not trusted to self-assert public resolution.
+
+For open-problem research categories, truthy reserved self-promotion fields such as
+`public_resolution_claim_allowed`, `open_problem_resolved`, or `reliability_promotable` are rejected
+by the executor when the authoritative decision does not allow them. This turns a misleading module
+output into a run error instead of allowing contradictory evidence to survive downstream.
+
+`cace_studio/core/report.py` emits the authoritative claim decisions and hashes them into the graph
+certificate, including the number of claim-decision nodes and number of public-resolution claims
+actually allowed.
+
+### 9. Adversarial promotion tests
+
+`tests/test_claim_promotion_v330.py` covers:
+
+- numerical/symbolic/interval self-promotion;
+- unresolved proof obligations;
+- malformed exact-statement digests;
+- formal proofs without artifact-bound reproduction;
+- legacy count-only reproduction;
+- reproduction of a different artifact;
+- missing or malformed review;
+- review of a different artifact;
+- matching same-artifact reproduction + review;
+- the existing v0.76 reliability proof DAG;
+- executor-level claim sidecars; and
+- executor rejection of reserved public self-promotion fields.
 
 ## Remaining hard analysis, ranked
 
 ### Rank 1 — construct whole-space graph regularizers
 
-The highest-value unresolved theorem is now sharply specified for both H(div) and H1:
+The highest-value unresolved theorem is sharply specified for H(div) and H1:
 
 - define `R_k` on the closed distributional graph relation;
 - prove `R_k x` belongs to the Schwartz graph core; and
 - prove `R_k x -> x` in the L2 graph topology.
 
-Preferred route: Fourier cutoff / multiplier regularization, because CACE already models the
-whole-space Sobolev theory through tempered distributions and Fourier machinery.
-
-A serious alternative is mollification followed by Schwartz cutoff. That route needs explicit
-cutoff-commutator estimates for divergence/gradient.
+Preferred route: **Fourier cutoff / multiplier regularization**, because the existing continuum model
+already uses tempered distributions and Fourier/Sobolev machinery. A serious alternative is
+mollification followed by Schwartz cutoff, requiring explicit derivative/divergence cutoff-
+commutator estimates.
 
 ### Rank 2 — identify the H1 graph relation with Bessel-potential InH1
 
-The forward direction is now implemented: every `InH1` distribution has a graph representative.
-The remaining converse is the standard analytic characterization that an L2 distribution with all
-weak first derivatives in L2 belongs to H1. Formalizing this would make the H1 bridge symmetric in
-the same way the H(div) representation theorem now is.
+The forward direction is now implemented. The missing converse is the analytic characterization that
+an L2 distribution whose weak first derivatives are all L2 belongs to H1.
 
 ### Rank 3 — push weak Green and Prager-Synge through the completed bridges
 
-Once the unconditional regularizers and H1 converse are available, the next leverage point is to
-replace closure-defined stand-ins with the identified distributional spaces throughout weak Green,
-zero-boundary orthogonality, and continuum Prager-Synge.
+After unconditional regularizers and the H1 converse, replace closure-defined stand-ins with the
+identified distributional spaces throughout weak Green, zero-boundary orthogonality, and continuum
+Prager-Synge.
 
 ## Verification status
 
-The source changes are committed, but the new Lean theorems are **not reported as verified yet**.
+The source changes are committed, but the new Lean theorems and Python policy tests are **not
+reported as verified yet**.
 
-The latest observed v3.30 run, `34855119850`, created job `104012566771`, but GitHub assigned no
-runner (`runner_id = 0`) and executed zero steps. The observed workflow failure is therefore an
-infrastructure failure, not a Lean counterexample and not passing evidence.
+The latest observed v3.30 run is `34856134292`, with job `104016057998`. GitHub assigned no runner
+(`runner_id = 0`) and executed zero steps. Therefore the observed workflow failure is an
+infrastructure failure: it is neither a Lean/Python failure nor passing evidence.
 
-The release remains `IMPLEMENTED_PENDING_RUNNER_EXECUTION` until a pinned workflow actually runs and
-emits its success attestation.
+The release remains `IMPLEMENTED_PENDING_RUNNER_EXECUTION` until a pinned workflow actually executes
+and emits its success attestation.
 
 ## What v3.30 genuinely improves
 
 Before v3.30, the smooth box trace theorem exposed low-level local calculus obligations to callers.
 Those are now intended to be synthesized automatically.
 
-Before v3.30, the reverse H(div) density theorem was a broad missing statement. It is now reduced to
-a two-condition regularizer contract, in both complex and real graph coordinates.
+Before v3.30, reverse H(div) density was a broad missing theorem. It is now reduced to a two-condition
+regularizer contract in both complex and real graph coordinates.
 
 Before v3.30, there was no parallel closed distributional H1 graph relation. There is now a
-continuous-defect kernel, smooth-core inclusion, regularization equality criterion, and a forward
+continuous-defect kernel, smooth-core inclusion, regularization equality criterion, and forward
 bridge from Bessel H1.
 
-Before v3.30, the distributional H(div) predicate and the L2 graph relation were connected mainly in
-one direction. There is now an exact existence equivalence at the graph-representation level.
+Before v3.30, the distributional H(div) predicate and L2 graph relation were primarily one-way. There
+is now an exact existence equivalence at the graph-representation level.
 
-Before v3.30, open-problem non-promotion was primarily module-specific discipline. It is now a
-repository-wide state machine plus CI policy with adversarial tests.
+Before v3.30, open-problem non-promotion was primarily module-specific discipline. It is now enforced
+at the executor/report boundary, bound to an exact artifact digest, and covered by adversarial tests.
 
 ## Nonclaims
 
@@ -223,8 +215,8 @@ data. The regularizers still have to be constructed and proved convergent.
 v3.30 does **not** yet claim the converse equivalence from the new distributional H1 graph relation
 to Bessel-potential `InH1`.
 
-v3.30 does **not** claim the new Lean endpoints have passed the kernel until a real runner executes
-the pinned workflow.
+v3.30 does **not** claim the new Lean endpoints or Python policy tests have passed until a real runner
+executes the pinned workflow.
 
-v3.30 does **not** make external review obsolete. It makes the boundary explicit, auditable, and
-mandatory for public resolution wording about famous open problems.
+v3.30 does **not** make external review obsolete. It makes the boundary explicit, artifact-bound,
+auditable, and mandatory for public resolution wording about famous open problems.
