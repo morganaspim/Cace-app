@@ -52,6 +52,14 @@ noncomputable def ambientBoxGraphGreenPairing {n : Nat} (a b : BoxPoint n) :
       innerThrough (boxHDivFieldProj a b i) (boxH1GradProj a b i)) +
     innerThrough (boxHDivDivProj a b) (boxH1ValueProj a b)
 
+/-- Coordinate formula for the bounded-box Green pairing. -/
+theorem ambientBoxGraphGreenPairing_apply {n : Nat} (a b : BoxPoint n)
+    (q : BoxHDivGraphAmbient a b) (v : BoxH1GraphAmbient a b) :
+    ambientBoxGraphGreenPairing a b q v =
+      (∑ i : Fin (n + 1), inner ℝ (q.1 i) (v.2 i)) + inner ℝ q.2 v.1 := by
+  simp [ambientBoxGraphGreenPairing, innerThrough, boxHDivFieldProj,
+    boxHDivDivProj, boxH1ValueProj, boxH1GradProj]
+
 /-- Restrict the bounded-box Green pairing to the closed graph spaces. -/
 noncomputable def closedBoxGraphGreenPairing {n : Nat} (a b : BoxPoint n) :
     BoxHDivGraphClosedSpace a b →L[ℝ] BoxH1GraphClosedSpace a b →L[ℝ] ℝ :=
