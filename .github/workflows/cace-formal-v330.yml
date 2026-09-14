@@ -11,6 +11,7 @@ on:
       - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'cace_studio/core/claim_promotion.py'
@@ -26,6 +27,7 @@ on:
       - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'cace_studio/core/claim_promotion.py'
@@ -100,6 +102,7 @@ jobs:
             formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean
             formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean
             formal/cace_formal/CACEFormal/H1DomainBridge.lean
+            formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean
             formal/cace_formal/CACEFormal/V330AxiomAudit.lean
           )
           if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
@@ -119,6 +122,7 @@ jobs:
           lake env lean CACEFormal/GraphRegularizationCriterion.lean
           lake env lean CACEFormal/RealGraphRegularizationCriterion.lean
           lake env lean CACEFormal/H1DomainBridge.lean
+          lake env lean CACEFormal/DistributionalGraphRepresentatives.lean
           lake build CACEFormal
 
       - name: Kernel axiom audit
@@ -152,6 +156,10 @@ jobs:
               'smoothComplexH1GraphMap_mem_distributional',
               'complexH1SmoothGraphClosure_le_distributional',
               'complexH1SmoothGraphClosure_eq_distributional_of_regularizer',
+              'complexL2ToDistribution_l2RepresentativeOfInL2',
+              'inH1GraphRepresentative_mem',
+              'inHDivGraphRepresentative_mem',
+              'inHDiv_iff_exists_distributionalGraphRepresentative',
           ]
           allowed = {'propext', 'Classical.choice', 'Quot.sound'}
           found = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", text)
@@ -189,22 +197,18 @@ jobs:
               'commit': out(['git', 'rev-parse', 'HEAD']),
               'lean_version': out(['lean', '--version']),
               'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
-              'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions in complex and real coordinates, and global proof/claim promotion gates.',
+              'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and global proof/claim promotion gates.',
               'theorems': [
                   'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
                   'CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume',
                   'CACEFormal.Continuum.smoothBoxGreen_schwartz',
                   'CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto',
-                  'CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer',
                   'CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer',
-                  'CACEFormal.Continuum.ker_le_topologicalClosure_of_regularizer',
-                  'CACEFormal.Continuum.topologicalClosure_eq_top_of_regularizer',
                   'CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer',
-                  'CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer',
                   'CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer',
-                  'CACEFormal.Continuum.mem_H1DistributionalGraphSubmodule_iff',
-                  'CACEFormal.Continuum.smoothComplexH1GraphMap_mem_distributional',
-                  'CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer'
+                  'CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer',
+                  'CACEFormal.Continuum.inH1GraphRepresentative_mem',
+                  'CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative'
               ],
               'promotion_guards': {
                   'unfinished_tokens_rejected': True,
@@ -216,8 +220,8 @@ jobs:
                   'numerical_symbolic_interval_evidence_cannot_self_promote': True
               },
               'nonclaims': [
-                  'The v3.30 H1/H(div) regularization criteria reduce but do not themselves construct the unconditional regularizers required for reverse graph inclusion.',
-                  'The new H1 distributional graph relation is not yet identified with Mathlib Bessel-potential InH1 in both directions.',
+                  'The v3.30 H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.',
+                  'The new H1 distributional graph relation is not yet identified with Mathlib Bessel-potential InH1 in the converse direction.',
                   'CACE does not establish external reviewer identity or independence; those remain external trust boundaries.'
               ]
           }
