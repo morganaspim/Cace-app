@@ -21,7 +21,7 @@ class RunResult:
     @property
     def all_verifiers_passed(self) -> bool:
         records = [r for rs in self.verification.values() for r in rs]
-        return all(r.state is not VerificationState.FAIL for r in records)
+        return bool(records) and all(r.state is VerificationState.PASS for r in records)
 
     @property
     def any_public_resolution_claim_allowed(self) -> bool:

@@ -7,6 +7,25 @@
 
 ---
 
+## Current development: 3.30.0.dev1
+
+Production readiness is **not yet established**. The v3.30 Lean source includes conditional
+H1/H(div) bridges; unconditional density and H1 reconstruction remain open.
+
+- [Current readiness and ranked work](docs/PRODUCTION_READINESS.md)
+- [AI and headless quickstart](docs/AI_QUICKSTART.md)
+- [Repository agent instructions](AGENTS.md)
+- [Proof scope](V330_PROOF_STRENGTHENING.md)
+
+```sh
+python -m pip install -e '.[test]'
+python -m cace_studio.cli registry
+python -m cace_studio.cli run examples/verified_quadratic.cace --output report.json
+```
+
+For the full tests, build the C++ runtime first using the quickstart.
+The sections below are historical milestone notes, not validation of the current commit.
+
 # CACE Studio VRE v0.76
 
 ## Reliability Theorem Discovery Engine

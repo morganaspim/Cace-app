@@ -1,7 +1,7 @@
 {
   "version": "3.30.0-dev",
   "title": "Proof Strengthening and Claim Promotion Guard",
-  "status": "IMPLEMENTED_PENDING_RUNNER_EXECUTION",
+  "status": "DEVELOPMENT_VALIDATION_INCOMPLETE",
   "base_snapshot": "50cfdd10a6653c863d595502797b8f1a87c42333",
   "branch": "roadmap/v3.30-proof-strengthening",
   "ownership": {
@@ -72,7 +72,7 @@
     }
   },
   "claim_promotion": {
-    "status": "FRAMEWORK_ENFORCEMENT_IMPLEMENTED_TESTS_COMMITTED_PENDING_RUNNER",
+    "status": "FRAMEWORK_TESTS_PASSED_ON_OBSERVED_COMMIT_CURRENT_HEAD_REQUIRES_VALIDATION",
     "open_problem_stages": [
       "research-candidate",
       "formal-candidate",
@@ -119,23 +119,21 @@
     ]
   },
   "verification": {
-    "latest_observed_v330_workflow_run": 34866491780,
-    "latest_observed_job": 104051518562,
-    "attempted_commit": "6c9ecf19cb10a99bed6e2a2833777517b4ab7af4",
-    "run_attempt": 1,
-    "runner_id": 0,
-    "executed_steps": 0,
-    "observed_runner_pattern": "both an explicit rerun of the prior exact head and a fresh post-audit push were assigned runner_id=0 and executed zero steps",
-    "interpretation": "runner infrastructure or billing-allocation failure; neither a proof pass nor a Lean/Python proof failure",
-    "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION",
-    "python_policy_test_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
+    "observed_formal_workflow_run": 34889429471,
+    "attempted_commit": "e7ed5a41fa4bf1ed57067cb012cc737b54a308cd",
+    "formal_result": "BLOCKED_MATHLIB_CACHE_TLS",
+    "python_policy_test_result": "PASS_ON_OBSERVED_COMMIT",
+    "regression_workflow_run": 34889880923,
+    "regression_result": "QUEUED_AT_AUDIT",
+    "current_head_validation": "REQUIRED",
+    "production_ready": false
   },
   "nonclaims": [
     "The unconditional reverse inclusion from arbitrary distributional H(div) graph data into the Schwartz graph closure is not yet proved.",
     "The unconditional reverse inclusion for the new distributional H1 graph relation is not yet proved.",
     "The exact Bessel/Riesz reconstruction identity—and therefore the converse equivalence from the new H1 graph relation to Bessel-potential InH1—is not yet proved.",
-    "The new v3.30 Lean endpoints and Python policy tests are not marked verified until pinned CI executes on a real runner and emits an attestation.",
+    "The v3.30 Lean endpoints remain unverified; the Python claim-policy tests passed on the observed prior commit only.",
     "Independent external mathematical review remains mandatory before CACE permits public resolution wording for a famous open problem."
-  ]
+  ],
+  "package_version": "3.30.0.dev1"
 }
-

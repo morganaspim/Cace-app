@@ -3,15 +3,21 @@ on:
   workflow_dispatch:
   push:
     branches: [main, roadmap/v3.30-proof-strengthening]
-    paths: ['cace_studio/**', 'tests/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+    paths: ['cace_studio/**', 'tests/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+  pull_request:
+    paths: ['cace_studio/**', 'tests/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
 permissions:
   contents: read
+concurrency:
+  group: cace-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   regression:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Isolated Python and full regression
         shell: bash
         run: |
@@ -19,10 +25,40 @@ jobs:
           curl -LsSf https://astral.sh/uv/0.12.13/install.sh |
             env UV_INSTALL_DIR="$RUNNER_TEMP/cace-uv" UV_NO_MODIFY_PATH=1 sh
           "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-regression"
-          "$RUNNER_TEMP/cace-regression/bin/python" -m pip install -e '.[test]'
-          "$RUNNER_TEMP/cace-regression/bin/python" -m pytest --junitxml=regression-results.xml
-      - uses: actions/upload-artifact@v4
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip install -e '.[test]' cmake
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip freeze > regression-environment.txt
+          echo "$RUNNER_TEMP/cace-regression/bin" >> "$GITHUB_PATH"
+      - name: Native C++ build and smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build cpp/build --parallel 2
+          ctest --test-dir cpp/build --output-on-failure
+      - name: Full Python regression with native library available
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest --junitxml=regression-results.xml
+      - name: Build Python wheel and check headless interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip wheel --no-deps . -w dist
+          "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-wheel"
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m cace_studio.cli registry > "$GITHUB_WORKSPACE/wheel-registry.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: python-regression-results
-          path: regression-results.xml
+          name: cace-regression-evidence
+          path: |
+            regression-results.xml
+            regression-environment.txt
+            wheel-registry.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success()
+        with:
+          name: cace-python-wheel
+          path: dist/*.whl

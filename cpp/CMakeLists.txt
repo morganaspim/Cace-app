@@ -11,3 +11,6 @@ if(pybind11_FOUND)
   pybind11_add_module(_cace_runtime src/bindings.cpp)
   target_include_directories(_cace_runtime PRIVATE include)
 endif()
+
+enable_testing()
+add_test(NAME cace_runtime_smoke COMMAND cace_runtime_smoke)

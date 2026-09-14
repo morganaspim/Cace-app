@@ -8,7 +8,7 @@ from cace_studio.core.graph import Experiment,Node,Edge
 
 def test_v05_continuum_pipeline_certifies_total_energy_error():
     r=GraphExecutor(build_registry()).run(load_experiment('examples/certified_continuum_poisson1d_v05.cace'))
-    assert r.all_verifiers_passed
+    assert not r.all_verifiers_passed  # The exported Lean obligation was not checked.
     c=r.outputs['cont']['continuum_certificate']
     assert c['certified'] is True
     assert c['theorem_id']=='poisson1d-p1-constant-v1'

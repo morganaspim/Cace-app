@@ -7,7 +7,7 @@ from cace_studio.core.serialization import load_experiment
 
 def test_v04_certified_discrete_pipeline():
     r=GraphExecutor(build_registry()).run(load_experiment('examples/certified_poisson_v04.cace'))
-    assert r.all_verifiers_passed
+    assert not r.all_verifiers_passed  # The continuum gate did not run.
     c=r.outputs['ires']['residual_certificate']
     assert c['residual_inf_interval'][0] <= 0 <= c['residual_inf_interval'][1]
     assert c['residual_inf_interval'][1] < 1e-14
@@ -82,4 +82,4 @@ def test_graph_certificate_distinguishes_not_run_from_failure():
     g=graph_certificate(r)
     assert g['failed_verifiers'] == 0
     assert g['not_run_verifiers'] >= 1
-    assert g['all_verifiers_passed'] is True
+    assert g['all_verifiers_passed'] is False

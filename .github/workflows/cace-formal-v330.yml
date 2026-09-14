@@ -3,45 +3,10 @@ name: CACE Formal v3.30 proof strengthening
 on:
   workflow_dispatch:
   push:
-    branches:
-      - roadmap/v3.30-proof-strengthening
-    paths:
-      - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
-      - 'formal/cace_formal/CACEFormal/RegularizationClosure.lean'
-      - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
-      - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
-      - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
-      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
-      - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
-      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
-      - 'formal/cace_formal/CACEFormal.lean'
-      - 'cace_studio/core/claim_promotion.py'
-      - 'cace_studio/core/executor.py'
-      - 'cace_studio/core/report.py'
-      - 'cace_studio/modules/fem_v076.py'
-      - 'tests/test_claim_promotion_v330.py'
-      - 'RELEASE_v3.30.json'
-      - 'V330_PROOF_STRENGTHENING.md'
-      - '.github/workflows/cace-formal-v330.yml'
+    branches: [main, roadmap/v3.30-proof-strengthening]
+    paths: ['formal/**', 'cace_studio/**', 'tests/**', 'scripts/**', 'pyproject.toml', '.github/workflows/cace-formal-v330.yml']
   pull_request:
-    paths:
-      - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
-      - 'formal/cace_formal/CACEFormal/RegularizationClosure.lean'
-      - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
-      - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
-      - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
-      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
-      - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
-      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
-      - 'formal/cace_formal/CACEFormal.lean'
-      - 'cace_studio/core/claim_promotion.py'
-      - 'cace_studio/core/executor.py'
-      - 'cace_studio/core/report.py'
-      - 'cace_studio/modules/fem_v076.py'
-      - 'tests/test_claim_promotion_v330.py'
-      - 'RELEASE_v3.30.json'
-      - 'V330_PROOF_STRENGTHENING.md'
-      - '.github/workflows/cace-formal-v330.yml'
+    paths: ['formal/**', 'cace_studio/**', 'tests/**', 'scripts/**', 'pyproject.toml', '.github/workflows/cace-formal-v330.yml']
 
 permissions:
   contents: read
@@ -52,11 +17,12 @@ concurrency:
 
 jobs:
   proof-strengthening:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     timeout-minutes: 55
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Set up pinned ARM64-capable Python
         shell: bash
@@ -66,8 +32,8 @@ jobs:
           set -euo pipefail
           curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" |
             env UV_INSTALL_DIR="$RUNNER_TEMP/uv-bin" sh
-          "$RUNNER_TEMP/uv-bin/uv" python install 3.13
-          "$RUNNER_TEMP/uv-bin/uv" venv --seed --python 3.13 "$RUNNER_TEMP/cace-venv"
+          "$RUNNER_TEMP/uv-bin/uv" python install 3.13.15
+          "$RUNNER_TEMP/uv-bin/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-venv"
           echo "$RUNNER_TEMP/cace-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cace-venv/bin/python" --version
 
@@ -79,39 +45,43 @@ jobs:
           python -m pip install -e '.[test]'
           python -m pytest -q tests/test_claim_promotion_v330.py
 
-      - name: Recover stale CACE runner storage
+      - name: Prepare isolated formal build on larger filesystem
         shell: bash
         run: |
           set -euo pipefail
-          echo 'Disk usage before bounded cleanup:'
-          df -h
-          stale_toolchain="$HOME/.elan/toolchains/leanprover--lean4---v4.32.tmp"
-          if [[ -d "$stale_toolchain" ]]; then
-            rm -rf -- "$stale_toolchain"
-          fi
-          python -m pip cache purge || true
-          echo 'Disk usage after bounded cleanup:'
-          df -h
-
-      - name: Prepare formal build on larger filesystem
-        shell: bash
-        run: |
-          set -euo pipefail
-          cace_build_root="/var/tmp/cace-formal.OzxVvOez"
-          test -O "$cace_build_root"
+          cace_build_root="$(mktemp -d /var/tmp/cace-formal.XXXXXXXX)"
+          mkdir -p "$cace_build_root/formal" "$cace_build_root/elan" "$cace_build_root/cache"
           cp -a formal/cace_formal/. "$cace_build_root/formal/"
-          mkdir -p "$cace_build_root/elan" "$cace_build_root/cache"
+          echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
           echo "ELAN_HOME=$cace_build_root/elan" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
           df -h "$cace_build_root"
 
+      - name: Configure verified TLS trust for Mathlib cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          cace_ca_bundle=""
+          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem; do
+            if [[ -s "$candidate" ]]; then
+              cace_ca_bundle="$candidate"
+              break
+            fi
+          done
+          test -n "$cace_ca_bundle"
+          echo "CURL_CA_BUNDLE=$cace_ca_bundle" >> "$GITHUB_ENV"
+          echo "SSL_CERT_FILE=$cace_ca_bundle" >> "$GITHUB_ENV"
+          curl --fail --silent --show-error --location --cacert "$cace_ca_bundle" \
+            --connect-timeout 20 --max-time 60 \
+            https://raw.githubusercontent.com/leanprover-community/mathlib4/v4.32.1/lean-toolchain
+
       - name: Install elan
         shell: bash
         run: |
           set -euo pipefail
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
-          sh /tmp/elan-init.sh -y --default-toolchain none
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o $CACE_BUILD_ROOT/elan-init.sh
+          sh $CACE_BUILD_ROOT/elan-init.sh -y --default-toolchain none
           echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
 
       - name: Install pinned Lean toolchain
@@ -131,8 +101,9 @@ jobs:
         run: |
           set -euo pipefail
           MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "520045ab14e26149ee970e2e617ca04b09bde5d6"
           lake build +Cache.Main
-          lake env lean --run .lake/packages/mathlib/Cache/Main.lean get
+          timeout 900 lake env lean --run .lake/packages/mathlib/Cache/Main.lean get
 
       - name: Reject unfinished proof tokens
         shell: bash
@@ -167,12 +138,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake env lean CACEFormal/V330AxiomAudit.lean 2>&1 | tee /tmp/v330-axioms.txt
+          lake env lean CACEFormal/V330AxiomAudit.lean 2>&1 | tee $CACE_BUILD_ROOT/v330-axioms.txt
           python - <<'PY'
-          import re
+          import os, re
           from pathlib import Path
 
-          text = Path('/tmp/v330-axioms.txt').read_text(encoding='utf-8')
+          text = (Path(os.environ['CACE_BUILD_ROOT']) / 'v330-axioms.txt').read_text(encoding='utf-8')
           if 'sorryAx' in text:
               raise SystemExit('Rejected: theorem dependency contains sorryAx')
 
@@ -233,7 +204,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, subprocess
+          import json, os, subprocess
           def out(cmd, cwd=None):
               return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
           data = {
@@ -241,7 +212,7 @@ jobs:
               'status': 'PASS',
               'commit': out(['git', 'rev-parse', 'HEAD']),
               'lean_version': out(['lean', '--version']),
-              'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
+              'mathlib_commit': out(['git', '-C', os.path.join(os.environ['CACE_FORMAL_DIR'], '.lake/packages/mathlib'), 'rev-parse', 'HEAD']),
               'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.',
               'theorems': [
                   'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
@@ -283,7 +254,25 @@ jobs:
 
       - name: Upload v3.30 attestation
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cace-v330-formal-attestation
           path: v330_github_formal_build_attestation.json
+
+      - name: Upload resolved dependency manifest and axiom audit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v330-proof-diagnostics
+          path: |
+            ${{ env.CACE_FORMAL_DIR }}/lake-manifest.json
+            ${{ env.CACE_BUILD_ROOT }}/v330-axioms.txt
+
+      - name: Remove this run's temporary formal build
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${CACE_BUILD_ROOT:-}" == /var/tmp/cace-formal.* && -O "$CACE_BUILD_ROOT" && ! -L "$CACE_BUILD_ROOT" ]]; then
+            rm -rf -- "$CACE_BUILD_ROOT"
+          fi

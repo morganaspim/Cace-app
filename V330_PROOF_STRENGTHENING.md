@@ -1,6 +1,11 @@
 # CACE v3.30 Proof Strengthening
 
-Status: **IMPLEMENTED / PENDING PINNED RUNNER EXECUTION**
+Status: **SOURCE PRESENT / FORMAL VALIDATION BLOCKED**
+
+2026-09-14 update: runner execution succeeded through Python claim-policy tests and Lean installation.
+Run 34889429471 failed during Mathlib cache TLS transfer before CACE proof compilation and axiom audit.
+See docs/PRODUCTION_READINESS.md for current priorities and validation requirements.
+The verification narrative below records earlier attempts; it is historical.
 
 Base snapshot: `50cfdd10a6653c863d595502797b8f1a87c42333` (v3.29 pre-merge recovery snapshot)
 
