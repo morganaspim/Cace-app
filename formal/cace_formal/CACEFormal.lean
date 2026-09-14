@@ -14,6 +14,7 @@ import CACEFormal.MeshFaceAssembly
 import CACEFormal.RT0P1Assembly
 import CACEFormal.RT0P1DerivedAssembly
 import CACEFormal.ContinuumSobolev
+import CACEFormal.ContinuumGraphSpaces
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
