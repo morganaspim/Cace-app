@@ -23,4 +23,4 @@ RUN lake --version
 WORKDIR /cace/formal/cace_formal
 RUN lake update
 RUN lake exe cache get
-RUN lake build CACEFormal
+RUN lake build

@@ -1,0 +1,17 @@
+{
+  "capability": "concrete_mesh_certificate_prager_synge",
+  "evidence": "Lean source certificate + independent exact subprocess checker",
+  "external_lean_status": "NOT_RUN locally; GitHub pinned lake build required for machine-formal attestation",
+  "lean_theorems": [
+    "CACEFormal.v322_global_green_identity",
+    "CACEFormal.v322_concrete_mesh_orthogonality",
+    "CACEFormal.v322_discrete_prager_synge_from_concrete_mesh"
+  ],
+  "nonclaims": [
+    "v3.22 is a concrete fixed rational fixture, not a general mesh generator theorem.",
+    "Continuum H1/H(div) Prager-Synge remains open.",
+    "General unstructured P1/RT0 mesh certificates remain the next target."
+  ],
+  "release": "3.22.0",
+  "scope": "fixed rational square-with-center P1 / constant RT0-error mesh certificate represented in Lean"
+}

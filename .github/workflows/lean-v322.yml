@@ -1,0 +1,52 @@
+name: CACE v3.22 Lean formal gate
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'formal/cace_formal/**'
+      - 'Dockerfile.lean'
+      - '.github/workflows/lean-v322.yml'
+      - 'examples/v322_concrete_mesh_certificate.json'
+
+jobs:
+  lean-formal:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: sudo apt-get update && sudo apt-get install -y zstd curl git
+
+      - name: Fetch pinned Lean 4.32.1
+        run: |
+          curl -L 'https://github.com/leanprover/lean4/releases/download/v4.32.1/lean-4.32.1-linux.tar.zst' -o /tmp/lean.tar.zst
+          echo '57d5c062a6b4bae6fba511a1704aa124dff461c37d0fc94585637fbb7d951b50  /tmp/lean.tar.zst' | sha256sum -c -
+          mkdir -p "$HOME/lean-4.32.1"
+          tar --use-compress-program=unzstd -xf /tmp/lean.tar.zst \
+            -C "$HOME/lean-4.32.1" --strip-components=1
+          echo "$HOME/lean-4.32.1/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Lean and Lake
+        run: |
+          lean --version
+          lake --version
+
+      - name: Build pinned CACE formal project
+        working-directory: formal/cace_formal
+        run: |
+          lake update
+          lake exe cache get
+          lake build CACEFormal
+
+      - name: Run v3.22 external formal gate
+        run: python scripts/run_formal_gate.py
+
+      - name: Upload formal attestations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cace-v322-formal-attestations
+          path: |
+            formal/cace_formal/FORMAL_BUILD_ATTESTATION.json
+            examples/v322_*.json

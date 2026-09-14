@@ -20,4 +20,4 @@ WORKDIR /work
 COPY . /work
 
 RUN lean --version && lake --version
-RUN lake update && lake exe cache get && lake build CACEFormal
+RUN lake update && lake exe cache get && lake build

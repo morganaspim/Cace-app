@@ -1,0 +1,49 @@
+{
+  "artifact": "concrete-mesh-certificate-prager-synge-v3.22",
+  "cell_pairings": [
+    "0",
+    "-1/2",
+    "0",
+    "1/2"
+  ],
+  "exact_checker": "CACE-Mesh-Admissibility-Orthogonality-Exact-Kernel",
+  "global_pairing": "0",
+  "interior_face_cancellation": [
+    {
+      "edge": [
+        0,
+        4
+      ],
+      "sum": "0"
+    },
+    {
+      "edge": [
+        1,
+        4
+      ],
+      "sum": "0"
+    },
+    {
+      "edge": [
+        2,
+        4
+      ],
+      "sum": "0"
+    },
+    {
+      "edge": [
+        3,
+        4
+      ],
+      "sum": "0"
+    }
+  ],
+  "lean_module": "CACEFormal.ConcreteMeshCertificate",
+  "lean_theorems": [
+    "CACEFormal.v322_global_green_identity",
+    "CACEFormal.v322_concrete_mesh_orthogonality",
+    "CACEFormal.v322_discrete_prager_synge_from_concrete_mesh"
+  ],
+  "release": "3.22.0",
+  "scope": "fixed rational square-with-center P1/constant-RT0-error mesh certificate"
+}

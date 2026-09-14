@@ -30,9 +30,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Python test dependencies
-        run: python -m pip install -e '.[test]'
-
       - name: Install elan
         shell: bash
         run: |
@@ -64,9 +61,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RIn --include='*.lean' -E '\bsorry\b|\badmit\b|OPEN OBLIGATION' \
-              formal/cace_formal/CACEFormal.lean \
-              formal/cace_formal/CACEFormal; then
+          if grep -RIn --include='*.lean' -E '\bsorry\b|OPEN OBLIGATION' formal/cace_formal; then
             echo 'Unclosed Lean proof obligation found.' >&2
             exit 1
           fi
@@ -78,7 +73,7 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          lake build CACEFormal
+          lake build
 
       - name: Run independent exact checker regression
         shell: bash

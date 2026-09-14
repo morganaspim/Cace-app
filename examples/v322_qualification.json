@@ -1,0 +1,11 @@
+{
+  "external_lean_build": "READY_ON_GITHUB_WORKFLOW; NOT_RUN_LOCALLY",
+  "lean_release_asset_sha256": "57d5c062a6b4bae6fba511a1704aa124dff461c37d0fc94585637fbb7d951b50",
+  "nonclaims": [
+    "No local external Lean theorem compilation is claimed in this runtime.",
+    "Continuum Prager-Synge remains outside v3.22.",
+    "General unstructured P1/RT0 mesh certification remains the next target."
+  ],
+  "release": "3.22.0",
+  "v322_concrete_mesh_certificate": "READY"
+}
