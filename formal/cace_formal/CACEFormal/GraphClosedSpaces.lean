@@ -5,8 +5,11 @@ import Mathlib.Topology.Sequences
 namespace CACEFormal
 
 open Filter
+open scoped Topology
 
 namespace Continuum
+
+noncomputable section
 
 /-- A submodule viewed inside its own topological closure. -/
 noncomputable def coreInClosure
@@ -21,8 +24,7 @@ theorem dense_coreInClosure
     Dense (coreInClosure S : Set S.topologicalClosure) := by
   rw [Subtype.dense_iff]
   have himage :
-      ((fun x : S.topologicalClosure => (x : E)) ''
-        (coreInClosure S : Set S.topologicalClosure)) = (S : Set E) := by
+      (Subtype.val '' (coreInClosure S : Set S.topologicalClosure)) = (S : Set E) := by
     ext x
     constructor
     · rintro ⟨y, hy, rfl⟩
@@ -30,8 +32,11 @@ theorem dense_coreInClosure
     · intro hx
       refine ⟨⟨x, S.le_topologicalClosure hx⟩, ?_, rfl⟩
       exact hx
+  change (S.topologicalClosure : Set E) ⊆
+    closure (Subtype.val '' (coreInClosure S : Set S.topologicalClosure))
   rw [himage]
-  rfl
+  change (S.topologicalClosure : Set E) ⊆ (S.topologicalClosure : Set E)
+  exact Set.Subset.rfl
 
 /-- Every point in a closed graph space admits a sequence from the original smooth core. -/
 theorem exists_core_sequence_tendsto
@@ -92,6 +97,8 @@ theorem exists_HDiv_smooth_sequence_tendsto (n : Nat) (x : HDivGraphClosedSpace 
     ∃ u : ℕ → HDivGraphClosedSpace n,
       (∀ k, u k ∈ HDivDenseSmoothCore n) ∧ Tendsto u atTop (𝓝 x) :=
   exists_core_sequence_tendsto (HDivSmoothGraphCore n) x
+
+end
 
 end Continuum
 
