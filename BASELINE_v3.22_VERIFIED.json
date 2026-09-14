@@ -1,0 +1,22 @@
+{
+  "release": "3.22.0",
+  "baseline_kind": "content-addressed-git-commit",
+  "commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
+  "archival_branch": "release/v3.22-verified-a69dd2b",
+  "archival_branch_is_immutable": false,
+  "github_actions": {
+    "workflow": "CACE Formal v3.22",
+    "run_id": 34806285322,
+    "conclusion": "success",
+    "head_sha": "a69dd2bd83082baa20106eabb8baab30eb49302a"
+  },
+  "verified_scope": "fixed rational square-with-center P1/constant-RT0-error finite-mesh certificate and discrete Prager-Synge bridge",
+  "immutability_note": "The 40-hex Git commit id is the immutable baseline identifier. The convenience branch is movable and is not itself an immutable release tag.",
+  "tag_status": "NOT_CREATED_BY_CURRENT_GITHUB_CONNECTOR",
+  "github_release_status": "NOT_CREATED_BY_CURRENT_GITHUB_CONNECTOR",
+  "nonclaims": [
+    "v3.22 is not a general unstructured-mesh theorem.",
+    "v3.22 does not close continuum H1/H(div) trace theory."
+  ]
+}
+
