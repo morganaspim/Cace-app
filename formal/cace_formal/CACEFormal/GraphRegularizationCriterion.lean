@@ -1,5 +1,5 @@
 import CACEFormal.PDEDomainBridge
-import Mathlib.Topology.Sequences
+import CACEFormal.RegularizationClosure
 
 namespace CACEFormal
 
@@ -16,22 +16,19 @@ The hard direction missing from v3.29 is
 
 `HDivDistributionalGraphSubmodule n ≤ (ComplexHDivSmoothGraphCore n).topologicalClosure`.
 
-Rather than asking every future proof to rebuild the topological closure argument, this module
-isolates the genuinely analytic content. It is enough to construct any sequence of regularizers
-that sends distributional graph data into the Schwartz graph core and converges in the ambient
-L2 graph norm. Once those two facts are supplied, Lean closes the graph-density theorem.
+The generic topology has now been factored into `RegularizationClosure`.  Consequently the only
+H(div)-specific content left in this criterion is the already-proved smooth-core inclusion, closedness
+of the distributional graph relation, and the two obligations for a concrete regularizer:
 
-This is designed for either of the two serious analytic routes:
+* core preservation: `R k x` lies in the Schwartz H(div) graph core;
+* graph convergence: `R k x → x` in the ambient L2 graph topology.
 
-* Fourier cutoff / multiplier regularization, or
-* physical-space mollification followed by a Schwartz cutoff with a commutator estimate.
-
-The theorem below contains no numerical assumption and no theorem-discovery evidence.
+This is designed for either of two serious analytic routes: Fourier/multiplier regularization or
+physical-space mollification plus a Schwartz cutoff with a divergence commutator estimate.
 -/
 
-/-- A convergent graph regularizer is sufficient to identify the Schwartz graph closure with the
-closed distributional H(div) graph relation. This packages the topology/closure step so the remaining
-research obligation is exactly the analytic construction and convergence of the regularizer. -/
+/-- A convergent graph regularizer identifies the Schwartz graph closure with the closed
+distributional H(div) graph relation. -/
 theorem complexSmoothGraphClosure_eq_distributional_of_regularizer
     (n : Nat)
     (R : Nat → HDivComplexGraphAmbient n → HDivComplexGraphAmbient n)
@@ -41,13 +38,11 @@ theorem complexSmoothGraphClosure_eq_distributional_of_regularizer
       Tendsto (fun k => R k x) atTop (𝓝 x)) :
     (ComplexHDivSmoothGraphCore n).topologicalClosure =
       HDivDistributionalGraphSubmodule n := by
-  apply le_antisymm (complexSmoothGraphClosure_le_distributional n)
-  intro x hx
-  change x ∈ ((ComplexHDivSmoothGraphCore n).topologicalClosure :
-    Set (HDivComplexGraphAmbient n))
-  rw [Submodule.topologicalClosure_coe]
-  exact mem_closure_of_tendsto (htendsto x hx)
-    (Filter.Eventually.of_forall fun k => hcore k x hx)
+  exact submodule_topologicalClosure_eq_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (HDivDistributionalGraphSubmodule n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
+    R hcore htendsto
 
 /-- Once a regularizer is available, every distributional H(div) graph datum lies in the smooth
 graph closure. This is the reverse inclusion that v3.29 deliberately did not claim. -/
@@ -60,7 +55,11 @@ theorem distributional_le_complexSmoothGraphClosure_of_regularizer
       Tendsto (fun k => R k x) atTop (𝓝 x)) :
     HDivDistributionalGraphSubmodule n ≤
       (ComplexHDivSmoothGraphCore n).topologicalClosure := by
-  rw [complexSmoothGraphClosure_eq_distributional_of_regularizer n R hcore htendsto]
+  exact submodule_le_topologicalClosure_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (HDivDistributionalGraphSubmodule n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
+    R hcore htendsto
 
 end
 
