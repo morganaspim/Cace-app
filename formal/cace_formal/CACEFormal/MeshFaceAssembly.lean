@@ -196,6 +196,10 @@ theorem local_face_sum_decomposition (mesh : MeshCertificate)
         ∑ p : LocalOccurrence mesh, f p := by
       rw [Fintype.sum_prod_type]
     _ = ∑ o : OwnedOccurrence mesh, f (localOwnedEquiv mesh o) := h.symm
+    _ = ∑ o : OwnedOccurrence mesh, f (localOfOwned mesh o) := by
+      apply Finset.sum_congr rfl
+      intro o _ho
+      simp [localOwnedEquiv]
     _ = (∑ p : Fin mesh.interiorEdgeCount × Fin 2,
           f (localOfOwned mesh (Sum.inl p))) +
         (∑ b : Fin mesh.boundaryEdgeCount,
