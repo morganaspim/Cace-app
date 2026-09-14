@@ -85,8 +85,6 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          # Build the library first so imported CACEFormal modules have persistent .olean files.
-          # Direct `lake env lean file.lean` calls do not populate dependency oleans for the next file.
           lake build CACEFormal
           for f in \
             CACEFormal/ContinuumSobolev.lean \
@@ -123,7 +121,8 @@ jobs:
                   'CACEFormal.Continuum.denseRange_schwartzH1',
                   'CACEFormal.Continuum.dense_H1DenseSmoothCore',
                   'CACEFormal.Continuum.dense_HDivDenseSmoothCore',
-                  'CACEFormal.Continuum.graphNormalTrace_bound',
+                  'CACEFormal.Continuum.graphNormalTrace_continuous',
+                  'CACEFormal.Continuum.graphNormalTrace_apply_continuous',
                   'CACEFormal.Continuum.graphWeakGreen',
                   'CACEFormal.Continuum.graphZeroBoundaryOrthogonality',
                   'CACEFormal.Continuum.graphContinuumPragerSynge'
