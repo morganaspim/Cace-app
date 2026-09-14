@@ -30,6 +30,8 @@ import CACEFormal.PDEDomainRealBridge
 import CACEFormal.BoxGraphTrace
 import CACEFormal.BoxGraphGreenPairing
 import CACEFormal.BoxClassicalAgreement
+import CACEFormal.SmoothBoxGreenAuto
+import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
