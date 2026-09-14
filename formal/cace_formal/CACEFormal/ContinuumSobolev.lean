@@ -1,4 +1,5 @@
 import Mathlib.Analysis.Distribution.Sobolev
+import Mathlib.Analysis.InnerProductSpace.PiL2
 
 namespace CACEFormal
 
@@ -6,10 +7,10 @@ open scoped BigOperators LineDeriv SchwartzMap
 
 namespace Continuum
 
-/-- Whole-space Euclidean domain used by the first continuum closure track. -/
-abbrev EuclideanDomain (n : Nat) := Fin n → ℝ
+/-- Whole-space finite-dimensional Euclidean domain used by the continuum closure track. -/
+abbrev EuclideanDomain (n : Nat) := EuclideanSpace ℝ (Fin n)
 
-/-- Scalar tempered distributions on `ℝⁿ`, represented as functions on `Fin n`. -/
+/-- Scalar tempered distributions on Euclidean `ℝⁿ`. -/
 abbrev ScalarDistribution (n : Nat) := 𝓢'(EuclideanDomain n, ℂ)
 
 /-- Vector-valued distribution represented componentwise. -/
@@ -17,7 +18,7 @@ abbrev VectorDistribution (n : Nat) := Fin n → ScalarDistribution n
 
 /-- Canonical Euclidean basis vector `eᵢ`. -/
 def basisVector {n : Nat} (i : Fin n) : EuclideanDomain n :=
-  fun j => if j = i then 1 else 0
+  EuclideanSpace.single i (1 : ℝ)
 
 /-- Actual Mathlib Bessel-potential `H¹ = H^{1,2}` membership. -/
 def InH1 {n : Nat} (u : ScalarDistribution n) : Prop :=
@@ -28,7 +29,8 @@ def InL2 {n : Nat} (u : ScalarDistribution n) : Prop :=
   TemperedDistribution.MemSobolev (E := EuclideanDomain n) (F := ℂ) (0 : ℝ) 2 u
 
 /-- Distributional coordinate derivative in direction `eᵢ`. -/
-def weakPartial {n : Nat} (i : Fin n) (u : ScalarDistribution n) : ScalarDistribution n :=
+noncomputable def weakPartial {n : Nat} (i : Fin n)
+    (u : ScalarDistribution n) : ScalarDistribution n :=
   ∂_{basisVector i} u
 
 /-- Distributional divergence of a componentwise vector distribution. -/
