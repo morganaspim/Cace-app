@@ -97,12 +97,20 @@ theorem graphWeakGreen (n : Nat)
   weakGreen_of_denseSmoothCore
     (graphBoundedGreenPairing n) (graphGreenSmoothCore n) q v
 
-/-- The graph normal trace obeys an explicit operator-norm bound. -/
-theorem graphNormalTrace_bound (n : Nat)
-    (q : HDivGraphClosedSpace n) (v : H1GraphClosedSpace n) :
-    ‖graphNormalTrace n q v‖ ≤
-      ‖graphNormalTrace n‖ * ‖q‖ * ‖v‖ :=
-  BoundedGreenPairing.normalTrace_bound (graphBoundedGreenPairing n) q v
+/--
+The functional normal trace is continuous in the H(div) graph variable.  Since it is bundled as a
+continuous linear map, this records boundedness without relying on an extra operator-norm instance
+for the nested map space in the pinned Mathlib revision.
+-/
+theorem graphNormalTrace_continuous (n : Nat) :
+    Continuous (graphNormalTrace n) :=
+  (graphNormalTrace n).continuous
+
+/-- For each H(div) graph field, the induced boundary functional is continuous in the H¹ variable. -/
+theorem graphNormalTrace_apply_continuous (n : Nat)
+    (q : HDivGraphClosedSpace n) :
+    Continuous (graphNormalTrace n q) :=
+  (graphNormalTrace n q).continuous
 
 end Continuum
 
