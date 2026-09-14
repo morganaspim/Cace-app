@@ -59,8 +59,23 @@ theorem mem_H1DistributionalGraphSubmodule_iff (n : Nat)
         weakPartial i (complexL2ToDistribution n x.1) =
           complexL2ToDistribution n (x.2 i) := by
   change complexH1GraphDefect n x = 0 ↔ _
-  simp [complexH1GraphDefect, complexH1ValueProj, complexH1GradProj,
-    weakPartialCLM_apply, sub_eq_zero]
+  constructor
+  · intro hx i
+    have hi :
+        weakPartial i (complexL2ToDistribution n x.1) -
+            complexL2ToDistribution n (x.2 i) = 0 := by
+      simpa [complexH1GraphDefect, complexH1ValueProj, complexH1GradProj,
+        weakPartialCLM_apply] using congrFun hx i
+    exact sub_eq_zero.mp hi
+  · intro h
+    apply funext
+    intro i
+    have hi :
+        weakPartial i (complexL2ToDistribution n x.1) -
+            complexL2ToDistribution n (x.2 i) = 0 :=
+      sub_eq_zero.mpr (h i)
+    simpa [complexH1GraphDefect, complexH1ValueProj, complexH1GradProj,
+      weakPartialCLM_apply] using hi
 
 /-- The distributional H1 graph relation is closed because it is the kernel of a continuous defect. -/
 theorem isClosed_H1DistributionalGraphSubmodule (n : Nat) :
