@@ -228,6 +228,13 @@ def research_candidate_decision(
 
 
 OPEN_PROBLEM_MODULE_CATEGORIES = frozenset({"Theorem Discovery", "Reliability Theorem"})
+RESERVED_PUBLIC_PROMOTION_KEYS = frozenset({
+    "public_resolution_claim_allowed",
+    "resolution_claim_allowed",
+    "open_problem_resolved",
+    "famous_open_problem_resolved",
+    "reliability_promotable",
+})
 
 
 def _collect_open_obligations(value: Any) -> set[str]:
@@ -244,6 +251,23 @@ def _collect_open_obligations(value: Any) -> set[str]:
         for child in value:
             found.update(_collect_open_obligations(child))
     return found
+
+
+def unsafe_self_promotion_paths(value: Any, prefix: str = "") -> tuple[str, ...]:
+    """Find reserved public-promotion flags that a module attempted to set truthy itself."""
+
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if key in RESERVED_PUBLIC_PROMOTION_KEYS and bool(child):
+                found.append(path)
+            found.extend(unsafe_self_promotion_paths(child, path))
+    elif isinstance(value, (list, tuple)):
+        for i, child in enumerate(value):
+            path = f"{prefix}[{i}]" if prefix else f"[{i}]"
+            found.extend(unsafe_self_promotion_paths(child, path))
+    return tuple(found)
 
 
 def fail_closed_module_decision(category: str, proof_status: Any, outputs: Any) -> ClaimDecision | None:
