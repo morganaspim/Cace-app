@@ -54,6 +54,27 @@ theorem Sobolev2Space.toDistr_injective {n : Nat} {s : ℝ} :
   apply_fun TemperedDistribution.besselPotential (EuclideanDomain n) ℂ s at huv
   simpa [Sobolev2Space.toDistr] using huv
 
+/-- The subtype of tempered distributions satisfying Mathlib's Sobolev predicate. -/
+abbrev MemSobolev2Distribution (n : Nat) (s : ℝ) :=
+  {f : ScalarDistribution n // TemperedDistribution.MemSobolev
+    (E := EuclideanDomain n) (F := ℂ) s 2 f}
+
+/--
+The bundled Bessel-coordinate model is equivalent, as a type, to the actual
+`MemSobolev s 2` subtype of tempered distributions.  This packages the two bridge
+theorems above into a single reusable representation theorem.
+-/
+noncomputable def sobolev2EquivMemSobolev (n : Nat) (s : ℝ) :
+    Sobolev2Space n s ≃ MemSobolev2Distribution n s :=
+  Equiv.ofBijective
+    (fun u => ⟨u.toDistr, u.toDistr_memSobolev⟩)
+    ⟨
+      (fun _ _ h => Sobolev2Space.toDistr_injective (Subtype.ext_iff.mp h)),
+      (fun f => by
+        rcases exists_sobolev2_of_memSobolev f.property with ⟨u, hu⟩
+        exact ⟨u, Subtype.ext hu⟩)
+    ⟩
+
 /-- H¹ in the bundled pinned model. -/
 abbrev BundledH1 (n : Nat) := Sobolev2Space n 1
 
