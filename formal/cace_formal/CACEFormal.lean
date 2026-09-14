@@ -1,3 +1,12 @@
+/-
+CACE Studio — CONFIDENTIAL AND PROPRIETARY
+Copyright © 2026 Emmanuel Spiro. All rights reserved.
+Owner: Emmanuel Spiro.
+
+This notice applies to original CACE material. Imported third-party Mathlib code remains
+subject to its own copyright and license terms.
+-/
+
 import CACEFormal.Hypercircle
 import CACEFormal.AbstractPragerSynge
 import CACEFormal.WeightedEnergy
