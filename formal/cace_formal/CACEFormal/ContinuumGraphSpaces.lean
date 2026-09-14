@@ -108,7 +108,10 @@ def HDivSubmodule (n : Nat) : Submodule ℂ (VectorDistribution n) where
     constructor
     · intro i
       exact (L2Submodule n).zero_mem
-    · simpa using (L2Submodule n).zero_mem
+    · rw [distributionalDivergence_zero]
+      change TemperedDistribution.MemSobolev
+        (E := EuclideanDomain n) (F := ℂ) (0 : ℝ) 2 (0 : ScalarDistribution n)
+      exact TemperedDistribution.memSobolev_fun_zero (EuclideanDomain n) ℂ (0 : ℝ) 2
   add_mem' := by
     intro q r hq hr
     constructor
