@@ -43,7 +43,7 @@ theorem smoothBoxDivergenceGreen {n : Nat}
       signedBoxFlux a b f := by
   simpa [signedBoxFlux] using
     (MeasureTheory.integral_divergence_of_hasFDerivAt_off_countable
-      (E := ℝ) hle f f' s hs Hc Hd Hi)
+      (E := ℝ) a b hle f f' s hs Hc Hd Hi)
 
 /-- Product vector field used in the scalar/vector Green formula. -/
 def scalarTimesVector {n : Nat}
@@ -79,6 +79,8 @@ theorem smoothBoxGreen_of_product_divergence {n : Nat}
       (∑ i : Fin (n + 1), F' x (Pi.single i (1 : ℝ)) i) = volumeTerm x) :
     (∫ x in Icc a b, volumeTerm x) = smoothNormalFluxPairing a b q v := by
   have hdiv := smoothBoxDivergenceGreen hle (scalarTimesVector v q) F' s hs Hc Hd Hi
+  change (∫ x in Icc a b, volumeTerm x) =
+    signedBoxFlux a b (scalarTimesVector v q)
   rw [← hdiv]
   apply setIntegral_congr_fun measurableSet_Icc
   intro x hx
