@@ -7,4 +7,5 @@ import CACEFormal.DiscreteOrthogonality
 import CACEFormal.MeshCombinatorics
 import CACEFormal.Piola
 import CACEFormal.DiscreteMeshAdmissibility
+import CACEFormal.ConcreteMeshCertificate
 import CACEFormal.Generated.DiscreteInstance
