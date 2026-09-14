@@ -195,7 +195,6 @@ theorem local_face_sum_decomposition (mesh : MeshCertificate)
     (∑ K : Fin mesh.triangleCount, ∑ s : Fin 3, localFace K s) =
         ∑ p : LocalOccurrence mesh, f p := by
       rw [Fintype.sum_prod_type]
-      rfl
     _ = ∑ o : OwnedOccurrence mesh, f (localOwnedEquiv mesh o) := h.symm
     _ = (∑ p : Fin mesh.interiorEdgeCount × Fin 2,
           f (localOfOwned mesh (Sum.inl p))) +
