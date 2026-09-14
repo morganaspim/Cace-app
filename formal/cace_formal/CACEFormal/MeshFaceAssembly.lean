@@ -174,7 +174,36 @@ theorem local_face_sum_decomposition (mesh : MeshCertificate)
         localFace (mesh.boundaryCell b) (mesh.boundarySlot b)) := by
   let f : LocalOccurrence mesh → ℝ := fun p => localFace p.1 p.2
   have h := Equiv.sum_comp (localOwnedEquiv mesh) f
-  simpa [f, localOwnedEquiv, localOfOwned, Fintype.sum_sum_type,
-    Fintype.sum_prod_type, Fin.sum_univ_two] using h.symm
+  have hinterior :
+      (∑ p : Fin mesh.interiorEdgeCount × Fin 2,
+        f (localOfOwned mesh (Sum.inl p))) =
+        ∑ i : Fin mesh.interiorEdgeCount,
+          localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+            localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i) := by
+    rw [Fintype.sum_prod_type]
+    apply Finset.sum_congr rfl
+    intro i _hi
+    rw [Fin.sum_univ_two]
+    rfl
+  have hboundary :
+      (∑ b : Fin mesh.boundaryEdgeCount,
+        f (localOfOwned mesh (Sum.inr b))) =
+        ∑ b : Fin mesh.boundaryEdgeCount,
+          localFace (mesh.boundaryCell b) (mesh.boundarySlot b) := by
+    rfl
+  calc
+    (∑ K : Fin mesh.triangleCount, ∑ s : Fin 3, localFace K s) =
+        ∑ p : LocalOccurrence mesh, f p := by
+      rw [Fintype.sum_prod_type]
+      rfl
+    _ = ∑ o : OwnedOccurrence mesh, f (localOwnedEquiv mesh o) := h.symm
+    _ = (∑ p : Fin mesh.interiorEdgeCount × Fin 2,
+          f (localOfOwned mesh (Sum.inl p))) +
+        (∑ b : Fin mesh.boundaryEdgeCount,
+          f (localOfOwned mesh (Sum.inr b))) := by
+      rw [Fintype.sum_sum_type]
+      rfl
+    _ = _ := by
+      rw [hinterior, hboundary]
 
 end CACEFormal
