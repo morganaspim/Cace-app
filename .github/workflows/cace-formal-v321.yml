@@ -61,7 +61,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RIn --include='*.lean' -E '\bsorry\b|OPEN OBLIGATION' formal/cace_formal; then
+          if grep -RIn --include='*.lean' -E '\bsorry\b|\badmit\b|OPEN OBLIGATION' \
+              formal/cace_formal/CACEFormal.lean \
+              formal/cace_formal/CACEFormal; then
             echo 'Unclosed Lean proof obligation found.' >&2
             exit 1
           fi
