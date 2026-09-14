@@ -4,9 +4,35 @@ on:
   workflow_dispatch:
   push:
     branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
-    paths: ['formal/**', 'cace_studio/**', 'tests/**', 'scripts/**', 'pyproject.toml', '.github/workflows/cace-formal-v330.yml']
+    paths:
+      - 'formal/**'
+      - 'cace_studio/core/**'
+      - 'cace_studio/modules/formal*.py'
+      - 'cace_studio/modules/__init__.py'
+      - 'cace_studio/app.py'
+      - 'schema/claim.schema.json'
+      - 'schema/proof-ledger.schema.json'
+      - 'tests/test_claim_promotion_v330.py'
+      - 'tests/test_claim_registry_v331.py'
+      - 'tests/test_qualification_drift_v331.py'
+      - 'scripts/check_qualification_drift.py'
+      - 'pyproject.toml'
+      - '.github/workflows/cace-formal-v330.yml'
   pull_request:
-    paths: ['formal/**', 'cace_studio/**', 'tests/**', 'scripts/**', 'pyproject.toml', '.github/workflows/cace-formal-v330.yml']
+    paths:
+      - 'formal/**'
+      - 'cace_studio/core/**'
+      - 'cace_studio/modules/formal*.py'
+      - 'cace_studio/modules/__init__.py'
+      - 'cace_studio/app.py'
+      - 'schema/claim.schema.json'
+      - 'schema/proof-ledger.schema.json'
+      - 'tests/test_claim_promotion_v330.py'
+      - 'tests/test_claim_registry_v331.py'
+      - 'tests/test_qualification_drift_v331.py'
+      - 'scripts/check_qualification_drift.py'
+      - 'pyproject.toml'
+      - '.github/workflows/cace-formal-v330.yml'
 
 permissions:
   contents: read
@@ -45,7 +71,7 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install -e '.[test]'
-          python -m pytest -q tests/test_claim_promotion_v330.py tests/test_claim_registry_v331.py
+          python -m pytest -q tests/test_claim_promotion_v330.py tests/test_claim_registry_v331.py tests/test_qualification_drift_v331.py
 
       - name: Prepare isolated formal build on larger filesystem
         shell: bash

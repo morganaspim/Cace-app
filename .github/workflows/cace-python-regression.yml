@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
-    paths: ['cace_studio/**', 'tests/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
   pull_request:
-    paths: ['cace_studio/**', 'tests/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
 permissions:
   contents: read
 concurrency:
@@ -42,6 +42,11 @@ jobs:
         run: |
           set -euo pipefail
           python -m pytest --junitxml=regression-results.xml
+      - name: Qualification drift audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/check_qualification_drift.py --output qualification-drift.json
       - name: Build Python wheel and check headless interface
         shell: bash
         run: |
@@ -59,6 +64,7 @@ jobs:
             regression-results.xml
             regression-environment.txt
             wheel-registry.json
+            qualification-drift.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success()
         with:
