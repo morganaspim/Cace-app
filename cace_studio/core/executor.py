@@ -9,6 +9,7 @@ from .certificate import RunCertificate
 from .verification import VerificationRecord, VerificationState
 from .device import DeviceManager
 from .claim_promotion import fail_closed_module_decision, unsafe_self_promotion_paths
+from .formal_gate import enforce_formal_claim_qualification
 
 @dataclass
 class RunResult:
@@ -88,7 +89,11 @@ class GraphExecutor:
             if decision is not None:
                 claim_decisions[node_id]=decision.to_dict()
 
-            records=list(module.verify(ins,params,out,ctx)); verification[node_id]=records
+            records=enforce_formal_claim_qualification(
+                module.metadata.module_id,
+                list(module.verify(ins,params,out,ctx)),
+            )
+            verification[node_id]=records
             if any(r.state is VerificationState.FAIL for r in records):
                 # Failure is evidence, not a crash: preserve outputs/certificate for investigation.
                 pass

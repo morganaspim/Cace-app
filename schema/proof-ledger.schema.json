@@ -1,0 +1,82 @@
+{
+  "$id": "https://cace.local/schema/proof-ledger.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "claim_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "current_head_qualified": {
+            "type": "boolean"
+          },
+          "proof_artifact_sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "workflow_run_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "release",
+          "claim_ids",
+          "status",
+          "current_head_qualified"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "policy": {
+      "type": "string"
+    },
+    "schema_version": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "policy",
+    "entries"
+  ],
+  "title": "CACE Proof Ledger",
+  "type": "object"
+}

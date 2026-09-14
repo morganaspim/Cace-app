@@ -23,6 +23,9 @@ cace = "cace_studio.cli:main"
 [tool.setuptools.packages.find]
 include = ["cace_studio*"]
 
+[tool.setuptools.package-data]
+cace_studio = ["data/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

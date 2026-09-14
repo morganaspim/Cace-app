@@ -1,0 +1,44 @@
+{
+  "claims": [
+    {
+      "claim_id": "cace.v322.concrete-mesh-prager-synge",
+      "evidence_ceiling": "symbolic",
+      "module_ids": [
+        "formal322.concrete_mesh_certificate_prager_synge"
+      ],
+      "nonclaims": [
+        "Not a general unstructured-mesh theorem.",
+        "Does not close continuum H1/H(div) trace theory."
+      ],
+      "qualification": {
+        "attested_commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
+        "current_head_qualified": false,
+        "proof_artifact_sha256": null,
+        "reason": "Historical v3.22 GitHub Actions passed at the immutable commit, but current-head formal qualification must be rebuilt and artifact-hashed before FORMAL PASS can be emitted.",
+        "status": "HISTORICAL_PASS"
+      },
+      "scope": "Fixed finite rational square-with-center mesh fixture only.",
+      "statement": "A fixed rational square-with-center P1/constant-RT0-error mesh certificate feeds the discrete Prager-Synge endpoint."
+    },
+    {
+      "claim_id": "cace.v330.continuum-proof-strengthening",
+      "evidence_ceiling": "formally-verified",
+      "module_ids": [],
+      "nonclaims": [
+        "Does not by itself prove all Python/C++ program behavior.",
+        "Does not close obligations explicitly listed in the v3.30 proof-strengthening release notes."
+      ],
+      "qualification": {
+        "attested_commit": null,
+        "current_head_qualified": false,
+        "proof_artifact_sha256": null,
+        "reason": "No current-head pinned Lean build plus axiom audit has yet been accepted into this registry.",
+        "status": "NOT_RUN"
+      },
+      "scope": "Current development continuum chain; individual theorem scope is defined in Lean sources and release notes.",
+      "statement": "The v3.23-v3.30 continuum chain contains graph-space, Green-identity, trace, density-reduction and Prager-Synge proof infrastructure."
+    }
+  ],
+  "policy": "fail-closed",
+  "schema_version": 1
+}

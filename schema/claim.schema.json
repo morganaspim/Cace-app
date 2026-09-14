@@ -1,0 +1,102 @@
+{
+  "$id": "https://cace.local/schema/claim.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "claims": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence_ceiling": {
+            "enum": [
+              "experimental",
+              "numerical",
+              "symbolic",
+              "interval-certified",
+              "formally-verified",
+              "cross-verified"
+            ]
+          },
+          "module_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "nonclaims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "qualification": {
+            "additionalProperties": false,
+            "properties": {
+              "attested_commit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "current_head_qualified": {
+                "type": "boolean"
+              },
+              "proof_artifact_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "current_head_qualified"
+            ],
+            "type": "object"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "statement": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "module_ids",
+          "statement",
+          "scope",
+          "evidence_ceiling",
+          "qualification"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "policy": {
+      "type": "string"
+    },
+    "schema_version": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "policy",
+    "claims"
+  ],
+  "title": "CACE Claim Registry",
+  "type": "object"
+}
