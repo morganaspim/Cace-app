@@ -8,4 +8,8 @@ import CACEFormal.MeshCombinatorics
 import CACEFormal.Piola
 import CACEFormal.DiscreteMeshAdmissibility
 import CACEFormal.ConcreteMeshCertificate
+import CACEFormal.MeshCertificate
+import CACEFormal.RT0P1Assembly
 import CACEFormal.Generated.DiscreteInstance
+import CACEFormal.Generated.V323MeshCertificate
+import CACEFormal.Generated.V324AssemblyInstance
