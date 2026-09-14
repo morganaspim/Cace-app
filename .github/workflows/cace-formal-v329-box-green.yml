@@ -1,0 +1,80 @@
+name: CACE Formal v3.29 bounded-box Green pairing
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'formal/cace_formal/CACEFormal/BoxGraphTrace.lean'
+      - 'formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean'
+      - '.github/workflows/cace-formal-v329-box-green.yml'
+  pull_request:
+    paths:
+      - 'formal/cace_formal/CACEFormal/BoxGraphTrace.lean'
+      - 'formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean'
+      - '.github/workflows/cace-formal-v329-box-green.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v329-box-green-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-box-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned Lean toolchain
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve pinned mathlib
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake update
+          lake exe cache get
+
+      - name: Check box graph proof sources are closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            formal/cace_formal/CACEFormal/BoxGraphTrace.lean
+            formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean
+          )
+          if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
+            echo 'Unclosed box graph proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Compile bounded-box Green modules
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          lake build CACEFormal
+          lake env lean CACEFormal/BoxGraphTrace.lean
+          lake env lean CACEFormal/BoxGraphGreenPairing.lean
