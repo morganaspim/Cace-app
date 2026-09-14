@@ -22,10 +22,10 @@ General exact finite triangular-mesh certificate used from v3.23 onward.
 
 Unlike the fixed v3.22 fixture, this object carries the rational vertex geometry,
 triangle connectivity, canonical edge geometry, local-to-global orientation, and
-complete interior/boundary ownership data.  The positivity proof is tied to the
+complete interior/boundary ownership data. The positivity proof is tied to the
 actual affine Jacobian formula rather than to an unrelated asserted number.
 
-This remains a finite discrete certificate.  It does not claim the later
+This remains a finite discrete certificate. It does not claim the later
 continuum H¹/H(div) normal-trace or density theorems.
 -/
 structure MeshCertificate where
@@ -67,14 +67,19 @@ structure MeshCertificate where
   localEdge : Fin triangleCount → Fin 3 → Fin edgeCount
   /-- Orientation of the directed local edge relative to its canonical global orientation. -/
   localSign : Fin triangleCount → Fin 3 → OrientationSign
-  /-- Local edge ids and signs are tied to the actual triangle/global-edge endpoints. -/
+  /--
+  Local edge ids and signs are tied to the actual triangle/global-edge endpoints.
+  Pair equality is definitionally convenient for generated certificates and is
+  equivalent to the two endpoint equalities componentwise.
+  -/
   local_edge_geometry : ∀ K s,
     let e := localEdge K s
     let u := triangleVertex K (localEdgeStartSlot s)
     let v := triangleVertex K (localEdgeEndSlot s)
-    match localSign K s with
-    | .pos => edgeVertexLo e = u ∧ edgeVertexHi e = v
-    | .neg => edgeVertexLo e = v ∧ edgeVertexHi e = u
+    (edgeVertexLo e, edgeVertexHi e) =
+      match localSign K s with
+      | .pos => (u, v)
+      | .neg => (v, u)
 
   /-- Global id of every certified interior edge. -/
   interiorEdge : Fin interiorEdgeCount → Fin edgeCount
@@ -102,7 +107,7 @@ structure MeshCertificate where
     localEdge (boundaryCell b) (boundarySlot b) = boundaryEdge b
 
   /--
-  Total ownership classifier for global edges.  Declared records map back to
+  Total ownership classifier for global edges. Declared records map back to
   themselves, ruling out duplicate global ids within either family and preventing
   an edge from simultaneously being interior and boundary.
   -/
@@ -111,7 +116,7 @@ structure MeshCertificate where
   boundary_owned : ∀ b, edgeOwner (boundaryEdge b) = Sum.inr b
 
   /--
-  Ownership is complete for every local triangle-edge occurrence.  Thus a certified
+  Ownership is complete for every local triangle-edge occurrence. Thus a certified
   interior edge has only its declared two local occurrences and a certified boundary
   edge has only its declared single occurrence; no hidden duplicate incidence can be
   smuggled into `localEdge`.
@@ -134,9 +139,9 @@ theorem signedJacobian_ne_zero (mesh : MeshCertificate) (K : Fin mesh.triangleCo
 theorem edgeVertex_ne (mesh : MeshCertificate) (e : Fin mesh.edgeCount) :
     mesh.edgeVertexLo e ≠ mesh.edgeVertexHi e := by
   intro h
-  have := mesh.edge_vertices_canonical e
-  rw [h] at this
-  exact (Nat.lt_irrefl _ this)
+  have hlt := mesh.edge_vertices_canonical e
+  rw [h] at hlt
+  exact (Nat.lt_irrefl _ hlt)
 
 /-- Canonical interior edge ids are injective. -/
 theorem interiorEdge_injective (mesh : MeshCertificate) :
