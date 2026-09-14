@@ -3,6 +3,7 @@ import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.H1DomainBridge
+import CACEFormal.DistributionalGraphRepresentatives
 
 /-!
 # v3.30 kernel-assumption audit
@@ -28,3 +29,7 @@ or on any axiom outside the small foundational whitelist enforced by the workflo
 #print axioms CACEFormal.Continuum.smoothComplexH1GraphMap_mem_distributional
 #print axioms CACEFormal.Continuum.complexH1SmoothGraphClosure_le_distributional
 #print axioms CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer
+#print axioms CACEFormal.Continuum.complexL2ToDistribution_l2RepresentativeOfInL2
+#print axioms CACEFormal.Continuum.inH1GraphRepresentative_mem
+#print axioms CACEFormal.Continuum.inHDivGraphRepresentative_mem
+#print axioms CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative
