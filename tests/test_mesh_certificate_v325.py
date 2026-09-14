@@ -40,12 +40,22 @@ def test_general_mesh_certificate_exact_roundtrip():
         "boundary_edges": 4,
     }
     assert cert["signed_jacobians"] == ["1/2"] * 4
+    assert cert["edges"][0]["vertices"] == [0, 1]
 
 
 def test_reversed_triangle_orientation_is_rejected():
     mesh = square_center_mesh()
     mesh["triangles"][0] = [1, 0, 4]
     with pytest.raises(ValueError, match="non-positive signed Jacobian"):
+        generate_mesh_certificate(
+            mesh["vertices"], mesh["triangles"], mesh["boundary_labels"]
+        )
+
+
+def test_float_geometry_is_rejected_instead_of_silently_rounded():
+    mesh = square_center_mesh()
+    mesh["vertices"][4] = [0.5, 0.5]
+    with pytest.raises(ValueError, match="binary floats are intentionally rejected"):
         generate_mesh_certificate(
             mesh["vertices"], mesh["triangles"], mesh["boundary_labels"]
         )
@@ -70,13 +80,38 @@ def test_nonmanifold_edge_is_rejected():
         generate_mesh_certificate(vertices, triangles)
 
 
-def test_lean_renderer_emits_closed_meshcertificate_source():
+def test_empty_boundary_label_is_rejected():
+    mesh = square_center_mesh()
+    mesh["boundary_labels"]["0-1"] = ""
+    with pytest.raises(ValueError, match="empty label"):
+        generate_mesh_certificate(
+            mesh["vertices"], mesh["triangles"], mesh["boundary_labels"]
+        )
+
+
+def test_label_on_interior_edge_is_rejected():
+    mesh = square_center_mesh()
+    mesh["boundary_labels"]["1-4"] = "not-boundary"
+    with pytest.raises(ValueError, match="non-boundary or absent"):
+        generate_mesh_certificate(
+            mesh["vertices"], mesh["triangles"], mesh["boundary_labels"]
+        )
+
+
+def test_lean_renderer_emits_closed_geometry_linked_meshcertificate_source():
     mesh = square_center_mesh()
     cert = generate_mesh_certificate(
         mesh["vertices"], mesh["triangles"], mesh["boundary_labels"]
     )
     source = render_lean_mesh_certificate(cert, "testGeneratedMesh")
     assert "def testGeneratedMesh : MeshCertificate where" in source
+    assert "vertexCount := 5" in source
+    assert "signedJacobian_formula" in source
+    assert "edge_vertices_canonical" in source
+    assert "local_edge_geometry" in source
+    assert "interior_cells_distinct" in source
+    assert "boundary_label_nonempty" in source
+    assert "local_edge_complete" in source
     assert "interior_signs_opposite" in source
     assert "signedJacobian_pos" in source
     assert "sorry" not in source
