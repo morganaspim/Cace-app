@@ -1,0 +1,67 @@
+import Mathlib.Analysis.Distribution.Sobolev
+
+namespace CACEFormal
+
+open scoped BigOperators LineDeriv SchwartzMap
+
+namespace Continuum
+
+/-- Whole-space Euclidean domain used by the first continuum closure track. -/
+abbrev EuclideanDomain (n : Nat) := Fin n → ℝ
+
+/-- Scalar tempered distributions on `ℝⁿ`, represented as functions on `Fin n`. -/
+abbrev ScalarDistribution (n : Nat) := 𝓢'(EuclideanDomain n, ℂ)
+
+/-- Vector-valued distribution represented componentwise. -/
+abbrev VectorDistribution (n : Nat) := Fin n → ScalarDistribution n
+
+/-- Actual Mathlib Bessel-potential `H¹ = H^{1,2}` membership. -/
+def InH1 {n : Nat} (u : ScalarDistribution n) : Prop :=
+  TemperedDistribution.MemSobolev 1 2 u
+
+/-- Actual Mathlib `L² = H^{0,2}` membership for a tempered distribution. -/
+def InL2 {n : Nat} (u : ScalarDistribution n) : Prop :=
+  TemperedDistribution.MemSobolev 0 2 u
+
+/-- Distributional coordinate derivative in direction `eᵢ`. -/
+def weakPartial {n : Nat} (i : Fin n) (u : ScalarDistribution n) : ScalarDistribution n :=
+  ∂_{Pi.single i (1 : ℝ)} u
+
+/-- Distributional divergence of a componentwise vector distribution. -/
+def distributionalDivergence {n : Nat} (q : VectorDistribution n) : ScalarDistribution n :=
+  ∑ i : Fin n, weakPartial i (q i)
+
+/--
+Whole-space distributional `H(div)` predicate: every component is `L²` and the
+distributional divergence is `L²`.
+
+This is a genuine Sobolev/distributional interface. It is deliberately not yet a
+bounded-domain normal-trace space; that boundary layer is the v3.27 target.
+-/
+def InHDiv {n : Nat} (q : VectorDistribution n) : Prop :=
+  (∀ i : Fin n, InL2 (q i)) ∧ InL2 (distributionalDivergence q)
+
+/-- Mathlib's Sobolev derivative theorem gives every weak coordinate derivative of an H¹ field in L². -/
+theorem h1_weakPartial_l2 {n : Nat} {u : ScalarDistribution n}
+    (hu : InH1 u) (i : Fin n) : InL2 (weakPartial i u) := by
+  simpa [InH1, InL2, weakPartial] using
+    (TemperedDistribution.MemSobolev.lineDerivOp hu
+      (m := Pi.single i (1 : ℝ)))
+
+/-- H¹ membership also implies L² membership by monotonicity of Sobolev order. -/
+theorem h1_l2 {n : Nat} {u : ScalarDistribution n} (hu : InH1 u) : InL2 u := by
+  exact TemperedDistribution.MemSobolev.mono (by norm_num) hu
+
+/-- Extract the componentwise L² statement from the H(div) interface. -/
+theorem hdiv_component_l2 {n : Nat} {q : VectorDistribution n}
+    (hq : InHDiv q) (i : Fin n) : InL2 (q i) :=
+  hq.1 i
+
+/-- Extract the L² distributional-divergence statement from the H(div) interface. -/
+theorem hdiv_divergence_l2 {n : Nat} {q : VectorDistribution n}
+    (hq : InHDiv q) : InL2 (distributionalDivergence q) :=
+  hq.2
+
+end Continuum
+
+end CACEFormal
