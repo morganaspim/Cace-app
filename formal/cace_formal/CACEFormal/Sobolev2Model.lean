@@ -1,0 +1,86 @@
+import CACEFormal.ContinuumSobolev
+import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+
+namespace CACEFormal
+
+open MeasureTheory
+open scoped SchwartzMap
+
+namespace Continuum
+
+/--
+Pinned-mathlib bundled model of the Hilbert Sobolev space `H^{s,2}(ℝⁿ)`.
+The coordinate is the `L²` representative of the Bessel potential.  The physical
+tempered distribution is recovered by the inverse Bessel potential.  This is the
+same representation used by the later bundled Mathlib `BesselPotentialSpace`, but
+is available on CACE's pinned Mathlib revision.
+-/
+def Sobolev2Space (n : Nat) (s : ℝ) :=
+  Lp ℂ 2 (volume : Measure (EuclideanDomain n))
+
+/-- The underlying `L²` Bessel coordinate. -/
+def Sobolev2Space.toLp {n : Nat} {s : ℝ} (u : Sobolev2Space n s) :
+    Lp ℂ 2 (volume : Measure (EuclideanDomain n)) :=
+  u
+
+/-- Recover the physical tempered distribution from its Bessel coordinate. -/
+noncomputable def Sobolev2Space.toDistr {n : Nat} {s : ℝ}
+    (u : Sobolev2Space n s) : ScalarDistribution n :=
+  TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-s) u
+
+/-- Every bundled Bessel coordinate realizes an actual Mathlib `MemSobolev s 2` distribution. -/
+theorem Sobolev2Space.toDistr_memSobolev {n : Nat} {s : ℝ}
+    (u : Sobolev2Space n s) :
+    TemperedDistribution.MemSobolev
+      (E := EuclideanDomain n) (F := ℂ) s 2 u.toDistr := by
+  refine ⟨u.toLp, ?_⟩
+  simp [Sobolev2Space.toDistr, Sobolev2Space.toLp]
+
+/-- Conversely, every Mathlib `MemSobolev s 2` distribution has a bundled Bessel coordinate. -/
+theorem exists_sobolev2_of_memSobolev {n : Nat} {s : ℝ}
+    {f : ScalarDistribution n}
+    (hf : TemperedDistribution.MemSobolev
+      (E := EuclideanDomain n) (F := ℂ) s 2 f) :
+    ∃ u : Sobolev2Space n s, u.toDistr = f := by
+  rcases hf with ⟨u, hu⟩
+  refine ⟨u, ?_⟩
+  exact (TemperedDistribution.besselPotential_neg_apply_eq_iff
+    (E := EuclideanDomain n) (F := ℂ) s (u : ScalarDistribution n) f).2 hu
+
+/-- The Bessel coordinate representation is injective. -/
+theorem Sobolev2Space.toDistr_injective {n : Nat} {s : ℝ} :
+    Function.Injective (@Sobolev2Space.toDistr n s) := by
+  intro u v huv
+  apply_fun TemperedDistribution.besselPotential (EuclideanDomain n) ℂ s at huv
+  simpa [Sobolev2Space.toDistr] using huv
+
+/-- H¹ in the bundled pinned model. -/
+abbrev BundledH1 (n : Nat) := Sobolev2Space n 1
+
+/-- L² in the bundled pinned model. -/
+abbrev BundledL2 (n : Nat) := Sobolev2Space n 0
+
+/-- Schwartz functions mapped to Bessel coordinates.  The target is viewed as a real normed space. -/
+noncomputable def schwartzSobolev2Coordinates (n : Nat) (s : ℝ) :
+    𝓢(EuclideanDomain n, ℂ) →L[ℝ] Sobolev2Space n s :=
+  SchwartzMap.toLpCLM ℝ ℂ 2 volume
+
+/--
+Schwartz Bessel coordinates are dense in every bundled `H^{s,2}` space.
+This is a genuine density theorem inherited from Mathlib's Schwartz-density theorem in `L²`.
+-/
+theorem denseRange_schwartzSobolev2Coordinates (n : Nat) (s : ℝ) :
+    DenseRange (schwartzSobolev2Coordinates n s) := by
+  simpa [schwartzSobolev2Coordinates, Sobolev2Space] using
+    (SchwartzMap.denseRange_toLpCLM
+      (E := EuclideanDomain n) (F := ℂ) (p := (2 : ℝ≥0∞))
+      (μ := (volume : Measure (EuclideanDomain n))) ENNReal.ofNat_ne_top)
+
+/-- In particular, Schwartz Bessel coordinates are dense in bundled H¹. -/
+theorem denseRange_schwartzH1 (n : Nat) :
+    DenseRange (schwartzSobolev2Coordinates n 1) :=
+  denseRange_schwartzSobolev2Coordinates n 1
+
+end Continuum
+
+end CACEFormal
