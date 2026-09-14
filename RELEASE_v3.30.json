@@ -7,7 +7,11 @@
   "scope": [
     "automatic Schwartz-core product calculus for bounded-box Green identities",
     "automatic smooth functional-trace to classical face-flux agreement endpoint",
-    "regularizer criterion reducing reverse H(div) graph inclusion to analytic regularization",
+    "generic regularization-to-closure and kernel-regularization proof automation",
+    "complex and real H(div) reverse-inclusion criteria",
+    "closed distributional H1 graph relation and regularization criterion",
+    "exact L2 graph representatives for InL2, InH1, and InHDiv data",
+    "representation equivalence between InHDiv and existence of a closed distributional H(div) graph datum",
     "kernel axiom audit for new formal endpoints",
     "repository-wide fail-closed open-problem claim promotion policy",
     "adversarial promotion tests including the existing reliability proof DAG"
@@ -19,8 +23,20 @@
       "CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume",
       "CACEFormal.Continuum.smoothBoxGreen_schwartz",
       "CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto",
+      "CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer",
+      "CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer",
+      "CACEFormal.Continuum.ker_le_topologicalClosure_of_regularizer",
       "CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer",
-      "CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer"
+      "CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer",
+      "CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer",
+      "CACEFormal.Continuum.mem_H1DistributionalGraphSubmodule_iff",
+      "CACEFormal.Continuum.smoothComplexH1GraphMap_mem_distributional",
+      "CACEFormal.Continuum.complexH1SmoothGraphClosure_le_distributional",
+      "CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer",
+      "CACEFormal.Continuum.complexL2ToDistribution_l2RepresentativeOfInL2",
+      "CACEFormal.Continuum.inH1GraphRepresentative_mem",
+      "CACEFormal.Continuum.inHDivGraphRepresentative_mem",
+      "CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative"
     ],
     "lean_toolchain": "pinned by formal/cace_formal/lean-toolchain",
     "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
@@ -56,7 +72,8 @@
     "external_reviewer_identity_and_independence_proved_by_cace": false
   },
   "remaining_hard_analysis": {
-    "primary_obligation": "construct an unconditional regularizer for the whole-space distributional H(div) graph and prove convergence in the L2 graph norm",
+    "primary_obligation": "construct unconditional graph-norm regularizers for the whole-space H(div) and H1 distributional graph relations",
+    "secondary_obligation": "prove the converse identification from the new distributional H1 graph relation to Mathlib Bessel-potential InH1",
     "ranked_routes": [
       {
         "rank": 1,
@@ -66,22 +83,28 @@
       {
         "rank": 2,
         "route": "mollification plus Schwartz cutoff",
-        "reason": "classical route but requires a divergence cutoff-commutator estimate"
+        "reason": "classical route but requires derivative/divergence cutoff-commutator estimates"
       },
       {
         "rank": 3,
         "route": "Hilbert annihilator / orthogonality density proof",
-        "reason": "reduces density to a PDE-duality uniqueness theorem but does not remove the analytic burden"
+        "reason": "reduces density to PDE-duality uniqueness but moves rather than removes the analytic burden"
       }
     ]
   },
   "verification": {
+    "latest_observed_v330_workflow_run": 34855119850,
+    "latest_observed_job": 104012566771,
+    "runner_id": 0,
+    "executed_steps": 0,
     "observed_runner_pattern": "v3.30 GitHub Actions jobs have repeatedly been created with runner_id=0 and zero executed steps",
     "interpretation": "runner infrastructure failure; neither a proof pass nor a Lean proof failure",
     "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
   },
   "nonclaims": [
     "The unconditional reverse inclusion from arbitrary distributional H(div) graph data into the Schwartz graph closure is not yet proved.",
+    "The unconditional reverse inclusion for the new distributional H1 graph relation is not yet proved.",
+    "The converse equivalence between the new H1 graph relation and Bessel-potential InH1 is not yet proved.",
     "The new v3.30 Lean endpoints are not marked verified until pinned CI executes on a real runner and emits an attestation.",
     "Independent external mathematical review remains mandatory before CACE permits public resolution wording for a famous open problem."
   ]
