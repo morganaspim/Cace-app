@@ -16,9 +16,9 @@ The hard direction missing from v3.29 is
 
 `HDivDistributionalGraphSubmodule n ≤ (ComplexHDivSmoothGraphCore n).topologicalClosure`.
 
-The generic topology has now been factored into `RegularizationClosure`.  Consequently the only
-H(div)-specific content left in this criterion is the already-proved smooth-core inclusion, closedness
-of the distributional graph relation, and the two obligations for a concrete regularizer:
+The generic topology has now been factored into `RegularizationClosure`.  The target H(div) graph is
+itself the kernel of the continuous defect map `complexHDivGraphDefect`, so even target closedness is
+automatic.  Consequently the only H(div)-specific obligations left for a concrete regularizer are:
 
 * core preservation: `R k x` lies in the Schwartz H(div) graph core;
 * graph convergence: `R k x → x` in the ambient L2 graph topology.
@@ -38,10 +38,11 @@ theorem complexSmoothGraphClosure_eq_distributional_of_regularizer
       Tendsto (fun k => R k x) atTop (𝓝 x)) :
     (ComplexHDivSmoothGraphCore n).topologicalClosure =
       HDivDistributionalGraphSubmodule n := by
-  exact submodule_topologicalClosure_eq_of_regularizer
-    (ComplexHDivSmoothGraphCore n) (HDivDistributionalGraphSubmodule n)
+  change (ComplexHDivSmoothGraphCore n).topologicalClosure =
+    (complexHDivGraphDefect n).ker
+  exact submodule_topologicalClosure_eq_ker_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
     (ComplexHDivSmoothGraphCore_le_distributional n)
-    (isClosed_HDivDistributionalGraphSubmodule n)
     R hcore htendsto
 
 /-- Once a regularizer is available, every distributional H(div) graph datum lies in the smooth
@@ -55,10 +56,11 @@ theorem distributional_le_complexSmoothGraphClosure_of_regularizer
       Tendsto (fun k => R k x) atTop (𝓝 x)) :
     HDivDistributionalGraphSubmodule n ≤
       (ComplexHDivSmoothGraphCore n).topologicalClosure := by
-  exact submodule_le_topologicalClosure_of_regularizer
-    (ComplexHDivSmoothGraphCore n) (HDivDistributionalGraphSubmodule n)
+  change (complexHDivGraphDefect n).ker ≤
+    (ComplexHDivSmoothGraphCore n).topologicalClosure
+  exact ker_le_topologicalClosure_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
     (ComplexHDivSmoothGraphCore_le_distributional n)
-    (isClosed_HDivDistributionalGraphSubmodule n)
     R hcore htendsto
 
 end
