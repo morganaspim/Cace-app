@@ -35,6 +35,7 @@ import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.H1DomainBridge
+import CACEFormal.DistributionalGraphRepresentatives
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
