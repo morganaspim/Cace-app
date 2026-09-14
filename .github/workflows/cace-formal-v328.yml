@@ -1,0 +1,146 @@
+name: CACE Formal v3.28 continuum graph closure
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'formal/cace_formal/**'
+      - 'RELEASE_v3.28.json'
+      - '.github/workflows/cace-formal-v328.yml'
+  pull_request:
+    paths:
+      - 'formal/cace_formal/**'
+      - 'RELEASE_v3.28.json'
+      - '.github/workflows/cace-formal-v328.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v328-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  continuum-graph-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned Lean toolchain
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve pinned mathlib
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake update
+          lake exe cache get
+
+      - name: Check continuum proof sources are closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            formal/cace_formal/CACEFormal/ContinuumSobolev.lean
+            formal/cace_formal/CACEFormal/ContinuumGraphSpaces.lean
+            formal/cace_formal/CACEFormal/SmoothBoxGreen.lean
+            formal/cace_formal/CACEFormal/BoxNormalTrace.lean
+            formal/cace_formal/CACEFormal/WeakGreenFunctional.lean
+            formal/cace_formal/CACEFormal/ContinuumOrthogonality.lean
+            formal/cace_formal/CACEFormal/ContinuumPragerSynge.lean
+            formal/cace_formal/CACEFormal/Sobolev2Model.lean
+            formal/cace_formal/CACEFormal/GraphDensity.lean
+            formal/cace_formal/CACEFormal/GraphClosedSpaces.lean
+            formal/cace_formal/CACEFormal/GraphGreenPairing.lean
+            formal/cace_formal/CACEFormal/GraphPragerSynge.lean
+          )
+          if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
+            echo 'Unclosed continuum proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Compile continuum modules
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          for f in \
+            CACEFormal/ContinuumSobolev.lean \
+            CACEFormal/ContinuumGraphSpaces.lean \
+            CACEFormal/SmoothBoxGreen.lean \
+            CACEFormal/BoxNormalTrace.lean \
+            CACEFormal/WeakGreenFunctional.lean \
+            CACEFormal/ContinuumOrthogonality.lean \
+            CACEFormal/ContinuumPragerSynge.lean \
+            CACEFormal/Sobolev2Model.lean \
+            CACEFormal/GraphDensity.lean \
+            CACEFormal/GraphClosedSpaces.lean \
+            CACEFormal/GraphGreenPairing.lean \
+            CACEFormal/GraphPragerSynge.lean; do
+              lake env lean "$f"
+          done
+          lake build CACEFormal
+
+      - name: Write v3.28 attestation
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess
+          def out(cmd, cwd=None):
+              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+          data = {
+              'release': '3.28.0-dev',
+              'status': 'PASS',
+              'commit': out(['git', 'rev-parse', 'HEAD']),
+              'lean_version': out(['lean', '--version']),
+              'scope': 'closed H1/H(div) graph-space model, dense smooth cores, bounded functional normal trace, weak Green extension, zero-boundary orthogonality, and graph-space Prager-Synge closure',
+              'theorems': [
+                  'CACEFormal.Continuum.denseRange_schwartzH1',
+                  'CACEFormal.Continuum.dense_H1DenseSmoothCore',
+                  'CACEFormal.Continuum.dense_HDivDenseSmoothCore',
+                  'CACEFormal.Continuum.graphNormalTrace_bound',
+                  'CACEFormal.Continuum.graphWeakGreen',
+                  'CACEFormal.Continuum.graphZeroBoundaryOrthogonality',
+                  'CACEFormal.Continuum.graphContinuumPragerSynge'
+              ],
+              'nonclaims': [
+                  'This attestation does not yet identify the graph-closure normal trace with the classical box face-flux trace.',
+                  'This attestation does not yet prove equivalence of the H(div) graph-closure model with the distributional InHDiv predicate.',
+                  'The box-domain PDE bridge remains a separate v3.29 obligation.'
+              ]
+          }
+          open('v328_github_formal_build_attestation.json', 'w', encoding='utf-8').write(
+              json.dumps(data, indent=2, sort_keys=True) + '\n\n'
+          )
+          print(json.dumps(data, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload v3.28 attestation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cace-v328-formal-attestation
+          path: v328_github_formal_build_attestation.json
