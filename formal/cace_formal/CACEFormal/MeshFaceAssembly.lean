@@ -168,8 +168,8 @@ theorem local_face_sum_decomposition (mesh : MeshCertificate)
     (localFace : Fin mesh.triangleCount → Fin 3 → ℝ) :
     (∑ K : Fin mesh.triangleCount, ∑ s : Fin 3, localFace K s) =
       (∑ i : Fin mesh.interiorEdgeCount,
-        localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
-          localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) +
+        (localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+          localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i))) +
       (∑ b : Fin mesh.boundaryEdgeCount,
         localFace (mesh.boundaryCell b) (mesh.boundarySlot b)) := by
   let f : LocalOccurrence mesh → ℝ := fun p => localFace p.1 p.2
@@ -178,8 +178,8 @@ theorem local_face_sum_decomposition (mesh : MeshCertificate)
       (∑ p : Fin mesh.interiorEdgeCount × Fin 2,
         f (localOfOwned mesh (Sum.inl p))) =
         ∑ i : Fin mesh.interiorEdgeCount,
-          localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
-            localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i) := by
+          (localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+            localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) := by
     rw [Fintype.sum_prod_type]
     apply Finset.sum_congr rfl
     intro i _hi
