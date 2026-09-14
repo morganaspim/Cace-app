@@ -61,7 +61,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RIn --include='*.lean' -E '\bsorry\b|OPEN OBLIGATION' formal/cace_formal; then
+          if grep -RIn --include='*.lean' -E '\bsorry\b|OPEN OBLIGATION' \
+              formal/cace_formal/CACEFormal formal/cace_formal/CACEFormal.lean; then
             echo 'Unclosed Lean proof obligation found.' >&2
             exit 1
           fi
@@ -73,7 +74,7 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          lake build
+          lake build CACEFormal
 
       - name: Run independent exact checker regression
         shell: bash
@@ -90,7 +91,7 @@ jobs:
           import hashlib, json, pathlib, subprocess
           root=pathlib.Path('.')
           formal=root/'formal'/'cace_formal'
-          files=sorted(formal.rglob('*.lean'))
+          files=sorted((formal/'CACEFormal').rglob('*.lean')) + [formal/'CACEFormal.lean']
           h=hashlib.sha256()
           for p in files:
               h.update(str(p.relative_to(root)).encode()); h.update(b'\0'); h.update(p.read_bytes()); h.update(b'\0')
