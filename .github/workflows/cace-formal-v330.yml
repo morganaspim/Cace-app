@@ -1,0 +1,177 @@
+name: CACE Formal v3.30 proof strengthening
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - roadmap/v3.30-proof-strengthening
+    paths:
+      - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
+      - 'formal/cace_formal/CACEFormal.lean'
+      - 'RELEASE_v3.30.json'
+      - 'V330_PROOF_STRENGTHENING.md'
+      - '.github/workflows/cace-formal-v330.yml'
+  pull_request:
+    paths:
+      - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
+      - 'formal/cace_formal/CACEFormal.lean'
+      - 'RELEASE_v3.30.json'
+      - 'V330_PROOF_STRENGTHENING.md'
+      - '.github/workflows/cace-formal-v330.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v330-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof-strengthening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned Lean toolchain
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve pinned mathlib
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake update
+          lake exe cache get
+
+      - name: Reject unfinished proof tokens
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean
+            formal/cace_formal/CACEFormal/V330AxiomAudit.lean
+          )
+          if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
+            echo 'Unclosed v3.30 proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Compile v3.30 analysis endpoint
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          lake env lean CACEFormal/SmoothBoxGreenAuto.lean
+
+      - name: Kernel axiom audit
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean CACEFormal/V330AxiomAudit.lean 2>&1 | tee /tmp/v330-axioms.txt
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          text = Path('/tmp/v330-axioms.txt').read_text(encoding='utf-8')
+          if 'sorryAx' in text:
+              raise SystemExit('Rejected: theorem dependency contains sorryAx')
+
+          expected = [
+              'smoothBoxProduct_hasFDerivAt',
+              'smoothBoxProduct_divergence_eq_greenVolume',
+              'smoothBoxGreen_schwartz',
+              'boxGraphNormalTrace_smooth_eq_classical_auto',
+          ]
+          allowed = {'propext', 'Classical.choice', 'Quot.sound'}
+          found = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", text)
+          if len(found) < len(expected):
+              raise SystemExit(f'Rejected: could not parse all axiom reports: {found!r}')
+
+          audited = {}
+          for theorem, payload in found:
+              short = theorem.rsplit('.', 1)[-1]
+              if short not in expected:
+                  continue
+              axioms = {x.strip() for x in payload.split(',') if x.strip()}
+              unexpected = axioms - allowed
+              if unexpected:
+                  raise SystemExit(
+                      f'Rejected: {theorem} depends on non-whitelisted axioms: {sorted(unexpected)}'
+                  )
+              audited[short] = sorted(axioms)
+
+          missing = sorted(set(expected) - set(audited))
+          if missing:
+              raise SystemExit(f'Rejected: missing theorem axiom reports: {missing}')
+          print('Kernel axiom audit PASS:', audited)
+          PY
+
+      - name: Write v3.30 proof attestation
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess
+          def out(cmd, cwd=None):
+              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+          data = {
+              'release': '3.30.0-dev',
+              'status': 'PASS',
+              'commit': out(['git', 'rev-parse', 'HEAD']),
+              'lean_version': out(['lean', '--version']),
+              'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
+              'scope': 'Automatic smooth product calculus for the bounded-box Green/normal-trace bridge plus kernel axiom auditing.',
+              'theorems': [
+                  'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
+                  'CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume',
+                  'CACEFormal.Continuum.smoothBoxGreen_schwartz',
+                  'CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto'
+              ],
+              'promotion_guards': {
+                  'unfinished_tokens_rejected': True,
+                  'sorryAx_rejected': True,
+                  'nonfoundation_axioms_rejected': True,
+                  'allowed_foundational_axioms': ['propext', 'Classical.choice', 'Quot.sound']
+              },
+              'nonclaims': [
+                  'This does not prove reverse inclusion of arbitrary distributional H(div) data into the smooth graph closure.',
+                  'The general graph-norm mollification/density theorem remains a separate analytic milestone.',
+                  'Machine verification does not substitute for independent external review of a claimed resolution of a famous open problem.'
+              ]
+          }
+          open('v330_github_formal_build_attestation.json', 'w', encoding='utf-8').write(
+              json.dumps(data, indent=2, sort_keys=True) + '\n\n'
+          )
+          print(json.dumps(data, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload v3.30 attestation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cace-v330-formal-attestation
+          path: v330_github_formal_build_attestation.json
