@@ -7,6 +7,7 @@ on:
       - roadmap/v3.30-proof-strengthening
     paths:
       - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'cace_studio/core/claim_promotion.py'
@@ -18,6 +19,7 @@ on:
   pull_request:
     paths:
       - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'cace_studio/core/claim_promotion.py'
@@ -88,6 +90,7 @@ jobs:
           set -euo pipefail
           files=(
             formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean
+            formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean
             formal/cace_formal/CACEFormal/V330AxiomAudit.lean
           )
           if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
@@ -95,7 +98,7 @@ jobs:
             exit 1
           fi
 
-      - name: Compile v3.30 analysis endpoint
+      - name: Compile v3.30 analysis endpoints
         working-directory: formal/cace_formal
         shell: bash
         env:
@@ -103,6 +106,7 @@ jobs:
         run: |
           set -euo pipefail
           lake env lean CACEFormal/SmoothBoxGreenAuto.lean
+          lake env lean CACEFormal/GraphRegularizationCriterion.lean
 
       - name: Kernel axiom audit
         working-directory: formal/cace_formal
@@ -123,6 +127,8 @@ jobs:
               'smoothBoxProduct_divergence_eq_greenVolume',
               'smoothBoxGreen_schwartz',
               'boxGraphNormalTrace_smooth_eq_classical_auto',
+              'complexSmoothGraphClosure_eq_distributional_of_regularizer',
+              'distributional_le_complexSmoothGraphClosure_of_regularizer',
           ]
           allowed = {'propext', 'Classical.choice', 'Quot.sound'}
           found = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", text)
@@ -160,12 +166,14 @@ jobs:
               'commit': out(['git', 'rev-parse', 'HEAD']),
               'lean_version': out(['lean', '--version']),
               'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
-              'scope': 'Automatic smooth product calculus for the bounded-box Green/normal-trace bridge plus global claim-promotion and kernel-axiom gates.',
+              'scope': 'Automatic smooth product calculus, graph-regularization closure criterion, and global proof/claim promotion gates.',
               'theorems': [
                   'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
                   'CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume',
                   'CACEFormal.Continuum.smoothBoxGreen_schwartz',
-                  'CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto'
+                  'CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto',
+                  'CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer',
+                  'CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer'
               ],
               'promotion_guards': {
                   'unfinished_tokens_rejected': True,
@@ -177,8 +185,7 @@ jobs:
                   'numerical_symbolic_interval_evidence_cannot_self_promote': True
               },
               'nonclaims': [
-                  'This does not prove reverse inclusion of arbitrary distributional H(div) data into the smooth graph closure.',
-                  'The general graph-norm mollification/density theorem remains a separate analytic milestone.',
+                  'The v3.30 regularization criterion reduces but does not itself construct the Fourier/mollifier regularizer required for unconditional reverse H(div) graph inclusion.',
                   'CACE does not establish external reviewer identity or independence; those remain external trust boundaries.'
               ]
           }
