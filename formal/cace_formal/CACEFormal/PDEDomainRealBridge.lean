@@ -61,7 +61,12 @@ theorem realSchwartzToComplex_lineDeriv (n : Nat) (i : Fin n) (f : SmoothScalar 
   change
     fderiv ℝ (fun y => Complex.ofRealCLM (f y)) x (basisVector i) =
       Complex.ofRealCLM (fderiv ℝ f x (basisVector i))
-  rw [fderiv_comp x Complex.ofRealCLM.differentiableAt f.differentiableAt]
+  have hcomp :
+      fderiv ℝ (fun y => Complex.ofRealCLM (f y)) x =
+        Complex.ofRealCLM.comp (fderiv ℝ f x) := by
+    simpa [Function.comp_def] using
+      (fderiv_comp x Complex.ofRealCLM.differentiableAt f.differentiableAt)
+  rw [hcomp]
   rfl
 
 /-- Complexify every component of a real smooth vector field. -/
