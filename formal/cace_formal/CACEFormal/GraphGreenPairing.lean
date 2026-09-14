@@ -1,6 +1,7 @@
 import CACEFormal.GraphClosedSpaces
 import CACEFormal.WeakGreenFunctional
 import Mathlib.Analysis.InnerProductSpace.LinearMap
+import Mathlib.Analysis.Normed.Operator.Basic
 import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
 import Mathlib.Topology.Algebra.Module.Spaces.ContinuousLinearMap
 
