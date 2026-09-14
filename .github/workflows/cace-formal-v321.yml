@@ -30,6 +30,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Python regression dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pytest
+
       - name: Install elan
         shell: bash
         run: |
