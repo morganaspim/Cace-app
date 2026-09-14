@@ -84,8 +84,9 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          lake env lean CACEFormal/PDEDomainBridge.lean
+          # Build the library first so imported CACEFormal dependencies have persistent .olean files.
           lake build CACEFormal
+          lake env lean CACEFormal/PDEDomainBridge.lean
 
       - name: Write v3.29 attestation
         if: success()
