@@ -16,6 +16,7 @@ import CACEFormal.RT0P1DerivedAssembly
 import CACEFormal.ContinuumSobolev
 import CACEFormal.ContinuumGraphSpaces
 import CACEFormal.SmoothBoxGreen
+import CACEFormal.BoxNormalTrace
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
