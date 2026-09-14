@@ -4,6 +4,14 @@
   "status": "IMPLEMENTED_PENDING_RUNNER_EXECUTION",
   "base_snapshot": "50cfdd10a6653c863d595502797b8f1a87c42333",
   "branch": "roadmap/v3.30-proof-strengthening",
+  "ownership": {
+    "classification": "CONFIDENTIAL AND PROPRIETARY",
+    "owner": "Emmanuel Spiro",
+    "copyright": "Copyright © 2026 Emmanuel Spiro. All rights reserved.",
+    "license_file": "LICENSE",
+    "notice_file": "NOTICE",
+    "third_party_exception": "Third-party and open-source materials remain subject to their own licenses and copyright notices."
+  },
   "scope": [
     "automatic Schwartz-core product calculus for bounded-box Green identities",
     "automatic smooth functional-trace to classical face-flux agreement endpoint",
