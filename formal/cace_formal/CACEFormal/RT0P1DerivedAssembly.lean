@@ -37,8 +37,8 @@ theorem global_green_identity {mesh : MeshCertificate}
     (∑ K : Fin mesh.triangleCount, cert.cellPairing K) =
       (∑ K : Fin mesh.triangleCount, cert.cellDivergence K) +
       (∑ i : Fin mesh.interiorEdgeCount,
-        cert.localFacePairing (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
-          cert.localFacePairing (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) +
+        (cert.localFacePairing (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+          cert.localFacePairing (mesh.interiorRightCell i) (mesh.interiorRightSlot i))) +
       (∑ b : Fin mesh.boundaryEdgeCount,
         cert.localFacePairing (mesh.boundaryCell b) (mesh.boundarySlot b)) := by
   calc
@@ -53,8 +53,8 @@ theorem global_green_identity {mesh : MeshCertificate}
       rw [Finset.sum_add_distrib]
     _ = (∑ K : Fin mesh.triangleCount, cert.cellDivergence K) +
         ((∑ i : Fin mesh.interiorEdgeCount,
-            cert.localFacePairing (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
-              cert.localFacePairing (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) +
+            (cert.localFacePairing (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+              cert.localFacePairing (mesh.interiorRightCell i) (mesh.interiorRightSlot i))) +
           (∑ b : Fin mesh.boundaryEdgeCount,
             cert.localFacePairing (mesh.boundaryCell b) (mesh.boundarySlot b))) := by
       rw [local_face_sum_decomposition mesh cert.localFacePairing]
@@ -71,8 +71,8 @@ theorem orthogonality {mesh : MeshCertificate}
     exact cert.equilibrium K
   have hint :
       (∑ i : Fin mesh.interiorEdgeCount,
-        cert.localFacePairing (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
-          cert.localFacePairing (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) = 0 := by
+        (cert.localFacePairing (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+          cert.localFacePairing (mesh.interiorRightCell i) (mesh.interiorRightSlot i))) = 0 := by
     apply Finset.sum_eq_zero
     intro i _
     exact cert.interiorCancellation i
