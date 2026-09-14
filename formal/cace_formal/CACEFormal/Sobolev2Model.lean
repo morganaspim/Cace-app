@@ -4,9 +4,11 @@ import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
 namespace CACEFormal
 
 open MeasureTheory
-open scoped SchwartzMap
+open scoped SchwartzMap ENNReal
 
 namespace Continuum
+
+noncomputable section
 
 /--
 Pinned-mathlib bundled model of the Hilbert Sobolev space `H^{s,2}(ℝⁿ)`.
@@ -15,7 +17,7 @@ tempered distribution is recovered by the inverse Bessel potential.  This is the
 same representation used by the later bundled Mathlib `BesselPotentialSpace`, but
 is available on CACE's pinned Mathlib revision.
 -/
-def Sobolev2Space (n : Nat) (s : ℝ) :=
+abbrev Sobolev2Space (n : Nat) (s : ℝ) :=
   Lp ℂ 2 (volume : Measure (EuclideanDomain n))
 
 /-- The underlying `L²` Bessel coordinate. -/
@@ -26,14 +28,14 @@ def Sobolev2Space.toLp {n : Nat} {s : ℝ} (u : Sobolev2Space n s) :
 /-- Recover the physical tempered distribution from its Bessel coordinate. -/
 noncomputable def Sobolev2Space.toDistr {n : Nat} {s : ℝ}
     (u : Sobolev2Space n s) : ScalarDistribution n :=
-  TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-s) u
+  TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-s) (u : ScalarDistribution n)
 
 /-- Every bundled Bessel coordinate realizes an actual Mathlib `MemSobolev s 2` distribution. -/
 theorem Sobolev2Space.toDistr_memSobolev {n : Nat} {s : ℝ}
     (u : Sobolev2Space n s) :
     TemperedDistribution.MemSobolev
-      (E := EuclideanDomain n) (F := ℂ) s 2 u.toDistr := by
-  refine ⟨u.toLp, ?_⟩
+      (E := EuclideanDomain n) (F := ℂ) s 2 (Sobolev2Space.toDistr (s := s) u) := by
+  refine ⟨Sobolev2Space.toLp (s := s) u, ?_⟩
   simp [Sobolev2Space.toDistr, Sobolev2Space.toLp]
 
 /-- Conversely, every Mathlib `MemSobolev s 2` distribution has a bundled Bessel coordinate. -/
@@ -41,7 +43,7 @@ theorem exists_sobolev2_of_memSobolev {n : Nat} {s : ℝ}
     {f : ScalarDistribution n}
     (hf : TemperedDistribution.MemSobolev
       (E := EuclideanDomain n) (F := ℂ) s 2 f) :
-    ∃ u : Sobolev2Space n s, u.toDistr = f := by
+    ∃ u : Sobolev2Space n s, Sobolev2Space.toDistr (s := s) u = f := by
   rcases hf with ⟨u, hu⟩
   refine ⟨u, ?_⟩
   exact (TemperedDistribution.besselPotential_neg_apply_eq_iff
@@ -52,7 +54,11 @@ theorem Sobolev2Space.toDistr_injective {n : Nat} {s : ℝ} :
     Function.Injective (@Sobolev2Space.toDistr n s) := by
   intro u v huv
   apply_fun TemperedDistribution.besselPotential (EuclideanDomain n) ℂ s at huv
-  simpa [Sobolev2Space.toDistr] using huv
+  have h : (u : ScalarDistribution n) = (v : ScalarDistribution n) := by
+    simpa [Sobolev2Space.toDistr] using huv
+  exact (LinearMap.ker_eq_bot.mp
+    (Lp.ker_toTemperedDistributionCLM_eq_bot
+      (F := ℂ) (μ := (volume : Measure (EuclideanDomain n))) (p := 2))) h
 
 /-- The subtype of tempered distributions satisfying Mathlib's Sobolev predicate. -/
 abbrev MemSobolev2Distribution (n : Nat) (s : ℝ) :=
@@ -67,7 +73,7 @@ theorems above into a single reusable representation theorem.
 noncomputable def sobolev2EquivMemSobolev (n : Nat) (s : ℝ) :
     Sobolev2Space n s ≃ MemSobolev2Distribution n s :=
   Equiv.ofBijective
-    (fun u => ⟨u.toDistr, u.toDistr_memSobolev⟩)
+    (fun u => ⟨Sobolev2Space.toDistr (s := s) u, Sobolev2Space.toDistr_memSobolev (s := s) u⟩)
     ⟨
       (fun _ _ h => Sobolev2Space.toDistr_injective (Subtype.ext_iff.mp h)),
       (fun f => by
@@ -101,6 +107,8 @@ theorem denseRange_schwartzSobolev2Coordinates (n : Nat) (s : ℝ) :
 theorem denseRange_schwartzH1 (n : Nat) :
     DenseRange (schwartzSobolev2Coordinates n 1) :=
   denseRange_schwartzSobolev2Coordinates n 1
+
+end
 
 end Continuum
 

@@ -22,7 +22,7 @@ noncomputable def lowerFaceFlux {n : Nat}
 /-- Classical normal trace pairing on a rectangular box, represented by signed face fluxes. -/
 noncomputable def smoothBoxNormalTrace {n : Nat}
     (a b : BoxPoint n) (f : BoxPoint n → BoxPoint n) : ℝ :=
-  ∑ i : Fin (n + 1), upperFaceFlux a b f i - lowerFaceFlux a b f i
+  ∑ i : Fin (n + 1), (upperFaceFlux a b f i - lowerFaceFlux a b f i)
 
 /-- The explicit normal-trace representation agrees definitionally with the flux term used by Green's theorem. -/
 theorem smoothBoxNormalTrace_eq_signedBoxFlux {n : Nat}
