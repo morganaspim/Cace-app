@@ -36,6 +36,30 @@ theorem graphContinuumPragerSynge
     (graphBoundedGreenPairing n) (graphGreenSmoothCore n)
     q v hv eGrad eFlux hcross
 
+/-- The Prager–Synge estimator bounds the primal/gradient error norm. -/
+theorem graphContinuumPragerSynge_primal_bound
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (n : Nat)
+    (q : HDivGraphClosedSpace n) (v : H1GraphClosedSpace n)
+    (hv : HasZeroBoundaryTrace (graphBoundedGreenPairing n) v)
+    (eGrad eFlux : E)
+    (hcross : inner ℝ eGrad eFlux = closedGraphGreenPairing n q v) :
+    ‖eGrad‖ ≤ ‖eGrad + eFlux‖ := by
+  have h := graphContinuumPragerSynge n q v hv eGrad eFlux hcross
+  nlinarith [norm_nonneg eGrad, norm_nonneg eFlux, norm_nonneg (eGrad + eFlux)]
+
+/-- The same Prager–Synge estimator also bounds the equilibrated-flux error norm. -/
+theorem graphContinuumPragerSynge_flux_bound
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (n : Nat)
+    (q : HDivGraphClosedSpace n) (v : H1GraphClosedSpace n)
+    (hv : HasZeroBoundaryTrace (graphBoundedGreenPairing n) v)
+    (eGrad eFlux : E)
+    (hcross : inner ℝ eGrad eFlux = closedGraphGreenPairing n q v) :
+    ‖eFlux‖ ≤ ‖eGrad + eFlux‖ := by
+  have h := graphContinuumPragerSynge n q v hv eGrad eFlux hcross
+  nlinarith [norm_nonneg eGrad, norm_nonneg eFlux, norm_nonneg (eGrad + eFlux)]
+
 end Continuum
 
 end CACEFormal
