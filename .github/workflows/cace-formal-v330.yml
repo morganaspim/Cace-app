@@ -97,8 +97,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cace_build_root="$(mktemp -d /var/tmp/cace-formal.XXXXXXXX)"
-          cp -a formal/cace_formal "$cace_build_root/formal"
+          cace_build_root="/var/tmp/cace-formal.OzxVvOez"
+          test -O "$cace_build_root"
+          cp -a formal/cace_formal/. "$cace_build_root/formal/"
           mkdir -p "$cace_build_root/elan" "$cace_build_root/cache"
           echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
           echo "ELAN_HOME=$cace_build_root/elan" >> "$GITHUB_ENV"
@@ -129,8 +130,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          lake update
-          lake exe cache get
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          lake build +Cache.Main
+          lake env lean --run .lake/packages/mathlib/Cache/Main.lean get
 
       - name: Reject unfinished proof tokens
         shell: bash
