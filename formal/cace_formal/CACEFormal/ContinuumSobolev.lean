@@ -17,7 +17,7 @@ abbrev ScalarDistribution (n : Nat) := 𝓢'(EuclideanDomain n, ℂ)
 abbrev VectorDistribution (n : Nat) := Fin n → ScalarDistribution n
 
 /-- Canonical Euclidean basis vector `eᵢ`. -/
-def basisVector {n : Nat} (i : Fin n) : EuclideanDomain n :=
+noncomputable def basisVector {n : Nat} (i : Fin n) : EuclideanDomain n :=
   EuclideanSpace.single i (1 : ℝ)
 
 /-- Actual Mathlib Bessel-potential `H¹ = H^{1,2}` membership. -/
