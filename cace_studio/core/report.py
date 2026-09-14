@@ -27,6 +27,11 @@ def graph_certificate(result) -> dict[str,Any]:
     failed_records=[r for r in all_records if r.state.value == 'fail']
     not_run_records=[r for r in all_records if r.state.value == 'not-run']
     evidence=sorted({r.kind.value for r in passed_records})
+    claim_decisions=_clean(getattr(result,"claim_decisions",{}))
+    allowed_claims=sum(
+        1 for d in claim_decisions.values()
+        if bool(d.get("public_resolution_claim_allowed",False))
+    )
     payload={
         "run_id":result.run_id,
         "node_certificate_hashes":[_stable_hash(c) for c in node_certs],
@@ -35,6 +40,9 @@ def graph_certificate(result) -> dict[str,Any]:
         "verification_records":sum(len(x) for x in result.verification.values()),
         "failed_verifiers":len(failed_records),
         "not_run_verifiers":len(not_run_records),
+        "claim_decision_nodes":len(claim_decisions),
+        "public_resolution_claims_allowed":allowed_claims,
+        "claim_decisions_hash":_stable_hash(claim_decisions),
     }
     return {**payload,"certificate_hash":_stable_hash(payload)}
 
@@ -47,6 +55,7 @@ def run_report(result, experiment_name: str) -> dict[str,Any]:
         "all_verifiers_passed":result.all_verifiers_passed,
         "environment":{"python":sys.version,"platform":platform.platform()},
         "graph_certificate":graph_certificate(result),
+        "claim_decisions":_clean(getattr(result,"claim_decisions",{})),
         "outputs":_clean(result.outputs),
         "certificates":[_clean(asdict(c)) for c in result.certificates],
         "verification":{node:[r.to_dict() for r in records] for node,records in result.verification.items()},
