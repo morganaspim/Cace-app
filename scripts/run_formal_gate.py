@@ -68,7 +68,7 @@ else:
     bindir=str(Path(lean).resolve().parent)
     env['PATH']=bindir+os.pathsep+env.get('PATH','')
     result['status']='RUNNING'
-    for cmd in [[lake,'update'],[lake,'exe','cache','get'],[lake,'build']]:
+    for cmd in [[lake,'update'],[lake,'exe','cache','get'],[lake,'build','CACEFormal']]:
         p=subprocess.run(cmd,cwd=formal,text=True,capture_output=True,check=False,env=env)
         result['commands'].append({
           'cmd':cmd,'returncode':p.returncode,

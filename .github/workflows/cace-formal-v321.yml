@@ -30,6 +30,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Python test dependencies
+        run: python -m pip install -e '.[test]'
+
       - name: Install elan
         shell: bash
         run: |
@@ -75,7 +78,7 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          lake build
+          lake build CACEFormal
 
       - name: Run independent exact checker regression
         shell: bash
