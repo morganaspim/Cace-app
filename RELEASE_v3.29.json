@@ -1,0 +1,47 @@
+{
+  "version": "3.29.0-dev",
+  "title": "PDE and Domain Bridge",
+  "status": "IMPLEMENTED_PENDING_PINNED_CI",
+  "scope": {
+    "distributional_hdiv_bridge": [
+      "complex L2 graph coordinates embedded canonically into tempered distributions",
+      "continuous distributional-divergence graph defect",
+      "closed kernel relation encoding div(q) = g",
+      "graph-relation membership implies the actual distributional InHDiv predicate"
+    ],
+    "box_trace_bridge": [
+      "classical signed box face-flux trace linked to the machine-checked smooth Green volume identity",
+      "dense-core uniqueness theorem for continuous normal-trace extensions"
+    ]
+  },
+  "formal_modules": [
+    "CACEFormal/PDEDomainBridge.lean"
+  ],
+  "ranked_next_proofs": [
+    {
+      "rank": 1,
+      "goal": "Prove the complex smooth H(div) graph core lies in the closed distributional graph relation and pass the result to its topological closure."
+    },
+    {
+      "rank": 2,
+      "goal": "Construct the explicit real-v3.28-to-complex distributional graph map and prove derivative/divergence compatibility."
+    },
+    {
+      "rank": 3,
+      "goal": "Build a bounded-box graph closure whose continuous trace agrees with classical signed face flux on a common dense smooth core."
+    }
+  ],
+  "nonclaims": [
+    "The existing whole-space graphNormalTrace is not yet identified directly with a bounded-box classical face-flux trace.",
+    "The real v3.28 graph closure is not yet proved equivalent to the complex distributional H(div) graph relation.",
+    "No reverse inclusion from arbitrary distributional H(div) data to the smooth graph closure is claimed without a graph-norm density/mollification theorem.",
+    "No zero-extension theorem is assumed to commute with divergence across a box boundary."
+  ],
+  "verification": {
+    "lean": "4.32.1",
+    "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+    "workflow": "CACE Formal v3.29 PDE/domain bridge",
+    "result": "PENDING"
+  }
+}
+
