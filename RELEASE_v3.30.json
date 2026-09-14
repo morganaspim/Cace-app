@@ -1,0 +1,92 @@
+{
+  "version": "3.30.0-dev",
+  "title": "Proof Strengthening and Claim Promotion Guard",
+  "status": "IMPLEMENTED_PENDING_RUNNER_EXECUTION",
+  "base_snapshot": "50cfdd10a6653c863d595502797b8f1a87c42333",
+  "branch": "roadmap/v3.30-proof-strengthening",
+  "scope": [
+    "automatic Schwartz-core product calculus for bounded-box Green identities",
+    "automatic smooth functional-trace to classical face-flux agreement endpoint",
+    "regularizer criterion reducing reverse H(div) graph inclusion to analytic regularization",
+    "kernel axiom audit for new formal endpoints",
+    "repository-wide fail-closed open-problem claim promotion policy",
+    "adversarial promotion tests including the existing reliability proof DAG"
+  ],
+  "formal_targets": {
+    "status": "SOURCE_IMPLEMENTED_PENDING_PINNED_CI",
+    "theorems": [
+      "CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt",
+      "CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume",
+      "CACEFormal.Continuum.smoothBoxGreen_schwartz",
+      "CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto",
+      "CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer",
+      "CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer"
+    ],
+    "lean_toolchain": "pinned by formal/cace_formal/lean-toolchain",
+    "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+    "axiom_policy": {
+      "reject_sorry": true,
+      "reject_admit": true,
+      "reject_sorryAx": true,
+      "allowed_foundational_axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ]
+    }
+  },
+  "claim_promotion": {
+    "status": "IMPLEMENTED_TESTS_COMMITTED_PENDING_RUNNER",
+    "open_problem_stages": [
+      "research-candidate",
+      "formal-candidate",
+      "reproduced-formal-candidate",
+      "externally-reviewed-resolution"
+    ],
+    "resolution_wording_requires": [
+      "zero unresolved proof obligations",
+      "Lean kernel verification",
+      "axiom audit pass",
+      "pinned CI pass",
+      "exact statement artifact digest",
+      "at least one independent reproduction",
+      "valid external review attestation bound to an artifact digest"
+    ],
+    "numerical_symbolic_interval_evidence_can_self_promote": false,
+    "external_reviewer_identity_and_independence_proved_by_cace": false
+  },
+  "remaining_hard_analysis": {
+    "primary_obligation": "construct an unconditional regularizer for the whole-space distributional H(div) graph and prove convergence in the L2 graph norm",
+    "ranked_routes": [
+      {
+        "rank": 1,
+        "route": "Fourier cutoff / multiplier regularization",
+        "reason": "best aligned with the tempered-distribution and whole-space Fourier/Sobolev representation already used by CACE"
+      },
+      {
+        "rank": 2,
+        "route": "mollification plus Schwartz cutoff",
+        "reason": "classical route but requires a divergence cutoff-commutator estimate"
+      },
+      {
+        "rank": 3,
+        "route": "Hilbert annihilator / orthogonality density proof",
+        "reason": "reduces density to a PDE-duality uniqueness theorem but does not remove the analytic burden"
+      }
+    ]
+  },
+  "verification": {
+    "latest_observed_v330_workflow_run": 34853593165,
+    "latest_observed_job": 104007366806,
+    "runner_id": 0,
+    "executed_steps": 0,
+    "interpretation": "GitHub runner infrastructure failure; neither a proof pass nor a Lean proof failure",
+    "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
+  },
+  "nonclaims": [
+    "The unconditional reverse inclusion from arbitrary distributional H(div) graph data into the Schwartz graph closure is not yet proved.",
+    "The new v3.30 Lean endpoints are not marked verified until pinned CI executes on a real runner and emits an attestation.",
+    "Independent external mathematical review remains mandatory before CACE permits public resolution wording for a famous open problem."
+  ]
+}
+
