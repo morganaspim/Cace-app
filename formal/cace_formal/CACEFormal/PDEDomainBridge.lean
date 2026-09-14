@@ -92,8 +92,8 @@ theorem mem_HDivDistributionalGraphSubmodule_iff (n : Nat)
       distributionalDivergence (complexGraphFieldDistribution x) =
         complexL2ToDistribution n x.2 := by
   change complexHDivGraphDefect n x = 0 ↔ _
-  simp [complexHDivGraphDefect, complexGraphFieldDistribution,
-    distributionalDivergence, weakPartial]
+  simp [complexHDivGraphDefect, complexHDivFieldProj, complexHDivDivProj,
+    complexGraphFieldDistribution, distributionalDivergence, weakPartial, sub_eq_zero]
 
 /-- The distributional graph relation is topologically closed. -/
 theorem isClosed_HDivDistributionalGraphSubmodule (n : Nat) :
