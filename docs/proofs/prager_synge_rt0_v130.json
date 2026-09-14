@@ -1,0 +1,15 @@
+{
+  "artifact": "Prager-Synge RT0 admissibility contract",
+  "release": "1.30.0",
+  "reviewed_theorem": true,
+  "machine_formal_theorem": false,
+  "required_checks": [
+    "conforming primal field",
+    "global H(div) normal continuity",
+    "exact cell equilibrium div(sigma_h)=f",
+    "homogeneous Dirichlet compatibility",
+    "SPD diffusion",
+    "constitutive mismatch norm"
+  ]
+}
+

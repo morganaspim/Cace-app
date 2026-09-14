@@ -1,0 +1,21 @@
+{
+  "claims": [
+    "affine-inverse",
+    "p1-gradient-transform",
+    "local-stiffness-symmetric-psd"
+  ],
+  "dimension": 1,
+  "kind": "affine-simplex",
+  "schema": "cace-formal-fem-proof-v2",
+  "scope": "supplied exact rational simplex instance",
+  "statement": "For the supplied exact rational simplex, the affine map is invertible, P1 physical gradients equal B^{-T} reference gradients, and the unit-diffusion local stiffness matrix is an exact symmetric positive-semidefinite Gram matrix.",
+  "theorem_id": "affine-simplex-p1-transform-d1-v014",
+  "vertices": [
+    [
+      "1/5"
+    ],
+    [
+      "7/5"
+    ]
+  ]
+}

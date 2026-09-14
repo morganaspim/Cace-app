@@ -1,0 +1,1192 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.820470+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "parameter_hash": "967d7f4011765e9fcf631d6a546f24f8d6a63d7d7b9aa1a1482839bb1cfe662e",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "a01491112153d6938ce556c871350e8b0cdecb4d6184204eacfbfcc6713fa1b9"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.825183+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem_nd.convergence",
+      "module_version": "0.3.0",
+      "node_id": "history",
+      "output_hash": "78c2057a51918a0f62cecd6b81d44ea0dd28b4faca7fb96d28423536a902ad9f",
+      "parameter_hash": "35a4f368adc2c57850f08e659894ac579e0af4dd93f12be67490f7f5742e9a60",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "e4c8e80e1b9d7cd7aa3179b9134a7a80814e2d21e8ccd557d464fd23b9a65685"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.825819+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem_nd.quadrature",
+      "module_version": "0.3.0",
+      "node_id": "quad",
+      "output_hash": "9c4a70475c7d315dd68cab007ff5cc283525235b67267733e2ce110bec88da3a",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "5cd2e5c6abc6e4dc414e39358f797394b7eefd36a50e9f046cf4fc56d6bcea4c"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.826598+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem_nd.refine",
+      "module_version": "0.3.0",
+      "node_id": "refine",
+      "output_hash": "bd7e583f512f45dc09287e5ad0c31235dc2d82207073550bd55798c0ae2a79c3",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "e36266dcf3962b4d3440f30f12e721a3217bfb2d9a50b9ce701a3927f838d3a7"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.827210+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "07fb8849168f4a4cd249176b5b492d45267072a5e11bc35da82f824c9bb18647",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "4804bd8043dc4b007b233a16502890d889033b7ac179c56d682c53caccd84326"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.827741+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "b883ca17299f34d754c003c2d69bcc2d6689d770b5e0b80b8ea39489ee72451e",
+      "module_id": "fem_nd.poisson_assemble",
+      "module_version": "0.3.0",
+      "node_id": "assemble",
+      "output_hash": "85626749366b50b95e05dd0545cdc35ac2ea3cf0191f5b3f5313dcad13e1c0d5",
+      "parameter_hash": "044ec305c416ecedb8188b4b8dd229142f6fcd1089fbce871ad2635e0908db6c",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "c2ad3c32bcededf519427ea960b30cda923f3bb4716dd82b45fcd9e8aae64a51"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.827971+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "85626749366b50b95e05dd0545cdc35ac2ea3cf0191f5b3f5313dcad13e1c0d5",
+      "module_id": "fem_nd.linear_solve",
+      "module_version": "0.3.0",
+      "node_id": "solve",
+      "output_hash": "1daa2ee176dfaf4465c9208905036af1c4ad64fde2badd12644b592776bca920",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "f1ce8a5b39c0cb758eb97d5edfe9a48e03c31dc268703ae74d80508f90abd7b5"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.828427+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "90535ac0a74612e729e22ff71303370d442bbe6c4f5143d46bb3ec09db9643a0",
+      "module_id": "fem_nd.estimator",
+      "module_version": "0.3.0",
+      "node_id": "estimator",
+      "output_hash": "c4a5566c674a5371795a2c7e6aec90b0a5dbdf67de12c80f24b3c2c7dff9ea22",
+      "parameter_hash": "044ec305c416ecedb8188b4b8dd229142f6fcd1089fbce871ad2635e0908db6c",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "e28d055fce127c9c2ee4596dd2700d52413aac9ba3a3b21cfc535cd14f71c9c6"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.829533+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "735fd8ccbebc390a68ce39449464e3f49e0ade5a0706ff33e544c12b4805ad0a",
+      "module_id": "fem_nd.adapt2d",
+      "module_version": "0.3.0",
+      "node_id": "adapt",
+      "output_hash": "83fb05d64973acf9f7972c712462147c6fbf72412d841a2c5be37a4a7b32dc84",
+      "parameter_hash": "5bb9f818cfa612d3caa9b3f336fe74f4a813ffdd83548ceb2ec76d9528ee93e8",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "3f81404aea1f6840d9fa47cbb5e27706e9271397fc9931ac0d59a3f612b1664c"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.829819+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "70e502f1b18b4ecb67e83c959ed12c62ed429b803b96bd7e3f74baae4247e5ca",
+      "module_id": "fem_nd.residual",
+      "module_version": "0.3.0",
+      "node_id": "residual",
+      "output_hash": "807077a321b52ffa3833b4d52134cef66d507a447e272b207e3344e7b1e0d247",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "88bd9ce774c7f5a264bff85186b0766e19a46e617a71ccc561288076093ea0bd"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:35:39.830122+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "700b3f20ff5735bec0cd329d986220427c5c3f1e16a3cbfac2599ed971f2d4c2",
+      "module_id": "fem_nd.certificate",
+      "module_version": "0.3.0",
+      "node_id": "certificate_nd",
+      "output_hash": "4a47e40e86863646136a277d40df7177fedf9ca3a5e7c55527734d6cb1876549",
+      "parameter_hash": "b8ece9d7e3289b4b4840aa43e7f7b296aec2546d073493e36f4a656a9234fc6a",
+      "requested_device": "gpu",
+      "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+      "verification_hashes": [
+        "26d68148d6caa2fedb6bf9fba5892a304ec5c289cfca9f00cd0b2f32574818b0"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "2D simplex Poisson foundation",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "08c1498eea7f7da55ed59ee651fbd23e665a4c4c4a46f6b1aed06ab2bbc0a741",
+    "evidence_generated": [
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "6afd0fdbd17e34e78856d28872346e20fd08b5a551b32869cedbaf46a501d9ae",
+      "8ea8356081cec467b7213bb2fc1b78e94b7e55c5daf7f4b946af85683bcf35f4",
+      "7dc80369a5cc14a74631c7f9eaae082e9bb3a2aedf39bbe3931476369a82278a",
+      "4013907724ce3ab482e259e89e84f0f4f006e16082dead4ceec7e600a4e4b8fe",
+      "dc5374a1fa84fbdbb53d349e53a7060be4c6cd5bfc99a3382ad09df939efb0df",
+      "fe9d5f769f8d5cc7c6d551199209cd804559589aee1cbf9314789cb6659cbd23",
+      "422edb21c6768bf4ed9209fd7725939700a4f1ffd16309c3845dfd124f9621e8",
+      "e98bf85289acb5bd552eb0061d3bde197212b25016688ba9007928afff101305",
+      "e7f731bd5948efe99108186d3407956aa0ff9ae8e660b017a1f63f184f4f184d",
+      "10156d4af3fa7f8aba0fdcd501a926f3ddc8689d54906a1ce87c6acf0a7f8a3a",
+      "fbe43fd33d3b0f3a5000b1fd5c6b6e164cb234aa7f309cdd08807b059f838f62"
+    ],
+    "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+    "verification_records": 11
+  },
+  "outputs": {
+    "adapt": {
+      "marked": [
+        0,
+        1
+      ],
+      "marked_edges": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "refined_mesh": {
+        "boundary_facets": [
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            8
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            5,
+            7
+          ],
+          [
+            5,
+            1,
+            6
+          ],
+          [
+            7,
+            6,
+            4
+          ],
+          [
+            5,
+            6,
+            7
+          ],
+          [
+            1,
+            8,
+            6
+          ],
+          [
+            8,
+            2,
+            9
+          ],
+          [
+            6,
+            9,
+            4
+          ],
+          [
+            8,
+            9,
+            6
+          ],
+          [
+            4,
+            9,
+            3
+          ],
+          [
+            9,
+            2,
+            3
+          ],
+          [
+            0,
+            7,
+            3
+          ],
+          [
+            7,
+            4,
+            3
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.75,
+            0.25
+          ],
+          [
+            0.25,
+            0.25
+          ],
+          [
+            1.0,
+            0.5
+          ],
+          [
+            0.75,
+            0.75
+          ]
+        ]
+      }
+    },
+    "assemble": {
+      "system": {
+        "boundary_dofs": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "full_dofs": 5,
+        "interior_dofs": [
+          4
+        ],
+        "matrix": {
+          "data": [
+            4.0
+          ],
+          "indices": [
+            0
+          ],
+          "indptr": [
+            0,
+            1
+          ],
+          "shape": [
+            1,
+            1
+          ]
+        },
+        "rhs": [
+          0.3333333333333333
+        ],
+        "source": 1.0
+      }
+    },
+    "certificate_nd": {
+      "certificate_summary": {
+        "dimension": 2,
+        "elements": 4,
+        "estimator": 1.0757020220598628,
+        "h_final": 0.25,
+        "h_initial": 1.0,
+        "history_levels": 3,
+        "history_max_residual": 6.938893903907228e-17,
+        "refined_elements": 12,
+        "refined_vertices": 10,
+        "residual_inf": 0.0,
+        "residual_pass": true,
+        "residual_tolerance": 1e-10,
+        "vertices": 5
+      }
+    },
+    "estimator": {
+      "estimator": {
+        "element_eta": [
+          0.5378510110299314,
+          0.5378510110299314,
+          0.5378510110299314,
+          0.5378510110299314
+        ],
+        "eta": 1.0757020220598628,
+        "kind": "residual-jump-diagnostic"
+      }
+    },
+    "history": {
+      "history": {
+        "kind": "uniform-refinement-poisson",
+        "records": [
+          {
+            "elements": 4,
+            "h_max": 1.0,
+            "interior_dofs": 1,
+            "level": 0,
+            "residual_inf": 0.0,
+            "vertices": 5
+          },
+          {
+            "elements": 16,
+            "h_max": 0.5,
+            "interior_dofs": 5,
+            "level": 1,
+            "residual_inf": 5.551115123125783e-17,
+            "vertices": 13
+          },
+          {
+            "elements": 64,
+            "h_max": 0.25,
+            "interior_dofs": 25,
+            "level": 2,
+            "residual_inf": 6.938893903907228e-17,
+            "vertices": 41
+          }
+        ]
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            0,
+            4
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ]
+      }
+    },
+    "quad": {
+      "quadrature": {
+        "cells": [
+          {
+            "element": [
+              0,
+              1,
+              4
+            ],
+            "point": [
+              0.5,
+              0.16666666666666666
+            ],
+            "weight": 0.25
+          },
+          {
+            "element": [
+              1,
+              2,
+              4
+            ],
+            "point": [
+              0.8333333333333334,
+              0.5
+            ],
+            "weight": 0.25
+          },
+          {
+            "element": [
+              2,
+              3,
+              4
+            ],
+            "point": [
+              0.5,
+              0.8333333333333334
+            ],
+            "weight": 0.25
+          },
+          {
+            "element": [
+              3,
+              0,
+              4
+            ],
+            "point": [
+              0.16666666666666666,
+              0.5
+            ],
+            "weight": 0.25
+          }
+        ],
+        "degree_exact": 1,
+        "rule": "simplex-centroid"
+      }
+    },
+    "refine": {
+      "refined_mesh": {
+        "boundary_facets": [
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            12
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            12
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          10,
+          12
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            5,
+            7
+          ],
+          [
+            5,
+            1,
+            6
+          ],
+          [
+            7,
+            6,
+            4
+          ],
+          [
+            5,
+            6,
+            7
+          ],
+          [
+            1,
+            8,
+            6
+          ],
+          [
+            8,
+            2,
+            9
+          ],
+          [
+            6,
+            9,
+            4
+          ],
+          [
+            8,
+            9,
+            6
+          ],
+          [
+            2,
+            10,
+            9
+          ],
+          [
+            10,
+            3,
+            11
+          ],
+          [
+            9,
+            11,
+            4
+          ],
+          [
+            10,
+            11,
+            9
+          ],
+          [
+            3,
+            12,
+            11
+          ],
+          [
+            12,
+            0,
+            7
+          ],
+          [
+            11,
+            7,
+            4
+          ],
+          [
+            12,
+            7,
+            11
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.75,
+            0.25
+          ],
+          [
+            0.25,
+            0.25
+          ],
+          [
+            1.0,
+            0.5
+          ],
+          [
+            0.75,
+            0.75
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.25,
+            0.75
+          ],
+          [
+            0.0,
+            0.5
+          ]
+        ]
+      }
+    },
+    "residual": {
+      "residual": [
+        0.0
+      ],
+      "residual_inf": 0.0
+    },
+    "solve": {
+      "solution": {
+        "interior": [
+          0.08333333333333333
+        ],
+        "values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.08333333333333333
+        ]
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 2,
+        "dofs": 5,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              0,
+              1,
+              4
+            ],
+            "gradients": [
+              [
+                -1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                2.0,
+                -2.0,
+                0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              1,
+              2,
+              4
+            ],
+            "gradients": [
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                -2.0,
+                0.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                1.0
+              ],
+              [
+                2.0,
+                -0.0,
+                -2.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              2,
+              3,
+              4
+            ],
+            "gradients": [
+              [
+                1.0,
+                1.0
+              ],
+              [
+                -1.0,
+                1.0
+              ],
+              [
+                -0.0,
+                -2.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                -1.0,
+                1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0,
+                -0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              3,
+              0,
+              4
+            ],
+            "gradients": [
+              [
+                -1.0,
+                1.0
+              ],
+              [
+                -1.0,
+                -1.0
+              ],
+              [
+                2.0,
+                -0.0
+              ]
+            ],
+            "volume": 0.25
+          }
+        ]
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "9dd3cd9d-7630-4616-98ab-93054a611cca",
+  "verification": {
+    "adapt": [
+      {
+        "claim": "D\u00f6rfler-selected cells induce globally shared edge splits and the resulting red/green triangulation has no facet incidence above two or degenerate cells",
+        "kind": "numerical",
+        "method": "independent facet-incidence, determinant, and vertex-preservation checks",
+        "metrics": {
+          "marked_cells": [
+            0,
+            1
+          ],
+          "new_elements": 12,
+          "new_vertices": 10,
+          "old_elements": 4,
+          "old_vertices": 5,
+          "split_edges": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "adaptive-red-green-conformity"
+      }
+    ],
+    "assemble": [
+      {
+        "claim": "reduced P1 Poisson stiffness matrix is symmetric positive definite for the detected Dirichlet subspace",
+        "kind": "numerical",
+        "method": "host symmetry and symmetric eigenvalue checks",
+        "metrics": {
+          "interior_dofs": 1,
+          "min_eigenvalue": 4.0,
+          "nnz": 1,
+          "symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "poisson-stiffness-spd-nd"
+      }
+    ],
+    "certificate_nd": [
+      {
+        "claim": "summary is consistent with residual tolerance and refinement history; it does not certify a general PDE error bound",
+        "kind": "numerical",
+        "method": "aggregation/invariant check only",
+        "metrics": {
+          "dimension": 2,
+          "elements": 4,
+          "estimator": 1.0757020220598628,
+          "h_final": 0.25,
+          "h_initial": 1.0,
+          "history_levels": 3,
+          "history_max_residual": 6.938893903907228e-17,
+          "refined_elements": 12,
+          "refined_vertices": 10,
+          "residual_inf": 0.0,
+          "residual_pass": true,
+          "residual_tolerance": 1e-10,
+          "vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "fem-nd-summary-consistency"
+      }
+    ],
+    "estimator": [
+      {
+        "claim": "all local residual indicators are finite and nonnegative; no reliability theorem is claimed",
+        "kind": "numerical",
+        "method": "sanity/property check",
+        "metrics": {
+          "elements": 4,
+          "eta": 1.0757020220598628
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "estimator-sanity-nd"
+      }
+    ],
+    "history": [
+      {
+        "claim": "uniform refinement decreases h_max and each linear solve satisfies the algebraic residual tolerance",
+        "kind": "numerical",
+        "method": "history invariant checks",
+        "metrics": {
+          "h_final": 0.25,
+          "h_initial": 1.0,
+          "levels": 3,
+          "max_residual": 6.938893903907228e-17
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "convergence-history-invariants"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 4,
+          "dimension": 2,
+          "elements": 4,
+          "min_volume": 0.25,
+          "vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "quad": [
+      {
+        "claim": "centroid quadrature integrates constants and coordinate functions exactly up to floating-point evaluation",
+        "kind": "symbolic",
+        "method": "affine simplex moment identities",
+        "metrics": {
+          "max_moment_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "centroid-quadrature-degree1"
+      }
+    ],
+    "refine": [
+      {
+        "claim": "uniform refinement is nondegenerate and facet-conforming with expected cell multiplication",
+        "kind": "numerical",
+        "method": "global midpoint map plus independent facet incidence check",
+        "metrics": {
+          "new_elements": 16,
+          "new_vertices": 13,
+          "old_elements": 4,
+          "old_vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "uniform-refinement-conformity-nd"
+      }
+    ],
+    "residual": [
+      {
+        "claim": "algebraic infinity residual is below 1e-10",
+        "kind": "numerical",
+        "method": "independent residual node",
+        "metrics": {
+          "residual_inf": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "algebraic-residual-nd"
+      }
+    ],
+    "solve": [
+      {
+        "claim": "independently recomputed reduced-system residual is small",
+        "kind": "numerical",
+        "method": "host-side CSR reconstruction and residual",
+        "metrics": {
+          "residual_inf": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "linear-solve-residual-nd"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ]
+  }
+}

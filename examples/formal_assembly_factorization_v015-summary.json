@@ -1,0 +1,32 @@
+{
+  "all_verifiers_passed": true,
+  "continuum_pde_formally_verified": false,
+  "factorization_certified": true,
+  "formal_assembly": true,
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "d9ee73d1ada69ef3203cc212033484fb403150eb65026bf813d55553d6366bcb",
+    "evidence_generated": [
+      "formally-verified",
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "f1d0ce75fd9b0bcb9ebe2246bf34d93a34e09752c945be2247c34acfdefb966e",
+      "59d329de0fed9749ae56d156f67b7b6a2d17eacea83103688f168860d09678df",
+      "3a0f72503b602ec74c55bd0caceba831ef31c77e326d6efb79ca30b303ac474e",
+      "a9e8f4dffff5bdf98715c21fe7791df666c9478e944dd5377cdb2882400521e9",
+      "d33f0411887090182fe2c0277b432a47017bcd08debdb399ecee4b23b5cbd5f0",
+      "812150d9ad4f423152440b305a8d1138cc57c3db6cb4dfe05eb4a90213f48dd5",
+      "e2157cd935ef06d101a589d738e0a146ae1be7b8584b9eea6511cbf8e20379d5"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+    "verification_records": 7
+  },
+  "min_pivot_lower": 5.499999999999999,
+  "release": "0.15.0",
+  "verification_records": 7
+}

@@ -1,0 +1,447 @@
+{
+  "adaptivity": {
+    "campaign": {
+      "bounds": [
+        0.24,
+        0.14,
+        0.081,
+        0.047,
+        0.028
+      ],
+      "contraction": {
+        "monotone_contracting": true,
+        "pass": true,
+        "ratios": [
+          0.5833333333333334,
+          0.5785714285714285,
+          0.5802469135802469,
+          0.5957446808510638
+        ],
+        "theorem_evidence": false
+      },
+      "marking": [
+        {
+          "captured": 1.5,
+          "marked": [
+            0,
+            1
+          ],
+          "pass": true,
+          "total": 2.717857142857143
+        },
+        {
+          "captured": 1.0833333333333333,
+          "marked": [
+            0,
+            1,
+            2
+          ],
+          "pass": true,
+          "total": 1.828968253968254
+        },
+        {
+          "captured": 0.7833333333333332,
+          "marked": [
+            0,
+            1,
+            2
+          ],
+          "pass": true,
+          "total": 1.428968253968254
+        },
+        {
+          "captured": 0.6166666666666667,
+          "marked": [
+            0,
+            1,
+            2
+          ],
+          "pass": true,
+          "total": 1.1865440115440116
+        }
+      ],
+      "pass": true,
+      "scope": "deterministic policy fixture, not a proof of AFEM contraction",
+      "stop": {
+        "first_certified_stop": 3,
+        "pass": true,
+        "rule": "stop only when guaranteed upper bound <= tolerance",
+        "tolerance": 0.05
+      }
+    },
+    "complexity": {
+      "bounds": [
+        0.32,
+        0.22,
+        0.15,
+        0.105,
+        0.074
+      ],
+      "dofs": [
+        8,
+        18,
+        38,
+        78,
+        158
+      ],
+      "optimality_theorem_proved": false,
+      "pass": true,
+      "slopes": [
+        -0.46205387584355984,
+        -0.5125600514631511,
+        -0.4959862347893169,
+        -0.4956822414321593
+      ]
+    },
+    "scope_note": "guaranteed-bound policy plumbing and deterministic audits; not a machine proof of AFEM optimality"
+  },
+  "estimator_quality": {
+    "cell_bubble": {
+      "bubble": "27*lambda1*lambda2*lambda3",
+      "exact": true,
+      "integral_bubble": "9/40",
+      "pass": true
+    },
+    "edge_bubble": {
+      "edge_bubble": "4*lambda1*lambda2",
+      "exact": true,
+      "integral_edge_bubble": "2/3",
+      "pass": true
+    },
+    "effectivity": {
+      "certified_anchor_effectivity_upper_proxy": 24.096567738093647,
+      "interpretation": "diagnostic proxy; interval endpoints need not yield sharp effectivity",
+      "pass": true,
+      "theorem_evidence": false
+    },
+    "efficiency": {
+      "machine_formal": false,
+      "pass": true,
+      "statement": "eta_K <= C_eff (||e||_{A,omega_K} + osc_{omega_K}(f)) for residual estimators on shape-regular conforming simplicial meshes",
+      "status": "reviewed-assumed"
+    },
+    "oscillation": {
+      "bound_template": "error_A <= mismatch + C_osc * oscillation",
+      "guaranteed_numeric": false,
+      "mismatch": 0.2939723678960656,
+      "oscillation": 0.23570226039551584,
+      "pass": true,
+      "reason": "C_osc remains a reviewed theorem constant unless explicitly instantiated"
+    },
+    "pass": true
+  },
+  "flux_quality": {
+    "heterogeneous_relative_mismatch_reduction": 0.14594928880643165,
+    "heterogeneous_spd": {
+      "cell_diffusion": [
+        [
+          [
+            "2",
+            "0"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        [
+          [
+            "1",
+            "0"
+          ],
+          [
+            "0",
+            "2"
+          ]
+        ],
+        [
+          [
+            "3",
+            "1"
+          ],
+          [
+            "1",
+            "2"
+          ]
+        ],
+        [
+          [
+            "2",
+            "-1"
+          ],
+          [
+            "-1",
+            "2"
+          ]
+        ]
+      ],
+      "old_euclidean_flux_mismatch_sq": "49/2880",
+      "optimized_mismatch_sq": "1381/95040",
+      "pass": true,
+      "scope": "piecewise-constant rational SPD tensors",
+      "strictly_improved": true
+    },
+    "oscillation_corrected": {
+      "bound_template": "error_A <= mismatch + C_osc * oscillation",
+      "guaranteed_numeric": false,
+      "mismatch": 0.2939723678960656,
+      "oscillation": 0.23570226039551584,
+      "pass": true,
+      "reason": "C_osc remains a reviewed theorem constant unless explicitly instantiated"
+    },
+    "projected_source": {
+      "equilibrium_scope": "div sigma_h = Pi_0 f exactly",
+      "mismatch_sq_exact": "7/81",
+      "oscillation_sq_exact": "1/18",
+      "pass": true,
+      "projected_cell_means": [
+        "5/3",
+        "7/3",
+        "7/3",
+        "5/3"
+      ]
+    },
+    "symmetric_fixture": {
+      "exact": true,
+      "improved_or_equal": true,
+      "old_mismatch_sq": "1/72",
+      "optimized_mismatch_sq": "1/72",
+      "pass": true
+    }
+  },
+  "goal_oriented": {
+    "formal_dwr_theorem": false,
+    "functionals": {
+      "functionals": [
+        "domain_average",
+        "weighted_volume_integral",
+        "boundary_flux_reviewed",
+        "linear_algebra_observation"
+      ],
+      "pass": true,
+      "point_evaluation_H1_2D_default": false,
+      "reason": "point evaluation is not a bounded functional on H1 in 2D; requires stronger regularity/discrete-only scope"
+    },
+    "identity": {
+      "exact": true,
+      "goal_error": "1/3",
+      "pass": true,
+      "residual_dual": "1/3",
+      "u": [
+        "2/3",
+        "1/3"
+      ],
+      "z": [
+        "1/3",
+        "2/3"
+      ]
+    },
+    "localization": {
+      "contributions": [
+        "0",
+        "1/3"
+      ],
+      "exact": true,
+      "pass": true,
+      "sum": "1/3"
+    },
+    "marking": {
+      "marking": {
+        "captured": 0.3,
+        "marked": [
+          1,
+          3
+        ],
+        "pass": true,
+        "total": 0.37
+      },
+      "pass": true,
+      "signed_contributions": [
+        0.01,
+        0.18,
+        0.04,
+        0.12,
+        0.02
+      ]
+    },
+    "pass": true,
+    "scope": "exact finite-dimensional dual identity + reviewed Galerkin DWR interpretation"
+  },
+  "higher_order": {
+    "basis": {
+      "exact": true,
+      "nodal_matrix": [
+        [
+          "1",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "1",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "0",
+          "1",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "0",
+          "0",
+          "1"
+        ]
+      ],
+      "pass": true
+    },
+    "degree3_quadrature": {
+      "degree": 3,
+      "exact": true,
+      "monomials_checked": 20,
+      "pass": true
+    },
+    "rate_model": {
+      "L2_model": [
+        0.125,
+        0.015625,
+        0.001953125,
+        0.000244140625
+      ],
+      "energy_model": [
+        0.25,
+        0.0625,
+        0.015625,
+        0.00390625
+      ],
+      "expected_rates": {
+        "L2": 3,
+        "energy": 2
+      },
+      "h": [
+        0.5,
+        0.25,
+        0.125,
+        0.0625
+      ],
+      "pass": true,
+      "scope": "Bramble-Hilbert rate model"
+    },
+    "reproduction": {
+      "degree_reproduced": 2,
+      "exact": true,
+      "pass": true
+    },
+    "rt1_production": false,
+    "stiffness": {
+      "constant_nullspace": true,
+      "exact": true,
+      "matrix": [
+        [
+          "1",
+          "1/6",
+          "1/6",
+          "-2/3",
+          "0",
+          "-2/3"
+        ],
+        [
+          "1/6",
+          "1/2",
+          "0",
+          "-2/3",
+          "0",
+          "0"
+        ],
+        [
+          "1/6",
+          "0",
+          "1/2",
+          "0",
+          "0",
+          "-2/3"
+        ],
+        [
+          "-2/3",
+          "-2/3",
+          "0",
+          "8/3",
+          "-4/3",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "0",
+          "-4/3",
+          "8/3",
+          "-4/3"
+        ],
+        [
+          "-2/3",
+          "0",
+          "-2/3",
+          "0",
+          "-4/3",
+          "8/3"
+        ]
+      ],
+      "pass": true,
+      "quadrature_exact_degree": 2,
+      "symmetric": true,
+      "tested_energies": [
+        "1",
+        "1/2",
+        "1/2",
+        "8/3",
+        "8/3",
+        "8/3",
+        "199/6",
+        "18"
+      ]
+    }
+  },
+  "nonclaims": [
+    "RT1 is not production implemented.",
+    "The projected-source oscillation correction keeps C_osc symbolic unless instantiated from a reviewed theorem.",
+    "Adaptive contraction/optimality audits are diagnostics, not machine proofs of AFEM optimal complexity.",
+    "P2 rate models are reviewed-theory expectations rather than a newly proved convergence theorem.",
+    "The DWR implementation contains an exact finite-dimensional identity; the infinite-dimensional DWR theorem remains reviewed mathematics."
+  ],
+  "program": "Estimator quality, improved/generalized equilibrated flux, adaptive policy, P2 FEM, goal-oriented error",
+  "qualification": {
+    "combined_relevant_partition": "37/37 PASS",
+    "compileall": "PASS",
+    "new_release_tests": "20/20 PASS"
+  },
+  "release": "1.50.0",
+  "sha256": "a93923ae0167faca454021429f83920234c764e4e9c038409421f7ac2af9d9ae"
+}
+

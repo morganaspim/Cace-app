@@ -1,0 +1,123 @@
+[
+  {
+    "capability": "Pinned Lean Toolchain",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.01"
+  },
+  {
+    "capability": "Dedicated CACE Formal Project",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.02"
+  },
+  {
+    "capability": "Abstract Hilbert Hypercircle",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.03"
+  },
+  {
+    "capability": "Abstract Operator Prager-Synge",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.04"
+  },
+  {
+    "capability": "SPD Weighted Energy Layer",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.05"
+  },
+  {
+    "capability": "Admissible Affine Spaces",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.06"
+  },
+  {
+    "capability": "Weak Green on Simplices",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.07"
+  },
+  {
+    "capability": "Elementwise Green and Face Cancellation",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.08"
+  },
+  {
+    "capability": "Finite-Mesh Hdiv Admissibility",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.09"
+  },
+  {
+    "capability": "Discrete Prager-Synge Closure",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.10"
+  },
+  {
+    "capability": "Formal Mesh Combinatorics",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.11"
+  },
+  {
+    "capability": "Piola Flux Preservation",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.12"
+  },
+  {
+    "capability": "Certificate-to-Lean Bridge",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.13"
+  },
+  {
+    "capability": "Proof-Producing Frozen Signatures",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.14"
+  },
+  {
+    "capability": "Formal Proof CI Gate",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.15"
+  },
+  {
+    "capability": "Formal Dependency Blueprint",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.16"
+  },
+  {
+    "capability": "Upstream-Ready PDE Lemmas",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.17"
+  },
+  {
+    "capability": "Cross-Prover Formalization Specification",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.18"
+  },
+  {
+    "capability": "Dual Verifier Certificate Binding",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.19"
+  },
+  {
+    "capability": "Continuum Prager-Synge Roadmap Milestone",
+    "evidence_kind": "symbolic",
+    "pass": true,
+    "release": "3.20"
+  }
+]
+

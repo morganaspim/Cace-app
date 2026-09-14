@@ -1,0 +1,1650 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.392628+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem07.diffusion",
+      "module_version": "0.7.0",
+      "node_id": "diff07",
+      "output_hash": "bd1cb6a256fb26d174a96f94031d479d11d1e75cb0f6eca9809661f5a9c574db",
+      "parameter_hash": "507b9da7055157e7617a53728547f06f89a08aab4586dc45669066591719eb5a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "1ae31254d7115716f8fb35dc50fbaa22d8e752f49dc3e6fb64e8d768d30998ef"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.392828+00:00",
+      "evidence": [],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem07.generic_reliability_obligation",
+      "module_version": "0.7.0",
+      "node_id": "formal07",
+      "output_hash": "17dc32e5b5a3c996771c38fc9fe4b2042dd306ad55c318e4678706bef92263a8",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "e8de6440ab413ce38580685649d89419a51bc6d7c2592a5ddab6f7cdacdfe183"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.393623+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "e9d1c2b332d2eaac50550d60bda21812f935960e7c87f6c4dfd5ac2b187e1b29",
+      "parameter_hash": "66035d6ad5ebaf22d4480c944cc7efe85578cb50788e33dc26cee7f0d10e7cdd",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "f76f8c91926edf131844b2d33e59c0a7c3667d45f731a7465da4500f9a274d14"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.394371+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "e9d1c2b332d2eaac50550d60bda21812f935960e7c87f6c4dfd5ac2b187e1b29",
+      "module_id": "fem06.triangle_geometry",
+      "module_version": "0.6.0",
+      "node_id": "geo",
+      "output_hash": "a4706ad7413d5b913d330fc8923984821ab0a7a51283335c2ead11fb52307a11",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "a14c8b43318876624594716bed5924df6a2b3e386f007e8e930054ca7323a2b3"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.395253+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "1b35d900add16f54841eb3f3cc87cd73757bb019f0ea8fc587c90c845f6c3591",
+      "module_id": "fem07.interval_global_assembly",
+      "module_version": "0.7.0",
+      "node_id": "iglobal07",
+      "output_hash": "8d45c0108be5128cb09ea31383acb4df9c55fe8a57d4ee33d35b139568bfb774",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "a7318c93a8a3d12ddf65e2408cf963f59955d995c97f2bd15d7c30b4c07c1a35"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.395380+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem06.bubble_problem",
+      "module_version": "0.6.0",
+      "node_id": "problem",
+      "output_hash": "1c8f08b8df069664a878148e8e8e5e285a6fe974c887a3e5813454fc399fbaa8",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "8cbd6a0fa6cd441dfef451d6ac36c547a1684fd76e29d630dd776543045d4a28"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.395529+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem07.theorem_registry",
+      "module_version": "0.7.0",
+      "node_id": "registry07",
+      "output_hash": "71390916af34838d0c8bed0a12eb0504bdc9a063be5865c2b8db2a821170dda7",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "60bfc25a05cd1edd1fc34738359f8ff581f830f76cf6ea4b64f9029357bc3de7"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.395816+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "a4706ad7413d5b913d330fc8923984821ab0a7a51283335c2ead11fb52307a11",
+      "module_id": "fem06.shape_regularity",
+      "module_version": "0.6.0",
+      "node_id": "shape",
+      "output_hash": "52ec10010bd174f0f825d2b5948ad13b5f5a97d8ed754997ac4933e2aab354c5",
+      "parameter_hash": "7f4229897dbc10a2e22de3ab34faf5ae2c7ab6eb51e6c737ec8573b16e837d2f",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "3ea99540a7f47360aa3d1b46b3cfefd9a51867b03ca4a0325581809f4065e8f3"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.396345+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "e9d1c2b332d2eaac50550d60bda21812f935960e7c87f6c4dfd5ac2b187e1b29",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "2e868be0b3d03ee9f41109da97aae2c80483390f5c039421901d208bcb23a5cd",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "e2df59d22268f9107a8632872a0f9b62235649e1276962b701f03c3f0ef6edea"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.397567+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "f4491e9323afea684578de33f945b0668e6a6622f031f12cd1e54025cc2f4798",
+      "module_id": "fem_cert.poisson_assemble",
+      "module_version": "0.4.0",
+      "node_id": "assemble",
+      "output_hash": "a76bc6cd0ea63856616591167b8f0d2dfc9ba9af02902d65a0f1c8b34efeb7d6",
+      "parameter_hash": "1fa9a1f38b98e36e36fd5b37063bd1a54b6e27f64d928ee0f516895caad76bba",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "9aa02593ed43d1d8d84b3e8c70079a0330b6381daf18335f08be3fded048bdca"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.397849+00:00",
+      "evidence": [],
+      "input_hash": "5200d3f5d397d85d9ac879d3377fc11ba8a2e480270e747ead7c145a2ea2d664",
+      "module_id": "fem_cert.cpu_gpu_equivalence",
+      "module_version": "0.4.0",
+      "node_id": "gpueq",
+      "output_hash": "296d4edc711e8d1726497d366da678b097f2343baeca8aa30df8ea173e852221",
+      "parameter_hash": "c2d4fa70977569d91beb087bde590b0691896bc9a92307ce827c2b3e7994b801",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "2f45b308777cc57b49fcede62922d48da8df126619dbe9e20f3c00c06a3cf157"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.398066+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "5200d3f5d397d85d9ac879d3377fc11ba8a2e480270e747ead7c145a2ea2d664",
+      "module_id": "fem_nd.linear_solve",
+      "module_version": "0.3.0",
+      "node_id": "solve",
+      "output_hash": "282cf57ac3f93b2eecd1167b6467381aed5dfe3089fc5166d7a7667e5e541bce",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "f1ce8a5b39c0cb758eb97d5edfe9a48e03c31dc268703ae74d80508f90abd7b5"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.401608+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "d4417c21cf93cf4df60eb680626ecfe5206678c0f7d25adc144a6ddd2a18bf8e",
+      "module_id": "fem06.bubble_continuum_error",
+      "module_version": "0.6.0",
+      "node_id": "cont",
+      "output_hash": "5f2181cd15b71887ca64f3b6bc6ad1943a04ae80ed56422351d35e65d638f061",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "4b50e1225fde014435863ab4aac5a76198aae24864042f81a3b7c882bed2c4c2"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.402569+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "690019c864e4f882c1a100f777f5869b23bfc672caf417d4ebc1b3feb3798039",
+      "module_id": "fem06.bubble_estimator",
+      "module_version": "0.6.0",
+      "node_id": "eta",
+      "output_hash": "169b602741fb5d6f68bd8de5b192e45fa66ed0d3147af5d4886e3323fbc88cac",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "4d7368c18338f5960fbdf6c18221bf5a29eafc44eb9c47110d74ee020291be0b"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.402848+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "019ed198851e04e53ecc9752d32cb159ea0d4496cc15f8fa24f13d8294339493",
+      "module_id": "fem07.reliability_gate",
+      "module_version": "0.7.0",
+      "node_id": "gate07",
+      "output_hash": "b17a9b2bd25bd7d28afb4aa6aed40167cc6a7335b60c3112ef1bb998104246e8",
+      "parameter_hash": "47cd450be27445f52c56ecfeef9b5e1af4b8b082d140ea37613a7bf0b7dae525",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "9bb9e9d4f3b3d27dcf908141b9df6dd74b87deb0b9ac058043a2392ea24b5f04"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.403024+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "b6067737652db9ce3752cd240da6972e34972b27a4e46783f560b5d80057c373",
+      "module_id": "fem_cert.interval_residual",
+      "module_version": "0.4.0",
+      "node_id": "ires",
+      "output_hash": "0c49b6cfd256728d292cad8a82374dc3b6953307e1556572dbbb21fafe20c8a7",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "07b7e7851191d8daa694d67c7749931c7c3d2f250547f0e1f58e01add4fef1ad"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.403164+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "55911539e3384ddabb7d63371ec93c0cd1aaf2b1935f03a279b2876299f23d5c",
+      "module_id": "fem_cert.discrete_energy_error",
+      "module_version": "0.5.0",
+      "node_id": "aerr",
+      "output_hash": "d174456359ea24c95bb32e3046388829aaf8502cfe22aca9764694f27e099561",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "59bb3cacd261962b695bbbf3800fbde9217d9e2dd631ef2ca464f36251ea8537"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:05:37.403550+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "6f5d4dcf893724a259a61024c3aedc7ff9194b6628324eeefafadbba52707cff",
+      "module_id": "fem06.element_stiffness",
+      "module_version": "0.6.0",
+      "node_id": "stiffcert",
+      "output_hash": "e02330d2a4b6b9437c9f204c843a30be8fb72165c89fab555378551fc388cc14",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+      "verification_hashes": [
+        "478b7fcf5d287f95a938733cb3215ed4f84fceab8b85ab0bfcfc657b9211760f"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.7 reusable theorem-backed certified 2D Poisson FEM",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "ad39959cb948a50b6c76641eaf58c2a910e6a500f2f6e996a2c6c9a6dce80b69",
+    "evidence_generated": [
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "ce13ca60dfa062b4a0b0d5001e2c28f2fea8c9b42beb5f23b0a38f6125034d7b",
+      "9dedf0721cc54d4522b3fe117bea7b1f2580c2b68d74a4594832321e60902645",
+      "bb601fd653e32d1412891b1f197820c6226a1537a477c89a4da373a9cfb37a95",
+      "1237cc490d0026f9f5073f7bb8cd7e6f3436fcd1400be7ef71f0d523d753d185",
+      "f21aba17f7c19177480d2c3bc327c6ac8ead46444806c46c1020cbef830b9ead",
+      "8e92a1b3b300c95a7d645744794768f3f64b55465d549d27f2756b0cb96a3c7f",
+      "a4d8bd2f7aec96f798813d6f6479ecbf7e2cee65537376d34b29252c899eec97",
+      "7e1e1389f40db227b7aa20a6e04deaf4e1bc5cdbb358d7611b6e6c036c73d3a2",
+      "dee191f015dab76ac9f132bb6746d3bca297a10bd847abf39c47378c992e8661",
+      "2898ea5de187577de13338defe315c8924fc9be651a9991b41b268522222e461",
+      "384652400aceea4bd95d7ca3708f8a87b4d8bb06e66e91daec9d04e1c8d13541",
+      "520ec6e5393f1e4c0da1679ab50a39d6a3d9ad6c9e7f494a0e5bbac5f6fa0dd1",
+      "8f2d5538b7307993013940fc9903032bfd0ed55156c64d295ec98a0fa1153b5c",
+      "389ac7b383a3b1fac9c0d919e30bb258ef98cafd884e8835a03aaefa15b077af",
+      "a96a97019ebae791f52559b69667fbdd69aeaf09e8edfe2ae53ba06576921718",
+      "d060228b527c16009ff6fc9c815655dff151ac379b995431fc866cbb18701607",
+      "aa1758a6210422593ae9c9fe51e6eb16eb6eaf1d515188f88a54ea60fc92dcaa",
+      "6ca73f0f9ea2311e8205b1462047e28360b2af41e22f61d90832e1b57952d548"
+    ],
+    "not_run_verifiers": 2,
+    "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+    "verification_records": 18
+  },
+  "outputs": {
+    "aerr": {
+      "algebraic_error_certificate": {
+        "certified": true,
+        "coercivity_method": "gershgorin",
+        "energy_error_upper": 2.2662332591841994e-17,
+        "gershgorin_lambda_min_lower": 5.999999999999998,
+        "scope": "computed-solution-vs-exact-discrete-solution",
+        "solution_l2_error_upper": 9.251858538542981e-18
+      }
+    },
+    "assemble": {
+      "problem": {
+        "cell_coercivity_lower": 1.0,
+        "diffusion": 1.0,
+        "dimension": 2,
+        "source_constant": 0.0,
+        "source_linear": [
+          2.0,
+          2.0
+        ]
+      },
+      "system": {
+        "boundary_dofs": [
+          0,
+          1,
+          2
+        ],
+        "full_dofs": 4,
+        "interior_dofs": [
+          3
+        ],
+        "matrix": {
+          "data": [
+            5.999999999999999
+          ],
+          "indices": [
+            0
+          ],
+          "indptr": [
+            0,
+            1
+          ],
+          "shape": [
+            1,
+            1
+          ]
+        },
+        "problem_class": "elliptic-p1-spd-affine-source",
+        "rhs": [
+          0.2222222222222222
+        ]
+      }
+    },
+    "cont": {
+      "continuum_certificate": {
+        "certified": true,
+        "elements": [
+          {
+            "element": 0,
+            "energy_error_squared_interval": [
+              0.0008230452674890225,
+              0.0008230452674903619
+            ],
+            "uh_gradient_interval": [
+              [
+                -3e-323,
+                3e-323
+              ],
+              [
+                0.11111111111111097,
+                0.1111111111111113
+              ]
+            ]
+          },
+          {
+            "element": 1,
+            "energy_error_squared_interval": [
+              0.0012345679012201935,
+              0.0012345679012490218
+            ],
+            "uh_gradient_interval": [
+              [
+                -0.11111111111111138,
+                -0.11111111111111081
+              ],
+              [
+                -0.11111111111111138,
+                -0.11111111111111081
+              ]
+            ]
+          },
+          {
+            "element": 2,
+            "energy_error_squared_interval": [
+              0.0008230452674825277,
+              0.0008230452674966791
+            ],
+            "uh_gradient_interval": [
+              [
+                0.11111111111111097,
+                0.1111111111111113
+              ],
+              [
+                -3e-323,
+                3e-323
+              ]
+            ]
+          }
+        ],
+        "energy_error_interval": [
+          0.05367176572642027,
+          0.05367176572683317
+        ],
+        "energy_error_squared_interval": [
+          0.0028806584361917424,
+          0.0028806584362360637
+        ],
+        "scope": "computed-P1-vs-exact-continuum-bubble-solution",
+        "theorem_id": "poisson2d-reference-triangle-bubble-p1-v1"
+      }
+    },
+    "diff07": {
+      "diffusion_certificate": {
+        "coercivity_lower_interval": [
+          0.4999999999999997,
+          0.5000000000000004
+        ],
+        "det_interval": [
+          0.9999999999999998,
+          1.0000000000000004
+        ],
+        "spd_certified": true,
+        "tensor": [
+          [
+            [
+              1.0,
+              1.0
+            ],
+            [
+              0.0,
+              0.0
+            ]
+          ],
+          [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              1.0,
+              1.0
+            ]
+          ]
+        ],
+        "trace_interval": [
+          1.9999999999999998,
+          2.0000000000000004
+        ]
+      }
+    },
+    "eta": {
+      "estimator_certificate": {
+        "definition": "sum_K h_K^2||f||_K^2 + 1/2 sum_{F subset dK interior} h_F ||jump grad(u_h).n||_F^2",
+        "element_eta_squared_intervals": [
+          [
+            0.2729214309168466,
+            0.27292143091684945
+          ],
+          [
+            1.1267958366289659,
+            1.126795836628994
+          ],
+          [
+            0.2729214309168434,
+            0.27292143091685267
+          ]
+        ],
+        "eta_interval": [
+          1.2933053384497626,
+          1.293305338449779
+        ],
+        "eta_squared_interval": [
+          1.6726386984626556,
+          1.6726386984626966
+        ]
+      }
+    },
+    "formal07": {
+      "theorem_artifact": {
+        "artifact": "docs/proofs/poisson2d_p1_reliability_v07.lean",
+        "language": "Lean4",
+        "machine_checked": false,
+        "status": "obligation-only",
+        "theorem_id": "poisson2d-p1-residual-reliability-shape-regular-v0.7"
+      }
+    },
+    "gate07": {
+      "theorem_certificate": {
+        "C_eta_lower": 1.2933053384497624,
+        "C_rel": 1.0,
+        "assumption_failures": [],
+        "certified": true,
+        "error_upper": 0.05367176572683317,
+        "eta_lower": 1.2933053384497626,
+        "formal_evidence": false,
+        "matched": true,
+        "status": "pass",
+        "theorem_id": "poisson2d-p1-certified-comparison-v0.7",
+        "theorem_status": "computationally-discharged"
+      }
+    },
+    "geo": {
+      "geometry_certificate": {
+        "certified_nondegenerate": true,
+        "dimension": 2,
+        "elements": [
+          {
+            "area_interval": [
+              0.16666666666666652,
+              0.1666666666666668
+            ],
+            "det_interval": [
+              0.3333333333333331,
+              0.33333333333333354
+            ],
+            "diameter_interval": [
+              0.9999999999999997,
+              1.0000000000000007
+            ],
+            "edge_length_intervals": [
+              [
+                0.9999999999999997,
+                1.0000000000000007
+              ],
+              [
+                0.7453559924999296,
+                0.7453559924999303
+              ],
+              [
+                0.47140452079103146,
+                0.47140452079103184
+              ]
+            ],
+            "element": 0,
+            "gradient_intervals": [
+              [
+                [
+                  -1.0000000000000016,
+                  -0.9999999999999989
+                ],
+                [
+                  -2.000000000000005,
+                  -1.9999999999999953
+                ]
+              ],
+              [
+                [
+                  0.9999999999999989,
+                  1.0000000000000016
+                ],
+                [
+                  -1.0000000000000016,
+                  -0.9999999999999989
+                ]
+              ],
+              [
+                [
+                  -3.5e-323,
+                  3.5e-323
+                ],
+                [
+                  2.9999999999999964,
+                  3.000000000000004
+                ]
+              ]
+            ],
+            "inverse_transpose_interval": [
+              [
+                [
+                  0.9999999999999991,
+                  1.000000000000001
+                ],
+                [
+                  -2e-323,
+                  2e-323
+                ]
+              ],
+              [
+                [
+                  -1.000000000000001,
+                  -0.9999999999999991
+                ],
+                [
+                  2.9999999999999973,
+                  3.000000000000003
+                ]
+              ]
+            ]
+          },
+          {
+            "area_interval": [
+              0.1666666666666664,
+              0.16666666666666702
+            ],
+            "det_interval": [
+              0.33333333333333287,
+              0.333333333333334
+            ],
+            "diameter_interval": [
+              1.4142135623730945,
+              1.4142135623730958
+            ],
+            "edge_length_intervals": [
+              [
+                1.4142135623730945,
+                1.4142135623730958
+              ],
+              [
+                0.7453559924999296,
+                0.7453559924999303
+              ],
+              [
+                0.7453559924999296,
+                0.7453559924999303
+              ]
+            ],
+            "element": 1,
+            "gradient_intervals": [
+              [
+                [
+                  1.9999999999999907,
+                  2.0000000000000084
+                ],
+                [
+                  0.9999999999999883,
+                  1.0000000000000104
+                ]
+              ],
+              [
+                [
+                  0.9999999999999976,
+                  1.0000000000000022
+                ],
+                [
+                  1.9999999999999953,
+                  2.000000000000005
+                ]
+              ],
+              [
+                [
+                  -3.000000000000006,
+                  -2.9999999999999925
+                ],
+                [
+                  -3.000000000000006,
+                  -2.9999999999999925
+                ]
+              ]
+            ],
+            "inverse_transpose_interval": [
+              [
+                [
+                  0.9999999999999978,
+                  1.0000000000000018
+                ],
+                [
+                  -3.0000000000000053,
+                  -2.9999999999999933
+                ]
+              ],
+              [
+                [
+                  1.9999999999999958,
+                  2.000000000000004
+                ],
+                [
+                  -3.0000000000000053,
+                  -2.9999999999999933
+                ]
+              ]
+            ]
+          },
+          {
+            "area_interval": [
+              0.16666666666666652,
+              0.1666666666666668
+            ],
+            "det_interval": [
+              0.3333333333333331,
+              0.33333333333333354
+            ],
+            "diameter_interval": [
+              0.9999999999999997,
+              1.0000000000000007
+            ],
+            "edge_length_intervals": [
+              [
+                0.9999999999999997,
+                1.0000000000000007
+              ],
+              [
+                0.47140452079103146,
+                0.47140452079103184
+              ],
+              [
+                0.7453559924999296,
+                0.7453559924999303
+              ]
+            ],
+            "element": 2,
+            "gradient_intervals": [
+              [
+                [
+                  -1.0000000000000056,
+                  -0.9999999999999937
+                ],
+                [
+                  0.9999999999999989,
+                  1.0000000000000016
+                ]
+              ],
+              [
+                [
+                  -2.0000000000000036,
+                  -1.999999999999998
+                ],
+                [
+                  -1.0000000000000016,
+                  -0.9999999999999989
+                ]
+              ],
+              [
+                [
+                  2.9999999999999964,
+                  3.000000000000004
+                ],
+                [
+                  -3.5e-323,
+                  3.5e-323
+                ]
+              ]
+            ],
+            "inverse_transpose_interval": [
+              [
+                [
+                  -2.0000000000000027,
+                  -1.9999999999999984
+                ],
+                [
+                  2.9999999999999973,
+                  3.000000000000003
+                ]
+              ],
+              [
+                [
+                  -1.000000000000001,
+                  -0.9999999999999991
+                ],
+                [
+                  -2e-323,
+                  2e-323
+                ]
+              ]
+            ]
+          }
+        ],
+        "orientation": "CCW"
+      }
+    },
+    "gpueq": {
+      "equivalence": {
+        "backend": "unavailable",
+        "gpu_available": false,
+        "passed": false,
+        "reason": "No module named 'cupy'"
+      }
+    },
+    "iglobal07": {
+      "interval_system": {
+        "dimension": 1,
+        "homogeneous_dirichlet": true,
+        "interior_dofs": [
+          3
+        ],
+        "matrix_intervals": [
+          [
+            [
+              5.999999999999964,
+              6.000000000000036
+            ]
+          ]
+        ]
+      }
+    },
+    "ires": {
+      "residual_certificate": {
+        "residual_inf_interval": [
+          0.0,
+          5.551115123125786e-17
+        ],
+        "residual_l2_interval": [
+          0.0,
+          5.551115123125786e-17
+        ],
+        "row_intervals": [
+          [
+            -5.551115123125784e-17,
+            5.551115123125784e-17
+          ]
+        ],
+        "scope": "discrete-binary64-linear-system"
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            2,
+            0,
+            3
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.3333333333333333,
+            0.3333333333333333
+          ]
+        ]
+      }
+    },
+    "problem": {
+      "problem": {
+        "diffusion": 1.0,
+        "dimension": 2,
+        "domain": "reference_triangle",
+        "exact_solution": "x*y*(1-x-y)",
+        "source_constant": 0.0,
+        "source_linear": [
+          2.0,
+          2.0
+        ],
+        "theorem_id": "poisson2d-reference-triangle-bubble-p1-v1"
+      }
+    },
+    "registry07": {
+      "registry": {
+        "theorems": [
+          {
+            "artifact": null,
+            "assumptions": [
+              "dimension=2",
+              "conforming mesh",
+              "P1 approximation",
+              "independent interval enclosures for E and eta"
+            ],
+            "checker": "CACE interval comparison",
+            "evidence_kind": "interval-certified",
+            "statement": "If E in [Elo,Ehi], eta in [etalo,etahi], C>0, and Ehi <= C*etalo, then E <= C eta.",
+            "status": "computationally-discharged",
+            "theorem_id": "poisson2d-p1-certified-comparison-v0.7"
+          },
+          {
+            "artifact": "docs/proofs/poisson2d_p1_reliability_v07.lean",
+            "assumptions": [
+              "bounded Lipschitz polygon",
+              "uniform ellipticity",
+              "shape regularity",
+              "conforming P1",
+              "residual/jump estimator",
+              "interpolation/trace constants"
+            ],
+            "checker": null,
+            "evidence_kind": "formally-verified",
+            "statement": "For conforming P1 Poisson FEM on a shape-regular triangular mesh, ||u-u_h||_E <= C_rel eta under the theorem assumptions.",
+            "status": "obligation-only",
+            "theorem_id": "poisson2d-p1-residual-reliability-shape-regular-v0.7"
+          }
+        ]
+      }
+    },
+    "shape": {
+      "shape_certificate": {
+        "elements": [
+          {
+            "element": 0,
+            "inradius_interval": [
+              0.15036957367959974,
+              0.15036957367960035
+            ],
+            "shape_ratio_interval": [
+              6.65028153987287,
+              6.650281539872905
+            ]
+          },
+          {
+            "element": 1,
+            "inradius_interval": [
+              0.11474763394014681,
+              0.1147476339401475
+            ],
+            "shape_ratio_interval": [
+              12.324555320336712,
+              12.3245553203368
+            ]
+          },
+          {
+            "element": 2,
+            "inradius_interval": [
+              0.15036957367959974,
+              0.15036957367960035
+            ],
+            "shape_ratio_interval": [
+              6.65028153987287,
+              6.650281539872905
+            ]
+          }
+        ],
+        "max_shape_ratio_interval": [
+          12.324555320336712,
+          12.3245553203368
+        ],
+        "shape_regular_certified": true,
+        "threshold": 20.0
+      }
+    },
+    "solve": {
+      "solution": {
+        "interior": [
+          0.03703703703703704
+        ],
+        "values": [
+          0.0,
+          0.0,
+          0.0,
+          0.03703703703703704
+        ]
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 2,
+        "dofs": 4,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -1.0,
+                -2.0
+              ],
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0,
+                3.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              0,
+              1,
+              3
+            ],
+            "gradients": [
+              [
+                -1.0,
+                -2.0
+              ],
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                3.0
+              ]
+            ],
+            "volume": 0.16666666666666666
+          },
+          {
+            "coefficients": [
+              [
+                -0.9999999999999996,
+                1.9999999999999996,
+                0.9999999999999994
+              ],
+              [
+                -0.9999999999999996,
+                0.9999999999999996,
+                1.9999999999999996
+              ],
+              [
+                2.999999999999999,
+                -2.999999999999999,
+                -2.999999999999999
+              ]
+            ],
+            "diameter": 1.4142135623730951,
+            "element": [
+              1,
+              2,
+              3
+            ],
+            "gradients": [
+              [
+                1.9999999999999996,
+                0.9999999999999994
+              ],
+              [
+                0.9999999999999996,
+                1.9999999999999996
+              ],
+              [
+                -2.999999999999999,
+                -2.999999999999999
+              ]
+            ],
+            "volume": 0.1666666666666667
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                -0.9999999999999998,
+                1.0
+              ],
+              [
+                1.0,
+                -2.0,
+                -1.0
+              ],
+              [
+                0.0,
+                3.0,
+                -0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              2,
+              0,
+              3
+            ],
+            "gradients": [
+              [
+                -0.9999999999999998,
+                1.0
+              ],
+              [
+                -2.0,
+                -1.0
+              ],
+              [
+                3.0,
+                -0.0
+              ]
+            ],
+            "volume": 0.16666666666666666
+          }
+        ]
+      }
+    },
+    "stiffcert": {
+      "stiffness_certificate": {
+        "bilinear_form": "integral_T grad(phi_i) dot grad(phi_j)",
+        "elements": [
+          {
+            "element": 0,
+            "stiffness_intervals": [
+              [
+                [
+                  0.8333333333333288,
+                  0.8333333333333383
+                ],
+                [
+                  0.16666666666666474,
+                  0.16666666666666863
+                ],
+                [
+                  -1.000000000000005,
+                  -0.9999999999999951
+                ]
+              ],
+              [
+                [
+                  0.16666666666666474,
+                  0.16666666666666863
+                ],
+                [
+                  0.33333333333333215,
+                  0.3333333333333348
+                ],
+                [
+                  -0.5000000000000021,
+                  -0.4999999999999982
+                ]
+              ],
+              [
+                [
+                  -1.000000000000005,
+                  -0.9999999999999951
+                ],
+                [
+                  -0.5000000000000021,
+                  -0.4999999999999982
+                ],
+                [
+                  1.4999999999999942,
+                  1.5000000000000062
+                ]
+              ]
+            ]
+          },
+          {
+            "element": 1,
+            "stiffness_intervals": [
+              [
+                [
+                  0.8333333333333216,
+                  0.8333333333333447
+                ],
+                [
+                  0.6666666666666583,
+                  0.6666666666666748
+                ],
+                [
+                  -1.5000000000000167,
+                  -1.4999999999999827
+                ]
+              ],
+              [
+                [
+                  0.6666666666666583,
+                  0.6666666666666748
+                ],
+                [
+                  0.8333333333333278,
+                  0.8333333333333395
+                ],
+                [
+                  -1.5000000000000109,
+                  -1.4999999999999896
+                ]
+              ],
+              [
+                [
+                  -1.5000000000000167,
+                  -1.4999999999999827
+                ],
+                [
+                  -1.5000000000000109,
+                  -1.4999999999999896
+                ],
+                [
+                  2.999999999999979,
+                  3.0000000000000204
+                ]
+              ]
+            ]
+          },
+          {
+            "element": 2,
+            "stiffness_intervals": [
+              [
+                [
+                  0.33333333333333043,
+                  0.33333333333333615
+                ],
+                [
+                  0.16666666666666344,
+                  0.16666666666666974
+                ],
+                [
+                  -0.5000000000000041,
+                  -0.49999999999999556
+                ]
+              ],
+              [
+                [
+                  0.16666666666666344,
+                  0.16666666666666974
+                ],
+                [
+                  0.8333333333333306,
+                  0.8333333333333374
+                ],
+                [
+                  -1.0000000000000044,
+                  -0.9999999999999964
+                ]
+              ],
+              [
+                [
+                  -0.5000000000000041,
+                  -0.49999999999999556
+                ],
+                [
+                  -1.0000000000000044,
+                  -0.9999999999999964
+                ],
+                [
+                  1.4999999999999942,
+                  1.5000000000000062
+                ]
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "47a12caa-9a45-4332-a404-f95a5d9ea29c",
+  "verification": {
+    "aerr": [
+      {
+        "claim": "if the certified Gershgorin lower bound alpha is positive, ||u-u*||_2 <= ||r||_2/alpha and ||u-u*||_A <= ||r||_2/sqrt(alpha)",
+        "kind": "interval-certified",
+        "method": "certified SPD lower bound (Gershgorin or interval LDL^T) + SPD residual-error identity with outward-rounded arithmetic",
+        "metrics": {
+          "certified": true,
+          "coercivity_method": "gershgorin",
+          "energy_error_upper": 2.2662332591841994e-17,
+          "gershgorin_lambda_min_lower": 5.999999999999998,
+          "scope": "computed-solution-vs-exact-discrete-solution",
+          "solution_l2_error_upper": 9.251858538542981e-18
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "discrete-spd-gershgorin-bound"
+      }
+    ],
+    "assemble": [
+      {
+        "claim": "discrete reduced operator is symmetric positive definite and every supplied diffusion tensor is SPD",
+        "kind": "numerical",
+        "method": "independent symmetry/eigenvalue checks plus elementwise diffusion spectra",
+        "metrics": {
+          "diffusion_coercivity_lower": 1.0,
+          "matrix_min_eigenvalue": 5.999999999999999,
+          "matrix_symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cert-poisson-class-assumptions"
+      }
+    ],
+    "cont": [
+      {
+        "claim": "the continuum energy error of the computed P1 function is enclosed by exact polynomial pullback moments plus directed interval arithmetic",
+        "kind": "interval-certified",
+        "method": "exact monomial integration on affine triangles with interval coefficients",
+        "metrics": {
+          "elements": 3,
+          "energy_error_lower": 0.05367176572642027,
+          "energy_error_upper": 0.05367176572683317
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "bubble-continuum-energy-2d"
+      }
+    ],
+    "diff07": [
+      {
+        "claim": "constant diffusion is symmetric positive definite and lambda_min(A) >= det(A)/trace(A) > 0",
+        "kind": "interval-certified",
+        "method": "2x2 Sylvester criterion plus SPD eigenvalue inequality",
+        "metrics": {
+          "coercivity_lower_interval": [
+            0.4999999999999997,
+            0.5000000000000004
+          ],
+          "det_interval": [
+            0.9999999999999998,
+            1.0000000000000004
+          ],
+          "spd_certified": true,
+          "tensor": [
+            [
+              [
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                1.0
+              ]
+            ]
+          ],
+          "trace_interval": [
+            1.9999999999999998,
+            2.0000000000000004
+          ]
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "diffusion-spd-2d"
+      }
+    ],
+    "eta": [
+      {
+        "claim": "the v0.6 2D residual/jump estimator is enclosed by interval geometry and exact polynomial element integration",
+        "kind": "interval-certified",
+        "method": "interval residual/jump estimator construction",
+        "metrics": {
+          "eta_lower": 1.2933053384497626,
+          "eta_upper": 1.293305338449779
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "bubble-residual-estimator-interval"
+      }
+    ],
+    "formal07": [
+      {
+        "claim": "generic shape-regular 2D Poisson residual reliability remains an unproved formal obligation",
+        "kind": "formally-verified",
+        "method": "artifact export only",
+        "metrics": {
+          "artifact": "docs/proofs/poisson2d_p1_reliability_v07.lean",
+          "language": "Lean4",
+          "machine_checked": false,
+          "status": "obligation-only",
+          "theorem_id": "poisson2d-p1-residual-reliability-shape-regular-v0.7"
+        },
+        "notes": [],
+        "state": "not-run",
+        "verifier": "generic-2d-reliability-v07"
+      }
+    ],
+    "gate07": [
+      {
+        "claim": "a reusable computational theorem contract matched the run assumptions and E <= C_rel eta was discharged from independent interval bounds",
+        "kind": "interval-certified",
+        "method": "theorem-contract matching plus directed interval comparison",
+        "metrics": {
+          "C_eta_lower": 1.2933053384497624,
+          "C_rel": 1.0,
+          "assumption_failures": [],
+          "certified": true,
+          "error_upper": 0.05367176572683317,
+          "eta_lower": 1.2933053384497626,
+          "formal_evidence": false,
+          "matched": true,
+          "status": "pass",
+          "theorem_id": "poisson2d-p1-certified-comparison-v0.7",
+          "theorem_status": "computationally-discharged"
+        },
+        "notes": [
+          "This is not formal evidence; the generic PDE reliability theorem remains obligation-only."
+        ],
+        "state": "pass",
+        "verifier": "reusable-2d-theorem-gate"
+      }
+    ],
+    "geo": [
+      {
+        "claim": "every triangle has a strictly positive interval determinant and outward-enclosed area, inverse-transpose, gradients, and edge lengths",
+        "kind": "interval-certified",
+        "method": "directed interval affine-geometry calculation",
+        "metrics": {
+          "certified_nondegenerate": true,
+          "elements": 3
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "triangle-interval-geometry"
+      }
+    ],
+    "gpueq": [
+      {
+        "claim": "CPU and GPU solutions of the same stored linear system agree within configured tolerance",
+        "kind": "numerical",
+        "method": "independent NumPy and CuPy solves followed by host comparison",
+        "metrics": {
+          "backend": "unavailable",
+          "gpu_available": false,
+          "passed": false,
+          "reason": "No module named 'cupy'"
+        },
+        "notes": [],
+        "state": "not-run",
+        "verifier": "cpu-gpu-solve-equivalence"
+      }
+    ],
+    "iglobal07": [
+      {
+        "claim": "every reduced global stiffness entry is an outward enclosure of the sum of certified local contributions",
+        "kind": "interval-certified",
+        "method": "interval local assembly with outward-rounded accumulation",
+        "metrics": {
+          "dimension": 1,
+          "interval_symmetric": true
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "interval-global-stiffness-assembly"
+      }
+    ],
+    "ires": [
+      {
+        "claim": "the exact residual of the stored binary64 discrete system is enclosed componentwise and in infinity/L2 norm",
+        "kind": "interval-certified",
+        "method": "directed nextafter rounding for each interval product and sum",
+        "metrics": {
+          "residual_inf_upper": 5.551115123125786e-17,
+          "residual_l2_upper": 5.551115123125786e-17
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "interval-algebraic-residual"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 3,
+          "dimension": 2,
+          "elements": 3,
+          "min_volume": 0.16666666666666666,
+          "vertices": 4
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "problem": [
+      {
+        "claim": "-Delta[x*y*(1-x-y)] = 2(x+y) and the polynomial vanishes on all three reference-triangle boundary edges",
+        "kind": "symbolic",
+        "method": "closed-form differentiation and boundary factorization",
+        "metrics": {},
+        "notes": [],
+        "state": "pass",
+        "verifier": "bubble-poisson-symbolic-identity"
+      }
+    ],
+    "registry07": [
+      {
+        "claim": "the theorem registry records status explicitly; obligation-only entries do not generate formal evidence",
+        "kind": "symbolic",
+        "method": "registry schema/status validation",
+        "metrics": {
+          "theorems": 2
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "theorem-registry-integrity"
+      }
+    ],
+    "shape": [
+      {
+        "claim": "triangle inradii and h/r ratios are interval-enclosed; the configured global shape-regularity threshold is certified when the ratio upper bound fits beneath it",
+        "kind": "interval-certified",
+        "method": "r=2A/perimeter and h=max(edge lengths), evaluated with directed interval arithmetic",
+        "metrics": {
+          "max_shape_ratio_interval": [
+            12.324555320336712,
+            12.3245553203368
+          ],
+          "threshold": 20.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "triangle-shape-regularity-interval"
+      }
+    ],
+    "solve": [
+      {
+        "claim": "independently recomputed reduced-system residual is small",
+        "kind": "numerical",
+        "method": "host-side CSR reconstruction and residual",
+        "metrics": {
+          "residual_inf": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "linear-solve-residual-nd"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 1.1102230246251565e-16
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ],
+    "stiffcert": [
+      {
+        "claim": "local P1 stiffness entries are outward-enclosed and interval-symmetric",
+        "kind": "interval-certified",
+        "method": "K_ij=area*grad(phi_i)\u00b7grad(phi_j) with interval geometry",
+        "metrics": {
+          "elements": 3
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "element-stiffness-intervals"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "Verified quadratic second derivative",
+  "nodes": [
+    {"id":"grid","module_id":"science.grid1d","params":{"start":-1.0,"stop":1.0,"points":101},"position":[0,0]},
+    {"id":"field","module_id":"science.quadratic","params":{"a":1.0,"b":0.0,"c":0.0},"position":[240,0]},
+    {"id":"d2","module_id":"science.second_derivative","params":{},"position":[480,0]},
+    {"id":"verify","module_id":"verify.constant_residual","params":{"target":2.0,"tolerance":1e-9},"position":[760,0]}
+  ],
+  "edges": [
+    {"source_node":"grid","source_port":"x","target_node":"field","target_port":"x"},
+    {"source_node":"grid","source_port":"x","target_node":"d2","target_port":"x"},
+    {"source_node":"field","source_port":"y","target_node":"d2","target_port":"y"},
+    {"source_node":"d2","source_port":"d2y","target_node":"verify","target_port":"values"}
+  ],
+  "metadata": {"purpose":"End-to-end numerical verification demo for d2/dx2(x^2)=2."}
+}

@@ -1,0 +1,13 @@
+{
+  "capability": "mesh_admissibility_to_orthogonality",
+  "evidence": "symbolic + independent exact subprocess checker",
+  "external_lean_status": "NOT_RUN unless a compatible local Lean/lake pair is discovered",
+  "nonclaims": [
+    "No external Lean compilation is claimed without a successful build attestation.",
+    "Lean v4.0.0-m1 source PDF is not used as the executable proof kernel.",
+    "Continuum H1/H(div) Prager-Synge remains open."
+  ],
+  "release": "3.21.0",
+  "scope": "finite conforming P1 / constant RT0-error fixture plus generic finite-sum Lean bridge"
+}
+

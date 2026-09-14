@@ -1,0 +1,18 @@
+{
+  "artifacts_added": [
+    "Dockerfile.lean",
+    ".github/workflows/lean-v321.yml",
+    "scripts/fetch_lean_4_32_1.sh"
+  ],
+  "asset": "lean-4.32.1-linux.tar.zst",
+  "browser_download_url": "https://github.com/leanprover/lean4/releases/download/v4.32.1/lean-4.32.1-linux.tar.zst",
+  "github_connector_repository_access": {
+    "installations_visible": 0,
+    "repositories_visible": 0,
+    "status": "connected but no repository installation/scope visible"
+  },
+  "lean_release": "v4.32.1",
+  "sha256": "57d5c062a6b4bae6fba511a1704aa124dff461c37d0fc94585637fbb7d951b50",
+  "source": "official leanprover/lean4 GitHub release metadata"
+}
+

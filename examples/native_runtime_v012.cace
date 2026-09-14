@@ -1,0 +1,32 @@
+{
+  "schema_version":1,
+  "name":"v0.12 native runtime and backend equivalence",
+  "nodes":[
+    {"id":"audit","module_id":"runtime12.backend_audit","params":{},"position":[0,-180]},
+    {"id":"mesh","module_id":"fem_nd.mesh","params":{"vertices":"[[0,0],[1,0],[1,1],[0,1],[0.5,0.5]]","elements":"[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]"},"position":[0,0]},
+    {"id":"space","module_id":"fem_nd.p1_space","params":{},"position":[200,0]},
+    {"id":"assembly","module_id":"fem_nd.poisson_assemble","params":{"source":1.0},"position":[400,0]},
+    {"id":"solve","module_id":"fem_nd.linear_solve","params":{},"position":[600,0]},
+    {"id":"sparseeq","module_id":"runtime12.sparse_equivalence","params":{"atol":1e-13},"position":[800,-50]},
+    {"id":"gpueq","module_id":"runtime12.gpu_equivalence","params":{"atol":1e-11},"position":[800,80]},
+    {"id":"adapt","module_id":"fem11.adaptive_certified_loop","params":{"source":1.0,"theta":0.5,"max_iterations":3,"stop_mode":"estimator_upper","tolerance":0.0},"position":[400,220]},
+    {"id":"markeq","module_id":"runtime12.adaptive_marking_equivalence","params":{"theta":0.5},"position":[700,220]},
+    {"id":"summary","module_id":"runtime12.equivalence_summary","params":{},"position":[1050,80]}
+  ],
+  "edges":[
+    {"source_node":"mesh","source_port":"mesh","target_node":"space","target_port":"mesh"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"assembly","target_port":"mesh"},
+    {"source_node":"space","source_port":"space","target_node":"assembly","target_port":"space"},
+    {"source_node":"assembly","source_port":"system","target_node":"solve","target_port":"system"},
+    {"source_node":"assembly","source_port":"system","target_node":"sparseeq","target_port":"system"},
+    {"source_node":"solve","source_port":"solution","target_node":"sparseeq","target_port":"solution"},
+    {"source_node":"assembly","source_port":"system","target_node":"gpueq","target_port":"system"},
+    {"source_node":"solve","source_port":"solution","target_node":"gpueq","target_port":"solution"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"adapt","target_port":"mesh"},
+    {"source_node":"adapt","source_port":"adaptive_run","target_node":"markeq","target_port":"adaptive_run"},
+    {"source_node":"sparseeq","source_port":"equivalence","target_node":"summary","target_port":"sparse"},
+    {"source_node":"markeq","source_port":"equivalence","target_node":"summary","target_port":"adaptive"},
+    {"source_node":"gpueq","source_port":"equivalence","target_node":"summary","target_port":"gpu"}
+  ],
+  "metadata":{"version":"0.12.0","purpose":"native C++20 runtime and conditional GPU equivalence certificates"}
+}

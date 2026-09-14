@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "CACE v1.01 Reliability Closure",
+  "metadata": {
+    "release": "1.01.0",
+    "scope": "reviewed-theorem-closure-not-machine-formal"
+  },
+  "nodes": [
+    {
+      "id": "closure",
+      "module_id": "fem101.reliability_closure",
+      "params": {},
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "edges": []
+}

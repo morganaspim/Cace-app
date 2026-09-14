@@ -1,0 +1,9 @@
+{
+  "lake_manifest_status": "NOT_GENERATED",
+  "lean_toolchain": "leanprover/lean4:v4.32.1",
+  "mathlib_release": "v4.32.1",
+  "mathlib_release_commit_short": "520045a",
+  "reason": "Lean/elan unavailable and shell network DNS cannot resolve elan.lean-lang.org in this runtime",
+  "source": "mathlib4 GitHub release metadata checked 2026-09-13"
+}
+

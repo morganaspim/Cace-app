@@ -1,0 +1,39 @@
+{
+  "edges": [
+    {
+      "source_node": "bench",
+      "source_port": "benchmark",
+      "target_node": "summary",
+      "target_port": "benchmark"
+    }
+  ],
+  "metadata": {
+    "release": "0.17.0",
+    "scope": "deterministic minimum-degree ordering, symbolic fill prediction, exact permuted sparse LDLT on 2D P1 FEM matrix"
+  },
+  "name": "CACE v0.17 Fill-Reducing Sparse Verification",
+  "nodes": [
+    {
+      "id": "bench",
+      "module_id": "fem17.ordering_benchmark",
+      "params": {
+        "nx": 14,
+        "ny": 14
+      },
+      "position": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "summary",
+      "module_id": "fem17.summary",
+      "params": {},
+      "position": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "schema_version": 1
+}

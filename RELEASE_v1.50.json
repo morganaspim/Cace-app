@@ -1,0 +1,9 @@
+{
+  "json_format": {
+    "indent": 2,
+    "trailing_blank_lines": 2
+  },
+  "latest_capability": "quality_v150",
+  "release": "1.50"
+}
+

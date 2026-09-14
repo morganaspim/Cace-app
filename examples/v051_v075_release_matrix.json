@@ -1,0 +1,127 @@
+[
+  {
+    "release": "0.51",
+    "capability": "Canonical provenance DAG root",
+    "new_test": "tests/test_fem_v051.py"
+  },
+  {
+    "release": "0.52",
+    "capability": "Deterministic RNG substreams",
+    "new_test": "tests/test_fem_v052.py"
+  },
+  {
+    "release": "0.53",
+    "capability": "Outward-rounded dot-product enclosure",
+    "new_test": "tests/test_fem_v053.py"
+  },
+  {
+    "release": "0.54",
+    "capability": "Exact rational residual witness",
+    "new_test": "tests/test_fem_v054.py"
+  },
+  {
+    "release": "0.55",
+    "capability": "Evidence-gated stopping/refusal policy",
+    "new_test": "tests/test_fem_v055.py"
+  },
+  {
+    "release": "0.56",
+    "capability": "Experiment schema migration",
+    "new_test": "tests/test_fem_v056.py"
+  },
+  {
+    "release": "0.57",
+    "capability": "Semantic experiment graph diff",
+    "new_test": "tests/test_fem_v057.py"
+  },
+  {
+    "release": "0.58",
+    "capability": "Content-addressed cache integrity",
+    "new_test": "tests/test_fem_v058.py"
+  },
+  {
+    "release": "0.59",
+    "capability": "Sensitivity audit",
+    "new_test": "tests/test_fem_v059.py"
+  },
+  {
+    "release": "0.60",
+    "capability": "Finite-grid monotonicity audit",
+    "new_test": "tests/test_fem_v060.py"
+  },
+  {
+    "release": "0.61",
+    "capability": "Independent-method consensus diagnostic",
+    "new_test": "tests/test_fem_v061.py"
+  },
+  {
+    "release": "0.62",
+    "capability": "Composable uncertainty budget",
+    "new_test": "tests/test_fem_v062.py"
+  },
+  {
+    "release": "0.63",
+    "capability": "Sparse permutation roundtrip invariant",
+    "new_test": "tests/test_fem_v063.py"
+  },
+  {
+    "release": "0.64",
+    "capability": "Known-solution residual witness",
+    "new_test": "tests/test_fem_v064.py"
+  },
+  {
+    "release": "0.65",
+    "capability": "Checkpoint/resume equivalence",
+    "new_test": "tests/test_fem_v065.py"
+  },
+  {
+    "release": "0.66",
+    "capability": "Parallel schedule determinism",
+    "new_test": "tests/test_fem_v066.py"
+  },
+  {
+    "release": "0.67",
+    "capability": "Injected-fault localization",
+    "new_test": "tests/test_fem_v067.py"
+  },
+  {
+    "release": "0.68",
+    "capability": "Certificate dependency graph",
+    "new_test": "tests/test_fem_v068.py"
+  },
+  {
+    "release": "0.69",
+    "capability": "Scope-aware evidence lattice",
+    "new_test": "tests/test_fem_v069.py"
+  },
+  {
+    "release": "0.70",
+    "capability": "Normalized benchmark record",
+    "new_test": "tests/test_fem_v070.py"
+  },
+  {
+    "release": "0.71",
+    "capability": "Memory-budget admission/refusal",
+    "new_test": "tests/test_fem_v071.py"
+  },
+  {
+    "release": "0.72",
+    "capability": "Audited solver fallback chain",
+    "new_test": "tests/test_fem_v072.py"
+  },
+  {
+    "release": "0.73",
+    "capability": "Reproducibility capsule",
+    "new_test": "tests/test_fem_v073.py"
+  },
+  {
+    "release": "0.74",
+    "capability": "Cross-layer qualification matrix",
+    "new_test": "tests/test_fem_v074.py"
+  },
+  {
+    "release": "0.75",
+    "capability": "Cumulative verified-research milestone",
+    "new_test": "tests/test_fem_v075.py"
+  }
+]

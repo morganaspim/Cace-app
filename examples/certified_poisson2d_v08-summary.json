@@ -1,0 +1,68 @@
+{
+  "source_norm": {
+    "domain": "reference_triangle",
+    "source": [
+      1.0,
+      0.5,
+      -0.25
+    ],
+    "l2_norm_interval": [
+      0.7739239842086124,
+      0.7739239842086137
+    ],
+    "certified": true
+  },
+  "stability": {
+    "theorem_id": "poisson2d-reference-triangle-energy-stability-v0.8",
+    "certified": true,
+    "domain": "reference_triangle",
+    "poincare_upper": 0.3183098861837908,
+    "diffusion_coercivity_lower": 0.4999999999999997,
+    "source_l2_upper": 0.7739239842086137,
+    "continuum_solution_energy_upper": 0.34838819522416503,
+    "derivation": "||u||_A^2=(f,u)<=||f|| Cp ||grad u||<=Cp||f||/sqrt(alpha) ||u||_A"
+  },
+  "computed_energy": {
+    "energy_squared_interval": [
+      0.005433384773662515,
+      0.0054333847736625866
+    ],
+    "energy_interval": [
+      0.07371149688930834,
+      0.07371149688930885
+    ],
+    "certified": true
+  },
+  "solution_free_error": {
+    "certified": true,
+    "theorem_id": "energy-triangle-bound-v0.8",
+    "energy_error_interval": [
+      0.0,
+      0.4220996921134739
+    ],
+    "continuum_solution_energy_upper": 0.34838819522416503,
+    "computed_energy_upper": 0.07371149688930885,
+    "requires_exact_solution": false,
+    "formal_evidence": false
+  },
+  "visualization": {
+    "path": "examples/v08_fem_solution.png",
+    "format": "png",
+    "vertices": 4,
+    "elements": 3,
+    "value_min": 0.0,
+    "value_max": 0.03009259259259259,
+    "bytes": 90200
+  },
+  "solution": {
+    "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.03009259259259259
+    ],
+    "interior": [
+      0.03009259259259259
+    ]
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T23:52:08.172542+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "flux130.prager_synge_bound",
+      "module_version": "1.30.0",
+      "node_id": "bound",
+      "output_hash": "1466c36c2c6c2cc66aad07368637f8ea9ff22dbca70d9bafda22f9affef6cff0",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "6c82352a-5b10-451e-a7a0-27a0055cb331",
+      "verification_hashes": [
+        "cc16f14c8f0e31b047dfe26559aa7ec0c42094d2969b747f305623e067e79913"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "CACE v1.30 Guaranteed Equilibrated Flux",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "7a21b068d3e5835b2fe140a7bc16de1da413ad223c383a26fa9f93707061541b",
+    "evidence_generated": [
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "8acc265db06e3696a26134af18f89cdf0906cb846523d28bb5ec0734e54e7f17"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "6c82352a-5b10-451e-a7a0-27a0055cb331",
+    "verification_records": 1
+  },
+  "outputs": {
+    "bound": {
+      "result": {
+        "admissibility": {
+          "div_sigma_equals_f": true,
+          "exact_cell_equilibrium": true,
+          "hdiv_normal_continuity": true
+        },
+        "bound_statement": "||grad(u-u_h)||_L2 <= ||sigma_h + grad(u_h)||_L2",
+        "cell_mismatch_squared_exact": [
+          "1/288",
+          "1/288",
+          "1/288",
+          "1/288"
+        ],
+        "fem": {
+          "K": "4",
+          "rhs": "1/3",
+          "u_center": "1/12"
+        },
+        "flux_space": "global RT0 with canonical shared edge DOFs",
+        "guaranteed": true,
+        "guaranteed_energy_error_upper_float": 0.11785113019775793,
+        "machine_formal": false,
+        "mismatch_norm_squared_exact": "1/72",
+        "pass": true,
+        "problem": "-Delta u = 1 on unit square, homogeneous Dirichlet, conforming P1",
+        "scope": "reviewed Prager-Synge theorem + exact admissibility/mismatch integration on this fixture",
+        "theorem_status": "reviewed-assumed"
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "6c82352a-5b10-451e-a7a0-27a0055cb331",
+  "verification": {
+    "bound": [
+      {
+        "claim": "CACE equilibrated-flux step: Prager-Synge Guaranteed Bound.",
+        "kind": "symbolic",
+        "method": "Prager-Synge Guaranteed Bound",
+        "metrics": {
+          "admissibility": {
+            "div_sigma_equals_f": true,
+            "exact_cell_equilibrium": true,
+            "hdiv_normal_continuity": true
+          },
+          "bound_statement": "||grad(u-u_h)||_L2 <= ||sigma_h + grad(u_h)||_L2",
+          "cell_mismatch_squared_exact": [
+            "1/288",
+            "1/288",
+            "1/288",
+            "1/288"
+          ],
+          "fem": {
+            "K": "4",
+            "rhs": "1/3",
+            "u_center": "1/12"
+          },
+          "flux_space": "global RT0 with canonical shared edge DOFs",
+          "guaranteed": true,
+          "guaranteed_energy_error_upper_float": 0.11785113019775793,
+          "machine_formal": false,
+          "mismatch_norm_squared_exact": "1/72",
+          "pass": true,
+          "problem": "-Delta u = 1 on unit square, homogeneous Dirichlet, conforming P1",
+          "scope": "reviewed Prager-Synge theorem + exact admissibility/mismatch integration on this fixture",
+          "theorem_status": "reviewed-assumed"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "flux130.prager_synge_bound"
+      }
+    ]
+  }
+}
+

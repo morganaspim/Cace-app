@@ -1,0 +1,663 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.525329+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "bc2432d694f5e33858f7d1a2bd7be99cee3866fe7395c9e581653fbe668ff78b",
+      "parameter_hash": "6ac0030ae41147dbb42d03e67c89041b2719645418064ba757a3cb2ea7c97a24",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "f8342b83e8a4326e2fef48de86d261acbb349dd03f00716e669f57a94661ef21"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.525988+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "bc2432d694f5e33858f7d1a2bd7be99cee3866fe7395c9e581653fbe668ff78b",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "238dd85c853cf8aac8bbea316d71395964a6e12ed4bf1534d5f92af60796fa6e",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "4804bd8043dc4b007b233a16502890d889033b7ac179c56d682c53caccd84326"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.526975+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "dbe69e56b809b6d8e75583bd834993c94c390ed4d2c239f748c0259d47a832cc",
+      "module_id": "fem_cert.poisson_assemble",
+      "module_version": "0.4.0",
+      "node_id": "assemble",
+      "output_hash": "45ac05dbd97f9d0666ef1174efa1784d09e8342dbc4ca2cdb5d83297615190b4",
+      "parameter_hash": "b010f8d7ff318ec6a03f69d33dbce8bad01f77fc605ee0490db6fb79fe25a6f6",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "ab0ffe7d04637bac96ae659dcf47eaef36446624ced77e46f6a934d2e7c19923"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.527202+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "910ed72e714f7b46819c07d74b19580faf9960765b7c2494b6c2691b69de1da4",
+      "module_id": "fem_nd.linear_solve",
+      "module_version": "0.3.0",
+      "node_id": "solve",
+      "output_hash": "6f5fe430d6ad04f7afb92dc12ae987b85b57bfd0ac4f58ae72e44116ea634602",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "3be9bfbd534f261967045fdf6713a4016541fbf617c1f81f8c4edcd60394f5b3"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.527510+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "6bed5c41c425ac4930dc3698e570a528dca5aec9ff2628240ab64a35cc0d8e86",
+      "module_id": "fem10.verified_sparse_solve",
+      "module_version": "0.10.0",
+      "node_id": "enclose",
+      "output_hash": "b48ed17d45f714394c4b022e4d32f6c6ee160d6313e3055db2e7f30b71af97d5",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "7605b9f4a70e80bda8674cc6ca1f3e9bd4948df88454a6aac26d2bce3db15b89"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.527700+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "5b3a323e4d8cd84a39393cdc57f93c04f668e32632ea705d772374e867d78d45",
+      "module_id": "fem10.enclosure_diagnostics",
+      "module_version": "0.10.0",
+      "node_id": "diag",
+      "output_hash": "8716cfdc5a26ce4fc5e4dbd5d716b0bd177c4aa480dbe11af46bc29670a23f85",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "4c72fc48d9bed762a099be5eaec7e72ac438087d7569c679dbf88661aff6414e"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:20:19.859079+00:00",
+      "evidence": [
+        "experimental"
+      ],
+      "input_hash": "5b3a323e4d8cd84a39393cdc57f93c04f668e32632ea705d772374e867d78d45",
+      "module_id": "viz10.solution_enclosure",
+      "module_version": "0.10.0",
+      "node_id": "plot",
+      "output_hash": "807043b056b8e31469224c2b15a0a1067d66cfd78b1d11902a96a721bdfd2ec5",
+      "parameter_hash": "31b941d3654a4662ca848ca1c26a89f4178b6134576a20d785b3827596e654ab",
+      "requested_device": "cpu",
+      "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+      "verification_hashes": [
+        "efcc5764d0c50a1e8cb98d0eda5746fab3e27fcee469eeff989628c3a268dc78"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.10 verified discrete solution enclosure",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "39cb860be3729d2755ee01603bc992d19e0e634e1cecf6e591d04c97c7ee0e9a",
+    "evidence_generated": [
+      "experimental",
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "bccf3248265b32bce57fcf4f21150a4abd3eeafbb76678afd7ef757c31c861a6",
+      "7b2717be4177d39b91f944c1d6e8e02147b7cadc47fbd3e730da10d166560694",
+      "de123db222a734a1dced09a63559ff8a6251f67b1a8e939c5337c1a63c112d26",
+      "0d675be369da5d3f3eaba562a502c3b92d5fcb7ba37464213979d244639d98bf",
+      "1b9dce3ed74f45a9561eb066d9cafe555bd98ac8cdd29ae0f7d0c2e1e2bc6bd1",
+      "09a2c39bb5a2642751284310e73ec2567a4ab54afce024a0ee243512917d6320",
+      "0f1f762bc31ed6beab9bd9a35f2b568b897a7eba60104854b8243419746a753d"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+    "verification_records": 7
+  },
+  "outputs": {
+    "assemble": {
+      "problem": {
+        "cell_coercivity_lower": 0.9807417596432748,
+        "diffusion": [
+          [
+            1.5,
+            0.1
+          ],
+          [
+            0.1,
+            1.0
+          ]
+        ],
+        "dimension": 2,
+        "source_constant": 1.0,
+        "source_linear": [
+          0.25,
+          -0.1
+        ]
+      },
+      "system": {
+        "boundary_dofs": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "full_dofs": 5,
+        "interior_dofs": [
+          4
+        ],
+        "matrix": {
+          "data": [
+            5.5
+          ],
+          "indices": [
+            0
+          ],
+          "indptr": [
+            0,
+            1
+          ],
+          "shape": [
+            1,
+            1
+          ]
+        },
+        "problem_class": "elliptic-p1-spd-affine-source",
+        "rhs": [
+          0.8
+        ]
+      }
+    },
+    "diag": {
+      "diagnostics": {
+        "certified": true,
+        "computed_solution_contained": true,
+        "dofs": 1,
+        "max_width": 1.6653345369377348e-16,
+        "mean_width": 1.6653345369377348e-16,
+        "q_upper": 4.44089209850063e-16,
+        "radius": 6.055761952500906e-17
+      }
+    },
+    "enclose": {
+      "solution_enclosure": {
+        "certified": true,
+        "correction_inf_upper": 6.055761952500858e-17,
+        "krawczyk_correction_intervals": [
+          [
+            -6.055761952500861e-17,
+            2.0185873175002887e-17
+          ]
+        ],
+        "krawczyk_inclusion": true,
+        "method": "preconditioned-contraction-krawczyk-box",
+        "preconditioner": "binary64 inverse candidate; correctness comes only from interval contraction test",
+        "q_upper": 4.44089209850063e-16,
+        "radius": 6.055761952500906e-17,
+        "residual_intervals": [
+          [
+            -3.33066907387547e-16,
+            1.1102230246251568e-16
+          ]
+        ],
+        "scope": "exact solution of stored binary64 discrete linear system",
+        "solution_intervals": [
+          [
+            0.1454545454545454,
+            0.14545454545454556
+          ]
+        ]
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            0,
+            4
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            2.0,
+            0.0
+          ],
+          [
+            2.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            1.0,
+            0.5
+          ]
+        ]
+      }
+    },
+    "plot": {
+      "visualization": {
+        "bytes": 31265,
+        "dofs": 1,
+        "format": "png",
+        "path": "examples/v10_solution_enclosure.png",
+        "radius": 6.055761952500906e-17
+      }
+    },
+    "solve": {
+      "solution": {
+        "interior": [
+          0.14545454545454548
+        ],
+        "values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.14545454545454548
+        ]
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 2,
+        "dofs": 5,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.0
+              ]
+            ],
+            "diameter": 2.0,
+            "element": [
+              0,
+              1,
+              4
+            ],
+            "gradients": [
+              [
+                -0.5,
+                -1.0
+              ],
+              [
+                0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0
+              ]
+            ],
+            "volume": 0.5
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                0.5,
+                -1.0
+              ],
+              [
+                -1.0,
+                0.5,
+                1.0
+              ],
+              [
+                2.0,
+                -1.0,
+                0.0
+              ]
+            ],
+            "diameter": 1.118033988749895,
+            "element": [
+              1,
+              2,
+              4
+            ],
+            "gradients": [
+              [
+                0.5,
+                -1.0
+              ],
+              [
+                0.5,
+                1.0
+              ],
+              [
+                -1.0,
+                0.0
+              ]
+            ],
+            "volume": 0.5
+          },
+          {
+            "coefficients": [
+              [
+                -1.0,
+                0.5,
+                1.0
+              ],
+              [
+                0.0,
+                -0.5,
+                1.0
+              ],
+              [
+                2.0,
+                -0.0,
+                -2.0
+              ]
+            ],
+            "diameter": 2.0,
+            "element": [
+              2,
+              3,
+              4
+            ],
+            "gradients": [
+              [
+                0.5,
+                1.0
+              ],
+              [
+                -0.5,
+                1.0
+              ],
+              [
+                -0.0,
+                -2.0
+              ]
+            ],
+            "volume": 0.5
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                -0.5,
+                1.0
+              ],
+              [
+                1.0,
+                -0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                1.0,
+                -0.0
+              ]
+            ],
+            "diameter": 1.118033988749895,
+            "element": [
+              3,
+              0,
+              4
+            ],
+            "gradients": [
+              [
+                -0.5,
+                1.0
+              ],
+              [
+                -0.5,
+                -1.0
+              ],
+              [
+                1.0,
+                -0.0
+              ]
+            ],
+            "volume": 0.5
+          }
+        ]
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+  "verification": {
+    "assemble": [
+      {
+        "claim": "discrete reduced operator is symmetric positive definite and every supplied diffusion tensor is SPD",
+        "kind": "numerical",
+        "method": "independent symmetry/eigenvalue checks plus elementwise diffusion spectra",
+        "metrics": {
+          "diffusion_coercivity_lower": 0.9807417596432748,
+          "matrix_min_eigenvalue": 5.5,
+          "matrix_symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cert-poisson-class-assumptions"
+      }
+    ],
+    "diag": [
+      {
+        "claim": "reported interval box contains the computed coefficient vector and has finite nonnegative width",
+        "kind": "interval-certified",
+        "method": "interval-box invariant checks",
+        "metrics": {
+          "certified": true,
+          "computed_solution_contained": true,
+          "dofs": 1,
+          "max_width": 1.6653345369377348e-16,
+          "mean_width": 1.6653345369377348e-16,
+          "q_upper": 4.44089209850063e-16,
+          "radius": 6.055761952500906e-17
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "solution-enclosure-diagnostics"
+      }
+    ],
+    "enclose": [
+      {
+        "claim": "the exact solution of the stored discrete linear system lies in the reported coefficient box",
+        "kind": "interval-certified",
+        "method": "interval preconditioned fixed-point/Krawczyk inclusion with certified ||I-RA||_inf < 1",
+        "metrics": {
+          "certified": true,
+          "correction_inf_upper": 6.055761952500858e-17,
+          "krawczyk_correction_intervals": [
+            [
+              -6.055761952500861e-17,
+              2.0185873175002887e-17
+            ]
+          ],
+          "krawczyk_inclusion": true,
+          "method": "preconditioned-contraction-krawczyk-box",
+          "preconditioner": "binary64 inverse candidate; correctness comes only from interval contraction test",
+          "q_upper": 4.44089209850063e-16,
+          "radius": 6.055761952500906e-17,
+          "residual_intervals": [
+            [
+              -3.33066907387547e-16,
+              1.1102230246251568e-16
+            ]
+          ],
+          "scope": "exact solution of stored binary64 discrete linear system",
+          "solution_intervals": [
+            [
+              0.1454545454545454,
+              0.14545454545454556
+            ]
+          ]
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "verified-discrete-solution-enclosure"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 4,
+          "dimension": 2,
+          "elements": 4,
+          "min_volume": 0.5,
+          "vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "plot": [
+      {
+        "claim": "PNG was rendered from the verified coefficient enclosure and computed solution",
+        "kind": "experimental",
+        "method": "headless Matplotlib render plus PNG signature",
+        "metrics": {
+          "bytes": 31265,
+          "dofs": 1,
+          "format": "png",
+          "path": "examples/v10_solution_enclosure.png",
+          "radius": 6.055761952500906e-17
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "v10-enclosure-plot-smoke"
+      }
+    ],
+    "solve": [
+      {
+        "claim": "independently recomputed reduced-system residual is small",
+        "kind": "numerical",
+        "method": "host-side CSR reconstruction and residual",
+        "metrics": {
+          "residual_inf": 1.1102230246251565e-16
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "linear-solve-residual-nd"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ]
+  }
+}

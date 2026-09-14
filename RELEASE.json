@@ -1,0 +1,13 @@
+{
+  "version": "0.76.0",
+  "base": "0.75.0",
+  "cumulative": true,
+  "capability": "Reliability Theorem Discovery Engine",
+  "compileall": "pass",
+  "tests_collected_cumulative": 191,
+  "qualification": {
+    "monolithic": "watchdog-limited after ~87% with no observed failures",
+    "partitioned": "191/191 pass across 4 clean-exit partitions"
+  },
+  "formal_promotion": false
+}

@@ -1,0 +1,144 @@
+{
+  "adaptive_equivalence": {
+    "all_match": true,
+    "iterations": [
+      {
+        "iteration": 0,
+        "match": true,
+        "native": [
+          0,
+          1
+        ],
+        "reference": [
+          0,
+          1
+        ],
+        "stored": [
+          0,
+          1
+        ]
+      },
+      {
+        "iteration": 1,
+        "match": true,
+        "native": [
+          8,
+          9,
+          10
+        ],
+        "reference": [
+          8,
+          9,
+          10
+        ],
+        "stored": [
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "iteration": 2,
+        "match": true,
+        "native": [
+          2,
+          3,
+          4,
+          5,
+          10,
+          16,
+          19,
+          20,
+          24
+        ],
+        "reference": [
+          2,
+          3,
+          4,
+          5,
+          10,
+          16,
+          19,
+          20,
+          24
+        ],
+        "stored": [
+          2,
+          3,
+          4,
+          5,
+          10,
+          16,
+          19,
+          20,
+          24
+        ]
+      }
+    ],
+    "native_version": "0.12.0",
+    "ran": true,
+    "theta": 0.5
+  },
+  "backend_status": {
+    "cupy_version": "",
+    "gpu_available": false,
+    "gpu_backend": "unavailable",
+    "gpu_reason": "No module named 'cupy'",
+    "native_available": true,
+    "native_backend": "cpp20-cabi",
+    "native_path": "/mnt/data/v012work/cace-studio-vre-v0.11/cace_studio/native/libcace_runtime_capi.so",
+    "native_reason": "",
+    "native_version": "0.12.0"
+  },
+  "gpu_equivalence": {
+    "backend": "cupy-cuda",
+    "ran": false,
+    "reason": "No module named 'cupy'"
+  },
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "b517c3aa3d794848c2e05aed30e573a324248fb476fdb71c9e5a5f6cee4de970",
+    "evidence_generated": [
+      "experimental",
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "1865393f460a96249a1900859413aa2d0a830c86d35203ad0aa88b81478ce578",
+      "3c3aa35d5ccd77bc7718f7acb016358b68f152d0f82e2b61741a50a22d35906a",
+      "5898f2b7336f1d912b7653783826b466c05cf20591e5bedf1642f681ee0354fc",
+      "9c84c2e5ee85c34b7afd5f99ab1c01cff7a48cacaef4588bd6db92e86907069e",
+      "1385769b393aab77e15326cf22697096403beb4316f210eddf7182e9e9463321",
+      "7886caaf117013826126db8106448345d003dcf699009a6e4d0a445d965f0583",
+      "7c46aafb1bb6a0169e382231b861f342a8951af4f0e5d6cabf36ceb1799fbf87",
+      "08569c6326447a7bcbc5475a99b44d9fe17e4365fe82c7a1170ab7e57c8d71a3",
+      "19f2b858fffdf32bdfc57832dbf83b81da6c49fd68d8e88894022bdaa1c10233",
+      "d2e525cdc03d4768b3b4f77a3780f3b5a6d0e2cd2a2044344c6aa89b681debca"
+    ],
+    "not_run_verifiers": 1,
+    "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+    "verification_records": 10
+  },
+  "sparse_equivalence": {
+    "atol": 1e-13,
+    "matvec_max_abs_diff": 0.0,
+    "native_residual_inf": 0.0,
+    "native_version": "0.12.0",
+    "nnz": 1,
+    "python_residual_inf": 0.0,
+    "ran": true,
+    "residual_abs_diff": 0.0,
+    "rows": 1
+  },
+  "summary": {
+    "all_available_backends_agree": true,
+    "note": "not-run backends contribute no equivalence evidence",
+    "states": {
+      "adaptive": "pass",
+      "gpu": "not-run",
+      "sparse": "pass"
+    }
+  }
+}

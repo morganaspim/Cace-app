@@ -1,0 +1,51 @@
+{
+  "all_verifiers_passed": true,
+  "factorization": {
+    "certified": true,
+    "dense_materialization": false,
+    "dimension": 9,
+    "exact_reconstruction": true,
+    "factor_nnz": 17,
+    "fill_entries": 0,
+    "input_nnz": 25,
+    "method": "sparse-exact-rational-ldlt",
+    "min_pivot_exact": "6499984444580580073122481423405696650708155684363140838320486966245454178756387/655601879324075618754126623745298663990433969803526159027295315312100000137216",
+    "min_pivot_lower": 9.914529914529917,
+    "scope": "exact rational interpretation of stored binary64 reduced CSR matrix"
+  },
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "5518d43ca2b0c410414a2f31b64365c639a33bd8c4059234ccd3813c967da3ec",
+    "evidence_generated": [
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "c90cfa0d0788b7795a9ce2d0bdbabca0a3940a924ef7a5e2e01a4b7ef7767be7",
+      "2f4a690366b55a38bc13d8d70efda9d434f20dbf29a42603732ecaf079f7de2d",
+      "203f227199d770ff6e2317bf0a1465ec575643da4c7e806bc719e426a983e843"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "08642924-0412-495c-8ba5-3808ba5c7545",
+    "verification_records": 3
+  },
+  "native_equivalence": {
+    "max_abs_value_diff": 0.0,
+    "native_nnz": 25,
+    "native_version": "0.16.0",
+    "python_nnz": 25,
+    "ran": true,
+    "same_shape": true,
+    "same_structure": true
+  },
+  "release": "0.16.0",
+  "summary": {
+    "continuum_pde_formally_verified": false,
+    "dense_materialization": false,
+    "factor_nnz": 17,
+    "input_nnz": 25,
+    "native_assembly_equivalent": true,
+    "sparse_factorization_certified": true
+  }
+}

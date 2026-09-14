@@ -1,0 +1,12 @@
+-- CACE VRE v0.9 formal obligation (NOT machine checked)
+-- Target: mesh-uniform reliability of the conforming P1 residual/jump estimator.
+-- Assumptions to formalize:
+-- * bounded polygonal domain with homogeneous Dirichlet trace
+-- * conforming, shape-regular triangular mesh family
+-- * constant symmetric uniformly elliptic diffusion tensor
+-- * affine (later L2) forcing
+-- * interpolation and trace inequalities with explicit constants
+-- Goal:
+--   ||u - u_h||_A <= C_rel * eta
+-- with C_rel independent of mesh size h and computable from theorem assumptions.
+-- v0.9 does NOT claim this theorem is proved.

@@ -1,0 +1,208 @@
+from __future__ import annotations
+import math, json
+from fractions import Fraction
+from collections import defaultdict
+from cace_studio.core.module import Module, ValidationError
+from cace_studio.core.types import ModuleMetadata,PortSpec,ParameterSpec,ProofStatus,Maturity,EvidenceKind
+from cace_studio.core.verification import VerificationRecord,VerificationState
+from cace_studio.modules.fem_v016 import _csr_entries
+from cace_studio.core.native_runtime import NativeRuntime
+
+
+def symmetric_adjacency(csr):
+    rows=_csr_entries(csr); n=len(rows); adj=[set() for _ in range(n)]
+    for i,row in enumerate(rows):
+        for j,v in row.items():
+            if i!=j and v!=0.0:
+                adj[i].add(j); adj[j].add(i)
+    return adj
+
+
+def symbolic_elimination(csr, order=None):
+    """Symbolic symmetric elimination with deterministic fill accounting."""
+    adj=symmetric_adjacency(csr); n=len(adj)
+    if order is None: order=list(range(n))
+    if sorted(order)!=list(range(n)): raise ValidationError('ordering must be a permutation')
+    work=[set(x) for x in adj]; active=set(range(n)); fill=0; factor_nnz=n; fronts=[]
+    for v in order:
+        nbr=sorted(work[v] & active)
+        factor_nnz += len(nbr)
+        fronts.append(len(nbr)+1)
+        for a_pos,a in enumerate(nbr):
+            for b in nbr[a_pos+1:]:
+                if b not in work[a]:
+                    work[a].add(b); work[b].add(a); fill+=1
+        active.remove(v)
+    return {'fill_edges':fill,'factor_nnz':factor_nnz,'max_front':max(fronts,default=0),'front_sizes':fronts}
+
+
+def minimum_degree_ordering(csr):
+    """Deterministic exact-current-degree heuristic; not claimed to be AMD."""
+    adj=symmetric_adjacency(csr); n=len(adj); work=[set(x) for x in adj]; active=set(range(n)); order=[]
+    while active:
+        v=min(active,key=lambda i:(len(work[i]&active),i))
+        nbr=sorted(work[v]&active)
+        for a_pos,a in enumerate(nbr):
+            for b in nbr[a_pos+1:]:
+                work[a].add(b); work[b].add(a)
+        active.remove(v); order.append(v)
+    return order
+
+
+def permute_csr(csr, order):
+    rows=_csr_entries(csr); n=len(rows)
+    if sorted(order)!=list(range(n)): raise ValidationError('ordering must be a permutation')
+    inv=[0]*n
+    for new,old in enumerate(order): inv[old]=new
+    prows=[{} for _ in range(n)]
+    for old_i,row in enumerate(rows):
+        ni=inv[old_i]
+        for old_j,v in row.items(): prows[ni][inv[old_j]]=prows[ni].get(inv[old_j],0.0)+v
+    data=[]; indices=[]; indptr=[0]
+    for r in prows:
+        for j in sorted(r):
+            if r[j]!=0.0: indices.append(j); data.append(r[j])
+        indptr.append(len(data))
+    return {'shape':[n,n],'data':data,'indices':indices,'indptr':indptr}
+
+
+def _symbolic_lower_pattern(csr):
+    """Return lower-factor column pattern for natural elimination of csr."""
+    adj=symmetric_adjacency(csr); n=len(adj); work=[set(x) for x in adj]; active=set(range(n)); lower=[set() for _ in range(n)]; fill=0
+    for i in range(n):
+        nbr=sorted(j for j in (work[i] & active) if j>i)
+        for j in nbr: lower[j].add(i)
+        for a_pos,a in enumerate(nbr):
+            for b in nbr[a_pos+1:]:
+                if b not in work[a]:
+                    work[a].add(b);work[b].add(a);fill+=1
+        active.remove(i)
+    return lower,fill
+
+
+def sparse_exact_ldlt(csr, order=None, include_pattern=False):
+    """Exact-rational sparse LDL^T of stored binary64 values under a permutation."""
+    n=int(csr['shape'][0]); order=list(range(n)) if order is None else list(order)
+    P=permute_csr(csr,order); Af=_csr_entries(P)
+    A=[{j:Fraction.from_float(float(v)) for j,v in row.items()} for row in Af]
+    for i in range(n):
+        for j,a in A[i].items():
+            if A[j].get(i,Fraction(0))!=a:
+                return {'certified':False,'reason':'stored permuted CSR is not exactly symmetric'}
+    pattern,fill=_symbolic_lower_pattern(P)
+    L=[{} for _ in range(n)]; D=[None]*n
+    for i in range(n):
+        acc=sum((L[i][k]*L[i][k]*D[k] for k in pattern[i]),Fraction(0))
+        piv=A[i].get(i,Fraction(0))-acc
+        if piv<=0: return {'certified':False,'reason':'nonpositive exact LDL pivot','pivot_index':i,'pivot_exact':str(piv)}
+        D[i]=piv
+        # all later rows whose symbolic factor pattern contains column i
+        for j in range(i+1,n):
+            if i not in pattern[j]: continue
+            common=pattern[j].intersection(pattern[i])
+            acc2=sum((L[j][k]*L[i][k]*D[k] for k in common),Fraction(0))
+            lij=(A[j].get(i,Fraction(0))-acc2)/D[i]
+            if lij==0:
+                return {'certified':False,'reason':'symbolic factor predicted an exact zero entry','i':i,'j':j}
+            L[j][i]=lij
+    pairs=set()
+    for i,row in enumerate(A):
+        for j in row: pairs.add((min(i,j),max(i,j)))
+    for i,row in enumerate(pattern):
+        for j in row: pairs.add((j,i))
+    # also verify all entries generated by factor supports
+    col_rows=defaultdict(list)
+    for i,row in enumerate(L):
+        for k in row: col_rows[k].append(i)
+    for k in range(n):
+        support=[k]+col_rows[k]
+        for a_pos,i in enumerate(support):
+            for j in support[a_pos:]: pairs.add((min(i,j),max(i,j)))
+    for i,j in pairs:
+        val=Fraction(0)
+        for k in range(min(i,j)+1):
+            lik=Fraction(1) if i==k else L[i].get(k,Fraction(0)); ljk=Fraction(1) if j==k else L[j].get(k,Fraction(0))
+            if lik and ljk: val += lik*D[k]*ljk
+        a=A[i].get(j,A[j].get(i,Fraction(0)))
+        if val!=a: return {'certified':False,'reason':'exact sparse LDL reconstruction mismatch','i':i,'j':j}
+    out={'certified':True,'method':'permuted-sparse-exact-rational-ldlt','dimension':n,'ordering':order,
+         'input_nnz':sum(len(r) for r in A),'factor_nnz':n+sum(len(r) for r in pattern),'fill_entries':fill,
+         'min_pivot_exact':str(min(D,default=Fraction(1))),'min_pivot_lower':float(min(D,default=Fraction(1))),
+         'dense_materialization':False,'exact_reconstruction':True}
+    if include_pattern: out['factor_pattern']=[[i,j] for i,row in enumerate(pattern) for j in sorted(row)]
+    return out
+
+def structured_square_p1_csr(nx=10,ny=10):
+    """Reduced P1 stiffness CSR on [0,1]^2, two CCW triangles per rectangle."""
+    if nx<2 or ny<2: raise ValidationError('nx, ny must be >= 2')
+    import numpy as np
+    verts=[]
+    for j in range(ny+1):
+        for i in range(nx+1): verts.append((i/nx,j/ny))
+    def vid(i,j): return j*(nx+1)+i
+    tris=[]
+    for j in range(ny):
+        for i in range(nx):
+            a,b,c,d=vid(i,j),vid(i+1,j),vid(i+1,j+1),vid(i,j+1)
+            tris.extend([(a,b,c),(a,c,d)])
+    interior=[vid(i,j) for j in range(1,ny) for i in range(1,nx)]; imap={g:k for k,g in enumerate(interior)}
+    rows=[{} for _ in interior]
+    V=np.asarray(verts,float)
+    for tri in tris:
+        pts=V[list(tri)]; B=np.column_stack((pts[1]-pts[0],pts[2]-pts[0])); det=float(np.linalg.det(B)); area=det/2.0
+        if area<=0: raise RuntimeError('internal orientation error')
+        invBT=np.linalg.inv(B).T; g1=invBT[:,0]; g2=invBT[:,1]; g0=-g1-g2; G=[g0,g1,g2]
+        for a,ga in enumerate(tri):
+            if ga not in imap: continue
+            ri=imap[ga]
+            for b,gb in enumerate(tri):
+                if gb not in imap: continue
+                cj=imap[gb]; val=area*float(np.dot(G[a],G[b])); rows[ri][cj]=rows[ri].get(cj,0.0)+val
+    data=[];indices=[];indptr=[0]
+    for r in rows:
+        for j in sorted(r):
+            if r[j]!=0.0: indices.append(j);data.append(r[j])
+        indptr.append(len(data))
+    return {'shape':[len(rows),len(rows)],'data':data,'indices':indices,'indptr':indptr,'meta':{'nx':nx,'ny':ny,'vertices':len(verts),'triangles':len(tris),'interior_dofs':len(rows)}}
+
+
+def ordering_benchmark(csr):
+    n=int(csr['shape'][0]); natural=list(range(n)); md=minimum_degree_ordering(csr)
+    sn=symbolic_elimination(csr,natural); sm=symbolic_elimination(csr,md)
+    fac=sparse_exact_ldlt(csr,md,include_pattern=True)
+    return {'dimension':n,'input_nnz':len(csr['data']),'ordering':'deterministic-minimum-degree',
+            'natural':sn,'minimum_degree':sm,'fill_reduction':sn['fill_edges']-sm['fill_edges'],
+            'factorization':fac,'ordering_vector':md}
+
+
+class OrderingBenchmarkV17(Module):
+    metadata=ModuleMetadata('fem17.ordering_benchmark','Sparse Ordering + Fill Benchmark','0.17.0','Certified Linear Algebra','Compare natural ordering with a deterministic minimum-degree ordering using symbolic elimination and exact sparse LDLᵀ verification.',Maturity.BETA)
+    parameters=(ParameterSpec('nx','integer',10),ParameterSpec('ny','integer',10)); outputs=(PortSpec('benchmark','ordering_benchmark_v17'),PortSpec('system','linear_system_nd'))
+    proof_status=ProofStatus(evidence={EvidenceKind.SYMBOLIC,EvidenceKind.NUMERICAL},unit_tests=True,documentation=True,limitations=['minimum-degree is deterministic exact-current-degree heuristic, not AMD','exact rational verification targets stored binary64 coefficients'])
+    def execute(self,inputs,params,ctx):
+        nx=int(params['nx']);ny=int(params['ny']); csr=structured_square_p1_csr(nx,ny); b=ordering_benchmark(csr)
+        rt=NativeRuntime(); b['native_factor_stats']={'ran':False,'reason':rt.status.reason}
+        if rt.status.available:
+            try:
+                st=rt.sparse_ldlt_stats(csr,b['ordering_vector']); b['native_factor_stats']={'ran':True,'native_version':rt.status.version,**st}
+            except Exception as e: b['native_factor_stats']={'ran':False,'reason':str(e)}
+        return {'benchmark':b,'system':{'matrix':{k:v for k,v in csr.items() if k!='meta'},'rhs':[0.0]*csr['shape'][0],'interior_dofs':list(range(csr['shape'][0]))}}
+    def verify(self,inputs,params,outputs,ctx):
+        b=outputs['benchmark']; fac=b['factorization']; nat=b.get('native_factor_stats',{}); native_ok=(not nat.get('ran')) or (nat.get('factor_nnz')==fac.get('factor_nnz') and nat.get('fill_edges')==fac.get('fill_entries'))
+        ok=fac.get('certified') and fac.get('exact_reconstruction') and not fac.get('dense_materialization') and b['minimum_degree']['factor_nnz']==fac['factor_nnz'] and native_ok
+        return [VerificationRecord('fill-reduced-sparse-factor-v017',EvidenceKind.SYMBOLIC,'Reordered sparse LDLᵀ exactly reconstructs the stored binary64 matrix and symbolic fill prediction matches the exact factor pattern.',VerificationState.PASS if ok else VerificationState.FAIL,'deterministic minimum-degree symbolic elimination + exact-rational sparse LDLᵀ',{'dimension':b['dimension'],'natural_fill':b['natural']['fill_edges'],'ordered_fill':b['minimum_degree']['fill_edges'],'fill_reduction':b['fill_reduction'],'factor_nnz':fac.get('factor_nnz'),'max_front_natural':b['natural']['max_front'],'max_front_ordered':b['minimum_degree']['max_front']})]
+
+
+class V17Summary(Module):
+    metadata=ModuleMetadata('fem17.summary','v0.17 Sparse Scale Summary','0.17.0','Verification','Audit ordering, symbolic fill prediction, and exact reordered factorization without escalating to continuum proof.',Maturity.BETA)
+    inputs=(PortSpec('benchmark','ordering_benchmark_v17'),);outputs=(PortSpec('summary','v17_summary'),)
+    proof_status=ProofStatus(evidence={EvidenceKind.SYMBOLIC},unit_tests=True,documentation=True)
+    def execute(self,inputs,params,ctx):
+        b=inputs['benchmark'];f=b['factorization'];return {'summary':{'dimension':b['dimension'],'natural_fill':b['natural']['fill_edges'],'ordered_fill':b['minimum_degree']['fill_edges'],'fill_reduction':b['fill_reduction'],'factor_nnz':f.get('factor_nnz'),'exact_reconstruction':f.get('exact_reconstruction',False),'dense_materialization':f.get('dense_materialization',True),'continuum_pde_formally_verified':False}}
+    def verify(self,inputs,params,outputs,ctx):
+        s=outputs['summary'];ok=s['exact_reconstruction'] and not s['dense_materialization'] and not s['continuum_pde_formally_verified']
+        return [VerificationRecord('v017-scope-audit',EvidenceKind.SYMBOLIC,'Sparse ordering/factorization evidence remains scoped to the stored discrete matrix.',VerificationState.PASS if ok else VerificationState.FAIL,'scope audit',s)]
+
+
+def register_fem_v017(registry):
+    for cls in (OrderingBenchmarkV17,V17Summary): registry.register(cls)

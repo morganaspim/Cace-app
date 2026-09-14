@@ -1,0 +1,128 @@
+[
+  {
+    "capability": "Global RT1 Topology",
+    "evidence_kind": "symbolic",
+    "release": "2.01"
+  },
+  {
+    "capability": "Global RT1 Orientation",
+    "evidence_kind": "symbolic",
+    "release": "2.02"
+  },
+  {
+    "capability": "RT1 Affine Source Global Fixture",
+    "evidence_kind": "symbolic",
+    "release": "2.03"
+  },
+  {
+    "capability": "Mixed RT0 Poisson Assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.04"
+  },
+  {
+    "capability": "Mixed RT0 Poisson Solve",
+    "evidence_kind": "symbolic",
+    "release": "2.05"
+  },
+  {
+    "capability": "Nedelec Reference Unisolvence",
+    "evidence_kind": "symbolic",
+    "release": "2.06"
+  },
+  {
+    "capability": "Nedelec Global Orientation",
+    "evidence_kind": "symbolic",
+    "release": "2.07"
+  },
+  {
+    "capability": "Exact LDLT Inertia Fixture",
+    "evidence_kind": "symbolic",
+    "release": "2.08"
+  },
+  {
+    "capability": "Certified Eigenvalue Bisection Fixture",
+    "evidence_kind": "symbolic",
+    "release": "2.09"
+  },
+  {
+    "capability": "Continuum Goal Product Bound",
+    "evidence_kind": "symbolic",
+    "release": "2.10"
+  },
+  {
+    "capability": "Dual Equilibrated Goal Bounds",
+    "evidence_kind": "numerical",
+    "release": "2.11"
+  },
+  {
+    "capability": "Parabolic Equilibrated-Flux Bounds",
+    "evidence_kind": "numerical",
+    "release": "2.12"
+  },
+  {
+    "capability": "Space-Time Adaptive Certification",
+    "evidence_kind": "numerical",
+    "release": "2.13"
+  },
+  {
+    "capability": "hp Adaptivity Decision",
+    "evidence_kind": "numerical",
+    "release": "2.14"
+  },
+  {
+    "capability": "3D Tetrahedral P1 Geometry",
+    "evidence_kind": "symbolic",
+    "release": "2.15"
+  },
+  {
+    "capability": "3D Tetrahedral RT0 Fixture",
+    "evidence_kind": "symbolic",
+    "release": "2.16"
+  },
+  {
+    "capability": "Newton-Kantorovich Nonlinear Fixture",
+    "evidence_kind": "numerical",
+    "release": "2.17"
+  },
+  {
+    "capability": "Stokes Mixed Block Fixture",
+    "evidence_kind": "symbolic",
+    "release": "2.18"
+  },
+  {
+    "capability": "Maxwell Nedelec Mass Fixture",
+    "evidence_kind": "symbolic",
+    "release": "2.19"
+  },
+  {
+    "capability": "Schwarz Contraction Fixture",
+    "evidence_kind": "numerical",
+    "release": "2.20"
+  },
+  {
+    "capability": "Multigrid Two-Grid Fixture",
+    "evidence_kind": "numerical",
+    "release": "2.21"
+  },
+  {
+    "capability": "Anisotropic Metric Quality",
+    "evidence_kind": "numerical",
+    "release": "2.22"
+  },
+  {
+    "capability": "Parametric Interval Propagation",
+    "evidence_kind": "interval-certified",
+    "release": "2.23"
+  },
+  {
+    "capability": "Certified Reduced-Basis Bound",
+    "evidence_kind": "numerical",
+    "release": "2.24"
+  },
+  {
+    "capability": "CACE v2.25 Milestone",
+    "evidence_kind": "symbolic",
+    "release": "2.25"
+  }
+]
+

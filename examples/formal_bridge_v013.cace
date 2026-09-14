@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "v0.13 machine-checked reference-simplex proof bridge",
+  "nodes": [
+    {"id":"proof","module_id":"formal13.reference_simplex_barycentric","params":{"dimension":2},"position":[0,0]},
+    {"id":"bridge","module_id":"formal13.registry_bridge","params":{},"position":[300,0]},
+    {"id":"summary","module_id":"formal13.summary","params":{},"position":[600,0]}
+  ],
+  "edges": [
+    {"source_node":"proof","source_port":"formal_result","target_node":"bridge","target_port":"formal_result"},
+    {"source_node":"proof","source_port":"formal_result","target_node":"summary","target_port":"formal_result"},
+    {"source_node":"bridge","source_port":"theorem","target_node":"summary","target_port":"theorem"}
+  ],
+  "metadata":{"version":"0.13.0","purpose":"first end-to-end machine-checked formal evidence bridge"}
+}

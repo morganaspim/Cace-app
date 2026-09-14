@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "name": "v0.10 verified discrete solution enclosure",
+  "nodes": [
+    {
+      "id": "mesh",
+      "module_id": "fem_nd.mesh",
+      "params": {
+        "vertices": "[[0,0],[2,0],[2,1],[0,1],[1,0.5]]",
+        "elements": "[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]"
+      },
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "space",
+      "module_id": "fem_nd.p1_space",
+      "params": {},
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "id": "assemble",
+      "module_id": "fem_cert.poisson_assemble",
+      "params": {
+        "diffusion": "[[1.5,0.1],[0.1,1.0]]",
+        "source_constant": 1.0,
+        "source_linear": "[0.25,-0.1]"
+      },
+      "position": [
+        450,
+        0
+      ]
+    },
+    {
+      "id": "solve",
+      "module_id": "fem_nd.linear_solve",
+      "params": {},
+      "position": [
+        690,
+        0
+      ]
+    },
+    {
+      "id": "enclose",
+      "module_id": "fem10.verified_sparse_solve",
+      "params": {},
+      "position": [
+        920,
+        0
+      ]
+    },
+    {
+      "id": "diag",
+      "module_id": "fem10.enclosure_diagnostics",
+      "params": {},
+      "position": [
+        1170,
+        -60
+      ]
+    },
+    {
+      "id": "plot",
+      "module_id": "viz10.solution_enclosure",
+      "params": {
+        "output_path": "examples/v10_solution_enclosure.png"
+      },
+      "position": [
+        1170,
+        100
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "space",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "assemble",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "space",
+      "source_port": "space",
+      "target_node": "assemble",
+      "target_port": "space"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "solve",
+      "target_port": "system"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "enclose",
+      "target_port": "system"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "enclose",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "enclose",
+      "source_port": "solution_enclosure",
+      "target_node": "diag",
+      "target_port": "solution_enclosure"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "diag",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "enclose",
+      "source_port": "solution_enclosure",
+      "target_node": "plot",
+      "target_port": "solution_enclosure"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "plot",
+      "target_port": "solution"
+    }
+  ],
+  "metadata": {
+    "release": "0.10.0",
+    "purpose": "verified enclosure of exact stored discrete FEM solution"
+  }
+}

@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Dual equilibrated goal bounds",
+    "rank": 1,
+    "selected": true,
+    "why": "Combine primal and dual guaranteed energy bounds into guaranteed QoI bounds."
+  },
+  {
+    "name": "Parabolic equilibrated-flux bounds",
+    "rank": 2,
+    "selected": true,
+    "why": "Constant-free space-time energy guarantees for heat-type problems."
+  },
+  {
+    "name": "Space-time adaptive certification",
+    "rank": 3,
+    "selected": true,
+    "why": "Joint temporal/spatial marking from certified residual components."
+  },
+  {
+    "name": "hp adaptivity",
+    "rank": 4,
+    "selected": true,
+    "why": "Choose h vs p using smoothness/effectivity diagnostics."
+  },
+  {
+    "name": "3D tetrahedral P1 continuum certification",
+    "rank": 5,
+    "selected": true,
+    "why": "Move the mature 2D continuum chain into tetrahedra."
+  },
+  {
+    "name": "3D RT0/H(div) equilibrated flux",
+    "rank": 6,
+    "selected": true,
+    "why": "Guaranteed 3D energy bounds using tetrahedral H(div) fluxes."
+  },
+  {
+    "name": "Nonlinear elliptic Newton-Kantorovich",
+    "rank": 7,
+    "selected": true,
+    "why": "Verified local existence/uniqueness and nonlinear residual bounds."
+  },
+  {
+    "name": "Production Stokes mixed FEM",
+    "rank": 8,
+    "selected": true,
+    "why": "Velocity-pressure saddle systems with inf-sup-aware checks."
+  },
+  {
+    "name": "Production Maxwell/Nedelec eigenproblem",
+    "rank": 9,
+    "selected": true,
+    "why": "Actual H(curl) basis/assembly and Maxwell spectral checks."
+  },
+  {
+    "name": "Certified domain decomposition",
+    "rank": 10,
+    "selected": true,
+    "why": "Schwarz/BDDC-style stable decomposition and contraction diagnostics."
+  },
+  {
+    "name": "Certified multigrid",
+    "rank": 11,
+    "selected": true,
+    "why": "Smoother + approximation-property audits and hierarchy verification."
+  },
+  {
+    "name": "Anisotropic metric adaptation",
+    "rank": 12,
+    "selected": true,
+    "why": "Metric-tensor mesh quality and directional estimator machinery."
+  },
+  {
+    "name": "Parametric uncertainty propagation",
+    "rank": 13,
+    "selected": true,
+    "why": "Interval/affine parameter enclosures through PDE solves."
+  },
+  {
+    "name": "Certified reduced basis",
+    "rank": 14,
+    "selected": true,
+    "why": "Offline/online surrogate with residual-based rigorous bounds."
+  }
+]
+

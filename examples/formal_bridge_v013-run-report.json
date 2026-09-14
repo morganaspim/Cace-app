@@ -1,0 +1,333 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:50:53.679020+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "formal13.reference_simplex_barycentric",
+      "module_version": "0.13.0",
+      "node_id": "proof",
+      "output_hash": "144a97179e94dfcdcef3eaf79ed7cc703c84b09256afa789f0246fb2dd922a7d",
+      "parameter_hash": "eb441ba74712a18a4b1b63145ab345cf69796a995127dec1b9e8c2cdff20d365",
+      "requested_device": "cpu",
+      "run_id": "234648b7-61eb-44df-a715-94e7987999f4",
+      "verification_hashes": [
+        "74bd4bcdbca1872a04965d28a89e4d9615e0fc65a4c83488e80c421e14fd76cf"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:50:54.266308+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "144a97179e94dfcdcef3eaf79ed7cc703c84b09256afa789f0246fb2dd922a7d",
+      "module_id": "formal13.registry_bridge",
+      "module_version": "0.13.0",
+      "node_id": "bridge",
+      "output_hash": "bd8aa2357518d044412d426714fe3d74f9760af2f6841a09ac32ab2b0b728b26",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "234648b7-61eb-44df-a715-94e7987999f4",
+      "verification_hashes": [
+        "ce760d80a800c32c567726b769ee33c461788f21021a60b8eac850454c0de490"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:50:54.266537+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "f8e111c38840977504d1077f2de0e7671ace3382f918a5129bca26b97a9428a2",
+      "module_id": "formal13.summary",
+      "module_version": "0.13.0",
+      "node_id": "summary",
+      "output_hash": "fa052751005a3ab7bf380c63ea941b33231dae12f895d1d14f183e3a4b694095",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "234648b7-61eb-44df-a715-94e7987999f4",
+      "verification_hashes": [
+        "d3549e6b5503c71312a6cdf631f18b611b00a3f026f9cdeb1becffa308c6725b"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.13 machine-checked reference-simplex proof bridge",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "41803a5788414eb16a22d3b707207b79a8c69b770c1ab34f3c280c3cb2585f40",
+    "evidence_generated": [
+      "formally-verified"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "03d297a8e11ba9e4cba00f3b1e1be09204dc9ef6f9fe83e76d726b5257d43a85",
+      "cbf9b2dc31dcfa8c42c132021aa679edf2e9cbbb6b275995aaed52d2015dd759",
+      "d1b91c2979bbefb110706a5cb4504b8e9bb2b5793ecaa7a8235672b11c591835"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "234648b7-61eb-44df-a715-94e7987999f4",
+    "verification_records": 3
+  },
+  "outputs": {
+    "bridge": {
+      "theorem": {
+        "artifact": "sha256:3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+        "assumptions": [
+          "canonical reference simplex",
+          "dimension=2"
+        ],
+        "attestation_hash": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+        "checker": "cace-exact-affine-kernel 0.13.0",
+        "evidence_kind": "formally-verified",
+        "formal_evidence": true,
+        "promotion_recheck": {
+          "artifact_sha256": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+          "checker": "cace-exact-affine-kernel",
+          "checker_version": "0.13.0",
+          "claims_checked": [
+            "partition-of-unity",
+            "kronecker-nodal-identity"
+          ],
+          "dimension": 2,
+          "errors": [],
+          "expected_checker": "cace-exact-affine-kernel",
+          "expected_checker_version": "0.13.0",
+          "invocation": "subprocess",
+          "nodal_table": [
+            [
+              "1",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "1",
+              "0"
+            ],
+            [
+              "0",
+              "0",
+              "1"
+            ]
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational affine normalization and exact nodal evaluation",
+          "stderr": "",
+          "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+        },
+        "statement": "On the canonical reference d-simplex, the supplied affine P1 barycentric basis sums exactly to 1 and satisfies lambda_i(v_j)=delta_ij.",
+        "status": "machine-checked",
+        "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+      }
+    },
+    "proof": {
+      "formal_result": {
+        "artifact": {
+          "basis": [
+            {
+              "coeffs": [
+                "1",
+                "-1",
+                "-1"
+              ],
+              "name": "lambda0"
+            },
+            {
+              "coeffs": [
+                "0",
+                "1",
+                "0"
+              ],
+              "name": "lambda1"
+            },
+            {
+              "coeffs": [
+                "0",
+                "0",
+                "1"
+              ],
+              "name": "lambda2"
+            }
+          ],
+          "claims": [
+            "partition-of-unity",
+            "kronecker-nodal-identity"
+          ],
+          "dimension": 2,
+          "schema": "cace-formal-affine-proof-v1",
+          "scope": "canonical reference simplex only",
+          "statement": "On the canonical reference d-simplex, the supplied affine P1 barycentric basis sums exactly to 1 and satisfies lambda_i(v_j)=delta_ij.",
+          "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+        },
+        "attestation": {
+          "artifact_sha256": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+          "checker": "cace-exact-affine-kernel",
+          "checker_version": "0.13.0",
+          "claims_checked": [
+            "partition-of-unity",
+            "kronecker-nodal-identity"
+          ],
+          "dimension": 2,
+          "errors": [],
+          "expected_checker": "cace-exact-affine-kernel",
+          "expected_checker_version": "0.13.0",
+          "invocation": "subprocess",
+          "nodal_table": [
+            [
+              "1",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "1",
+              "0"
+            ],
+            [
+              "0",
+              "0",
+              "1"
+            ]
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational affine normalization and exact nodal evaluation",
+          "stderr": "",
+          "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+        },
+        "checker": "cace-exact-affine-kernel",
+        "checker_version": "0.13.0",
+        "machine_checked": true
+      }
+    },
+    "summary": {
+      "summary": {
+        "checker": "cace-exact-affine-kernel 0.13.0",
+        "formal_scope": "reference-simplex P1 barycentric affine identities only",
+        "machine_checked": true,
+        "pde_reliability_formally_verified": false,
+        "status": "machine-checked",
+        "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "234648b7-61eb-44df-a715-94e7987999f4",
+  "verification": {
+    "bridge": [
+      {
+        "claim": "The theorem registry marks this theorem machine-checked only after successful checker attestation.",
+        "kind": "formally-verified",
+        "method": "attestation-gated theorem-contract construction",
+        "metrics": {
+          "artifact": "sha256:3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+          "assumptions": [
+            "canonical reference simplex",
+            "dimension=2"
+          ],
+          "attestation_hash": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+          "checker": "cace-exact-affine-kernel 0.13.0",
+          "evidence_kind": "formally-verified",
+          "formal_evidence": true,
+          "promotion_recheck": {
+            "artifact_sha256": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+            "checker": "cace-exact-affine-kernel",
+            "checker_version": "0.13.0",
+            "claims_checked": [
+              "partition-of-unity",
+              "kronecker-nodal-identity"
+            ],
+            "dimension": 2,
+            "errors": [],
+            "expected_checker": "cace-exact-affine-kernel",
+            "expected_checker_version": "0.13.0",
+            "invocation": "subprocess",
+            "nodal_table": [
+              [
+                "1",
+                "0",
+                "0"
+              ],
+              [
+                "0",
+                "1",
+                "0"
+              ],
+              [
+                "0",
+                "0",
+                "1"
+              ]
+            ],
+            "passed": true,
+            "process_returncode": 0,
+            "proof_method": "exact rational affine normalization and exact nodal evaluation",
+            "stderr": "",
+            "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+          },
+          "statement": "On the canonical reference d-simplex, the supplied affine P1 barycentric basis sums exactly to 1 and satisfies lambda_i(v_j)=delta_ij.",
+          "status": "machine-checked",
+          "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-registry-promotion-v013"
+      }
+    ],
+    "proof": [
+      {
+        "claim": "Canonical reference-simplex P1 barycentric functions satisfy exact partition-of-unity and Kronecker nodal identities.",
+        "kind": "formally-verified",
+        "method": "independent subprocess invocation of the CACE exact-rational affine proof kernel",
+        "metrics": {
+          "artifact_sha256": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+          "checker": "cace-exact-affine-kernel",
+          "checker_version": "0.13.0",
+          "claims_checked": [
+            "partition-of-unity",
+            "kronecker-nodal-identity"
+          ],
+          "dimension": 2,
+          "returncode": 0
+        },
+        "notes": [
+          "Formal evidence is scoped to these affine identities only.",
+          "Existing Lean PDE obligations remain separate and unproved."
+        ],
+        "state": "pass",
+        "verifier": "reference-simplex-barycentric-machine-check-v013"
+      }
+    ],
+    "summary": [
+      {
+        "claim": "Machine-checked affine basis identities are recorded without escalating unresolved PDE reliability obligations.",
+        "kind": "formally-verified",
+        "method": "scope audit",
+        "metrics": {
+          "checker": "cace-exact-affine-kernel 0.13.0",
+          "formal_scope": "reference-simplex P1 barycentric affine identities only",
+          "machine_checked": true,
+          "pde_reliability_formally_verified": false,
+          "status": "machine-checked",
+          "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-scope-non-escalation-v013"
+      }
+    ]
+  }
+}

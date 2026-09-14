@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "v0.11 certified adaptive FEM loop",
+  "nodes": [
+    {"id":"mesh","module_id":"fem_nd.mesh","params":{"vertices":"[[0,0],[1,0],[1,1],[0,1],[0.5,0.5]]","elements":"[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]"},"position":[0,0]},
+    {"id":"adapt","module_id":"fem11.adaptive_certified_loop","params":{"source":1.0,"theta":0.5,"max_iterations":4,"stop_mode":"estimator_upper","tolerance":0.0},"position":[260,0]},
+    {"id":"plot","module_id":"viz11.adaptive_history","params":{"output_path":"examples/v11_adaptive_history.png"},"position":[560,0]}
+  ],
+  "edges": [
+    {"source_node":"mesh","source_port":"mesh","target_node":"adapt","target_port":"mesh"},
+    {"source_node":"adapt","source_port":"adaptive_run","target_node":"plot","target_port":"adaptive_run"}
+  ],
+  "metadata":{"version":"0.11.0","purpose":"certified adaptive solve-estimate-mark-refine loop"}
+}

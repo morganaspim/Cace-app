@@ -1,0 +1,695 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.159401+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "parameter_hash": "967d7f4011765e9fcf631d6a546f24f8d6a63d7d7b9aa1a1482839bb1cfe662e",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "a01491112153d6938ce556c871350e8b0cdecb4d6184204eacfbfcc6713fa1b9"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.160053+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "07fb8849168f4a4cd249176b5b492d45267072a5e11bc35da82f824c9bb18647",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "4804bd8043dc4b007b233a16502890d889033b7ac179c56d682c53caccd84326"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.160991+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "b883ca17299f34d754c003c2d69bcc2d6689d770b5e0b80b8ea39489ee72451e",
+      "module_id": "fem_cert.poisson_assemble",
+      "module_version": "0.4.0",
+      "node_id": "assemble",
+      "output_hash": "91afff8a5bbdcc55b7fd3200a684f8c788b53bb50a4755922ae11cda35654e80",
+      "parameter_hash": "f1e783d6ca9d81a3aa7bb1056100a6b9aa9c8710aa3dcc1bddf767115590da82",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "0c151e061c8e16f60debec7916df503ab53ee8576c36a69e091b551eaafc8901"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.161220+00:00",
+      "evidence": [],
+      "input_hash": "8ad344ae488ee118a86acd9a088c9273893be46cecd82944ae9faa97dea27cb8",
+      "module_id": "fem_cert.cpu_gpu_equivalence",
+      "module_version": "0.4.0",
+      "node_id": "equiv",
+      "output_hash": "296d4edc711e8d1726497d366da678b097f2343baeca8aa30df8ea173e852221",
+      "parameter_hash": "c2d4fa70977569d91beb087bde590b0691896bc9a92307ce827c2b3e7994b801",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "2f45b308777cc57b49fcede62922d48da8df126619dbe9e20f3c00c06a3cf157"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.161421+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "8ad344ae488ee118a86acd9a088c9273893be46cecd82944ae9faa97dea27cb8",
+      "module_id": "fem_nd.linear_solve",
+      "module_version": "0.3.0",
+      "node_id": "solve",
+      "output_hash": "1daa2ee176dfaf4465c9208905036af1c4ad64fde2badd12644b592776bca920",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "f1ce8a5b39c0cb758eb97d5edfe9a48e03c31dc268703ae74d80508f90abd7b5"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.161932+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "90535ac0a74612e729e22ff71303370d442bbe6c4f5143d46bb3ec09db9643a0",
+      "module_id": "fem_nd.estimator",
+      "module_version": "0.3.0",
+      "node_id": "est",
+      "output_hash": "c4a5566c674a5371795a2c7e6aec90b0a5dbdf67de12c80f24b3c2c7dff9ea22",
+      "parameter_hash": "044ec305c416ecedb8188b4b8dd229142f6fcd1089fbce871ad2635e0908db6c",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "e28d055fce127c9c2ee4596dd2700d52413aac9ba3a3b21cfc535cd14f71c9c6"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.162071+00:00",
+      "evidence": [],
+      "input_hash": "7844a80d27cb0f36cab89368a5f92892c0576a4e1448760215243e5cb23e52b4",
+      "module_id": "fem_cert.reliability_gate",
+      "module_version": "0.4.0",
+      "node_id": "gate",
+      "output_hash": "23edf1a53328b3907da0734b2fc0dcbd2ba4c7e19df656cc21262f1dedfe7429",
+      "parameter_hash": "7be0bbf07cb521e14ef885aeba805f840c04823b9da9d87a8687ee889ee55a6f",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "6c11022f00c55f27138e63071dadd59c15859b86ad2aa708f1230bdb5b4f5471"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.162250+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "9e4a55a42768931342da8c6d11eea2bc22b4483294d0bd5c5d31702c1dfca0ad",
+      "module_id": "fem_cert.interval_residual",
+      "module_version": "0.4.0",
+      "node_id": "ires",
+      "output_hash": "c014a950501ef24cc73b0545e575d512e04e32285762084d957f3ec543bf1e81",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "40d80f31d3fcba2e7c35b17fc994229061e80d1393c4f20d4e9b0cf90b9da2d1"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:40:14.162391+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "15f22522207fe581bed2df646234bebb2755b8ee97f827076b0e3493204c6b8d",
+      "module_id": "fem_cert.discrete_energy_error",
+      "module_version": "0.4.0",
+      "node_id": "aerr",
+      "output_hash": "08f5ddd1f31349bc008f6dde5e01f96106436a6fa4c3f992e40b35977106d296",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+      "verification_hashes": [
+        "0a8e6d064ca1570ff85a95b3bebd615b1459bc0b757ad0dfee52529cdee07c3b"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.4 certified discrete Poisson FEM",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "b1f82f21dca0673a9f0535ba1c21aa1636f4e7c9f69de41d921b8db7ffcb3176",
+    "evidence_generated": [
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "4783996ec342747002a922f69fb463e08f098201d28b86a8b1c25221483d6da2",
+      "5748d3ecbffdabb74b5b2b051e471406f17877368b3a870391ddc410f76f6600",
+      "1debd55ce2e9a465bd0b862cdfbd41f8534b73b44180f9fa9c192c1540ebc678",
+      "b3086d30c3479cfa1abba511d96077e7ba02690bf577cb3cf2831564fbfb2e8e",
+      "634f4f47e99143e35f94a9a4c7a5429615b70b598fd130eac4dfbcfc43538a7a",
+      "21cc0867e34453b76893fc7b8a189bcec22468510231ca576effa02206ac859a",
+      "008cd206f1840d43493a3d4d95b4986f003389160bd15062b1250366c54bd5c9",
+      "12f33ef9f16b6b6a6f938301777c842c96a5ea113ea790180dc4d5a1583a6fd7",
+      "7117bffa008187c910a352f0833ee6b7b16755347cf63e7ddd0022c96446644f"
+    ],
+    "not_run_verifiers": 2,
+    "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+    "verification_records": 9
+  },
+  "outputs": {
+    "aerr": {
+      "algebraic_error_certificate": {
+        "certified": true,
+        "energy_error_upper": 5.551115123125789e-17,
+        "gershgorin_lambda_min_lower": 3.9999999999999996,
+        "scope": "computed-solution-vs-exact-discrete-solution",
+        "solution_l2_error_upper": 2.7755575615628944e-17
+      }
+    },
+    "assemble": {
+      "problem": {
+        "cell_coercivity_lower": 1.0,
+        "diffusion": 1.0,
+        "dimension": 2,
+        "source_constant": 1.0,
+        "source_linear": []
+      },
+      "system": {
+        "boundary_dofs": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "full_dofs": 5,
+        "interior_dofs": [
+          4
+        ],
+        "matrix": {
+          "data": [
+            4.0
+          ],
+          "indices": [
+            0
+          ],
+          "indptr": [
+            0,
+            1
+          ],
+          "shape": [
+            1,
+            1
+          ]
+        },
+        "problem_class": "elliptic-p1-spd-affine-source",
+        "rhs": [
+          0.3333333333333333
+        ]
+      }
+    },
+    "equiv": {
+      "equivalence": {
+        "backend": "unavailable",
+        "gpu_available": false,
+        "passed": false,
+        "reason": "No module named 'cupy'"
+      }
+    },
+    "est": {
+      "estimator": {
+        "element_eta": [
+          0.5378510110299314,
+          0.5378510110299314,
+          0.5378510110299314,
+          0.5378510110299314
+        ],
+        "eta": 1.0757020220598628,
+        "kind": "residual-jump-diagnostic"
+      }
+    },
+    "gate": {
+      "reliability_status": {
+        "continuum_error_certified": false,
+        "reason": "no general residual-estimator reliability theorem artifact is registered in v0.4",
+        "requested_theorem": "",
+        "supported": false
+      }
+    },
+    "ires": {
+      "residual_certificate": {
+        "residual_inf_interval": [
+          0.0,
+          1.1102230246251573e-16
+        ],
+        "residual_l2_interval": [
+          0.0,
+          1.1102230246251573e-16
+        ],
+        "row_intervals": [
+          [
+            -1.1102230246251568e-16,
+            1.1102230246251568e-16
+          ]
+        ],
+        "scope": "discrete-binary64-linear-system"
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            0,
+            4
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ]
+      }
+    },
+    "solve": {
+      "solution": {
+        "interior": [
+          0.08333333333333333
+        ],
+        "values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.08333333333333333
+        ]
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 2,
+        "dofs": 5,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              0,
+              1,
+              4
+            ],
+            "gradients": [
+              [
+                -1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                2.0,
+                -2.0,
+                0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              1,
+              2,
+              4
+            ],
+            "gradients": [
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                -2.0,
+                0.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                1.0
+              ],
+              [
+                2.0,
+                -0.0,
+                -2.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              2,
+              3,
+              4
+            ],
+            "gradients": [
+              [
+                1.0,
+                1.0
+              ],
+              [
+                -1.0,
+                1.0
+              ],
+              [
+                -0.0,
+                -2.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                -1.0,
+                1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0,
+                -0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              3,
+              0,
+              4
+            ],
+            "gradients": [
+              [
+                -1.0,
+                1.0
+              ],
+              [
+                -1.0,
+                -1.0
+              ],
+              [
+                2.0,
+                -0.0
+              ]
+            ],
+            "volume": 0.25
+          }
+        ]
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "2a79f23f-8d4b-4980-a023-efc437ab320f",
+  "verification": {
+    "aerr": [
+      {
+        "claim": "if the certified Gershgorin lower bound alpha is positive, ||u-u*||_2 <= ||r||_2/alpha and ||u-u*||_A <= ||r||_2/sqrt(alpha)",
+        "kind": "interval-certified",
+        "method": "Gershgorin theorem + SPD residual-error identity with outward-rounded arithmetic",
+        "metrics": {
+          "certified": true,
+          "energy_error_upper": 5.551115123125789e-17,
+          "gershgorin_lambda_min_lower": 3.9999999999999996,
+          "scope": "computed-solution-vs-exact-discrete-solution",
+          "solution_l2_error_upper": 2.7755575615628944e-17
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "discrete-spd-gershgorin-bound"
+      }
+    ],
+    "assemble": [
+      {
+        "claim": "discrete reduced operator is symmetric positive definite and every supplied diffusion tensor is SPD",
+        "kind": "numerical",
+        "method": "independent symmetry/eigenvalue checks plus elementwise diffusion spectra",
+        "metrics": {
+          "diffusion_coercivity_lower": 1.0,
+          "matrix_min_eigenvalue": 4.0,
+          "matrix_symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cert-poisson-class-assumptions"
+      }
+    ],
+    "equiv": [
+      {
+        "claim": "CPU and GPU solutions of the same stored linear system agree within configured tolerance",
+        "kind": "numerical",
+        "method": "independent NumPy and CuPy solves followed by host comparison",
+        "metrics": {
+          "backend": "unavailable",
+          "gpu_available": false,
+          "passed": false,
+          "reason": "No module named 'cupy'"
+        },
+        "notes": [],
+        "state": "not-run",
+        "verifier": "cpu-gpu-solve-equivalence"
+      }
+    ],
+    "est": [
+      {
+        "claim": "all local residual indicators are finite and nonnegative; no reliability theorem is claimed",
+        "kind": "numerical",
+        "method": "sanity/property check",
+        "metrics": {
+          "elements": 4,
+          "eta": 1.0757020220598628
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "estimator-sanity-nd"
+      }
+    ],
+    "gate": [
+      {
+        "claim": "continuum estimator reliability is certified only when a registered theorem artifact matches all problem assumptions",
+        "kind": "formally-verified",
+        "method": "theorem registry gate; v0.4 intentionally contains no qualifying general theorem artifact",
+        "metrics": {
+          "continuum_error_certified": false,
+          "reason": "no general residual-estimator reliability theorem artifact is registered in v0.4",
+          "requested_theorem": "",
+          "supported": false
+        },
+        "notes": [],
+        "state": "not-run",
+        "verifier": "continuum-reliability-theorem-gate"
+      }
+    ],
+    "ires": [
+      {
+        "claim": "the exact residual of the stored binary64 discrete system is enclosed componentwise and in infinity/L2 norm",
+        "kind": "interval-certified",
+        "method": "directed nextafter rounding for each interval product and sum",
+        "metrics": {
+          "residual_inf_upper": 1.1102230246251573e-16,
+          "residual_l2_upper": 1.1102230246251573e-16
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "interval-algebraic-residual"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 4,
+          "dimension": 2,
+          "elements": 4,
+          "min_volume": 0.25,
+          "vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "solve": [
+      {
+        "claim": "independently recomputed reduced-system residual is small",
+        "kind": "numerical",
+        "method": "host-side CSR reconstruction and residual",
+        "metrics": {
+          "residual_inf": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "linear-solve-residual-nd"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ]
+  }
+}

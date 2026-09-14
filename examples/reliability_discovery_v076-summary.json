@@ -1,0 +1,60 @@
+{
+  "candidate_constant": {
+    "coefficient": 0.6468,
+    "covers_observed_good_cases": true,
+    "mean_relative_slack": 1.3181927064452432,
+    "shape_exponent": 0.0
+  },
+  "case_count": 19,
+  "certified_anchor": {
+    "alpha_lower": 1.0,
+    "case_id": "certified-reference-bubble",
+    "energy_error_interval": [
+      0.05367176572642027,
+      0.05367176572683317
+    ],
+    "eta_interval": [
+      1.2933053384497626,
+      1.293305338449779
+    ],
+    "evidence_scope": "certified-manufactured-run",
+    "note": "existing v0.6 manufactured-solution continuum and estimator certificates",
+    "premises": {
+      "conforming_mesh": true,
+      "homogeneous_dirichlet": true,
+      "jump_term": true,
+      "residual_term": true,
+      "shape_regular_family": true,
+      "uniform_ellipticity": true
+    },
+    "ratio_upper": 0.04149968621576057,
+    "shape_ratio": 12.3245553203368
+  },
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "151a353e76be13b2f9f63612eaf500136783d5ba68263d5e7772bc40b6a46950",
+    "evidence_generated": [
+      "numerical"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "746612e64035e0a94e0d0f967cc7c9814bf1f0c7463393636541027127c8435e"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "6eb4d0b3-89a3-4e2e-aabe-33d62085859d",
+    "verification_records": 1
+  },
+  "pass": true,
+  "release": "0.76.0",
+  "reliability_promotable": false,
+  "theorem_id": "poisson2d-p1-mesh-uniform-residual-reliability-v0.76",
+  "unresolved_obligations": [
+    "edge_orientation_cancellation",
+    "elementwise_green_identity",
+    "finite_overlap",
+    "quasi_interpolation_local",
+    "reliability_theorem",
+    "residual_representation",
+    "trace_local"
+  ]
+}

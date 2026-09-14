@@ -1,0 +1,43 @@
+{
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "d5c4506913bdf5b6f6a051ad719c93a64ad54ac404d35526db38ff199bc92c1e",
+    "evidence_generated": [
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "72791d220be04ef986b401bdece6b3d726e5b89f1038cd5a5b6e90dbcb0486bd",
+      "8e80df944c2070327b8f159c1e056a5b820f4210d887e5d503e4678f7aae23a8",
+      "fc00ccb007000e13c371f15315d5c58ee9291daf9e5a8672961f11bd5b96c49c"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "4cf008d1-4ddf-4cc0-b55f-4ed41e489469",
+    "verification_records": 3
+  },
+  "scope": {
+    "blas_backed": false,
+    "continuum_pde_formally_verified": false,
+    "dense_block_supernodal_implemented": true,
+    "fixed_thread_pool_implemented": true,
+    "thread_local_workspace_reuse": true,
+    "work_stealing_scheduler": false
+  },
+  "summary": {
+    "continuum_pde_formally_verified": false,
+    "dense_block_supernodal_implemented": true,
+    "dimension": 169,
+    "left_ms": 9.01861199963605,
+    "max_supernode_size": 18,
+    "ordering": "minimum-degree",
+    "scalar_mf_ms": 9.359656000015093,
+    "scheduled_tasks": 129,
+    "supernodal_1t_ms": 12.12897700133908,
+    "supernodal_pool_ms": 10.63065099879168,
+    "supernodes": 129,
+    "thread_pool_implemented": true,
+    "workspace_reallocations": 33
+  },
+  "version": "0.20.0"
+}

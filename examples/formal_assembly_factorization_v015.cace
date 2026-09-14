@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "v0.15 formal assembly + verified factorization",
+  "nodes": [
+    {"id":"proof","module_id":"formal15.assembly_invariants","params":{},"position":[0,0]},
+    {"id":"bridge","module_id":"formal15.registry_bridge","params":{},"position":[250,0]},
+    {"id":"mesh","module_id":"fem_nd.mesh","params":{"vertices":"[[0,0],[2,0],[2,1],[0,1],[1,0.5]]","elements":"[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]"},"position":[0,220]},
+    {"id":"space","module_id":"fem_nd.p1_space","params":{},"position":[220,220]},
+    {"id":"assemble","module_id":"fem_cert.poisson_assemble","params":{"diffusion":"[[1.5,0.1],[0.1,1.0]]","source_constant":1.0,"source_linear":"[0.25,-0.1]"},"position":[450,220]},
+    {"id":"factor","module_id":"fem15.verified_ldlt","params":{},"position":[700,220]},
+    {"id":"summary","module_id":"fem15.summary","params":{},"position":[950,100]}
+  ],
+  "edges": [
+    {"source_node":"proof","source_port":"formal_result","target_node":"bridge","target_port":"formal_result"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"space","target_port":"mesh"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"assemble","target_port":"mesh"},
+    {"source_node":"space","source_port":"space","target_node":"assemble","target_port":"space"},
+    {"source_node":"assemble","source_port":"system","target_node":"factor","target_port":"system"},
+    {"source_node":"bridge","source_port":"theorem","target_node":"summary","target_port":"theorem"},
+    {"source_node":"factor","source_port":"factorization_certificate","target_node":"summary","target_port":"factorization_certificate"}
+  ],
+  "metadata":{"release":"0.15.0","purpose":"compose machine-checked assembly invariants with interval-certified reduced-matrix factorization"}
+}

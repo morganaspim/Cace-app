@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "Interval square enclosure",
+  "nodes": [
+    {"id":"i","module_id":"verify.interval_literal","params":{"lo":-2.0,"hi":3.0},"position":[0,0]},
+    {"id":"s","module_id":"verify.interval_square","params":{},"position":[260,0]}
+  ],
+  "edges": [
+    {"source_node":"i","source_port":"interval","target_node":"s","target_port":"interval"}
+  ],
+  "metadata": {"purpose":"Demonstrate outward-rounded interval evidence."}
+}

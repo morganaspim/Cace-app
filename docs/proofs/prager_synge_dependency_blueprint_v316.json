@@ -1,0 +1,33 @@
+{
+  "blueprint_sha256": "4cb3fa73332df88c1ccbb9939ba96466c74ac439d30ff704392204a036f0176f",
+  "dependencies": {
+    "continuum_prager_synge": [
+      "discrete_prager_synge",
+      "continuum_hdiv_trace"
+    ],
+    "discrete_prager_synge": [
+      "hilbert_pythagoras",
+      "weighted_energy",
+      "mesh_admissibility_to_orthogonality"
+    ],
+    "mesh_admissibility_to_orthogonality": [
+      "simplex_green",
+      "face_cancellation",
+      "finite_mesh_hdiv"
+    ]
+  },
+  "nodes": {
+    "admissible_spaces": "source/spec-ready",
+    "continuum_hdiv_trace": "open",
+    "discrete_prager_synge": "lean-source-ready-after-orthogonality",
+    "face_cancellation": "exact-kernel-closed",
+    "finite_mesh_hdiv": "exact-kernel-closed",
+    "hilbert_pythagoras": "source-ready",
+    "mesh_admissibility_to_orthogonality": "lean-open",
+    "simplex_green": "exact-kernel-closed",
+    "toolchain": "blocked-runtime-network",
+    "weighted_energy": "source/spec-ready"
+  },
+  "pass": true
+}
+

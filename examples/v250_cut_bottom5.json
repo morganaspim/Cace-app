@@ -1,0 +1,33 @@
+[
+  {
+    "name": "Polygonal/VEM discretization",
+    "rank": 26,
+    "selected": false,
+    "why": "General-cell methods; useful but less leverage than current simplicial gaps."
+  },
+  {
+    "name": "Isogeometric analysis",
+    "rank": 27,
+    "selected": false,
+    "why": "Spline geometry/high-order approximation; substantial new infrastructure."
+  },
+  {
+    "name": "Fractional/nonlocal PDEs",
+    "rank": 28,
+    "selected": false,
+    "why": "Important but algorithmically distant from the present local-PDE core."
+  },
+  {
+    "name": "Nonlinear eigenproblems",
+    "rank": 29,
+    "selected": false,
+    "why": "Useful but lower leverage than rigorous linear spectral closure."
+  },
+  {
+    "name": "Quantum-PDE specialization",
+    "rank": 30,
+    "selected": false,
+    "why": "Domain-specific specialization should follow general spectral/PDE closure."
+  }
+]
+

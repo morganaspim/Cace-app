@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "CACE v0.19 Native Multifrontal + Parallel Subtrees",
+  "metadata": {"release":"0.19.0","scope":"scalar multifrontal LDLT, elimination-tree subtree parallelism, symbolic supernode analysis, exact sparse structure oracle"},
+  "nodes": [
+    {"id":"bench","module_id":"fem19.multifrontal_benchmark","params":{"nx":14,"ny":14,"parallel_depth":20,"repeats":3},"position":[0,0]},
+    {"id":"tree","module_id":"fem19.front_tree_analysis","params":{},"position":[360,0]},
+    {"id":"summary","module_id":"fem19.summary","params":{},"position":[720,0]}
+  ],
+  "edges": [
+    {"source_node":"bench","source_port":"benchmark","target_node":"tree","target_port":"benchmark"},
+    {"source_node":"bench","source_port":"benchmark","target_node":"summary","target_port":"benchmark"},
+    {"source_node":"tree","source_port":"analysis","target_node":"summary","target_port":"analysis"}
+  ]
+}

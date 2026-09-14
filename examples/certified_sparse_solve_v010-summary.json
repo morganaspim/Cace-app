@@ -1,0 +1,42 @@
+{
+  "experiment": "v0.10 verified discrete solution enclosure",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "39cb860be3729d2755ee01603bc992d19e0e634e1cecf6e591d04c97c7ee0e9a",
+    "evidence_generated": [
+      "experimental",
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "bccf3248265b32bce57fcf4f21150a4abd3eeafbb76678afd7ef757c31c861a6",
+      "7b2717be4177d39b91f944c1d6e8e02147b7cadc47fbd3e730da10d166560694",
+      "de123db222a734a1dced09a63559ff8a6251f67b1a8e939c5337c1a63c112d26",
+      "0d675be369da5d3f3eaba562a502c3b92d5fcb7ba37464213979d244639d98bf",
+      "1b9dce3ed74f45a9561eb066d9cafe555bd98ac8cdd29ae0f7d0c2e1e2bc6bd1",
+      "09a2c39bb5a2642751284310e73ec2567a4ab54afce024a0ee243512917d6320",
+      "0f1f762bc31ed6beab9bd9a35f2b568b897a7eba60104854b8243419746a753d"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "54525ede-6dd8-4226-83e2-841fb1b7f2b2",
+    "verification_records": 7
+  },
+  "release": "0.10.0",
+  "verified_discrete_solution": {
+    "certified": true,
+    "krawczyk_inclusion": true,
+    "method": "preconditioned-contraction-krawczyk-box",
+    "q_upper": 4.44089209850063e-16,
+    "radius": 6.055761952500906e-17,
+    "scope": "exact solution of stored binary64 discrete linear system",
+    "solution_intervals": [
+      [
+        0.1454545454545454,
+        0.14545454545454556
+      ]
+    ]
+  },
+  "visualization": "examples/v10_solution_enclosure.png"
+}

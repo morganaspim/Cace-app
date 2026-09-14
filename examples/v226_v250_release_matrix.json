@@ -1,0 +1,128 @@
+[
+  {
+    "capability": "Global RT1 equilibrated-flux assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.26"
+  },
+  {
+    "capability": "3D tetrahedral P1 continuum engine",
+    "evidence_kind": "symbolic",
+    "release": "2.27"
+  },
+  {
+    "capability": "3D RT0/H(div) global assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.28"
+  },
+  {
+    "capability": "3D guaranteed equilibrated energy bounds",
+    "evidence_kind": "symbolic",
+    "release": "2.29"
+  },
+  {
+    "capability": "Goal-oriented equilibrated primal/dual certification",
+    "evidence_kind": "symbolic",
+    "release": "2.30"
+  },
+  {
+    "capability": "Parabolic equilibrated space-time certification",
+    "evidence_kind": "numerical",
+    "release": "2.31"
+  },
+  {
+    "capability": "Certified nonlinear Newton-Kantorovich solve",
+    "evidence_kind": "numerical",
+    "release": "2.32"
+  },
+  {
+    "capability": "Production Stokes mixed FEM",
+    "evidence_kind": "symbolic",
+    "release": "2.33"
+  },
+  {
+    "capability": "Production Maxwell/Nedelec curl-curl assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.34"
+  },
+  {
+    "capability": "General sparse verified spectral enclosures",
+    "evidence_kind": "symbolic",
+    "release": "2.35"
+  },
+  {
+    "capability": "Certified reduced-basis offline/online engine",
+    "evidence_kind": "numerical",
+    "release": "2.36"
+  },
+  {
+    "capability": "Verified multigrid hierarchy",
+    "evidence_kind": "numerical",
+    "release": "2.37"
+  },
+  {
+    "capability": "Verified domain-decomposition engine",
+    "evidence_kind": "numerical",
+    "release": "2.38"
+  },
+  {
+    "capability": "Anisotropic metric adaptive meshing",
+    "evidence_kind": "numerical",
+    "release": "2.39"
+  },
+  {
+    "capability": "Interval-parametric PDE propagation",
+    "evidence_kind": "symbolic",
+    "release": "2.40"
+  },
+  {
+    "capability": "hp-adaptive campaign engine",
+    "evidence_kind": "numerical",
+    "release": "2.41"
+  },
+  {
+    "capability": "Symmetric interior penalty DG",
+    "evidence_kind": "symbolic",
+    "release": "2.42"
+  },
+  {
+    "capability": "SUPG convection-diffusion",
+    "evidence_kind": "numerical",
+    "release": "2.43"
+  },
+  {
+    "capability": "Linear elasticity certification",
+    "evidence_kind": "symbolic",
+    "release": "2.44"
+  },
+  {
+    "capability": "Variational inequalities / obstacle problems",
+    "evidence_kind": "symbolic",
+    "release": "2.45"
+  },
+  {
+    "capability": "Helmholtz dispersion and pollution audits",
+    "evidence_kind": "numerical",
+    "release": "2.46"
+  },
+  {
+    "capability": "PDE-constrained optimization with adjoints",
+    "evidence_kind": "numerical",
+    "release": "2.47"
+  },
+  {
+    "capability": "Stochastic Galerkin uncertainty",
+    "evidence_kind": "symbolic",
+    "release": "2.48"
+  },
+  {
+    "capability": "FEM-BEM coupling interface",
+    "evidence_kind": "symbolic",
+    "release": "2.49"
+  },
+  {
+    "capability": "CACE v2.50 Milestone",
+    "evidence_kind": "symbolic",
+    "release": "2.50"
+  }
+]
+

@@ -1,0 +1,122 @@
+[
+  {
+    "release": "0.77",
+    "capability": "Exact Edge Orientation Cancellation",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.78",
+    "capability": "Exact Affine Green Identity",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.79",
+    "capability": "Exact Residual Edge Bookkeeping",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.80",
+    "capability": "Triangle Incidence Audit",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.81",
+    "capability": "Run-Specific Patch Overlap",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.82",
+    "capability": "Triangle Shape Metrics",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.83",
+    "capability": "Reviewed Local Constant Template",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.84",
+    "capability": "Affine Trace Diagnostic",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.85",
+    "capability": "Quasi-Interpolation Obligation",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.86",
+    "capability": "Trace Obligation",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.87",
+    "capability": "Coercivity Bridge",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.88",
+    "capability": "Estimator Formula Audit",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.89",
+    "capability": "Run-Specific Reliability Envelope",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.90",
+    "capability": "Manufactured Reliability Campaign",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.91",
+    "capability": "Candidate Constant Scaling",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.92",
+    "capability": "Deterministic Premise Stress",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.93",
+    "capability": "Counterexample Threshold Shrinker",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "0.94",
+    "capability": "Reliability DAG v2",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.95",
+    "capability": "Exact Proof Artifact Bundle",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.96",
+    "capability": "Exact Kernel Readiness",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "0.97",
+    "capability": "Interval Geometry Bridge",
+    "evidence_kind": "interval-certified"
+  },
+  {
+    "release": "0.98",
+    "capability": "Manufactured Run-Specific Reliability Certificate",
+    "evidence_kind": "interval-certified"
+  },
+  {
+    "release": "0.99",
+    "capability": "General Reliability Readiness Audit",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.0",
+    "capability": "v1.0 Reliability Qualification Milestone",
+    "evidence_kind": "symbolic"
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "version": "0.26.0",
+    "base": "0.25.0",
+    "cumulative": true,
+    "capability": "Canonical reproducibility fingerprints for sparse systems and ordering analyses.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 136
+  },
+  {
+    "version": "0.27.0",
+    "base": "0.26.0",
+    "cumulative": true,
+    "capability": "Mixed-precision iterative refinement with float64 residuals and exact structural oracle.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 137
+  },
+  {
+    "version": "0.28.0",
+    "base": "0.27.0",
+    "cumulative": true,
+    "capability": "Hash-chained experiment checkpoints for resume/integrity auditing.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 138
+  },
+  {
+    "version": "0.29.0",
+    "base": "0.28.0",
+    "cumulative": true,
+    "capability": "Sparse matrix health and conditioning-proxy diagnostics with explicit non-theorem scope.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 139
+  },
+  {
+    "version": "0.30.0",
+    "base": "0.29.0",
+    "cumulative": true,
+    "capability": "Multi-right-hand-side solve campaigns reusing one certified sparse structure.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 140
+  },
+  {
+    "version": "0.31.0",
+    "base": "0.30.0",
+    "cumulative": true,
+    "capability": "Structured 3D seven-point discrete Poisson stress testing; explicitly not tetrahedral continuum FEM.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 142
+  },
+  {
+    "version": "0.32.0",
+    "base": "0.31.0",
+    "cumulative": true,
+    "capability": "Resource-aware solver portfolio scoring after correctness gates.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 143
+  },
+  {
+    "version": "0.33.0",
+    "base": "0.32.0",
+    "cumulative": true,
+    "capability": "Content-addressed provenance manifests with deterministic root digest.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 144
+  },
+  {
+    "version": "0.34.0",
+    "base": "0.33.0",
+    "cumulative": true,
+    "capability": "Negative/fault-injection verification that requires refusal under corrupted evidence.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 145
+  },
+  {
+    "version": "0.35.0",
+    "base": "0.34.0",
+    "cumulative": true,
+    "capability": "Consolidated deterministic verification campaign spanning v0.26-v0.35.",
+    "compileall": "pass",
+    "release_tests": "pass",
+    "tests_collected_cumulative": 146
+  }
+]

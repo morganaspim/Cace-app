@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "name": "Verified adaptive P1 Poisson benchmark",
+  "nodes": [
+    {"id":"mesh","module_id":"fem.mesh1d","params":{"vertices":"0,0.07,0.18,0.41,0.67,0.86,1"},"position":[0,0]},
+    {"id":"space","module_id":"fem.p1_space","params":{},"position":[220,0]},
+    {"id":"assemble","module_id":"fem.poisson_assemble","params":{},"position":[450,0]},
+    {"id":"solve","module_id":"fem.linear_solve","params":{},"position":[700,0]},
+    {"id":"residual","module_id":"fem.residual","params":{},"position":[930,-160]},
+    {"id":"estimator","module_id":"fem.aposteriori","params":{},"position":[930,0]},
+    {"id":"interval","module_id":"fem.energy_interval","params":{},"position":[930,160]},
+    {"id":"adapt","module_id":"fem.adapt","params":{"theta":0.5},"position":[1180,0]},
+    {"id":"certificate","module_id":"fem.certificate","params":{"residual_tolerance":1e-10},"position":[1430,0]}
+  ],
+  "edges": [
+    {"source_node":"mesh","source_port":"mesh","target_node":"space","target_port":"mesh"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"assemble","target_port":"mesh"},
+    {"source_node":"space","source_port":"space","target_node":"assemble","target_port":"space"},
+    {"source_node":"assemble","source_port":"system","target_node":"solve","target_port":"system"},
+    {"source_node":"assemble","source_port":"system","target_node":"residual","target_port":"system"},
+    {"source_node":"solve","source_port":"solution","target_node":"residual","target_port":"solution"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"estimator","target_port":"mesh"},
+    {"source_node":"solve","source_port":"solution","target_node":"estimator","target_port":"solution"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"interval","target_port":"mesh"},
+    {"source_node":"solve","source_port":"solution","target_node":"interval","target_port":"solution"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"adapt","target_port":"mesh"},
+    {"source_node":"estimator","source_port":"estimator","target_node":"adapt","target_port":"estimator"},
+    {"source_node":"residual","source_port":"residual_inf","target_node":"certificate","target_port":"residual_inf"},
+    {"source_node":"estimator","source_port":"estimator","target_node":"certificate","target_port":"estimator"},
+    {"source_node":"interval","source_port":"error_interval","target_node":"certificate","target_port":"error_interval"},
+    {"source_node":"adapt","source_port":"refined_mesh","target_node":"certificate","target_port":"refined_mesh"}
+  ],
+  "metadata": {
+    "equation":"-u'' = 1 on [0,1]",
+    "boundary":"u(0)=u(1)=0",
+    "exact_solution":"u=x(1-x)/2",
+    "purpose":"End-to-end verified FEM/adaptivity vertical slice. Estimator and benchmark interval certificate are intentionally distinct."
+  }
+}

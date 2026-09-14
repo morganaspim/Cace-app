@@ -1,0 +1,11 @@
+{
+  "commands": [],
+  "lake": null,
+  "lean": null,
+  "passed": false,
+  "project_files_sha256": "4aa04d9eb2e296ae3453a38881b8951762e009122bee41f2652c972f28fb31df",
+  "reason": "lean/lake executable not available; local uploaded toolchains are auto-detected via CACE_LEAN_BIN and /mnt/data/*lean*",
+  "status": "NOT_RUN",
+  "timestamp_unix": 1789353284.383466
+}
+

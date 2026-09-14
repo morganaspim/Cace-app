@@ -1,0 +1,934 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.388962+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "24686c69b852a10b70ff27ccf5aab3cd23875036526a5c5d2930726b98f6ab9a",
+      "parameter_hash": "38e47acdf980a5345d61d6bbe48401dcd9f6412d8a96eb5cf1a2ff7b48c28fcc",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "9b1dbf2a00ad58197405ad0dd68621ad5391ac0f5a6e35efe28596b9d0017f69"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.389253+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "24686c69b852a10b70ff27ccf5aab3cd23875036526a5c5d2930726b98f6ab9a",
+      "module_id": "fem_cont.mesh_shape",
+      "module_version": "0.5.0",
+      "node_id": "shape",
+      "output_hash": "dd852ea8a866435f7fdc23f7ed2738a190a1a7f8b41fb00aa756ad4b095f3e48",
+      "parameter_hash": "a8c8e61a6a2fe596d6e85f8548569d353d36c16971b442be8ac4293c054bab46",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "56edee2ca2d406aa513e64a938ad41d0e079d4ea31c7be647e20a8fe7659e149"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.390014+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "24686c69b852a10b70ff27ccf5aab3cd23875036526a5c5d2930726b98f6ab9a",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "676e41552e052283a4f15461bfe6de4694b27d677c17fcb8c56953ff6c6ea19e",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "b7299954f235d69a3f8da5b4fbd93257f96bdca1df196a6e85ddf414d2f38657"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.391320+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "d7cf0c8d3df9877c4b6ef648513f24078362c4335ff0f8d0db73ed33b9daf4dc",
+      "module_id": "fem_cert.poisson_assemble",
+      "module_version": "0.4.0",
+      "node_id": "assemble",
+      "output_hash": "f44722ba519bb91ddd3684daa9908629e62967248549493d6882f2bfa547d713",
+      "parameter_hash": "f1e783d6ca9d81a3aa7bb1056100a6b9aa9c8710aa3dcc1bddf767115590da82",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "b424f79428bbf16dbddb54410657519b86a9ab6e24b84970df6bd7e1b40a22e5"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.391700+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "3899f5edb33e6bc7c6400518beed10f5ee2d0082c7c4dbb49e65869080be0e7a",
+      "module_id": "fem_cont.poisson1d_continuum",
+      "module_version": "0.5.0",
+      "node_id": "cont",
+      "output_hash": "e42c26388397e94fad8dad8c2b4f2a2e56b51601ba8f5fe8939a5cc652e12867",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "9df5502df4c28722ece361740142d41cce2398e7dfbb5829f3a1111ffc51bd3e"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.391917+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "e42c26388397e94fad8dad8c2b4f2a2e56b51601ba8f5fe8939a5cc652e12867",
+      "module_id": "fem_cont.theorem_export",
+      "module_version": "0.5.0",
+      "node_id": "lean",
+      "output_hash": "6c66e3f68f5a0f4ef4d75f0856d80f765107928aff274112cb9f17525b48d8b5",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "423d803b494cfa6fcf880578950ad6ea8d65ddbe19e9a84be7a46cf05e2985df",
+        "9b6da9a7446dd532db1f4b9915cafbf058d1df489b45c08c1a9571a75d6673fb"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.392166+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "f16b67333ff7d89f3216eb645140730e9d55daa605f1db4f9990a9392c8ac7e3",
+      "module_id": "fem_nd.linear_solve",
+      "module_version": "0.3.0",
+      "node_id": "solve",
+      "output_hash": "0c30467be2ceb022998e64c97d26c5df4c5ddb263c468a692321f52dda65ec39",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "fff1039717d6aabba7171055e336372681257b23ae1c201938e05488a4db1b9f"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.392427+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "88ca032613182a7928b9387f95b3e60cf12056ebf236658de7df1f9082b6854b",
+      "module_id": "fem_cert.interval_residual",
+      "module_version": "0.4.0",
+      "node_id": "ires",
+      "output_hash": "612426a16676abb3ac8090254c524b449826fe157c595b43980dfd92a9a77560",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "7654fbb05b772a88bde0137e4402d4ce3b554f80bd3d8081c1531bacac638434"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.392809+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "dbbd94b2e48faa4a1dfdee759972d2734a222e4dd1215c43dab7be83d1edbe23",
+      "module_id": "fem_cert.discrete_energy_error",
+      "module_version": "0.5.0",
+      "node_id": "aerr",
+      "output_hash": "7862e0b05ddba7cf695cc9ffdc4a469fe441f5c31ba5b40012f628966e0cb8e6",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "843d367dcf8a1ed6e8132506ca25381ed41b711a39dcf36c757f3732cf7d3d34"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T19:48:14.392991+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "95174a3ae2ff42acfd8631a29754ccbba18b8291a0bec586a6562d6d9e676537",
+      "module_id": "fem_cont.total_error",
+      "module_version": "0.5.0",
+      "node_id": "total",
+      "output_hash": "43acf13be2448c9da4f744dc521413ee58d5a4c721c7ec733756d81959cff9f6",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+      "verification_hashes": [
+        "8caa648129ce56d3ad3ba7c68d8b124f4be7ed4a69fbbdcb0f376149e32d06b0"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "certified_continuum_poisson1d_v05",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "75694193a5697b7f82aa5ff78eb00788d33d23f233257cb6c2f20d48ec3017d5",
+    "evidence_generated": [
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "1fc376e72e3d08ff150e8ac1ab77338ce808d29def5bc6923cbda5924bc9add6",
+      "2b382b51bcda09236458c884a60605bcdcbf63fcd95f86f6fe1f0b9f560a8ed5",
+      "5dc2c947cfbc0aca61ef9f473ea259979e92af76a9913021982aaeaee8bab26f",
+      "4f54f0346688fdd5bc6f4716731755a3306e98ae4ff40bf378367d492795608b",
+      "9030fbf6c1b543812ffaeeb78ad7f19bdba17fab2f54a4d553e38806a5232f4b",
+      "c9fcd2c24f2068ab192a1434d2d74df5f43ed462d86d6258a5e4240577650a6d",
+      "1bfb0fc21d78c2a5b834563c0bfa31911b5d2e8cf226c6125206bbf0fd10e730",
+      "716e96cc3785e47362439e99b8773a9b3f63dc7b6974a83d023e33206d781d17",
+      "cb4b13f55340c58642b7cf3626843618aa1e32ce70455b86654b1d4ad8ce9670",
+      "d11dbd638dc318a474a771922e7fc62cae49e926ffbc8a2f2572d4aedd7a7b8d"
+    ],
+    "not_run_verifiers": 1,
+    "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+    "verification_records": 11
+  },
+  "outputs": {
+    "aerr": {
+      "algebraic_error_certificate": {
+        "certified": true,
+        "coercivity_method": "interval-ldlt",
+        "energy_error_upper": 1.051935543945738e-15,
+        "gershgorin_lambda_min_lower": 1.0778623597320818,
+        "scope": "computed-solution-vs-exact-discrete-solution",
+        "solution_l2_error_upper": 1.0132286858018587e-15
+      }
+    },
+    "assemble": {
+      "problem": {
+        "cell_coercivity_lower": 1.0,
+        "diffusion": 1.0,
+        "dimension": 1,
+        "source_constant": 1.0,
+        "source_linear": []
+      },
+      "system": {
+        "boundary_dofs": [
+          0,
+          6
+        ],
+        "full_dofs": 7,
+        "interior_dofs": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "matrix": {
+          "data": [
+            23.376623376623378,
+            -9.090909090909092,
+            -9.090909090909092,
+            13.438735177865615,
+            -4.347826086956523,
+            -4.347826086956523,
+            8.19397993311037,
+            -3.846153846153846,
+            -3.846153846153846,
+            9.10931174089069,
+            -5.263157894736843,
+            -5.263157894736843,
+            12.406015037593987
+          ],
+          "indices": [
+            0,
+            1,
+            0,
+            1,
+            2,
+            1,
+            2,
+            3,
+            2,
+            3,
+            4,
+            3,
+            4
+          ],
+          "indptr": [
+            0,
+            2,
+            5,
+            8,
+            11,
+            13
+          ],
+          "shape": [
+            5,
+            5
+          ]
+        },
+        "problem_class": "elliptic-p1-spd-affine-source",
+        "rhs": [
+          0.09,
+          0.16999999999999998,
+          0.24500000000000002,
+          0.225,
+          0.16499999999999998
+        ]
+      }
+    },
+    "cont": {
+      "continuum_certificate": {
+        "certified": true,
+        "elements": [
+          {
+            "element": 0,
+            "energy_error_squared_interval": [
+              2.85833333333333e-05,
+              2.8583333333333385e-05
+            ],
+            "h_interval": [
+              0.06999999999999998,
+              0.07000000000000003
+            ]
+          },
+          {
+            "element": 1,
+            "energy_error_squared_interval": [
+              0.0001109166666666665,
+              0.00011091666666666674
+            ],
+            "h_interval": [
+              0.10999999999999996,
+              0.11000000000000001
+            ]
+          },
+          {
+            "element": 2,
+            "energy_error_squared_interval": [
+              0.0010139166666666654,
+              0.0010139166666666675
+            ],
+            "h_interval": [
+              0.22999999999999993,
+              0.23000000000000004
+            ]
+          },
+          {
+            "element": 3,
+            "energy_error_squared_interval": [
+              0.0014646666666666653,
+              0.00146466666666667
+            ],
+            "h_interval": [
+              0.25999999999999995,
+              0.2600000000000002
+            ]
+          },
+          {
+            "element": 4,
+            "energy_error_squared_interval": [
+              0.0005715833333333321,
+              0.0005715833333333336
+            ],
+            "h_interval": [
+              0.1899999999999999,
+              0.19
+            ]
+          },
+          {
+            "element": 5,
+            "energy_error_squared_interval": [
+              0.0002286666666666664,
+              0.00022866666666666708
+            ],
+            "h_interval": [
+              0.13999999999999996,
+              0.14000000000000007
+            ]
+          }
+        ],
+        "energy_error_interval": [
+          0.058466514633021584,
+          0.0584665146330217
+        ],
+        "energy_error_squared_interval": [
+          0.0034183333333333275,
+          0.0034183333333333396
+        ],
+        "exact_solution": "u(x)=x(1-x)/2",
+        "identity": "||u-u_h||_E^2 = sum_K h_K^3/12",
+        "scope": "continuum-P1-Galerkin-discretization-error",
+        "theorem_id": "poisson1d-p1-constant-v1"
+      }
+    },
+    "ires": {
+      "residual_certificate": {
+        "residual_inf_interval": [
+          0.0,
+          5.551115123125786e-16
+        ],
+        "residual_l2_interval": [
+          0.0,
+          1.0921210622266272e-15
+        ],
+        "row_intervals": [
+          [
+            -4.857225732735061e-16,
+            2.0816681711721688e-16
+          ],
+          [
+            -5.273559366969495e-16,
+            4.1633363423443375e-16
+          ],
+          [
+            -4.440892098500627e-16,
+            3.8857805861880484e-16
+          ],
+          [
+            -5.551115123125784e-16,
+            4.996003610813205e-16
+          ],
+          [
+            -3.053113317719181e-16,
+            4.1633363423443375e-16
+          ]
+        ],
+        "scope": "discrete-binary64-linear-system"
+      }
+    },
+    "lean": {
+      "theorem_artifact": {
+        "assumptions": [
+          "P1 conforming partition of [0,1]",
+          "-u''=1",
+          "homogeneous Dirichlet endpoints"
+        ],
+        "language": "Lean4",
+        "lean_source": "-- CACE v0.5 theorem obligation (not yet machine checked)\nimport Mathlib\n\n/-- Scoped target: P1 FEM for -u''=1 on [0,1]. -/\ntheorem cace_poisson1d_p1_energy_error\n    (h : List \u211d)\n    (hpos : \u2200 x \u2208 h, 0 < x)\n    (hsum : h.sum = 1) :\n    True := by\n  -- TODO: formalize mesh, Galerkin solution, interpolation identity,\n  -- and prove \u2016u-u_h\u2016_E^2 = \u03a3 h_K^3/12.\n  trivial\n",
+        "machine_checked": false,
+        "status": "obligation-only",
+        "target_identity": "||u-u_h||_E^2 = sum_K h_K^3/12",
+        "theorem_id": "poisson1d-p1-constant-v1"
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0
+          ],
+          [
+            6
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          6
+        ],
+        "dimension": 1,
+        "elements": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "vertices": [
+          [
+            0.0
+          ],
+          [
+            0.07
+          ],
+          [
+            0.18
+          ],
+          [
+            0.41
+          ],
+          [
+            0.67
+          ],
+          [
+            0.86
+          ],
+          [
+            1.0
+          ]
+        ]
+      }
+    },
+    "shape": {
+      "shape_certificate": {
+        "dimension": 1,
+        "elements": [
+          {
+            "element": 0,
+            "h_interval": [
+              0.06999999999999998,
+              0.07000000000000003
+            ],
+            "shape_ratio": 2.0
+          },
+          {
+            "element": 1,
+            "h_interval": [
+              0.10999999999999996,
+              0.11000000000000001
+            ],
+            "shape_ratio": 2.0
+          },
+          {
+            "element": 2,
+            "h_interval": [
+              0.22999999999999993,
+              0.23000000000000004
+            ],
+            "shape_ratio": 2.0
+          },
+          {
+            "element": 3,
+            "h_interval": [
+              0.25999999999999995,
+              0.2600000000000002
+            ],
+            "shape_ratio": 2.0
+          },
+          {
+            "element": 4,
+            "h_interval": [
+              0.1899999999999999,
+              0.19
+            ],
+            "shape_ratio": 2.0
+          },
+          {
+            "element": 5,
+            "h_interval": [
+              0.13999999999999996,
+              0.14000000000000007
+            ],
+            "shape_ratio": 2.0
+          }
+        ],
+        "max_shape_ratio": 2.0,
+        "shape_regular": true,
+        "threshold": 2.1
+      }
+    },
+    "solve": {
+      "solution": {
+        "interior": [
+          0.03254999999999999,
+          0.07379999999999998,
+          0.12094999999999995,
+          0.11054999999999997,
+          0.06019999999999999
+        ],
+        "values": [
+          0.0,
+          0.03254999999999999,
+          0.07379999999999998,
+          0.12094999999999995,
+          0.11054999999999997,
+          0.06019999999999999,
+          0.0
+        ]
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 1,
+        "dofs": 7,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -14.285714285714285
+              ],
+              [
+                0.0,
+                14.285714285714285
+              ]
+            ],
+            "diameter": 0.07,
+            "element": [
+              0,
+              1
+            ],
+            "gradients": [
+              [
+                -14.285714285714285
+              ],
+              [
+                14.285714285714285
+              ]
+            ],
+            "volume": 0.07
+          },
+          {
+            "coefficients": [
+              [
+                1.6363636363636365,
+                -9.090909090909092
+              ],
+              [
+                -0.6363636363636365,
+                9.090909090909092
+              ]
+            ],
+            "diameter": 0.10999999999999999,
+            "element": [
+              1,
+              2
+            ],
+            "gradients": [
+              [
+                -9.090909090909092
+              ],
+              [
+                9.090909090909092
+              ]
+            ],
+            "volume": 0.10999999999999999
+          },
+          {
+            "coefficients": [
+              [
+                1.782608695652174,
+                -4.347826086956522
+              ],
+              [
+                -0.782608695652174,
+                4.347826086956522
+              ]
+            ],
+            "diameter": 0.22999999999999998,
+            "element": [
+              2,
+              3
+            ],
+            "gradients": [
+              [
+                -4.347826086956522
+              ],
+              [
+                4.347826086956522
+              ]
+            ],
+            "volume": 0.22999999999999998
+          },
+          {
+            "coefficients": [
+              [
+                2.5769230769230766,
+                -3.8461538461538454
+              ],
+              [
+                -1.5769230769230764,
+                3.8461538461538454
+              ]
+            ],
+            "diameter": 0.26000000000000006,
+            "element": [
+              3,
+              4
+            ],
+            "gradients": [
+              [
+                -3.8461538461538454
+              ],
+              [
+                3.8461538461538454
+              ]
+            ],
+            "volume": 0.26000000000000006
+          },
+          {
+            "coefficients": [
+              [
+                4.526315789473685,
+                -5.263157894736843
+              ],
+              [
+                -3.5263157894736854,
+                5.263157894736843
+              ]
+            ],
+            "diameter": 0.18999999999999995,
+            "element": [
+              4,
+              5
+            ],
+            "gradients": [
+              [
+                -5.263157894736843
+              ],
+              [
+                5.263157894736843
+              ]
+            ],
+            "volume": 0.18999999999999995
+          },
+          {
+            "coefficients": [
+              [
+                7.142857142857142,
+                -7.142857142857142
+              ],
+              [
+                -6.142857142857142,
+                7.142857142857142
+              ]
+            ],
+            "diameter": 0.14,
+            "element": [
+              5,
+              6
+            ],
+            "gradients": [
+              [
+                -7.142857142857142
+              ],
+              [
+                7.142857142857142
+              ]
+            ],
+            "volume": 0.14
+          }
+        ]
+      }
+    },
+    "total": {
+      "total_error_certificate": {
+        "algebraic_upper": 1.051935543945738e-15,
+        "bound": "||u-u_hat||_E <= ||u-u_h*||_E + ||u_h*-u_hat||_E",
+        "certified": true,
+        "continuum_upper": 0.0584665146330217,
+        "norm": "energy",
+        "upper": 0.05846651463302276
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "cb59a067-ef40-4d5f-961c-855209977893",
+  "verification": {
+    "aerr": [
+      {
+        "claim": "if the certified Gershgorin lower bound alpha is positive, ||u-u*||_2 <= ||r||_2/alpha and ||u-u*||_A <= ||r||_2/sqrt(alpha)",
+        "kind": "interval-certified",
+        "method": "certified SPD lower bound (Gershgorin or interval LDL^T) + SPD residual-error identity with outward-rounded arithmetic",
+        "metrics": {
+          "certified": true,
+          "coercivity_method": "interval-ldlt",
+          "energy_error_upper": 1.051935543945738e-15,
+          "gershgorin_lambda_min_lower": 1.0778623597320818,
+          "scope": "computed-solution-vs-exact-discrete-solution",
+          "solution_l2_error_upper": 1.0132286858018587e-15
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "discrete-spd-gershgorin-bound"
+      }
+    ],
+    "assemble": [
+      {
+        "claim": "discrete reduced operator is symmetric positive definite and every supplied diffusion tensor is SPD",
+        "kind": "numerical",
+        "method": "independent symmetry/eigenvalue checks plus elementwise diffusion spectra",
+        "metrics": {
+          "diffusion_coercivity_lower": 1.0,
+          "matrix_min_eigenvalue": 2.155724719464164,
+          "matrix_symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cert-poisson-class-assumptions"
+      }
+    ],
+    "cont": [
+      {
+        "claim": "for the scoped 1D Poisson theorem, the exact P1 Galerkin continuum energy error is enclosed by outward-rounded interval arithmetic",
+        "kind": "interval-certified",
+        "method": "closed-form element identity h^3/12 plus directed interval arithmetic",
+        "metrics": {
+          "elements": 6,
+          "energy_error_lower": 0.058466514633021584,
+          "energy_error_upper": 0.0584665146330217
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "poisson1d-continuum-energy-certificate"
+      }
+    ],
+    "ires": [
+      {
+        "claim": "the exact residual of the stored binary64 discrete system is enclosed componentwise and in infinity/L2 norm",
+        "kind": "interval-certified",
+        "method": "directed nextafter rounding for each interval product and sum",
+        "metrics": {
+          "residual_inf_upper": 5.551115123125786e-16,
+          "residual_l2_upper": 1.0921210622266272e-15
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "interval-algebraic-residual"
+      }
+    ],
+    "lean": [
+      {
+        "claim": "Lean-oriented theorem obligation contains the expected theorem id and target skeleton",
+        "kind": "symbolic",
+        "method": "structural artifact validation",
+        "metrics": {
+          "machine_checked": false,
+          "status": "obligation-only"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "lean-obligation-export-structure"
+      },
+      {
+        "claim": "the exported theorem obligation has been accepted by Lean",
+        "kind": "formally-verified",
+        "method": "Lean is not invoked and the proof body is intentionally incomplete in v0.5",
+        "metrics": {
+          "theorem_id": "poisson1d-p1-constant-v1"
+        },
+        "notes": [],
+        "state": "not-run",
+        "verifier": "lean-machine-check"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 2,
+          "dimension": 1,
+          "elements": 6,
+          "min_volume": 0.07,
+          "vertices": 7
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "shape": [
+      {
+        "claim": "mesh element shape metrics are finite; 1D element lengths are outward-rounded intervals",
+        "kind": "interval-certified",
+        "method": "simplex metric recomputation with interval edge lengths in 1D",
+        "metrics": {
+          "dimension": 1,
+          "max_shape_ratio": 2.0,
+          "shape_regular": true
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "mesh-shape-certificate"
+      }
+    ],
+    "solve": [
+      {
+        "claim": "independently recomputed reduced-system residual is small",
+        "kind": "numerical",
+        "method": "host-side CSR reconstruction and residual",
+        "metrics": {
+          "residual_inf": 1.3877787807814457e-16
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "linear-solve-residual-nd"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 4.440892098500626e-16
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ],
+    "total": [
+      {
+        "claim": "combined continuum-to-computed-solution energy error follows by triangle inequality from two certified component bounds",
+        "kind": "interval-certified",
+        "method": "triangle inequality over certified energy-norm component upper bounds",
+        "metrics": {
+          "algebraic_upper": 1.051935543945738e-15,
+          "bound": "||u-u_hat||_E <= ||u-u_h*||_E + ||u_h*-u_hat||_E",
+          "certified": true,
+          "continuum_upper": 0.0584665146330217,
+          "norm": "energy",
+          "upper": 0.05846651463302276
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "total-continuum-error-triangle-bound"
+      }
+    ]
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "exact_identity_bundle": {
+    "artifacts": {
+      "edge_orientation": {
+        "exact": true,
+        "left_direction": [
+          "(Fraction(1, 1), Fraction(0, 1))",
+          "(Fraction(0, 1), Fraction(1, 1))"
+        ],
+        "pass": true,
+        "right_direction": [
+          "(Fraction(0, 1), Fraction(1, 1))",
+          "(Fraction(1, 1), Fraction(0, 1))"
+        ],
+        "scope": "two CCW affine triangles sharing one full edge"
+      },
+      "green": {
+        "boundary": "4",
+        "edge_terms": [
+          "-13/2",
+          "13",
+          "-5/2"
+        ],
+        "exact": true,
+        "pass": true,
+        "scope": "affine vector fields on one rational triangle",
+        "volume": "4"
+      },
+      "residual": {
+        "exact": true,
+        "identity": "sum(element boundary fluxes on interior edge) = oriented flux jump",
+        "orientation": {
+          "exact": true,
+          "left_direction": [
+            "(Fraction(1, 1), Fraction(0, 1))",
+            "(Fraction(0, 1), Fraction(1, 1))"
+          ],
+          "pass": true,
+          "right_direction": [
+            "(Fraction(0, 1), Fraction(1, 1))",
+            "(Fraction(1, 1), Fraction(0, 1))"
+          ],
+          "scope": "two CCW affine triangles sharing one full edge"
+        },
+        "pass": true,
+        "scope": "algebraic interior-edge residual bookkeeping"
+      }
+    },
+    "pass": true,
+    "scope": "exact finite-dimensional identities",
+    "sha256": "4c2c036c7ce1d363414576154d45098c2e0aa4963c984ec8f75a7884d7d00eeb"
+  },
+  "milestone": {
+    "blocking_nodes": [
+      "quasi_interpolation_local",
+      "trace_local",
+      "mesh_uniform_overlap_bound"
+    ],
+    "closed_exact_chain": [
+      "edge_orientation_cancellation",
+      "elementwise_green_identity",
+      "residual_representation"
+    ],
+    "pass": true,
+    "promotion_policy": "refuse general theorem promotion while any blocking analytic node is open",
+    "release": "1.0.0",
+    "reliability_theorem_formally_verified": false,
+    "reliability_theorem_symbolically_closed": false,
+    "run_specific_reliability_certificate_available": true,
+    "sha256": "389a905ced6c9de9b2c176b5db118dec5d72e073c204623d212e07d25db6d55c"
+  },
+  "program": "reliability_theorem development v0.77-v1.0",
+  "qualification": {
+    "compileall": "PASS",
+    "historical_fem_v010_v020_plus_cert2d": "67/67 PASS",
+    "new_release_tests": "24/24 PASS",
+    "registry": "PASS",
+    "single_monolithic_historical_suite": "not claimed in this build; qualified by targeted partitions",
+    "v0.76_plus_new": "29/29 PASS"
+  },
+  "readiness_audit": {
+    "blocking_nodes": [
+      "quasi_interpolation_local",
+      "trace_local",
+      "mesh_uniform_overlap_bound"
+    ],
+    "closed": [
+      "edge_orientation_cancellation",
+      "elementwise_green_identity",
+      "residual_representation",
+      "finite_overlap",
+      "coercivity",
+      "estimator_definition"
+    ],
+    "open": [
+      "mesh_uniform_overlap_bound",
+      "quasi_interpolation_local",
+      "reliability_theorem",
+      "trace_local"
+    ],
+    "pass": true,
+    "reason": "general all-H1 local approximation/trace and family-uniform overlap bounds are not machine-closed",
+    "reliability_promotable": false
+  },
+  "release": "1.0.0",
+  "run_specific_certificate": {
+    "C_rel_run": 0.04149968621576057,
+    "certified_inequality_holds": true,
+    "error_upper": 0.05367176572683317,
+    "eta_lower": 1.2933053384497626,
+    "mesh_uniform_theorem": false,
+    "pass": true,
+    "scope": "this manufactured run only"
+  },
+  "sha256": "78c54232ebcc9afbe1c811ffd495c3e48989158d023347a5cce2c861ae2c0d72",
+  "theorem_dag": {
+    "depends_on": {
+      "reliability_theorem": [
+        "residual_representation",
+        "quasi_interpolation_local",
+        "trace_local",
+        "mesh_uniform_overlap_bound",
+        "coercivity",
+        "estimator_definition"
+      ]
+    },
+    "nodes": {
+      "coercivity": "closed-premise-bridge",
+      "edge_orientation_cancellation": "closed-exact",
+      "elementwise_green_identity": "closed-exact-affine",
+      "estimator_definition": "closed-implemented",
+      "finite_overlap": "closed-run-specific",
+      "mesh_uniform_overlap_bound": "open-family-level-obligation",
+      "quasi_interpolation_local": "open-analytic-obligation",
+      "reliability_theorem": "open",
+      "residual_representation": "closed-symbolic-bookkeeping",
+      "trace_local": "open-analytic-obligation"
+    },
+    "open": [
+      "mesh_uniform_overlap_bound",
+      "quasi_interpolation_local",
+      "reliability_theorem",
+      "trace_local"
+    ],
+    "reliability_promotable": false
+  }
+}

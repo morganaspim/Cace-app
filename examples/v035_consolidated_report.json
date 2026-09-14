@@ -1,0 +1,193 @@
+{
+  "all_checks_pass": true,
+  "checks": {
+    "checkpoint_tamper_detection": true,
+    "discrete_3d_exact": true,
+    "fault_refusal": true,
+    "matrix_health": true,
+    "multi_rhs_ok": true,
+    "provenance_verified": true,
+    "refinement_ok": true,
+    "reproducible": true
+  },
+  "evidence_boundary": {
+    "exact_sparse_discrete": "symbolic/exact",
+    "formal_continuum_pde": false,
+    "native_numeric": "numerical",
+    "provenance": "cryptographic-content-integrity"
+  },
+  "parts": {
+    "checkpoints": {
+      "all_certified": true,
+      "chain_valid": true,
+      "checkpoints": [
+        {
+          "digest": "a4f04d7f44a162520dfa6593d2b2665649ba89c53e56a90246d8e94c2f73814b",
+          "index": 0,
+          "previous": "0000000000000000000000000000000000000000000000000000000000000000",
+          "row": {
+            "analysis_ms": 8.521292998921126,
+            "certified": true,
+            "dimension": 25,
+            "factor_nnz": 106,
+            "fill": 31,
+            "grid": 6,
+            "input_nnz": 125,
+            "winner": "minimum-degree"
+          }
+        },
+        {
+          "digest": "394fa7646916250fd0e5e666f5b8b6aecedbe9c9bd327f6a053c2d7eaeaa9f12",
+          "index": 1,
+          "previous": "a4f04d7f44a162520dfa6593d2b2665649ba89c53e56a90246d8e94c2f73814b",
+          "row": {
+            "analysis_ms": 9.942393000528682,
+            "certified": true,
+            "dimension": 49,
+            "factor_nnz": 252,
+            "fill": 119,
+            "grid": 8,
+            "input_nnz": 217,
+            "winner": "minimum-degree"
+          }
+        },
+        {
+          "digest": "2607258230e8423669c3d98ef4932e179184a516af06e0ca0ab1411b642a1adb",
+          "index": 2,
+          "previous": "394fa7646916250fd0e5e666f5b8b6aecedbe9c9bd327f6a053c2d7eaeaa9f12",
+          "row": {
+            "analysis_ms": 463.28461700068146,
+            "certified": true,
+            "dimension": 81,
+            "factor_nnz": 489,
+            "fill": 240,
+            "grid": 10,
+            "input_nnz": 417,
+            "winner": "minimum-degree"
+          }
+        }
+      ],
+      "release": "0.28.0",
+      "tamper_detected": true,
+      "terminal_digest": "2607258230e8423669c3d98ef4932e179184a516af06e0ca0ab1411b642a1adb"
+    },
+    "diagnostics": {
+      "diagonal_max": 4.000000000000002,
+      "diagonal_min": 4.000000000000002,
+      "dimension": 49,
+      "gershgorin_lower": 0.0,
+      "gershgorin_upper": 8.000000000000004,
+      "jacobi_scaled_inf_norm": 2.0,
+      "positive_diagonal": true,
+      "release": "0.29.0",
+      "scope": "diagnostics/proxies only; Gershgorin lower bound may be nonpositive for an SPD matrix",
+      "symmetric": true
+    },
+    "discrete_3d": {
+      "certified": true,
+      "dimension": 27,
+      "factor_nnz": 147,
+      "input_nnz": 135,
+      "natural_fill": 128,
+      "ordered_fill": 66,
+      "release": "0.31.0",
+      "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+    },
+    "faults": {
+      "all_faults_detected": true,
+      "asymmetry_rejected": true,
+      "baseline_certified": true,
+      "indefinite_rejected": true,
+      "release": "0.34.0",
+      "tampered_bundle_rejected": true
+    },
+    "mixed_precision": {
+      "dimension": 25,
+      "exact_structure_certified": true,
+      "final_residual": 8.881784197001252e-16,
+      "improved": true,
+      "initial_residual": 2.738591788897793e-07,
+      "max_solution_error": 2.220446049250313e-16,
+      "release": "0.27.0",
+      "residual_history": [
+        2.738591788897793e-07,
+        1.4210854715202004e-14,
+        8.881784197001252e-16
+      ],
+      "scope": "mixed-precision numerical refinement backed by separate exact structural certificate"
+    },
+    "multi_rhs": {
+      "backend": "cpp20-cabi",
+      "dimension": 25,
+      "exact_structure_certified": true,
+      "max_residual_inf": 1.7763568394002505e-15,
+      "max_solution_error": 6.661338147750939e-16,
+      "release": "0.30.0",
+      "results": [
+        {
+          "max_solution_error": 6.661338147750939e-16,
+          "residual_inf": 1.5543122344752192e-15,
+          "rhs": 0
+        },
+        {
+          "max_solution_error": 4.440892098500626e-16,
+          "residual_inf": 1.3322676295501878e-15,
+          "rhs": 1
+        },
+        {
+          "max_solution_error": 4.440892098500626e-16,
+          "residual_inf": 1.7763568394002505e-15,
+          "rhs": 2
+        }
+      ],
+      "rhs_count": 3
+    },
+    "provenance": {
+      "items": {
+        "diagnostics": {
+          "diagonal_max": 4.000000000000002,
+          "diagonal_min": 4.000000000000002,
+          "dimension": 49,
+          "gershgorin_lower": 0.0,
+          "gershgorin_upper": 8.000000000000004,
+          "jacobi_scaled_inf_norm": 2.0,
+          "positive_diagonal": true,
+          "release": "0.29.0",
+          "scope": "diagnostics/proxies only; Gershgorin lower bound may be nonpositive for an SPD matrix",
+          "symmetric": true
+        },
+        "repro": {
+          "algorithm": "sha256(canonical-json)",
+          "dimension": 49,
+          "fingerprint": "fec08053d3bfcbdcc04357666ce58485213caa994c352b2c6ddfe58b7f037410",
+          "release": "0.26.0",
+          "repeat_fingerprint": "fec08053d3bfcbdcc04357666ce58485213caa994c352b2c6ddfe58b7f037410",
+          "scope": "reproducibility identity; not a mathematical proof",
+          "stable": true,
+          "winner": "minimum-degree"
+        }
+      },
+      "manifest": {
+        "leaves": {
+          "diagnostics": "bc9d2db4f1e35d5bfa4a949181125eeda9b5458fb4f8c4eeef88d274eaea2ac6",
+          "repro": "77cb01f491f1a90ec05291fb33f7bd21ee55e942476e597978f55fdb665d244c"
+        },
+        "root": "c410bb909605128bc45704b161959c7561d5d558fdb8faee79160ba2ac0626d3",
+        "schema": "cace-content-bundle-v1"
+      },
+      "release": "0.33.0",
+      "verified": true
+    },
+    "repro": {
+      "algorithm": "sha256(canonical-json)",
+      "dimension": 49,
+      "fingerprint": "fec08053d3bfcbdcc04357666ce58485213caa994c352b2c6ddfe58b7f037410",
+      "release": "0.26.0",
+      "repeat_fingerprint": "fec08053d3bfcbdcc04357666ce58485213caa994c352b2c6ddfe58b7f037410",
+      "scope": "reproducibility identity; not a mathematical proof",
+      "stable": true,
+      "winner": "minimum-degree"
+    }
+  },
+  "release": "0.35.0"
+}

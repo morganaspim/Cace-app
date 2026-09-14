@@ -1,0 +1,500 @@
+{
+  "campaign": "Discrete Prager-Synge Closure + continuum generalization infrastructure",
+  "critical_path": {
+    "v3.03_hilbert": {
+      "exact": true,
+      "inner": "0",
+      "lean_target": "CACEFormal.hypercircle_of_inner_eq_zero",
+      "lhs": "61/225",
+      "pass": true,
+      "rhs": "61/225"
+    },
+    "v3.04_abstract_operator": {
+      "abstraction": "Hilbert errors plus orthogonality; PDE layer supplies admissibility",
+      "exact": true,
+      "lhs": "158/225",
+      "pass": true,
+      "rhs": "158/225",
+      "weighted_inner": "0"
+    },
+    "v3.05_weighted_energy": {
+      "A": [
+        [
+          "2",
+          "1"
+        ],
+        [
+          "1",
+          "2"
+        ]
+      ],
+      "Ainv": [
+        [
+          "2/3",
+          "-1/3"
+        ],
+        [
+          "-1/3",
+          "2/3"
+        ]
+      ],
+      "exact": true,
+      "inverse_check": [
+        [
+          "1",
+          "0"
+        ],
+        [
+          "0",
+          "1"
+        ]
+      ],
+      "pass": true
+    },
+    "v3.06_admissible_spaces": {
+      "exact": true,
+      "interpretation": "admissible set = x0 + ker(C)",
+      "kernel_direction": [
+        "1",
+        "-1",
+        "1"
+      ],
+      "particular": [
+        "1",
+        "0",
+        "1"
+      ],
+      "pass": true
+    },
+    "v3.07_green": {
+      "boundary": "7/2",
+      "edge_terms": [
+        "-1",
+        "7",
+        "-5/2"
+      ],
+      "exact": true,
+      "formal_target": "simplex weak Green/divergence identity",
+      "pass": true,
+      "scope": "affine vector fields on one rational triangle",
+      "volume": "7/2"
+    },
+    "v3.08_face_cancellation": {
+      "exact": true,
+      "orientation": {
+        "exact": true,
+        "left_direction": [
+          "(Fraction(1, 1), Fraction(0, 1))",
+          "(Fraction(0, 1), Fraction(1, 1))"
+        ],
+        "pass": true,
+        "right_direction": [
+          "(Fraction(0, 1), Fraction(1, 1))",
+          "(Fraction(1, 1), Fraction(0, 1))"
+        ],
+        "scope": "two CCW affine triangles sharing one full edge"
+      },
+      "pass": true,
+      "residual_bookkeeping": {
+        "exact": true,
+        "identity": "sum(element boundary fluxes on interior edge) = oriented flux jump",
+        "orientation": {
+          "exact": true,
+          "left_direction": [
+            "(Fraction(1, 1), Fraction(0, 1))",
+            "(Fraction(0, 1), Fraction(1, 1))"
+          ],
+          "pass": true,
+          "right_direction": [
+            "(Fraction(0, 1), Fraction(1, 1))",
+            "(Fraction(1, 1), Fraction(0, 1))"
+          ],
+          "scope": "two CCW affine triangles sharing one full edge"
+        },
+        "pass": true,
+        "scope": "algebraic interior-edge residual bookkeeping"
+      }
+    },
+    "v3.09_hdiv": {
+      "equilibrium_matrix": [
+        [
+          "1",
+          "1",
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "-1",
+          "1",
+          "1"
+        ]
+      ],
+      "exact": true,
+      "flux_dofs": [
+        "1/6",
+        "1/6",
+        "1/6",
+        "1/3",
+        "1/3"
+      ],
+      "interior_face_sign_pairs": [
+        [
+          1,
+          -1
+        ]
+      ],
+      "pass": true,
+      "residual": [
+        "0",
+        "0"
+      ],
+      "source_integrals": [
+        "1/2",
+        "1/2"
+      ]
+    },
+    "v3.10_discrete_closure": {
+      "artifact": {
+        "dual_error": [
+          "0",
+          "2/5"
+        ],
+        "equilibrium_matrix": [
+          [
+            "1",
+            "1",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "0",
+            "-1",
+            "1",
+            "1"
+          ]
+        ],
+        "flux_dofs": [
+          "1/6",
+          "1/6",
+          "1/6",
+          "1/3",
+          "1/3"
+        ],
+        "interior_face_sign_pairs": [
+          [
+            1,
+            -1
+          ]
+        ],
+        "primal_error": [
+          "1/3",
+          "0"
+        ],
+        "source_integrals": [
+          "1/2",
+          "1/2"
+        ],
+        "theorem_id": "prager-synge-discrete-instance-v3.10",
+        "weight": [
+          [
+            "2",
+            "0"
+          ],
+          [
+            "0",
+            "3"
+          ]
+        ]
+      },
+      "continuum_theorem_lean_checked": false,
+      "custom_formal_instance": true,
+      "exact_checker": {
+        "artifact_sha256": "9febfd9c08b10cff6c8b858e2007cdbe6a131127aa1d15ea567ca15282f6a98b",
+        "checker": "CACE-Prager-Synge-Exact-Kernel",
+        "checker_version": "3.10.0",
+        "errors": [],
+        "invocation": "independent-subprocess",
+        "passed": true,
+        "process_returncode": 0,
+        "stderr": ""
+      },
+      "general_discrete_theorem_lean_checked": false,
+      "lean_theorem_status": "NOT_RUN",
+      "pass": true
+    }
+  },
+  "external_research": [
+    {
+      "note": "elan is the recommended version manager; lake manages projects/builds",
+      "source": "Lean install manual",
+      "url": "https://lean-lang.org/install/manual/"
+    },
+    {
+      "note": "pin used by CACE formal project; short release commit 520045a",
+      "source": "mathlib4 v4.32.1 release",
+      "url": "https://github.com/leanprover-community/mathlib4/releases/tag/v4.32.1"
+    },
+    {
+      "note": "existing Pythagorean/orthogonal projection infrastructure",
+      "source": "Mathlib InnerProductSpace Basic/Projection",
+      "url": "https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/InnerProductSpace/Projection/Basic.html"
+    }
+  ],
+  "formal_project": {
+    "lake_manifest": "not generated until lake update succeeds",
+    "pass": true,
+    "pinned": {
+      "lean": "leanprover/lean4:v4.32.1",
+      "mathlib": "v4.32.1",
+      "mathlib_commit_short": "520045a"
+    },
+    "project": "formal/cace_formal",
+    "required_files": [
+      "lean-toolchain",
+      "lakefile.lean",
+      "TOOLCHAIN_LOCK.json",
+      "CACEFormal/Hypercircle.lean",
+      "CACEFormal/AbstractPragerSynge.lean"
+    ]
+  },
+  "milestone": {
+    "continuum": {
+      "continuum_formal_complete": false,
+      "obligations": {
+        "H1_weak_gradient": "open-in-CACE-formal",
+        "Hdiv_divergence_normal_trace": "open",
+        "bochner_L2_vector_fields": "library-dependent",
+        "bounded_lipschitz_trace": "open",
+        "continuum_admissible_affine_spaces": "open",
+        "continuum_prager_synge": "blocked-by-above",
+        "green_identity_lipschitz": "open",
+        "weighted_SPD_operator": "partial"
+      },
+      "pass": true,
+      "recommended_order": [
+        "H1/Hdiv API",
+        "normal trace",
+        "Green identity",
+        "admissibility",
+        "orthogonality",
+        "Prager-Synge"
+      ]
+    },
+    "critical_path": {
+      "certificate_bridge": true,
+      "ci_gate": "BLOCKED_NOT_RUN",
+      "exact_discrete_instance": true,
+      "lean_external_proof_run": false,
+      "pinned_project": true
+    },
+    "full_machine_formal_discrete_prager_synge": false,
+    "next_unlock": "run pinned cace_formal project with Lean/mathlib, then close DiscreteOrthogonality.lean",
+    "pass": true,
+    "reason": "Lean build not attested in this runtime and mesh-admissibility-to-orthogonality remains open",
+    "release": "3.20.0"
+  },
+  "qualification": {
+    "compileall": "PASS",
+    "lean_gate": "NOT_RUN",
+    "new_v301_v320_tests": "22/22 PASS",
+    "registry": "PASS",
+    "selected_historical_regressions": "14/14 PASS",
+    "tamper_rejection": "2/2 PASS"
+  },
+  "release": "3.20.0",
+  "sha256": "db2bc11412b3ff27ab316a217fbb8d46090998a13f452ce726b6e3c8859d0f11",
+  "supporting_program": {
+    "blueprint": {
+      "blueprint_sha256": "4cb3fa73332df88c1ccbb9939ba96466c74ac439d30ff704392204a036f0176f",
+      "dependencies": {
+        "continuum_prager_synge": [
+          "discrete_prager_synge",
+          "continuum_hdiv_trace"
+        ],
+        "discrete_prager_synge": [
+          "hilbert_pythagoras",
+          "weighted_energy",
+          "mesh_admissibility_to_orthogonality"
+        ],
+        "mesh_admissibility_to_orthogonality": [
+          "simplex_green",
+          "face_cancellation",
+          "finite_mesh_hdiv"
+        ]
+      },
+      "nodes": {
+        "admissible_spaces": "source/spec-ready",
+        "continuum_hdiv_trace": "open",
+        "discrete_prager_synge": "lean-source-ready-after-orthogonality",
+        "face_cancellation": "exact-kernel-closed",
+        "finite_mesh_hdiv": "exact-kernel-closed",
+        "hilbert_pythagoras": "source-ready",
+        "mesh_admissibility_to_orthogonality": "lean-open",
+        "simplex_green": "exact-kernel-closed",
+        "toolchain": "blocked-runtime-network",
+        "weighted_energy": "source/spec-ready"
+      },
+      "pass": true
+    },
+    "certificate_to_lean": {
+      "artifact_sha256": "9febfd9c08b10cff6c8b858e2007cdbe6a131127aa1d15ea567ca15282f6a98b",
+      "pass": true,
+      "theorem_namespace": "CACEFormal.Generated"
+    },
+    "ci_gate": {
+      "build_attestation": {
+        "passed": false,
+        "payload": {
+          "commands": [],
+          "lake": null,
+          "lean": null,
+          "passed": false,
+          "project_files_sha256": "74144d875fa6dc36bfd961cf4878afdf3b65f019b1026e8d40330f77112d96c1",
+          "reason": "lake executable not available",
+          "status": "NOT_RUN",
+          "timestamp_unix": 1789348341.1692183
+        },
+        "present": true
+      },
+      "formal_promotion_allowed": false,
+      "gate_status": "BLOCKED_NOT_RUN",
+      "lean_available": false,
+      "pass": true,
+      "promotion_rule": "FORMAL evidence requires a successful persisted build attestation and theorem-hash match",
+      "required_commands": [
+        "lake update",
+        "lake exe cache get",
+        "lake build"
+      ]
+    },
+    "continuum": {
+      "continuum_formal_complete": false,
+      "obligations": {
+        "H1_weak_gradient": "open-in-CACE-formal",
+        "Hdiv_divergence_normal_trace": "open",
+        "bochner_L2_vector_fields": "library-dependent",
+        "bounded_lipschitz_trace": "open",
+        "continuum_admissible_affine_spaces": "open",
+        "continuum_prager_synge": "blocked-by-above",
+        "green_identity_lipschitz": "open",
+        "weighted_SPD_operator": "partial"
+      },
+      "pass": true,
+      "recommended_order": [
+        "H1/Hdiv API",
+        "normal trace",
+        "Green identity",
+        "admissibility",
+        "orthogonality",
+        "Prager-Synge"
+      ]
+    },
+    "cross_prover": {
+      "crosswalk": [
+        [
+          "simplex affine maps",
+          "Lean: affine/simplex API",
+          "Coq FEM references: geometry/mapping decomposition"
+        ],
+        [
+          "Lagrange/RT DOFs",
+          "Lean: explicit finite-dimensional structures",
+          "Coq FEM references: unisolvence/specification pattern"
+        ],
+        [
+          "Green/integration",
+          "Lean: Mathlib measure/integral layer",
+          "Coq references: detailed FE proof decomposition"
+        ],
+        [
+          "Prager-Synge",
+          "Lean target",
+          "cross-check only; no prover switch"
+        ]
+      ],
+      "pass": true,
+      "policy": "borrow lemma decomposition; Lean remains primary external prover"
+    },
+    "dual_verifier": {
+      "binding_sha256": "c6a58e1f7cc1d13437d213b44c58ae25ad7a396dcfdc9eaeb3f118bf069a240c",
+      "dual_verification_complete": false,
+      "formal_evidence_promotable": false,
+      "pass": true,
+      "payload": {
+        "artifact_sha256": "9febfd9c08b10cff6c8b858e2007cdbe6a131127aa1d15ea567ca15282f6a98b",
+        "exact_checker_passed": true,
+        "lean_build_passed": false
+      }
+    },
+    "mesh_combinatorics": {
+      "boundary_of_boundary": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "exact": true,
+      "formal_target": "simplicial incidence and orientation",
+      "pass": true
+    },
+    "piola": {
+      "exact": true,
+      "mapping": "contravariant Piola",
+      "pass": true,
+      "physical_flux": "-2",
+      "q_phys": [
+        "2/3",
+        "5/2"
+      ],
+      "reference_flux": "-2"
+    },
+    "signatures": {
+      "frozen": true,
+      "pass": true,
+      "signature_sha256": "f87e52ca678db0b856942587bf2ba6c8ac52bc3e3456054d5f5718779c2145b4",
+      "signatures": {
+        "abstract_prager_synge": "PDE orthogonality -> hypercircle identity",
+        "discrete_prager_synge_of_orthogonality": "finite-mesh orthogonality -> discrete identity",
+        "hypercircle_of_inner_eq_zero": "inner x y = 0 -> normSq(x+y)=normSq x+normSq y",
+        "mesh_admissibility_to_orthogonality": "OPEN: Green + face cancellation + equilibrium -> orthogonality"
+      }
+    },
+    "upstream_lemmas": {
+      "candidate_lemmas": [
+        "affine_simplex_divergence_theorem",
+        "simplicial_boundary_orientation_cancellation",
+        "affine_piola_normal_flux_preservation",
+        "finite_mesh_piecewise_green_identity",
+        "rt_normal_moment_global_cancellation",
+        "weighted_hypercircle_from_orthogonality"
+      ],
+      "pass": true,
+      "submitted_upstream": false,
+      "target": "small generic Mathlib-friendly lemmas; no private monolith"
+    }
+  },
+  "toolchain": {
+    "bootstrap_attempt": "FAILED_DNS",
+    "bootstrap_host": "elan.lean-lang.org",
+    "executables": {
+      "elan": null,
+      "lake": null,
+      "lean": null
+    },
+    "formal_status": "NOT_RUN",
+    "lean_available": false,
+    "pass": true,
+    "pin": {
+      "lean": "leanprover/lean4:v4.32.1",
+      "mathlib": "v4.32.1",
+      "mathlib_commit_short": "520045a"
+    }
+  }
+}
+

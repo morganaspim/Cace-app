@@ -1,0 +1,253 @@
+[
+  {
+    "capability": "RT1 Global DOF Topology",
+    "evidence_kind": "symbolic",
+    "release": "2.51"
+  },
+  {
+    "capability": "RT1 Piola and Orientation",
+    "evidence_kind": "symbolic",
+    "release": "2.52"
+  },
+  {
+    "capability": "RT1 Sparse Assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.53"
+  },
+  {
+    "capability": "RT1 Sparse KKT Equilibration",
+    "evidence_kind": "symbolic",
+    "release": "2.54"
+  },
+  {
+    "capability": "RT1 Static Condensation",
+    "evidence_kind": "symbolic",
+    "release": "2.55"
+  },
+  {
+    "capability": "RT1 Patchwise Reconstruction",
+    "evidence_kind": "symbolic",
+    "release": "2.56"
+  },
+  {
+    "capability": "RT1 Production Campaign",
+    "evidence_kind": "symbolic",
+    "release": "2.57"
+  },
+  {
+    "capability": "3D Face Topology and Orientation",
+    "evidence_kind": "symbolic",
+    "release": "2.58"
+  },
+  {
+    "capability": "3D Piola RT0 Audit",
+    "evidence_kind": "symbolic",
+    "release": "2.59"
+  },
+  {
+    "capability": "3D Sparse Equilibrium Assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.60"
+  },
+  {
+    "capability": "3D Patchwise Equilibration",
+    "evidence_kind": "symbolic",
+    "release": "2.61"
+  },
+  {
+    "capability": "3D SPD Constitutive Minimization",
+    "evidence_kind": "symbolic",
+    "release": "2.62"
+  },
+  {
+    "capability": "3D Source Projection and Oscillation",
+    "evidence_kind": "symbolic",
+    "release": "2.63"
+  },
+  {
+    "capability": "3D Prager-Synge Campaign",
+    "evidence_kind": "symbolic",
+    "release": "2.64"
+  },
+  {
+    "capability": "Formal Hilbert Hypercircle Core",
+    "evidence_kind": "symbolic",
+    "release": "2.65"
+  },
+  {
+    "capability": "Formal Admissible Spaces",
+    "evidence_kind": "symbolic",
+    "release": "2.66"
+  },
+  {
+    "capability": "Formal Weak Green Bridge",
+    "evidence_kind": "symbolic",
+    "release": "2.67"
+  },
+  {
+    "capability": "Formal PDE Orthogonality",
+    "evidence_kind": "symbolic",
+    "release": "2.68"
+  },
+  {
+    "capability": "Formal Weighted Energy",
+    "evidence_kind": "symbolic",
+    "release": "2.69"
+  },
+  {
+    "capability": "Lean Prager-Synge Export",
+    "evidence_kind": "symbolic",
+    "release": "2.70"
+  },
+  {
+    "capability": "Prager-Synge Formal Attestation",
+    "evidence_kind": "symbolic",
+    "release": "2.71"
+  },
+  {
+    "capability": "Stokes Taylor-Hood Topology",
+    "evidence_kind": "symbolic",
+    "release": "2.72"
+  },
+  {
+    "capability": "Stokes Sparse Saddle Assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.73"
+  },
+  {
+    "capability": "Stokes Inf-Sup Family Audit",
+    "evidence_kind": "symbolic",
+    "release": "2.74"
+  },
+  {
+    "capability": "Stokes Pressure-Robust Reconstruction",
+    "evidence_kind": "numerical",
+    "release": "2.75"
+  },
+  {
+    "capability": "Stokes Fortin Audit",
+    "evidence_kind": "symbolic",
+    "release": "2.76"
+  },
+  {
+    "capability": "Stokes Schur Preconditioner",
+    "evidence_kind": "symbolic",
+    "release": "2.77"
+  },
+  {
+    "capability": "Stokes Production Campaign",
+    "evidence_kind": "numerical",
+    "release": "2.78"
+  },
+  {
+    "capability": "Nedelec Reference Element",
+    "evidence_kind": "symbolic",
+    "release": "2.79"
+  },
+  {
+    "capability": "Nedelec Orientation",
+    "evidence_kind": "symbolic",
+    "release": "2.80"
+  },
+  {
+    "capability": "Maxwell Exact Sequence",
+    "evidence_kind": "symbolic",
+    "release": "2.81"
+  },
+  {
+    "capability": "Maxwell Sparse Operator",
+    "evidence_kind": "symbolic",
+    "release": "2.82"
+  },
+  {
+    "capability": "Maxwell Boundary and Gauge",
+    "evidence_kind": "symbolic",
+    "release": "2.83"
+  },
+  {
+    "capability": "Maxwell Spurious-Mode Audit",
+    "evidence_kind": "symbolic",
+    "release": "2.84"
+  },
+  {
+    "capability": "Maxwell Equilibrated Estimator",
+    "evidence_kind": "numerical",
+    "release": "2.85"
+  },
+  {
+    "capability": "Sparse LDLT Inertia",
+    "evidence_kind": "symbolic",
+    "release": "2.86"
+  },
+  {
+    "capability": "Eigen Sparse Ordering",
+    "evidence_kind": "symbolic",
+    "release": "2.87"
+  },
+  {
+    "capability": "Certified Inertia Bisection",
+    "evidence_kind": "symbolic",
+    "release": "2.88"
+  },
+  {
+    "capability": "Spectral Initial Brackets",
+    "evidence_kind": "numerical",
+    "release": "2.89"
+  },
+  {
+    "capability": "Spectral Residual Bounds",
+    "evidence_kind": "numerical",
+    "release": "2.90"
+  },
+  {
+    "capability": "Lehmann-Goerisch Fixture",
+    "evidence_kind": "numerical",
+    "release": "2.91"
+  },
+  {
+    "capability": "Verified Eigensolver Campaign",
+    "evidence_kind": "symbolic",
+    "release": "2.92"
+  },
+  {
+    "capability": "Production Solver Family Interface",
+    "evidence_kind": "symbolic",
+    "release": "2.93"
+  },
+  {
+    "capability": "SIPG Sparse Assembly",
+    "evidence_kind": "symbolic",
+    "release": "2.94"
+  },
+  {
+    "capability": "DG Equilibrated Estimator",
+    "evidence_kind": "numerical",
+    "release": "2.95"
+  },
+  {
+    "capability": "SUPG Sparse Assembly",
+    "evidence_kind": "numerical",
+    "release": "2.96"
+  },
+  {
+    "capability": "Elasticity Global Assembly",
+    "evidence_kind": "numerical",
+    "release": "2.97"
+  },
+  {
+    "capability": "Contact Active-Set Solver",
+    "evidence_kind": "numerical",
+    "release": "2.98"
+  },
+  {
+    "capability": "Helmholtz Block-Real Solver",
+    "evidence_kind": "numerical",
+    "release": "2.99"
+  },
+  {
+    "capability": "CACE v3.0 Production Milestone",
+    "evidence_kind": "symbolic",
+    "release": "3.0"
+  }
+]
+

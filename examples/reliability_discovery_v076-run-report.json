@@ -1,0 +1,595 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T22:59:00.834428+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem76.reliability_discovery",
+      "module_version": "0.76.0",
+      "node_id": "discovery",
+      "output_hash": "9d101cdfa09db35c53662dcc30678a744ade90e455f89788586c151ac6f8644d",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "6eb4d0b3-89a3-4e2e-aabe-33d62085859d",
+      "verification_hashes": [
+        "31056e250278ed3c2c719d7d723df5915e5b609e5a2f1713dacde4494f4f62db"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "CACE v0.76 Reliability Theorem Discovery",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "151a353e76be13b2f9f63612eaf500136783d5ba68263d5e7772bc40b6a46950",
+    "evidence_generated": [
+      "numerical"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "746612e64035e0a94e0d0f967cc7c9814bf1f0c7463393636541027127c8435e"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "6eb4d0b3-89a3-4e2e-aabe-33d62085859d",
+    "verification_records": 1
+  },
+  "outputs": {
+    "discovery": {
+      "result": {
+        "ablation": [
+          {
+            "empirical_warning": true,
+            "max_ratio_off": 8.0,
+            "max_ratio_on": 12.0,
+            "n_off": 1,
+            "n_on": 18,
+            "premise": "conforming_mesh",
+            "stress_factor": 0.6666666666666666
+          },
+          {
+            "empirical_warning": true,
+            "max_ratio_off": 6.0,
+            "max_ratio_on": 12.0,
+            "n_off": 1,
+            "n_on": 18,
+            "premise": "shape_regular_family",
+            "stress_factor": 0.5
+          },
+          {
+            "empirical_warning": true,
+            "max_ratio_off": 7.0,
+            "max_ratio_on": 12.0,
+            "n_off": 1,
+            "n_on": 18,
+            "premise": "uniform_ellipticity",
+            "stress_factor": 0.5833333333333334
+          },
+          {
+            "empirical_warning": true,
+            "max_ratio_off": 10.0,
+            "max_ratio_on": 12.0,
+            "n_off": 1,
+            "n_on": 18,
+            "premise": "residual_term",
+            "stress_factor": 0.8333333333333334
+          },
+          {
+            "empirical_warning": true,
+            "max_ratio_off": 12.0,
+            "max_ratio_on": 10.0,
+            "n_off": 1,
+            "n_on": 18,
+            "premise": "jump_term",
+            "stress_factor": 1.2
+          },
+          {
+            "empirical_warning": true,
+            "max_ratio_off": 5.0,
+            "max_ratio_on": 12.0,
+            "n_off": 1,
+            "n_on": 18,
+            "premise": "homogeneous_dirichlet",
+            "stress_factor": 0.4166666666666667
+          }
+        ],
+        "candidate_constant": {
+          "available": true,
+          "best": {
+            "coefficient": 0.6468,
+            "covers_observed_good_cases": true,
+            "mean_relative_slack": 1.3181927064452432,
+            "shape_exponent": 0.0
+          },
+          "candidates": [
+            {
+              "coefficient": 0.6468,
+              "covers_observed_good_cases": true,
+              "mean_relative_slack": 1.3181927064452432,
+              "shape_exponent": 0.0
+            },
+            {
+              "coefficient": 0.32371348442720144,
+              "covers_observed_good_cases": true,
+              "mean_relative_slack": 2.4087199919969255,
+              "shape_exponent": 0.5
+            },
+            {
+              "coefficient": 0.22890000000000002,
+              "covers_observed_good_cases": true,
+              "mean_relative_slack": 6.606067933600935,
+              "shape_exponent": 1.0
+            },
+            {
+              "coefficient": 0.16185674221360072,
+              "covers_observed_good_cases": true,
+              "mean_relative_slack": 16.6946287902577,
+              "shape_exponent": 1.5
+            },
+            {
+              "coefficient": 0.11445000000000001,
+              "covers_observed_good_cases": true,
+              "mean_relative_slack": 41.14614783755522,
+              "shape_exponent": 2.0
+            }
+          ],
+          "model": "C_candidate = coefficient * gamma^p / sqrt(alpha)",
+          "scope": "empirical upper envelope over observed all-premise cases",
+          "theorem_evidence": false
+        },
+        "case_count": 19,
+        "counterexample_candidates": [
+          {
+            "case_id": "ablate-conforming_mesh",
+            "false_premises": [
+              "conforming_mesh"
+            ],
+            "formal_counterexample": false,
+            "is_counterexample_candidate": true,
+            "minimality_scope": "recorded-premise-description-only",
+            "threshold": 4.0
+          },
+          {
+            "case_id": "ablate-shape_regular_family",
+            "false_premises": [
+              "shape_regular_family"
+            ],
+            "formal_counterexample": false,
+            "is_counterexample_candidate": true,
+            "minimality_scope": "recorded-premise-description-only",
+            "threshold": 4.0
+          },
+          {
+            "case_id": "ablate-uniform_ellipticity",
+            "false_premises": [
+              "uniform_ellipticity"
+            ],
+            "formal_counterexample": false,
+            "is_counterexample_candidate": true,
+            "minimality_scope": "recorded-premise-description-only",
+            "threshold": 4.0
+          },
+          {
+            "case_id": "ablate-residual_term",
+            "false_premises": [
+              "residual_term"
+            ],
+            "formal_counterexample": false,
+            "is_counterexample_candidate": true,
+            "minimality_scope": "recorded-premise-description-only",
+            "threshold": 4.0
+          },
+          {
+            "case_id": "ablate-jump_term",
+            "false_premises": [
+              "jump_term"
+            ],
+            "formal_counterexample": false,
+            "is_counterexample_candidate": true,
+            "minimality_scope": "recorded-premise-description-only",
+            "threshold": 4.0
+          },
+          {
+            "case_id": "ablate-homogeneous_dirichlet",
+            "false_premises": [
+              "homogeneous_dirichlet"
+            ],
+            "formal_counterexample": false,
+            "is_counterexample_candidate": true,
+            "minimality_scope": "recorded-premise-description-only",
+            "threshold": 4.0
+          }
+        ],
+        "evidence_scopes": [
+          "certified-manufactured-run",
+          "synthetic-stress"
+        ],
+        "pass": true,
+        "promotion_guard": {
+          "numerical_campaign_can_promote_formal_theorem": false,
+          "reason": "analytic proof obligations remain unresolved",
+          "reliability_theorem_formally_verified": false,
+          "synthetic_stress_cases_are_theorem_evidence": false
+        },
+        "proof_obligation_dag": {
+          "formal_evidence": false,
+          "nodes": {
+            "coercivity": {
+              "depends_on": [
+                "uniform_ellipticity"
+              ],
+              "status": "interval-capable"
+            },
+            "conforming_mesh": {
+              "depends_on": [],
+              "status": "premise"
+            },
+            "edge_orientation_cancellation": {
+              "depends_on": [],
+              "status": "candidate-for-exact-kernel"
+            },
+            "elementwise_green_identity": {
+              "depends_on": [
+                "edge_orientation_cancellation"
+              ],
+              "status": "obligation"
+            },
+            "estimator_definition": {
+              "depends_on": [],
+              "status": "implemented"
+            },
+            "finite_overlap": {
+              "depends_on": [
+                "conforming_mesh"
+              ],
+              "status": "obligation"
+            },
+            "galerkin_orthogonality": {
+              "depends_on": [],
+              "status": "reviewed-known"
+            },
+            "quasi_interpolation_local": {
+              "depends_on": [
+                "shape_regular_family"
+              ],
+              "status": "obligation"
+            },
+            "reliability_theorem": {
+              "depends_on": [
+                "residual_representation",
+                "quasi_interpolation_local",
+                "trace_local",
+                "finite_overlap",
+                "coercivity",
+                "estimator_definition"
+              ],
+              "status": "obligation"
+            },
+            "residual_representation": {
+              "depends_on": [
+                "galerkin_orthogonality",
+                "elementwise_green_identity"
+              ],
+              "status": "obligation"
+            },
+            "shape_regular_family": {
+              "depends_on": [],
+              "status": "premise"
+            },
+            "trace_local": {
+              "depends_on": [
+                "shape_regular_family"
+              ],
+              "status": "obligation"
+            },
+            "uniform_ellipticity": {
+              "depends_on": [],
+              "status": "premise"
+            }
+          },
+          "reliability_promotable": false,
+          "theorem_id": "poisson2d-p1-mesh-uniform-residual-reliability-v0.76",
+          "unresolved": [
+            "edge_orientation_cancellation",
+            "elementwise_green_identity",
+            "finite_overlap",
+            "quasi_interpolation_local",
+            "reliability_theorem",
+            "residual_representation",
+            "trace_local"
+          ]
+        },
+        "release": "0.76.0",
+        "sha256": "cf190fee79c8deb8ad9b8c318e0a18872d45a7a929b5cabd8e97a3440d01db23",
+        "theorem_id": "poisson2d-p1-mesh-uniform-residual-reliability-v0.76"
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "6eb4d0b3-89a3-4e2e-aabe-33d62085859d",
+  "verification": {
+    "discovery": [
+      {
+        "claim": "Premise ablation, counterexample-candidate minimization, candidate reliability-constant inference, and analytic proof-obligation DAG with a hard non-promotion guard.",
+        "kind": "numerical",
+        "method": "Reliability Theorem Discovery Engine",
+        "metrics": {
+          "ablation": [
+            {
+              "empirical_warning": true,
+              "max_ratio_off": 8.0,
+              "max_ratio_on": 12.0,
+              "n_off": 1,
+              "n_on": 18,
+              "premise": "conforming_mesh",
+              "stress_factor": 0.6666666666666666
+            },
+            {
+              "empirical_warning": true,
+              "max_ratio_off": 6.0,
+              "max_ratio_on": 12.0,
+              "n_off": 1,
+              "n_on": 18,
+              "premise": "shape_regular_family",
+              "stress_factor": 0.5
+            },
+            {
+              "empirical_warning": true,
+              "max_ratio_off": 7.0,
+              "max_ratio_on": 12.0,
+              "n_off": 1,
+              "n_on": 18,
+              "premise": "uniform_ellipticity",
+              "stress_factor": 0.5833333333333334
+            },
+            {
+              "empirical_warning": true,
+              "max_ratio_off": 10.0,
+              "max_ratio_on": 12.0,
+              "n_off": 1,
+              "n_on": 18,
+              "premise": "residual_term",
+              "stress_factor": 0.8333333333333334
+            },
+            {
+              "empirical_warning": true,
+              "max_ratio_off": 12.0,
+              "max_ratio_on": 10.0,
+              "n_off": 1,
+              "n_on": 18,
+              "premise": "jump_term",
+              "stress_factor": 1.2
+            },
+            {
+              "empirical_warning": true,
+              "max_ratio_off": 5.0,
+              "max_ratio_on": 12.0,
+              "n_off": 1,
+              "n_on": 18,
+              "premise": "homogeneous_dirichlet",
+              "stress_factor": 0.4166666666666667
+            }
+          ],
+          "candidate_constant": {
+            "available": true,
+            "best": {
+              "coefficient": 0.6468,
+              "covers_observed_good_cases": true,
+              "mean_relative_slack": 1.3181927064452432,
+              "shape_exponent": 0.0
+            },
+            "candidates": [
+              {
+                "coefficient": 0.6468,
+                "covers_observed_good_cases": true,
+                "mean_relative_slack": 1.3181927064452432,
+                "shape_exponent": 0.0
+              },
+              {
+                "coefficient": 0.32371348442720144,
+                "covers_observed_good_cases": true,
+                "mean_relative_slack": 2.4087199919969255,
+                "shape_exponent": 0.5
+              },
+              {
+                "coefficient": 0.22890000000000002,
+                "covers_observed_good_cases": true,
+                "mean_relative_slack": 6.606067933600935,
+                "shape_exponent": 1.0
+              },
+              {
+                "coefficient": 0.16185674221360072,
+                "covers_observed_good_cases": true,
+                "mean_relative_slack": 16.6946287902577,
+                "shape_exponent": 1.5
+              },
+              {
+                "coefficient": 0.11445000000000001,
+                "covers_observed_good_cases": true,
+                "mean_relative_slack": 41.14614783755522,
+                "shape_exponent": 2.0
+              }
+            ],
+            "model": "C_candidate = coefficient * gamma^p / sqrt(alpha)",
+            "scope": "empirical upper envelope over observed all-premise cases",
+            "theorem_evidence": false
+          },
+          "case_count": 19,
+          "counterexample_candidates": [
+            {
+              "case_id": "ablate-conforming_mesh",
+              "false_premises": [
+                "conforming_mesh"
+              ],
+              "formal_counterexample": false,
+              "is_counterexample_candidate": true,
+              "minimality_scope": "recorded-premise-description-only",
+              "threshold": 4.0
+            },
+            {
+              "case_id": "ablate-shape_regular_family",
+              "false_premises": [
+                "shape_regular_family"
+              ],
+              "formal_counterexample": false,
+              "is_counterexample_candidate": true,
+              "minimality_scope": "recorded-premise-description-only",
+              "threshold": 4.0
+            },
+            {
+              "case_id": "ablate-uniform_ellipticity",
+              "false_premises": [
+                "uniform_ellipticity"
+              ],
+              "formal_counterexample": false,
+              "is_counterexample_candidate": true,
+              "minimality_scope": "recorded-premise-description-only",
+              "threshold": 4.0
+            },
+            {
+              "case_id": "ablate-residual_term",
+              "false_premises": [
+                "residual_term"
+              ],
+              "formal_counterexample": false,
+              "is_counterexample_candidate": true,
+              "minimality_scope": "recorded-premise-description-only",
+              "threshold": 4.0
+            },
+            {
+              "case_id": "ablate-jump_term",
+              "false_premises": [
+                "jump_term"
+              ],
+              "formal_counterexample": false,
+              "is_counterexample_candidate": true,
+              "minimality_scope": "recorded-premise-description-only",
+              "threshold": 4.0
+            },
+            {
+              "case_id": "ablate-homogeneous_dirichlet",
+              "false_premises": [
+                "homogeneous_dirichlet"
+              ],
+              "formal_counterexample": false,
+              "is_counterexample_candidate": true,
+              "minimality_scope": "recorded-premise-description-only",
+              "threshold": 4.0
+            }
+          ],
+          "evidence_scopes": [
+            "certified-manufactured-run",
+            "synthetic-stress"
+          ],
+          "pass": true,
+          "promotion_guard": {
+            "numerical_campaign_can_promote_formal_theorem": false,
+            "reason": "analytic proof obligations remain unresolved",
+            "reliability_theorem_formally_verified": false,
+            "synthetic_stress_cases_are_theorem_evidence": false
+          },
+          "proof_obligation_dag": {
+            "formal_evidence": false,
+            "nodes": {
+              "coercivity": {
+                "depends_on": [
+                  "uniform_ellipticity"
+                ],
+                "status": "interval-capable"
+              },
+              "conforming_mesh": {
+                "depends_on": [],
+                "status": "premise"
+              },
+              "edge_orientation_cancellation": {
+                "depends_on": [],
+                "status": "candidate-for-exact-kernel"
+              },
+              "elementwise_green_identity": {
+                "depends_on": [
+                  "edge_orientation_cancellation"
+                ],
+                "status": "obligation"
+              },
+              "estimator_definition": {
+                "depends_on": [],
+                "status": "implemented"
+              },
+              "finite_overlap": {
+                "depends_on": [
+                  "conforming_mesh"
+                ],
+                "status": "obligation"
+              },
+              "galerkin_orthogonality": {
+                "depends_on": [],
+                "status": "reviewed-known"
+              },
+              "quasi_interpolation_local": {
+                "depends_on": [
+                  "shape_regular_family"
+                ],
+                "status": "obligation"
+              },
+              "reliability_theorem": {
+                "depends_on": [
+                  "residual_representation",
+                  "quasi_interpolation_local",
+                  "trace_local",
+                  "finite_overlap",
+                  "coercivity",
+                  "estimator_definition"
+                ],
+                "status": "obligation"
+              },
+              "residual_representation": {
+                "depends_on": [
+                  "galerkin_orthogonality",
+                  "elementwise_green_identity"
+                ],
+                "status": "obligation"
+              },
+              "shape_regular_family": {
+                "depends_on": [],
+                "status": "premise"
+              },
+              "trace_local": {
+                "depends_on": [
+                  "shape_regular_family"
+                ],
+                "status": "obligation"
+              },
+              "uniform_ellipticity": {
+                "depends_on": [],
+                "status": "premise"
+              }
+            },
+            "reliability_promotable": false,
+            "theorem_id": "poisson2d-p1-mesh-uniform-residual-reliability-v0.76",
+            "unresolved": [
+              "edge_orientation_cancellation",
+              "elementwise_green_identity",
+              "finite_overlap",
+              "quasi_interpolation_local",
+              "reliability_theorem",
+              "residual_representation",
+              "trace_local"
+            ]
+          },
+          "release": "0.76.0",
+          "sha256": "cf190fee79c8deb8ad9b8c318e0a18872d45a7a929b5cabd8e97a3440d01db23",
+          "theorem_id": "poisson2d-p1-mesh-uniform-residual-reliability-v0.76"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "fem76.reliability_discovery"
+      }
+    ]
+  }
+}

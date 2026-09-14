@@ -1,0 +1,12 @@
+-- CACE v0.7 formal theorem obligation. NOT machine checked.
+-- Goal: a mesh-uniform residual-estimator reliability theorem for conforming P1 FEM.
+-- Required hypotheses must make explicit:
+--   * bounded Lipschitz polygonal domain
+--   * symmetric uniformly elliptic diffusion tensor
+--   * conforming shape-regular triangular mesh
+--   * homogeneous Dirichlet boundary conditions
+--   * residual/jump estimator used by CACE
+--   * interpolation and trace inequalities with explicit constants
+-- Target schematic theorem:
+--   energyError u uh <= C_rel * residualEstimator mesh uh f
+-- v0.7 does not claim this theorem has been proved in Lean.

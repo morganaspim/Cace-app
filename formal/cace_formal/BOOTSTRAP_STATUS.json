@@ -1,0 +1,18 @@
+{
+  "bootstrap_attempt": "FAILED_DNS",
+  "bootstrap_host": "elan.lean-lang.org",
+  "executables": {
+    "elan": null,
+    "lake": null,
+    "lean": null
+  },
+  "formal_status": "NOT_RUN",
+  "lean_available": false,
+  "pass": true,
+  "pin": {
+    "lean": "leanprover/lean4:v4.32.1",
+    "mathlib": "v4.32.1",
+    "mathlib_commit_short": "520045a"
+  }
+}
+

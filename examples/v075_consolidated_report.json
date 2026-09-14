@@ -1,0 +1,129 @@
+{
+  "release": "0.75.0",
+  "qualification_execution": {
+    "historical_tests": "161/161 passing in modified tree (new tests excluded)",
+    "new_release_tests": "25/25 passing",
+    "total_test_cases": "186 passing across two deterministic partitions",
+    "single_process_note": "Full 186-test invocation exceeds environment watchdog during legacy heavy native benchmarks; no assertion failure was observed before watchdog. Release qualification therefore records the two clean partitions rather than claiming a single-process completion.",
+    "compileall": "pass",
+    "registry_classes": 157
+  },
+  "representative_results": {
+    "provenance": {
+      "pass": true,
+      "root": "4c9926d4f9b713ca0a93985980aabc6a3f32edd8adcd296670ce3bb72296a15c",
+      "node_count": 3,
+      "edge_count": 2
+    },
+    "interval_dot": {
+      "pass": true,
+      "lower": -7.0000000000000036,
+      "upper": -6.999999999999996,
+      "exact_float": -7.0,
+      "width": 7.993605777301127e-15
+    },
+    "sensitivity": {
+      "pass": true,
+      "estimate": 2.815322362392791,
+      "reference": 2.8153223623952686,
+      "abs_error": 2.4775737017534993e-12,
+      "step": 1e-05
+    },
+    "uncertainty": {
+      "pass": true,
+      "components": {
+        "discretization": 0.02,
+        "algebraic": 0.005,
+        "roundoff": 0.001,
+        "parameter": 0.01
+      },
+      "rss": 0.02293468988235943,
+      "worst_case": 0.036000000000000004,
+      "limit": 0.05,
+      "combination_rule": "worst-case gate; RSS informational"
+    },
+    "parallel_determinism": {
+      "pass": true,
+      "count": 32,
+      "checksum": 1484
+    },
+    "certificate_dependencies": {
+      "pass": true,
+      "dependencies": {
+        "assembly": [],
+        "factor": [
+          "assembly"
+        ],
+        "solve": [
+          "factor"
+        ],
+        "continuum": [
+          "solve",
+          "reliability_theorem"
+        ]
+      },
+      "unresolved": [
+        "reliability_theorem"
+      ],
+      "promotable": {
+        "assembly": true,
+        "factor": true,
+        "solve": true,
+        "continuum": false
+      }
+    },
+    "normalized_benchmark": {
+      "pass": true,
+      "median_seconds": 0.01,
+      "work_units": 1000,
+      "throughput": 100000.0,
+      "normalized": [
+        1.0,
+        1.0999999999999999,
+        0.95
+      ]
+    },
+    "qualification_v074": {
+      "pass": true,
+      "gates": {
+        "provenance": true,
+        "interval_dot": true,
+        "stopping": true,
+        "cache": true,
+        "dependencies": true
+      },
+      "passed": 5,
+      "total": 5
+    },
+    "milestone_v075": {
+      "release": "0.75.0",
+      "pass": true,
+      "summary": {
+        "v050_pass": true,
+        "v074_pass": true,
+        "repro_capsule": "728618edc70034e47f58360f34faa9ea67c238f02c70083774ac00441588cc41",
+        "boundaries": {
+          "general_2d_reliability_formal": false,
+          "tetrahedral_continuum_formal": false,
+          "gpu_unconditional": false,
+          "native_numerics_formal": false
+        },
+        "new_release_span": "0.51-0.75"
+      },
+      "sha256": "0c6b3b269b3ce73488e507fd7f0ded7042f9e49951b4665d31b0a8aecec9e343"
+    }
+  },
+  "scope_boundaries": {
+    "general_2d_reliability_formally_verified": false,
+    "tetrahedral_continuum_formally_verified": false,
+    "gpu_unconditionally_available": false,
+    "native_numerical_result_is_formal_proof": false,
+    "sampled_monotonicity_is_global_theorem": false,
+    "ensemble_consensus_is_proof": false
+  },
+  "environment": {
+    "python": "3.13.5",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41"
+  },
+  "report_sha256": "d6e2434bd5916ed03dba9929252c75dd4a348218b1f2c88d73c249a17fdbfcb7"
+}

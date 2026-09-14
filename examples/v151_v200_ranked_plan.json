@@ -1,0 +1,63 @@
+[
+  {
+    "rank": 1,
+    "releases": "1.51-1.55",
+    "track": "RT1 / higher-order equilibrated flux",
+    "why": "Extends guaranteed flux bounds to affine source equilibrium and higher-order H(div) structure."
+  },
+  {
+    "rank": 2,
+    "releases": "1.56-1.60",
+    "track": "Production global P2 FEM",
+    "why": "Turns the earlier local P2 mathematics into a usable global higher-order discretization."
+  },
+  {
+    "rank": 3,
+    "releases": "1.61-1.65",
+    "track": "PDE-level goal-oriented DWR",
+    "why": "Uses enriched P2 dual solves so quantities of interest can drive refinement."
+  },
+  {
+    "rank": 4,
+    "releases": "1.66-1.70",
+    "track": "Robust heterogeneous/data-oscillation guarantees",
+    "why": "Generalizes guarantees to coefficient contrast, projected data, and mixed-boundary contracts."
+  },
+  {
+    "rank": 5,
+    "releases": "1.71-1.75",
+    "track": "Adaptivity theorem integration",
+    "why": "Connects marking/refinement to the reviewed axioms-of-adaptivity framework."
+  },
+  {
+    "rank": 6,
+    "releases": "1.76-1.80",
+    "track": "Mixed / saddle-point methods",
+    "why": "Opens mixed Poisson, incompressibility, and constrained systems through Brezzi theory."
+  },
+  {
+    "rank": 7,
+    "releases": "1.81-1.85",
+    "track": "Verified spectral bounds",
+    "why": "Adds eigenvalue inclusion and variational spectral infrastructure."
+  },
+  {
+    "rank": 8,
+    "releases": "1.86-1.90",
+    "track": "Parabolic / time-dependent certification",
+    "why": "Extends CACE from stationary PDEs to stable time stepping and temporal residuals."
+  },
+  {
+    "rank": 9,
+    "releases": "1.91-1.95",
+    "track": "FEEC / Maxwell-compatible complexes",
+    "why": "Adds exact discrete-complex structure and curl-curl nullspace auditing."
+  },
+  {
+    "rank": 10,
+    "releases": "1.96-2.0",
+    "track": "v2.0 integration / evidence architecture",
+    "why": "Unifies dependency graphs, evidence scope, reproducibility, and qualification."
+  }
+]
+

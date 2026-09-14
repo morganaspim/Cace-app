@@ -1,0 +1,18 @@
+{
+  "claims": [
+    "poisson1d-local-energy-identity",
+    "poisson1d-global-energy-identity"
+  ],
+  "kind": "poisson1d-energy",
+  "nodes": [
+    "0",
+    "1/7",
+    "2/5",
+    "3/4",
+    "1"
+  ],
+  "schema": "cace-formal-fem-proof-v2",
+  "scope": "supplied exact rational 1D mesh; exact interpolation identity",
+  "statement": "For u(x)=x(1-x)/2 and its continuous P1 nodal interpolant on the supplied exact rational mesh, each element energy error squared is h^3/12 and the global squared energy error is sum_K h_K^3/12.",
+  "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+}

@@ -1,0 +1,23 @@
+{
+  "continuum_formal_complete": false,
+  "obligations": {
+    "H1_weak_gradient": "open-in-CACE-formal",
+    "Hdiv_divergence_normal_trace": "open",
+    "bochner_L2_vector_fields": "library-dependent",
+    "bounded_lipschitz_trace": "open",
+    "continuum_admissible_affine_spaces": "open",
+    "continuum_prager_synge": "blocked-by-above",
+    "green_identity_lipschitz": "open",
+    "weighted_SPD_operator": "partial"
+  },
+  "pass": true,
+  "recommended_order": [
+    "H1/Hdiv API",
+    "normal trace",
+    "Green identity",
+    "admissibility",
+    "orthogonality",
+    "Prager-Synge"
+  ]
+}
+

@@ -1,0 +1,7 @@
+{
+  "cumulative_from": "2.0",
+  "latest_capability": "next_v225",
+  "release": "2.25",
+  "scope": "version-bounded snapshot; pretty JSON outputs; scope-aware evidence"
+}
+

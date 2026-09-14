@@ -1,0 +1,16 @@
+{
+  "compileall": "PASS",
+  "external_lean_build": "READY_ON_GITHUB_WORKFLOW; NOT_RUN_LOCALLY",
+  "formal_campaign_tests": "21/21 PASS",
+  "github_repository_visibility": 0,
+  "lean_release_asset_sha256": "57d5c062a6b4bae6fba511a1704aa124dff461c37d0fc94585637fbb7d951b50",
+  "mesh_admissibility_to_orthogonality": "PASS",
+  "nonclaims": [
+    "No external Lean theorem compilation is claimed in this runtime.",
+    "The uploaded Lean v4.0.0-m1 PDF is documentation/source reference, not the proof kernel.",
+    "Continuum Prager-Synge remains outside v3.21."
+  ],
+  "release": "3.21.0",
+  "selected_historical_regressions": "14/14 PASS"
+}
+

@@ -1,0 +1,74 @@
+{
+  "artifact": {
+    "dual_error": [
+      "0",
+      "2/5"
+    ],
+    "equilibrium_matrix": [
+      [
+        "1",
+        "1",
+        "1",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "-1",
+        "1",
+        "1"
+      ]
+    ],
+    "flux_dofs": [
+      "1/6",
+      "1/6",
+      "1/6",
+      "1/3",
+      "1/3"
+    ],
+    "interior_face_sign_pairs": [
+      [
+        1,
+        -1
+      ]
+    ],
+    "primal_error": [
+      "1/3",
+      "0"
+    ],
+    "source_integrals": [
+      "1/2",
+      "1/2"
+    ],
+    "theorem_id": "prager-synge-discrete-instance-v3.10",
+    "weight": [
+      [
+        "2",
+        "0"
+      ],
+      [
+        "0",
+        "3"
+      ]
+    ]
+  },
+  "continuum_theorem_lean_checked": false,
+  "custom_formal_instance": true,
+  "exact_checker": {
+    "artifact_sha256": "9febfd9c08b10cff6c8b858e2007cdbe6a131127aa1d15ea567ca15282f6a98b",
+    "checker": "CACE-Prager-Synge-Exact-Kernel",
+    "checker_project_root": "/mnt/data/v301_v320/cace-studio-vre-v3.20",
+    "checker_version": "3.10.0",
+    "cwd_independent": true,
+    "errors": [],
+    "invocation": "independent-subprocess",
+    "passed": true,
+    "process_returncode": 0,
+    "stderr": ""
+  },
+  "general_discrete_theorem_lean_checked": false,
+  "lean_theorem_status": "NOT_RUN",
+  "pass": true
+}
+

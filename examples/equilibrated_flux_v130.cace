@@ -1,0 +1,21 @@
+{
+  "edges": [],
+  "metadata": {
+    "release": "1.30.0",
+    "scope": "unit-square Poisson RT0 guaranteed energy bound"
+  },
+  "name": "CACE v1.30 Guaranteed Equilibrated Flux",
+  "nodes": [
+    {
+      "id": "bound",
+      "module_id": "flux130.prager_synge_bound",
+      "params": {},
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "schema_version": 1
+}
+

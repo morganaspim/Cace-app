@@ -1,0 +1,253 @@
+[
+  {
+    "capability": "RT1 Unisolvence",
+    "evidence_kind": "symbolic",
+    "release": "1.51"
+  },
+  {
+    "capability": "RT1 Edge Orientation",
+    "evidence_kind": "symbolic",
+    "release": "1.52"
+  },
+  {
+    "capability": "RT1 Affine Divergence",
+    "evidence_kind": "symbolic",
+    "release": "1.53"
+  },
+  {
+    "capability": "RT1 Affine-Source Guarantee Bridge",
+    "evidence_kind": "symbolic",
+    "release": "1.54"
+  },
+  {
+    "capability": "RT1 Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.55"
+  },
+  {
+    "capability": "P2 Global Topology",
+    "evidence_kind": "symbolic",
+    "release": "1.56"
+  },
+  {
+    "capability": "P2 Global Assembly",
+    "evidence_kind": "symbolic",
+    "release": "1.57"
+  },
+  {
+    "capability": "P2 Exact Global Solve",
+    "evidence_kind": "symbolic",
+    "release": "1.58"
+  },
+  {
+    "capability": "P2 vs P1 Discrete Comparison",
+    "evidence_kind": "numerical",
+    "release": "1.59"
+  },
+  {
+    "capability": "P2 Production Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.60"
+  },
+  {
+    "capability": "P2-Enriched DWR Identity",
+    "evidence_kind": "symbolic",
+    "release": "1.61"
+  },
+  {
+    "capability": "DWR Localization",
+    "evidence_kind": "symbolic",
+    "release": "1.62"
+  },
+  {
+    "capability": "DWR Goal Marking",
+    "evidence_kind": "numerical",
+    "release": "1.63"
+  },
+  {
+    "capability": "DWR Goal Stop Policy",
+    "evidence_kind": "numerical",
+    "release": "1.64"
+  },
+  {
+    "capability": "PDE DWR Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.65"
+  },
+  {
+    "capability": "Coefficient Contrast Audit",
+    "evidence_kind": "numerical",
+    "release": "1.66"
+  },
+  {
+    "capability": "Projected Data Oscillation Bound",
+    "evidence_kind": "numerical",
+    "release": "1.67"
+  },
+  {
+    "capability": "Mixed Boundary Contract",
+    "evidence_kind": "symbolic",
+    "release": "1.68"
+  },
+  {
+    "capability": "Robust Bound Composition",
+    "evidence_kind": "numerical",
+    "release": "1.69"
+  },
+  {
+    "capability": "Robust Guarantee Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.70"
+  },
+  {
+    "capability": "Estimator Stability Audit",
+    "evidence_kind": "numerical",
+    "release": "1.71"
+  },
+  {
+    "capability": "Estimator Reduction Audit",
+    "evidence_kind": "numerical",
+    "release": "1.72"
+  },
+  {
+    "capability": "Quasi-Orthogonality Audit",
+    "evidence_kind": "numerical",
+    "release": "1.73"
+  },
+  {
+    "capability": "Discrete Reliability Contract",
+    "evidence_kind": "symbolic",
+    "release": "1.74"
+  },
+  {
+    "capability": "Adaptivity Theorem Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.75"
+  },
+  {
+    "capability": "Mixed Saddle Fixture",
+    "evidence_kind": "symbolic",
+    "release": "1.76"
+  },
+  {
+    "capability": "Schur Complement Audit",
+    "evidence_kind": "symbolic",
+    "release": "1.77"
+  },
+  {
+    "capability": "Brezzi Inf-Sup Contract",
+    "evidence_kind": "symbolic",
+    "release": "1.78"
+  },
+  {
+    "capability": "Mixed Preconditioner Audit",
+    "evidence_kind": "symbolic",
+    "release": "1.79"
+  },
+  {
+    "capability": "Mixed Methods Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.80"
+  },
+  {
+    "capability": "Gershgorin Spectral Bounds",
+    "evidence_kind": "numerical",
+    "release": "1.81"
+  },
+  {
+    "capability": "Spectral Residual Inclusion",
+    "evidence_kind": "numerical",
+    "release": "1.82"
+  },
+  {
+    "capability": "Exact 2x2 Eigen Fixture",
+    "evidence_kind": "symbolic",
+    "release": "1.83"
+  },
+  {
+    "capability": "Min-Max Contract",
+    "evidence_kind": "symbolic",
+    "release": "1.84"
+  },
+  {
+    "capability": "Spectral Milestone",
+    "evidence_kind": "numerical",
+    "release": "1.85"
+  },
+  {
+    "capability": "Backward Euler Energy",
+    "evidence_kind": "symbolic",
+    "release": "1.86"
+  },
+  {
+    "capability": "Theta Amplification",
+    "evidence_kind": "numerical",
+    "release": "1.87"
+  },
+  {
+    "capability": "Time Residual Estimator",
+    "evidence_kind": "numerical",
+    "release": "1.88"
+  },
+  {
+    "capability": "Adaptive Time-Step Policy",
+    "evidence_kind": "numerical",
+    "release": "1.89"
+  },
+  {
+    "capability": "Parabolic Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.90"
+  },
+  {
+    "capability": "Discrete de Rham Complex",
+    "evidence_kind": "symbolic",
+    "release": "1.91"
+  },
+  {
+    "capability": "Curl-Curl Gradient Nullspace",
+    "evidence_kind": "symbolic",
+    "release": "1.92"
+  },
+  {
+    "capability": "Gauge-Fixed Maxwell Fixture",
+    "evidence_kind": "symbolic",
+    "release": "1.93"
+  },
+  {
+    "capability": "FEEC Contract",
+    "evidence_kind": "symbolic",
+    "release": "1.94"
+  },
+  {
+    "capability": "Maxwell Milestone",
+    "evidence_kind": "symbolic",
+    "release": "1.95"
+  },
+  {
+    "capability": "Capability Dependency Graph",
+    "evidence_kind": "symbolic",
+    "release": "1.96"
+  },
+  {
+    "capability": "Evidence Scope Audit",
+    "evidence_kind": "symbolic",
+    "release": "1.97"
+  },
+  {
+    "capability": "Reproducibility Capsule v2",
+    "evidence_kind": "symbolic",
+    "release": "1.98"
+  },
+  {
+    "capability": "v2 Qualification Matrix",
+    "evidence_kind": "symbolic",
+    "release": "1.99"
+  },
+  {
+    "capability": "CACE v2.0 Milestone",
+    "evidence_kind": "symbolic",
+    "release": "2.0"
+  }
+]
+

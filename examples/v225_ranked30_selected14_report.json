@@ -1,0 +1,866 @@
+{
+  "cut_bottom_16": [
+    {
+      "name": "Discontinuous Galerkin elliptic",
+      "rank": 15,
+      "selected": false,
+      "why": "Interior penalty DG and jump penalties."
+    },
+    {
+      "name": "Convection-diffusion SUPG",
+      "rank": 16,
+      "selected": false,
+      "why": "Robust stabilized transport-diffusion workflows."
+    },
+    {
+      "name": "Biharmonic/mixed fourth order",
+      "rank": 17,
+      "selected": false,
+      "why": "Plate-like problems."
+    },
+    {
+      "name": "Elasticity mixed stress",
+      "rank": 18,
+      "selected": false,
+      "why": "Hellinger-Reissner and locking-aware checks."
+    },
+    {
+      "name": "Variational inequalities/contact",
+      "rank": 19,
+      "selected": false,
+      "why": "Obstacle/contact certification."
+    },
+    {
+      "name": "Helmholtz pollution analysis",
+      "rank": 20,
+      "selected": false,
+      "why": "Indefinite wave error/dispersion audits."
+    },
+    {
+      "name": "Polygonal/VEM",
+      "rank": 21,
+      "selected": false,
+      "why": "General-cell discretization."
+    },
+    {
+      "name": "Isogeometric analysis",
+      "rank": 22,
+      "selected": false,
+      "why": "Spline geometry/high-order bases."
+    },
+    {
+      "name": "Fractional PDE",
+      "rank": 23,
+      "selected": false,
+      "why": "Nonlocal operators."
+    },
+    {
+      "name": "Stochastic Galerkin",
+      "rank": 24,
+      "selected": false,
+      "why": "Polynomial-chaos PDE uncertainty."
+    },
+    {
+      "name": "Boundary element coupling",
+      "rank": 25,
+      "selected": false,
+      "why": "FEM-BEM exterior problems."
+    },
+    {
+      "name": "ALE/moving mesh",
+      "rank": 26,
+      "selected": false,
+      "why": "Geometry-in-time conservation."
+    },
+    {
+      "name": "Hyperbolic DG",
+      "rank": 27,
+      "selected": false,
+      "why": "Conservation laws/shocks."
+    },
+    {
+      "name": "Nonlinear eigenproblems",
+      "rank": 28,
+      "selected": false,
+      "why": "Eigenvalue-dependent operators."
+    },
+    {
+      "name": "PDE-constrained optimization",
+      "rank": 29,
+      "selected": false,
+      "why": "Adjoint optimization loops."
+    },
+    {
+      "name": "Quantum PDE specialization",
+      "rank": 30,
+      "selected": false,
+      "why": "Hamiltonian-specific eigensolver workflows."
+    }
+  ],
+  "milestone": {
+    "nonclaims": [
+      "full global RT1 sparse assembly still not production-complete",
+      "Nedelec global stiffness/curl-curl production path remains partial",
+      "eigenvalue bisection is an exact small fixture, not yet a general interval sparse eigensolver",
+      "several selected 14 tracks are theorem-contract/diagnostic foundations rather than full production solvers"
+    ],
+    "pass": true,
+    "production_gap_gates": {
+      "continuum_goal_product_bound": true,
+      "eigenvalue_fixture": true,
+      "global_RT1_topology": true,
+      "mixed_RT0_poisson": true,
+      "nedelec_reference": true
+    },
+    "release": "2.25.0",
+    "selected_14": {
+      "pass": true,
+      "selected": [
+        {
+          "name": "Dual equilibrated goal bounds",
+          "pass": true,
+          "rank": 1
+        },
+        {
+          "name": "Parabolic equilibrated-flux bounds",
+          "pass": true,
+          "rank": 2
+        },
+        {
+          "name": "Space-time adaptive certification",
+          "pass": true,
+          "rank": 3
+        },
+        {
+          "name": "hp adaptivity",
+          "pass": true,
+          "rank": 4
+        },
+        {
+          "name": "3D tetrahedral P1 continuum certification",
+          "pass": true,
+          "rank": 5
+        },
+        {
+          "name": "3D RT0/H(div) equilibrated flux",
+          "pass": true,
+          "rank": 6
+        },
+        {
+          "name": "Nonlinear elliptic Newton-Kantorovich",
+          "pass": true,
+          "rank": 7
+        },
+        {
+          "name": "Production Stokes mixed FEM",
+          "pass": true,
+          "rank": 8
+        },
+        {
+          "name": "Production Maxwell/Nedelec eigenproblem",
+          "pass": true,
+          "rank": 9
+        },
+        {
+          "name": "Certified domain decomposition",
+          "pass": true,
+          "rank": 10
+        },
+        {
+          "name": "Certified multigrid",
+          "pass": true,
+          "rank": 11
+        },
+        {
+          "name": "Anisotropic metric adaptation",
+          "pass": true,
+          "rank": 12
+        },
+        {
+          "name": "Parametric uncertainty propagation",
+          "pass": true,
+          "rank": 13
+        },
+        {
+          "name": "Certified reduced basis",
+          "pass": true,
+          "rank": 14
+        }
+      ]
+    },
+    "sha256": "cb83e9ec91d749a9ca075655d93eaf593b8f3703887e1a4a5c9264b4c3202a99"
+  },
+  "production_gap_closure": {
+    "v2.01": {
+      "cell_moment_dofs": 8,
+      "cells": 4,
+      "edges": 8,
+      "global_edge_moment_dofs": 16,
+      "orientation_transform": [
+        [
+          "-1",
+          "0"
+        ],
+        [
+          "-1",
+          "1"
+        ]
+      ],
+      "pass": true,
+      "total_dofs": 24
+    },
+    "v2.02": {
+      "interior_edges": [
+        {
+          "cells": [
+            0,
+            1
+          ],
+          "edge": 0,
+          "signs": [
+            1,
+            -1
+          ],
+          "transform": [
+            [
+              "-1",
+              "0"
+            ],
+            [
+              "-1",
+              "1"
+            ]
+          ]
+        },
+        {
+          "cells": [
+            0,
+            3
+          ],
+          "edge": 1,
+          "signs": [
+            -1,
+            1
+          ],
+          "transform": [
+            [
+              "-1",
+              "0"
+            ],
+            [
+              "-1",
+              "1"
+            ]
+          ]
+        },
+        {
+          "cells": [
+            1,
+            2
+          ],
+          "edge": 3,
+          "signs": [
+            1,
+            -1
+          ],
+          "transform": [
+            [
+              "-1",
+              "0"
+            ],
+            [
+              "-1",
+              "1"
+            ]
+          ]
+        },
+        {
+          "cells": [
+            2,
+            3
+          ],
+          "edge": 5,
+          "signs": [
+            1,
+            -1
+          ],
+          "transform": [
+            [
+              "-1",
+              "0"
+            ],
+            [
+              "-1",
+              "1"
+            ]
+          ]
+        }
+      ],
+      "pass": true,
+      "transform": {
+        "exact": true,
+        "involution": [
+          [
+            "1",
+            "0"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ],
+        "pass": true,
+        "transform": [
+          [
+            "-1",
+            "0"
+          ],
+          [
+            "-1",
+            "1"
+          ]
+        ]
+      }
+    },
+    "v2.03": {
+      "cells": [
+        {
+          "affine_exact": true,
+          "f_barycenter": "4/3"
+        },
+        {
+          "affine_exact": true,
+          "f_barycenter": "4/3"
+        },
+        {
+          "affine_exact": true,
+          "f_barycenter": "2/3"
+        },
+        {
+          "affine_exact": true,
+          "f_barycenter": "2/3"
+        }
+      ],
+      "divergence_space": "P1 per cell",
+      "global_hdiv_moment_topology": {
+        "cell_moment_dofs": 8,
+        "cells": 4,
+        "edges": 8,
+        "global_edge_moment_dofs": 16,
+        "orientation_transform": [
+          [
+            "-1",
+            "0"
+          ],
+          [
+            "-1",
+            "1"
+          ]
+        ],
+        "pass": true,
+        "total_dofs": 24
+      },
+      "pass": true
+    },
+    "v2.04": {
+      "exact": true,
+      "flux_dofs": 8,
+      "matrix_dim": 12,
+      "pass": true,
+      "pressure_dofs": 4,
+      "rank": 12
+    },
+    "v2.05": {
+      "exact": true,
+      "pass": true,
+      "residual": [
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "solution": [
+        "0",
+        "0",
+        "1/4",
+        "0",
+        "1/4",
+        "0",
+        "1/4",
+        "-1/4",
+        "-1/4",
+        "-1/4",
+        "-1/4",
+        "-1/4"
+      ]
+    },
+    "v2.06": {
+      "dimension": 3,
+      "dof_matrix": [
+        [
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "1"
+        ]
+      ],
+      "exact": true,
+      "family": "Nedelec first kind, degree 0",
+      "pass": true
+    },
+    "v2.07": {
+      "cell_edge_signs": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            -1
+          ]
+        ],
+        [
+          [
+            3,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            1,
+            -1
+          ]
+        ],
+        [
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            4,
+            -1
+          ]
+        ],
+        [
+          [
+            7,
+            -1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            6,
+            -1
+          ]
+        ]
+      ],
+      "edges": 8,
+      "exact": true,
+      "pass": true
+    },
+    "v2.08": {
+      "negative": 1,
+      "pass": true,
+      "positive": 1,
+      "scope": "exact no-pivot LDLT inertia fixture; not general indefinite sparse factorization",
+      "shift": "3/2",
+      "zero": 0
+    },
+    "v2.09": {
+      "exact_fixture": true,
+      "lambda1_interval": [
+        "524287/524288",
+        "1"
+      ],
+      "pass": true,
+      "width": "1/524288"
+    },
+    "v2.10": {
+      "formula": "|J(u)-J(uh)| <= ||u-uh||_A * ||z-zh||_A",
+      "goal_error_upper": 0.0096,
+      "pass": true,
+      "status": "reviewed-duality guarantee when both energy bounds are guaranteed"
+    }
+  },
+  "qualification": {
+    "compileall": "PASS",
+    "new_v201_v225_tests": "25/25 PASS",
+    "selected_historical_regressions": "14/14 PASS"
+  },
+  "ranked_30": [
+    {
+      "name": "Dual equilibrated goal bounds",
+      "rank": 1,
+      "selected": true,
+      "why": "Combine primal and dual guaranteed energy bounds into guaranteed QoI bounds."
+    },
+    {
+      "name": "Parabolic equilibrated-flux bounds",
+      "rank": 2,
+      "selected": true,
+      "why": "Constant-free space-time energy guarantees for heat-type problems."
+    },
+    {
+      "name": "Space-time adaptive certification",
+      "rank": 3,
+      "selected": true,
+      "why": "Joint temporal/spatial marking from certified residual components."
+    },
+    {
+      "name": "hp adaptivity",
+      "rank": 4,
+      "selected": true,
+      "why": "Choose h vs p using smoothness/effectivity diagnostics."
+    },
+    {
+      "name": "3D tetrahedral P1 continuum certification",
+      "rank": 5,
+      "selected": true,
+      "why": "Move the mature 2D continuum chain into tetrahedra."
+    },
+    {
+      "name": "3D RT0/H(div) equilibrated flux",
+      "rank": 6,
+      "selected": true,
+      "why": "Guaranteed 3D energy bounds using tetrahedral H(div) fluxes."
+    },
+    {
+      "name": "Nonlinear elliptic Newton-Kantorovich",
+      "rank": 7,
+      "selected": true,
+      "why": "Verified local existence/uniqueness and nonlinear residual bounds."
+    },
+    {
+      "name": "Production Stokes mixed FEM",
+      "rank": 8,
+      "selected": true,
+      "why": "Velocity-pressure saddle systems with inf-sup-aware checks."
+    },
+    {
+      "name": "Production Maxwell/Nedelec eigenproblem",
+      "rank": 9,
+      "selected": true,
+      "why": "Actual H(curl) basis/assembly and Maxwell spectral checks."
+    },
+    {
+      "name": "Certified domain decomposition",
+      "rank": 10,
+      "selected": true,
+      "why": "Schwarz/BDDC-style stable decomposition and contraction diagnostics."
+    },
+    {
+      "name": "Certified multigrid",
+      "rank": 11,
+      "selected": true,
+      "why": "Smoother + approximation-property audits and hierarchy verification."
+    },
+    {
+      "name": "Anisotropic metric adaptation",
+      "rank": 12,
+      "selected": true,
+      "why": "Metric-tensor mesh quality and directional estimator machinery."
+    },
+    {
+      "name": "Parametric uncertainty propagation",
+      "rank": 13,
+      "selected": true,
+      "why": "Interval/affine parameter enclosures through PDE solves."
+    },
+    {
+      "name": "Certified reduced basis",
+      "rank": 14,
+      "selected": true,
+      "why": "Offline/online surrogate with residual-based rigorous bounds."
+    },
+    {
+      "name": "Discontinuous Galerkin elliptic",
+      "rank": 15,
+      "selected": false,
+      "why": "Interior penalty DG and jump penalties."
+    },
+    {
+      "name": "Convection-diffusion SUPG",
+      "rank": 16,
+      "selected": false,
+      "why": "Robust stabilized transport-diffusion workflows."
+    },
+    {
+      "name": "Biharmonic/mixed fourth order",
+      "rank": 17,
+      "selected": false,
+      "why": "Plate-like problems."
+    },
+    {
+      "name": "Elasticity mixed stress",
+      "rank": 18,
+      "selected": false,
+      "why": "Hellinger-Reissner and locking-aware checks."
+    },
+    {
+      "name": "Variational inequalities/contact",
+      "rank": 19,
+      "selected": false,
+      "why": "Obstacle/contact certification."
+    },
+    {
+      "name": "Helmholtz pollution analysis",
+      "rank": 20,
+      "selected": false,
+      "why": "Indefinite wave error/dispersion audits."
+    },
+    {
+      "name": "Polygonal/VEM",
+      "rank": 21,
+      "selected": false,
+      "why": "General-cell discretization."
+    },
+    {
+      "name": "Isogeometric analysis",
+      "rank": 22,
+      "selected": false,
+      "why": "Spline geometry/high-order bases."
+    },
+    {
+      "name": "Fractional PDE",
+      "rank": 23,
+      "selected": false,
+      "why": "Nonlocal operators."
+    },
+    {
+      "name": "Stochastic Galerkin",
+      "rank": 24,
+      "selected": false,
+      "why": "Polynomial-chaos PDE uncertainty."
+    },
+    {
+      "name": "Boundary element coupling",
+      "rank": 25,
+      "selected": false,
+      "why": "FEM-BEM exterior problems."
+    },
+    {
+      "name": "ALE/moving mesh",
+      "rank": 26,
+      "selected": false,
+      "why": "Geometry-in-time conservation."
+    },
+    {
+      "name": "Hyperbolic DG",
+      "rank": 27,
+      "selected": false,
+      "why": "Conservation laws/shocks."
+    },
+    {
+      "name": "Nonlinear eigenproblems",
+      "rank": 28,
+      "selected": false,
+      "why": "Eigenvalue-dependent operators."
+    },
+    {
+      "name": "PDE-constrained optimization",
+      "rank": 29,
+      "selected": false,
+      "why": "Adjoint optimization loops."
+    },
+    {
+      "name": "Quantum PDE specialization",
+      "rank": 30,
+      "selected": false,
+      "why": "Hamiltonian-specific eigensolver workflows."
+    }
+  ],
+  "release": "2.25.0",
+  "selected_implementation_summary": {
+    "pass": true,
+    "selected": [
+      {
+        "name": "Dual equilibrated goal bounds",
+        "pass": true,
+        "rank": 1
+      },
+      {
+        "name": "Parabolic equilibrated-flux bounds",
+        "pass": true,
+        "rank": 2
+      },
+      {
+        "name": "Space-time adaptive certification",
+        "pass": true,
+        "rank": 3
+      },
+      {
+        "name": "hp adaptivity",
+        "pass": true,
+        "rank": 4
+      },
+      {
+        "name": "3D tetrahedral P1 continuum certification",
+        "pass": true,
+        "rank": 5
+      },
+      {
+        "name": "3D RT0/H(div) equilibrated flux",
+        "pass": true,
+        "rank": 6
+      },
+      {
+        "name": "Nonlinear elliptic Newton-Kantorovich",
+        "pass": true,
+        "rank": 7
+      },
+      {
+        "name": "Production Stokes mixed FEM",
+        "pass": true,
+        "rank": 8
+      },
+      {
+        "name": "Production Maxwell/Nedelec eigenproblem",
+        "pass": true,
+        "rank": 9
+      },
+      {
+        "name": "Certified domain decomposition",
+        "pass": true,
+        "rank": 10
+      },
+      {
+        "name": "Certified multigrid",
+        "pass": true,
+        "rank": 11
+      },
+      {
+        "name": "Anisotropic metric adaptation",
+        "pass": true,
+        "rank": 12
+      },
+      {
+        "name": "Parametric uncertainty propagation",
+        "pass": true,
+        "rank": 13
+      },
+      {
+        "name": "Certified reduced basis",
+        "pass": true,
+        "rank": 14
+      }
+    ]
+  },
+  "selected_top_14": [
+    {
+      "name": "Dual equilibrated goal bounds",
+      "rank": 1,
+      "selected": true,
+      "why": "Combine primal and dual guaranteed energy bounds into guaranteed QoI bounds."
+    },
+    {
+      "name": "Parabolic equilibrated-flux bounds",
+      "rank": 2,
+      "selected": true,
+      "why": "Constant-free space-time energy guarantees for heat-type problems."
+    },
+    {
+      "name": "Space-time adaptive certification",
+      "rank": 3,
+      "selected": true,
+      "why": "Joint temporal/spatial marking from certified residual components."
+    },
+    {
+      "name": "hp adaptivity",
+      "rank": 4,
+      "selected": true,
+      "why": "Choose h vs p using smoothness/effectivity diagnostics."
+    },
+    {
+      "name": "3D tetrahedral P1 continuum certification",
+      "rank": 5,
+      "selected": true,
+      "why": "Move the mature 2D continuum chain into tetrahedra."
+    },
+    {
+      "name": "3D RT0/H(div) equilibrated flux",
+      "rank": 6,
+      "selected": true,
+      "why": "Guaranteed 3D energy bounds using tetrahedral H(div) fluxes."
+    },
+    {
+      "name": "Nonlinear elliptic Newton-Kantorovich",
+      "rank": 7,
+      "selected": true,
+      "why": "Verified local existence/uniqueness and nonlinear residual bounds."
+    },
+    {
+      "name": "Production Stokes mixed FEM",
+      "rank": 8,
+      "selected": true,
+      "why": "Velocity-pressure saddle systems with inf-sup-aware checks."
+    },
+    {
+      "name": "Production Maxwell/Nedelec eigenproblem",
+      "rank": 9,
+      "selected": true,
+      "why": "Actual H(curl) basis/assembly and Maxwell spectral checks."
+    },
+    {
+      "name": "Certified domain decomposition",
+      "rank": 10,
+      "selected": true,
+      "why": "Schwarz/BDDC-style stable decomposition and contraction diagnostics."
+    },
+    {
+      "name": "Certified multigrid",
+      "rank": 11,
+      "selected": true,
+      "why": "Smoother + approximation-property audits and hierarchy verification."
+    },
+    {
+      "name": "Anisotropic metric adaptation",
+      "rank": 12,
+      "selected": true,
+      "why": "Metric-tensor mesh quality and directional estimator machinery."
+    },
+    {
+      "name": "Parametric uncertainty propagation",
+      "rank": 13,
+      "selected": true,
+      "why": "Interval/affine parameter enclosures through PDE solves."
+    },
+    {
+      "name": "Certified reduced basis",
+      "rank": 14,
+      "selected": true,
+      "why": "Offline/online surrogate with residual-based rigorous bounds."
+    }
+  ],
+  "sha256": "4ea3b6683704f06a4f26888889499321ceaf8c714bfde1303d314fbdf7757c9c"
+}
+

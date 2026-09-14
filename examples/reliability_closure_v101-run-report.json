@@ -1,0 +1,427 @@
+{
+  "report_schema": 2,
+  "experiment": "CACE v1.01 Reliability Closure",
+  "run_id": "8017bd56-5b61-47e7-a553-d67d8bc41fe0",
+  "all_verifiers_passed": true,
+  "environment": {
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41"
+  },
+  "graph_certificate": {
+    "run_id": "8017bd56-5b61-47e7-a553-d67d8bc41fe0",
+    "node_certificate_hashes": [
+      "90b98b4d9f3b4aff80795cb9e2720f85d3993e568c2434d9f61f297c0d33af36"
+    ],
+    "all_verifiers_passed": true,
+    "evidence_generated": [
+      "symbolic"
+    ],
+    "verification_records": 1,
+    "failed_verifiers": 0,
+    "not_run_verifiers": 0,
+    "certificate_hash": "f92bee6243e178e85a930218fcff5374097f5995183e226e2eaa0f39f9d1ca7f"
+  },
+  "outputs": {
+    "closure": {
+      "result": {
+        "pass": true,
+        "hypothesis_match": {
+          "pass": true,
+          "checks": {
+            "bounded_polyhedral_lipschitz_domain": true,
+            "conforming_affine_simplicial_family": true,
+            "uniform_shape_regularity": true,
+            "P1_space": true,
+            "homogeneous_dirichlet": true,
+            "uniform_ellipticity": true,
+            "residual_estimator_has_volume_term": true,
+            "residual_estimator_has_jump_term": true
+          },
+          "failed": []
+        },
+        "imported_lemmas": {
+          "scott_zhang_local_L2": {
+            "status": "reviewed-assumed",
+            "machine_checked": false,
+            "source": {
+              "id": "scott-zhang-1990",
+              "title": "Finite element interpolation of nonsmooth functions satisfying boundary conditions",
+              "authors": [
+                "L. Ridgway Scott",
+                "Shangyou Zhang"
+              ],
+              "journal": "Mathematics of Computation",
+              "volume": 54,
+              "number": 190,
+              "year": 1990,
+              "pages": "483-493",
+              "url": "https://www.ams.org/journals/mcom/1990-54-190/S0025-5718-1990-1011446-7/"
+            },
+            "statement": "For a conforming uniformly shape-regular simplicial family, there is a boundary-preserving Scott-Zhang projector I_h and C0=C(d,gamma) such that ||v-I_h v||_L2(K) <= C0 h_K ||grad v||_L2(omega_K) for every v in H1_0(Omega).",
+            "dependencies": [
+              "bounded_polyhedral_lipschitz_domain",
+              "conforming_affine_simplicial_family",
+              "uniform_shape_regularity",
+              "P1_space"
+            ]
+          },
+          "scott_zhang_local_H1": {
+            "status": "reviewed-assumed",
+            "machine_checked": false,
+            "source": {
+              "id": "scott-zhang-1990",
+              "title": "Finite element interpolation of nonsmooth functions satisfying boundary conditions",
+              "authors": [
+                "L. Ridgway Scott",
+                "Shangyou Zhang"
+              ],
+              "journal": "Mathematics of Computation",
+              "volume": 54,
+              "number": 190,
+              "year": 1990,
+              "pages": "483-493",
+              "url": "https://www.ams.org/journals/mcom/1990-54-190/S0025-5718-1990-1011446-7/"
+            },
+            "statement": "There is C1=C(d,gamma) such that ||grad(v-I_h v)||_L2(K) <= C1 ||grad v||_L2(omega_K).",
+            "dependencies": [
+              "bounded_polyhedral_lipschitz_domain",
+              "conforming_affine_simplicial_family",
+              "uniform_shape_regularity",
+              "P1_space"
+            ]
+          },
+          "scaled_trace_simplex": {
+            "status": "reviewed-assumed",
+            "machine_checked": false,
+            "source": {
+              "id": "standard-scaled-trace",
+              "description": "standard scaled trace inequality on uniformly shape-regular simplices"
+            },
+            "statement": "For w in H1(K), ||w||_L2(E) <= Ctr(d,gamma)[h_K^(-1/2)||w||_L2(K)+h_K^(1/2)||grad w||_L2(K)] for every face E subset boundary K.",
+            "dependencies": [
+              "conforming_affine_simplicial_family",
+              "uniform_shape_regularity"
+            ]
+          },
+          "mesh_uniform_patch_overlap": {
+            "status": "reviewed-assumed",
+            "machine_checked": false,
+            "source": {
+              "id": "scott-zhang-1990",
+              "title": "Finite element interpolation of nonsmooth functions satisfying boundary conditions",
+              "authors": [
+                "L. Ridgway Scott",
+                "Shangyou Zhang"
+              ],
+              "journal": "Mathematics of Computation",
+              "volume": 54,
+              "number": 190,
+              "year": 1990,
+              "pages": "483-493",
+              "url": "https://www.ams.org/journals/mcom/1990-54-190/S0025-5718-1990-1011446-7/"
+            },
+            "statement": "For the finite Scott-Zhang element/face patches on a uniformly shape-regular conforming simplicial family, the patch multiplicity is bounded by N_ov=N(d,gamma), uniformly in h.",
+            "dependencies": [
+              "conforming_affine_simplicial_family",
+              "uniform_shape_regularity"
+            ]
+          }
+        },
+        "derived_face_estimate": {
+          "pass": true,
+          "derived_constant": "C_E = C_tr * (C_0 + C_1) * C_face_element_comparability",
+          "statement": "||v-I_h v||_L2(E) <= C_E h_E^(1/2)||grad v||_L2(omega_E)",
+          "status": "reviewed-assumed",
+          "machine_checked": false,
+          "reason": "algebraic derivation is explicit, but imported analytic lemmas and geometry comparability are reviewed literature inputs"
+        },
+        "reliability_theorem": {
+          "theorem_id": "reliability.poisson.p1.shape_regular.reviewed.v101",
+          "status": "reviewed-assumed",
+          "formal_evidence": false,
+          "machine_checked": false,
+          "statement": "Let Omega be a bounded polyhedral Lipschitz domain and {T_h} a conforming affine uniformly shape-regular simplicial family. For conforming P1 Galerkin FEM with homogeneous Dirichlet data and uniformly coercive constant diffusion, the standard volume-residual plus interior-flux-jump estimator eta satisfies ||u-u_h||_A <= C_rel eta, where C_rel is independent of h.",
+          "constant_structure": {
+            "pass": true,
+            "C_star": "sqrt(C_0^2 N_K + C_E^2 N_E)",
+            "C_rel": "sqrt(C_0^2 N_K + C_E^2 N_E) / sqrt(alpha)",
+            "estimator_normalization": "eta^2=sum_K h_K^2||r_K||_K^2 + sum_E h_E||j_E||_E^2",
+            "independent_of": [
+              "mesh size h",
+              "number of elements"
+            ],
+            "depends_on": [
+              "dimension d",
+              "shape regularity gamma",
+              "ellipticity lower bound alpha",
+              "patch convention / estimator normalization"
+            ]
+          },
+          "imported_analytic_lemmas": [
+            "mesh_uniform_patch_overlap",
+            "scaled_trace_simplex",
+            "scott_zhang_local_H1",
+            "scott_zhang_local_L2"
+          ],
+          "locally_closed_components": [
+            "edge_orientation_cancellation",
+            "affine_elementwise_green_identity",
+            "interior_edge_flux_jump_bookkeeping",
+            "estimator_definition",
+            "coercivity_bridge"
+          ],
+          "nonclaims": [
+            "not machine-formal",
+            "does not yet provide a sharp numerical value for C_rel from literature constants",
+            "does not cover arbitrary anisotropic/non-shape-regular meshes",
+            "does not cover nonconforming FEM or arbitrary variable diffusion in this contract"
+          ]
+        },
+        "dag": {
+          "pass": true,
+          "nodes": {
+            "edge_orientation_cancellation": "closed-exact",
+            "elementwise_green_identity": "closed-exact-affine",
+            "residual_representation": "closed-symbolic-scoped",
+            "scott_zhang_local_L2": "closed-reviewed-import",
+            "scott_zhang_local_H1": "closed-reviewed-import",
+            "scaled_trace_simplex": "closed-reviewed-import",
+            "face_quasi_interpolation": "closed-reviewed-derived",
+            "mesh_uniform_patch_overlap": "closed-reviewed-import",
+            "coercivity": "closed-symbolic/premise",
+            "estimator_definition": "closed-implemented",
+            "reliability_theorem_reviewed": "closed-reviewed-derived",
+            "reliability_theorem_formal": "open-formalization"
+          },
+          "reviewed_reliability_promotable": true,
+          "formal_reliability_promotable": false,
+          "remaining_formalization_targets": [
+            "Scott-Zhang construction and local L2/H1 estimates",
+            "scaled trace inequality on reference/physical simplices",
+            "mesh-uniform patch overlap theorem",
+            "full weak residual representation for the admitted PDE class"
+          ]
+        },
+        "reviewed_theorem_available": true,
+        "formal_theorem_available": false,
+        "sha256": "e9e0639d6ae68b366cc1f0b9d6cf3c352efd109bbbc0088e56a44460a848d677"
+      }
+    }
+  },
+  "certificates": [
+    {
+      "run_id": "8017bd56-5b61-47e7-a553-d67d8bc41fe0",
+      "node_id": "closure",
+      "module_id": "fem101.reliability_closure",
+      "module_version": "1.01.0",
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "output_hash": "d12a57cd2880496ad06f417065f54e525d6fbacb128b1076c74df1fd9ed36388",
+      "evidence": [
+        "symbolic"
+      ],
+      "verification_hashes": [
+        "20b3f06f1e8ad845c410db9a8f4f2924aa4931000da5cfd0458aae823401abc4"
+      ],
+      "requested_device": "cpu",
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T23:29:02.634899+00:00"
+    }
+  ],
+  "verification": {
+    "closure": [
+      {
+        "verifier": "fem101.reliability_closure",
+        "kind": "symbolic",
+        "claim": "Closes the general 2D P1 residual reliability result at reviewed imported-theorem level, while refusing formal promotion.",
+        "state": "pass",
+        "method": "Reliability Closure",
+        "metrics": {
+          "pass": true,
+          "hypothesis_match": {
+            "pass": true,
+            "checks": {
+              "bounded_polyhedral_lipschitz_domain": true,
+              "conforming_affine_simplicial_family": true,
+              "uniform_shape_regularity": true,
+              "P1_space": true,
+              "homogeneous_dirichlet": true,
+              "uniform_ellipticity": true,
+              "residual_estimator_has_volume_term": true,
+              "residual_estimator_has_jump_term": true
+            },
+            "failed": []
+          },
+          "imported_lemmas": {
+            "scott_zhang_local_L2": {
+              "status": "reviewed-assumed",
+              "machine_checked": false,
+              "source": {
+                "id": "scott-zhang-1990",
+                "title": "Finite element interpolation of nonsmooth functions satisfying boundary conditions",
+                "authors": [
+                  "L. Ridgway Scott",
+                  "Shangyou Zhang"
+                ],
+                "journal": "Mathematics of Computation",
+                "volume": 54,
+                "number": 190,
+                "year": 1990,
+                "pages": "483-493",
+                "url": "https://www.ams.org/journals/mcom/1990-54-190/S0025-5718-1990-1011446-7/"
+              },
+              "statement": "For a conforming uniformly shape-regular simplicial family, there is a boundary-preserving Scott-Zhang projector I_h and C0=C(d,gamma) such that ||v-I_h v||_L2(K) <= C0 h_K ||grad v||_L2(omega_K) for every v in H1_0(Omega).",
+              "dependencies": [
+                "bounded_polyhedral_lipschitz_domain",
+                "conforming_affine_simplicial_family",
+                "uniform_shape_regularity",
+                "P1_space"
+              ]
+            },
+            "scott_zhang_local_H1": {
+              "status": "reviewed-assumed",
+              "machine_checked": false,
+              "source": {
+                "id": "scott-zhang-1990",
+                "title": "Finite element interpolation of nonsmooth functions satisfying boundary conditions",
+                "authors": [
+                  "L. Ridgway Scott",
+                  "Shangyou Zhang"
+                ],
+                "journal": "Mathematics of Computation",
+                "volume": 54,
+                "number": 190,
+                "year": 1990,
+                "pages": "483-493",
+                "url": "https://www.ams.org/journals/mcom/1990-54-190/S0025-5718-1990-1011446-7/"
+              },
+              "statement": "There is C1=C(d,gamma) such that ||grad(v-I_h v)||_L2(K) <= C1 ||grad v||_L2(omega_K).",
+              "dependencies": [
+                "bounded_polyhedral_lipschitz_domain",
+                "conforming_affine_simplicial_family",
+                "uniform_shape_regularity",
+                "P1_space"
+              ]
+            },
+            "scaled_trace_simplex": {
+              "status": "reviewed-assumed",
+              "machine_checked": false,
+              "source": {
+                "id": "standard-scaled-trace",
+                "description": "standard scaled trace inequality on uniformly shape-regular simplices"
+              },
+              "statement": "For w in H1(K), ||w||_L2(E) <= Ctr(d,gamma)[h_K^(-1/2)||w||_L2(K)+h_K^(1/2)||grad w||_L2(K)] for every face E subset boundary K.",
+              "dependencies": [
+                "conforming_affine_simplicial_family",
+                "uniform_shape_regularity"
+              ]
+            },
+            "mesh_uniform_patch_overlap": {
+              "status": "reviewed-assumed",
+              "machine_checked": false,
+              "source": {
+                "id": "scott-zhang-1990",
+                "title": "Finite element interpolation of nonsmooth functions satisfying boundary conditions",
+                "authors": [
+                  "L. Ridgway Scott",
+                  "Shangyou Zhang"
+                ],
+                "journal": "Mathematics of Computation",
+                "volume": 54,
+                "number": 190,
+                "year": 1990,
+                "pages": "483-493",
+                "url": "https://www.ams.org/journals/mcom/1990-54-190/S0025-5718-1990-1011446-7/"
+              },
+              "statement": "For the finite Scott-Zhang element/face patches on a uniformly shape-regular conforming simplicial family, the patch multiplicity is bounded by N_ov=N(d,gamma), uniformly in h.",
+              "dependencies": [
+                "conforming_affine_simplicial_family",
+                "uniform_shape_regularity"
+              ]
+            }
+          },
+          "derived_face_estimate": {
+            "pass": true,
+            "derived_constant": "C_E = C_tr * (C_0 + C_1) * C_face_element_comparability",
+            "statement": "||v-I_h v||_L2(E) <= C_E h_E^(1/2)||grad v||_L2(omega_E)",
+            "status": "reviewed-assumed",
+            "machine_checked": false,
+            "reason": "algebraic derivation is explicit, but imported analytic lemmas and geometry comparability are reviewed literature inputs"
+          },
+          "reliability_theorem": {
+            "theorem_id": "reliability.poisson.p1.shape_regular.reviewed.v101",
+            "status": "reviewed-assumed",
+            "formal_evidence": false,
+            "machine_checked": false,
+            "statement": "Let Omega be a bounded polyhedral Lipschitz domain and {T_h} a conforming affine uniformly shape-regular simplicial family. For conforming P1 Galerkin FEM with homogeneous Dirichlet data and uniformly coercive constant diffusion, the standard volume-residual plus interior-flux-jump estimator eta satisfies ||u-u_h||_A <= C_rel eta, where C_rel is independent of h.",
+            "constant_structure": {
+              "pass": true,
+              "C_star": "sqrt(C_0^2 N_K + C_E^2 N_E)",
+              "C_rel": "sqrt(C_0^2 N_K + C_E^2 N_E) / sqrt(alpha)",
+              "estimator_normalization": "eta^2=sum_K h_K^2||r_K||_K^2 + sum_E h_E||j_E||_E^2",
+              "independent_of": [
+                "mesh size h",
+                "number of elements"
+              ],
+              "depends_on": [
+                "dimension d",
+                "shape regularity gamma",
+                "ellipticity lower bound alpha",
+                "patch convention / estimator normalization"
+              ]
+            },
+            "imported_analytic_lemmas": [
+              "mesh_uniform_patch_overlap",
+              "scaled_trace_simplex",
+              "scott_zhang_local_H1",
+              "scott_zhang_local_L2"
+            ],
+            "locally_closed_components": [
+              "edge_orientation_cancellation",
+              "affine_elementwise_green_identity",
+              "interior_edge_flux_jump_bookkeeping",
+              "estimator_definition",
+              "coercivity_bridge"
+            ],
+            "nonclaims": [
+              "not machine-formal",
+              "does not yet provide a sharp numerical value for C_rel from literature constants",
+              "does not cover arbitrary anisotropic/non-shape-regular meshes",
+              "does not cover nonconforming FEM or arbitrary variable diffusion in this contract"
+            ]
+          },
+          "dag": {
+            "pass": true,
+            "nodes": {
+              "edge_orientation_cancellation": "closed-exact",
+              "elementwise_green_identity": "closed-exact-affine",
+              "residual_representation": "closed-symbolic-scoped",
+              "scott_zhang_local_L2": "closed-reviewed-import",
+              "scott_zhang_local_H1": "closed-reviewed-import",
+              "scaled_trace_simplex": "closed-reviewed-import",
+              "face_quasi_interpolation": "closed-reviewed-derived",
+              "mesh_uniform_patch_overlap": "closed-reviewed-import",
+              "coercivity": "closed-symbolic/premise",
+              "estimator_definition": "closed-implemented",
+              "reliability_theorem_reviewed": "closed-reviewed-derived",
+              "reliability_theorem_formal": "open-formalization"
+            },
+            "reviewed_reliability_promotable": true,
+            "formal_reliability_promotable": false,
+            "remaining_formalization_targets": [
+              "Scott-Zhang construction and local L2/H1 estimates",
+              "scaled trace inequality on reference/physical simplices",
+              "mesh-uniform patch overlap theorem",
+              "full weak residual representation for the admitted PDE class"
+            ]
+          },
+          "reviewed_theorem_available": true,
+          "formal_theorem_available": false,
+          "sha256": "e9e0639d6ae68b366cc1f0b9d6cf3c352efd109bbbc0088e56a44460a848d677"
+        },
+        "notes": []
+      }
+    ]
+  }
+}

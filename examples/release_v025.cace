@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "name": "CACE v0.25 release example",
+  "metadata": {
+    "release": "0.25.0"
+  },
+  "nodes": [
+    {
+      "id": "main",
+      "module_id": "fem25.auto_solver",
+      "params": {},
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "edges": []
+}

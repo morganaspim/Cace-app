@@ -1,0 +1,14 @@
+{
+  "edges": [
+    {"source_node": "a", "source_port": "value", "target_node": "sum", "target_port": "a"},
+    {"source_node": "b", "source_port": "value", "target_node": "sum", "target_port": "b"}
+  ],
+  "metadata": {"purpose": "minimal deterministic DAG example"},
+  "name": "2 + 3",
+  "nodes": [
+    {"id": "a", "module_id": "core.constant", "params": {"value": 2}, "position": [100, 100]},
+    {"id": "b", "module_id": "core.constant", "params": {"value": 3}, "position": [100, 250]},
+    {"id": "sum", "module_id": "core.add", "params": {}, "position": [400, 175]}
+  ],
+  "schema_version": 1
+}

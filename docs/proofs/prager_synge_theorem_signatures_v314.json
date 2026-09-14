@@ -1,0 +1,12 @@
+{
+  "frozen": true,
+  "pass": true,
+  "signature_sha256": "f87e52ca678db0b856942587bf2ba6c8ac52bc3e3456054d5f5718779c2145b4",
+  "signatures": {
+    "abstract_prager_synge": "PDE orthogonality -> hypercircle identity",
+    "discrete_prager_synge_of_orthogonality": "finite-mesh orthogonality -> discrete identity",
+    "hypercircle_of_inner_eq_zero": "inner x y = 0 -> normSq(x+y)=normSq x+normSq y",
+    "mesh_admissibility_to_orthogonality": "OPEN: Green + face cancellation + equilibrium -> orthogonality"
+  }
+}
+

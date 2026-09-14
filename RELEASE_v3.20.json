@@ -1,0 +1,8 @@
+{
+  "campaign": "Discrete Prager-Synge Closure",
+  "evidence_boundary": "exact-kernel/source-ready artifacts are not Lean proof evidence",
+  "latest_capability": "formal_v320",
+  "lean_external_status": "NOT_RUN",
+  "release": "3.20"
+}
+

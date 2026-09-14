@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "v0.14 machine-checked FEM theorem chain",
+  "nodes": [
+    {"id":"affine","module_id":"formal14.affine_simplex","params":{"dimension":2},"position":[0,0]},
+    {"id":"spd","module_id":"formal14.dirichlet_spd_1d","params":{},"position":[0,180]},
+    {"id":"energy","module_id":"formal14.poisson1d_energy","params":{},"position":[0,360]},
+    {"id":"affine_bridge","module_id":"formal14.registry_bridge","params":{},"position":[350,0]},
+    {"id":"spd_bridge","module_id":"formal14.registry_bridge","params":{},"position":[350,180]},
+    {"id":"energy_bridge","module_id":"formal14.registry_bridge","params":{},"position":[350,360]},
+    {"id":"summary","module_id":"formal14.summary","params":{},"position":[700,180]}
+  ],
+  "edges": [
+    {"source_node":"affine","source_port":"formal_result","target_node":"affine_bridge","target_port":"formal_result"},
+    {"source_node":"spd","source_port":"formal_result","target_node":"spd_bridge","target_port":"formal_result"},
+    {"source_node":"energy","source_port":"formal_result","target_node":"energy_bridge","target_port":"formal_result"},
+    {"source_node":"affine_bridge","source_port":"theorem","target_node":"summary","target_port":"affine"},
+    {"source_node":"spd_bridge","source_port":"theorem","target_node":"summary","target_port":"spd"},
+    {"source_node":"energy_bridge","source_port":"theorem","target_node":"summary","target_port":"energy"}
+  ],
+  "metadata":{"version":"0.14.0","purpose":"machine-checked affine/gradient/stiffness/SPD/1D-Poisson formal chain"}
+}

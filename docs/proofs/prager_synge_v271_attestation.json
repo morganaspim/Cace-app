@@ -1,0 +1,8 @@
+{
+  "artifact_sha256": "708afa59dc9c5e402e28c5cea653ac01153fa5cbd7601de1a9d2ba6c1c58f560",
+  "blocking_reason": "Lean theorem not executed; PDE trace/integration bridge remains unformalized",
+  "custom_exact_kernel_verified": true,
+  "full_machine_formal_prager_synge": false,
+  "pass": true
+}
+

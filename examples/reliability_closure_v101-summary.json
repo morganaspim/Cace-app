@@ -1,0 +1,29 @@
+{
+  "release": "1.01.0",
+  "reviewed_reliability_closed": true,
+  "formal_reliability_closed": false,
+  "theorem_status": "reviewed-assumed",
+  "failed_hypotheses_default": [],
+  "C_rel_structure": "sqrt(C_0^2 N_K + C_E^2 N_E) / sqrt(alpha)",
+  "remaining_formalization_targets": [
+    "Scott-Zhang construction and local L2/H1 estimates",
+    "scaled trace inequality on reference/physical simplices",
+    "mesh-uniform patch overlap theorem",
+    "full weak residual representation for the admitted PDE class"
+  ],
+  "audit_sha256": "e9e0639d6ae68b366cc1f0b9d6cf3c352efd109bbbc0088e56a44460a848d677",
+  "graph_certificate": {
+    "run_id": "8017bd56-5b61-47e7-a553-d67d8bc41fe0",
+    "node_certificate_hashes": [
+      "90b98b4d9f3b4aff80795cb9e2720f85d3993e568c2434d9f61f297c0d33af36"
+    ],
+    "all_verifiers_passed": true,
+    "evidence_generated": [
+      "symbolic"
+    ],
+    "verification_records": 1,
+    "failed_verifiers": 0,
+    "not_run_verifiers": 0,
+    "certificate_hash": "f92bee6243e178e85a930218fcff5374097f5995183e226e2eaa0f39f9d1ca7f"
+  }
+}

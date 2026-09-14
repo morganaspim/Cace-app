@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "name": "2D simplex Poisson foundation",
+  "nodes": [
+    {
+      "id": "mesh",
+      "module_id": "fem_nd.mesh",
+      "params": {
+        "vertices": "[[0,0],[1,0],[1,1],[0,1],[0.5,0.5]]",
+        "elements": "[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]"
+      },
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "space",
+      "module_id": "fem_nd.p1_space",
+      "params": {},
+      "position": [
+        220,
+        -80
+      ]
+    },
+    {
+      "id": "quad",
+      "module_id": "fem_nd.quadrature",
+      "params": {},
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "id": "assemble",
+      "module_id": "fem_nd.poisson_assemble",
+      "params": {
+        "source": 1.0
+      },
+      "position": [
+        460,
+        -80
+      ]
+    },
+    {
+      "id": "solve",
+      "module_id": "fem_nd.linear_solve",
+      "params": {},
+      "position": [
+        700,
+        -80
+      ]
+    },
+    {
+      "id": "residual",
+      "module_id": "fem_nd.residual",
+      "params": {},
+      "position": [
+        940,
+        -160
+      ]
+    },
+    {
+      "id": "estimator",
+      "module_id": "fem_nd.estimator",
+      "params": {
+        "source": 1.0
+      },
+      "position": [
+        940,
+        0
+      ]
+    },
+    {
+      "id": "refine",
+      "module_id": "fem_nd.refine",
+      "params": {},
+      "position": [
+        1180,
+        0
+      ]
+    },
+    {
+      "id": "history",
+      "module_id": "fem_nd.convergence",
+      "params": {
+        "levels": 3,
+        "source": 1.0
+      },
+      "position": [
+        940,
+        180
+      ]
+    },
+    {
+      "id": "adapt",
+      "module_id": "fem_nd.adapt2d",
+      "params": {
+        "theta": 0.5
+      },
+      "position": [
+        1180,
+        160
+      ]
+    },
+    {
+      "id": "certificate_nd",
+      "module_id": "fem_nd.certificate",
+      "params": {
+        "residual_tolerance": 1e-10
+      },
+      "position": [
+        1450,
+        0
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "space",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "quad",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "assemble",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "space",
+      "source_port": "space",
+      "target_node": "assemble",
+      "target_port": "space"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "solve",
+      "target_port": "system"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "residual",
+      "target_port": "system"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "residual",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "estimator",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "estimator",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "refine",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "history",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "adapt",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "estimator",
+      "source_port": "estimator",
+      "target_node": "adapt",
+      "target_port": "estimator"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "certificate_nd",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "residual",
+      "source_port": "residual_inf",
+      "target_node": "certificate_nd",
+      "target_port": "residual_inf"
+    },
+    {
+      "source_node": "estimator",
+      "source_port": "estimator",
+      "target_node": "certificate_nd",
+      "target_port": "estimator"
+    },
+    {
+      "source_node": "adapt",
+      "source_port": "refined_mesh",
+      "target_node": "certificate_nd",
+      "target_port": "refined_mesh"
+    },
+    {
+      "source_node": "history",
+      "source_port": "history",
+      "target_node": "certificate_nd",
+      "target_port": "history"
+    }
+  ],
+  "metadata": {
+    "equation": "-Delta u = 1 on the unit square",
+    "boundary": "homogeneous Dirichlet on detected boundary vertices",
+    "purpose": "v0.3 dimension-generic simplex FEM foundation; estimator is diagnostic, not a certified error bound",
+    "adaptive": "D\u00f6rfler cell marking followed by globally shared edge splits and conforming red/green triangle refinement"
+  }
+}

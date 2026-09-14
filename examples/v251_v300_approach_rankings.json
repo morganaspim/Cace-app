@@ -1,0 +1,440 @@
+{
+  "pass": true,
+  "targets": {
+    "arbitrary_mesh_3d_equilibrated_flux_engine": [
+      {
+        "approach": "Canonical tetrahedral face topology/orientation",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Represent every global face once with deterministic normal orientation."
+      },
+      {
+        "approach": "Affine Piola-mapped tetrahedral RT0/RT1",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Use contravariant Piola mapping to preserve normal fluxes on arbitrary affine tetrahedra."
+      },
+      {
+        "approach": "Sparse global divergence/equilibrium assembly",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Assemble exact cell-vs-face conservation constraints on arbitrary tetrahedral meshes."
+      },
+      {
+        "approach": "Patchwise 3D equilibration",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Local constrained reconstruction on vertex/element patches to avoid a monolithic solve."
+      },
+      {
+        "approach": "Coefficient-weighted 3D constitutive minimization",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Handle piecewise SPD diffusion in the A^{-1} metric."
+      },
+      {
+        "approach": "Projected source plus oscillation accounting",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Enforce div sigma = Pi f exactly and keep f-Pi f as explicit oscillation."
+      },
+      {
+        "approach": "3D Prager-Synge guarantee gate",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Emit a guaranteed energy bound only after H(div), equilibrium, and coefficient checks pass."
+      },
+      {
+        "approach": "Tetrahedral mesh-quality admission",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Reject inverted/degenerate/badly conditioned tetrahedra before certification."
+      },
+      {
+        "approach": "Adaptive tetrahedral refinement closure",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Preserve conformity and face orientation through refinement."
+      },
+      {
+        "approach": "Parallel sparse patch reconstruction",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Parallelize independent 3D patches with deterministic certificates."
+      }
+    ],
+    "full_DG_SUPG_elasticity_contact_helmholtz_production_solvers": [
+      {
+        "approach": "Shared PDE-family assembly/certificate interface",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Standardize boundary, coefficient, residual, and evidence contracts across solver families."
+      },
+      {
+        "approach": "SIPG sparse assembly",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Implement interior/boundary jumps, averages, and penalty terms with coercivity gates."
+      },
+      {
+        "approach": "DG equilibrated/hypercircle estimator",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Pair nonconforming reconstruction with equilibrated flux for reliable/efficient error control."
+      },
+      {
+        "approach": "SUPG sparse assembly and robust tau policy",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Add streamline stabilization with Peclet-aware admission diagnostics."
+      },
+      {
+        "approach": "Vector elasticity assembly with locking guards",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Assemble Lam\u00e9 systems and expose nearly incompressible warnings/mixed fallback."
+      },
+      {
+        "approach": "Contact active-set/Nitsche path",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Implement inequality constraints and complementarity checks deterministically."
+      },
+      {
+        "approach": "Helmholtz complex/block-real assembly with resolution gates",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Build indefinite wave systems and refuse under-resolved kh/p regimes."
+      },
+      {
+        "approach": "Family-specific a posteriori estimators",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Attach robust estimators to each production solver."
+      },
+      {
+        "approach": "Adaptive campaign integration",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Run solve-estimate-mark-refine loops per family."
+      },
+      {
+        "approach": "Cross-family qualification suite",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Use manufactured/benchmark problems and evidence-scope audits across all solver families."
+      }
+    ],
+    "general_sparse_interval_eigensolver": [
+      {
+        "approach": "Verified sparse LDLT inertia counts",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Count eigenvalues below shifts with interval pivots/reconstruction checks."
+      },
+      {
+        "approach": "Fill-reducing symbolic ordering",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Reuse CACE sparse ordering infrastructure before interval factorization."
+      },
+      {
+        "approach": "Certified bisection by inertia",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Narrow eigenvalue intervals using exact/interval counts."
+      },
+      {
+        "approach": "Gershgorin/variational initial brackets",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Generate safe initial spectral windows cheaply."
+      },
+      {
+        "approach": "Residual inclusion and Kato/Weinstein bounds",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Sharpen intervals from approximate eigenvectors and spectral gaps."
+      },
+      {
+        "approach": "Lehmann-Goerisch lower bounds",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Use flux/complementarity information for rigorous lower eigenvalue estimates."
+      },
+      {
+        "approach": "Verified eigenvector/subspace residuals",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Certify residual norms, orthogonality, and clusters."
+      },
+      {
+        "approach": "Cluster-aware block enclosures",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Treat multiple/near-multiple eigenvalues as invariant subspaces."
+      },
+      {
+        "approach": "Generalized A x=lambda M x support",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Handle FEM mass matrices and SPD pencils directly."
+      },
+      {
+        "approach": "Adaptive eigenmesh loop",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Drive refinement by eigenpair estimators until interval targets are met."
+      }
+    ],
+    "global_rt1_full_sparse_reconstruction": [
+      {
+        "approach": "Global facet-moment DOF topology",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Use shared facet polynomial moments as the global H(div) unknowns; orientation transforms become explicit."
+      },
+      {
+        "approach": "Contravariant Piola mapped RT1 element",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Reference RT1 basis/DOFs mapped to physical cells with the canonical H(div) transform."
+      },
+      {
+        "approach": "Sparse CSR mass/divergence assembly",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Assemble coefficient-weighted RT1 Gram and divergence blocks directly into sparse structure."
+      },
+      {
+        "approach": "Sparse equality-constrained KKT equilibration",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Solve min constitutive mismatch subject to exact projected-source equilibrium."
+      },
+      {
+        "approach": "Static condensation of cell moments",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Eliminate RT1 interior vector moments locally and retain globally coupled facet moments."
+      },
+      {
+        "approach": "Patchwise equilibrated reconstruction",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Solve independent vertex/element-patch constrained problems and sum compatible fields."
+      },
+      {
+        "approach": "Coefficient-weighted constitutive minimization",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Minimize ||A^{-1/2}(sigma+A grad uh)|| rather than an arbitrary DOF norm."
+      },
+      {
+        "approach": "Hybridized H(div) formulation",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Use facet multipliers and local elimination for scalable reconstruction."
+      },
+      {
+        "approach": "Commuting-projection validation",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Check divergence/interpolation commutation to protect source equilibrium."
+      },
+      {
+        "approach": "Parallel patch scheduler",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Exploit independent equilibration patches with deterministic reduction."
+      }
+    ],
+    "machine_formal_prager_synge": [
+      {
+        "approach": "Formal Hilbert Pythagorean core",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Reuse formal inner-product orthogonality/Pythagorean theorems rather than proving geometry from scratch."
+      },
+      {
+        "approach": "Formal primal/dual admissible affine spaces",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Represent kinematically and statically admissible sets as affine/subspaces."
+      },
+      {
+        "approach": "Formal weak Green identity bridge",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Prove the integration-by-parts relation that creates primal-dual orthogonality."
+      },
+      {
+        "approach": "Formal PDE orthogonality lemma",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Show admissible flux error is orthogonal to admissible gradient error."
+      },
+      {
+        "approach": "Weighted energy inner product formalization",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Encode SPD A and A^{-1} energy products and coercivity assumptions."
+      },
+      {
+        "approach": "Lean obligation/dependency export",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Generate a minimal theorem DAG and Lean skeletons tied to exact CACE theorem IDs."
+      },
+      {
+        "approach": "Independent exact-kernel attestation",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Machine-check finite-dimensional identities and cryptographically bind artifacts while Lean is unavailable."
+      },
+      {
+        "approach": "Formal H(div) normal-trace API",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Formalize divergence/normal trace compatibility on Lipschitz domains."
+      },
+      {
+        "approach": "Formal Bochner/L2 integration layer",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Close measure-theoretic details for vector fields and weighted products."
+      },
+      {
+        "approach": "Formal FE admissibility extraction",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Connect discrete RT/Nedelec assembly certificates to abstract admissibility predicates."
+      }
+    ],
+    "production_maxwell_mesh_family": [
+      {
+        "approach": "Nedelec first-kind covariant Piola element",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Use canonical H(curl) mapping and tangential DOFs."
+      },
+      {
+        "approach": "Deterministic edge orientation transforms",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Share edge moments globally with exact sign/transform handling."
+      },
+      {
+        "approach": "Exact-sequence/incidence validation",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Enforce grad-curl compatibility and detect topology/orientation errors."
+      },
+      {
+        "approach": "Sparse curl-curl plus mass assembly",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Build the actual Maxwell operator on arbitrary conforming meshes."
+      },
+      {
+        "approach": "Boundary/gauge/topology handling",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Support PEC conditions and nullspace/gauge constraints explicitly."
+      },
+      {
+        "approach": "Discrete-compactness/spurious-mode audit",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Detect nonphysical spectral pollution before claiming eigenmodes."
+      },
+      {
+        "approach": "Equilibrated magnetostatic estimator",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Use curl equilibration for constant-free/robust error control."
+      },
+      {
+        "approach": "Higher-order Nedelec moments",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Extend to arbitrary polynomial order."
+      },
+      {
+        "approach": "Tree-cotree gauge algorithms",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Use graph topology for robust nullspace elimination."
+      },
+      {
+        "approach": "Auxiliary-space preconditioning",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Exploit H1/H(curl) exact sequence for scalable iterative solves."
+      }
+    ],
+    "production_stokes_mesh_family": [
+      {
+        "approach": "Taylor-Hood P2/P1 production path",
+        "implemented_in_campaign": true,
+        "rank": 1,
+        "rationale": "Use the well-established inf-sup stable pair as the default conforming Stokes implementation."
+      },
+      {
+        "approach": "Scott-Vogelius divergence-free path",
+        "implemented_in_campaign": true,
+        "rank": 2,
+        "rationale": "Offer exactly divergence-free velocity on admitted mesh/degree families."
+      },
+      {
+        "approach": "Pressure-wired Scott-Vogelius fallback",
+        "implemented_in_campaign": true,
+        "rank": 3,
+        "rationale": "Use mesh-robust pressure constraints near nearly singular vertices."
+      },
+      {
+        "approach": "Pressure-robust H(div) reconstruction",
+        "implemented_in_campaign": true,
+        "rank": 4,
+        "rationale": "Reconstruct test/load terms to reduce pressure pollution in velocity error."
+      },
+      {
+        "approach": "Fortin-operator hypothesis audit",
+        "implemented_in_campaign": true,
+        "rank": 5,
+        "rationale": "Tie inf-sup applicability to a concrete commuting/divergence-preserving interpolation contract."
+      },
+      {
+        "approach": "Block Schur-complement solver/preconditioner",
+        "implemented_in_campaign": true,
+        "rank": 6,
+        "rationale": "Exploit saddle-point structure instead of generic monolithic solves."
+      },
+      {
+        "approach": "Equilibrated/a posteriori Stokes estimator",
+        "implemented_in_campaign": true,
+        "rank": 7,
+        "rationale": "Add velocity-pressure error indicators and conservation diagnostics."
+      },
+      {
+        "approach": "Grad-div stabilization option",
+        "implemented_in_campaign": false,
+        "rank": 8,
+        "rationale": "Improve mass conservation/pressure robustness when exact divergence-free pairs are unavailable."
+      },
+      {
+        "approach": "MINI/Bernardi-Raugel fallback",
+        "implemented_in_campaign": false,
+        "rank": 9,
+        "rationale": "Provide lower-order robust alternatives."
+      },
+      {
+        "approach": "Pressure-nullspace/gauge manager",
+        "implemented_in_campaign": false,
+        "rank": 10,
+        "rationale": "Handle pure-Neumann/mean-zero pressure constraints explicitly."
+      }
+    ]
+  }
+}
+

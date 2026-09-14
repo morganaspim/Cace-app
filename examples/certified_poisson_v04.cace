@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "name": "v0.4 certified discrete Poisson FEM",
+  "nodes": [
+    {"id":"mesh","module_id":"fem_nd.mesh","params":{"vertices":"[[0,0],[1,0],[1,1],[0,1],[0.5,0.5]]","elements":"[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]"},"position":[0,0]},
+    {"id":"space","module_id":"fem_nd.p1_space","params":{},"position":[220,0]},
+    {"id":"assemble","module_id":"fem_cert.poisson_assemble","params":{"diffusion":"1.0","source_constant":1.0,"source_linear":"[]"},"position":[450,0]},
+    {"id":"solve","module_id":"fem_nd.linear_solve","params":{},"position":[700,0]},
+    {"id":"ires","module_id":"fem_cert.interval_residual","params":{},"position":[930,-120]},
+    {"id":"aerr","module_id":"fem_cert.discrete_energy_error","params":{},"position":[1170,-120]},
+    {"id":"est","module_id":"fem_nd.estimator","params":{"source":1.0},"position":[930,100]},
+    {"id":"gate","module_id":"fem_cert.reliability_gate","params":{"theorem_id":""},"position":[1170,100]},
+    {"id":"equiv","module_id":"fem_cert.cpu_gpu_equivalence","params":{"atol":1e-10,"rtol":1e-10},"position":[930,260]}
+  ],
+  "edges": [
+    {"source_node":"mesh","source_port":"mesh","target_node":"space","target_port":"mesh"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"assemble","target_port":"mesh"},
+    {"source_node":"space","source_port":"space","target_node":"assemble","target_port":"space"},
+    {"source_node":"assemble","source_port":"system","target_node":"solve","target_port":"system"},
+    {"source_node":"assemble","source_port":"system","target_node":"ires","target_port":"system"},
+    {"source_node":"solve","source_port":"solution","target_node":"ires","target_port":"solution"},
+    {"source_node":"assemble","source_port":"system","target_node":"aerr","target_port":"system"},
+    {"source_node":"ires","source_port":"residual_certificate","target_node":"aerr","target_port":"residual_certificate"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"est","target_port":"mesh"},
+    {"source_node":"solve","source_port":"solution","target_node":"est","target_port":"solution"},
+    {"source_node":"assemble","source_port":"problem","target_node":"gate","target_port":"problem"},
+    {"source_node":"est","source_port":"estimator","target_node":"gate","target_port":"estimator"},
+    {"source_node":"assemble","source_port":"system","target_node":"equiv","target_port":"system"}
+  ],
+  "metadata": {
+    "scope":"certifies algebraic residual/error for the stored binary64 discrete system; continuum estimator reliability is intentionally gated and not certified",
+    "equation":"-Delta u = 1 on unit square, homogeneous Dirichlet boundary",
+    "release":"0.4.0"
+  }
+}

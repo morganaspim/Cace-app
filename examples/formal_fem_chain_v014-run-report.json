@@ -1,0 +1,886 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:36.987378+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "formal14.affine_simplex",
+      "module_version": "0.14.0",
+      "node_id": "affine",
+      "output_hash": "0f2c318d49081b262e3b2c1fd695560a41f192cbfcbdb4092539432936bbb279",
+      "parameter_hash": "eb441ba74712a18a4b1b63145ab345cf69796a995127dec1b9e8c2cdff20d365",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "3ca517ccc4b14fdf622fec759df9e2aec3b12c32cf83da035e53557d479f5efd"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:37.588752+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "0f2c318d49081b262e3b2c1fd695560a41f192cbfcbdb4092539432936bbb279",
+      "module_id": "formal14.registry_bridge",
+      "module_version": "0.14.0",
+      "node_id": "affine_bridge",
+      "output_hash": "5457357ddf98220e73f0c84251dbb78e9547b10971e81531594ab5877d3c9a3d",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "55c35f461febd38366c3008e6cef305bcdf480aa1eb008a6e7622fa5c009c3c6"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:38.166488+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "formal14.poisson1d_energy",
+      "module_version": "0.14.0",
+      "node_id": "energy",
+      "output_hash": "ff27c19bfc127dfea3431e354fa1f27396862e30dbf1241080b4b46d3ebd7e8e",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "f203a3cf3d4a782d1f29dab0341b5ab6c176d0e03742e80dcbce1addb0e9aba8"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:38.768628+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "ff27c19bfc127dfea3431e354fa1f27396862e30dbf1241080b4b46d3ebd7e8e",
+      "module_id": "formal14.registry_bridge",
+      "module_version": "0.14.0",
+      "node_id": "energy_bridge",
+      "output_hash": "507d6927c76de10a646f26508a00f6032817c7f5f267d1e96c568936f6bae134",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "ba13b895af9da80ef1c33486740618e7ac520fb29a35cb7d1b8aca5541e4f126"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:39.481665+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "formal14.dirichlet_spd_1d",
+      "module_version": "0.14.0",
+      "node_id": "spd",
+      "output_hash": "27983f7352e381ffe5a487db3592236853244fa2f96f80544f991c6b2c07ad28",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "be124575b8a334b57729581f439916fe1e2d95fecc081807448fa6ce3de2baa7"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:40.256359+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "27983f7352e381ffe5a487db3592236853244fa2f96f80544f991c6b2c07ad28",
+      "module_id": "formal14.registry_bridge",
+      "module_version": "0.14.0",
+      "node_id": "spd_bridge",
+      "output_hash": "e0d80038431dd972d4c0a9f704eac9bd9589574552c43efe224e3b972aef1057",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "b8cfef4a5b55f9e962ce4dff790b155d2b40dad4db93fcf9d09e89188f449bd2"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:57:40.256669+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "ac2488779172abe372534b73a57119cb469863263161c6692363972eb292807a",
+      "module_id": "formal14.summary",
+      "module_version": "0.14.0",
+      "node_id": "summary",
+      "output_hash": "72efd966dd3d7f2d38f6a89073f63e2b882984aec0704fb528d40a39f06fe46f",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+      "verification_hashes": [
+        "bf12240ea5eef9cb21053f685c501aafad514ca5170776da1b7607bb0b55c4d1"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.14 machine-checked FEM theorem chain",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "546bae007e6e97b01ac75b6e3398e9eface2ffaa877a2c8738e40fc0a88e80bc",
+    "evidence_generated": [
+      "formally-verified"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "4348cb95bdf211c44a96da60165db77cf4924f22d595d8268bc647370ab095ed",
+      "7b2c1f74d5004dd98cc9bc5c7794dde95d7acf943e3c3deecc4efae4b0edb17d",
+      "1188cf6489808d80ec5b2018fc30f561ba663e1b5a1a2347a9eba39a4ba72cf1",
+      "d970ae7d588cd93f0d897f6776b794af84d1200b8e89e082bf609207e4a6224b",
+      "30c14a47ce1782f252c56f15bf867dbcebf357354ee90aa9171108dae5133ef0",
+      "e5403d2b0c2182fd06ce23693d6f41db590cd708bcc2b27696a3ff2143ffc101",
+      "d506104e7f0c38498f43fcbab21bed7e444c767ced953fe78f92c6dd3caa27e5"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+    "verification_records": 7
+  },
+  "outputs": {
+    "affine": {
+      "formal_result": {
+        "artifact": {
+          "claims": [
+            "affine-inverse",
+            "p1-gradient-transform",
+            "local-stiffness-symmetric-psd"
+          ],
+          "dimension": 2,
+          "kind": "affine-simplex",
+          "schema": "cace-formal-fem-proof-v2",
+          "scope": "supplied exact rational simplex instance",
+          "statement": "For the supplied exact rational simplex, the affine map is invertible, P1 physical gradients equal B^{-T} reference gradients, and the unit-diffusion local stiffness matrix is an exact symmetric positive-semidefinite Gram matrix.",
+          "theorem_id": "affine-simplex-p1-transform-d2-v014",
+          "vertices": [
+            [
+              "1/5",
+              "1/7"
+            ],
+            [
+              "6/5",
+              "2/7"
+            ],
+            [
+              "2/5",
+              "9/7"
+            ]
+          ]
+        },
+        "attestation": {
+          "artifact_sha256": "2b14d1ad214925cdedf38962ae48f7dd580763b29c0dae255828fe1b9796db69",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "affine-inverse",
+            "p1-gradient-transform",
+            "local-stiffness-symmetric-psd"
+          ],
+          "determinant": "39/35",
+          "dimension": 2,
+          "errors": [],
+          "expected_checker": "cace-exact-fem-kernel",
+          "expected_checker_version": "0.14.0",
+          "inverse": [
+            [
+              "40/39",
+              "-7/39"
+            ],
+            [
+              "-5/39",
+              "35/39"
+            ]
+          ],
+          "invocation": "subprocess",
+          "kind": "affine-simplex",
+          "local_stiffness": [
+            [
+              "287/390",
+              "-86/195",
+              "-23/78"
+            ],
+            [
+              "-86/195",
+              "1649/2730",
+              "-89/546"
+            ],
+            [
+              "-23/78",
+              "-89/546",
+              "125/273"
+            ]
+          ],
+          "passed": true,
+          "physical_gradients": [
+            [
+              "-35/39",
+              "-28/39"
+            ],
+            [
+              "40/39",
+              "-7/39"
+            ],
+            [
+              "-5/39",
+              "35/39"
+            ]
+          ],
+          "process_returncode": 0,
+          "proof_method": "exact rational affine inversion and exact Gram-factor stiffness construction",
+          "stderr": "",
+          "theorem_id": "affine-simplex-p1-transform-d2-v014",
+          "volume": "39/70"
+        },
+        "checker": "cace-exact-fem-kernel",
+        "checker_version": "0.14.0",
+        "machine_checked": true
+      }
+    },
+    "affine_bridge": {
+      "theorem": {
+        "artifact": "sha256:2b14d1ad214925cdedf38962ae48f7dd580763b29c0dae255828fe1b9796db69",
+        "assumptions": [
+          "supplied exact rational simplex instance"
+        ],
+        "checker": "cace-exact-fem-kernel 0.14.0",
+        "claims": [
+          "affine-inverse",
+          "p1-gradient-transform",
+          "local-stiffness-symmetric-psd"
+        ],
+        "evidence_kind": "formally-verified",
+        "formal_evidence": true,
+        "promotion_recheck": {
+          "artifact_sha256": "2b14d1ad214925cdedf38962ae48f7dd580763b29c0dae255828fe1b9796db69",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "affine-inverse",
+            "p1-gradient-transform",
+            "local-stiffness-symmetric-psd"
+          ],
+          "determinant": "39/35",
+          "dimension": 2,
+          "errors": [],
+          "expected_checker": "cace-exact-fem-kernel",
+          "expected_checker_version": "0.14.0",
+          "inverse": [
+            [
+              "40/39",
+              "-7/39"
+            ],
+            [
+              "-5/39",
+              "35/39"
+            ]
+          ],
+          "invocation": "subprocess",
+          "kind": "affine-simplex",
+          "local_stiffness": [
+            [
+              "287/390",
+              "-86/195",
+              "-23/78"
+            ],
+            [
+              "-86/195",
+              "1649/2730",
+              "-89/546"
+            ],
+            [
+              "-23/78",
+              "-89/546",
+              "125/273"
+            ]
+          ],
+          "passed": true,
+          "physical_gradients": [
+            [
+              "-35/39",
+              "-28/39"
+            ],
+            [
+              "40/39",
+              "-7/39"
+            ],
+            [
+              "-5/39",
+              "35/39"
+            ]
+          ],
+          "process_returncode": 0,
+          "proof_method": "exact rational affine inversion and exact Gram-factor stiffness construction",
+          "stderr": "",
+          "theorem_id": "affine-simplex-p1-transform-d2-v014",
+          "volume": "39/70"
+        },
+        "statement": "For the supplied exact rational simplex, the affine map is invertible, P1 physical gradients equal B^{-T} reference gradients, and the unit-diffusion local stiffness matrix is an exact symmetric positive-semidefinite Gram matrix.",
+        "status": "machine-checked",
+        "theorem_id": "affine-simplex-p1-transform-d2-v014"
+      }
+    },
+    "energy": {
+      "formal_result": {
+        "artifact": {
+          "claims": [
+            "poisson1d-local-energy-identity",
+            "poisson1d-global-energy-identity"
+          ],
+          "kind": "poisson1d-energy",
+          "nodes": [
+            "0",
+            "1/7",
+            "2/5",
+            "3/4",
+            "1"
+          ],
+          "schema": "cace-formal-fem-proof-v2",
+          "scope": "supplied exact rational 1D mesh; exact interpolation identity",
+          "statement": "For u(x)=x(1-x)/2 and its continuous P1 nodal interpolant on the supplied exact rational mesh, each element energy error squared is h^3/12 and the global squared energy error is sum_K h_K^3/12.",
+          "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+        },
+        "attestation": {
+          "artifact_sha256": "d418d03dafdfc1037d88e794fff8a40b5476454d2ae118a003d22ea6bede0752",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "poisson1d-local-energy-identity",
+            "poisson1d-global-energy-identity"
+          ],
+          "element_error_sq": [
+            "1/4116",
+            "243/171500",
+            "343/96000",
+            "1/768"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-fem-kernel",
+          "expected_checker_version": "0.14.0",
+          "global_error_sq": "1537/235200",
+          "invocation": "subprocess",
+          "kind": "poisson1d-energy",
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational differentiation/interpolation slope and exact polynomial antiderivative",
+          "stderr": "",
+          "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+        },
+        "checker": "cace-exact-fem-kernel",
+        "checker_version": "0.14.0",
+        "machine_checked": true
+      }
+    },
+    "energy_bridge": {
+      "theorem": {
+        "artifact": "sha256:d418d03dafdfc1037d88e794fff8a40b5476454d2ae118a003d22ea6bede0752",
+        "assumptions": [
+          "supplied exact rational 1D mesh; exact interpolation identity"
+        ],
+        "checker": "cace-exact-fem-kernel 0.14.0",
+        "claims": [
+          "poisson1d-local-energy-identity",
+          "poisson1d-global-energy-identity"
+        ],
+        "evidence_kind": "formally-verified",
+        "formal_evidence": true,
+        "promotion_recheck": {
+          "artifact_sha256": "d418d03dafdfc1037d88e794fff8a40b5476454d2ae118a003d22ea6bede0752",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "poisson1d-local-energy-identity",
+            "poisson1d-global-energy-identity"
+          ],
+          "element_error_sq": [
+            "1/4116",
+            "243/171500",
+            "343/96000",
+            "1/768"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-fem-kernel",
+          "expected_checker_version": "0.14.0",
+          "global_error_sq": "1537/235200",
+          "invocation": "subprocess",
+          "kind": "poisson1d-energy",
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational differentiation/interpolation slope and exact polynomial antiderivative",
+          "stderr": "",
+          "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+        },
+        "statement": "For u(x)=x(1-x)/2 and its continuous P1 nodal interpolant on the supplied exact rational mesh, each element energy error squared is h^3/12 and the global squared energy error is sum_K h_K^3/12.",
+        "status": "machine-checked",
+        "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+      }
+    },
+    "spd": {
+      "formal_result": {
+        "artifact": {
+          "claims": [
+            "global-dirichlet-stiffness-spd"
+          ],
+          "kind": "dirichlet-1d-spd",
+          "nodes": [
+            "0",
+            "1/5",
+            "1/2",
+            "4/5",
+            "1"
+          ],
+          "schema": "cace-formal-fem-proof-v2",
+          "scope": "supplied exact rational 1D mesh",
+          "statement": "For the supplied strictly increasing 1D mesh with homogeneous Dirichlet endpoints, the assembled P1 stiffness quadratic form equals the sum of positive edge-difference squares and is positive for every nonzero interior vector.",
+          "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+        },
+        "attestation": {
+          "artifact_sha256": "4ab460724e23963ef49a5da932953a1bd6f3dd45be428364d86b8bd3a4491be9",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "global-dirichlet-stiffness-spd"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-fem-kernel",
+          "expected_checker_version": "0.14.0",
+          "invocation": "subprocess",
+          "kind": "dirichlet-1d-spd",
+          "mesh_sizes": [
+            "1/5",
+            "3/10",
+            "3/10",
+            "1/5"
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact assembly plus Dirichlet edge-difference energy identity",
+          "stderr": "",
+          "stiffness": [
+            [
+              "25/3",
+              "-10/3",
+              "0"
+            ],
+            [
+              "-10/3",
+              "20/3",
+              "-10/3"
+            ],
+            [
+              "0",
+              "-10/3",
+              "25/3"
+            ]
+          ],
+          "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+        },
+        "checker": "cace-exact-fem-kernel",
+        "checker_version": "0.14.0",
+        "machine_checked": true
+      }
+    },
+    "spd_bridge": {
+      "theorem": {
+        "artifact": "sha256:4ab460724e23963ef49a5da932953a1bd6f3dd45be428364d86b8bd3a4491be9",
+        "assumptions": [
+          "supplied exact rational 1D mesh"
+        ],
+        "checker": "cace-exact-fem-kernel 0.14.0",
+        "claims": [
+          "global-dirichlet-stiffness-spd"
+        ],
+        "evidence_kind": "formally-verified",
+        "formal_evidence": true,
+        "promotion_recheck": {
+          "artifact_sha256": "4ab460724e23963ef49a5da932953a1bd6f3dd45be428364d86b8bd3a4491be9",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "global-dirichlet-stiffness-spd"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-fem-kernel",
+          "expected_checker_version": "0.14.0",
+          "invocation": "subprocess",
+          "kind": "dirichlet-1d-spd",
+          "mesh_sizes": [
+            "1/5",
+            "3/10",
+            "3/10",
+            "1/5"
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact assembly plus Dirichlet edge-difference energy identity",
+          "stderr": "",
+          "stiffness": [
+            [
+              "25/3",
+              "-10/3",
+              "0"
+            ],
+            [
+              "-10/3",
+              "20/3",
+              "-10/3"
+            ],
+            [
+              "0",
+              "-10/3",
+              "25/3"
+            ]
+          ],
+          "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+        },
+        "statement": "For the supplied strictly increasing 1D mesh with homogeneous Dirichlet endpoints, the assembled P1 stiffness quadratic form equals the sum of positive edge-difference squares and is positive for every nonzero interior vector.",
+        "status": "machine-checked",
+        "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+      }
+    },
+    "summary": {
+      "summary": {
+        "all_machine_checked": true,
+        "formal_scope": [
+          "exact rational affine simplex/local stiffness instance",
+          "exact rational 1D Dirichlet stiffness instance",
+          "exact rational 1D Poisson interpolation-energy identity instance"
+        ],
+        "general_2d_reliability_formally_verified": false,
+        "theorem_ids": [
+          "affine-simplex-p1-transform-d2-v014",
+          "p1-dirichlet-stiffness-spd-1d-v014",
+          "poisson1d-p1-interpolation-energy-v014"
+        ]
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "fdf6973d-c385-49da-b303-02bdc57d259a",
+  "verification": {
+    "affine": [
+      {
+        "claim": "Exact affine simplex transformation, P1 physical gradients, and local stiffness Gram/PSD identities hold for the checked rational simplex.",
+        "kind": "formally-verified",
+        "method": "independent subprocess exact-rational FEM checker",
+        "metrics": {
+          "artifact_sha256": "2b14d1ad214925cdedf38962ae48f7dd580763b29c0dae255828fe1b9796db69",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "affine-inverse",
+            "p1-gradient-transform",
+            "local-stiffness-symmetric-psd"
+          ],
+          "theorem_id": "affine-simplex-p1-transform-d2-v014"
+        },
+        "notes": [
+          "Formal status is scoped exactly to the checked artifact.",
+          "No unresolved PDE reliability theorem is promoted."
+        ],
+        "state": "pass",
+        "verifier": "affine-simplex-fem-machine-check-v014"
+      }
+    ],
+    "affine_bridge": [
+      {
+        "claim": "The theorem registry promotes a v0.14 FEM theorem only after an independent checker re-run.",
+        "kind": "formally-verified",
+        "method": "promotion-boundary checker re-execution",
+        "metrics": {
+          "artifact": "sha256:2b14d1ad214925cdedf38962ae48f7dd580763b29c0dae255828fe1b9796db69",
+          "assumptions": [
+            "supplied exact rational simplex instance"
+          ],
+          "checker": "cace-exact-fem-kernel 0.14.0",
+          "claims": [
+            "affine-inverse",
+            "p1-gradient-transform",
+            "local-stiffness-symmetric-psd"
+          ],
+          "evidence_kind": "formally-verified",
+          "formal_evidence": true,
+          "promotion_recheck": {
+            "artifact_sha256": "2b14d1ad214925cdedf38962ae48f7dd580763b29c0dae255828fe1b9796db69",
+            "checker": "cace-exact-fem-kernel",
+            "checker_version": "0.14.0",
+            "claims_checked": [
+              "affine-inverse",
+              "p1-gradient-transform",
+              "local-stiffness-symmetric-psd"
+            ],
+            "determinant": "39/35",
+            "dimension": 2,
+            "errors": [],
+            "expected_checker": "cace-exact-fem-kernel",
+            "expected_checker_version": "0.14.0",
+            "inverse": [
+              [
+                "40/39",
+                "-7/39"
+              ],
+              [
+                "-5/39",
+                "35/39"
+              ]
+            ],
+            "invocation": "subprocess",
+            "kind": "affine-simplex",
+            "local_stiffness": [
+              [
+                "287/390",
+                "-86/195",
+                "-23/78"
+              ],
+              [
+                "-86/195",
+                "1649/2730",
+                "-89/546"
+              ],
+              [
+                "-23/78",
+                "-89/546",
+                "125/273"
+              ]
+            ],
+            "passed": true,
+            "physical_gradients": [
+              [
+                "-35/39",
+                "-28/39"
+              ],
+              [
+                "40/39",
+                "-7/39"
+              ],
+              [
+                "-5/39",
+                "35/39"
+              ]
+            ],
+            "process_returncode": 0,
+            "proof_method": "exact rational affine inversion and exact Gram-factor stiffness construction",
+            "stderr": "",
+            "theorem_id": "affine-simplex-p1-transform-d2-v014",
+            "volume": "39/70"
+          },
+          "statement": "For the supplied exact rational simplex, the affine map is invertible, P1 physical gradients equal B^{-T} reference gradients, and the unit-diffusion local stiffness matrix is an exact symmetric positive-semidefinite Gram matrix.",
+          "status": "machine-checked",
+          "theorem_id": "affine-simplex-p1-transform-d2-v014"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-registry-recheck-v014"
+      }
+    ],
+    "energy": [
+      {
+        "claim": "For the supplied rational mesh, each P1 interpolation element contributes h^3/12 to the squared energy error and the global error is their exact sum.",
+        "kind": "formally-verified",
+        "method": "independent subprocess exact-rational FEM checker",
+        "metrics": {
+          "artifact_sha256": "d418d03dafdfc1037d88e794fff8a40b5476454d2ae118a003d22ea6bede0752",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "poisson1d-local-energy-identity",
+            "poisson1d-global-energy-identity"
+          ],
+          "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+        },
+        "notes": [
+          "Formal status is scoped exactly to the checked artifact.",
+          "No unresolved PDE reliability theorem is promoted."
+        ],
+        "state": "pass",
+        "verifier": "poisson1d-energy-machine-check-v014"
+      }
+    ],
+    "energy_bridge": [
+      {
+        "claim": "The theorem registry promotes a v0.14 FEM theorem only after an independent checker re-run.",
+        "kind": "formally-verified",
+        "method": "promotion-boundary checker re-execution",
+        "metrics": {
+          "artifact": "sha256:d418d03dafdfc1037d88e794fff8a40b5476454d2ae118a003d22ea6bede0752",
+          "assumptions": [
+            "supplied exact rational 1D mesh; exact interpolation identity"
+          ],
+          "checker": "cace-exact-fem-kernel 0.14.0",
+          "claims": [
+            "poisson1d-local-energy-identity",
+            "poisson1d-global-energy-identity"
+          ],
+          "evidence_kind": "formally-verified",
+          "formal_evidence": true,
+          "promotion_recheck": {
+            "artifact_sha256": "d418d03dafdfc1037d88e794fff8a40b5476454d2ae118a003d22ea6bede0752",
+            "checker": "cace-exact-fem-kernel",
+            "checker_version": "0.14.0",
+            "claims_checked": [
+              "poisson1d-local-energy-identity",
+              "poisson1d-global-energy-identity"
+            ],
+            "element_error_sq": [
+              "1/4116",
+              "243/171500",
+              "343/96000",
+              "1/768"
+            ],
+            "errors": [],
+            "expected_checker": "cace-exact-fem-kernel",
+            "expected_checker_version": "0.14.0",
+            "global_error_sq": "1537/235200",
+            "invocation": "subprocess",
+            "kind": "poisson1d-energy",
+            "passed": true,
+            "process_returncode": 0,
+            "proof_method": "exact rational differentiation/interpolation slope and exact polynomial antiderivative",
+            "stderr": "",
+            "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+          },
+          "statement": "For u(x)=x(1-x)/2 and its continuous P1 nodal interpolant on the supplied exact rational mesh, each element energy error squared is h^3/12 and the global squared energy error is sum_K h_K^3/12.",
+          "status": "machine-checked",
+          "theorem_id": "poisson1d-p1-interpolation-energy-v014"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-registry-recheck-v014"
+      }
+    ],
+    "spd": [
+      {
+        "claim": "The supplied 1D Dirichlet P1 stiffness matrix is symmetric positive definite by the exact edge-difference energy identity.",
+        "kind": "formally-verified",
+        "method": "independent subprocess exact-rational FEM checker",
+        "metrics": {
+          "artifact_sha256": "4ab460724e23963ef49a5da932953a1bd6f3dd45be428364d86b8bd3a4491be9",
+          "checker": "cace-exact-fem-kernel",
+          "checker_version": "0.14.0",
+          "claims_checked": [
+            "global-dirichlet-stiffness-spd"
+          ],
+          "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+        },
+        "notes": [
+          "Formal status is scoped exactly to the checked artifact.",
+          "No unresolved PDE reliability theorem is promoted."
+        ],
+        "state": "pass",
+        "verifier": "dirichlet-stiffness-spd-machine-check-v014"
+      }
+    ],
+    "spd_bridge": [
+      {
+        "claim": "The theorem registry promotes a v0.14 FEM theorem only after an independent checker re-run.",
+        "kind": "formally-verified",
+        "method": "promotion-boundary checker re-execution",
+        "metrics": {
+          "artifact": "sha256:4ab460724e23963ef49a5da932953a1bd6f3dd45be428364d86b8bd3a4491be9",
+          "assumptions": [
+            "supplied exact rational 1D mesh"
+          ],
+          "checker": "cace-exact-fem-kernel 0.14.0",
+          "claims": [
+            "global-dirichlet-stiffness-spd"
+          ],
+          "evidence_kind": "formally-verified",
+          "formal_evidence": true,
+          "promotion_recheck": {
+            "artifact_sha256": "4ab460724e23963ef49a5da932953a1bd6f3dd45be428364d86b8bd3a4491be9",
+            "checker": "cace-exact-fem-kernel",
+            "checker_version": "0.14.0",
+            "claims_checked": [
+              "global-dirichlet-stiffness-spd"
+            ],
+            "errors": [],
+            "expected_checker": "cace-exact-fem-kernel",
+            "expected_checker_version": "0.14.0",
+            "invocation": "subprocess",
+            "kind": "dirichlet-1d-spd",
+            "mesh_sizes": [
+              "1/5",
+              "3/10",
+              "3/10",
+              "1/5"
+            ],
+            "passed": true,
+            "process_returncode": 0,
+            "proof_method": "exact assembly plus Dirichlet edge-difference energy identity",
+            "stderr": "",
+            "stiffness": [
+              [
+                "25/3",
+                "-10/3",
+                "0"
+              ],
+              [
+                "-10/3",
+                "20/3",
+                "-10/3"
+              ],
+              [
+                "0",
+                "-10/3",
+                "25/3"
+              ]
+            ],
+            "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+          },
+          "statement": "For the supplied strictly increasing 1D mesh with homogeneous Dirichlet endpoints, the assembled P1 stiffness quadratic form equals the sum of positive edge-difference squares and is positive for every nonzero interior vector.",
+          "status": "machine-checked",
+          "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-registry-recheck-v014"
+      }
+    ],
+    "summary": [
+      {
+        "claim": "Checked FEM identities are recorded without claiming the unresolved general 2D reliability theorem.",
+        "kind": "formally-verified",
+        "method": "formal scope audit",
+        "metrics": {
+          "all_machine_checked": true,
+          "formal_scope": [
+            "exact rational affine simplex/local stiffness instance",
+            "exact rational 1D Dirichlet stiffness instance",
+            "exact rational 1D Poisson interpolation-energy identity instance"
+          ],
+          "general_2d_reliability_formally_verified": false,
+          "theorem_ids": [
+            "affine-simplex-p1-transform-d2-v014",
+            "p1-dirichlet-stiffness-spd-1d-v014",
+            "poisson1d-p1-interpolation-energy-v014"
+          ]
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-fem-scope-audit-v014"
+      }
+    ]
+  }
+}

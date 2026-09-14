@@ -1,0 +1,8 @@
+{
+  "capability": "v1.0 Reliability Qualification Milestone",
+  "cumulative_through": "1.0",
+  "evidence_kind": "symbolic",
+  "general_reliability_formally_verified": false,
+  "release": "1.0",
+  "source_baseline": "v0.76"
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "CACE v0.76 Reliability Theorem Discovery",
+  "metadata": {
+    "release": "0.76.0",
+    "scope": "theorem-discovery-not-proof"
+  },
+  "nodes": [
+    {
+      "id": "discovery",
+      "module_id": "fem76.reliability_discovery",
+      "params": {},
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "edges": []
+}

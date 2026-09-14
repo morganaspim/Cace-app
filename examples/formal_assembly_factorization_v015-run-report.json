@@ -1,0 +1,1137 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:39.838022+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "bc2432d694f5e33858f7d1a2bd7be99cee3866fe7395c9e581653fbe668ff78b",
+      "parameter_hash": "6ac0030ae41147dbb42d03e67c89041b2719645418064ba757a3cb2ea7c97a24",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "f8342b83e8a4326e2fef48de86d261acbb349dd03f00716e669f57a94661ef21"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:40.445673+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "formal15.assembly_invariants",
+      "module_version": "0.15.0",
+      "node_id": "proof",
+      "output_hash": "c5029627c5676084b59063b84e920909c6a71d80424237f16badeadd764f8aa2",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "6785abaa857e707b2700ba618e948c3d8011a6525d0b1b3d1e0f9685f1b0031b"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:41.014471+00:00",
+      "evidence": [
+        "formally-verified"
+      ],
+      "input_hash": "c5029627c5676084b59063b84e920909c6a71d80424237f16badeadd764f8aa2",
+      "module_id": "formal15.registry_bridge",
+      "module_version": "0.15.0",
+      "node_id": "bridge",
+      "output_hash": "e782239b4069b4773806c1dbc537c1c5327159eb4576bef2ad6a356518d0acb9",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "d60338d9c8ee54fb1e1415d420e295bc1bbc4c01c534ffbbbda0a5ebb52a7b83"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:41.015392+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "bc2432d694f5e33858f7d1a2bd7be99cee3866fe7395c9e581653fbe668ff78b",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "238dd85c853cf8aac8bbea316d71395964a6e12ed4bf1534d5f92af60796fa6e",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "4804bd8043dc4b007b233a16502890d889033b7ac179c56d682c53caccd84326"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:41.016406+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "dbe69e56b809b6d8e75583bd834993c94c390ed4d2c239f748c0259d47a832cc",
+      "module_id": "fem_cert.poisson_assemble",
+      "module_version": "0.4.0",
+      "node_id": "assemble",
+      "output_hash": "45ac05dbd97f9d0666ef1174efa1784d09e8342dbc4ca2cdb5d83297615190b4",
+      "parameter_hash": "b010f8d7ff318ec6a03f69d33dbce8bad01f77fc605ee0490db6fb79fe25a6f6",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "ab0ffe7d04637bac96ae659dcf47eaef36446624ced77e46f6a934d2e7c19923"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:41.016676+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "910ed72e714f7b46819c07d74b19580faf9960765b7c2494b6c2691b69de1da4",
+      "module_id": "fem15.verified_ldlt",
+      "module_version": "0.15.0",
+      "node_id": "factor",
+      "output_hash": "d2cf891b69d8e12a103e0462cbe4d0920fa01525ebcf28965fb46a28f516ed53",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "f7758946a89b43feb959b055d6c1528a86fcf0ec5f87537d184ea5b67c4f020f"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T21:01:41.016896+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "9fd12e87107a7e2cbbbbdfdee44b2588e7480a8274f8715623f1a27eedebe513",
+      "module_id": "fem15.summary",
+      "module_version": "0.15.0",
+      "node_id": "summary",
+      "output_hash": "5ba6528b6d9deddd1d8b1e2c029db84de54fd498d1ebcdd75a2388d4cd80afe3",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "cpu",
+      "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+      "verification_hashes": [
+        "392365db869d16d35b59f41e822e4140aea790cbf324c22465ca1768d3e3896c"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.15 formal assembly + verified factorization",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "d9ee73d1ada69ef3203cc212033484fb403150eb65026bf813d55553d6366bcb",
+    "evidence_generated": [
+      "formally-verified",
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "f1d0ce75fd9b0bcb9ebe2246bf34d93a34e09752c945be2247c34acfdefb966e",
+      "59d329de0fed9749ae56d156f67b7b6a2d17eacea83103688f168860d09678df",
+      "3a0f72503b602ec74c55bd0caceba831ef31c77e326d6efb79ca30b303ac474e",
+      "a9e8f4dffff5bdf98715c21fe7791df666c9478e944dd5377cdb2882400521e9",
+      "d33f0411887090182fe2c0277b432a47017bcd08debdb399ecee4b23b5cbd5f0",
+      "812150d9ad4f423152440b305a8d1138cc57c3db6cb4dfe05eb4a90213f48dd5",
+      "e2157cd935ef06d101a589d738e0a146ae1be7b8584b9eea6511cbf8e20379d5"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+    "verification_records": 7
+  },
+  "outputs": {
+    "assemble": {
+      "problem": {
+        "cell_coercivity_lower": 0.9807417596432748,
+        "diffusion": [
+          [
+            1.5,
+            0.1
+          ],
+          [
+            0.1,
+            1.0
+          ]
+        ],
+        "dimension": 2,
+        "source_constant": 1.0,
+        "source_linear": [
+          0.25,
+          -0.1
+        ]
+      },
+      "system": {
+        "boundary_dofs": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "full_dofs": 5,
+        "interior_dofs": [
+          4
+        ],
+        "matrix": {
+          "data": [
+            5.5
+          ],
+          "indices": [
+            0
+          ],
+          "indptr": [
+            0,
+            1
+          ],
+          "shape": [
+            1,
+            1
+          ]
+        },
+        "problem_class": "elliptic-p1-spd-affine-source",
+        "rhs": [
+          0.8
+        ]
+      }
+    },
+    "bridge": {
+      "theorem": {
+        "artifact": "sha256:041073d65eb23a0097d2f39a8966ee76f8b5f0a30e04013addc1117f4d6ec2e3",
+        "assumptions": [
+          "supplied strictly increasing exact rational 1D mesh; unit diffusion"
+        ],
+        "checker": "cace-exact-assembly-kernel 0.15.0",
+        "evidence_kind": "formally-verified",
+        "formal_evidence": true,
+        "promotion_recheck": {
+          "artifact_sha256": "041073d65eb23a0097d2f39a8966ee76f8b5f0a30e04013addc1117f4d6ec2e3",
+          "checker": "cace-exact-assembly-kernel",
+          "checker_version": "0.15.0",
+          "claims_checked": [
+            "local-row-sum-zero",
+            "global-symmetry",
+            "global-constant-nullspace",
+            "dirichlet-reduction-spd"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-assembly-kernel",
+          "expected_checker_version": "0.15.0",
+          "global_stiffness": [
+            [
+              "6",
+              "-6",
+              "0",
+              "0",
+              "0"
+            ],
+            [
+              "-6",
+              "72/7",
+              "-30/7",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "-30/7",
+              "50/7",
+              "-20/7",
+              "0"
+            ],
+            [
+              "0",
+              "0",
+              "-20/7",
+              "48/7",
+              "-4"
+            ],
+            [
+              "0",
+              "0",
+              "0",
+              "-4",
+              "4"
+            ]
+          ],
+          "invocation": "subprocess",
+          "kind": "p1-assembly-1d",
+          "ldlt_pivots": [
+            "72/7",
+            "75/14",
+            "16/3"
+          ],
+          "local_matrices": [
+            [
+              [
+                "6",
+                "-6"
+              ],
+              [
+                "-6",
+                "6"
+              ]
+            ],
+            [
+              [
+                "30/7",
+                "-30/7"
+              ],
+              [
+                "-30/7",
+                "30/7"
+              ]
+            ],
+            [
+              [
+                "20/7",
+                "-20/7"
+              ],
+              [
+                "-20/7",
+                "20/7"
+              ]
+            ],
+            [
+              [
+                "4",
+                "-4"
+              ],
+              [
+                "-4",
+                "4"
+              ]
+            ]
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational element assembly + matrix identities + exact LDL^T positive pivots",
+          "reduced_stiffness": [
+            [
+              "72/7",
+              "-30/7",
+              "0"
+            ],
+            [
+              "-30/7",
+              "50/7",
+              "-20/7"
+            ],
+            [
+              "0",
+              "-20/7",
+              "48/7"
+            ]
+          ],
+          "stderr": "",
+          "theorem_id": "p1-global-assembly-invariants-1d-v015"
+        },
+        "statement": "Exact P1 element matrices assemble to a symmetric global stiffness matrix with constant nullspace before boundary elimination; homogeneous endpoint Dirichlet elimination yields an SPD interior matrix.",
+        "status": "machine-checked",
+        "theorem_id": "p1-global-assembly-invariants-1d-v015"
+      }
+    },
+    "factor": {
+      "factorization_certificate": {
+        "certified": true,
+        "dimension": 1,
+        "max_reconstruction_width": 7.105427357601002e-15,
+        "method": "interval-ldlt-reconstruction",
+        "min_pivot_lower": 5.499999999999999,
+        "pivots": [
+          [
+            5.499999999999999,
+            5.500000000000001
+          ]
+        ],
+        "scope": "stored binary64 reduced matrix"
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            0,
+            4
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            2.0,
+            0.0
+          ],
+          [
+            2.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            1.0,
+            0.5
+          ]
+        ]
+      }
+    },
+    "proof": {
+      "formal_result": {
+        "artifact": {
+          "claims": [
+            "local-row-sum-zero",
+            "global-symmetry",
+            "global-constant-nullspace",
+            "dirichlet-reduction-spd"
+          ],
+          "kind": "p1-assembly-1d",
+          "nodes": [
+            "0",
+            "1/6",
+            "2/5",
+            "3/4",
+            "1"
+          ],
+          "schema": "cace-formal-assembly-proof-v3",
+          "scope": "supplied strictly increasing exact rational 1D mesh; unit diffusion",
+          "statement": "Exact P1 element matrices assemble to a symmetric global stiffness matrix with constant nullspace before boundary elimination; homogeneous endpoint Dirichlet elimination yields an SPD interior matrix.",
+          "theorem_id": "p1-global-assembly-invariants-1d-v015"
+        },
+        "attestation": {
+          "artifact_sha256": "041073d65eb23a0097d2f39a8966ee76f8b5f0a30e04013addc1117f4d6ec2e3",
+          "checker": "cace-exact-assembly-kernel",
+          "checker_version": "0.15.0",
+          "claims_checked": [
+            "local-row-sum-zero",
+            "global-symmetry",
+            "global-constant-nullspace",
+            "dirichlet-reduction-spd"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-assembly-kernel",
+          "expected_checker_version": "0.15.0",
+          "global_stiffness": [
+            [
+              "6",
+              "-6",
+              "0",
+              "0",
+              "0"
+            ],
+            [
+              "-6",
+              "72/7",
+              "-30/7",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "-30/7",
+              "50/7",
+              "-20/7",
+              "0"
+            ],
+            [
+              "0",
+              "0",
+              "-20/7",
+              "48/7",
+              "-4"
+            ],
+            [
+              "0",
+              "0",
+              "0",
+              "-4",
+              "4"
+            ]
+          ],
+          "invocation": "subprocess",
+          "kind": "p1-assembly-1d",
+          "ldlt_pivots": [
+            "72/7",
+            "75/14",
+            "16/3"
+          ],
+          "local_matrices": [
+            [
+              [
+                "6",
+                "-6"
+              ],
+              [
+                "-6",
+                "6"
+              ]
+            ],
+            [
+              [
+                "30/7",
+                "-30/7"
+              ],
+              [
+                "-30/7",
+                "30/7"
+              ]
+            ],
+            [
+              [
+                "20/7",
+                "-20/7"
+              ],
+              [
+                "-20/7",
+                "20/7"
+              ]
+            ],
+            [
+              [
+                "4",
+                "-4"
+              ],
+              [
+                "-4",
+                "4"
+              ]
+            ]
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational element assembly + matrix identities + exact LDL^T positive pivots",
+          "reduced_stiffness": [
+            [
+              "72/7",
+              "-30/7",
+              "0"
+            ],
+            [
+              "-30/7",
+              "50/7",
+              "-20/7"
+            ],
+            [
+              "0",
+              "-20/7",
+              "48/7"
+            ]
+          ],
+          "stderr": "",
+          "theorem_id": "p1-global-assembly-invariants-1d-v015"
+        },
+        "machine_checked": true
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 2,
+        "dofs": 5,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.0
+              ]
+            ],
+            "diameter": 2.0,
+            "element": [
+              0,
+              1,
+              4
+            ],
+            "gradients": [
+              [
+                -0.5,
+                -1.0
+              ],
+              [
+                0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0
+              ]
+            ],
+            "volume": 0.5
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                0.5,
+                -1.0
+              ],
+              [
+                -1.0,
+                0.5,
+                1.0
+              ],
+              [
+                2.0,
+                -1.0,
+                0.0
+              ]
+            ],
+            "diameter": 1.118033988749895,
+            "element": [
+              1,
+              2,
+              4
+            ],
+            "gradients": [
+              [
+                0.5,
+                -1.0
+              ],
+              [
+                0.5,
+                1.0
+              ],
+              [
+                -1.0,
+                0.0
+              ]
+            ],
+            "volume": 0.5
+          },
+          {
+            "coefficients": [
+              [
+                -1.0,
+                0.5,
+                1.0
+              ],
+              [
+                0.0,
+                -0.5,
+                1.0
+              ],
+              [
+                2.0,
+                -0.0,
+                -2.0
+              ]
+            ],
+            "diameter": 2.0,
+            "element": [
+              2,
+              3,
+              4
+            ],
+            "gradients": [
+              [
+                0.5,
+                1.0
+              ],
+              [
+                -0.5,
+                1.0
+              ],
+              [
+                -0.0,
+                -2.0
+              ]
+            ],
+            "volume": 0.5
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                -0.5,
+                1.0
+              ],
+              [
+                1.0,
+                -0.5,
+                -1.0
+              ],
+              [
+                0.0,
+                1.0,
+                -0.0
+              ]
+            ],
+            "diameter": 1.118033988749895,
+            "element": [
+              3,
+              0,
+              4
+            ],
+            "gradients": [
+              [
+                -0.5,
+                1.0
+              ],
+              [
+                -0.5,
+                -1.0
+              ],
+              [
+                1.0,
+                -0.0
+              ]
+            ],
+            "volume": 0.5
+          }
+        ]
+      }
+    },
+    "summary": {
+      "summary": {
+        "continuum_pde_formally_verified": false,
+        "factorization_method": "interval-ldlt-reconstruction",
+        "formal_assembly_machine_checked": true,
+        "min_pivot_lower": 5.499999999999999,
+        "stored_matrix_factorization_certified": true
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "399b3424-a8b6-4e3e-90b6-9380172cfddd",
+  "verification": {
+    "assemble": [
+      {
+        "claim": "discrete reduced operator is symmetric positive definite and every supplied diffusion tensor is SPD",
+        "kind": "numerical",
+        "method": "independent symmetry/eigenvalue checks plus elementwise diffusion spectra",
+        "metrics": {
+          "diffusion_coercivity_lower": 0.9807417596432748,
+          "matrix_min_eigenvalue": 5.5,
+          "matrix_symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cert-poisson-class-assumptions"
+      }
+    ],
+    "bridge": [
+      {
+        "claim": "Registry promotion requires an independent successful checker rerun.",
+        "kind": "formally-verified",
+        "method": "checker re-execution",
+        "metrics": {
+          "artifact": "sha256:041073d65eb23a0097d2f39a8966ee76f8b5f0a30e04013addc1117f4d6ec2e3",
+          "assumptions": [
+            "supplied strictly increasing exact rational 1D mesh; unit diffusion"
+          ],
+          "checker": "cace-exact-assembly-kernel 0.15.0",
+          "evidence_kind": "formally-verified",
+          "formal_evidence": true,
+          "promotion_recheck": {
+            "artifact_sha256": "041073d65eb23a0097d2f39a8966ee76f8b5f0a30e04013addc1117f4d6ec2e3",
+            "checker": "cace-exact-assembly-kernel",
+            "checker_version": "0.15.0",
+            "claims_checked": [
+              "local-row-sum-zero",
+              "global-symmetry",
+              "global-constant-nullspace",
+              "dirichlet-reduction-spd"
+            ],
+            "errors": [],
+            "expected_checker": "cace-exact-assembly-kernel",
+            "expected_checker_version": "0.15.0",
+            "global_stiffness": [
+              [
+                "6",
+                "-6",
+                "0",
+                "0",
+                "0"
+              ],
+              [
+                "-6",
+                "72/7",
+                "-30/7",
+                "0",
+                "0"
+              ],
+              [
+                "0",
+                "-30/7",
+                "50/7",
+                "-20/7",
+                "0"
+              ],
+              [
+                "0",
+                "0",
+                "-20/7",
+                "48/7",
+                "-4"
+              ],
+              [
+                "0",
+                "0",
+                "0",
+                "-4",
+                "4"
+              ]
+            ],
+            "invocation": "subprocess",
+            "kind": "p1-assembly-1d",
+            "ldlt_pivots": [
+              "72/7",
+              "75/14",
+              "16/3"
+            ],
+            "local_matrices": [
+              [
+                [
+                  "6",
+                  "-6"
+                ],
+                [
+                  "-6",
+                  "6"
+                ]
+              ],
+              [
+                [
+                  "30/7",
+                  "-30/7"
+                ],
+                [
+                  "-30/7",
+                  "30/7"
+                ]
+              ],
+              [
+                [
+                  "20/7",
+                  "-20/7"
+                ],
+                [
+                  "-20/7",
+                  "20/7"
+                ]
+              ],
+              [
+                [
+                  "4",
+                  "-4"
+                ],
+                [
+                  "-4",
+                  "4"
+                ]
+              ]
+            ],
+            "passed": true,
+            "process_returncode": 0,
+            "proof_method": "exact rational element assembly + matrix identities + exact LDL^T positive pivots",
+            "reduced_stiffness": [
+              [
+                "72/7",
+                "-30/7",
+                "0"
+              ],
+              [
+                "-30/7",
+                "50/7",
+                "-20/7"
+              ],
+              [
+                "0",
+                "-20/7",
+                "48/7"
+              ]
+            ],
+            "stderr": "",
+            "theorem_id": "p1-global-assembly-invariants-1d-v015"
+          },
+          "statement": "Exact P1 element matrices assemble to a symmetric global stiffness matrix with constant nullspace before boundary elimination; homogeneous endpoint Dirichlet elimination yields an SPD interior matrix.",
+          "status": "machine-checked",
+          "theorem_id": "p1-global-assembly-invariants-1d-v015"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "formal-assembly-registry-recheck-v015"
+      }
+    ],
+    "factor": [
+      {
+        "claim": "The stored reduced matrix admits the reported interval LDL\u1d40 factorization with strictly positive pivots and enclosing reconstruction.",
+        "kind": "interval-certified",
+        "method": "outward-rounded interval LDL\u1d40 plus independent reconstruction enclosure",
+        "metrics": {
+          "certified": true,
+          "dimension": 1,
+          "max_reconstruction_width": 7.105427357601002e-15,
+          "method": "interval-ldlt-reconstruction",
+          "min_pivot_lower": 5.499999999999999,
+          "pivots": [
+            [
+              5.499999999999999,
+              5.500000000000001
+            ]
+          ],
+          "scope": "stored binary64 reduced matrix"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "verified-ldlt-factorization-v015"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 4,
+          "dimension": 2,
+          "elements": 4,
+          "min_volume": 0.5,
+          "vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "proof": [
+      {
+        "claim": "Exact P1 assembly invariants and Dirichlet SPD hold for the checked rational mesh.",
+        "kind": "formally-verified",
+        "method": "independent exact-rational assembly checker subprocess",
+        "metrics": {
+          "artifact_sha256": "041073d65eb23a0097d2f39a8966ee76f8b5f0a30e04013addc1117f4d6ec2e3",
+          "checker": "cace-exact-assembly-kernel",
+          "checker_version": "0.15.0",
+          "claims_checked": [
+            "local-row-sum-zero",
+            "global-symmetry",
+            "global-constant-nullspace",
+            "dirichlet-reduction-spd"
+          ],
+          "errors": [],
+          "expected_checker": "cace-exact-assembly-kernel",
+          "expected_checker_version": "0.15.0",
+          "global_stiffness": [
+            [
+              "6",
+              "-6",
+              "0",
+              "0",
+              "0"
+            ],
+            [
+              "-6",
+              "72/7",
+              "-30/7",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "-30/7",
+              "50/7",
+              "-20/7",
+              "0"
+            ],
+            [
+              "0",
+              "0",
+              "-20/7",
+              "48/7",
+              "-4"
+            ],
+            [
+              "0",
+              "0",
+              "0",
+              "-4",
+              "4"
+            ]
+          ],
+          "invocation": "subprocess",
+          "kind": "p1-assembly-1d",
+          "ldlt_pivots": [
+            "72/7",
+            "75/14",
+            "16/3"
+          ],
+          "local_matrices": [
+            [
+              [
+                "6",
+                "-6"
+              ],
+              [
+                "-6",
+                "6"
+              ]
+            ],
+            [
+              [
+                "30/7",
+                "-30/7"
+              ],
+              [
+                "-30/7",
+                "30/7"
+              ]
+            ],
+            [
+              [
+                "20/7",
+                "-20/7"
+              ],
+              [
+                "-20/7",
+                "20/7"
+              ]
+            ],
+            [
+              [
+                "4",
+                "-4"
+              ],
+              [
+                "-4",
+                "4"
+              ]
+            ]
+          ],
+          "passed": true,
+          "process_returncode": 0,
+          "proof_method": "exact rational element assembly + matrix identities + exact LDL^T positive pivots",
+          "reduced_stiffness": [
+            [
+              "72/7",
+              "-30/7",
+              "0"
+            ],
+            [
+              "-30/7",
+              "50/7",
+              "-20/7"
+            ],
+            [
+              "0",
+              "-20/7",
+              "48/7"
+            ]
+          ],
+          "stderr": "",
+          "theorem_id": "p1-global-assembly-invariants-1d-v015"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "assembly-invariants-machine-check-v015"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ],
+    "summary": [
+      {
+        "claim": "Formal assembly invariants and interval matrix factorization are both present without escalating to a continuum PDE proof.",
+        "kind": "interval-certified",
+        "method": "evidence-scope composition audit",
+        "metrics": {
+          "continuum_pde_formally_verified": false,
+          "factorization_method": "interval-ldlt-reconstruction",
+          "formal_assembly_machine_checked": true,
+          "min_pivot_lower": 5.499999999999999,
+          "stored_matrix_factorization_certified": true
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "v015-composed-scope-audit"
+      }
+    ]
+  }
+}

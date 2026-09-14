@@ -1,0 +1,291 @@
+{
+  "computed_energy": {
+    "certified": true,
+    "energy_interval": [
+      0.34112114616897593,
+      0.34112114616897776
+    ],
+    "energy_squared_interval": [
+      0.11636363636363586,
+      0.11636363636363706
+    ]
+  },
+  "diffusion": {
+    "coercivity_lower_interval": [
+      0.5959999999999996,
+      0.5960000000000004
+    ],
+    "det_interval": [
+      1.4899999999999995,
+      1.4900000000000004
+    ],
+    "spd_certified": true,
+    "tensor": [
+      [
+        [
+          1.5,
+          1.5
+        ],
+        [
+          0.1,
+          0.1
+        ]
+      ],
+      [
+        [
+          0.1,
+          0.1
+        ],
+        [
+          1.0,
+          1.0
+        ]
+      ]
+    ],
+    "trace_interval": [
+      2.4999999999999996,
+      2.5000000000000004
+    ]
+  },
+  "error_envelope": {
+    "certified": true,
+    "energy_error_interval": [
+      0.0,
+      1.0460838915248287
+    ],
+    "requires_exact_solution": false,
+    "scope": "general-mesh-stability-envelope"
+  },
+  "estimator": {
+    "certified": true,
+    "element_eta_squared_intervals": [
+      [
+        3.3510639079137623,
+        3.3510639079137965
+      ],
+      [
+        1.4575222412471003,
+        1.4575222412471198
+      ],
+      [
+        3.031063907913755,
+        3.0310639079138006
+      ],
+      [
+        0.9575222412471034,
+        0.9575222412471155
+      ]
+    ],
+    "eta_interval": [
+      2.966002747524303,
+      2.966002747524324
+    ],
+    "eta_squared_interval": [
+      8.797172298321717,
+      8.797172298321836
+    ],
+    "source": [
+      1.0,
+      0.25,
+      -0.1
+    ]
+  },
+  "formal_uniform_reliability_state": "not-run",
+  "mesh": {
+    "triangles": 4,
+    "vertices": 5
+  },
+  "poincare": {
+    "C_p_upper": 0.31830988618379086,
+    "certified": true,
+    "selected_width_upper": 1.0000000000000002,
+    "theorem": "slice-wise 1D Dirichlet Poincare",
+    "width_x_upper": 2.0000000000000004,
+    "width_y_upper": 1.0000000000000002
+  },
+  "reliability": {
+    "C_rel_run_upper": 0.3526914775780252,
+    "certified": true,
+    "error_upper": 1.0460838915248287,
+    "eta_lower": 2.966002747524303,
+    "formal_evidence": false,
+    "max_C_rel": 100.0,
+    "scope": "run-specific-general-mesh",
+    "status": "pass",
+    "theorem_id": "poisson2d-p1-run-reliability-envelope-v0.9"
+  },
+  "shape": {
+    "elements": [
+      {
+        "element": 0,
+        "inradius_interval": [
+          0.23606797749978925,
+          0.23606797749979022
+        ],
+        "shape_ratio_interval": [
+          8.472135954999557,
+          8.472135954999603
+        ]
+      },
+      {
+        "element": 1,
+        "inradius_interval": [
+          0.30901699437494684,
+          0.3090169943749481
+        ],
+        "shape_ratio_interval": [
+          3.6180339887498842,
+          3.6180339887499047
+        ]
+      },
+      {
+        "element": 2,
+        "inradius_interval": [
+          0.23606797749978925,
+          0.23606797749979022
+        ],
+        "shape_ratio_interval": [
+          8.472135954999557,
+          8.472135954999603
+        ]
+      },
+      {
+        "element": 3,
+        "inradius_interval": [
+          0.30901699437494684,
+          0.3090169943749481
+        ],
+        "shape_ratio_interval": [
+          3.6180339887498842,
+          3.6180339887499047
+        ]
+      }
+    ],
+    "max_shape_ratio_interval": [
+      8.472135954999557,
+      8.472135954999603
+    ],
+    "shape_regular_certified": true,
+    "threshold": 20.0
+  },
+  "source_norm": {
+    "certified": true,
+    "domain": "mesh-domain",
+    "elements": [
+      {
+        "element": 0,
+        "source_l2_squared_interval": [
+          0.7658333333333315,
+          0.7658333333333363
+        ]
+      },
+      {
+        "element": 1,
+        "source_l2_squared_interval": [
+          0.93583333333333,
+          0.935833333333338
+        ]
+      },
+      {
+        "element": 2,
+        "source_l2_squared_interval": [
+          0.6858333333333296,
+          0.6858333333333374
+        ]
+      },
+      {
+        "element": 3,
+        "source_l2_squared_interval": [
+          0.5358333333333317,
+          0.5358333333333354
+        ]
+      }
+    ],
+    "l2_norm_interval": [
+      1.7097758137642844,
+      1.7097758137642924
+    ],
+    "l2_squared_interval": [
+      2.923333333333322,
+      2.923333333333348
+    ],
+    "source": [
+      1.0,
+      0.25,
+      -0.1
+    ]
+  },
+  "stability": {
+    "C_p_upper": 0.31830988618379086,
+    "certified": true,
+    "coercivity_lower": 0.5959999999999996,
+    "continuum_solution_energy_upper": 0.7049627453558508,
+    "requires_exact_solution": false,
+    "source_l2_upper": 1.7097758137642924
+  },
+  "theorem_registry": {
+    "schema_version": 2,
+    "theorems": [
+      {
+        "formal_evidence": false,
+        "premises": [
+          {
+            "id": "error-envelope",
+            "required_evidence": "interval-certified"
+          },
+          {
+            "id": "estimator-lower",
+            "required_evidence": "interval-certified"
+          },
+          {
+            "id": "eta-positive",
+            "required_evidence": "interval-certified"
+          }
+        ],
+        "scope": "one certified run",
+        "statement": "If E<=B, eta>=eta_lo>0 and C>=B/eta_lo, then E<=C eta.",
+        "status": "computationally-discharged",
+        "theorem_id": "poisson2d-p1-run-reliability-envelope-v0.9"
+      },
+      {
+        "artifact": "docs/proofs/poisson2d_p1_reliability_v09.lean",
+        "formal_evidence": false,
+        "premises": [
+          {
+            "id": "shape-regular-family",
+            "required_evidence": "formal-or-reviewed"
+          },
+          {
+            "id": "interpolation-constant",
+            "required_evidence": "formal"
+          },
+          {
+            "id": "trace-constant",
+            "required_evidence": "formal"
+          },
+          {
+            "id": "ellipticity",
+            "required_evidence": "interval-certified"
+          }
+        ],
+        "scope": "mesh family",
+        "statement": "There exists a mesh-uniform C_rel depending only on domain/diffusion/shape regularity such that ||u-u_h||_A <= C_rel eta.",
+        "status": "obligation-only",
+        "theorem_id": "poisson2d-p1-mesh-uniform-residual-reliability-v0.9"
+      }
+    ]
+  },
+  "version": "0.9.0",
+  "visualization": {
+    "bytes": 36092,
+    "elements": 4,
+    "eta_element_upper": [
+      1.8305911361944798,
+      1.2072788581132032,
+      1.740995091295148,
+      0.978530654219435
+    ],
+    "format": "png",
+    "path": "examples/v09_estimator_heatmap.png"
+  }
+}

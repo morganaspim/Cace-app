@@ -1,0 +1,153 @@
+[
+  {
+    "name": "Global RT1 equilibrated-flux assembly",
+    "rank": 1,
+    "selected": true,
+    "why": "Closes the largest remaining H(div) production gap and supports higher-order guaranteed bounds."
+  },
+  {
+    "name": "3D tetrahedral P1 continuum engine",
+    "rank": 2,
+    "selected": true,
+    "why": "Moves mature conforming elliptic workflows into real tetrahedral discretizations."
+  },
+  {
+    "name": "3D RT0/H(div) global assembly",
+    "rank": 3,
+    "selected": true,
+    "why": "Required for guaranteed equilibrated fluxes in 3D."
+  },
+  {
+    "name": "3D guaranteed equilibrated energy bounds",
+    "rank": 4,
+    "selected": true,
+    "why": "Combines tetrahedral P1 and RT0 into a certifiable 3D error path."
+  },
+  {
+    "name": "Goal-oriented equilibrated primal/dual certification",
+    "rank": 5,
+    "selected": true,
+    "why": "Upgrades DWR quantities of interest from enriched references to guaranteed bounds."
+  },
+  {
+    "name": "Parabolic equilibrated space-time certification",
+    "rank": 6,
+    "selected": true,
+    "why": "Extends constant-free guaranteed error bounds into time-dependent PDEs."
+  },
+  {
+    "name": "Certified nonlinear Newton-Kantorovich solve",
+    "rank": 7,
+    "selected": true,
+    "why": "Adds validated local existence/uniqueness and nonlinear error control."
+  },
+  {
+    "name": "Production Stokes mixed FEM",
+    "rank": 8,
+    "selected": true,
+    "why": "Unlocks incompressible flow and inf-sup-constrained systems."
+  },
+  {
+    "name": "Production Maxwell/Nedelec curl-curl assembly",
+    "rank": 9,
+    "selected": true,
+    "why": "Turns FEEC foundations into an H(curl) PDE solver."
+  },
+  {
+    "name": "General sparse verified spectral enclosures",
+    "rank": 10,
+    "selected": true,
+    "why": "Moves beyond small eigenvalue fixtures to reusable rigorous eigenvalue bounds."
+  },
+  {
+    "name": "Certified reduced-basis offline/online engine",
+    "rank": 11,
+    "selected": true,
+    "why": "Makes repeated parameter studies fast without discarding rigorous bounds."
+  },
+  {
+    "name": "Verified multigrid hierarchy",
+    "rank": 12,
+    "selected": true,
+    "why": "Connects theory and sparse runtime for scalable elliptic solves."
+  },
+  {
+    "name": "Verified domain-decomposition engine",
+    "rank": 13,
+    "selected": true,
+    "why": "Adds scalable Schwarz-style parallel decomposition with contraction diagnostics."
+  },
+  {
+    "name": "Anisotropic metric adaptive meshing",
+    "rank": 14,
+    "selected": true,
+    "why": "Improves efficiency for directional layers and strongly anisotropic solutions."
+  },
+  {
+    "name": "Interval-parametric PDE propagation",
+    "rank": 15,
+    "selected": true,
+    "why": "Propagates coefficient uncertainty into certified solution ranges."
+  },
+  {
+    "name": "hp-adaptive campaign engine",
+    "rank": 16,
+    "selected": true,
+    "why": "Chooses refinement order and location rather than only h-refinement."
+  },
+  {
+    "name": "Symmetric interior penalty DG",
+    "rank": 17,
+    "selected": true,
+    "why": "Adds a robust nonconforming elliptic discretization with jump control."
+  },
+  {
+    "name": "SUPG convection-diffusion",
+    "rank": 18,
+    "selected": true,
+    "why": "Handles advection-dominated problems with stabilization diagnostics."
+  },
+  {
+    "name": "Linear elasticity certification",
+    "rank": 19,
+    "selected": true,
+    "why": "Adds vector-valued mechanics and energy/stress checks."
+  },
+  {
+    "name": "Variational inequalities / obstacle problems",
+    "rank": 20,
+    "selected": true,
+    "why": "Adds constrained nonlinear convex PDE workflows."
+  },
+  {
+    "name": "Helmholtz dispersion and pollution audits",
+    "rank": 21,
+    "selected": true,
+    "why": "Adds indefinite wave problems with frequency-aware diagnostics."
+  },
+  {
+    "name": "PDE-constrained optimization with adjoints",
+    "rank": 22,
+    "selected": true,
+    "why": "Uses the mature dual infrastructure for optimization and sensitivities."
+  },
+  {
+    "name": "Stochastic Galerkin uncertainty",
+    "rank": 23,
+    "selected": true,
+    "why": "Extends uncertainty to polynomial-chaos coupled systems."
+  },
+  {
+    "name": "FEM-BEM coupling interface",
+    "rank": 24,
+    "selected": true,
+    "why": "Adds exterior-domain coupling and nonlocal boundary operators."
+  },
+  {
+    "name": "ALE moving-mesh geometric conservation",
+    "rank": 25,
+    "selected": true,
+    "why": "Adds time-dependent geometry while auditing conservation."
+  }
+]
+

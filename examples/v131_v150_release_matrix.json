@@ -1,0 +1,103 @@
+[
+  {
+    "capability": "Cell Bubble Efficiency Tools",
+    "release": "1.31",
+    "track": "estimator/flux"
+  },
+  {
+    "capability": "Edge Bubble Efficiency Tools",
+    "release": "1.32",
+    "track": "estimator/flux"
+  },
+  {
+    "capability": "Constitutive-Optimal RT0 Flux",
+    "release": "1.33",
+    "track": "estimator/flux"
+  },
+  {
+    "capability": "Variable-SPD and Projected-Source Flux",
+    "release": "1.34",
+    "track": "estimator/flux"
+  },
+  {
+    "capability": "Estimator Quality and Oscillation",
+    "release": "1.35",
+    "track": "estimator/flux"
+  },
+  {
+    "capability": "Guaranteed Adaptive Stop",
+    "release": "1.36",
+    "track": "adaptivity"
+  },
+  {
+    "capability": "Guaranteed D\u00f6rfler Marking",
+    "release": "1.37",
+    "track": "adaptivity"
+  },
+  {
+    "capability": "Adaptive Contraction Audit",
+    "release": "1.38",
+    "track": "adaptivity"
+  },
+  {
+    "capability": "Guaranteed Adaptive Campaign",
+    "release": "1.39",
+    "track": "adaptivity"
+  },
+  {
+    "capability": "Adaptive Complexity Audit",
+    "release": "1.40",
+    "track": "adaptivity"
+  },
+  {
+    "capability": "P2 Triangle Basis",
+    "release": "1.41",
+    "track": "higher-order FEM"
+  },
+  {
+    "capability": "Degree-3 Triangle Quadrature",
+    "release": "1.42",
+    "track": "higher-order FEM"
+  },
+  {
+    "capability": "P2 Polynomial Reproduction",
+    "release": "1.43",
+    "track": "higher-order FEM"
+  },
+  {
+    "capability": "P2 Local Stiffness Audit",
+    "release": "1.44",
+    "track": "higher-order FEM"
+  },
+  {
+    "capability": "Higher-Order FEM Milestone",
+    "release": "1.45",
+    "track": "higher-order FEM"
+  },
+  {
+    "capability": "Goal Functional Catalog",
+    "release": "1.46",
+    "track": "goal-oriented error"
+  },
+  {
+    "capability": "Exact DWR Identity",
+    "release": "1.47",
+    "track": "goal-oriented error"
+  },
+  {
+    "capability": "DWR Localization",
+    "release": "1.48",
+    "track": "goal-oriented error"
+  },
+  {
+    "capability": "Goal-Oriented Marking",
+    "release": "1.49",
+    "track": "goal-oriented error"
+  },
+  {
+    "capability": "Goal-Oriented Error Milestone",
+    "release": "1.50",
+    "track": "goal-oriented error"
+  }
+]
+

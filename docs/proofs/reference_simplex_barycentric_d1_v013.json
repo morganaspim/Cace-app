@@ -1,0 +1,27 @@
+{
+  "basis": [
+    {
+      "coeffs": [
+        "1",
+        "-1"
+      ],
+      "name": "lambda0"
+    },
+    {
+      "coeffs": [
+        "0",
+        "1"
+      ],
+      "name": "lambda1"
+    }
+  ],
+  "claims": [
+    "partition-of-unity",
+    "kronecker-nodal-identity"
+  ],
+  "dimension": 1,
+  "schema": "cace-formal-affine-proof-v1",
+  "scope": "canonical reference simplex only",
+  "statement": "On the canonical reference d-simplex, the supplied affine P1 barycentric basis sums exactly to 1 and satisfies lambda_i(v_j)=delta_ij.",
+  "theorem_id": "reference-simplex-p1-barycentric-d1-v013"
+}

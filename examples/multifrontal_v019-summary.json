@@ -1,0 +1,38 @@
+{
+  "release": "0.19.0",
+  "dimension": 169,
+  "input_nnz": 967,
+  "ordering": "minimum-degree",
+  "fill_edges": 743,
+  "factor_nnz": 1311,
+  "tree_height": 44,
+  "supernodes": 129,
+  "left_ms": 8.63540499994997,
+  "multifrontal_sequential_ms": 9.682612000688096,
+  "multifrontal_parallel_ms": 8.714163999684388,
+  "parallel_tasks": 13,
+  "peak_front_size": 18,
+  "total_front_entries": 12269,
+  "factor_storage_proxy_bytes": 17084,
+  "peak_front_dense_proxy_bytes": 2592,
+  "max_solution_error_parallel": 2.220446049250313e-15,
+  "residual_inf_parallel": 1.3322676295501878e-15,
+  "numeric_supernodal_factorization_implemented": false,
+  "graph_certificate": {
+    "run_id": "1b375e0e-9d67-4ec1-ac54-b98c8fb66f14",
+    "node_certificate_hashes": [
+      "de4ca4dce81e5e53765b1888414b8aead45840d682a38fdea781c79e9acd4103",
+      "0dacd5ed7e0c7cc7829d6ee121c2a90fd111274dcc702e5411d8b9c31986a62c",
+      "87b5b0d306a3a14c0db87e3bd827901a4eaacf492101cf8a2e77658b32882bcb"
+    ],
+    "all_verifiers_passed": true,
+    "evidence_generated": [
+      "numerical",
+      "symbolic"
+    ],
+    "verification_records": 3,
+    "failed_verifiers": 0,
+    "not_run_verifiers": 0,
+    "certificate_hash": "13c21c27962bfa7732e247d32bfbcdac23a246282b9161e81eb843508e83f3e3"
+  }
+}

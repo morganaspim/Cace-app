@@ -1,0 +1,16 @@
+{
+  "release": "1.01.0",
+  "literature_imports": [
+    {
+      "id": "Scott-Zhang-1990",
+      "citation": "L. R. Scott and S. Zhang, Finite element interpolation of nonsmooth functions satisfying boundary conditions, Math. Comp. 54 (1990), 483\u2013493.",
+      "role": "boundary-preserving local quasi-interpolation, local approximation/stability, finite patch overlap context"
+    },
+    {
+      "id": "scaled-trace-standard",
+      "citation": "Standard scaled trace theorem on shape-regular affine simplices; v1.01 treats it as reviewed imported mathematics.",
+      "role": "derives face estimate from local L2/H1 Scott-Zhang estimates"
+    }
+  ],
+  "scope": "reviewed literature imports only; no claim that external theorem prover checked them"
+}

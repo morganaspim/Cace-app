@@ -1,0 +1,1422 @@
+{
+  "all_verifiers_passed": true,
+  "certificates": [
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.243471+00:00",
+      "evidence": [
+        "experimental"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "runtime12.backend_audit",
+      "module_version": "0.12.0",
+      "node_id": "audit",
+      "output_hash": "81177843c576852471558fcc1c9cc7792fb1c735945ae4b162abd0243f40ae0f",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "2264eb956a5e75337ecafd3dfbbd34808a01c655b61ab898dce6c0f213f8968c"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.244726+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "module_id": "fem_nd.mesh",
+      "module_version": "0.3.0",
+      "node_id": "mesh",
+      "output_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "parameter_hash": "967d7f4011765e9fcf631d6a546f24f8d6a63d7d7b9aa1a1482839bb1cfe662e",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "a01491112153d6938ce556c871350e8b0cdecb4d6184204eacfbfcc6713fa1b9"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.255000+00:00",
+      "evidence": [
+        "interval-certified"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem11.adaptive_certified_loop",
+      "module_version": "0.11.0",
+      "node_id": "adapt",
+      "output_hash": "46f572e40af12015a103dadf2149671981e99c4dc86add3113e0f757cb4bff00",
+      "parameter_hash": "be735a4745659c70a33228e5c296df720289924bc26bd45558bfda924f991021",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "da553c60d7d282bfa2163fbe6ecffe7f8adc232e6edda478ead2a265c9657ea2"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.255569+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "3f15b7b058dd44ba6d31911de91632e9ba95a5309625edeeed658a0077e25910",
+      "module_id": "runtime12.adaptive_marking_equivalence",
+      "module_version": "0.12.0",
+      "node_id": "markeq",
+      "output_hash": "0c10c2d4193866dceb7f6864c39749a31d7ba17a514bac89058a1b815b5c1027",
+      "parameter_hash": "5bb9f818cfa612d3caa9b3f336fe74f4a813ffdd83548ceb2ec76d9528ee93e8",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "820bcf0aa247a29ee02fc832cd4ee1b6b9e5677e4e1c30d4e8b464a0b4b87a9a"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.256180+00:00",
+      "evidence": [
+        "symbolic"
+      ],
+      "input_hash": "1c1b1c002e63f72b82839cf4e1db0eaca6b4bd986c7c29f4c66fb473cd29f3a0",
+      "module_id": "fem_nd.p1_space",
+      "module_version": "0.3.0",
+      "node_id": "space",
+      "output_hash": "07fb8849168f4a4cd249176b5b492d45267072a5e11bc35da82f824c9bb18647",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "4804bd8043dc4b007b233a16502890d889033b7ac179c56d682c53caccd84326"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.256721+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "b883ca17299f34d754c003c2d69bcc2d6689d770b5e0b80b8ea39489ee72451e",
+      "module_id": "fem_nd.poisson_assemble",
+      "module_version": "0.3.0",
+      "node_id": "assembly",
+      "output_hash": "85626749366b50b95e05dd0545cdc35ac2ea3cf0191f5b3f5313dcad13e1c0d5",
+      "parameter_hash": "044ec305c416ecedb8188b4b8dd229142f6fcd1089fbce871ad2635e0908db6c",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "c2ad3c32bcededf519427ea960b30cda923f3bb4716dd82b45fcd9e8aae64a51"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.256961+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "85626749366b50b95e05dd0545cdc35ac2ea3cf0191f5b3f5313dcad13e1c0d5",
+      "module_id": "fem_nd.linear_solve",
+      "module_version": "0.3.0",
+      "node_id": "solve",
+      "output_hash": "1daa2ee176dfaf4465c9208905036af1c4ad64fde2badd12644b592776bca920",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "f1ce8a5b39c0cb758eb97d5edfe9a48e03c31dc268703ae74d80508f90abd7b5"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.257133+00:00",
+      "evidence": [],
+      "input_hash": "70e502f1b18b4ecb67e83c959ed12c62ed429b803b96bd7e3f74baae4247e5ca",
+      "module_id": "runtime12.gpu_equivalence",
+      "module_version": "0.12.0",
+      "node_id": "gpueq",
+      "output_hash": "9015a820131e8666d3ed65a7c3278f8767aba7b703de04c1616023cb146ea88a",
+      "parameter_hash": "31b9b57c45f8785a495b08918c447e9122a402921a19c471b587930c5b36964e",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "0d93d17129fca07364e8b08b61644066acc5864862f9041dbf455119fd1ec232"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.257494+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "70e502f1b18b4ecb67e83c959ed12c62ed429b803b96bd7e3f74baae4247e5ca",
+      "module_id": "runtime12.sparse_equivalence",
+      "module_version": "0.12.0",
+      "node_id": "sparseeq",
+      "output_hash": "bb7883026d90606f1fb0d6a983b183dc0ed480ab56449d149a3eafac70665c15",
+      "parameter_hash": "2e73a9d08a7928e77427d61e93443c978a9c47e35af91d27a2ca72762b81ff71",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "9404b73d17c3996d50e9f6fa9bde14443334b276fec5d3a200830f9c136d470d"
+      ]
+    },
+    {
+      "actual_device": "cpu",
+      "backend": "numpy",
+      "created_at": "2026-09-13T20:39:30.257661+00:00",
+      "evidence": [
+        "numerical"
+      ],
+      "input_hash": "f0eed93677574f8106d813c59db051b8ea908b6adeed41d6d13c7b478278239d",
+      "module_id": "runtime12.equivalence_summary",
+      "module_version": "0.12.0",
+      "node_id": "summary",
+      "output_hash": "d40f2fcbad5e2e225c69c3fefa91dc173009cb5771abd2d39b7fbaf4ea408e5c",
+      "parameter_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "requested_device": "gpu",
+      "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+      "verification_hashes": [
+        "aaedba1f7bcf8b58c7d6f7c8df3501c343cc70e8263b6447825babc17083e4ae"
+      ]
+    }
+  ],
+  "environment": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]"
+  },
+  "experiment": "v0.12 native runtime and backend equivalence",
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "b517c3aa3d794848c2e05aed30e573a324248fb476fdb71c9e5a5f6cee4de970",
+    "evidence_generated": [
+      "experimental",
+      "interval-certified",
+      "numerical",
+      "symbolic"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "1865393f460a96249a1900859413aa2d0a830c86d35203ad0aa88b81478ce578",
+      "3c3aa35d5ccd77bc7718f7acb016358b68f152d0f82e2b61741a50a22d35906a",
+      "5898f2b7336f1d912b7653783826b466c05cf20591e5bedf1642f681ee0354fc",
+      "9c84c2e5ee85c34b7afd5f99ab1c01cff7a48cacaef4588bd6db92e86907069e",
+      "1385769b393aab77e15326cf22697096403beb4316f210eddf7182e9e9463321",
+      "7886caaf117013826126db8106448345d003dcf699009a6e4d0a445d965f0583",
+      "7c46aafb1bb6a0169e382231b861f342a8951af4f0e5d6cabf36ceb1799fbf87",
+      "08569c6326447a7bcbc5475a99b44d9fe17e4365fe82c7a1170ab7e57c8d71a3",
+      "19f2b858fffdf32bdfc57832dbf83b81da6c49fd68d8e88894022bdaa1c10233",
+      "d2e525cdc03d4768b3b4f77a3780f3b5a6d0e2cd2a2044344c6aa89b681debca"
+    ],
+    "not_run_verifiers": 1,
+    "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+    "verification_records": 10
+  },
+  "outputs": {
+    "adapt": {
+      "adaptive_run": {
+        "continuum_error_certified": false,
+        "iterations": [
+          {
+            "discrete_enclosure_certified": true,
+            "element_eta": [
+              0.5378510110299314,
+              0.5378510110299314,
+              0.5378510110299314,
+              0.5378510110299314
+            ],
+            "elements": 4,
+            "enclosure_radius": 2.775557561562916e-17,
+            "estimator": 1.0757020220598628,
+            "interior_dofs": 1,
+            "iteration": 0,
+            "marked_cells": [
+              0,
+              1
+            ],
+            "q_upper": 4.44089209850063e-16,
+            "vertices": 5
+          },
+          {
+            "discrete_enclosure_certified": true,
+            "element_eta": [
+              0.17417610800760122,
+              0.15013445831353395,
+              0.14993899032489025,
+              0.13099669183336418,
+              0.15013445831353395,
+              0.17417610800760122,
+              0.14993899032489025,
+              0.13099669183336418,
+              0.29954045813246516,
+              0.37826925259354205,
+              0.37826925259354205,
+              0.29954045813246516
+            ],
+            "elements": 12,
+            "enclosure_radius": 1.1930754891494343e-16,
+            "estimator": 0.8066369936726071,
+            "interior_dofs": 4,
+            "iteration": 1,
+            "marked_cells": [
+              8,
+              9,
+              10
+            ],
+            "q_upper": 1.8873791418627685e-15,
+            "vertices": 10
+          },
+          {
+            "discrete_enclosure_certified": true,
+            "element_eta": [
+              0.08805411865954646,
+              0.10561780292717105,
+              0.14989961318137668,
+              0.1386090711983915,
+              0.1314823620868579,
+              0.14990504196468632,
+              0.10490043018274986,
+              0.08648033084114523,
+              0.10080693794079959,
+              0.08072215050550181,
+              0.12728583587200717,
+              0.0791887137535116,
+              0.08030182813571561,
+              0.0915175805198737,
+              0.07203726225628855,
+              0.10663303146294546,
+              0.1066357725663769,
+              0.09689200245192867,
+              0.09455522113999085,
+              0.10664163294383587,
+              0.10695426857949199,
+              0.09432942852748155,
+              0.09207515835492906,
+              0.08886969185490895,
+              0.13326584570786698,
+              0.09179603828462375
+            ],
+            "elements": 26,
+            "enclosure_radius": 3.2759755282694965e-16,
+            "estimator": 0.5416079282063465,
+            "interior_dofs": 10,
+            "iteration": 2,
+            "marked_cells": [
+              2,
+              3,
+              4,
+              5,
+              10,
+              16,
+              19,
+              20,
+              24
+            ],
+            "q_upper": 5.922138000542002e-15,
+            "vertices": 18
+          }
+        ],
+        "note": "estimator tolerance is not a continuum-error certificate without a matching reliability theorem",
+        "schema_version": 1,
+        "stop_mode": "estimator_upper",
+        "stop_reason": "max_iterations",
+        "tolerance": 0.0
+      },
+      "final_enclosure": {
+        "certified": true,
+        "correction_inf_upper": 3.275975528269453e-16,
+        "krawczyk_correction_intervals": [
+          [
+            -3.198827377491475e-16,
+            2.864647184049815e-16
+          ],
+          [
+            -1.6202949752366409e-16,
+            1.360038528716482e-16
+          ],
+          [
+            -1.7008740494820334e-16,
+            1.381014556053325e-16
+          ],
+          [
+            -2.436166856103984e-16,
+            1.9037702523640294e-16
+          ],
+          [
+            -6.901423579308975e-17,
+            6.869831237765456e-17
+          ],
+          [
+            -1.013747657597559e-16,
+            8.2722104713306e-17
+          ],
+          [
+            -3.275975528269476e-16,
+            2.8167747251821656e-16
+          ],
+          [
+            -1.1146418270383663e-16,
+            1.016282622455236e-16
+          ],
+          [
+            -1.5728988708709779e-16,
+            1.4790889562122828e-16
+          ],
+          [
+            -1.0590762531681089e-16,
+            8.886276108125937e-17
+          ]
+        ],
+        "krawczyk_inclusion": true,
+        "method": "preconditioned-contraction-krawczyk-box",
+        "preconditioner": "binary64 inverse candidate; correctness comes only from interval contraction test",
+        "q_upper": 5.922138000542002e-15,
+        "radius": 3.2759755282694965e-16,
+        "residual_intervals": [
+          [
+            -3.747002708109904e-16,
+            3.747002708109904e-16
+          ],
+          [
+            -3.053113317719181e-16,
+            2.359223927328458e-16
+          ],
+          [
+            -2.9143354396410364e-16,
+            1.8041124150158796e-16
+          ],
+          [
+            -3.747002708109904e-16,
+            2.151057110211241e-16
+          ],
+          [
+            -7.632783294297952e-17,
+            1.4571677198205182e-16
+          ],
+          [
+            -1.0408340855860844e-16,
+            1.1102230246251568e-16
+          ],
+          [
+            -4.1633363423443375e-16,
+            3.816391647148976e-16
+          ],
+          [
+            -1.179611963664229e-16,
+            1.179611963664229e-16
+          ],
+          [
+            -1.8041124150158796e-16,
+            2.0816681711721688e-16
+          ],
+          [
+            -1.5959455978986628e-16,
+            1.0408340855860844e-16
+          ]
+        ],
+        "scope": "exact solution of stored binary64 discrete linear system",
+        "solution_intervals": [
+          [
+            0.06907603632479825,
+            0.06907603632479895
+          ],
+          [
+            0.04919326971558944,
+            0.049193269715590106
+          ],
+          [
+            0.04871282022411624,
+            0.04871282022411691
+          ],
+          [
+            0.04760186478381972,
+            0.047601864783820384
+          ],
+          [
+            0.02430824727880829,
+            0.02430824727880895
+          ],
+          [
+            0.023752769558660035,
+            0.023752769558660694
+          ],
+          [
+            0.06373303562942995,
+            0.06373303562943064
+          ],
+          [
+            0.033389986323181804,
+            0.03338998632318247
+          ],
+          [
+            0.04702442625589861,
+            0.047024426255899275
+          ],
+          [
+            0.03172355316273705,
+            0.031723553162737714
+          ]
+        ]
+      },
+      "final_mesh": {
+        "boundary_facets": [
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            17
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            15
+          ],
+          [
+            3,
+            15
+          ],
+          [
+            3,
+            17
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          15,
+          17
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            7,
+            10,
+            5
+          ],
+          [
+            10,
+            0,
+            5
+          ],
+          [
+            5,
+            1,
+            6
+          ],
+          [
+            7,
+            6,
+            4
+          ],
+          [
+            5,
+            6,
+            7
+          ],
+          [
+            1,
+            8,
+            6
+          ],
+          [
+            2,
+            11,
+            8
+          ],
+          [
+            11,
+            9,
+            8
+          ],
+          [
+            9,
+            12,
+            6
+          ],
+          [
+            12,
+            4,
+            6
+          ],
+          [
+            8,
+            9,
+            6
+          ],
+          [
+            4,
+            12,
+            14
+          ],
+          [
+            12,
+            9,
+            13
+          ],
+          [
+            14,
+            13,
+            3
+          ],
+          [
+            12,
+            13,
+            14
+          ],
+          [
+            9,
+            11,
+            13
+          ],
+          [
+            11,
+            2,
+            15
+          ],
+          [
+            13,
+            15,
+            3
+          ],
+          [
+            11,
+            15,
+            13
+          ],
+          [
+            0,
+            10,
+            17
+          ],
+          [
+            10,
+            7,
+            16
+          ],
+          [
+            17,
+            16,
+            3
+          ],
+          [
+            10,
+            16,
+            17
+          ],
+          [
+            3,
+            14,
+            16
+          ],
+          [
+            14,
+            4,
+            7
+          ],
+          [
+            14,
+            7,
+            16
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.0
+          ],
+          [
+            0.75,
+            0.25
+          ],
+          [
+            0.25,
+            0.25
+          ],
+          [
+            1.0,
+            0.5
+          ],
+          [
+            0.75,
+            0.75
+          ],
+          [
+            0.125,
+            0.125
+          ],
+          [
+            0.875,
+            0.875
+          ],
+          [
+            0.625,
+            0.625
+          ],
+          [
+            0.375,
+            0.875
+          ],
+          [
+            0.25,
+            0.75
+          ],
+          [
+            0.5,
+            1.0
+          ],
+          [
+            0.125,
+            0.625
+          ],
+          [
+            0.0,
+            0.5
+          ]
+        ]
+      },
+      "final_solution": {
+        "interior": [
+          0.0690760363247986,
+          0.04919326971558977,
+          0.048712820224116576,
+          0.04760186478382005,
+          0.02430824727880862,
+          0.023752769558660364,
+          0.06373303562943029,
+          0.03338998632318214,
+          0.04702442625589894,
+          0.03172355316273738
+        ],
+        "values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0690760363247986,
+          0.0,
+          0.04919326971558977,
+          0.048712820224116576,
+          0.0,
+          0.04760186478382005,
+          0.02430824727880862,
+          0.023752769558660364,
+          0.06373303562943029,
+          0.03338998632318214,
+          0.04702442625589894,
+          0.0,
+          0.03172355316273738,
+          0.0
+        ]
+      }
+    },
+    "assembly": {
+      "system": {
+        "boundary_dofs": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "full_dofs": 5,
+        "interior_dofs": [
+          4
+        ],
+        "matrix": {
+          "data": [
+            4.0
+          ],
+          "indices": [
+            0
+          ],
+          "indptr": [
+            0,
+            1
+          ],
+          "shape": [
+            1,
+            1
+          ]
+        },
+        "rhs": [
+          0.3333333333333333
+        ],
+        "source": 1.0
+      }
+    },
+    "audit": {
+      "backend_status": {
+        "cupy_version": "",
+        "gpu_available": false,
+        "gpu_backend": "unavailable",
+        "gpu_reason": "No module named 'cupy'",
+        "native_available": true,
+        "native_backend": "cpp20-cabi",
+        "native_path": "/mnt/data/v012work/cace-studio-vre-v0.11/cace_studio/native/libcace_runtime_capi.so",
+        "native_reason": "",
+        "native_version": "0.12.0"
+      }
+    },
+    "gpueq": {
+      "equivalence": {
+        "backend": "cupy-cuda",
+        "ran": false,
+        "reason": "No module named 'cupy'"
+      }
+    },
+    "markeq": {
+      "equivalence": {
+        "all_match": true,
+        "iterations": [
+          {
+            "iteration": 0,
+            "match": true,
+            "native": [
+              0,
+              1
+            ],
+            "reference": [
+              0,
+              1
+            ],
+            "stored": [
+              0,
+              1
+            ]
+          },
+          {
+            "iteration": 1,
+            "match": true,
+            "native": [
+              8,
+              9,
+              10
+            ],
+            "reference": [
+              8,
+              9,
+              10
+            ],
+            "stored": [
+              8,
+              9,
+              10
+            ]
+          },
+          {
+            "iteration": 2,
+            "match": true,
+            "native": [
+              2,
+              3,
+              4,
+              5,
+              10,
+              16,
+              19,
+              20,
+              24
+            ],
+            "reference": [
+              2,
+              3,
+              4,
+              5,
+              10,
+              16,
+              19,
+              20,
+              24
+            ],
+            "stored": [
+              2,
+              3,
+              4,
+              5,
+              10,
+              16,
+              19,
+              20,
+              24
+            ]
+          }
+        ],
+        "native_version": "0.12.0",
+        "ran": true,
+        "theta": 0.5
+      }
+    },
+    "mesh": {
+      "mesh": {
+        "boundary_facets": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "boundary_vertices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "dimension": 2,
+        "elements": [
+          [
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            3,
+            0,
+            4
+          ]
+        ],
+        "vertices": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ]
+      }
+    },
+    "solve": {
+      "solution": {
+        "interior": [
+          0.08333333333333333
+        ],
+        "values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.08333333333333333
+        ]
+      }
+    },
+    "space": {
+      "space": {
+        "dimension": 2,
+        "dofs": 5,
+        "family": "P1-simplex",
+        "local": [
+          {
+            "coefficients": [
+              [
+                1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              0,
+              1,
+              4
+            ],
+            "gradients": [
+              [
+                -1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                1.0,
+                -1.0
+              ],
+              [
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                2.0,
+                -2.0,
+                0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              1,
+              2,
+              4
+            ],
+            "gradients": [
+              [
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                1.0
+              ],
+              [
+                -2.0,
+                0.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                1.0
+              ],
+              [
+                2.0,
+                -0.0,
+                -2.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              2,
+              3,
+              4
+            ],
+            "gradients": [
+              [
+                1.0,
+                1.0
+              ],
+              [
+                -1.0,
+                1.0
+              ],
+              [
+                -0.0,
+                -2.0
+              ]
+            ],
+            "volume": 0.25
+          },
+          {
+            "coefficients": [
+              [
+                0.0,
+                -1.0,
+                1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                2.0,
+                -0.0
+              ]
+            ],
+            "diameter": 1.0,
+            "element": [
+              3,
+              0,
+              4
+            ],
+            "gradients": [
+              [
+                -1.0,
+                1.0
+              ],
+              [
+                -1.0,
+                -1.0
+              ],
+              [
+                2.0,
+                -0.0
+              ]
+            ],
+            "volume": 0.25
+          }
+        ]
+      }
+    },
+    "sparseeq": {
+      "equivalence": {
+        "atol": 1e-13,
+        "matvec_max_abs_diff": 0.0,
+        "native_residual_inf": 0.0,
+        "native_version": "0.12.0",
+        "nnz": 1,
+        "python_residual_inf": 0.0,
+        "ran": true,
+        "residual_abs_diff": 0.0,
+        "rows": 1
+      }
+    },
+    "summary": {
+      "summary": {
+        "all_available_backends_agree": true,
+        "note": "not-run backends contribute no equivalence evidence",
+        "states": {
+          "adaptive": "pass",
+          "gpu": "not-run",
+          "sparse": "pass"
+        }
+      }
+    }
+  },
+  "report_schema": 2,
+  "run_id": "87aa90ac-0f45-4d6a-97c0-8f07fb1c9729",
+  "verification": {
+    "adapt": [
+      {
+        "claim": "every adaptive iteration has a valid estimator record, refinement grows the mesh, and the final discrete solution has a verified coefficient enclosure",
+        "kind": "interval-certified",
+        "method": "history invariants plus final interval fixed-point enclosure",
+        "metrics": {
+          "final_elements": 26,
+          "final_estimator": 0.5416079282063465,
+          "final_radius": 3.2759755282694965e-16,
+          "final_vertices": 18,
+          "iterations": 3,
+          "stop_reason": "max_iterations"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "adaptive-loop-integrity-v011"
+      }
+    ],
+    "assembly": [
+      {
+        "claim": "reduced P1 Poisson stiffness matrix is symmetric positive definite for the detected Dirichlet subspace",
+        "kind": "numerical",
+        "method": "host symmetry and symmetric eigenvalue checks",
+        "metrics": {
+          "interior_dofs": 1,
+          "min_eigenvalue": 4.0,
+          "nnz": 1,
+          "symmetry_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "poisson-stiffness-spd-nd"
+      }
+    ],
+    "audit": [
+      {
+        "claim": "C++20 C ABI runtime can be loaded and reports its version",
+        "kind": "experimental",
+        "method": "dynamic-library load plus exported version symbol",
+        "metrics": {
+          "cupy_version": "",
+          "gpu_available": false,
+          "gpu_backend": "unavailable",
+          "gpu_reason": "No module named 'cupy'",
+          "native_available": true,
+          "native_backend": "cpp20-cabi",
+          "native_path": "/mnt/data/v012work/cace-studio-vre-v0.11/cace_studio/native/libcace_runtime_capi.so",
+          "native_reason": "",
+          "native_version": "0.12.0"
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "native-runtime-load-smoke-v012"
+      }
+    ],
+    "gpueq": [
+      {
+        "claim": "CUDA/CuPy matvec and residual agree with the CPU reference within the declared tolerance",
+        "kind": "numerical",
+        "method": "same stored matrix/vector evaluated on both backends",
+        "metrics": {
+          "backend": "cupy-cuda",
+          "ran": false,
+          "reason": "No module named 'cupy'"
+        },
+        "notes": [],
+        "state": "not-run",
+        "verifier": "gpu-cpu-equivalence-v012"
+      }
+    ],
+    "markeq": [
+      {
+        "claim": "native D\u00f6rfler marking selects exactly the same cells as the Python reference and stored adaptive history",
+        "kind": "numerical",
+        "method": "iteration-by-iteration replay",
+        "metrics": {
+          "all_match": true,
+          "iterations": [
+            {
+              "iteration": 0,
+              "match": true,
+              "native": [
+                0,
+                1
+              ],
+              "reference": [
+                0,
+                1
+              ],
+              "stored": [
+                0,
+                1
+              ]
+            },
+            {
+              "iteration": 1,
+              "match": true,
+              "native": [
+                8,
+                9,
+                10
+              ],
+              "reference": [
+                8,
+                9,
+                10
+              ],
+              "stored": [
+                8,
+                9,
+                10
+              ]
+            },
+            {
+              "iteration": 2,
+              "match": true,
+              "native": [
+                2,
+                3,
+                4,
+                5,
+                10,
+                16,
+                19,
+                20,
+                24
+              ],
+              "reference": [
+                2,
+                3,
+                4,
+                5,
+                10,
+                16,
+                19,
+                20,
+                24
+              ],
+              "stored": [
+                2,
+                3,
+                4,
+                5,
+                10,
+                16,
+                19,
+                20,
+                24
+              ]
+            }
+          ],
+          "native_version": "0.12.0",
+          "ran": true,
+          "theta": 0.5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cpp-python-dorfler-equivalence-v012"
+      }
+    ],
+    "mesh": [
+      {
+        "claim": "all simplices are nondegenerate and every codimension-one facet has incidence one or two; boundary is recomputed from incidence",
+        "kind": "numerical",
+        "method": "independent simplex determinant and facet-incidence checks",
+        "metrics": {
+          "boundary_facets": 4,
+          "dimension": 2,
+          "elements": 4,
+          "min_volume": 0.25,
+          "vertices": 5
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "simplex-topology-geometry"
+      }
+    ],
+    "solve": [
+      {
+        "claim": "independently recomputed reduced-system residual is small",
+        "kind": "numerical",
+        "method": "host-side CSR reconstruction and residual",
+        "metrics": {
+          "residual_inf": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "linear-solve-residual-nd"
+      }
+    ],
+    "space": [
+      {
+        "claim": "affine coordinates satisfy the nodal Kronecker identities and partition of unity in physical coordinates",
+        "kind": "symbolic",
+        "method": "direct coefficient identity evaluation",
+        "metrics": {
+          "max_identity_error": 0.0
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "p1-barycentric-identities-nd"
+      }
+    ],
+    "sparseeq": [
+      {
+        "claim": "C++ CSR matvec and residual agree with the NumPy reference path within the declared tolerance",
+        "kind": "numerical",
+        "method": "independent execution of identical stored CSR data",
+        "metrics": {
+          "atol": 1e-13,
+          "matvec_max_abs_diff": 0.0,
+          "native_residual_inf": 0.0,
+          "native_version": "0.12.0",
+          "nnz": 1,
+          "python_residual_inf": 0.0,
+          "ran": true,
+          "residual_abs_diff": 0.0,
+          "rows": 1
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "cpp-python-sparse-equivalence-v012"
+      }
+    ],
+    "summary": [
+      {
+        "claim": "every accelerated backend that actually ran agrees with its reference path; unavailable backends remain not-run",
+        "kind": "numerical",
+        "method": "summary of backend-specific verifier results",
+        "metrics": {
+          "all_available_backends_agree": true,
+          "note": "not-run backends contribute no equivalence evidence",
+          "states": {
+            "adaptive": "pass",
+            "gpu": "not-run",
+            "sparse": "pass"
+          }
+        },
+        "notes": [],
+        "state": "pass",
+        "verifier": "runtime-equivalence-summary-v012"
+      }
+    ]
+  }
+}

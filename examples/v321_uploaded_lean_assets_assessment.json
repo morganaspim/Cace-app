@@ -1,0 +1,25 @@
+{
+  "cace_formal_pin": {
+    "lean": "leanprover/lean4:v4.32.1",
+    "mathlib": "v4.32.1"
+  },
+  "decision": "retain current pin; expand local staged-build discovery; do not downgrade",
+  "release": "3.21.0",
+  "uploaded_source_reference": {
+    "classification": "concatenated Lean 4 source/documentation text; truncated PDF",
+    "file": "lean4-v4.0.0-m1-source.pdf",
+    "not_sufficient_for": [
+      "executing Lean",
+      "executing Lake",
+      "reconstructing the complete source tree from the truncated PDF",
+      "building CACE Formal pinned to v4.32.1/mathlib v4.32.1"
+    ],
+    "useful_for": [
+      "confirming staged bootstrap structure",
+      "confirming expected stage1/bin/lean location",
+      "documenting CMake/make bootstrap flow"
+    ],
+    "version": "v4.0.0-m1"
+  }
+}
+

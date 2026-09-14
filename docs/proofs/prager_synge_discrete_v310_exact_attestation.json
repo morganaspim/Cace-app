@@ -1,0 +1,11 @@
+{
+  "artifact_sha256": "9febfd9c08b10cff6c8b858e2007cdbe6a131127aa1d15ea567ca15282f6a98b",
+  "checker": "CACE-Prager-Synge-Exact-Kernel",
+  "checker_version": "3.10.0",
+  "errors": [],
+  "invocation": "independent-subprocess",
+  "passed": true,
+  "process_returncode": 0,
+  "stderr": ""
+}
+

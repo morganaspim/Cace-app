@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "CACE v0.18 Nested Dissection + Native Sparse Solve",
+  "metadata": {
+    "release": "0.18.0",
+    "scope": "ordering comparison, elimination tree, symbolic supernodes, exact sparse LDLT oracle, native C++ sparse solve"
+  },
+  "nodes": [
+    {"id":"bench","module_id":"fem18.ordering_tree","params":{"nx":14,"ny":14},"position":[0,0]},
+    {"id":"native","module_id":"fem18.native_sparse_solve","params":{},"position":[340,0]},
+    {"id":"summary","module_id":"fem18.summary","params":{},"position":[680,0]}
+  ],
+  "edges": [
+    {"source_node":"bench","source_port":"benchmark","target_node":"native","target_port":"benchmark"},
+    {"source_node":"bench","source_port":"benchmark","target_node":"summary","target_port":"benchmark"},
+    {"source_node":"native","source_port":"native","target_node":"summary","target_port":"native"}
+  ]
+}

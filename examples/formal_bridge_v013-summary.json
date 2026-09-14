@@ -1,0 +1,114 @@
+{
+  "all_verifiers_passed": true,
+  "attestation": {
+    "artifact_sha256": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+    "checker": "cace-exact-affine-kernel",
+    "checker_version": "0.13.0",
+    "claims_checked": [
+      "partition-of-unity",
+      "kronecker-nodal-identity"
+    ],
+    "dimension": 2,
+    "errors": [],
+    "expected_checker": "cace-exact-affine-kernel",
+    "expected_checker_version": "0.13.0",
+    "invocation": "subprocess",
+    "nodal_table": [
+      [
+        "1",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "1",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "1"
+      ]
+    ],
+    "passed": true,
+    "process_returncode": 0,
+    "proof_method": "exact rational affine normalization and exact nodal evaluation",
+    "stderr": "",
+    "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+  },
+  "formal_summary": {
+    "checker": "cace-exact-affine-kernel 0.13.0",
+    "formal_scope": "reference-simplex P1 barycentric affine identities only",
+    "machine_checked": true,
+    "pde_reliability_formally_verified": false,
+    "status": "machine-checked",
+    "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+  },
+  "graph_certificate": {
+    "all_verifiers_passed": true,
+    "certificate_hash": "41803a5788414eb16a22d3b707207b79a8c69b770c1ab34f3c280c3cb2585f40",
+    "evidence_generated": [
+      "formally-verified"
+    ],
+    "failed_verifiers": 0,
+    "node_certificate_hashes": [
+      "03d297a8e11ba9e4cba00f3b1e1be09204dc9ef6f9fe83e76d726b5257d43a85",
+      "cbf9b2dc31dcfa8c42c132021aa679edf2e9cbbb6b275995aaed52d2015dd759",
+      "d1b91c2979bbefb110706a5cb4504b8e9bb2b5793ecaa7a8235672b11c591835"
+    ],
+    "not_run_verifiers": 0,
+    "run_id": "234648b7-61eb-44df-a715-94e7987999f4",
+    "verification_records": 3
+  },
+  "theorem": {
+    "artifact": "sha256:3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+    "assumptions": [
+      "canonical reference simplex",
+      "dimension=2"
+    ],
+    "attestation_hash": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+    "checker": "cace-exact-affine-kernel 0.13.0",
+    "evidence_kind": "formally-verified",
+    "formal_evidence": true,
+    "promotion_recheck": {
+      "artifact_sha256": "3432d9b2b5f9ee625532c6dc09bf9560d2b5613f7d8bb9a606511b7ff1a0c2af",
+      "checker": "cace-exact-affine-kernel",
+      "checker_version": "0.13.0",
+      "claims_checked": [
+        "partition-of-unity",
+        "kronecker-nodal-identity"
+      ],
+      "dimension": 2,
+      "errors": [],
+      "expected_checker": "cace-exact-affine-kernel",
+      "expected_checker_version": "0.13.0",
+      "invocation": "subprocess",
+      "nodal_table": [
+        [
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "0",
+          "1",
+          "0"
+        ],
+        [
+          "0",
+          "0",
+          "1"
+        ]
+      ],
+      "passed": true,
+      "process_returncode": 0,
+      "proof_method": "exact rational affine normalization and exact nodal evaluation",
+      "stderr": "",
+      "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+    },
+    "statement": "On the canonical reference d-simplex, the supplied affine P1 barycentric basis sums exactly to 1 and satisfies lambda_i(v_j)=delta_ij.",
+    "status": "machine-checked",
+    "theorem_id": "reference-simplex-p1-barycentric-d2-v013"
+  },
+  "version": "0.13.0"
+}

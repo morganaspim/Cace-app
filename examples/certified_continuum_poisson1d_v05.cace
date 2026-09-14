@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "name": "v0.5 certified continuum 1D Poisson FEM",
+  "nodes": [
+    {"id":"mesh","module_id":"fem_nd.mesh","params":{"vertices":"[[0.0],[0.07],[0.18],[0.41],[0.67],[0.86],[1.0]]","elements":"[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]]"},"position":[0,0]},
+    {"id":"space","module_id":"fem_nd.p1_space","params":{},"position":[220,0]},
+    {"id":"shape","module_id":"fem_cont.mesh_shape","params":{"max_shape_ratio":2.1},"position":[220,180]},
+    {"id":"assemble","module_id":"fem_cert.poisson_assemble","params":{"diffusion":"1.0","source_constant":1.0,"source_linear":"[]"},"position":[460,0]},
+    {"id":"solve","module_id":"fem_nd.linear_solve","params":{},"position":[700,0]},
+    {"id":"ires","module_id":"fem_cert.interval_residual","params":{},"position":[930,-100]},
+    {"id":"aerr","module_id":"fem_cert.discrete_energy_error","params":{},"position":[1160,-100]},
+    {"id":"cont","module_id":"fem_cont.poisson1d_continuum","params":{},"position":[700,190]},
+    {"id":"total","module_id":"fem_cont.total_error","params":{},"position":[1400,80]},
+    {"id":"lean","module_id":"fem_cont.theorem_export","params":{},"position":[1160,260]}
+  ],
+  "edges": [
+    {"source_node":"mesh","source_port":"mesh","target_node":"space","target_port":"mesh"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"shape","target_port":"mesh"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"assemble","target_port":"mesh"},
+    {"source_node":"space","source_port":"space","target_node":"assemble","target_port":"space"},
+    {"source_node":"assemble","source_port":"system","target_node":"solve","target_port":"system"},
+    {"source_node":"assemble","source_port":"system","target_node":"ires","target_port":"system"},
+    {"source_node":"solve","source_port":"solution","target_node":"ires","target_port":"solution"},
+    {"source_node":"assemble","source_port":"system","target_node":"aerr","target_port":"system"},
+    {"source_node":"ires","source_port":"residual_certificate","target_node":"aerr","target_port":"residual_certificate"},
+    {"source_node":"mesh","source_port":"mesh","target_node":"cont","target_port":"mesh"},
+    {"source_node":"assemble","source_port":"problem","target_node":"cont","target_port":"problem"},
+    {"source_node":"shape","source_port":"shape_certificate","target_node":"cont","target_port":"shape_certificate"},
+    {"source_node":"cont","source_port":"continuum_certificate","target_node":"total","target_port":"continuum_certificate"},
+    {"source_node":"aerr","source_port":"algebraic_error_certificate","target_node":"total","target_port":"algebraic_error_certificate"},
+    {"source_node":"cont","source_port":"continuum_certificate","target_node":"lean","target_port":"continuum_certificate"}
+  ],
+  "metadata": {
+    "equation":"-u'' = 1 on [0,1]",
+    "boundary":"u(0)=u(1)=0",
+    "exact_solution":"u=x(1-x)/2",
+    "continuum_theorem":"||u-u_h||_E^2 = sum_K h_K^3/12",
+    "release":"0.5.0"
+  }
+}

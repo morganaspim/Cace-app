@@ -1,0 +1,99 @@
+[
+  {
+    "name": "Discontinuous Galerkin elliptic",
+    "rank": 15,
+    "selected": false,
+    "why": "Interior penalty DG and jump penalties."
+  },
+  {
+    "name": "Convection-diffusion SUPG",
+    "rank": 16,
+    "selected": false,
+    "why": "Robust stabilized transport-diffusion workflows."
+  },
+  {
+    "name": "Biharmonic/mixed fourth order",
+    "rank": 17,
+    "selected": false,
+    "why": "Plate-like problems."
+  },
+  {
+    "name": "Elasticity mixed stress",
+    "rank": 18,
+    "selected": false,
+    "why": "Hellinger-Reissner and locking-aware checks."
+  },
+  {
+    "name": "Variational inequalities/contact",
+    "rank": 19,
+    "selected": false,
+    "why": "Obstacle/contact certification."
+  },
+  {
+    "name": "Helmholtz pollution analysis",
+    "rank": 20,
+    "selected": false,
+    "why": "Indefinite wave error/dispersion audits."
+  },
+  {
+    "name": "Polygonal/VEM",
+    "rank": 21,
+    "selected": false,
+    "why": "General-cell discretization."
+  },
+  {
+    "name": "Isogeometric analysis",
+    "rank": 22,
+    "selected": false,
+    "why": "Spline geometry/high-order bases."
+  },
+  {
+    "name": "Fractional PDE",
+    "rank": 23,
+    "selected": false,
+    "why": "Nonlocal operators."
+  },
+  {
+    "name": "Stochastic Galerkin",
+    "rank": 24,
+    "selected": false,
+    "why": "Polynomial-chaos PDE uncertainty."
+  },
+  {
+    "name": "Boundary element coupling",
+    "rank": 25,
+    "selected": false,
+    "why": "FEM-BEM exterior problems."
+  },
+  {
+    "name": "ALE/moving mesh",
+    "rank": 26,
+    "selected": false,
+    "why": "Geometry-in-time conservation."
+  },
+  {
+    "name": "Hyperbolic DG",
+    "rank": 27,
+    "selected": false,
+    "why": "Conservation laws/shocks."
+  },
+  {
+    "name": "Nonlinear eigenproblems",
+    "rank": 28,
+    "selected": false,
+    "why": "Eigenvalue-dependent operators."
+  },
+  {
+    "name": "PDE-constrained optimization",
+    "rank": 29,
+    "selected": false,
+    "why": "Adjoint optimization loops."
+  },
+  {
+    "name": "Quantum PDE specialization",
+    "rank": 30,
+    "selected": false,
+    "why": "Hamiltonian-specific eigensolver workflows."
+  }
+]
+

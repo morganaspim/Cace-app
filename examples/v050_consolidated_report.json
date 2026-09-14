@@ -1,0 +1,571 @@
+{
+  "milestone": {
+    "release": "0.50.0",
+    "summary": {
+      "legacy_v035": true,
+      "new_v049": true,
+      "continuum_formal_promoted": false,
+      "evidence_ledger": {
+        "formally_verified": [
+          "reference-simplex P1 identities",
+          "selected 1D FEM identities",
+          "selected 1D assembly invariants"
+        ],
+        "symbolic_exact": [
+          "sparse LDLT reconstruction",
+          "ordering/fill structure",
+          "content/provenance integrity"
+        ],
+        "numerical": [
+          "native solver equivalence",
+          "mixed precision refinement",
+          "performance budgets"
+        ],
+        "not_claimed": [
+          "general 2D reliability theorem formal proof",
+          "tetrahedral continuum theorem",
+          "unconditional GPU availability"
+        ]
+      }
+    },
+    "sha256": "1d678a16e23b9d2d14e8b09e40c44fa6cca323988002968210b5810535150ac9",
+    "all_pass": true
+  },
+  "qualification": {
+    "release": "0.49.0",
+    "gates": {
+      "replay": true,
+      "schema": true,
+      "scaling": true,
+      "health": true,
+      "reduction": true,
+      "sweep": true,
+      "scheduler": true,
+      "ordering": true,
+      "factor_replay": true,
+      "reducer": true,
+      "ledger": true,
+      "scale3d": true,
+      "budget": true
+    },
+    "all_pass": true,
+    "parts": {
+      "replay": {
+        "release": "0.36.0",
+        "payload": {
+          "seed": 2026036,
+          "draws": 32,
+          "values": [
+            0.9082547716834006,
+            -0.058734749768961425,
+            -0.48556819466933776,
+            -0.8333958261324428,
+            0.10953055286424629,
+            -0.07886618311769,
+            0.20285123086866674,
+            0.12416010774679154,
+            0.46727215534190236,
+            -0.8820163791865592,
+            -0.3855584325409376,
+            0.032657813133212255,
+            -0.11835842193704171,
+            0.27349398676847514,
+            0.5352018107464376,
+            0.5574807970859228,
+            -0.27591151205260256,
+            0.8090813969086461,
+            -0.37466701414903936,
+            -0.8438009142740257,
+            -0.993827346393781,
+            0.7458938642973396,
+            -0.620579848375544,
+            0.11194844538708493,
+            -0.19481826135892644,
+            -0.007770083877060685,
+            -0.9238230588649325,
+            -0.5859409440278025,
+            0.3538248605708654,
+            0.06495439023815353,
+            0.24105356158064195,
+            -0.20636262274888195
+          ]
+        },
+        "sha256": "5e9e13da2aee479422e0bb8bb7ab08dc4680d20484fec48f75acb420626f36d7",
+        "replay_equal": true,
+        "replay_sha256": "5e9e13da2aee479422e0bb8bb7ab08dc4680d20484fec48f75acb420626f36d7"
+      },
+      "schema": {
+        "release": "0.37.0",
+        "certificate": {
+          "schema": "cace-certificate-v1",
+          "subject_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "evidence": [
+            "symbolic"
+          ],
+          "checks": {
+            "replay": true
+          },
+          "status": "PASS"
+        },
+        "validation": {
+          "valid": true,
+          "errors": []
+        }
+      },
+      "scaling": {
+        "release": "0.38.0",
+        "rows": [
+          {
+            "grid": 6,
+            "dimension": 25,
+            "input_nnz": 125,
+            "winner": "minimum-degree",
+            "fill": 31,
+            "factor_nnz": 106,
+            "certified": true,
+            "analysis_ms": 8.997212999020121
+          },
+          {
+            "grid": 8,
+            "dimension": 49,
+            "input_nnz": 217,
+            "winner": "minimum-degree",
+            "fill": 119,
+            "factor_nnz": 252,
+            "certified": true,
+            "analysis_ms": 10.333844998967834
+          },
+          {
+            "grid": 10,
+            "dimension": 81,
+            "input_nnz": 417,
+            "winner": "minimum-degree",
+            "fill": 240,
+            "factor_nnz": 489,
+            "certified": true,
+            "analysis_ms": 464.12800700090884
+          }
+        ],
+        "all_certified": true,
+        "dimensions_increasing": true,
+        "factor_nnz_per_dof": [
+          4.24,
+          5.142857142857143,
+          6.037037037037037
+        ],
+        "finite_positive_ratios": true
+      },
+      "health": {
+        "release": "0.39.0",
+        "dimension": 49,
+        "symmetric_structural": true,
+        "positive_diagonal": true,
+        "gershgorin_lower": 0.0,
+        "weak_diag_dominance_fraction": 1.0,
+        "exact_spd_certificate": true,
+        "min_exact_pivot": 2.348652667445979
+      },
+      "reduction": {
+        "release": "0.40.0",
+        "naive": 0.0,
+        "kahan": 0.0,
+        "neumaier": 1000.0,
+        "exact_reference": 1000.0,
+        "neumaier_error": 0.0,
+        "naive_error": 1000.0
+      },
+      "sweep": {
+        "release": "0.41.0",
+        "parameter": "n",
+        "values": [
+          3,
+          4
+        ],
+        "rows": [
+          {
+            "release": "0.31.0",
+            "dimension": 8,
+            "input_nnz": 32,
+            "natural_fill": 9,
+            "ordered_fill": 6,
+            "factor_nnz": 26,
+            "certified": true,
+            "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+          },
+          {
+            "release": "0.31.0",
+            "dimension": 27,
+            "input_nnz": 135,
+            "natural_fill": 128,
+            "ordered_fill": 66,
+            "factor_nnz": 147,
+            "certified": true,
+            "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+          }
+        ],
+        "all_certified": true,
+        "sha256": "afde59a80f4e2b0a7844574959c02525d67af2c3122a972cafd31ca995359e27"
+      },
+      "scheduler": {
+        "release": "0.42.0",
+        "schedule": [
+          "assemble",
+          "order",
+          "factor",
+          "solve",
+          "verify"
+        ],
+        "tasks": [
+          "assemble",
+          "order",
+          "factor",
+          "solve",
+          "verify"
+        ],
+        "dependencies": {
+          "assemble": [],
+          "order": [
+            "assemble"
+          ],
+          "factor": [
+            "order"
+          ],
+          "solve": [
+            "factor"
+          ],
+          "verify": [
+            "solve"
+          ]
+        }
+      },
+      "ordering": {
+        "release": "0.43.0",
+        "rows": [
+          {
+            "ordering": "natural",
+            "fill": 512,
+            "factor_nnz": 761,
+            "max_front": 11
+          },
+          {
+            "ordering": "minimum-degree",
+            "fill": 240,
+            "factor_nnz": 489,
+            "max_front": 12
+          },
+          {
+            "ordering": "nested-dissection",
+            "fill": 361,
+            "factor_nnz": 610,
+            "max_front": 13
+          }
+        ],
+        "winner_by_fill": "minimum-degree",
+        "pareto_fill_front": [
+          "minimum-degree",
+          "natural"
+        ]
+      },
+      "factor_replay": {
+        "release": "0.44.0",
+        "digest_a": "f96e223479c67fe9dc741cf1f713ee88f155e436bfde8725dc8c0866c8a848f7",
+        "digest_b": "f96e223479c67fe9dc741cf1f713ee88f155e436bfde8725dc8c0866c8a848f7",
+        "stable": true,
+        "certified": true
+      },
+      "reducer": {
+        "release": "0.45.0",
+        "original": [
+          "tamper_provenance",
+          "noise",
+          "asymmetric_matrix",
+          "unused"
+        ],
+        "reduced": [
+          "tamper_provenance"
+        ],
+        "still_fails": true,
+        "one_minimal": true
+      },
+      "ledger": {
+        "release": "0.46.0",
+        "chain": [
+          {
+            "index": 0,
+            "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+            "event": {
+              "kind": "assemble",
+              "status": "PASS"
+            },
+            "sha256": "b5d6b1eeb6830b4882b03d0590f1abcc9ca1208f5f0b5a0f9797a18063a68cb3"
+          },
+          {
+            "index": 1,
+            "prev": "b5d6b1eeb6830b4882b03d0590f1abcc9ca1208f5f0b5a0f9797a18063a68cb3",
+            "event": {
+              "kind": "factor",
+              "status": "PASS"
+            },
+            "sha256": "2a0d3609f7a8e36ef3c192b90a223dd666eced32e1853b698a7b8da0fb4b2b42"
+          },
+          {
+            "index": 2,
+            "prev": "2a0d3609f7a8e36ef3c192b90a223dd666eced32e1853b698a7b8da0fb4b2b42",
+            "event": {
+              "kind": "solve",
+              "status": "PASS"
+            },
+            "sha256": "34133565570e310edf4c35d0e23dc9571eef1866726fe5d4d867a35a36270b8d"
+          }
+        ],
+        "verified": true,
+        "head": "34133565570e310edf4c35d0e23dc9571eef1866726fe5d4d867a35a36270b8d"
+      },
+      "scale3d": {
+        "release": "0.47.0",
+        "rows": [
+          {
+            "release": "0.31.0",
+            "dimension": 8,
+            "input_nnz": 32,
+            "natural_fill": 9,
+            "ordered_fill": 6,
+            "factor_nnz": 26,
+            "certified": true,
+            "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+          },
+          {
+            "release": "0.31.0",
+            "dimension": 27,
+            "input_nnz": 135,
+            "natural_fill": 128,
+            "ordered_fill": 66,
+            "factor_nnz": 147,
+            "certified": true,
+            "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+          },
+          {
+            "release": "0.31.0",
+            "dimension": 64,
+            "input_nnz": 352,
+            "natural_fill": 675,
+            "ordered_fill": 326,
+            "factor_nnz": 534,
+            "certified": true,
+            "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+          }
+        ],
+        "all_certified": true,
+        "dimensions_increasing": true,
+        "scope": "3D seven-point discrete Poisson scaling; no tetrahedral continuum claim"
+      },
+      "budget": {
+        "release": "0.48.0",
+        "checks": {
+          "runtime": {
+            "pass": true,
+            "ratio": 1.05,
+            "limit": 1.1
+          },
+          "memory": {
+            "pass": true,
+            "ratio": 0.98,
+            "limit": 1.05
+          },
+          "accuracy": {
+            "pass": true,
+            "ratio": 0.999,
+            "limit": 0.99
+          }
+        },
+        "all_pass": true,
+        "policy": "explicit baselines; no wall-clock measurement in deterministic qualification"
+      }
+    }
+  },
+  "replay": {
+    "release": "0.36.0",
+    "payload": {
+      "seed": 2026036,
+      "draws": 32,
+      "values": [
+        0.9082547716834006,
+        -0.058734749768961425,
+        -0.48556819466933776,
+        -0.8333958261324428,
+        0.10953055286424629,
+        -0.07886618311769,
+        0.20285123086866674,
+        0.12416010774679154,
+        0.46727215534190236,
+        -0.8820163791865592,
+        -0.3855584325409376,
+        0.032657813133212255,
+        -0.11835842193704171,
+        0.27349398676847514,
+        0.5352018107464376,
+        0.5574807970859228,
+        -0.27591151205260256,
+        0.8090813969086461,
+        -0.37466701414903936,
+        -0.8438009142740257,
+        -0.993827346393781,
+        0.7458938642973396,
+        -0.620579848375544,
+        0.11194844538708493,
+        -0.19481826135892644,
+        -0.007770083877060685,
+        -0.9238230588649325,
+        -0.5859409440278025,
+        0.3538248605708654,
+        0.06495439023815353,
+        0.24105356158064195,
+        -0.20636262274888195
+      ]
+    },
+    "sha256": "5e9e13da2aee479422e0bb8bb7ab08dc4680d20484fec48f75acb420626f36d7",
+    "replay_equal": true,
+    "replay_sha256": "5e9e13da2aee479422e0bb8bb7ab08dc4680d20484fec48f75acb420626f36d7"
+  },
+  "scaling_2d": {
+    "release": "0.38.0",
+    "rows": [
+      {
+        "grid": 6,
+        "dimension": 25,
+        "input_nnz": 125,
+        "winner": "minimum-degree",
+        "fill": 31,
+        "factor_nnz": 106,
+        "certified": true,
+        "analysis_ms": 8.926996999434778
+      },
+      {
+        "grid": 8,
+        "dimension": 49,
+        "input_nnz": 217,
+        "winner": "minimum-degree",
+        "fill": 119,
+        "factor_nnz": 252,
+        "certified": true,
+        "analysis_ms": 10.82773899906897
+      },
+      {
+        "grid": 10,
+        "dimension": 81,
+        "input_nnz": 417,
+        "winner": "minimum-degree",
+        "fill": 240,
+        "factor_nnz": 489,
+        "certified": true,
+        "analysis_ms": 518.6885589992016
+      }
+    ],
+    "all_certified": true,
+    "dimensions_increasing": true,
+    "factor_nnz_per_dof": [
+      4.24,
+      5.142857142857143,
+      6.037037037037037
+    ],
+    "finite_positive_ratios": true
+  },
+  "sweep": {
+    "release": "0.41.0",
+    "parameter": "n",
+    "values": [
+      3,
+      4
+    ],
+    "rows": [
+      {
+        "release": "0.31.0",
+        "dimension": 8,
+        "input_nnz": 32,
+        "natural_fill": 9,
+        "ordered_fill": 6,
+        "factor_nnz": 26,
+        "certified": true,
+        "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+      },
+      {
+        "release": "0.31.0",
+        "dimension": 27,
+        "input_nnz": 135,
+        "natural_fill": 128,
+        "ordered_fill": 66,
+        "factor_nnz": 147,
+        "certified": true,
+        "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+      }
+    ],
+    "all_certified": true,
+    "sha256": "afde59a80f4e2b0a7844574959c02525d67af2c3122a972cafd31ca995359e27"
+  },
+  "ordering": {
+    "release": "0.43.0",
+    "rows": [
+      {
+        "ordering": "natural",
+        "fill": 512,
+        "factor_nnz": 761,
+        "max_front": 11
+      },
+      {
+        "ordering": "minimum-degree",
+        "fill": 240,
+        "factor_nnz": 489,
+        "max_front": 12
+      },
+      {
+        "ordering": "nested-dissection",
+        "fill": 361,
+        "factor_nnz": 610,
+        "max_front": 13
+      }
+    ],
+    "winner_by_fill": "minimum-degree",
+    "pareto_fill_front": [
+      "minimum-degree",
+      "natural"
+    ]
+  },
+  "scaling_3d": {
+    "release": "0.47.0",
+    "rows": [
+      {
+        "release": "0.31.0",
+        "dimension": 8,
+        "input_nnz": 32,
+        "natural_fill": 9,
+        "ordered_fill": 6,
+        "factor_nnz": 26,
+        "certified": true,
+        "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+      },
+      {
+        "release": "0.31.0",
+        "dimension": 27,
+        "input_nnz": 135,
+        "natural_fill": 128,
+        "ordered_fill": 66,
+        "factor_nnz": 147,
+        "certified": true,
+        "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+      },
+      {
+        "release": "0.31.0",
+        "dimension": 64,
+        "input_nnz": 352,
+        "natural_fill": 675,
+        "ordered_fill": 326,
+        "factor_nnz": 534,
+        "certified": true,
+        "scope": "3D seven-point discrete Poisson operator; not tetrahedral FEM continuum verification"
+      }
+    ],
+    "all_certified": true,
+    "dimensions_increasing": true,
+    "scope": "3D seven-point discrete Poisson scaling; no tetrahedral continuum claim"
+  }
+}

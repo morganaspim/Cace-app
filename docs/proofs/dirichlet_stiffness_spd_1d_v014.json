@@ -1,0 +1,17 @@
+{
+  "claims": [
+    "global-dirichlet-stiffness-spd"
+  ],
+  "kind": "dirichlet-1d-spd",
+  "nodes": [
+    "0",
+    "1/5",
+    "1/2",
+    "4/5",
+    "1"
+  ],
+  "schema": "cace-formal-fem-proof-v2",
+  "scope": "supplied exact rational 1D mesh",
+  "statement": "For the supplied strictly increasing 1D mesh with homogeneous Dirichlet endpoints, the assembled P1 stiffness quadratic form equals the sum of positive edge-difference squares and is positive for every nonzero interior vector.",
+  "theorem_id": "p1-dirichlet-stiffness-spd-1d-v014"
+}

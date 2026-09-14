@@ -1,0 +1,122 @@
+[
+  {
+    "release": "1.02",
+    "capability": "Hypercircle Identity",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.03",
+    "capability": "Equilibrated Local Balance",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.04",
+    "capability": "Guaranteed Flux Upper Bound",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.05",
+    "capability": "Lax-Milgram Contract",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.06",
+    "capability": "Cea Quasioptimality",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.07",
+    "capability": "Bramble-Hilbert Contract",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.08",
+    "capability": "A Priori Rate Campaign",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.09",
+    "capability": "Aubin-Nitsche Contract",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.10",
+    "capability": "Duality L2 Gain",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.11",
+    "capability": "Estimator Efficiency Contract",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.12",
+    "capability": "Data Oscillation",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.13",
+    "capability": "Axioms of Adaptivity",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.14",
+    "capability": "Adaptive Contraction Audit",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.15",
+    "capability": "Adaptive Optimality Audit",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.16",
+    "capability": "Inverse Inequality Contract",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.17",
+    "capability": "Conditioning Model",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.18",
+    "capability": "M-Matrix Audit",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.19",
+    "capability": "Discrete Maximum Principle",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.20",
+    "capability": "FEEC de Rham Contract",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.21",
+    "capability": "FEEC Commuting Projection",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.22",
+    "capability": "Discrete de Rham Fixture",
+    "evidence_kind": "symbolic"
+  },
+  {
+    "release": "1.23",
+    "capability": "Rayleigh-Ritz Diagnostic",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.24",
+    "capability": "Eigen Residual Bound",
+    "evidence_kind": "numerical"
+  },
+  {
+    "release": "1.25",
+    "capability": "Mathematical Portfolio Milestone",
+    "evidence_kind": "symbolic"
+  }
+]

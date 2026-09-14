@@ -1,0 +1,20 @@
+{
+  "claims": [
+    "local-row-sum-zero",
+    "global-symmetry",
+    "global-constant-nullspace",
+    "dirichlet-reduction-spd"
+  ],
+  "kind": "p1-assembly-1d",
+  "nodes": [
+    "0",
+    "1/6",
+    "2/5",
+    "3/4",
+    "1"
+  ],
+  "schema": "cace-formal-assembly-proof-v3",
+  "scope": "supplied strictly increasing exact rational 1D mesh; unit diffusion",
+  "statement": "Exact P1 element matrices assemble to a symmetric global stiffness matrix with constant nullspace before boundary elimination; homogeneous endpoint Dirichlet elimination yields an SPD interior matrix.",
+  "theorem_id": "p1-global-assembly-invariants-1d-v015"
+}

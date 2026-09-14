@@ -1,0 +1,309 @@
+{
+  "global_nonclaims": [
+    "Reviewed theorem contracts are not machine-formal proofs.",
+    "Hypercircle support is not yet a full arbitrary-mesh H(div) equilibrated-flux reconstruction.",
+    "Aubin-Nitsche requires dual regularity.",
+    "Adaptive optimality diagnostics are not themselves proofs of optimal complexity.",
+    "DMP audits are conditional on matrix/mesh criteria.",
+    "FEEC fixtures do not yet implement full Nedelec/Raviart-Thomas families.",
+    "Spectral diagnostics are not yet interval-certified eigenvalue enclosures."
+  ],
+  "portfolio": {
+    "formal_promotion": false,
+    "items": [
+      [
+        "equilibrated_flux",
+        "implemented-reviewed+diagnostic"
+      ],
+      [
+        "lax_milgram_cea",
+        "implemented-reviewed"
+      ],
+      [
+        "bramble_hilbert",
+        "implemented-reviewed"
+      ],
+      [
+        "aubin_nitsche",
+        "implemented-reviewed"
+      ],
+      [
+        "efficiency_oscillation",
+        "implemented-reviewed+diagnostic"
+      ],
+      [
+        "adaptivity_axioms",
+        "implemented-reviewed+diagnostic"
+      ],
+      [
+        "inverse_conditioning",
+        "implemented-reviewed+diagnostic"
+      ],
+      [
+        "dmp_mmatrix",
+        "implemented-audit"
+      ],
+      [
+        "feec",
+        "implemented-reviewed+fixtures"
+      ],
+      [
+        "spectral_minmax",
+        "implemented-diagnostics"
+      ]
+    ],
+    "note": "Portfolio contains reviewed mathematics and executable diagnostics; imported theorems are not machine-formal.",
+    "pass": true
+  },
+  "qualification": {
+    "compileall": "PASS",
+    "historical_reliability_partition": "14/14 PASS",
+    "new_release_tests": "24/24 PASS"
+  },
+  "release": "1.25.0",
+  "sha256": "ff60857d159e687b332a9901c0e4457a9a68d586618833170509802478256515",
+  "theme": "Ten mature mathematical frameworks integrated into CACE",
+  "topics": {
+    "adaptivity": {
+      "axioms": {
+        "axioms": [
+          "stability_on_nonrefined",
+          "reduction_on_refined",
+          "quasi_orthogonality",
+          "discrete_reliability"
+        ],
+        "formal": false,
+        "pass": true,
+        "status": "reviewed-framework"
+      },
+      "contraction": {
+        "pass": true,
+        "ratios": [
+          0.25,
+          0.23840000000000006
+        ],
+        "threshold": 0.6
+      },
+      "rate_audit": {
+        "expected": -0.5,
+        "observed_slopes": [
+          -0.5,
+          -0.5
+        ],
+        "pass": true,
+        "theorem_evidence": false
+      }
+    },
+    "aubin_nitsche": {
+      "contract": {
+        "artifact": null,
+        "assumptions": [
+          "Galerkin orthogonality",
+          "dual problem H2-type regularity",
+          "approximation property"
+        ],
+        "checker": null,
+        "evidence_kind": "symbolic",
+        "statement": "Under elliptic dual regularity, Galerkin orthogonality improves the L2 error by one power of h relative to the energy error.",
+        "status": "reviewed-assumed",
+        "theorem_id": "duality.aubin_nitsche.v109"
+      },
+      "duality_fixture": {
+        "L2_upper_model": 0.025,
+        "formal": false,
+        "pass": true,
+        "status": "reviewed-duality-model"
+      }
+    },
+    "bramble_hilbert": {
+      "contract": {
+        "artifact": null,
+        "assumptions": [
+          "shape-regular affine simplex",
+          "sufficient Sobolev regularity",
+          "polynomial reproduction"
+        ],
+        "checker": null,
+        "evidence_kind": "symbolic",
+        "statement": "On a shape-regular affine simplex, polynomial-reproducing interpolation admits W^{m,p} error bounds of order h^{k+1-m}.",
+        "status": "reviewed-assumed",
+        "theorem_id": "approx.bramble_hilbert.v107"
+      },
+      "rates": {
+        "pass": true,
+        "rows": [
+          {
+            "L2_model": 0.25,
+            "energy_model": 0.5,
+            "h": 0.5
+          },
+          {
+            "L2_model": 0.0625,
+            "energy_model": 0.25,
+            "h": 0.25
+          },
+          {
+            "L2_model": 0.015625,
+            "energy_model": 0.125,
+            "h": 0.125
+          }
+        ],
+        "scope": "rate prediction from reviewed approximation theory"
+      }
+    },
+    "dmp": {
+      "fixture": {
+        "matrix_audit": {
+          "diag_positive": true,
+          "offdiag_nonpositive": true,
+          "pass": true,
+          "row_diag_dominant": true
+        },
+        "pass": true,
+        "solution": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "m_matrix": {
+        "diag_positive": true,
+        "offdiag_nonpositive": true,
+        "pass": true,
+        "row_diag_dominant": true
+      }
+    },
+    "efficiency_oscillation": {
+      "contract": {
+        "artifact": null,
+        "assumptions": [
+          "shape regularity",
+          "bubble-function localization",
+          "compatible residual estimator"
+        ],
+        "checker": null,
+        "evidence_kind": "symbolic",
+        "statement": "Residual estimator contributions are locally efficient up to data oscillation on shape-regular simplicial meshes.",
+        "status": "reviewed-assumed",
+        "theorem_id": "apost.efficiency.bubble.v111"
+      },
+      "oscillation": {
+        "components": [
+          0.0,
+          -0.10000000000000009,
+          0.20000000000000018
+        ],
+        "oscillation": 0.22360679774997916,
+        "pass": true
+      }
+    },
+    "equilibrated_flux": {
+      "guaranteed_upper": {
+        "formal": false,
+        "guaranteed_energy_upper": 0.125,
+        "pass": true,
+        "status": "reviewed-hypercircle-bound"
+      },
+      "hypercircle": {
+        "exact": true,
+        "lhs": "13/100",
+        "orthogonality": "0",
+        "pass": true,
+        "rhs": "13/100",
+        "scope": "orthogonal two-component fixture for hypercircle algebra"
+      },
+      "local_balance": {
+        "balance": 0.0,
+        "condition": "sum outward numerical flux + cell source integral = 0",
+        "pass": true
+      }
+    },
+    "feec": {
+      "commuting_fixture": {
+        "lhs": [
+          2.0,
+          -3.0
+        ],
+        "pass": true,
+        "rhs": [
+          2.0,
+          -3.0
+        ],
+        "scope": "exactly representable affine fixture"
+      },
+      "complex_fixture": {
+        "curl_grad": 0,
+        "exact": true,
+        "pass": true,
+        "scope": "symbolic polynomial differential-complex identity"
+      },
+      "contract": {
+        "artifact": null,
+        "assumptions": [
+          "compatible Sobolev spaces",
+          "appropriate domain/topology",
+          "conforming FEEC spaces"
+        ],
+        "checker": null,
+        "evidence_kind": "symbolic",
+        "statement": "The de Rham complex grad-curl-div forms a differential complex, and compatible FE spaces inherit discrete subcomplex structure.",
+        "status": "reviewed-assumed",
+        "theorem_id": "feec.derham.sequence.v120"
+      }
+    },
+    "inverse_conditioning": {
+      "conditioning": {
+        "dimension": 2,
+        "kappa_model": 64.0,
+        "pass": true,
+        "scope": "standard second-order elliptic FE scaling model"
+      },
+      "contract": {
+        "artifact": null,
+        "assumptions": [
+          "finite element polynomial",
+          "shape-regular affine mesh"
+        ],
+        "checker": null,
+        "evidence_kind": "symbolic",
+        "statement": "For finite-element polynomials on a shape-regular affine mesh, ||grad v_h|| <= C_inv h^{-1}||v_h||.",
+        "status": "reviewed-assumed",
+        "theorem_id": "fe.inverse_inequality.v116"
+      }
+    },
+    "lax_milgram_cea": {
+      "cea_fixture": {
+        "constant": 2.0,
+        "pass": true,
+        "quasioptimal_upper": 0.2
+      },
+      "contract": {
+        "artifact": null,
+        "assumptions": [
+          "Hilbert space",
+          "continuous bilinear form",
+          "coercivity",
+          "bounded linear functional"
+        ],
+        "checker": "CACE reviewed-theorem contract with executable assumption matcher",
+        "evidence_kind": "symbolic",
+        "statement": "A continuous coercive bilinear form on a Hilbert space with bounded linear functional has a unique weak solution.",
+        "status": "reviewed-assumed",
+        "theorem_id": "abstract.lax_milgram.v105"
+      }
+    },
+    "spectral": {
+      "rayleigh": {
+        "interpretation": "upper bound on smallest eigenvalue only when trial subspace/min-max hypotheses apply",
+        "pass": true,
+        "rayleigh_quotient": 1.0
+      },
+      "residual": {
+        "normalized_residual": 0.0,
+        "pass": true,
+        "residual_norm": 0.0,
+        "statement": "distance-to-spectrum <= ||r||/||x|| for symmetric A"
+      }
+    }
+  }
+}

@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "name": "v0.6 certified 2D Poisson bubble FEM",
+  "nodes": [
+    {
+      "id": "mesh",
+      "module_id": "fem_nd.mesh",
+      "params": {
+        "vertices": "[[0,0],[1,0],[0,1],[0.3333333333333333,0.3333333333333333]]",
+        "elements": "[[0,1,3],[1,2,3],[2,0,3]]"
+      },
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "space",
+      "module_id": "fem_nd.p1_space",
+      "params": {},
+      "position": [
+        220,
+        -80
+      ]
+    },
+    {
+      "id": "geo",
+      "module_id": "fem06.triangle_geometry",
+      "params": {},
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "id": "stiffcert",
+      "module_id": "fem06.element_stiffness",
+      "params": {},
+      "position": [
+        460,
+        180
+      ]
+    },
+    {
+      "id": "problem",
+      "module_id": "fem06.bubble_problem",
+      "params": {},
+      "position": [
+        0,
+        260
+      ]
+    },
+    {
+      "id": "assemble",
+      "module_id": "fem_cert.poisson_assemble",
+      "params": {
+        "diffusion": "1.0",
+        "source_constant": 0.0,
+        "source_linear": "[2.0,2.0]"
+      },
+      "position": [
+        460,
+        -80
+      ]
+    },
+    {
+      "id": "solve",
+      "module_id": "fem_nd.linear_solve",
+      "params": {},
+      "position": [
+        700,
+        -80
+      ]
+    },
+    {
+      "id": "ires",
+      "module_id": "fem_cert.interval_residual",
+      "params": {},
+      "position": [
+        930,
+        -150
+      ]
+    },
+    {
+      "id": "aerr",
+      "module_id": "fem_cert.discrete_energy_error",
+      "params": {},
+      "position": [
+        1160,
+        -150
+      ]
+    },
+    {
+      "id": "cont",
+      "module_id": "fem06.bubble_continuum_error",
+      "params": {},
+      "position": [
+        930,
+        80
+      ]
+    },
+    {
+      "id": "eta",
+      "module_id": "fem06.bubble_estimator",
+      "params": {},
+      "position": [
+        930,
+        250
+      ]
+    },
+    {
+      "id": "rel",
+      "module_id": "fem06.bubble_reliability",
+      "params": {
+        "C_rel": 1.0
+      },
+      "position": [
+        1190,
+        160
+      ]
+    },
+    {
+      "id": "formal",
+      "module_id": "fem06.reliability_theorem_export",
+      "params": {},
+      "position": [
+        1190,
+        340
+      ]
+    },
+    {
+      "id": "shape",
+      "module_id": "fem06.shape_regularity",
+      "params": {
+        "max_ratio": 20.0
+      },
+      "position": [
+        460,
+        320
+      ]
+    },
+    {
+      "id": "gpueq",
+      "module_id": "fem_cert.cpu_gpu_equivalence",
+      "params": {
+        "atol": 1e-10,
+        "rtol": 1e-10
+      },
+      "position": [
+        930,
+        -300
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "space",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "geo",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "assemble",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "space",
+      "source_port": "space",
+      "target_node": "assemble",
+      "target_port": "space"
+    },
+    {
+      "source_node": "geo",
+      "source_port": "geometry_certificate",
+      "target_node": "stiffcert",
+      "target_port": "geometry_certificate"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "stiffcert",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "solve",
+      "target_port": "system"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "ires",
+      "target_port": "system"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "ires",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "aerr",
+      "target_port": "system"
+    },
+    {
+      "source_node": "ires",
+      "source_port": "residual_certificate",
+      "target_node": "aerr",
+      "target_port": "residual_certificate"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "cont",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "cont",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "problem",
+      "source_port": "problem",
+      "target_node": "cont",
+      "target_port": "problem"
+    },
+    {
+      "source_node": "geo",
+      "source_port": "geometry_certificate",
+      "target_node": "cont",
+      "target_port": "geometry_certificate"
+    },
+    {
+      "source_node": "mesh",
+      "source_port": "mesh",
+      "target_node": "eta",
+      "target_port": "mesh"
+    },
+    {
+      "source_node": "solve",
+      "source_port": "solution",
+      "target_node": "eta",
+      "target_port": "solution"
+    },
+    {
+      "source_node": "geo",
+      "source_port": "geometry_certificate",
+      "target_node": "eta",
+      "target_port": "geometry_certificate"
+    },
+    {
+      "source_node": "cont",
+      "source_port": "continuum_certificate",
+      "target_node": "rel",
+      "target_port": "continuum_certificate"
+    },
+    {
+      "source_node": "eta",
+      "source_port": "estimator_certificate",
+      "target_node": "rel",
+      "target_port": "estimator_certificate"
+    },
+    {
+      "source_node": "geo",
+      "source_port": "geometry_certificate",
+      "target_node": "shape",
+      "target_port": "geometry_certificate"
+    },
+    {
+      "source_node": "assemble",
+      "source_port": "system",
+      "target_node": "gpueq",
+      "target_port": "system"
+    }
+  ],
+  "metadata": {
+    "equation": "-Delta u = 2(x+y) on reference triangle",
+    "boundary": "u=0 on x=0, y=0, x+y=1",
+    "exact_solution": "u=x*y*(1-x-y)",
+    "release": "0.6.0",
+    "trust_note": "generic 2D reliability theorem remains NOT_RUN; benchmark reliability is run-specific"
+  }
+}

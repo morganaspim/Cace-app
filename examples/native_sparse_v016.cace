@@ -1,0 +1,59 @@
+{
+  "edges": [
+    {
+      "source_node": "native",
+      "source_port": "system",
+      "target_node": "fac",
+      "target_port": "system"
+    },
+    {
+      "source_node": "native",
+      "source_port": "equivalence",
+      "target_node": "summary",
+      "target_port": "equivalence"
+    },
+    {
+      "source_node": "fac",
+      "source_port": "factorization_certificate",
+      "target_node": "summary",
+      "target_port": "factorization_certificate"
+    }
+  ],
+  "metadata": {
+    "release": "0.16.0",
+    "scope": "native 1D P1 assembly plus sparse exact verification of stored discrete matrix"
+  },
+  "name": "CACE v0.16 Native Sparse Verification",
+  "nodes": [
+    {
+      "id": "native",
+      "module_id": "runtime16.native_p1_assembly",
+      "params": {
+        "nodes": "[0,0.05,0.12,0.2,0.31,0.45,0.58,0.7,0.81,0.9,1.0]"
+      },
+      "position": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "fac",
+      "module_id": "fem16.sparse_verified_ldlt",
+      "params": {},
+      "position": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "summary",
+      "module_id": "fem16.summary",
+      "params": {},
+      "position": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "schema_version": 1
+}

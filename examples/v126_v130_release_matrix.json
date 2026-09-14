@@ -1,0 +1,23 @@
+[
+  {
+    "capability": "RT0 basis and exact edge-flux normalization",
+    "release": "1.26"
+  },
+  {
+    "capability": "global H(div) canonical edge assembly",
+    "release": "1.27"
+  },
+  {
+    "capability": "exact local RT0 equilibration",
+    "release": "1.28"
+  },
+  {
+    "capability": "exact global equilibrium verification",
+    "release": "1.29"
+  },
+  {
+    "capability": "Prager-Synge guaranteed energy bound",
+    "release": "1.30"
+  }
+]
+
