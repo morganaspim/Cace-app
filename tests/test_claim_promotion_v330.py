@@ -257,6 +257,27 @@ class _DummyUnsafeOpenProblemModule(ResultModule):
     proof_status = ProofStatus(evidence={EvidenceKind.SYMBOLIC}, unit_tests=True)
 
 
+class _DummyCategoryBypassModule(ResultModule):
+    fn = staticmethod(lambda: {
+        "pass": True,
+        "open_problem_resolved": True,
+    })
+    module_id = "test.category_bypass"
+    label = "Category Bypass Module"
+    version = "0.0.1"
+    description = "Test module that attempts self-promotion from an ordinary category."
+    evidence_kind = EvidenceKind.SYMBOLIC
+    metadata = ModuleMetadata(
+        module_id,
+        label,
+        version,
+        "Linear Algebra",
+        description,
+        Maturity.EXPERIMENTAL,
+    )
+    proof_status = ProofStatus(evidence={EvidenceKind.SYMBOLIC}, unit_tests=True)
+
+
 def test_executor_and_report_add_fail_closed_claim_sidecar():
     registry = ModuleRegistry()
     registry.register(_DummyOpenProblemModule)
@@ -276,4 +297,12 @@ def test_executor_rejects_reserved_public_self_promotion():
     registry.register(_DummyUnsafeOpenProblemModule)
     exp = Experiment(name="unsafe-claim", nodes=[Node(id="n1", module_id="test.unsafe_open_problem")])
     with pytest.raises(ValidationError, match="attempted reserved public promotion"):
+        GraphExecutor(registry).run(exp)
+
+
+def test_executor_rejects_category_bypass_self_promotion():
+    registry = ModuleRegistry()
+    registry.register(_DummyCategoryBypassModule)
+    exp = Experiment(name="category-bypass", nodes=[Node(id="n1", module_id="test.category_bypass")])
+    with pytest.raises(ValidationError, match="ordinary module outputs cannot authorize"):
         GraphExecutor(registry).run(exp)
