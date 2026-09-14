@@ -315,7 +315,7 @@ def render_lean_mesh_certificate(
     def emit_fin_function(name: str, n: int, ret: str, values: Sequence[str]) -> None:
         lines.append(f"def {name} (i : Fin {n}) : {ret} :=")
         if n == 0:
-            lines.append("  exact Fin.elim0 i")
+            lines.append("  Fin.elim0 i")
             lines.append("")
             return
         lines.append("  match i.val with")
