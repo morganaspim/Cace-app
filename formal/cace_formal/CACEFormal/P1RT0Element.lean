@@ -2,6 +2,8 @@ import Mathlib
 
 namespace CACEFormal
 
+noncomputable section
+
 /-!
 v3.24 exact polynomial P1/RT0 element semantics.
 
@@ -141,5 +143,7 @@ theorem local_green_identity (T : Triangle2) (v : P1Affine) (q : RT0Affine) :
   ring
 
 end P1RT0Element
+
+end
 
 end CACEFormal

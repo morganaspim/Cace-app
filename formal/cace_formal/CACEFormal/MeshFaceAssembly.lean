@@ -166,10 +166,12 @@ single owner.  No independent `faceAssembly` equality is assumed.
 -/
 theorem local_face_sum_decomposition (mesh : MeshCertificate)
     (localFace : Fin mesh.triangleCount → Fin 3 → ℝ) :
-    (∑ K, ∑ s, localFace K s) =
-      (∑ i, localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
-        localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) +
-      (∑ b, localFace (mesh.boundaryCell b) (mesh.boundarySlot b)) := by
+    (∑ K : Fin mesh.triangleCount, ∑ s : Fin 3, localFace K s) =
+      (∑ i : Fin mesh.interiorEdgeCount,
+        localFace (mesh.interiorLeftCell i) (mesh.interiorLeftSlot i) +
+          localFace (mesh.interiorRightCell i) (mesh.interiorRightSlot i)) +
+      (∑ b : Fin mesh.boundaryEdgeCount,
+        localFace (mesh.boundaryCell b) (mesh.boundarySlot b)) := by
   let f : LocalOccurrence mesh → ℝ := fun p => localFace p.1 p.2
   have h := Equiv.sum_comp (localOwnedEquiv mesh) f
   simpa [f, localOwnedEquiv, localOfOwned, Fintype.sum_sum_type,
