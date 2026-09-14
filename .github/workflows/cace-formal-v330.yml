@@ -79,6 +79,20 @@ jobs:
           python -m pip install -e '.[test]'
           python -m pytest -q tests/test_claim_promotion_v330.py
 
+      - name: Recover stale CACE runner storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'Disk usage before bounded cleanup:'
+          df -h
+          stale_toolchain="$HOME/.elan/toolchains/leanprover--lean4---v4.32.tmp"
+          if [[ -d "$stale_toolchain" ]]; then
+            rm -rf -- "$stale_toolchain"
+          fi
+          python -m pip cache purge || true
+          echo 'Disk usage after bounded cleanup:'
+          df -h
+
       - name: Install elan
         shell: bash
         run: |
