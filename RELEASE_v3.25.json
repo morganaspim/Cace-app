@@ -1,0 +1,33 @@
+{
+  "release": "3.25.0",
+  "title": "Certificate-Generating Studio Integration",
+  "status": "IMPLEMENTED_PENDING_FINAL_BRANCH_CI",
+  "studio_module": "formal325.mesh_certificate_generator",
+  "core_generator": "cace_studio.core.mesh_certificate.generate_mesh_certificate",
+  "exact_checker": "cace_studio.core.mesh_certificate.verify_mesh_certificate",
+  "lean_renderer": "cace_studio.core.mesh_certificate.render_lean_mesh_certificate",
+  "verification_chain": [
+    "Certificate generated",
+    "Python exact checker PASS/FAIL",
+    "Lean witness source generated",
+    "Pinned Lean CI PASS/FAIL/NOT_RUN",
+    "Commit/hash"
+  ],
+  "scope": [
+    "exact rational 2D triangular mesh inputs",
+    "positive orientation rejection gate",
+    "deterministic canonical edge generation",
+    "interior/boundary ownership construction",
+    "boundary labels",
+    "independent exact certificate regeneration",
+    "closed Lean MeshCertificate witness source rendering",
+    "Studio registry exposure"
+  ],
+  "evidence_policy": "Python exact-checker success is reported as symbolic exact evidence. A generated witness is not labeled formally verified until the pinned Lean CI build for that witness succeeds.",
+  "nonclaims": [
+    "Binary floating-point coordinates are not silently accepted as exact rational geometry.",
+    "The Lean renderer currently requires at least one interior and one boundary edge.",
+    "Continuum H1/H(div) closure is deferred to later releases."
+  ]
+}
+
