@@ -84,7 +84,7 @@ theorem smoothBoxGreen_of_product_divergence {n : Nat}
   rw [← hdiv]
   apply setIntegral_congr_fun measurableSet_Icc
   intro x hx
-  exact hprod x
+  exact (hprod x).symm
 
 end Continuum
 
