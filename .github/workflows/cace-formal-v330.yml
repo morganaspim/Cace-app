@@ -58,18 +58,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up isolated runner Python
+      - name: Set up pinned ARM64-capable Python
         shell: bash
+        env:
+          UV_VERSION: '0.12.13'
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import sys
-          if sys.version_info < (3, 11):
-              raise SystemExit(f'CACE requires Python >=3.11, found {sys.version}')
-          print(sys.version)
-          PY
-          python3 -m venv "$RUNNER_TEMP/cace-venv"
+          curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" |
+            env UV_INSTALL_DIR="$RUNNER_TEMP/uv-bin" sh
+          "$RUNNER_TEMP/uv-bin/uv" python install 3.13
+          "$RUNNER_TEMP/uv-bin/uv" venv --python 3.13 "$RUNNER_TEMP/cace-venv"
           echo "$RUNNER_TEMP/cace-venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/cace-venv/bin/python" --version
 
       - name: Test global claim-promotion guard
         shell: bash
