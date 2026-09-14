@@ -93,16 +93,28 @@ jobs:
           echo 'Disk usage after bounded cleanup:'
           df -h
 
+      - name: Prepare formal build on larger filesystem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cace_build_root="$(mktemp -d /var/tmp/cace-formal.XXXXXXXX)"
+          cp -a formal/cace_formal "$cace_build_root/formal"
+          mkdir -p "$cace_build_root/elan" "$cace_build_root/cache"
+          echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
+          echo "ELAN_HOME=$cace_build_root/elan" >> "$GITHUB_ENV"
+          echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
+          df -h "$cace_build_root"
+
       - name: Install elan
         shell: bash
         run: |
           set -euo pipefail
           curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
           sh /tmp/elan-init.sh -y --default-toolchain none
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
 
       - name: Install pinned Lean toolchain
-        working-directory: formal/cace_formal
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         run: |
           set -euo pipefail
@@ -113,7 +125,7 @@ jobs:
           lake --version
 
       - name: Resolve pinned mathlib
-        working-directory: formal/cace_formal
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         run: |
           set -euo pipefail
@@ -140,23 +152,16 @@ jobs:
           fi
 
       - name: Compile v3.30 analysis endpoints and umbrella
-        working-directory: formal/cace_formal
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         env:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          lake env lean CACEFormal/SmoothBoxGreenAuto.lean
-          lake env lean CACEFormal/RegularizationClosure.lean
-          lake env lean CACEFormal/GraphRegularizationCriterion.lean
-          lake env lean CACEFormal/RealGraphRegularizationCriterion.lean
-          lake env lean CACEFormal/H1DomainBridge.lean
-          lake env lean CACEFormal/H1BesselRieszReduction.lean
-          lake env lean CACEFormal/DistributionalGraphRepresentatives.lean
           lake build CACEFormal
 
       - name: Kernel axiom audit
-        working-directory: formal/cace_formal
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         run: |
           set -euo pipefail
