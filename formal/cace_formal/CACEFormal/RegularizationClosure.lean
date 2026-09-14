@@ -54,6 +54,37 @@ theorem submodule_le_topologicalClosure_of_regularizer
     T ≤ S.topologicalClosure := by
   rw [submodule_topologicalClosure_eq_of_regularizer S T hST hT R hcore htendsto]
 
+/--
+Kernel-specialized regularization principle.
+
+Closed graph relations in analysis are very often represented as the kernel of a continuous linear
+"defect" map.  In that situation callers no longer need to separately prove closedness: continuity
+of the defect makes the kernel closed automatically.  The remaining proof obligations are exactly
+(1) the smooth core has zero defect, (2) the regularizer lands in that core, and (3) it converges in
+the ambient graph norm.
+-/
+theorem submodule_topologicalClosure_eq_ker_of_regularizer
+    {F : Type*} [NormedAddCommGroup F] [NormedSpace 𝕜 F]
+    (S : Submodule 𝕜 E) (A : E →L[𝕜] F)
+    (hS : S ≤ A.ker)
+    (R : Nat → E → E)
+    (hcore : ∀ k x, x ∈ A.ker → R k x ∈ S)
+    (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    S.topologicalClosure = A.ker := by
+  exact submodule_topologicalClosure_eq_of_regularizer
+    S A.ker hS A.isClosed_ker R hcore htendsto
+
+/-- Reverse-inclusion form of the kernel regularization theorem. -/
+theorem ker_le_topologicalClosure_of_regularizer
+    {F : Type*} [NormedAddCommGroup F] [NormedSpace 𝕜 F]
+    (S : Submodule 𝕜 E) (A : E →L[𝕜] F)
+    (hS : S ≤ A.ker)
+    (R : Nat → E → E)
+    (hcore : ∀ k x, x ∈ A.ker → R k x ∈ S)
+    (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    A.ker ≤ S.topologicalClosure := by
+  rw [submodule_topologicalClosure_eq_ker_of_regularizer S A hS R hcore htendsto]
+
 /-- A core is dense in the whole ambient normed space when a regularizer lands in the core and
 converges pointwise to every ambient point. -/
 theorem topologicalClosure_eq_top_of_regularizer
