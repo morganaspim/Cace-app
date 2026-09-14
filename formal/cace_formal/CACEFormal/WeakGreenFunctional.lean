@@ -34,6 +34,26 @@ theorem BoundedGreenPairing.normalTrace_bound
     _ = ‖G.normalTrace‖ * ‖q‖ * ‖v‖ := rfl
 
 /--
+Two bounded normal-trace extensions that agree on dense cores are identical.
+This is the uniqueness half of the graph-space extension argument.
+-/
+theorem normalTrace_unique_of_dense_agreement
+    {V Q : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup Q] [NormedSpace ℝ Q]
+    (G H : BoundedGreenPairing V Q)
+    (Q0 : Submodule ℝ Q) (V0 : Submodule ℝ V)
+    (hQ : Dense (Q0 : Set Q)) (hV : Dense (V0 : Set V))
+    (hagree : ∀ q, q ∈ Q0 → ∀ v, v ∈ V0 →
+      G.normalTrace q v = H.normalTrace q v) :
+    G.normalTrace = H.normalTrace := by
+  apply ContinuousLinearMap.ext_on hQ
+  intro q hq
+  apply ContinuousLinearMap.ext_on hV
+  intro v hv
+  exact hagree q hq v hv
+
+/--
 Smooth cores together with the two density statements needed to extend classical
 Green's formula to the graph-space completion.
 -/
@@ -75,6 +95,32 @@ def HasZeroBoundaryTrace
     [NormedAddCommGroup Q] [NormedSpace ℝ Q]
     (G : BoundedGreenPairing V Q) (v : V) : Prop :=
   ∀ q : Q, G.normalTrace q v = 0
+
+/-- Zero-boundary test fields form a linear subspace. -/
+def zeroBoundarySubmodule
+    {V Q : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup Q] [NormedSpace ℝ Q]
+    (G : BoundedGreenPairing V Q) : Submodule ℝ V where
+  carrier := {v | HasZeroBoundaryTrace G v}
+  zero_mem' := by
+    intro q
+    simp [HasZeroBoundaryTrace]
+  add_mem' := by
+    intro v hv w hw q
+    simp [map_add, hv q, hw q]
+  smul_mem' := by
+    intro c v hv q
+    simp [map_smul, hv q]
+
+/-- Membership in the zero-boundary submodule is exactly functional trace annihilation. -/
+theorem mem_zeroBoundarySubmodule_iff
+    {V Q : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup Q] [NormedSpace ℝ Q]
+    (G : BoundedGreenPairing V Q) (v : V) :
+    v ∈ zeroBoundarySubmodule G ↔ HasZeroBoundaryTrace G v :=
+  Iff.rfl
 
 /-- Weak Green immediately kills the volume pairing against a zero-trace test field. -/
 theorem volumePairing_eq_zero_of_zeroBoundaryTrace
