@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'formal/cace_formal/CACEFormal/PDEDomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'RELEASE_v3.29.json'
       - 'V329_PDE_DOMAIN_BRIDGE_RANKED.md'
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - 'formal/cace_formal/CACEFormal/PDEDomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean'
       - 'formal/cace_formal/CACEFormal.lean'
       - 'RELEASE_v3.29.json'
       - 'V329_PDE_DOMAIN_BRIDGE_RANKED.md'
@@ -65,6 +67,7 @@ jobs:
           set -euo pipefail
           files=(
             formal/cace_formal/CACEFormal/PDEDomainBridge.lean
+            formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean
             formal/cace_formal/CACEFormal/ContinuumSobolev.lean
             formal/cace_formal/CACEFormal/GraphDensity.lean
             formal/cace_formal/CACEFormal/GraphClosedSpaces.lean
@@ -87,6 +90,7 @@ jobs:
           # Build the library first so imported CACEFormal dependencies have persistent .olean files.
           lake build CACEFormal
           lake env lean CACEFormal/PDEDomainBridge.lean
+          lake env lean CACEFormal/PDEDomainRealBridge.lean
 
       - name: Write v3.29 attestation
         if: success()
@@ -103,18 +107,20 @@ jobs:
               'commit': out(['git', 'rev-parse', 'HEAD']),
               'lean_version': out(['lean', '--version']),
               'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
-              'scope': 'PDE/domain bridge: closed distributional H(div) graph relation, L2-to-tempered-distribution bridge, smooth box face-flux/Green-volume identification, and dense-core trace uniqueness principle',
+              'scope': 'PDE/domain bridge: closed distributional H(div) graph relation, L2-to-tempered-distribution bridge, explicit real-v3.28 to complex distributional bridge, smooth box face-flux/Green-volume identification, and dense-core trace uniqueness principle',
               'theorems': [
                   'CACEFormal.Continuum.mem_HDivDistributionalGraphSubmodule_iff',
                   'CACEFormal.Continuum.isClosed_HDivDistributionalGraphSubmodule',
                   'CACEFormal.Continuum.complexL2ToDistribution_inL2',
                   'CACEFormal.Continuum.inHDiv_of_mem_distributionalGraph',
+                  'CACEFormal.Continuum.complexSmoothGraphClosure_le_distributional',
+                  'CACEFormal.Continuum.HDivGraphClosedSpace.toInHDiv',
                   'CACEFormal.Continuum.smoothBoxTrace_eq_greenVolume',
                   'CACEFormal.Continuum.normalTrace_eq_of_classicalCoreAgreement'
               ],
               'nonclaims': [
                   'The existing whole-space graphNormalTrace is not yet directly identified with the classical bounded-box face-flux trace.',
-                  'The real v3.28 graph closure is not yet proved equivalent to the complex distributional H(div) graph relation.',
+                  'The real v3.28 graph closure maps into the complex distributional H(div) relation, but reverse inclusion is not yet proved.',
                   'Reverse inclusion of every distributional H(div) datum into the smooth graph closure requires a separate graph-norm density theorem.'
               ]
           }
