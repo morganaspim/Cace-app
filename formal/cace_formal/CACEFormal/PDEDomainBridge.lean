@@ -112,7 +112,7 @@ theorem complexL2ToDistribution_inL2 {n : Nat} (u : ComplexL2 n) :
 
 /--
 A graph datum satisfying the closed distributional relation yields an actual
-`InHDiv` vector distribution.  This is the first concrete graph-closure →
+`InHDiv` vector distribution.  This is the first concrete graph-relation →
 distributional-H(div) bridge theorem.
 -/
 theorem inHDiv_of_mem_distributionalGraph (n : Nat)
@@ -124,6 +124,75 @@ theorem inHDiv_of_mem_distributionalGraph (n : Nat)
     exact complexL2ToDistribution_inL2 (x.1 i)
   · rw [(mem_HDivDistributionalGraphSubmodule_iff n x).mp hx]
     exact complexL2ToDistribution_inL2 x.2
+
+/-- Complex-valued Schwartz scalar fields used for the genuine distributional graph core. -/
+abbrev ComplexSmoothScalar (n : Nat) := 𝓢(EuclideanDomain n, ℂ)
+
+/-- Complex-valued Schwartz vector fields. -/
+abbrev ComplexSmoothVector (n : Nat) := Fin n → ComplexSmoothScalar n
+
+/-- Complex Schwartz-to-L² embedding at the pinned whole-space volume measure. -/
+noncomputable def schwartzComplexL2 (n : Nat) :
+    ComplexSmoothScalar n →L[ℂ] ComplexL2 n :=
+  SchwartzMap.toLpCLM ℂ ℂ 2 volume
+
+/-- Smooth complex H(div) graph map `q ↦ (q, ∑ᵢ ∂ᵢqᵢ)`. -/
+noncomputable def smoothComplexHDivGraphMap (n : Nat) :
+    ComplexSmoothVector n →ₗ[ℂ] HDivComplexGraphAmbient n where
+  toFun q :=
+    (fun i => schwartzComplexL2 n (q i),
+      ∑ i : Fin n, schwartzComplexL2 n (∂_{basisVector i} (q i)))
+  map_add' q r := by
+    apply Prod.ext
+    · funext i
+      simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
+    · simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul,
+        Finset.sum_add_distrib]
+  map_smul' c q := by
+    apply Prod.ext
+    · funext i
+      simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul]
+    · simp [LineDeriv.lineDerivOp_add, LineDeriv.lineDerivOp_smul, Finset.smul_sum]
+
+/-- Smooth complex H(div) graph fields satisfy the actual distributional divergence equation. -/
+theorem smoothComplexHDivGraphMap_mem_distributional (n : Nat)
+    (q : ComplexSmoothVector n) :
+    smoothComplexHDivGraphMap n q ∈ HDivDistributionalGraphSubmodule n := by
+  rw [mem_HDivDistributionalGraphSubmodule_iff]
+  simp [smoothComplexHDivGraphMap, schwartzComplexL2, complexL2ToDistribution,
+    complexGraphFieldDistribution, distributionalDivergence, weakPartial,
+    MeasureTheory.Lp.toTemperedDistribution_toLp_eq,
+    TemperedDistribution.lineDerivOp_toTemperedDistributionCLM_eq]
+
+/-- Complex smooth graph core as a submodule of L² graph data. -/
+noncomputable def ComplexHDivSmoothGraphCore (n : Nat) :
+    Submodule ℂ (HDivComplexGraphAmbient n) :=
+  LinearMap.range (smoothComplexHDivGraphMap n)
+
+/-- The smooth complex graph core lies in the closed distributional graph relation. -/
+theorem ComplexHDivSmoothGraphCore_le_distributional (n : Nat) :
+    ComplexHDivSmoothGraphCore n ≤ HDivDistributionalGraphSubmodule n := by
+  rintro x ⟨q, rfl⟩
+  exact smoothComplexHDivGraphMap_mem_distributional n q
+
+/--
+Because the distributional divergence relation is closed, the whole smooth graph closure lies in it.
+This is a genuine graph-closure → distributional-divergence theorem, not an assumed certificate.
+-/
+theorem complexSmoothGraphClosure_le_distributional (n : Nat) :
+    (ComplexHDivSmoothGraphCore n).topologicalClosure ≤
+      HDivDistributionalGraphSubmodule n := by
+  exact Submodule.topologicalClosure_minimal (ComplexHDivSmoothGraphCore n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
+
+/-- Every element of the complex smooth H(div) graph closure is an actual distributional H(div) field. -/
+theorem inHDiv_of_mem_complexSmoothGraphClosure (n : Nat)
+    (x : HDivComplexGraphAmbient n)
+    (hx : x ∈ (ComplexHDivSmoothGraphCore n).topologicalClosure) :
+    InHDiv (complexGraphFieldDistribution x) :=
+  inHDiv_of_mem_distributionalGraph n x
+    (complexSmoothGraphClosure_le_distributional n hx)
 
 /--
 Classical box trace agreement: the signed face-flux trace of the product field is
