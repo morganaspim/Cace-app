@@ -76,11 +76,8 @@
     ]
   },
   "verification": {
-    "latest_observed_v330_workflow_run": 34853593165,
-    "latest_observed_job": 104007366806,
-    "runner_id": 0,
-    "executed_steps": 0,
-    "interpretation": "GitHub runner infrastructure failure; neither a proof pass nor a Lean proof failure",
+    "observed_runner_pattern": "v3.30 GitHub Actions jobs have repeatedly been created with runner_id=0 and zero executed steps",
+    "interpretation": "runner infrastructure failure; neither a proof pass nor a Lean proof failure",
     "formal_result": "PENDING_ACTUAL_RUNNER_EXECUTION"
   },
   "nonclaims": [
