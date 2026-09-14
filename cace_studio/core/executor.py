@@ -8,7 +8,7 @@ from .registry import ModuleRegistry
 from .certificate import RunCertificate
 from .verification import VerificationRecord, VerificationState
 from .device import DeviceManager
-from .claim_promotion import fail_closed_module_decision
+from .claim_promotion import fail_closed_module_decision, unsafe_self_promotion_paths
 
 @dataclass
 class RunResult:
@@ -71,6 +71,12 @@ class GraphExecutor:
             out={k:DeviceManager.to_host(v) for k,v in out.items()}; outputs[node_id]=out
             decision=fail_closed_module_decision(module.metadata.category,module.proof_status,out)
             if decision is not None:
+                attempted=unsafe_self_promotion_paths(out)
+                if attempted and not decision.public_resolution_claim_allowed:
+                    raise ValidationError(
+                        f"{node_id}: open-problem module attempted reserved public promotion at {list(attempted)}; "
+                        "promotion must go through artifact-bound claim evaluation"
+                    )
                 claim_decisions[node_id]=decision.to_dict()
             records=list(module.verify(ins,params,out,ctx)); verification[node_id]=records
             if any(r.state is VerificationState.FAIL for r in records):
