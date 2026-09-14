@@ -1,0 +1,28 @@
+{
+  "release": "3.23.0",
+  "title": "General Geometry-Linked MeshCertificate",
+  "status": "FORMAL_CI_PASS",
+  "tested_commit": "f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+  "workflow_run_id": 34812655115,
+  "primary_formal_module": "CACEFormal.MeshCertificate",
+  "fixture_instance": "CACEFormal.Generated.v323SquareCenterMesh",
+  "scope": [
+    "exact rational vertex geometry and ordered triangle connectivity",
+    "signed triangle Jacobians proven equal to the determinant computed from source vertices",
+    "strictly positive triangle orientation and nondegeneracy",
+    "canonical global edge endpoint ordering and global edge ids",
+    "local-to-global edge orientation signs tied to actual triangle and edge endpoints",
+    "interior edge two-sided ownership with distinct incident cells and opposite orientations",
+    "boundary edge single ownership and nonempty labels",
+    "total global-edge ownership classifier",
+    "complete local-edge incidence proof preventing hidden duplicate/non-manifold ownership",
+    "injective interior/boundary edge-id consequences and interior/boundary disjointness"
+  ],
+  "failure_policy": "Malformed geometry, orientation, labeling, or ownership data must fail certificate generation/proof rather than propagate into downstream theorems.",
+  "nonclaims": [
+    "No continuum H1/H(div) trace theorem is claimed.",
+    "No arbitrary binary floating-point mesh is silently promoted to exact geometry.",
+    "The v3.22 square-with-center fixture is an instance of the general certificate, not the definition of the general theorem."
+  ]
+}
+

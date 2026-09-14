@@ -9,6 +9,7 @@ on:
       - 'cace_studio/formal/**'
       - 'cace_studio/modules/formal_v321.py'
       - 'tests/test_formal_v321.py'
+      - 'pyproject.toml'
       - '.github/workflows/cace-formal-v321.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'cace_studio/formal/**'
       - 'cace_studio/modules/formal_v321.py'
       - 'tests/test_formal_v321.py'
+      - 'pyproject.toml'
       - '.github/workflows/cace-formal-v321.yml'
 
 permissions:
@@ -29,6 +31,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Python regression environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[test]'
 
       - name: Install elan
         shell: bash
