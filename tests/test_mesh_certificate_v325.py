@@ -137,7 +137,8 @@ def test_lean_renderer_supports_single_triangle_with_zero_interior_edges():
     source = render_lean_mesh_certificate(cert, "singleTriangleMesh")
     assert "interiorEdgeCount := 0" in source
     assert "def singleTriangleMeshInteriorEdge (i : Fin 0)" in source
-    assert "exact Fin.elim0 i" in source
+    assert "  Fin.elim0 i" in source
+    assert "exact Fin.elim0 i" not in source
     assert "def singleTriangleMesh : MeshCertificate where" in source
 
 
