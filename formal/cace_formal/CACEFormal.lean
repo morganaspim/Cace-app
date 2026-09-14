@@ -18,6 +18,8 @@ import CACEFormal.ContinuumGraphSpaces
 import CACEFormal.SmoothBoxGreen
 import CACEFormal.BoxNormalTrace
 import CACEFormal.WeakGreenFunctional
+import CACEFormal.ContinuumOrthogonality
+import CACEFormal.ContinuumPragerSynge
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
