@@ -67,7 +67,7 @@ jobs:
           curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" |
             env UV_INSTALL_DIR="$RUNNER_TEMP/uv-bin" sh
           "$RUNNER_TEMP/uv-bin/uv" python install 3.13
-          "$RUNNER_TEMP/uv-bin/uv" venv --python 3.13 "$RUNNER_TEMP/cace-venv"
+          "$RUNNER_TEMP/uv-bin/uv" venv --seed --python 3.13 "$RUNNER_TEMP/cace-venv"
           echo "$RUNNER_TEMP/cace-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cace-venv/bin/python" --version
 
