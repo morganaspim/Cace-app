@@ -5,8 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cace-studio"
 version = "0.76.0"
-description = "CACE Studio verified computational research environment"
+description = "CACE Studio verified computational research environment — confidential and proprietary to Emmanuel Spiro"
 requires-python = ">=3.11"
+license = {text = "Proprietary - Copyright © 2026 Emmanuel Spiro. All rights reserved."}
+classifiers = ["License :: Other/Proprietary License"]
 dependencies = ["numpy>=2.0"]
 
 [project.optional-dependencies]
