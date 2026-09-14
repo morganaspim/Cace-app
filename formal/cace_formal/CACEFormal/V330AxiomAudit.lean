@@ -1,4 +1,5 @@
 import CACEFormal.SmoothBoxGreenAuto
+import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
 
 /-!
@@ -13,5 +14,7 @@ or on any axiom outside the small foundational whitelist enforced by the workflo
 #print axioms CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume
 #print axioms CACEFormal.Continuum.smoothBoxGreen_schwartz
 #print axioms CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto
+#print axioms CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer
+#print axioms CACEFormal.Continuum.topologicalClosure_eq_top_of_regularizer
 #print axioms CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer
 #print axioms CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer
