@@ -1,3 +1,12 @@
+# CACE Studio — Confidential and Proprietary
+
+> **CONFIDENTIAL AND PROPRIETARY**  
+> **Owner:** Emmanuel Spiro  
+> **Copyright © 2026 Emmanuel Spiro. All rights reserved.**  
+> The original CACE materials in this repository are proprietary and may not be copied, distributed, disclosed, modified, or used without prior written authorization from Emmanuel Spiro. Third-party and open-source components remain subject to their own licenses and copyright notices. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+---
+
 # CACE Studio VRE v0.76
 
 ## Reliability Theorem Discovery Engine
