@@ -1,7 +1,9 @@
 {
   "release": "3.23.0",
   "title": "General Geometry-Linked MeshCertificate",
-  "status": "IMPLEMENTED_PENDING_FINAL_BRANCH_CI",
+  "status": "FORMAL_CI_PASS",
+  "tested_commit": "f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+  "workflow_run_id": 34812655115,
   "primary_formal_module": "CACEFormal.MeshCertificate",
   "fixture_instance": "CACEFormal.Generated.v323SquareCenterMesh",
   "scope": [

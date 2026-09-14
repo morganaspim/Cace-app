@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "dependencies": {
     "v322_concrete_prager_synge": [
       "hilbert_pythagoras",
@@ -17,12 +17,14 @@
       "canonical_edge_ids",
       "local_global_orientation",
       "interior_boundary_ownership",
-      "boundary_labels"
+      "boundary_labels",
+      "local_edge_ownership_completeness"
     ],
     "v324_generic_discrete_prager_synge": [
       "v323_general_mesh_certificate",
-      "rt0_p1_assembly_certificate",
-      "discrete_green_identity",
+      "p1_rt0_element_green_identity",
+      "mesh_topology_face_decomposition",
+      "derived_rt0_p1_assembly",
       "equilibrium",
       "boundary_admissibility",
       "interior_cancellation"
@@ -31,6 +33,7 @@
       "v323_general_mesh_certificate",
       "python_exact_regeneration_checker",
       "lean_witness_renderer",
+      "generated_witness_ci",
       "pinned_lean_ci_gate"
     ],
     "continuum_prager_synge": [
@@ -50,27 +53,30 @@
     "v322_interior_cancellation": "lean-closed",
     "v322_concrete_mesh_orthogonality": "lean-closed",
     "v322_concrete_prager_synge": "github-ci-pass-at-a69dd2bd83082baa20106eabb8baab30eb49302a",
-    "positive_signed_jacobians": "implemented-v3.23-pending-roadmap-ci",
-    "canonical_edge_ids": "implemented-v3.23-pending-roadmap-ci",
-    "local_global_orientation": "implemented-v3.23-pending-roadmap-ci",
-    "interior_boundary_ownership": "implemented-v3.23-pending-roadmap-ci",
-    "boundary_labels": "implemented-v3.23-pending-roadmap-ci",
-    "v323_general_mesh_certificate": "implemented-pending-roadmap-ci",
-    "rt0_p1_assembly_certificate": "implemented-v3.24-pending-roadmap-ci",
-    "discrete_green_identity": "certificate-api-implemented-pending-roadmap-ci",
-    "equilibrium": "certificate-api-implemented-pending-roadmap-ci",
-    "boundary_admissibility": "certificate-api-implemented-pending-roadmap-ci",
-    "interior_cancellation": "certificate-api-implemented-pending-roadmap-ci",
-    "v324_generic_discrete_prager_synge": "implemented-pending-roadmap-ci",
-    "python_exact_regeneration_checker": "implemented-v3.25-pending-roadmap-ci",
-    "lean_witness_renderer": "implemented-v3.25-pending-roadmap-ci",
-    "pinned_lean_ci_gate": "queued-run-34807646500",
-    "v325_studio_certificate_generation": "implemented-pending-roadmap-ci",
-    "continuum_h1_hdiv_spaces": "open-post-v3.25",
-    "continuum_hdiv_normal_trace": "open-post-v3.25",
-    "continuum_density_bridge": "open-post-v3.25",
-    "continuum_green_identity": "open-post-v3.25",
-    "continuum_prager_synge": "open-post-v3.25"
+    "positive_signed_jacobians": "github-ci-pass-v3.23-at-f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "canonical_edge_ids": "github-ci-pass-v3.23-at-f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "local_global_orientation": "github-ci-pass-v3.23-at-f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "interior_boundary_ownership": "github-ci-pass-v3.23-at-f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "boundary_labels": "github-ci-pass-v3.23-at-f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "local_edge_ownership_completeness": "github-ci-pass-v3.23-at-f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "v323_general_mesh_certificate": "github-ci-pass-run-34812655115",
+    "p1_rt0_element_green_identity": "github-ci-pass-run-34812655115",
+    "mesh_topology_face_decomposition": "github-ci-pass-run-34812655115",
+    "derived_rt0_p1_assembly": "github-ci-pass-run-34812655115",
+    "equilibrium": "certificate-obligation-closed-in-derived-api",
+    "boundary_admissibility": "certificate-obligation-closed-in-derived-api",
+    "interior_cancellation": "certificate-obligation-closed-in-derived-api",
+    "v324_generic_discrete_prager_synge": "github-ci-pass-run-34812655115",
+    "python_exact_regeneration_checker": "tests-pass-run-34812655115",
+    "lean_witness_renderer": "generated-source-compiled-run-34812655115",
+    "generated_witness_ci": "square-center-and-single-triangle-pass-run-34812655115",
+    "pinned_lean_ci_gate": "pass-run-34812655115",
+    "v325_studio_certificate_generation": "github-ci-pass-run-34812655115",
+    "continuum_h1_hdiv_spaces": "open-v3.26",
+    "continuum_hdiv_normal_trace": "open-v3.27",
+    "continuum_density_bridge": "open-v3.28",
+    "continuum_green_identity": "open-v3.29",
+    "continuum_prager_synge": "open-v3.30"
   },
   "baseline": {
     "v322_commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
@@ -78,9 +84,9 @@
     "v322_ci_conclusion": "success"
   },
   "roadmap_ci": {
-    "tested_commit": "c964aec5c736671ee4e6ce71753c0ec194be39d8",
-    "run_id": 34807646500,
-    "status": "PENDING"
+    "tested_commit": "f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "run_id": 34812655115,
+    "status": "PASS"
   }
 }
 

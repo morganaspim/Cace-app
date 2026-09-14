@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "v322_verified_baseline": {
     "status": "PASS",
     "commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
@@ -8,28 +8,46 @@
     "workflow_conclusion": "success",
     "scope": "fixed rational square-with-center P1/constant-RT0-error finite-mesh certificate"
   },
+  "roadmap_v323_v325": {
+    "status": "PASS",
+    "tested_commit": "f85d8ec893024f2590e9ab5a5183196e7b76d6ce",
+    "workflow": "CACE Formal v3.23-v3.25",
+    "workflow_run_id": 34812655115,
+    "workflow_conclusion": "success",
+    "lean_version": "4.32.1",
+    "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+    "scope": [
+      "geometry-linked general MeshCertificate with complete local-edge ownership",
+      "affine P1/RT0 local Green identity and topology-derived face assembly",
+      "derived discrete orthogonality and Prager-Synge endpoint",
+      "exact Python mesh certificate generation/regeneration checking",
+      "strict integer vertex ids and exact rational geometry",
+      "Studio Lean witness generation including zero-interior-edge meshes",
+      "pinned CI compilation of freshly generated square-center and single-triangle witnesses"
+    ],
+    "reproduce": "cd formal/cace_formal && lake update && lake exe cache get && lake build CACEFormal"
+  },
+  "regressions": {
+    "v322_at_f85d8ec": {
+      "status": "PASS",
+      "workflow_run_id": 34812659590
+    },
+    "v321_at_f85d8ec": {
+      "status": "INFRASTRUCTURE_FAILURE_AFTER_LEAN_PASS",
+      "workflow_run_id": 34812659536,
+      "detail": "Lean aggregate build passed; legacy workflow omitted pytest installation. Workflow dependency installation was repaired in ecab13ce1260ce72e734376f37e2a48461923612 and is being revalidated."
+    }
+  },
   "local_environment": {
     "status": "NOT_RUN",
     "lean": null,
     "lake": null,
-    "reason": "This repository attestation does not claim a local Lean execution in the ChatGPT connector environment."
-  },
-  "roadmap_v323_v325": {
-    "status": "PENDING",
-    "tested_commit": "c964aec5c736671ee4e6ce71753c0ec194be39d8",
-    "workflow": "CACE Formal v3.23-v3.25",
-    "workflow_run_id": 34807646500,
-    "scope": [
-      "general MeshCertificate API",
-      "generic RT0/P1 assembly certificate and discrete Green bridge",
-      "exact Python mesh certificate generator/checker",
-      "Studio certificate generator integration"
-    ],
-    "note": "Update to PASS only after the pinned GitHub Actions run completes successfully."
+    "reason": "Formal claims use the pinned external GitHub Actions execution rather than a connector-local Lean installation."
   },
   "nonclaims": [
-    "Continuum H1/H(div) trace closure is not part of v3.22-v3.25.",
-    "A generated Lean witness is not FORMAL until its pinned CI build passes."
+    "v3.23-v3.25 are finite discrete certificate and finite-element results, not continuum H1/H(div) trace closure.",
+    "A newly generated Lean witness is not FORMAL until its pinned CI build passes.",
+    "General Lipschitz-domain H(div) normal trace and continuum density closure remain v3.26-v3.30 work."
   ]
 }
 
