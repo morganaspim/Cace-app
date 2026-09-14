@@ -1,0 +1,24 @@
+{
+  "release": "3.24.0",
+  "title": "Generic RT0/P1 Assembly + Discrete Green Identity",
+  "status": "IMPLEMENTED_PENDING_FINAL_BRANCH_CI",
+  "formal_modules": [
+    "CACEFormal.RT0P1Assembly",
+    "CACEFormal.Generated.V324AssemblyInstance"
+  ],
+  "primary_theorem": "CACEFormal.discrete_prager_synge_of_rt0_p1_assembly",
+  "fixture_theorem": "CACEFormal.Generated.v324_square_center_prager_synge",
+  "scope": [
+    "generic finite-mesh RT0/P1 assembly certificate API",
+    "certified global discrete Green identity",
+    "equilibrium certificate",
+    "boundary admissibility certificate",
+    "interior edge cancellation certificate",
+    "derivation of exact orthogonality and discrete Prager-Synge from those certificates"
+  ],
+  "nonclaims": [
+    "The current generic assembly object requires each instance to prove its Green identity; it does not yet derive all local RT0/P1 integration formulas from raw basis-function data.",
+    "Continuum H1/H(div) traces, density, and weak-divergence closure remain outside v3.24."
+  ]
+}
+
