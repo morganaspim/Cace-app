@@ -1,0 +1,23 @@
+{
+  "release": "3.23.0",
+  "title": "General MeshCertificate",
+  "status": "IMPLEMENTED_PENDING_FINAL_BRANCH_CI",
+  "primary_formal_module": "CACEFormal.MeshCertificate",
+  "fixture_instance": "CACEFormal.Generated.v323SquareCenterMesh",
+  "scope": [
+    "positive signed rational triangle Jacobians",
+    "canonical global edge ids",
+    "local-to-global edge orientation signs",
+    "interior edge two-sided ownership",
+    "boundary edge single ownership and labels",
+    "total global-edge ownership classifier",
+    "proofs that declared edge ids are ownership-consistent"
+  ],
+  "failure_policy": "Malformed orientation/ownership data must fail certificate construction rather than propagate into downstream theorems.",
+  "nonclaims": [
+    "No continuum H1/H(div) trace theorem is claimed.",
+    "No arbitrary floating-point mesh is silently promoted to an exact certificate.",
+    "The v3.22 fixture remains a concrete instance, not the definition of the general theorem."
+  ]
+}
+
