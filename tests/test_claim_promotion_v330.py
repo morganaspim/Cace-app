@@ -1,5 +1,4 @@
 from cace_studio.core.claim_promotion import (
-    ClaimDecision,
     ClaimEvidence,
     ClaimScope,
     ClaimStage,
@@ -7,6 +6,7 @@ from cace_studio.core.claim_promotion import (
     evaluate_claim,
     research_candidate_decision,
 )
+from cace_studio.modules.fem_v076 import proof_obligation_dag
 
 
 def _formal_evidence(**updates):
@@ -102,3 +102,16 @@ def test_reliability_discovery_helper_is_fail_closed():
     assert payload["stage"] == "research-candidate"
     assert payload["public_resolution_claim_allowed"] is False
     assert "unresolved-proof-obligations" in payload["blockers"]
+
+
+def test_existing_v076_reliability_dag_routes_through_global_guard():
+    dag = proof_obligation_dag()
+    assert dag["reliability_promotable"] is False
+    d = research_candidate_decision(
+        unresolved_obligations=dag["unresolved"],
+        numerical_evidence=True,
+        symbolic_evidence=True,
+    )
+    assert d.stage is ClaimStage.RESEARCH_CANDIDATE
+    assert d.public_resolution_claim_allowed is False
+    assert "unresolved-proof-obligations" in d.blockers
