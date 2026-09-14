@@ -1,23 +1,26 @@
 {
   "release": "3.23.0",
-  "title": "General MeshCertificate",
+  "title": "General Geometry-Linked MeshCertificate",
   "status": "IMPLEMENTED_PENDING_FINAL_BRANCH_CI",
   "primary_formal_module": "CACEFormal.MeshCertificate",
   "fixture_instance": "CACEFormal.Generated.v323SquareCenterMesh",
   "scope": [
-    "positive signed rational triangle Jacobians",
-    "canonical global edge ids",
-    "local-to-global edge orientation signs",
-    "interior edge two-sided ownership",
-    "boundary edge single ownership and labels",
+    "exact rational vertex geometry and ordered triangle connectivity",
+    "signed triangle Jacobians proven equal to the determinant computed from source vertices",
+    "strictly positive triangle orientation and nondegeneracy",
+    "canonical global edge endpoint ordering and global edge ids",
+    "local-to-global edge orientation signs tied to actual triangle and edge endpoints",
+    "interior edge two-sided ownership with distinct incident cells and opposite orientations",
+    "boundary edge single ownership and nonempty labels",
     "total global-edge ownership classifier",
-    "proofs that declared edge ids are ownership-consistent"
+    "complete local-edge incidence proof preventing hidden duplicate/non-manifold ownership",
+    "injective interior/boundary edge-id consequences and interior/boundary disjointness"
   ],
-  "failure_policy": "Malformed orientation/ownership data must fail certificate construction rather than propagate into downstream theorems.",
+  "failure_policy": "Malformed geometry, orientation, labeling, or ownership data must fail certificate generation/proof rather than propagate into downstream theorems.",
   "nonclaims": [
     "No continuum H1/H(div) trace theorem is claimed.",
-    "No arbitrary floating-point mesh is silently promoted to an exact certificate.",
-    "The v3.22 fixture remains a concrete instance, not the definition of the general theorem."
+    "No arbitrary binary floating-point mesh is silently promoted to exact geometry.",
+    "The v3.22 square-with-center fixture is an instance of the general certificate, not the definition of the general theorem."
   ]
 }
 
