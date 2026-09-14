@@ -57,6 +57,13 @@ noncomputable def smoothNormalFluxPairing {n : Nat}
     (v : BoxPoint n → ℝ) : ℝ :=
   signedBoxFlux a b (scalarTimesVector v q)
 
+/-- Classical volume integrand `q·∇v + (div q) v`. -/
+def smoothGreenVolumeTerm {n : Nat}
+    (q : BoxPoint n → BoxPoint n) (v : BoxPoint n → ℝ)
+    (gradV : BoxPoint n → BoxPoint n) (divQ : BoxPoint n → ℝ) :
+    BoxPoint n → ℝ :=
+  fun x => (∑ i : Fin (n + 1), q x i * gradV x i) + divQ x * v x
+
 /--
 Green's formula once the classical product derivative has been identified pointwise.
 The boundary term itself is *derived* from Mathlib's divergence theorem; the remaining
@@ -85,6 +92,50 @@ theorem smoothBoxGreen_of_product_divergence {n : Nat}
   apply setIntegral_congr_fun measurableSet_Icc
   intro x hx
   exact (hprod x).symm
+
+/--
+Classical scalar/vector Green identity with the volume term displayed explicitly as
+`q·∇v + (div q)v`.  The pointwise derivative identification is the only local calculus input.
+-/
+theorem smoothBoxGreen {n : Nat}
+    {a b : BoxPoint n} (hle : a ≤ b)
+    (q : BoxPoint n → BoxPoint n) (v : BoxPoint n → ℝ)
+    (gradV : BoxPoint n → BoxPoint n) (divQ : BoxPoint n → ℝ)
+    (F' : BoxPoint n → BoxPoint n →L[ℝ] BoxPoint n)
+    (s : Set (BoxPoint n)) (hs : s.Countable)
+    (Hc : ContinuousOn (scalarTimesVector v q) (Icc a b))
+    (Hd : ∀ x ∈ (Set.pi univ fun i => Ioo (a i) (b i)) \ s,
+      HasFDerivAt (scalarTimesVector v q) (F' x) x)
+    (Hi : IntegrableOn
+      (fun x => ∑ i : Fin (n + 1), F' x (Pi.single i (1 : ℝ)) i)
+      (Icc a b))
+    (hprod : ∀ x,
+      (∑ i : Fin (n + 1), F' x (Pi.single i (1 : ℝ)) i) =
+        smoothGreenVolumeTerm q v gradV divQ x) :
+    (∫ x in Icc a b, smoothGreenVolumeTerm q v gradV divQ x) =
+      smoothNormalFluxPairing a b q v :=
+  smoothBoxGreen_of_product_divergence
+    hle q v F' (smoothGreenVolumeTerm q v gradV divQ) s hs Hc Hd Hi hprod
+
+/-- Zero classical normal flux forces the smooth Green volume pairing to vanish. -/
+theorem smoothBoxGreen_eq_zero_of_zero_flux {n : Nat}
+    {a b : BoxPoint n} (hle : a ≤ b)
+    (q : BoxPoint n → BoxPoint n) (v : BoxPoint n → ℝ)
+    (gradV : BoxPoint n → BoxPoint n) (divQ : BoxPoint n → ℝ)
+    (F' : BoxPoint n → BoxPoint n →L[ℝ] BoxPoint n)
+    (s : Set (BoxPoint n)) (hs : s.Countable)
+    (Hc : ContinuousOn (scalarTimesVector v q) (Icc a b))
+    (Hd : ∀ x ∈ (Set.pi univ fun i => Ioo (a i) (b i)) \ s,
+      HasFDerivAt (scalarTimesVector v q) (F' x) x)
+    (Hi : IntegrableOn
+      (fun x => ∑ i : Fin (n + 1), F' x (Pi.single i (1 : ℝ)) i)
+      (Icc a b))
+    (hprod : ∀ x,
+      (∑ i : Fin (n + 1), F' x (Pi.single i (1 : ℝ)) i) =
+        smoothGreenVolumeTerm q v gradV divQ x)
+    (hflux : smoothNormalFluxPairing a b q v = 0) :
+    (∫ x in Icc a b, smoothGreenVolumeTerm q v gradV divQ x) = 0 := by
+  rw [smoothBoxGreen hle q v gradV divQ F' s hs Hc Hd Hi hprod, hflux]
 
 end Continuum
 
