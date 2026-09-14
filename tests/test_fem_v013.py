@@ -44,12 +44,18 @@ def test_registry_bridge_promotes_only_checked_attestation():
     m=FormalTheoremRegistryBridge(); out=m.execute({'formal_result':p['formal_result']},{},ctx()); rec=m.verify({}, {}, out, ctx())[0]
     assert out['theorem']['status']=='machine-checked' and out['theorem']['formal_evidence'] is True and rec.passed
 
-def test_graph_certificate_contains_formal_evidence_without_pde_escalation():
+def test_graph_certificate_refuses_unregistered_historical_formal_evidence():
     exp=Experiment(name='v013 formal bridge',nodes=[Node('proof','formal13.reference_simplex_barycentric',{'dimension':2}),Node('bridge','formal13.registry_bridge',{}),Node('summary','formal13.summary',{})],edges=[
         Edge('proof','formal_result','bridge','formal_result'),Edge('proof','formal_result','summary','formal_result'),Edge('bridge','theorem','summary','theorem')])
     r=GraphExecutor(build_registry()).run(exp); report=run_report(r,exp.name)
-    assert r.all_verifiers_passed
-    assert 'formally-verified' in report['graph_certificate']['evidence_generated']
+    records=[record for rs in r.verification.values() for record in rs]
+    assert not r.all_verifiers_passed
+    assert 'formally-verified' not in report['graph_certificate']['evidence_generated']
+    assert any(
+        record.state.value == 'not-run'
+        and record.metrics.get('formal_gate_reason') == 'claim-registry-entry-missing'
+        for record in records
+    )
     assert r.outputs['summary']['summary']['pde_reliability_formally_verified'] is False
 
 

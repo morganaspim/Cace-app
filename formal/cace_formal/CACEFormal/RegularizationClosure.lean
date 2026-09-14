@@ -32,7 +32,7 @@ theorem submodule_topologicalClosure_eq_of_regularizer
     (hT : IsClosed (T : Set E))
     (R : Nat → E → E)
     (hcore : ∀ k x, x ∈ T → R k x ∈ S)
-    (htendsto : ∀ x, x ∈ T → Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    (htendsto : ∀ x, x ∈ T → Tendsto (fun k => R k x) atTop (nhds x)) :
     S.topologicalClosure = T := by
   apply le_antisymm
   · exact Submodule.topologicalClosure_minimal S hST hT
@@ -50,7 +50,7 @@ theorem submodule_le_topologicalClosure_of_regularizer
     (hT : IsClosed (T : Set E))
     (R : Nat → E → E)
     (hcore : ∀ k x, x ∈ T → R k x ∈ S)
-    (htendsto : ∀ x, x ∈ T → Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    (htendsto : ∀ x, x ∈ T → Tendsto (fun k => R k x) atTop (nhds x)) :
     T ≤ S.topologicalClosure := by
   rw [submodule_topologicalClosure_eq_of_regularizer S T hST hT R hcore htendsto]
 
@@ -69,7 +69,7 @@ theorem submodule_topologicalClosure_eq_ker_of_regularizer
     (hS : S ≤ A.ker)
     (R : Nat → E → E)
     (hcore : ∀ k x, x ∈ A.ker → R k x ∈ S)
-    (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (nhds x)) :
     S.topologicalClosure = A.ker := by
   exact submodule_topologicalClosure_eq_of_regularizer
     S A.ker hS A.isClosed_ker R hcore htendsto
@@ -81,7 +81,7 @@ theorem ker_le_topologicalClosure_of_regularizer
     (hS : S ≤ A.ker)
     (R : Nat → E → E)
     (hcore : ∀ k x, x ∈ A.ker → R k x ∈ S)
-    (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (nhds x)) :
     A.ker ≤ S.topologicalClosure := by
   rw [submodule_topologicalClosure_eq_ker_of_regularizer S A hS R hcore htendsto]
 
@@ -91,7 +91,7 @@ theorem topologicalClosure_eq_top_of_regularizer
     (S : Submodule 𝕜 E)
     (R : Nat → E → E)
     (hcore : ∀ k x, R k x ∈ S)
-    (htendsto : ∀ x, Tendsto (fun k => R k x) atTop (𝓝 x)) :
+    (htendsto : ∀ x, Tendsto (fun k => R k x) atTop (nhds x)) :
     S.topologicalClosure = ⊤ := by
   apply submodule_topologicalClosure_eq_of_regularizer S ⊤ (le_top) isClosed_univ R
   · intro k x hx

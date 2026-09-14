@@ -61,7 +61,10 @@ class QualificationDriftResult:
 
 
 def is_qualification_sensitive(path: str) -> bool:
-    path = path.replace("\\", "/").lstrip("./")
+    path = path.replace("\\", "/")
+    while path.startswith("./"):
+        path = path[2:]
+    path = path.lstrip("/")
     if path in PROVENANCE_ONLY_PATHS:
         return False
     if path in QUALIFICATION_SENSITIVE_EXACT_PATHS:

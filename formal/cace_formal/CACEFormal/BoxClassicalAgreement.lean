@@ -78,7 +78,8 @@ theorem boxSmooth_div_value_pairing_eq_integral {n : Nat}
 theorem boxSmooth_field_gradient_pairing_eq_integral {n : Nat}
     (a b : BoxPoint n) (q : BoxSmoothVector n) (v : BoxSmoothScalar n)
     (i : Fin (n + 1)) :
-    inner ℝ (smoothBoxHDivGraphMap a b q).1 i (smoothBoxH1GraphMap a b v).2 i =
+    inner ℝ ((smoothBoxHDivGraphMap a b q).1 i)
+      ((smoothBoxH1GraphMap a b v).2 i) =
       ∫ x in Icc a b, q i x * (∂_{boxBasisVector i} v) x := by
   rw [smoothBoxHDivGraphMap_field, smoothBoxH1GraphMap_gradient]
   exact boxSchwartzL2_inner_eq_setIntegral_mul a b (q i) (∂_{boxBasisVector i} v)
@@ -110,8 +111,8 @@ theorem ambientBoxGraphGreenPairing_smooth_eq_graphVolume {n : Nat}
     ambientBoxGraphGreenPairing a b
         (smoothBoxHDivGraphMap a b q) (smoothBoxH1GraphMap a b v) =
       (∑ i : Fin (n + 1),
-        inner ℝ (smoothBoxHDivGraphMap a b q).1 i
-          (smoothBoxH1GraphMap a b v).2 i) +
+        inner ℝ ((smoothBoxHDivGraphMap a b q).1 i)
+          ((smoothBoxH1GraphMap a b v).2 i)) +
         inner ℝ (smoothBoxHDivGraphMap a b q).2
           (smoothBoxH1GraphMap a b v).1 :=
       ambientBoxGraphGreenPairing_apply a b _ _
@@ -225,9 +226,9 @@ theorem boxGraphNormalTrace_unique_of_denseSmoothAgreement {n : Nat}
         boxGraphNormalTrace a b q v = T q v) :
     boxGraphNormalTrace a b = T := by
   let H : BoundedGreenPairing (BoxH1GraphClosedSpace a b)
-      (BoxHDivGraphClosedSpace a b) where
-    volumePairing := T
-    normalTrace := T
+      (BoxHDivGraphClosedSpace a b) :=
+    { volumePairing := T
+      normalTrace := T }
   exact normalTrace_eq_of_classicalCoreAgreement
     (boxGraphBoundedGreenPairing a b) H
     (BoxHDivDenseSmoothCore a b) (BoxH1DenseSmoothCore a b)

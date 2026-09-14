@@ -46,12 +46,19 @@ def test_registry_rechecks_and_rejects_forged_v14_attestation():
     out=FormalRegistryBridgeV14().execute({'formal_result':fake},{},ctx())
     assert out['theorem']['status']=='obligation-only' and not out['theorem']['formal_evidence']
 
-def test_full_v014_graph_emits_formal_evidence_without_general_pde_escalation():
+def test_full_v014_graph_refuses_unregistered_historical_formal_evidence():
     nodes=[Node('a','formal14.affine_simplex',{'dimension':2}),Node('s','formal14.dirichlet_spd_1d',{}),Node('e','formal14.poisson1d_energy',{}),
            Node('ab','formal14.registry_bridge',{}),Node('sb','formal14.registry_bridge',{}),Node('eb','formal14.registry_bridge',{}),Node('sum','formal14.summary',{})]
     edges=[Edge('a','formal_result','ab','formal_result'),Edge('s','formal_result','sb','formal_result'),Edge('e','formal_result','eb','formal_result'),
            Edge('ab','theorem','sum','affine'),Edge('sb','theorem','sum','spd'),Edge('eb','theorem','sum','energy')]
     exp=Experiment(name='v014 formal FEM chain',nodes=nodes,edges=edges)
     run=GraphExecutor(build_registry()).run(exp); report=run_report(run,exp.name)
-    assert run.all_verifiers_passed and 'formally-verified' in report['graph_certificate']['evidence_generated']
+    records=[record for rs in run.verification.values() for record in rs]
+    assert not run.all_verifiers_passed
+    assert 'formally-verified' not in report['graph_certificate']['evidence_generated']
+    assert any(
+        record.state.value == 'not-run'
+        and record.metrics.get('formal_gate_reason') == 'claim-registry-entry-missing'
+        for record in records
+    )
     assert run.outputs['sum']['summary']['general_2d_reliability_formally_verified'] is False

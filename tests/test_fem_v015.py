@@ -37,7 +37,7 @@ def test_interval_ldlt_certifies_spd_and_reconstructs():
 def test_interval_ldlt_refuses_indefinite_matrix():
     c=_interval_ldlt(np.array([[1.,2.],[2.,1.]])); assert not c['certified']
 
-def test_full_v015_graph_composes_formal_and_interval_evidence():
+def test_full_v015_graph_preserves_interval_evidence_but_refuses_unregistered_formal_evidence():
     nodes=[Node('proof','formal15.assembly_invariants',{}),Node('bridge','formal15.registry_bridge',{}),
            Node('mesh','fem_nd.mesh',{'vertices':'[[0,0],[2,0],[2,1],[0,1],[1,0.5]]','elements':'[[0,1,4],[1,2,4],[2,3,4],[3,0,4]]'}),
            Node('space','fem_nd.p1_space',{}),Node('assemble','fem_cert.poisson_assemble',{'diffusion':'[[1.5,0.1],[0.1,1.0]]','source_constant':1.0,'source_linear':'[0.25,-0.1]'}),
@@ -45,6 +45,14 @@ def test_full_v015_graph_composes_formal_and_interval_evidence():
     edges=[Edge('proof','formal_result','bridge','formal_result'),Edge('mesh','mesh','space','mesh'),Edge('mesh','mesh','assemble','mesh'),Edge('space','space','assemble','space'),Edge('assemble','system','fac','system'),Edge('bridge','theorem','sum','theorem'),Edge('fac','factorization_certificate','sum','factorization_certificate')]
     exp=Experiment(name='v015 assembly factorization',nodes=nodes,edges=edges)
     run=GraphExecutor(build_registry()).run(exp); rep=run_report(run,exp.name)
-    assert run.all_verifiers_passed
-    assert {'formally-verified','interval-certified'}.issubset(set(rep['graph_certificate']['evidence_generated']))
+    records=[record for rs in run.verification.values() for record in rs]
+    evidence=set(rep['graph_certificate']['evidence_generated'])
+    assert not run.all_verifiers_passed
+    assert 'formally-verified' not in evidence
+    assert 'interval-certified' in evidence
+    assert any(
+        record.state.value == 'not-run'
+        and record.metrics.get('formal_gate_reason') == 'claim-registry-entry-missing'
+        for record in records
+    )
     assert run.outputs['sum']['summary']['continuum_pde_formally_verified'] is False
