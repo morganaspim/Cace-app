@@ -1,11 +1,35 @@
 {
-  "commands": [],
-  "lake": null,
-  "lean": null,
-  "passed": false,
-  "project_files_sha256": "4aa04d9eb2e296ae3453a38881b8951762e009122bee41f2652c972f28fb31df",
-  "reason": "lean/lake executable not available; local uploaded toolchains are auto-detected via CACE_LEAN_BIN and /mnt/data/*lean*",
-  "status": "NOT_RUN",
-  "timestamp_unix": 1789353284.383466
+  "schema_version": 2,
+  "v322_verified_baseline": {
+    "status": "PASS",
+    "commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
+    "workflow": "CACE Formal v3.22",
+    "workflow_run_id": 34806285322,
+    "workflow_conclusion": "success",
+    "scope": "fixed rational square-with-center P1/constant-RT0-error finite-mesh certificate"
+  },
+  "local_environment": {
+    "status": "NOT_RUN",
+    "lean": null,
+    "lake": null,
+    "reason": "This repository attestation does not claim a local Lean execution in the ChatGPT connector environment."
+  },
+  "roadmap_v323_v325": {
+    "status": "PENDING",
+    "tested_commit": "c964aec5c736671ee4e6ce71753c0ec194be39d8",
+    "workflow": "CACE Formal v3.23-v3.25",
+    "workflow_run_id": 34807646500,
+    "scope": [
+      "general MeshCertificate API",
+      "generic RT0/P1 assembly certificate and discrete Green bridge",
+      "exact Python mesh certificate generator/checker",
+      "Studio certificate generator integration"
+    ],
+    "note": "Update to PASS only after the pinned GitHub Actions run completes successfully."
+  },
+  "nonclaims": [
+    "Continuum H1/H(div) trace closure is not part of v3.22-v3.25.",
+    "A generated Lean witness is not FORMAL until its pinned CI build passes."
+  ]
 }
 
