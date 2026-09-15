@@ -7,7 +7,7 @@ import pytest
 from cace_studio.core.proof_contract import ProofContract, ProofContractRegistry
 
 
-EXPECTED_CONTINUUM_V2_HASH = "4bd09eb15a01a82506aca1b7fe2b35438fc99712fd32b0e29e182296babb395b"
+EXPECTED_CONTINUUM_V3_HASH = "2ed39e71f86877c7f8ed07a697be7f8ae6398549b6d90a9456bb29679eeac847"
 
 
 def _contract_mapping() -> dict:
@@ -30,21 +30,24 @@ def _contract_mapping() -> dict:
     }
 
 
-def test_default_continuum_contract_v2_is_single_source_for_all_35_audited_endpoints():
+def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
     assert contract is not None
-    assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v2"
-    assert len(contract.endpoint_theorems) == 35
-    assert len(contract.audited_source_files) == 11
+    assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
+    assert len(contract.endpoint_theorems) == 37
+    assert len(contract.audited_source_files) == 12
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
     assert contract.dependency_pins["mathlib_commit"] == "520045ab14e26149ee970e2e617ca04b09bde5d6"
     assert contract.theorem_dependency_metadata_state == "LEAN_GENERATED"
     assert "Lean.Environment" in contract.theorem_dependency_metadata_note
     assert "lean-environment-theorem-metadata" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
-    assert contract.contract_sha256 == EXPECTED_CONTINUUM_V2_HASH
+    assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
+    assert contract.contract_sha256 == EXPECTED_CONTINUUM_V3_HASH
 
 
 def test_contract_hash_changes_when_scope_changes():
