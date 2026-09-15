@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from typing import Iterable
 
 from .claim_registry import ClaimEntry, ClaimRegistry
+from .proof_contract import ProofContract, ProofContractRegistry
 from .proof_ledger import ProofLedger, ProofLedgerEntry
 from .verification import VerificationRecord
 
@@ -39,16 +40,28 @@ class ProofClaimView:
     scope: str
     evidence_ceiling: str
     registry_status: str
+    proof_contract_id: str | None
+    proof_contract_sha256: str | None
+    proof_contract_build_target: str | None
+    endpoint_theorems: tuple[str, ...]
+    audited_source_files: tuple[str, ...]
+    allowed_axioms: tuple[str, ...]
+    required_checks: tuple[str, ...]
+    theorem_dependency_metadata_state: str
+    theorem_dependency_metadata_note: str
     ledger_release: str | None
     ledger_status: str | None
     qualification_state: str
     current_head_qualified: bool
     attested_commit: str | None
     proof_artifact_sha256: str | None
+    qualification_system: str | None
+    qualification_run_id: str | None
     workflow_run_id: int | None
     checks: tuple[str, ...]
     blockers: tuple[str, ...]
     nonclaims: tuple[str, ...]
+    contract_nonclaims: tuple[str, ...]
     runtime_evidence: tuple[RuntimeEvidenceView, ...]
 
     def to_dict(self) -> dict:
@@ -58,10 +71,20 @@ class ProofClaimView:
 
 
 def _qualification_state(
-    claim: ClaimEntry, ledger: ProofLedgerEntry | None
+    claim: ClaimEntry,
+    ledger: ProofLedgerEntry | None,
+    contract: ProofContract | None,
 ) -> tuple[str, bool, tuple[str, ...]]:
     conflicts: list[str] = []
     blockers: list[str] = []
+
+    if claim.proof_contract_id:
+        if contract is None:
+            conflicts.append("Claim references a proof contract missing from the canonical registry.")
+        elif contract.contract_id != claim.proof_contract_id or contract.claim_id != claim.claim_id:
+            conflicts.append("Claim and proof contract disagree on canonical binding.")
+    elif claim.current_head_qualified:
+        conflicts.append("Current-head formal qualification is missing a proof-contract binding.")
 
     if ledger is None:
         blockers.append("No canonical proof-ledger entry is bound to this claim.")
@@ -69,9 +92,13 @@ def _qualification_state(
             conflicts.append("Registry marks current-head qualified but the proof ledger has no entry.")
     else:
         if claim.current_head_qualified != ledger.current_head_qualified:
-            conflicts.append(
-                "Registry and proof ledger disagree about current-head qualification."
-            )
+            conflicts.append("Registry and proof ledger disagree about current-head qualification.")
+        if claim.proof_contract_id and ledger.proof_contract_id:
+            if claim.proof_contract_id != ledger.proof_contract_id:
+                conflicts.append("Claim and proof ledger disagree on proof-contract ID.")
+        if contract is not None and ledger.proof_contract_sha256 is not None:
+            if contract.contract_sha256 != ledger.proof_contract_sha256:
+                conflicts.append("Proof ledger is bound to a different proof-contract SHA-256.")
         if claim.current_head_qualified or ledger.current_head_qualified:
             if claim.qualification_status != "PASS":
                 conflicts.append("Registry current-head qualification is not status PASS.")
@@ -83,7 +110,18 @@ def _qualification_state(
                 conflicts.append("Registry and proof ledger disagree on proof artifact SHA-256.")
             if not claim.attested_commit or not claim.proof_artifact_sha256:
                 conflicts.append("Current-head qualification is missing content-addressed proof metadata.")
-
+            if contract is None:
+                conflicts.append("Current-head qualification has no canonical proof contract.")
+            else:
+                if ledger.proof_contract_id != contract.contract_id:
+                    conflicts.append("Qualified ledger proof-contract ID does not match current contract.")
+                if ledger.proof_contract_sha256 != contract.contract_sha256:
+                    conflicts.append("Qualified ledger proof-contract hash does not match current contract.")
+                missing = sorted(set(contract.required_checks) - set(ledger.checks))
+                if missing:
+                    conflicts.append(
+                        "Qualified ledger is missing contract-required checks: " + ", ".join(missing)
+                    )
         blockers.extend(ledger.blockers)
 
     if claim.reason:
@@ -94,12 +132,16 @@ def _qualification_state(
 
     exact_qualified = bool(
         ledger is not None
+        and contract is not None
         and claim.current_head_qualified
         and ledger.current_head_qualified
         and claim.qualification_status == "PASS"
         and ledger.status == "PASS"
         and claim.attested_commit == ledger.commit
         and claim.proof_artifact_sha256 == ledger.proof_artifact_sha256
+        and claim.proof_contract_id == contract.contract_id == ledger.proof_contract_id
+        and ledger.proof_contract_sha256 == contract.contract_sha256
+        and set(contract.required_checks).issubset(ledger.checks)
         and bool(claim.attested_commit)
         and bool(claim.proof_artifact_sha256)
     )
@@ -109,20 +151,17 @@ def _qualification_state(
 
 
 class ProofExplorer:
-    """Read-only evidence view over the canonical claim registry and proof ledger.
-
-    This class never promotes evidence. It only displays the state already
-    authorized by the canonical registries and keeps runtime verification
-    records separate from release qualification.
-    """
+    """Read-only claim -> proof contract -> ledger -> runtime evidence view."""
 
     def __init__(
         self,
         registry: ClaimRegistry | None = None,
         ledger: ProofLedger | None = None,
+        contracts: ProofContractRegistry | None = None,
     ) -> None:
         self.registry = registry or ClaimRegistry.load_default()
         self.ledger = ledger or ProofLedger.load_default()
+        self.contracts = contracts or ProofContractRegistry.load_default()
 
     def claim_view(
         self,
@@ -133,7 +172,12 @@ class ProofExplorer:
         if claim is None:
             raise KeyError(f"unknown canonical claim_id: {claim_id}")
         ledger = self.ledger.for_claim(claim_id)
-        state, qualified, derived_blockers = _qualification_state(claim, ledger)
+        contract = (
+            self.contracts.by_id(claim.proof_contract_id)
+            if claim.proof_contract_id
+            else None
+        )
+        state, qualified, derived_blockers = _qualification_state(claim, ledger, contract)
         runtime = tuple(
             RuntimeEvidenceView.from_record(record, claim_id)
             for record in runtime_records
@@ -144,16 +188,34 @@ class ProofExplorer:
             scope=claim.scope,
             evidence_ceiling=claim.evidence_ceiling,
             registry_status=claim.qualification_status,
+            proof_contract_id=contract.contract_id if contract else claim.proof_contract_id,
+            proof_contract_sha256=contract.contract_sha256 if contract else None,
+            proof_contract_build_target=contract.build_target if contract else None,
+            endpoint_theorems=contract.endpoint_theorems if contract else (),
+            audited_source_files=contract.audited_source_files if contract else (),
+            allowed_axioms=contract.allowed_axioms if contract else (),
+            required_checks=contract.required_checks if contract else (),
+            theorem_dependency_metadata_state=(
+                contract.theorem_dependency_metadata_state if contract else "UNAVAILABLE"
+            ),
+            theorem_dependency_metadata_note=(
+                contract.theorem_dependency_metadata_note
+                if contract
+                else "No proof contract is bound to this claim."
+            ),
             ledger_release=ledger.release if ledger else None,
             ledger_status=ledger.status if ledger else None,
             qualification_state=state,
             current_head_qualified=qualified,
             attested_commit=claim.attested_commit,
             proof_artifact_sha256=claim.proof_artifact_sha256,
+            qualification_system=ledger.qualification_system if ledger else None,
+            qualification_run_id=ledger.qualification_run_id if ledger else None,
             workflow_run_id=ledger.workflow_run_id if ledger else None,
             checks=ledger.checks if ledger else (),
             blockers=derived_blockers,
             nonclaims=claim.nonclaims,
+            contract_nonclaims=contract.nonclaims if contract else (),
             runtime_evidence=runtime,
         )
 
