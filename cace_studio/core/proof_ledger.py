@@ -33,6 +33,8 @@ class ProofLedgerEntry:
     current_head_qualified: bool
     commit: str | None = None
     proof_artifact_sha256: str | None = None
+    proof_contract_id: str | None = None
+    proof_contract_sha256: str | None = None
     qualification_system: str | None = None
     qualification_run_id: str | None = None
     workflow_run_id: int | None = None
@@ -54,9 +56,17 @@ class ProofLedgerEntry:
             if raw.get("qualification_run_id") is not None
             else None
         )
+        proof_contract_id = (
+            str(raw["proof_contract_id"]).strip()
+            if raw.get("proof_contract_id") is not None
+            else None
+        )
+        proof_contract_sha256 = (
+            str(raw["proof_contract_sha256"]).lower()
+            if raw.get("proof_contract_sha256")
+            else None
+        )
 
-        # Backward compatibility for historical GitHub Actions ledger entries.
-        # New qualifications should record the generic provenance fields explicitly.
         if qualification_system is None and workflow_run_id is not None:
             qualification_system = "github-actions"
         if qualification_run_id is None and workflow_run_id is not None:
@@ -73,6 +83,8 @@ class ProofLedgerEntry:
                 if raw.get("proof_artifact_sha256")
                 else None
             ),
+            proof_contract_id=proof_contract_id,
+            proof_contract_sha256=proof_contract_sha256,
             qualification_system=qualification_system,
             qualification_run_id=qualification_run_id,
             workflow_run_id=workflow_run_id,
@@ -83,6 +95,10 @@ class ProofLedgerEntry:
             raise ValueError("proof-ledger release must be non-empty")
         if not entry.claim_ids or any(not claim_id.strip() for claim_id in entry.claim_ids):
             raise ValueError(f"{entry.release}: proof-ledger claim_ids must be non-empty")
+        if proof_contract_id == "":
+            raise ValueError(f"{entry.release}: proof_contract_id must be non-empty or null")
+        if entry.proof_contract_sha256 is not None and not _is_sha256(entry.proof_contract_sha256):
+            raise ValueError(f"{entry.release}: proof_contract_sha256 must be 64-hex or null")
         if entry.current_head_qualified:
             if entry.status != "PASS":
                 raise ValueError(
@@ -95,6 +111,14 @@ class ProofLedgerEntry:
             if not _is_sha256(entry.proof_artifact_sha256):
                 raise ValueError(
                     f"{entry.release}: current-head qualification requires a 64-hex artifact hash"
+                )
+            if not _nonempty(entry.proof_contract_id):
+                raise ValueError(
+                    f"{entry.release}: current-head qualification requires proof_contract_id"
+                )
+            if not _is_sha256(entry.proof_contract_sha256):
+                raise ValueError(
+                    f"{entry.release}: current-head qualification requires proof_contract_sha256"
                 )
             if not _nonempty(entry.qualification_system):
                 raise ValueError(
