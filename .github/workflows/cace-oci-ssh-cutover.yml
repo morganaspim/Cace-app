@@ -1,0 +1,248 @@
+name: CACE OCI SSH durable cutover
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-ssh-cutover.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  cutover:
+    runs-on: self-hosted
+    timeout-minutes: 45
+    steps:
+      - name: Rebuild and bootstrap durable OCI runner over SSH
+        shell: bash
+        env:
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUNNER_ROOT=/home/morganaspi/actions-runner
+          CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
+          PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+          read -r TENANCY_OCID REGION <<EOF
+          $(python3 - "$CONFIG_FILE" "$PROFILE" <<'PY'
+          import configparser,sys
+          c=configparser.ConfigParser(); c.read(sys.argv[1]); p=c[sys.argv[2]]
+          print(p['tenancy'].strip(), p.get('region','us-phoenix-1').strip())
+          PY
+          )
+          EOF
+
+          SUBNET_ID="$(oci network subnet list --compartment-id "$TENANCY_OCID" --all --query 'data[?"lifecycle-state"==`AVAILABLE`].id | [0]' --raw-output)"
+          AD="$(oci iam availability-domain list --compartment-id "$TENANCY_OCID" --all --query 'data[-1].name' --raw-output)"
+          IMAGE_ID="$(oci compute image list --compartment-id "$TENANCY_OCID" --all --operating-system 'Oracle Linux' --operating-system-version '8' --shape 'VM.Standard.A1.Flex' --sort-by TIMECREATED --sort-order DESC --query 'data[0].id' --raw-output)"
+          test -n "$SUBNET_ID"; test "$SUBNET_ID" != null
+          test -n "$AD"; test "$AD" != null
+          test -n "$IMAGE_ID"; test "$IMAGE_ID" != null
+
+          KEY="$HOME/.ssh/cace_oci_runner_ed25519"
+          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+          if [[ ! -s "$KEY" || ! -s "$KEY.pub" ]]; then
+            ssh-keygen -q -t ed25519 -N '' -C 'cace-oci-runner' -f "$KEY"
+          fi
+          chmod 600 "$KEY"; chmod 644 "$KEY.pub"
+
+          echo 'Retiring any previous cace-runner-a1 instance...'
+          old_json="$(oci compute instance list --compartment-id "$TENANCY_OCID" --all --output json)"
+          python3 - <<'PY' "$old_json" > /tmp/cace-old-durable-ids
+          import json,sys
+          for x in json.loads(sys.argv[1]).get('data',[]):
+              if x.get('display-name')=='cace-runner-a1' and x.get('lifecycle-state')!='TERMINATED':
+                  print(x['id'])
+          PY
+          while read -r iid; do
+            [[ -n "$iid" ]] || continue
+            oci compute instance terminate --instance-id "$iid" --force --preserve-boot-volume false >/dev/null
+            for _ in $(seq 1 180); do
+              s="$(oci compute instance get --instance-id "$iid" --query 'data."lifecycle-state"' --raw-output 2>/dev/null || echo TERMINATED)"
+              echo "old_instance_state=$s"
+              [[ "$s" == TERMINATED ]] && break
+              sleep 5
+            done
+            [[ "$s" == TERMINATED ]]
+          done < /tmp/cace-old-durable-ids
+
+          cat > /tmp/cace-bootstrap.sh <<'BOOT'
+          #!/bin/bash
+          set -euxo pipefail
+          hostnamectl set-hostname cace-oci-a1
+          id github-runner >/dev/null 2>&1 || useradd --create-home --shell /bin/bash github-runner
+          dnf -y install curl git tar gzip unzip jq openssl rsync util-linux findutils procps-ng python3 sudo firewalld || true
+          systemctl enable --now firewalld || true
+          install -d -m 0755 /opt/actions-runner
+          install -d -o github-runner -g github-runner -m 0755 \
+            /var/lib/cace-cache/elan /var/lib/cace-cache/xdg /var/lib/cace-cache/uv \
+            /var/lib/cace-cache/pip /var/lib/cace-cache/mathlib /var/lib/cace-cache/telemetry
+          cd /opt/actions-runner
+          curl -fL --retry 10 --retry-delay 3 https://github.com/actions/runner/releases/download/v2.337.0/actions-runner-linux-arm64-2.337.0.tar.gz -o /tmp/actions-runner.tgz
+          tar xzf /tmp/actions-runner.tgz
+          ./bin/installdependencies.sh || true
+          chown -R github-runner:github-runner /opt/actions-runner /var/lib/cace-cache
+
+          cat > /usr/local/sbin/cace-runner-watchdog <<'EOF'
+          #!/bin/bash
+          set -u
+          T=/var/lib/cace-cache/telemetry
+          mkdir -p "$T"
+          while true; do
+            ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf '%s\n' "$ts" > "$T/heartbeat.tmp" && mv "$T/heartbeat.tmp" "$T/heartbeat"
+            service="$(cat /opt/actions-runner/.service 2>/dev/null || true)"
+            if [[ -n "$service" ]] && systemctl list-unit-files "$service" --no-legend 2>/dev/null | grep -q "$service"; then
+              if ! systemctl is-active --quiet "$service"; then
+                echo "$ts runner-inactive restart-requested service=$service" >> "$T/watchdog.log"
+                systemctl restart "$service" || true
+              fi
+            fi
+            {
+              echo "timestamp=$ts"; echo "hostname=$(hostname)"; echo "runner_service=$service"
+              [[ -n "$service" ]] && systemctl status "$service" --no-pager 2>&1 || true
+              free -h || true; df -h / /var/lib/cace-cache || true
+              ps -eo pid,ppid,pcpu,pmem,rss,vsz,etime,stat,cmd | grep -E 'Runner\.(Listener|Worker)|lake (build|env)|/lean( |$)|/lean-' | grep -v grep || true
+              cat /sys/fs/cgroup/memory.events 2>/dev/null || true
+            } > "$T/latest.tmp"
+            mv "$T/latest.tmp" "$T/latest.txt"
+            sleep 30
+          done
+          EOF
+          chmod 0755 /usr/local/sbin/cace-runner-watchdog
+          cat > /etc/systemd/system/cace-runner-watchdog.service <<'EOF'
+          [Unit]
+          Description=CACE runner watchdog and telemetry
+          After=network-online.target
+          Wants=network-online.target
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/sbin/cace-runner-watchdog
+          Restart=always
+          RestartSec=5
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          cat > /usr/local/sbin/cace-register-runner <<'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          TOKEN="${1:-}"
+          [[ -n "$TOKEN" ]] || exit 2
+          cd /opt/actions-runner
+          [[ ! -f .runner ]] || { echo 'already configured'; exit 0; }
+          sudo -u github-runner ./config.sh --unattended --url https://github.com/morganaspim/Cace-app \
+            --token "$TOKEN" --name cace-oci-a1 --labels cace,oci,aarch64 --work _work
+          ./svc.sh install github-runner
+          SERVICE="$(cat .service)"
+          mkdir -p "/etc/systemd/system/${SERVICE}.d"
+          cat > "/etc/systemd/system/${SERVICE}.d/10-cace.conf" <<'UNIT'
+          [Service]
+          Restart=always
+          RestartSec=5
+          Environment=ELAN_HOME=/var/lib/cace-cache/elan
+          Environment=XDG_CACHE_HOME=/var/lib/cace-cache/xdg
+          Environment=UV_CACHE_DIR=/var/lib/cace-cache/uv
+          Environment=PIP_CACHE_DIR=/var/lib/cace-cache/pip
+          UNIT
+          chown -R github-runner:github-runner /var/lib/cace-cache /opt/actions-runner
+          systemctl daemon-reload
+          systemctl enable --now "$SERVICE"
+          systemctl enable --now cace-runner-watchdog.service
+          systemctl status "$SERVICE" --no-pager -l
+          EOF
+          chmod 0755 /usr/local/sbin/cace-register-runner
+          systemctl daemon-reload
+          systemctl enable --now cace-runner-watchdog.service
+          touch /var/lib/cace-bootstrap-ready
+          BOOT
+
+          USERDATA_B64="$(base64 -w0 /tmp/cace-bootstrap.sh)"
+          python3 - "$USERDATA_B64" <<'PY'
+          import json,pathlib,sys
+          pathlib.Path('/tmp/cace-metadata.json').write_text(json.dumps({'user_data':sys.argv[1]}))
+          PY
+
+          echo 'Launching durable 2 OCPU / 12 GB / 140 GB VM with outbound connectivity...'
+          INSTANCE_ID="$(oci compute instance launch --compartment-id "$TENANCY_OCID" --availability-domain "$AD" \
+            --display-name cace-runner-a1 --shape VM.Standard.A1.Flex --shape-config '{"ocpus":2,"memoryInGBs":12}' \
+            --subnet-id "$SUBNET_ID" --image-id "$IMAGE_ID" --assign-public-ip true --boot-volume-size-in-gbs 140 \
+            --ssh-authorized-keys-file "$KEY.pub" --metadata file:///tmp/cace-metadata.json \
+            --wait-for-state RUNNING --max-wait-seconds 900 --query 'data.id' --raw-output)"
+          test -n "$INSTANCE_ID"
+
+          VNIC_ID="$(oci compute vnic-attachment list --compartment-id "$TENANCY_OCID" --instance-id "$INSTANCE_ID" --all --query 'data[?"lifecycle-state"==`ATTACHED`]."vnic-id" | [0]' --raw-output)"
+          PUBLIC_IP="$(oci network vnic get --vnic-id "$VNIC_ID" --query 'data."public-ip"' --raw-output)"
+          test -n "$PUBLIC_IP"; test "$PUBLIC_IP" != null
+          echo "public_ip_assigned=yes"
+
+          SSH_OPTS=(-i "$KEY" -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8)
+          echo 'Waiting for SSH/cloud-init bootstrap...'
+          for _ in $(seq 1 120); do
+            if ssh "${SSH_OPTS[@]}" opc@"$PUBLIC_IP" 'echo SSH_READY' >/dev/null 2>&1; then break; fi
+            sleep 5
+          done
+          ssh "${SSH_OPTS[@]}" opc@"$PUBLIC_IP" 'echo SSH_READY'
+          ssh "${SSH_OPTS[@]}" opc@"$PUBLIC_IP" 'sudo cloud-init status --wait || true; for i in $(seq 1 120); do test -f /var/lib/cace-bootstrap-ready && exit 0; sleep 5; done; exit 1'
+          ssh "${SSH_OPTS[@]}" opc@"$PUBLIC_IP" 'sudo test -x /usr/local/sbin/cace-register-runner; sudo test -x /opt/actions-runner/config.sh; uname -m; nproc; free -h; df -h /'
+
+          echo 'Obtaining one-hour GitHub runner registration token...'
+          REG_TOKEN=''
+          if command -v gh >/dev/null 2>&1 && env -u GH_TOKEN -u GITHUB_TOKEN gh auth status >/dev/null 2>&1; then
+            REG_TOKEN="$(env -u GH_TOKEN -u GITHUB_TOKEN gh api --method POST repos/morganaspim/Cace-app/actions/runners/registration-token --jq .token 2>/tmp/cace-gh-admin-error || true)"
+          fi
+          if [[ -z "$REG_TOKEN" ]]; then
+            code="$(curl -sS -o /tmp/cace-token.json -w '%{http_code}' -X POST \
+              -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $ACTIONS_TOKEN" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' https://api.github.com/repos/morganaspim/Cace-app/actions/runners/registration-token || true)"
+            if [[ "$code" == 201 ]]; then
+              REG_TOKEN="$(python3 -c 'import json;print(json.load(open("/tmp/cace-token.json"))["token"])')"
+            else
+              echo "REGISTRATION_TOKEN_BLOCKED_HTTP=$code" >&2
+              echo 'VM_BOOTSTRAP_COMPLETE_BUT_ADMIN_TOKEN_REQUIRED' >&2
+              exit 42
+            fi
+          fi
+          [[ -n "$REG_TOKEN" ]]
+
+          # Feed the short-lived token directly over SSH stdin; do not print or persist it remotely.
+          printf '%s\n' "$REG_TOKEN" | ssh "${SSH_OPTS[@]}" opc@"$PUBLIC_IP" 'read -r t; sudo /usr/local/sbin/cace-register-runner "$t"'
+          unset REG_TOKEN
+          rm -f /tmp/cace-token.json /tmp/cace-gh-admin-error
+
+          echo 'Waiting for OCI-only verification run to complete on the new runner...'
+          verify_run=34959902922
+          result=''
+          for _ in $(seq 1 120); do
+            result="$(curl -fsSL -H 'Accept: application/vnd.github+json' -H "Authorization: Bearer $ACTIONS_TOKEN" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/morganaspim/Cace-app/actions/runs/$verify_run" | \
+              python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("status") or "")+":"+(d.get("conclusion") or ""))')"
+            echo "cutover_verification=$result"
+            [[ "$result" == completed:success ]] && break
+            [[ "$result" == completed:* && "$result" != completed:success ]] && exit 43
+            sleep 5
+          done
+          [[ "$result" == completed:success ]]
+
+          echo 'Closing inbound SSH at the VM firewall while retaining outbound connectivity...'
+          ssh "${SSH_OPTS[@]}" opc@"$PUBLIC_IP" 'sudo firewall-cmd --permanent --remove-service=ssh >/dev/null 2>&1 || true; sudo firewall-cmd --reload >/dev/null 2>&1 || true; sudo systemctl is-active "$(cat /opt/actions-runner/.service)"; sudo systemctl is-active cace-runner-watchdog.service'
+
+          # If a locally authenticated admin gh session was usable, remove the old runner record too.
+          if command -v gh >/dev/null 2>&1 && env -u GH_TOKEN -u GITHUB_TOKEN gh auth status >/dev/null 2>&1; then
+            env -u GH_TOKEN -u GITHUB_TOKEN gh api --method DELETE repos/morganaspim/Cace-app/actions/runners/2 >/dev/null 2>&1 || true
+          fi
+
+          echo 'Scheduling retirement of the Cloud Shell watchdog/listener after this job exits...'
+          if [[ "$(hostname)" != cace-oci-a1 ]]; then
+            state="$RUNNER_ROOT/.cace-watchdog"
+            if [[ -s "$state/watchdog.pid" ]]; then
+              p="$(cat "$state/watchdog.pid" || true)"
+              [[ "$p" =~ ^[0-9]+$ ]] && kill -TERM -- "-$p" 2>/dev/null || true
+            fi
+            env -u RUNNER_TRACKING_ID -u GITHUB_ACTION -u GITHUB_ACTIONS setsid nohup bash -c \
+              'sleep 20; pkill -TERM -f "^/home/morganaspi/actions-runner/(bin|bin\.[^/]+)/Runner\.Listener run$" || true' \
+              </dev/null >/tmp/cace-retire-cloudshell.log 2>&1 &
+          fi
+          echo 'CACE_OCI_DURABLE_CUTOVER_COMPLETE'
