@@ -1,0 +1,160 @@
+name: CACE runner service install
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-runner-service-install.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  install-runner-service:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Verify runner and sudo prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runner-service-diagnostics
+          {
+            echo '=== identity ==='
+            id
+            echo
+            echo '=== runner environment ==='
+            printf 'RUNNER_TEMP=%s\nRUNNER_WORKSPACE=%s\n' "${RUNNER_TEMP:-}" "${RUNNER_WORKSPACE:-}"
+            echo
+            echo '=== process snapshot ==='
+            ps -eo pid,ppid,user,etime,cmd | grep -E 'Runner\.(Listener|Worker)|run\.sh|svc\.sh' | grep -v grep || true
+            echo
+            echo '=== systemd ==='
+            systemctl --version | head -n 2 || true
+            systemctl is-system-running || true
+            echo
+            echo '=== passwordless sudo check ==='
+            if sudo -n true; then
+              echo 'PASS: sudo -n true'
+            else
+              echo 'FAIL: passwordless sudo is not available to this runner user.'
+              echo 'The service install cannot be automated from GitHub Actions until sudo can run non-interactively.'
+              exit 20
+            fi
+          } 2>&1 | tee runner-service-diagnostics/prerequisites.txt
+
+      - name: Locate GitHub Actions runner root
+        id: runner_root
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runner-service-diagnostics
+          root=''
+          if [[ -n "${RUNNER_TEMP:-}" ]]; then
+            candidate="$(dirname "$(dirname "$RUNNER_TEMP")")"
+            if [[ -x "$candidate/svc.sh" && -x "$candidate/run.sh" ]]; then
+              root="$candidate"
+            fi
+          fi
+          if [[ -z "$root" && -x /home/morganaspi/actions-runner/svc.sh ]]; then
+            root=/home/morganaspi/actions-runner
+          fi
+          if [[ -z "$root" ]]; then
+            echo 'Unable to locate runner root containing svc.sh and run.sh.' | tee runner-service-diagnostics/runner-root.txt
+            exit 21
+          fi
+          printf '%s\n' "$root" | tee runner-service-diagnostics/runner-root.txt
+          echo "RUNNER_ROOT=$root" >> "$GITHUB_ENV"
+
+      - name: Install runner systemd service
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_ROOT"
+          mkdir -p "$GITHUB_WORKSPACE/runner-service-diagnostics"
+          {
+            echo "Runner root: $RUNNER_ROOT"
+            echo 'Existing service marker:'
+            cat .service 2>/dev/null || true
+            echo
+            echo 'Attempting service installation as morganaspi...'
+            sudo -n ./svc.sh install morganaspi
+            echo
+            echo 'Service marker after install:'
+            cat .service 2>/dev/null || true
+            echo
+            echo 'svc.sh status after install:'
+            sudo -n ./svc.sh status || true
+          } 2>&1 | tee "$GITHUB_WORKSPACE/runner-service-diagnostics/install.txt"
+
+          if [[ ! -s .service ]]; then
+            echo 'svc.sh did not create the expected .service marker.' >&2
+            exit 22
+          fi
+          service_name="$(cat .service)"
+          echo "RUNNER_SERVICE=$service_name" >> "$GITHUB_ENV"
+          printf '%s\n' "$service_name" > "$GITHUB_WORKSPACE/runner-service-diagnostics/service-name.txt"
+
+      - name: Verify installed service definition
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "service=$RUNNER_SERVICE"
+            echo
+            sudo -n systemctl cat "$RUNNER_SERVICE"
+            echo
+            echo 'enabled state:'
+            sudo -n systemctl is-enabled "$RUNNER_SERVICE" || true
+            echo
+            echo 'current state before handoff:'
+            sudo -n systemctl status "$RUNNER_SERVICE" --no-pager -l || true
+          } 2>&1 | tee runner-service-diagnostics/service-definition.txt
+
+      - name: Schedule manual-to-service handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          unit="cace-runner-service-handoff-${GITHUB_RUN_ID}"
+          script="/var/tmp/${unit}.sh"
+          sudo -n tee "$script" >/dev/null <<EOF
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec >>/var/tmp/cace-runner-service-handoff.log 2>&1
+          echo "=== handoff start \$(date -Is) ==="
+          echo "service=$RUNNER_SERVICE"
+          echo 'manual runner processes before stop:'
+          ps -eo pid,ppid,user,etime,cmd | grep -E 'Runner\.(Listener|Worker)' | grep -v grep || true
+          pkill -TERM -f '$RUNNER_ROOT/bin/Runner.Listener run' || true
+          sleep 5
+          echo 'starting systemd runner service'
+          systemctl start '$RUNNER_SERVICE'
+          sleep 3
+          systemctl status '$RUNNER_SERVICE' --no-pager -l || true
+          echo "=== handoff end \$(date -Is) ==="
+          EOF
+          sudo -n chmod 700 "$script"
+          sudo -n systemd-run \
+            --unit="$unit" \
+            --on-active=20s \
+            --property=Type=oneshot \
+            /bin/bash "$script"
+          {
+            echo "Scheduled transient handoff unit: $unit"
+            echo "Handoff script: $script"
+            echo "Target service: $RUNNER_SERVICE"
+            echo 'The unit waits 20 seconds so this Actions job can finish, then stops the manual Runner.Listener and starts the installed systemd service.'
+            sudo -n systemctl status "$unit.timer" --no-pager -l || true
+          } 2>&1 | tee runner-service-diagnostics/handoff-scheduled.txt
+
+      - name: Upload service installation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-runner-service-install-diagnostics
+          path: runner-service-diagnostics/
+          if-no-files-found: warn
