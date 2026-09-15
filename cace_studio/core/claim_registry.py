@@ -30,6 +30,7 @@ class ClaimEntry:
     evidence_ceiling: str
     qualification_status: str
     current_head_qualified: bool
+    proof_contract_id: str | None = None
     attested_commit: str | None = None
     proof_artifact_sha256: str | None = None
     reason: str = ""
@@ -38,6 +39,11 @@ class ClaimEntry:
     @classmethod
     def from_mapping(cls, raw: Mapping[str, Any]) -> "ClaimEntry":
         q = raw.get("qualification", {})
+        proof_contract_id = (
+            str(raw["proof_contract_id"]).strip()
+            if raw.get("proof_contract_id") is not None
+            else None
+        )
         entry = cls(
             claim_id=str(raw["claim_id"]),
             module_ids=tuple(str(x) for x in raw.get("module_ids", ())),
@@ -46,6 +52,7 @@ class ClaimEntry:
             evidence_ceiling=str(raw.get("evidence_ceiling", "experimental")),
             qualification_status=str(q.get("status", "UNQUALIFIED")),
             current_head_qualified=bool(q.get("current_head_qualified", False)),
+            proof_contract_id=proof_contract_id,
             attested_commit=(
                 str(q["attested_commit"]).lower() if q.get("attested_commit") else None
             ),
@@ -59,6 +66,8 @@ class ClaimEntry:
         )
         if not entry.claim_id.strip():
             raise ValueError("claim_id must be non-empty")
+        if proof_contract_id == "":
+            raise ValueError(f"{entry.claim_id}: proof_contract_id must be non-empty or null")
         if entry.current_head_qualified:
             if entry.qualification_status != "PASS":
                 raise ValueError(
@@ -68,6 +77,10 @@ class ClaimEntry:
                 raise ValueError(
                     f"{entry.claim_id}: current-head FORMAL qualification requires "
                     "a formally-verified or cross-verified evidence ceiling"
+                )
+            if not entry.proof_contract_id:
+                raise ValueError(
+                    f"{entry.claim_id}: current-head formal qualification requires proof_contract_id"
                 )
             if not _is_git_commit(entry.attested_commit):
                 raise ValueError(
