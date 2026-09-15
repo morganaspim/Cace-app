@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QThreadPool, Qt
 from PySide6.QtGui import QKeySequence
 
+from cace_studio.core.execution_control import ExecutionControl
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph_edit import (
     GraphFragment,
@@ -10,7 +11,9 @@ from cace_studio.core.graph_edit import (
     copy_graph_fragment,
     paste_graph_fragment,
 )
+from cace_studio.core.reproducibility import experiment_fingerprint
 
+from .execution_worker import ExecutionWorker
 from .main_window import MainWindow
 from .proof_explorer import ProofExplorerWidget
 
@@ -22,15 +25,20 @@ class StudioMainWindow(MainWindow):
     plus runtime verification records; it cannot promote evidence or mutate the
     proof ledger.
 
-    Copy/paste is an internal CACE graph-fragment clipboard rather than an OS
-    text clipboard. Graph edits flow through the existing history/autosave and
-    stale-evidence invalidation mechanisms.
+    Execution runs against an immutable experiment snapshot in a worker thread.
+    Pause/cancel are cooperative at module boundaries; arbitrary scientific
+    modules are never forcefully interrupted inside their execute method.
     """
 
     def __init__(self, registry, settings):
         super().__init__(registry, settings)
         self._graph_clipboard: GraphFragment | None = None
         self._paste_generation = 0
+
+        self._execution_pool = QThreadPool.globalInstance()
+        self._execution_control: ExecutionControl | None = None
+        self._execution_worker: ExecutionWorker | None = None
+
         self._install_graph_edit_actions()
         self._install_scoped_run_action()
 
@@ -41,6 +49,7 @@ class StudioMainWindow(MainWindow):
             Qt.RightDockWidgetArea,
         )
         self.proof_explorer.show_all_claims()
+        self._sync_execution_actions()
 
     def _menu_named(self, title: str):
         target = title.replace("&", "")
@@ -83,12 +92,39 @@ class StudioMainWindow(MainWindow):
         if run_menu is None:
             return
         run_menu.addSeparator()
-        self._action(
+        self.selected_run_action = self._action(
             run_menu,
             "Execute + Verify Selected + Upstream",
             self.run_selected_upstream,
             "Ctrl+Shift+R",
         )
+        run_menu.addSeparator()
+        self.pause_run_action = self._action(
+            run_menu,
+            "Pause Active Run",
+            self.pause_execution,
+        )
+        self.resume_run_action = self._action(
+            run_menu,
+            "Resume Active Run",
+            self.resume_execution,
+        )
+        self.cancel_run_action = self._action(
+            run_menu,
+            "Cancel Active Run",
+            self.cancel_execution,
+        )
+
+    def _sync_execution_actions(self) -> None:
+        if not hasattr(self, "pause_run_action"):
+            return
+        active = self._execution_control is not None
+        paused = bool(active and self._execution_control.paused)
+        cancelled = bool(active and self._execution_control.cancelled)
+        self.selected_run_action.setEnabled(not active)
+        self.pause_run_action.setEnabled(active and not paused and not cancelled)
+        self.resume_run_action.setEnabled(active and paused and not cancelled)
+        self.cancel_run_action.setEnabled(active and not cancelled)
 
     def _reselect_nodes(self, node_ids) -> None:
         selected = set(node_ids)
@@ -195,21 +231,101 @@ class StudioMainWindow(MainWindow):
         self._sync_history_actions()
         self._autosave_tick()
 
+    def run_graph(self) -> None:
+        self._start_execution("full", ())
+
     def run_selected_upstream(self) -> None:
         selected = tuple(sorted(self.canvas.selected_node_ids()))
         if not selected:
             self.console.append("Selected + Upstream run: select at least one target node.")
             return
+        self._start_execution("selected-upstream", selected)
 
+    def _start_execution(self, scope_kind: str, targets: tuple[str, ...]) -> None:
+        if self._execution_control is not None:
+            self.console.append("A graph execution is already active.")
+            return
+
+        self._sync_positions()
+        snapshot = self.history.snapshot(self.experiment)
+        control = ExecutionControl()
+        executor = GraphExecutor(self.registry, gpu_enabled=self.settings.gpu_enabled)
+
+        if scope_kind == "full":
+            execute = lambda: executor.run(snapshot, control=control)
+        elif scope_kind == "selected-upstream":
+            execute = lambda: executor.run_selected_upstream(
+                snapshot,
+                targets,
+                control=control,
+            )
+        else:
+            self.console.append(f"Unknown execution scope: {scope_kind}")
+            return
+
+        worker = ExecutionWorker(execute)
+        worker.signals.finished.connect(self._execution_finished)
+        worker.signals.failed.connect(self._execution_failed)
+        self._execution_control = control
+        self._execution_worker = worker
+        self._sync_execution_actions()
+        if targets:
+            self.console.append(
+                f"Execution started: scope={scope_kind}, targets={targets}. "
+                "Pause/cancel take effect at module boundaries."
+            )
+        else:
+            self.console.append(
+                "Execution started: scope=full. Pause/cancel take effect at module boundaries."
+            )
+        self._execution_pool.start(worker)
+
+    def pause_execution(self) -> None:
+        if self._execution_control is None:
+            self.console.append("Pause: no active run.")
+            return
+        if self._execution_control.pause():
+            self.console.append("Pause requested; it takes effect at the next module boundary.")
+        self._sync_execution_actions()
+
+    def resume_execution(self) -> None:
+        if self._execution_control is None:
+            self.console.append("Resume: no active run.")
+            return
+        if self._execution_control.resume():
+            self.console.append("Execution resumed.")
+        self._sync_execution_actions()
+
+    def cancel_execution(self) -> None:
+        if self._execution_control is None:
+            self.console.append("Cancel: no active run.")
+            return
+        if self._execution_control.cancel():
+            self.console.append("Cancellation requested; it takes effect at the next module boundary.")
+        self._sync_execution_actions()
+
+    def _execution_finished(self, result) -> None:
         try:
             self._sync_positions()
-            result = GraphExecutor(
-                self.registry, gpu_enabled=self.settings.gpu_enabled
-            ).run_selected_upstream(self.experiment, selected)
+            current_semantic = experiment_fingerprint(self.experiment, include_layout=False)
+            source_matches = (
+                current_semantic == result.source_semantic_experiment_sha256
+            )
+
+            if not source_matches:
+                self.console.append(
+                    f"Run {result.run_id} finished for an earlier graph snapshot and was not "
+                    "attached because the semantic graph changed during execution."
+                )
+                return
+
             self.last_result = result
-            status = "PASS" if result.all_verifiers_passed else "VERIFICATION FAILURE"
+            if not result.completed:
+                status = f"INCOMPLETE ({result.interruption_reason or 'interrupted'})"
+            else:
+                status = "PASS" if result.all_verifiers_passed else "VERIFICATION FAILURE"
             self.console.append(
-                f"Run {result.run_id}: {status} | scope=selected-upstream | "
+                f"Run {result.run_id}: {status} | scope={result.run_scope} | "
                 f"targets={result.scope_target_node_ids} | included={result.scope_included_node_ids}"
             )
             self.console.append(f"  scope_sha256={result.execution_scope_sha256}")
@@ -223,10 +339,16 @@ class StudioMainWindow(MainWindow):
                 self._show_node_verification(self.selected_node_id)
             else:
                 self._refresh_proof_explorer()
-        except Exception as exc:
-            self.console.append(
-                f"Selected + Upstream run failed: {type(exc).__name__}: {exc}"
-            )
+        finally:
+            self._execution_control = None
+            self._execution_worker = None
+            self._sync_execution_actions()
+
+    def _execution_failed(self, error: str) -> None:
+        self.console.append(f"Run failed: {error}")
+        self._execution_control = None
+        self._execution_worker = None
+        self._sync_execution_actions()
 
     def _selected_module_context(self):
         if not self.selected_node_id:
