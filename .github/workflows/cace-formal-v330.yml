@@ -108,8 +108,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o $CACE_BUILD_ROOT/elan-init.sh
-          sh $CACE_BUILD_ROOT/elan-init.sh -y --default-toolchain none
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o "$CACE_BUILD_ROOT/elan-init.sh"
+          sh "$CACE_BUILD_ROOT/elan-init.sh" -y --default-toolchain none
           echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
 
       - name: Install pinned Lean toolchain
@@ -152,21 +152,34 @@ jobs:
             exit 1
           fi
 
-      - name: Compile v3.30 analysis endpoints and umbrella
+      - name: Record formal build resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -a
+          nproc || true
+          free -h || true
+          df -h "$CACE_BUILD_ROOT" || true
+
+      - name: Compile v3.30 audited dependency closure
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         env:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          lake build CACEFormal
+          # V330AxiomAudit imports every v3.30 proof-strengthening module whose
+          # endpoints are promoted by this workflow. Lake therefore compiles
+          # the exact transitive proof dependency closure, rather than unrelated
+          # historical modules in the full CACEFormal umbrella.
+          lake build CACEFormal.V330AxiomAudit
 
       - name: Kernel axiom audit
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          lake env lean CACEFormal/V330AxiomAudit.lean 2>&1 | tee $CACE_BUILD_ROOT/v330-axioms.txt
+          lake env lean CACEFormal/V330AxiomAudit.lean 2>&1 | tee "$CACE_BUILD_ROOT/v330-axioms.txt"
           python - <<'PY'
           import os, re
           from pathlib import Path
@@ -238,6 +251,24 @@ jobs:
           def out(cmd, cwd=None):
               return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
 
+          formal_dir = Path(os.environ['CACE_FORMAL_DIR'])
+          audited_source_files = [
+              'CACEFormal/SmoothBoxGreenAuto.lean',
+              'CACEFormal/RegularizationClosure.lean',
+              'CACEFormal/GraphRegularizationCriterion.lean',
+              'CACEFormal/RealGraphRegularizationCriterion.lean',
+              'CACEFormal/H1DomainBridge.lean',
+              'CACEFormal/H1BesselRieszReduction.lean',
+              'CACEFormal/DistributionalGraphRepresentatives.lean',
+              'CACEFormal/V330AxiomAudit.lean',
+          ]
+          source_hash = hashlib.sha256()
+          for relative in audited_source_files:
+              source_hash.update(relative.encode('utf-8'))
+              source_hash.update(b'\0')
+              source_hash.update((formal_dir / relative).read_bytes())
+              source_hash.update(b'\0')
+
           data = {
               'release': '3.30.0-dev',
               'claim_id': 'cace.v330.continuum-proof-strengthening',
@@ -250,7 +281,10 @@ jobs:
               'event_name': os.environ['GITHUB_EVENT_NAME'],
               'ref': os.environ['GITHUB_REF'],
               'lean_version': out(['lean', '--version']),
-              'mathlib_commit': out(['git', '-C', os.path.join(os.environ['CACE_FORMAL_DIR'], '.lake/packages/mathlib'), 'rev-parse', 'HEAD']),
+              'mathlib_commit': out(['git', '-C', str(formal_dir / '.lake/packages/mathlib'), 'rev-parse', 'HEAD']),
+              'build_target': 'CACEFormal.V330AxiomAudit',
+              'audited_source_files': audited_source_files,
+              'audited_source_bundle_sha256': source_hash.hexdigest(),
               'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.',
               'theorems': [
                   'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
