@@ -4,10 +4,11 @@ This checklist is an engineering gate, not verification evidence. A checked impl
 
 ## Dependency gate
 
-- [ ] v3.31 exact-head pinned Lean build passes.
-- [ ] v3.31 kernel axiom audit passes.
-- [ ] v3.31 formal attestation is verified and recorded in the canonical claim registry/proof ledger.
-- [ ] Self-hosted runner is healthy enough to complete the consolidated regression and formal jobs.
+- [ ] Exact-head pinned Lean build passes using the portable qualifier.
+- [ ] Kernel axiom audit passes.
+- [ ] Formal attestation is verified and recorded in the canonical claim registry/proof ledger.
+- [x] Qualification no longer depends on a self-hosted or GitHub-hosted runner.
+- [x] Generic qualification provenance (`qualification_system` + `qualification_run_id`) is supported fail-closed.
 
 Do not begin v3.37 scientific expansion until these prerequisites and the consolidated v3.36 qualification below are complete.
 
@@ -15,8 +16,8 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 
 - Candidate branch: `candidate/v336-consolidated`
 - Development package version: `3.36.0.dev1`
-- Live proof branch remains separate: `implement/v331-truth-foundation`
 - Candidate status: implemented/prepared, not qualified, not production-ready.
+- Canonical portable qualification entry points: `make qualify-v330`, `scripts/qualify_v330_portable.sh`, `Dockerfile.qualify-v330`.
 
 ## v3.32 repository and AI readiness
 
@@ -27,7 +28,7 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [x] AI quickstart documents headless use and scoped formal qualification.
 - [x] Development version normalized to `3.36.0.dev1` in package/runtime metadata.
 - [ ] Generate all deterministic index outputs on exact candidate head.
-- [ ] Run generator `--check` in qualification CI so committed/generated navigation cannot silently drift.
+- [ ] Run generator `--check` on the exact candidate head so generated navigation cannot silently drift.
 
 ## v3.33 Studio UX
 
@@ -36,8 +37,13 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [x] Autosave/recovery infrastructure prepared.
 - [x] Graph edits invalidate stale run evidence rather than preserving misleading PASS state.
 - [x] Proof Explorer Studio integration prepared.
-- [ ] Run GUI-focused tests on supported CI environment.
-- [ ] Manual smoke qualification: drag/drop, click-connect, edit parameters, run, save/open `.cace`, recovery, Proof Explorer refresh.
+- [x] Deterministic selected-fragment copy/paste prepared with fresh node IDs and internal-edge preservation.
+- [x] Basic alignment operations prepared with rollback-safe model/canvas restoration.
+- [ ] Run GUI-focused tests on a supported execution environment.
+- [ ] Manual smoke qualification: drag/drop, click-connect, edit parameters, copy/paste, align, run, save/open `.cace`, recovery, Proof Explorer refresh.
+- [ ] Add selected/upstream subgraph execution with explicit execution-scope identity.
+- [ ] Add asynchronous execution plus cancel/pause semantics.
+- [ ] Add groups/subgraphs, explicit units and minimap.
 - [ ] Cross-platform GUI packaging/launch qualification.
 
 ## v3.34 local AI
@@ -45,7 +51,9 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [x] Optional provider abstraction prepared.
 - [x] Local-provider GUI settings prepared.
 - [x] AI disabled by default.
-- [x] Loopback-oriented endpoint security restrictions prepared.
+- [x] Ollama, LM Studio, llama.cpp and generic OpenAI-compatible local providers prepared.
+- [x] Loopback-only endpoint security restrictions prepared.
+- [x] Environment proxies disabled and redirects refused for local-AI transport.
 - [x] AI remains outside verification/proof promotion paths.
 - [ ] Exact-head provider/security tests pass.
 - [ ] Manual Ollama/local-compatible server health/model smoke test.
@@ -56,14 +64,20 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [x] Versioned plugin manifest/SDK prepared.
 - [x] Compatibility/trust checks fail closed.
 - [x] Example plugin manifest exists.
+- [x] Plugin registration is transactional: failed registration cannot partially mutate the live registry.
+- [x] Core registry rejects non-Module classes, blank/whitespace IDs and duplicate IDs before mutation.
 - [ ] Exact-head SDK tests pass.
 - [ ] Package-installed plugin discovery smoke test.
+- [ ] Add real process isolation/sandboxing for untrusted third-party code before production use.
+- [ ] Define enforceable capability permissions and publisher identity/signing policy.
 - [ ] Threat-model review for untrusted third-party plugins before production release.
 
 ## v3.36 reproducibility and evidence identity
 
 - [x] Canonical deterministic JSON identity rejects unsupported/non-finite identity values.
 - [x] Semantic/full experiment fingerprints prepared.
+- [x] Every prepared `RunResult` binds semantic/full experiment fingerprints, seed and execution scope.
+- [x] Run-report schema commits graph-certificate identity to those fingerprints.
 - [x] Module-contract fingerprinting prepared.
 - [x] Content-addressed evidence artifacts prepared.
 - [x] Deterministic artifact ordering and Merkle root prepared.
@@ -74,6 +88,19 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [ ] Require canonical second-resolution UTC ledger timestamps (`YYYY-MM-DDTHH:MM:SSZ`) in both runtime validation and JSON schema. Current implementation only requires a non-empty ledger timestamp string; this is a deterministic-format hardening gap, not a hash-integrity failure.
 - [ ] Exact-head evidence-ledger/reproducibility tests pass.
 - [ ] Add/confirm serialized malformed-input and canonical-timestamp negative tests.
+
+## Portable formal qualification
+
+- [x] Qualification semantics are independent of GitHub Actions and any single runner.
+- [x] Exact commit and clean-tree requirements are enforced before attestation generation.
+- [x] Pinned Lean toolchain and exact Mathlib commit are required.
+- [x] Mathlib cache retrieval is scoped to `CACEFormal/V330AxiomAudit.lean` transitive imports.
+- [x] `sorry`, `admit` and `OPEN OBLIGATION` tokens are rejected in the audited source set.
+- [x] `sorryAx` and non-whitelisted axioms are rejected by the standalone auditor.
+- [x] Attestation binds exact commit, qualification system/run, source-bundle hash, axiom-audit hash, Lean version and Mathlib commit.
+- [x] Docker is only an environment wrapper around the same portable procedure, not a second proof policy.
+- [ ] Run `make qualify-v330` or Docker equivalent successfully on the exact candidate head.
+- [ ] Review generated `v330_formal_qualification_attestation.json` and its SHA-256 before canonical promotion.
 
 ## Signed attestations
 
@@ -107,7 +134,7 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 
 ## Consolidated regression gate
 
-After v3.31 qualification is closed, integrate the candidate and run one bounded qualification wave:
+The exact candidate head must pass one bounded qualification wave in any suitable local, container or external execution environment; GitHub Actions is optional:
 
 1. [ ] Native C++ CMake build passes.
 2. [ ] Native CTest passes.
@@ -119,7 +146,7 @@ After v3.31 qualification is closed, integrate the candidate and run one bounded
 8. [ ] Installed `cace` registry/headless interface passes.
 9. [ ] Installed `cace-attest` behavior is checked both without and with the optional attestation dependency.
 10. [ ] Deterministic AI indexes generate and `--check` cleanly.
-11. [ ] Re-run pinned v3.30 formal workflow because candidate `core/`, `app.py` and package changes intentionally invalidate inherited qualification.
+11. [ ] Portable v3.30 qualification runs on the same exact head after any qualification-sensitive fixes.
 12. [ ] Kernel axiom audit passes on the integrated exact head.
 13. [ ] Exact-head formal attestation is verified and canonical ledger/registry entries are updated only to the evidence actually earned.
 
