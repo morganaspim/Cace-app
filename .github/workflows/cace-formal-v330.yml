@@ -59,12 +59,26 @@ jobs:
         run: |
           set -euo pipefail
           if ! command -v git >/dev/null 2>&1; then
-            if command -v sudo >/dev/null 2>&1; then
-              sudo apt-get update
-              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git
+            run_root() {
+              if command -v sudo >/dev/null 2>&1; then
+                sudo "$@"
+              else
+                "$@"
+              fi
+            }
+            if command -v dnf >/dev/null 2>&1; then
+              run_root dnf -y install git
+            elif command -v yum >/dev/null 2>&1; then
+              run_root yum -y install git
+            elif command -v microdnf >/dev/null 2>&1; then
+              run_root microdnf install -y git
+            elif command -v apt-get >/dev/null 2>&1; then
+              run_root apt-get update
+              run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y git
             else
-              apt-get update
-              DEBIAN_FRONTEND=noninteractive apt-get install -y git
+              echo 'No supported package manager found for Git bootstrap.' >&2
+              cat /etc/os-release || true
+              exit 1
             fi
           fi
           git --version
@@ -241,7 +255,7 @@ jobs:
             git diff -- formal/cace_formal
             exit 1
           fi
-          diff -qr --exclude=.lake formal/cace_formal "$CACE_FORMAL_DIR"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
 
       - name: Record formal build resources
         shell: bash
@@ -329,7 +343,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
-          diff -qr --exclude=.lake formal/cace_formal "$CACE_FORMAL_DIR"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
           test "$(git -C "$CACE_FORMAL_DIR/.lake/packages/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
           test -s "$CACE_BUILD_ROOT/v330-axioms.txt"
 
@@ -406,7 +420,7 @@ jobs:
               'kernel_axiom_log_sha256': hashlib.sha256(axiom_log.read_bytes()).hexdigest(),
               'build_target': 'CACEFormal.V330AxiomAudit',
               'mathlib_cache_scope': 'CACEFormal/V330AxiomAudit.lean transitive import closure',
-              'cache_policy': 'persistent pinned Lean toolchain; pinned dependency tree copied into fresh run; project build and audit/attestation outputs never reused',
+              'cache_policy': 'persistent pinned Lean toolchain; pinned dependency tree copied into fresh run when available; project build and audit/attestation outputs never reused',
               'audited_source_files': audited_source_files,
               'audited_source_bundle_sha256': source_hash.hexdigest(),
               'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.',
