@@ -1,0 +1,42 @@
+{
+  "$id": "https://cace.local/schema/proof-contracts.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contracts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_axioms": {"items": {"type": "string"}, "type": "array", "uniqueItems": true},
+          "audited_source_files": {"items": {"pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.lean$", "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+          "build_target": {"minLength": 1, "type": "string"},
+          "claim_id": {"minLength": 1, "type": "string"},
+          "contract_id": {"minLength": 1, "type": "string"},
+          "dependency_pins": {"additionalProperties": {"minLength": 1, "type": "string"}, "minProperties": 1, "type": "object"},
+          "endpoint_theorems": {"items": {"minLength": 3, "pattern": ".+\\..+", "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+          "formal_system": {"minLength": 1, "type": "string"},
+          "nonclaims": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+          "required_checks": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+          "theorem_dependency_metadata": {
+            "additionalProperties": false,
+            "properties": {
+              "note": {"minLength": 1, "type": "string"},
+              "state": {"enum": ["NOT_GENERATED", "SOURCE_IMPORT_CLOSURE_ONLY", "LEAN_GENERATED"]}
+            },
+            "required": ["state", "note"],
+            "type": "object"
+          },
+          "toolchain_file": {"minLength": 1, "type": "string"}
+        },
+        "required": ["contract_id", "claim_id", "formal_system", "build_target", "toolchain_file", "dependency_pins", "endpoint_theorems", "audited_source_files", "allowed_axioms", "required_checks", "nonclaims", "theorem_dependency_metadata"],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "policy": {"type": "string"},
+    "schema_version": {"const": 1}
+  },
+  "required": ["schema_version", "policy", "contracts"],
+  "title": "CACE Proof Contracts",
+  "type": "object"
+}
