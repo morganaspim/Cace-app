@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Validate and canonicalize v3.30 metadata emitted from Lean.Environment.
+"""Validate and canonicalize continuum metadata emitted from Lean.Environment.
 
-Production mode executes the pinned Lean exporter. ``--raw-output`` is only an
-input seam for tests and post-processing; it does not create proof evidence by
-itself. The validator fails closed on endpoint drift, malformed records, unknown
-fields, self-dependencies, a dependency closure that does not contain each
-direct dependency, proof-contract drift, or exact-commit drift.
+Production mode executes the pinned Lean exporter and a fresh kernel axiom audit.
+``--raw-output`` is only an input seam for tests and post-processing; it does not
+create proof evidence by itself. The validator fails closed on endpoint drift,
+malformed records, unknown fields, self-dependencies, incomplete dependency
+closures, proof-contract drift, exact-commit drift, missing axiom reports, or
+non-whitelisted axioms.
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from typing import Any, Iterable
 
 SENTINEL = "CACE_THEOREM_METADATA\t"
 RECORD_SCHEMA = "cace-lean-theorem-record-v1"
-ARTIFACT_SCHEMA = "cace-lean-theorem-metadata-v2"
+ARTIFACT_SCHEMA = "cace-lean-theorem-metadata-v3"
 GENERATOR = "CACEFormal.V330TheoremMetadata"
 PROVENANCE = "Lean.Environment"
 _RECORD_KEYS = {
@@ -206,6 +207,8 @@ def build_artifact(
     proof_contract_id: str,
     proof_contract_sha256: str,
     git_commit: str,
+    kernel_axiom_audit_sha256: str,
+    kernel_axiom_audit_theorem_count: int,
 ) -> dict[str, Any]:
     endpoints = validate_records(
         parse_records(raw_output),
@@ -216,6 +219,13 @@ def build_artifact(
     proof_contract_sha256 = _require_sha256(proof_contract_sha256, "proof_contract_sha256")
     git_commit = _require_git_commit(git_commit)
     mathlib_commit = _require_git_commit(mathlib_commit, "mathlib_commit")
+    kernel_axiom_audit_sha256 = _require_sha256(
+        kernel_axiom_audit_sha256, "kernel_axiom_audit_sha256"
+    )
+    if kernel_axiom_audit_theorem_count != len(endpoints):
+        raise EnvironmentMetadataError(
+            "kernel axiom audit theorem count must equal the Lean metadata endpoint count"
+        )
     lean_version = _require_nonempty(lean_version, "lean_version")
     lean_toolchain = _require_nonempty(lean_toolchain, "lean_toolchain")
 
@@ -229,6 +239,8 @@ def build_artifact(
         "lean_version": lean_version,
         "lean_toolchain": lean_toolchain,
         "mathlib_commit": mathlib_commit,
+        "kernel_axiom_audit_sha256": kernel_axiom_audit_sha256,
+        "kernel_axiom_audit_theorem_count": kernel_axiom_audit_theorem_count,
         "endpoints": endpoints,
     }
     return {
@@ -237,7 +249,7 @@ def build_artifact(
         **identity_payload,
         "identity_sha256": _sha256(_canonical_json_bytes(identity_payload)),
         "endpoint_count": len(endpoints),
-        "proof_effect": "metadata-only; does not independently qualify a theorem",
+        "proof_effect": "metadata-and-audit-binding only; does not independently qualify a theorem",
     }
 
 
@@ -281,13 +293,17 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = Path(__file__).resolve().parents[1]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
+    from cace_studio.core.lean_theorem_metadata import (
+        build_theorem_metadata,
+        run_lean_axiom_audit,
+    )
     from cace_studio.core.proof_contract import ProofContractRegistry
 
     contract = ProofContractRegistry.load_default().for_claim(
         "cace.v330.continuum-proof-strengthening"
     )
     if contract is None:
-        raise SystemExit("missing canonical v3.30 proof contract")
+        raise SystemExit("missing canonical continuum proof contract")
 
     formal_dir = args.formal_dir.resolve()
     try:
@@ -320,6 +336,32 @@ def main(argv: list[str] | None = None) -> int:
             raise EnvironmentMetadataError(
                 f"mathlib commit mismatch: expected {expected_mathlib}, got {mathlib_commit}"
             )
+
+        audit_relative = Path("CACEFormal/V330AxiomAudit.lean")
+        audit_source = (formal_dir / audit_relative).read_text(encoding="utf-8")
+        audit_raw_output = run_lean_axiom_audit(
+            formal_dir=formal_dir,
+            audit_source_path=audit_relative,
+        )
+        audit_metadata = build_theorem_metadata(
+            audit_source=audit_source,
+            lean_output=audit_raw_output,
+            audit_source_label=audit_relative.as_posix(),
+            allowed_axioms=contract.allowed_axioms,
+        )
+        audited_theorems = {
+            str(item["name"]) for item in audit_metadata["theorems"]
+        }
+        expected_theorems = set(contract.endpoint_theorems)
+        if audited_theorems != expected_theorems:
+            raise EnvironmentMetadataError(
+                "kernel axiom audit theorem set differs from proof contract; "
+                f"missing={sorted(expected_theorems - audited_theorems)}, "
+                f"extra={sorted(audited_theorems - expected_theorems)}"
+            )
+        audit_rendered = _canonical_json_bytes(audit_metadata)
+        kernel_axiom_audit_sha256 = _sha256(audit_rendered)
+
         artifact = build_artifact(
             raw_output=raw_output,
             expected_endpoints=contract.endpoint_theorems,
@@ -330,18 +372,30 @@ def main(argv: list[str] | None = None) -> int:
             proof_contract_id=contract.contract_id,
             proof_contract_sha256=contract.contract_sha256,
             git_commit=expected_commit,
+            kernel_axiom_audit_sha256=kernel_axiom_audit_sha256,
+            kernel_axiom_audit_theorem_count=len(audited_theorems),
         )
-    except (EnvironmentMetadataError, OSError) as exc:
+    except (EnvironmentMetadataError, OSError, ValueError) as exc:
         print(f"Lean environment metadata rejected: {exc}", file=sys.stderr)
         return 2
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    audit_json_path = args.output.parent / "v330_kernel_axiom_audit.json"
+    audit_raw_path = args.output.parent / "v330_kernel_axiom_audit.raw.txt"
+    audit_json_path.write_bytes(audit_rendered)
+    audit_raw_path.write_text(audit_raw_output, encoding="utf-8")
+    audit_json_path.with_suffix(audit_json_path.suffix + ".sha256").write_text(
+        f"{kernel_axiom_audit_sha256}  {audit_json_path.name}\n", encoding="utf-8"
+    )
+
     rendered = _canonical_json_bytes(artifact)
     args.output.write_bytes(rendered)
     digest = _sha256(rendered)
     args.output.with_suffix(args.output.suffix + ".sha256").write_text(
         f"{digest}  {args.output.name}\n", encoding="utf-8"
     )
+    print(f"Kernel axiom audit PASS: {len(audited_theorems)} endpoints")
+    print(f"kernel_axiom_audit_sha256: {kernel_axiom_audit_sha256}")
     print(f"Lean environment metadata PASS: {artifact['endpoint_count']} endpoints")
     print(f"identity_sha256: {artifact['identity_sha256']}")
     print(f"artifact_sha256: {digest}")
