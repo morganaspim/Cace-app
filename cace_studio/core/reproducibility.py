@@ -67,6 +67,17 @@ def _edge_tuple(edge: Edge) -> tuple[str, str, str, str]:
     return (edge.source_node, edge.source_port, edge.target_node, edge.target_port)
 
 
+def _groups_payload(experiment: Experiment) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": group.id,
+            "name": group.name,
+            "node_ids": sorted(group.node_ids),
+        }
+        for group in sorted(experiment.groups, key=lambda item: item.id)
+    ]
+
+
 def experiment_payload(experiment: Experiment, *, include_layout: bool) -> dict[str, Any]:
     nodes = []
     for node in sorted(experiment.nodes, key=lambda item: item.id):
@@ -95,6 +106,7 @@ def experiment_payload(experiment: Experiment, *, include_layout: bool) -> dict[
     if include_layout:
         payload["name"] = experiment.name
         payload["metadata"] = _normalize(experiment.metadata)
+        payload["groups"] = _groups_payload(experiment)
     return payload
 
 
@@ -168,10 +180,11 @@ def reproducibility_manifest(experiment: Experiment, registry) -> dict[str, Any]
         "module_contract_sha256": registry_contract_fingerprint(registry),
         "node_count": len(experiment.nodes),
         "edge_count": len(experiment.edges),
+        "group_count": len(experiment.groups),
         "module_ids": module_ids,
         "notes": [
-            "semantic identity excludes experiment name, metadata and node positions",
-            "full identity includes layout/name/metadata",
+            "semantic identity excludes experiment name, metadata, node positions and organizational groups",
+            "full identity includes layout/name/metadata/groups",
             "module-contract identity includes declared port/parameter units",
             "these hashes establish content identity, not scientific correctness",
         ],
@@ -233,6 +246,7 @@ def drift_report(expected: Experiment, actual: Experiment) -> dict[str, Any]:
         "added_edges": [list(edge) for edge in sorted(after_edges - before_edges)],
         "removed_edges": [list(edge) for edge in sorted(before_edges - after_edges)],
         "layout_changed_nodes": layout_changed_nodes,
+        "groups_changed": _groups_payload(expected) != _groups_payload(actual),
         "name_changed": expected.name != actual.name,
         "metadata_changed": _normalize(expected.metadata) != _normalize(actual.metadata),
         "interpretation": (
