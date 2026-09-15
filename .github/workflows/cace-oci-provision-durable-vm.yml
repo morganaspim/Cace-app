@@ -1,0 +1,236 @@
+name: CACE OCI durable VM provision
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-provision-durable-vm.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: self-hosted
+    timeout-minutes: 35
+    steps:
+      - name: Provision persistent A1 runner host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p oci-durable-vm
+          exec > >(tee oci-durable-vm/provision.txt) 2>&1
+
+          CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
+          PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+          read -r TENANCY_OCID REGION <<EOF
+          $(python3 - "$CONFIG_FILE" "$PROFILE" <<'PY'
+          import configparser, sys
+          cfg=configparser.ConfigParser(); cfg.read(sys.argv[1]); p=cfg[sys.argv[2]]
+          print(p['tenancy'].strip(), p.get('region', sys.argv[2]).strip())
+          PY
+          )
+          EOF
+
+          SUBNET_ID="$(oci network subnet list --compartment-id "$TENANCY_OCID" --all \
+            --query 'data[?"lifecycle-state"==`AVAILABLE`].id | [0]' --raw-output)"
+          AD="$(oci iam availability-domain list --compartment-id "$TENANCY_OCID" --all --query 'data[-1].name' --raw-output)"
+          IMAGE_ID="$(oci compute image list --compartment-id "$TENANCY_OCID" --all \
+            --operating-system 'Oracle Linux' --operating-system-version '8' \
+            --shape 'VM.Standard.A1.Flex' --sort-by TIMECREATED --sort-order DESC \
+            --query 'data[0].id' --raw-output)"
+          test -n "$SUBNET_ID"; test "$SUBNET_ID" != null
+          test -n "$IMAGE_ID"; test "$IMAGE_ID" != null
+
+          echo '=== existing A1 instances ==='
+          oci compute instance list --compartment-id "$TENANCY_OCID" --all \
+            --query 'data[?shape==`VM.Standard.A1.Flex` && "lifecycle-state"!=`TERMINATED`].{"name":"display-name",state:"lifecycle-state",shapeConfig:"shape-config",id:id}' \
+            --output table || true
+
+          OLD_IDS="$(oci compute instance list --compartment-id "$TENANCY_OCID" --all \
+            --query 'data[?("display-name"==`instance-20260914-1035` || "display-name"==`cace-runner-a1`) && "lifecycle-state"!=`TERMINATED`].id' \
+            --raw-output)"
+          python3 - <<'PY' "$OLD_IDS" > /tmp/cace-old-instance-ids
+          import ast,sys
+          v=sys.argv[1].strip()
+          if not v: raise SystemExit
+          try: xs=ast.literal_eval(v)
+          except Exception: xs=[]
+          for x in xs:
+              if x: print(x)
+          PY
+          while read -r iid; do
+            [[ -n "$iid" ]] || continue
+            echo "Terminating prior disposable runner VM ${iid:0:36}..."
+            oci compute instance terminate --instance-id "$iid" --force --preserve-boot-volume false \
+              --wait-for-state TERMINATED --max-wait-seconds 900 >/dev/null
+          done < /tmp/cace-old-instance-ids
+
+          cat > /tmp/cace-userdata.sh <<'USERDATA'
+          #!/bin/bash
+          set -euxo pipefail
+          hostnamectl set-hostname cace-oci-a1 || true
+          id github-runner >/dev/null 2>&1 || useradd --create-home --shell /bin/bash github-runner
+          dnf -y install curl git tar gzip unzip jq openssl rsync util-linux findutils procps-ng python3 || true
+
+          install -d -m 0755 /opt/actions-runner
+          install -d -o github-runner -g github-runner -m 0755 \
+            /var/lib/cace-cache/elan /var/lib/cace-cache/xdg /var/lib/cace-cache/uv \
+            /var/lib/cace-cache/pip /var/lib/cace-cache/mathlib /var/lib/cace-cache/telemetry
+
+          cd /opt/actions-runner
+          curl -fL --retry 5 --retry-delay 3 \
+            https://github.com/actions/runner/releases/download/v2.337.0/actions-runner-linux-arm64-2.337.0.tar.gz \
+            -o /tmp/actions-runner.tgz
+          tar xzf /tmp/actions-runner.tgz
+          ./bin/installdependencies.sh || true
+          chown -R github-runner:github-runner /opt/actions-runner
+
+          cat > /etc/sudoers.d/101-oracle-cloud-agent-run-command <<'EOF'
+          ocarun ALL=(ALL) NOPASSWD:ALL
+          EOF
+          chmod 0440 /etc/sudoers.d/101-oracle-cloud-agent-run-command
+          visudo -cf /etc/sudoers.d/101-oracle-cloud-agent-run-command
+
+          cat > /usr/local/sbin/cace-runner-watchdog <<'EOF'
+          #!/bin/bash
+          set -u
+          T=/var/lib/cace-cache/telemetry
+          mkdir -p "$T"
+          while true; do
+            ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "$ts" > "$T/heartbeat.tmp" && mv "$T/heartbeat.tmp" "$T/heartbeat"
+            if systemctl list-unit-files actions.runner.cace.service --no-legend 2>/dev/null | grep -q actions.runner.cace; then
+              if ! systemctl is-active --quiet actions.runner.cace.service; then
+                echo "$ts runner-inactive restart-requested" >> "$T/watchdog.log"
+                systemctl restart actions.runner.cace.service || true
+              fi
+            fi
+            {
+              echo "timestamp=$ts"; hostname
+              systemctl status actions.runner.cace.service --no-pager 2>&1 || true
+              free -h || true; df -h / /var/lib/cace-cache || true
+              ps -eo pid,ppid,pcpu,pmem,rss,vsz,etime,stat,cmd | grep -E 'Runner\.(Listener|Worker)|lake (build|env)|/lean( |$)|/lean-' | grep -v grep || true
+              cat /sys/fs/cgroup/memory.events 2>/dev/null || true
+              journalctl -u actions.runner.cace.service -n 50 --no-pager 2>&1 || true
+            } > "$T/latest.tmp"
+            mv "$T/latest.tmp" "$T/latest.txt"
+            sleep 30
+          done
+          EOF
+          chmod 0755 /usr/local/sbin/cace-runner-watchdog
+
+          cat > /etc/systemd/system/cace-runner-watchdog.service <<'EOF'
+          [Unit]
+          Description=CACE runner watchdog and telemetry
+          After=network-online.target
+          Wants=network-online.target
+          [Service]
+          ExecStart=/usr/local/sbin/cace-runner-watchdog
+          Restart=always
+          RestartSec=5
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          cat > /usr/local/sbin/cace-register-runner <<'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          TOKEN="${1:-}"
+          if [[ -z "$TOKEN" ]]; then
+            echo 'usage: sudo cace-register-runner <one-hour GitHub registration token>' >&2
+            exit 2
+          fi
+          cd /opt/actions-runner
+          if [[ -f .runner ]]; then
+            echo 'Runner is already configured; refusing to overwrite it.' >&2
+            exit 3
+          fi
+          sudo -u github-runner ./config.sh --unattended \
+            --url https://github.com/morganaspim/Cace-app \
+            --token "$TOKEN" \
+            --name cace-oci-a1 \
+            --labels cace,oci,aarch64 \
+            --work _work
+          ./svc.sh install github-runner
+          SERVICE="$(cat .service)"
+          mkdir -p "/etc/systemd/system/${SERVICE}.d"
+          cat > "/etc/systemd/system/${SERVICE}.d/10-cace.conf" <<'UNIT'
+          [Service]
+          Restart=always
+          RestartSec=5
+          Environment=ELAN_HOME=/var/lib/cace-cache/elan
+          Environment=XDG_CACHE_HOME=/var/lib/cace-cache/xdg
+          Environment=UV_CACHE_DIR=/var/lib/cace-cache/uv
+          Environment=PIP_CACHE_DIR=/var/lib/cace-cache/pip
+          UNIT
+          systemctl daemon-reload
+          systemctl enable --now "$SERVICE"
+          ln -sf "/etc/systemd/system/$SERVICE" /etc/systemd/system/actions.runner.cace.service
+          systemctl daemon-reload
+          systemctl restart cace-runner-watchdog.service
+          systemctl status "$SERVICE" --no-pager
+          EOF
+          chmod 0755 /usr/local/sbin/cace-register-runner
+
+          systemctl daemon-reload
+          systemctl enable --now cace-runner-watchdog.service
+          touch /var/lib/cace-bootstrap-ready
+          USERDATA
+
+          USERDATA_B64="$(base64 -w0 /tmp/cace-userdata.sh)"
+          python3 - "$USERDATA_B64" <<'PY'
+          import json,pathlib,sys
+          pathlib.Path('/tmp/cace-metadata.json').write_text(json.dumps({'user_data':sys.argv[1]}))
+          pathlib.Path('/tmp/cace-agent.json').write_text(json.dumps({
+            'areAllPluginsDisabled':False,
+            'isManagementDisabled':False,
+            'isMonitoringDisabled':False,
+            'pluginsConfig':[
+              {'name':'Compute Instance Run Command','desiredState':'ENABLED'},
+              {'name':'Compute Instance Monitoring','desiredState':'ENABLED'}
+            ]
+          }))
+          PY
+
+          echo '=== launching 2 OCPU / 12 GB / 140 GB durable runner ==='
+          INSTANCE_ID="$(oci compute instance launch \
+            --compartment-id "$TENANCY_OCID" --availability-domain "$AD" \
+            --display-name cace-runner-a1 --shape VM.Standard.A1.Flex \
+            --shape-config '{"ocpus":2,"memoryInGBs":12}' \
+            --subnet-id "$SUBNET_ID" --image-id "$IMAGE_ID" \
+            --assign-public-ip false --boot-volume-size-in-gbs 140 \
+            --metadata file:///tmp/cace-metadata.json --agent-config file:///tmp/cace-agent.json \
+            --wait-for-state RUNNING --max-wait-seconds 900 --query 'data.id' --raw-output)"
+          test -n "$INSTANCE_ID"
+          echo "instance_prefix=${INSTANCE_ID:0:36}..."
+          oci compute instance get --instance-id "$INSTANCE_ID" \
+            --query 'data.{name:"display-name",state:"lifecycle-state",shape:shape,shapeConfig:"shape-config",ad:"availability-domain",agentConfig:"agent-config"}' \
+            --output json
+
+          echo '=== waiting for Cloud Agent bootstrap readiness ==='
+          for attempt in $(seq 1 60); do
+            PLUGINS="$(oci instance-agent plugin list --compartment-id "$TENANCY_OCID" --instanceagent-id "$INSTANCE_ID" --all --output json 2>/dev/null || true)"
+            if [[ -n "$PLUGINS" ]]; then
+              STATUS="$(python3 - <<'PY' "$PLUGINS"
+          import json,sys
+          for x in json.loads(sys.argv[1]).get('data',[]):
+              if (x.get('name') or x.get('plugin-name')) == 'Compute Instance Run Command':
+                  print(x.get('status','')); break
+          PY
+              )"
+              echo "run-command-plugin=$STATUS"
+              [[ "$STATUS" == RUNNING ]] && break
+            fi
+            sleep 10
+          done
+
+          echo 'Provisioning complete. Registration helper is /usr/local/sbin/cace-register-runner.'
+
+      - name: Upload provisioning diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-oci-durable-vm-provision
+          path: oci-durable-vm/
