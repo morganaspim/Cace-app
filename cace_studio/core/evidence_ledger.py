@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Mapping, Sequence
 
 from .reproducibility import canonical_json_bytes, canonical_json_text
@@ -28,6 +29,20 @@ class EvidenceLedgerError(ValueError):
 def _require_sha256(value: str, field_name: str) -> str:
     if not isinstance(value, str) or len(value) != 64 or any(ch not in _HEX for ch in value):
         raise EvidenceLedgerError(f"{field_name} must be a lowercase 64-character SHA-256 hex digest")
+    return value
+
+
+def _require_utc_second(value: Any, field_name: str = "timestamp_utc") -> str:
+    if not isinstance(value, str) or not value:
+        raise EvidenceLedgerError(f"{field_name} must be a non-empty string")
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as exc:
+        raise EvidenceLedgerError(
+            f"{field_name} must use second-resolution UTC form YYYY-MM-DDTHH:MM:SSZ"
+        ) from exc
+    if parsed.strftime("%Y-%m-%dT%H:%M:%SZ") != value:
+        raise EvidenceLedgerError(f"{field_name} is not canonical UTC")
     return value
 
 
@@ -253,8 +268,7 @@ class LedgerEntry:
             )
         if not isinstance(self.sequence, int) or isinstance(self.sequence, bool) or self.sequence < 0:
             raise EvidenceLedgerError("ledger sequence must be a non-negative integer")
-        if not isinstance(self.timestamp_utc, str) or not self.timestamp_utc:
-            raise EvidenceLedgerError("timestamp_utc must be a non-empty string")
+        _require_utc_second(self.timestamp_utc)
         _require_sha256(self.bundle_sha256, "bundle_sha256")
         _require_sha256(self.merkle_root_sha256, "merkle_root_sha256")
         if self.previous_entry_sha256 is not None:
