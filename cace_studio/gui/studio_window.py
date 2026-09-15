@@ -105,50 +105,81 @@ class StudioMainWindow(MainWindow):
             self.console.append("Paste: graph clipboard is empty.")
             return
 
-        self._record_history()
-        self._paste_generation += 1
-        offset = (30.0 * self._paste_generation, 30.0 * self._paste_generation)
+        self._sync_positions()
+        before = self.history.snapshot(self.experiment)
+        trial = self.history.snapshot(self.experiment)
+        next_generation = self._paste_generation + 1
+        offset = (30.0 * next_generation, 30.0 * next_generation)
         try:
             new_ids = paste_graph_fragment(
-                self.experiment,
+                trial,
                 self._graph_clipboard,
                 offset=offset,
             )
+        except Exception as exc:
+            self.console.append(f"Paste failed before mutation: {type(exc).__name__}: {exc}")
+            return
+
+        self._record_history(sync_positions=False)
+        try:
             self._restore_experiment(
-                self.experiment,
+                trial,
                 log_message=f"Pasted {len(new_ids)} node(s).",
             )
-            self._reselect_nodes(new_ids)
-            self._sync_history_actions()
-            self._autosave_tick()
         except Exception as exc:
-            # The core paste helper validates before mutation; restoration is not
-            # necessary for its validation failures. Keep the prior history entry
-            # so the user can still undo if a future visual restore path fails.
+            try:
+                self._restore_experiment(before, log_message="Paste rolled back after restore failure.")
+            except Exception as rollback_exc:
+                self.console.append(
+                    f"Paste rollback failed: {type(rollback_exc).__name__}: {rollback_exc}"
+                )
             self.console.append(f"Paste failed: {type(exc).__name__}: {exc}")
+            return
+
+        self._paste_generation = next_generation
+        self._reselect_nodes(new_ids)
+        self._sync_history_actions()
+        self._autosave_tick()
 
     def _align_selection(self, *, axis: str, strategy: str, label: str) -> None:
         selected = self.canvas.selected_node_ids()
         if len(selected) < 2:
             self.console.append(f"Align {label}: select at least two nodes.")
             return
-        self._record_history()
+
+        self._sync_positions()
+        before = self.history.snapshot(self.experiment)
+        trial = self.history.snapshot(self.experiment)
         try:
             align_node_positions(
-                self.experiment,
+                trial,
                 selected,
                 axis=axis,
                 strategy=strategy,
             )
+        except Exception as exc:
+            self.console.append(f"Align {label} failed before mutation: {type(exc).__name__}: {exc}")
+            return
+
+        self._record_history(sync_positions=False)
+        try:
             self._restore_experiment(
-                self.experiment,
+                trial,
                 log_message=f"Aligned {len(selected)} node(s): {label}.",
             )
-            self._reselect_nodes(selected)
-            self._sync_history_actions()
-            self._autosave_tick()
         except Exception as exc:
+            try:
+                self._restore_experiment(before, log_message=f"Align {label} rolled back.")
+            except Exception as rollback_exc:
+                self.console.append(
+                    f"Align rollback failed: {type(rollback_exc).__name__}: {rollback_exc}"
+                )
             self.console.append(f"Align {label} failed: {type(exc).__name__}: {exc}")
+            return
+
+        self._reselect_nodes(selected)
+        self._sync_history_actions()
+        self._autosave_tick()
 
     def _selected_module_context(self):
         if not self.selected_node_id:
