@@ -22,6 +22,10 @@ def enforce_formal_claim_qualification(
     certificate preserves FORMAL+PASS only when the canonical claim registry and
     proof ledger agree on a current-head, content-addressed qualification.
 
+    Qualification provenance is runner-independent: GitHub Actions, a local
+    deterministic qualification command, or another approved system may supply
+    the provenance, but it must have a named system and unique run identifier.
+
     Non-formal evidence is unchanged. Formal FAIL and NOT_RUN are preserved.
     """
 
@@ -72,7 +76,14 @@ def enforce_formal_claim_qualification(
                 blockers.append("proof-ledger-status-not-pass")
             if not ledger_entry.current_head_qualified:
                 blockers.append("proof-ledger-current-head-qualification-missing")
-            if ledger_entry.workflow_run_id is None or ledger_entry.workflow_run_id <= 0:
+            if not ledger_entry.qualification_system:
+                blockers.append("proof-ledger-qualification-system-missing")
+            if not ledger_entry.qualification_run_id:
+                blockers.append("proof-ledger-qualification-run-missing")
+            if (
+                ledger_entry.qualification_system == "github-actions"
+                and (ledger_entry.workflow_run_id is None or ledger_entry.workflow_run_id <= 0)
+            ):
                 blockers.append("proof-ledger-workflow-run-missing")
             if not ledger_entry.checks:
                 blockers.append("proof-ledger-qualification-checks-missing")
@@ -111,6 +122,12 @@ def enforce_formal_claim_qualification(
             continue
 
         assert ledger_entry is not None
+        provenance_metrics = {
+            "qualification_system": ledger_entry.qualification_system,
+            "qualification_run_id": ledger_entry.qualification_run_id,
+        }
+        if ledger_entry.workflow_run_id is not None:
+            provenance_metrics["workflow_run_id"] = ledger_entry.workflow_run_id
         out.append(
             replace(
                 record,
@@ -123,14 +140,14 @@ def enforce_formal_claim_qualification(
                     "qualification_status": claim.qualification_status,
                     "attested_commit": ledger_entry.commit,
                     "proof_artifact_sha256": ledger_entry.proof_artifact_sha256,
-                    "workflow_run_id": ledger_entry.workflow_run_id,
+                    **provenance_metrics,
                 },
                 notes=record.notes
                 + (
                     f"Formal evidence bound to canonical claim {claim.claim_id}, commit "
                     f"{ledger_entry.commit}, proof artifact "
-                    f"{ledger_entry.proof_artifact_sha256}, and workflow run "
-                    f"{ledger_entry.workflow_run_id}.",
+                    f"{ledger_entry.proof_artifact_sha256}, and qualification "
+                    f"{ledger_entry.qualification_system}:{ledger_entry.qualification_run_id}."
                 ),
             )
         )
