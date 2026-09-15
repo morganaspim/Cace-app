@@ -107,6 +107,7 @@ def _port_payload(port) -> dict[str, Any]:
         "name": port.name,
         "type_name": port.type_name,
         "required": bool(port.required),
+        "unit": port.unit,
     }
 
 
@@ -116,6 +117,7 @@ def _parameter_payload(parameter) -> dict[str, Any]:
         "type_name": parameter.type_name,
         "default": _normalize(parameter.default),
         "description": parameter.description,
+        "unit": parameter.unit,
     }
 
 
@@ -170,6 +172,7 @@ def reproducibility_manifest(experiment: Experiment, registry) -> dict[str, Any]
         "notes": [
             "semantic identity excludes experiment name, metadata and node positions",
             "full identity includes layout/name/metadata",
+            "module-contract identity includes declared port/parameter units",
             "these hashes establish content identity, not scientific correctness",
         ],
     }
