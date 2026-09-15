@@ -4,6 +4,7 @@ from .core.settings import StudioSettings
 from .modules import register_all
 from .modules.formal_v322 import register_formal_v322
 from .modules.formal_v325 import register_formal_v325
+from .modules.research_dynamics import register_research_dynamics
 
 
 def build_registry() -> ModuleRegistry:
@@ -13,6 +14,8 @@ def build_registry() -> ModuleRegistry:
         register_formal_v322(r)
     if not r.contains("formal325.mesh_certificate_generator"):
         register_formal_v325(r)
+    if not r.contains("research.growth_rotation_walk"):
+        register_research_dynamics(r)
     return r
 
 
