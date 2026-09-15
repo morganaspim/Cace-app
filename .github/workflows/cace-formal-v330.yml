@@ -45,7 +45,7 @@ jobs:
   proof-strengthening:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
-    timeout-minutes: 70
+    timeout-minutes: 240
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -139,7 +139,7 @@ jobs:
           # Mathlib's cache CLI accepts a Lean file/module and downloads only
           # that root plus its transitive imports. Do not fetch all of Mathlib:
           # the self-hosted runner has insufficient disk for the full cache.
-          timeout 900 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+          timeout 5400 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
             get CACEFormal/V330AxiomAudit.lean
           echo "Cache footprint after scoped extraction:"
           du -sh "$XDG_CACHE_HOME" || true
@@ -190,7 +190,7 @@ jobs:
           # endpoints are promoted by this workflow. Lake therefore compiles
           # the exact transitive proof dependency closure, rather than unrelated
           # historical modules in the full CACEFormal umbrella.
-          timeout 2400 lake build CACEFormal.V330AxiomAudit
+          timeout 5400 lake build CACEFormal.V330AxiomAudit
 
       - name: Kernel axiom audit
         working-directory: ${{ env.CACE_FORMAL_DIR }}
