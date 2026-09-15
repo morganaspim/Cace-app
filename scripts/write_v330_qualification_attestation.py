@@ -117,7 +117,7 @@ def main() -> int:
         "mathlib_cache_scope": "CACEFormal/V330AxiomAudit.lean transitive import closure",
         "audited_source_files": AUDITED_SOURCE_FILES,
         "audited_source_bundle_sha256": source_bundle_sha256(formal_dir),
-        "axiom_audit_sha256": __import__("hashlib").sha256(args.axiom_audit.read_bytes()).hexdigest(),
+        "axiom_audit_sha256": hashlib.sha256(args.axiom_audit.read_bytes()).hexdigest(),
         "scope": "Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.",
         "theorems": THEOREMS,
         "promotion_guards": {
@@ -136,7 +136,7 @@ def main() -> int:
     path = output_dir / "v330_formal_qualification_attestation.json"
     rendered = json.dumps(data, indent=2, sort_keys=True) + "\n\n"
     path.write_text(rendered, encoding="utf-8")
-    digest = __import__("hashlib").sha256(rendered.encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     (output_dir / "v330_formal_qualification_attestation.sha256").write_text(
         f"{digest}  {path.name}\n", encoding="utf-8"
     )
