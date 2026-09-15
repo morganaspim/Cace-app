@@ -2,9 +2,9 @@ import CACEFormal.V330AxiomAudit
 import Lean
 
 /-!
-# v3.30 Lean-environment theorem metadata exporter
+# Continuum Lean-environment theorem metadata exporter
 
-This module emits machine-readable metadata for the exact v3.30 audited endpoints.
+This module emits machine-readable metadata for the exact audited continuum endpoints.
 The data comes from declarations already loaded into `Lean.Environment`; no theorem
 edges are inferred from source text. Python qualification tooling canonicalizes and
 hashes these records and fails closed if the endpoint set differs from the proof
@@ -43,7 +43,14 @@ private def endpoints : List Name := [
   ``CACEFormal.Continuum.besselPotential_neg_one_weakPartial_inH1_of_inL2,
   ``CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2,
   ``CACEFormal.Continuum.h1RieszCorrection_inH1,
-  ``CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction
+  ``CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction,
+  ``CACEFormal.Continuum.BoundedGreenPairing.normalTrace_bound,
+  ``CACEFormal.Continuum.normalTrace_unique_of_dense_agreement,
+  ``CACEFormal.Continuum.weakGreen_of_denseSmoothCore,
+  ``CACEFormal.Continuum.volumePairing_eq_zero_of_zeroBoundaryTrace,
+  ``CACEFormal.Continuum.zeroBoundaryOrthogonality,
+  ``CACEFormal.Continuum.zeroBoundaryOrthogonality_of_mem,
+  ``CACEFormal.Continuum.continuumPragerSynge_of_weakGreen
 ]
 
 private def insertName (name : Name) (names : List Name) : List Name :=
@@ -94,9 +101,9 @@ private def namesJson (names : List Name) : Json :=
 
 private def theoremRecord (env : Environment) (name : Name) : MetaM Json := do
   let some info := env.find? name
-    | throwError "v3.30 metadata exporter: missing declaration {name}"
+    | throwError "continuum metadata exporter: missing declaration {name}"
   let .thmInfo theorem := info
-    | throwError "v3.30 metadata exporter: {name} is not a theorem declaration"
+    | throwError "continuum metadata exporter: {name} is not a theorem declaration"
   let direct := theoremDependencies env name theorem.value
   let transitive := (theoremClosure env direct []).filter (· != name)
   let statement ← withOptions (fun options =>
