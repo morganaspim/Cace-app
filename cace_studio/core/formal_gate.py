@@ -175,7 +175,7 @@ def enforce_formal_claim_qualification(
                     f"Formal evidence bound to claim {claim.claim_id}, proof contract "
                     f"{contract.contract_id}@{contract.contract_sha256}, commit {ledger_entry.commit}, "
                     f"proof artifact {ledger_entry.proof_artifact_sha256}, and qualification "
-                    f"{ledger_entry.qualification_system}:{ledger_entry.qualification_run_id}."
+                    f"{ledger_entry.qualification_system}:{ledger_entry.qualification_run_id}.",
                 ),
             )
         )

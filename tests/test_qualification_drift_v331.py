@@ -23,6 +23,8 @@ def _commit_all(repo, message):
 
 def _qualified_pair(commit):
     digest = "a" * 64
+    contract_id = "unit.proof.v1"
+    contract_digest = "b" * 64
     registry = ClaimRegistry.from_mapping(
         {
             "schema_version": 1,
@@ -34,6 +36,7 @@ def _qualified_pair(commit):
                     "statement": "unit",
                     "scope": "unit",
                     "evidence_ceiling": "formally-verified",
+                    "proof_contract_id": contract_id,
                     "qualification": {
                         "status": "PASS",
                         "current_head_qualified": True,
@@ -58,6 +61,8 @@ def _qualified_pair(commit):
                     "current_head_qualified": True,
                     "commit": commit,
                     "proof_artifact_sha256": digest,
+                    "proof_contract_id": contract_id,
+                    "proof_contract_sha256": contract_digest,
                     "workflow_run_id": 1,
                     "checks": ["pinned-build", "axiom-audit"],
                     "blockers": [],
