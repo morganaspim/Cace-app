@@ -65,9 +65,12 @@ private partial def collectConstants (expr : Expr) (acc : List Name := []) : Lis
   | .mdata _ body => collectConstants body acc
   | .proj _ _ body => collectConstants body acc
 
+private def isCACEName (name : Name) : Bool :=
+  name.toString.startsWith "CACEFormal."
+
 private def theoremDependencies (env : Environment) (self : Name) (expr : Expr) : List Name :=
   (collectConstants expr).filter fun name =>
-    name != self &&
+    name != self && isCACEName name &&
       match env.find? name with
       | some (.thmInfo _) => true
       | _ => false
@@ -107,14 +110,14 @@ private def theoremRecord (env : Environment) (name : Name) : MetaM Json := do
     ("level_parameters", toJson (theorem.levelParams.map Name.toString)),
     ("statement_pp_all", toJson statement),
     ("statement_constants", namesJson (collectConstants theorem.type)),
-    ("direct_theorem_dependencies", namesJson direct),
-    ("transitive_theorem_dependencies", namesJson transitive)
+    ("direct_cace_theorem_dependencies", namesJson direct),
+    ("transitive_cace_theorem_dependencies", namesJson transitive)
   ]
 
 run_meta do
   let env ← getEnv
   for name in endpoints do
     let record ← theoremRecord env name
-    IO.println s!"CACE_THEOREM_METADATA\t{record.compress}"
+    liftIO <| IO.println s!"CACE_THEOREM_METADATA\t{record.compress}"
 
 end CACEFormal.V330TheoremMetadata
