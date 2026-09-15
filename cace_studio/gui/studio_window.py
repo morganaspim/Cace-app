@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence
 
+from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph_edit import (
     GraphFragment,
     align_node_positions,
@@ -31,6 +32,7 @@ class StudioMainWindow(MainWindow):
         self._graph_clipboard: GraphFragment | None = None
         self._paste_generation = 0
         self._install_graph_edit_actions()
+        self._install_scoped_run_action()
 
         self.proof_explorer = ProofExplorerWidget(self)
         self.proof_explorer_dock = self._dock(
@@ -74,6 +76,18 @@ class StudioMainWindow(MainWindow):
             arrange_menu,
             "Align Horizontal Row",
             lambda: self._align_selection(axis="y", strategy="mean", label="horizontal row"),
+        )
+
+    def _install_scoped_run_action(self) -> None:
+        run_menu = self._menu_named("Run")
+        if run_menu is None:
+            return
+        run_menu.addSeparator()
+        self._action(
+            run_menu,
+            "Execute + Verify Selected + Upstream",
+            self.run_selected_upstream,
+            "Ctrl+Shift+R",
         )
 
     def _reselect_nodes(self, node_ids) -> None:
@@ -180,6 +194,39 @@ class StudioMainWindow(MainWindow):
         self._reselect_nodes(selected)
         self._sync_history_actions()
         self._autosave_tick()
+
+    def run_selected_upstream(self) -> None:
+        selected = tuple(sorted(self.canvas.selected_node_ids()))
+        if not selected:
+            self.console.append("Selected + Upstream run: select at least one target node.")
+            return
+
+        try:
+            self._sync_positions()
+            result = GraphExecutor(
+                self.registry, gpu_enabled=self.settings.gpu_enabled
+            ).run_selected_upstream(self.experiment, selected)
+            self.last_result = result
+            status = "PASS" if result.all_verifiers_passed else "VERIFICATION FAILURE"
+            self.console.append(
+                f"Run {result.run_id}: {status} | scope=selected-upstream | "
+                f"targets={result.scope_target_node_ids} | included={result.scope_included_node_ids}"
+            )
+            self.console.append(f"  scope_sha256={result.execution_scope_sha256}")
+            for certificate in result.certificates:
+                output = result.outputs[certificate.node_id]
+                self.console.append(
+                    f"  {certificate.node_id}: device={certificate.actual_device}/{certificate.backend}, "
+                    f"evidence={certificate.evidence or ('none',)}, output={output}"
+                )
+            if self.selected_node_id:
+                self._show_node_verification(self.selected_node_id)
+            else:
+                self._refresh_proof_explorer()
+        except Exception as exc:
+            self.console.append(
+                f"Selected + Upstream run failed: {type(exc).__name__}: {exc}"
+            )
 
     def _selected_module_context(self):
         if not self.selected_node_id:
