@@ -1,0 +1,23 @@
+name: CACE Formal quiesce for runner migration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-formal-quiesce.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v330-refs/heads/main
+  cancel-in-progress: true
+
+jobs:
+  quiesce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Release self-hosted runner for OCI migration
+        run: echo 'Formal qualification intentionally quiesced for durable OCI runner migration.'
