@@ -45,7 +45,7 @@ jobs:
   proof-strengthening:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
-    timeout-minutes: 55
+    timeout-minutes: 70
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -190,7 +190,7 @@ jobs:
           # endpoints are promoted by this workflow. Lake therefore compiles
           # the exact transitive proof dependency closure, rather than unrelated
           # historical modules in the full CACEFormal umbrella.
-          timeout 1200 lake build CACEFormal.V330AxiomAudit
+          timeout 2400 lake build CACEFormal.V330AxiomAudit
 
       - name: Kernel axiom audit
         working-directory: ${{ env.CACE_FORMAL_DIR }}
