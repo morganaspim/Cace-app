@@ -54,6 +54,22 @@ jobs:
       CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
 
     steps:
+      - name: Bootstrap Git required for exact-head qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v git >/dev/null 2>&1; then
+            if command -v sudo >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git
+            else
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y git
+            fi
+          fi
+          git --version
+          command -v flock
+
       - name: Checkout exact event commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -141,7 +157,6 @@ jobs:
           else
             echo "Persistent package cache is absent; qualification will resolve dependencies from pins."
           fi
-          # Never import a project build from checkout or persistent storage.
           rm -rf "$CACE_FORMAL_DIR/.lake/build"
 
       - name: Configure verified TLS trust for Mathlib cache
@@ -193,9 +208,6 @@ jobs:
           lake build +Cache.Main
           timeout 5400 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
             get CACEFormal/V330AxiomAudit.lean
-          # Transfer cache is per-run. Extracted dependency oleans remain only
-          # in this run's copied package tree; no qualification output is written
-          # back into the persistent cache.
           find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete || true
           rm -rf .lake/build
           echo "Resolved mathlib=$(git -C .lake/packages/mathlib rev-parse HEAD)"
