@@ -4,8 +4,8 @@
 Production mode executes the pinned Lean exporter. ``--raw-output`` is only an
 input seam for tests and post-processing; it does not create proof evidence by
 itself. The validator fails closed on endpoint drift, malformed records, unknown
-fields, self-dependencies, or a dependency closure that does not contain each
-direct dependency.
+fields, self-dependencies, a dependency closure that does not contain each
+direct dependency, proof-contract drift, or exact-commit drift.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from typing import Any, Iterable
 
 SENTINEL = "CACE_THEOREM_METADATA\t"
 RECORD_SCHEMA = "cace-lean-theorem-record-v1"
-ARTIFACT_SCHEMA = "cace-lean-theorem-metadata-v1"
+ARTIFACT_SCHEMA = "cace-lean-theorem-metadata-v2"
 GENERATOR = "CACEFormal.V330TheoremMetadata"
 PROVENANCE = "Lean.Environment"
 _RECORD_KEYS = {
@@ -54,6 +54,30 @@ def _canonical_json_bytes(value: Any) -> bytes:
 
 def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _is_hex(value: str, length: int) -> bool:
+    return len(value) == length and all(char in "0123456789abcdef" for char in value.lower())
+
+
+def _require_nonempty(value: str, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise EnvironmentMetadataError(f"{field} must be a non-empty string")
+    return value.strip()
+
+
+def _require_sha256(value: str, field: str) -> str:
+    value = _require_nonempty(value, field).lower()
+    if not _is_hex(value, 64):
+        raise EnvironmentMetadataError(f"{field} must be a 64-hex SHA-256")
+    return value
+
+
+def _require_git_commit(value: str, field: str = "git_commit") -> str:
+    value = _require_nonempty(value, field).lower()
+    if not _is_hex(value, 40):
+        raise EnvironmentMetadataError(f"{field} must be a 40-hex Git commit")
+    return value
 
 
 def _string_list(value: Any, field: str) -> list[str]:
@@ -178,17 +202,33 @@ def build_artifact(
     lean_version: str,
     lean_toolchain: str,
     mathlib_commit: str,
+    claim_id: str,
+    proof_contract_id: str,
+    proof_contract_sha256: str,
+    git_commit: str,
 ) -> dict[str, Any]:
     endpoints = validate_records(
         parse_records(raw_output),
         expected_endpoints=expected_endpoints,
     )
+    claim_id = _require_nonempty(claim_id, "claim_id")
+    proof_contract_id = _require_nonempty(proof_contract_id, "proof_contract_id")
+    proof_contract_sha256 = _require_sha256(proof_contract_sha256, "proof_contract_sha256")
+    git_commit = _require_git_commit(git_commit)
+    mathlib_commit = _require_git_commit(mathlib_commit, "mathlib_commit")
+    lean_version = _require_nonempty(lean_version, "lean_version")
+    lean_toolchain = _require_nonempty(lean_toolchain, "lean_toolchain")
+
     identity_payload = {
         "generator": GENERATOR,
         "provenance": PROVENANCE,
-        "lean_version": lean_version.strip(),
-        "lean_toolchain": lean_toolchain.strip(),
-        "mathlib_commit": mathlib_commit.strip(),
+        "claim_id": claim_id,
+        "proof_contract_id": proof_contract_id,
+        "proof_contract_sha256": proof_contract_sha256,
+        "git_commit": git_commit,
+        "lean_version": lean_version,
+        "lean_toolchain": lean_toolchain,
+        "mathlib_commit": mathlib_commit,
         "endpoints": endpoints,
     }
     return {
@@ -197,6 +237,7 @@ def build_artifact(
         **identity_payload,
         "identity_sha256": _sha256(_canonical_json_bytes(identity_payload)),
         "endpoint_count": len(endpoints),
+        "proof_effect": "metadata-only; does not independently qualify a theorem",
     }
 
 
@@ -231,6 +272,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--formal-dir", type=Path, default=Path("formal/cace_formal"))
     parser.add_argument("--raw-output", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--git-commit",
+        help="Expected exact repository commit. If omitted, use the checked-out repository HEAD.",
+    )
     args = parser.parse_args(argv)
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -246,6 +291,20 @@ def main(argv: list[str] | None = None) -> int:
 
     formal_dir = args.formal_dir.resolve()
     try:
+        repo_head = _require_git_commit(
+            _command_output(["git", "rev-parse", "HEAD"], cwd=repo_root),
+            "repository HEAD",
+        )
+        expected_commit = (
+            _require_git_commit(args.git_commit, "--git-commit")
+            if args.git_commit
+            else repo_head
+        )
+        if repo_head != expected_commit:
+            raise EnvironmentMetadataError(
+                f"exact commit mismatch: repository HEAD {repo_head} != expected {expected_commit}"
+            )
+
         raw_output = (
             args.raw_output.read_text(encoding="utf-8")
             if args.raw_output
@@ -267,6 +326,10 @@ def main(argv: list[str] | None = None) -> int:
             lean_version=lean_version,
             lean_toolchain=lean_toolchain,
             mathlib_commit=mathlib_commit,
+            claim_id=contract.claim_id,
+            proof_contract_id=contract.contract_id,
+            proof_contract_sha256=contract.contract_sha256,
+            git_commit=expected_commit,
         )
     except (EnvironmentMetadataError, OSError) as exc:
         print(f"Lean environment metadata rejected: {exc}", file=sys.stderr)
