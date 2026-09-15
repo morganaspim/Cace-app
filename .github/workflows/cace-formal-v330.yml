@@ -3,7 +3,7 @@ name: CACE Formal v3.30 proof strengthening
 on:
   workflow_dispatch:
   push:
-    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
+    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation, implement/cace-rigor-playground-v337]
     paths:
       - 'formal/**'
       - 'cace_studio/core/**'
