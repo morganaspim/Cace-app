@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Write the canonical v3.30 qualification attestation after all checks pass.
+"""Write a content-addressed formal qualification artifact after all checks pass.
 
-This script does not run Lean and cannot create proof evidence on its own. It is
-called only after the pinned build, unfinished-token guard, and kernel axiom
-audit have succeeded. The resulting digest is provenance for that successful
-qualification run; it does not broaden the theorem statements or remove their
-hypotheses.
+This script does not run Lean and cannot create proof evidence on its own. The
+portable qualifier invokes it only after the contract-required build and audit
+checks succeed. The artifact binds that run to the exact claim, proof contract,
+source bundle, toolchain/dependency state and axiom output.
 """
 from __future__ import annotations
 
@@ -14,49 +13,26 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from cace_studio.core.claim_registry import ClaimRegistry
+from cace_studio.core.proof_contract import ProofContractRegistry
 
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
-MATHLIB_COMMIT = "520045ab14e26149ee970e2e617ca04b09bde5d6"
-AUDITED_SOURCE_FILES = [
-    "CACEFormal/SmoothBoxGreenAuto.lean",
-    "CACEFormal/RegularizationClosure.lean",
-    "CACEFormal/GraphRegularizationCriterion.lean",
-    "CACEFormal/RealGraphRegularizationCriterion.lean",
-    "CACEFormal/H1DomainBridge.lean",
-    "CACEFormal/H1BesselRieszReduction.lean",
-    "CACEFormal/DistributionalGraphRepresentatives.lean",
-    "CACEFormal/V330AxiomAudit.lean",
-]
-THEOREMS = [
-    "CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt",
-    "CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume",
-    "CACEFormal.Continuum.smoothBoxGreen_schwartz",
-    "CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto",
-    "CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer",
-    "CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer",
-    "CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer",
-    "CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer",
-    "CACEFormal.Continuum.inH1GraphRepresentative_mem",
-    "CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative",
-    "CACEFormal.Continuum.h1RieszSymbol_norm_le_one",
-    "CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2",
-    "CACEFormal.Continuum.h1RieszCorrection_inH1",
-    "CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction",
-]
-NONCLAIMS = [
-    "The v3.30 H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.",
-    "The new H1 distributional graph relation is not yet identified with Mathlib Bessel-potential InH1 in the converse direction.",
-    "CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries.",
-]
+ARTIFACT_SCHEMA = "cace-formal-qualification-v2"
 
 
 def out(cmd: list[str], *, cwd: Path | None = None) -> str:
     return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
 
 
-def source_bundle_sha256(formal_dir: Path) -> str:
+def source_bundle_sha256(formal_dir: Path, sources: tuple[str, ...]) -> str:
     digest = hashlib.sha256()
-    for relative in AUDITED_SOURCE_FILES:
+    for relative in sources:
         digest.update(relative.encode("utf-8"))
         digest.update(b"\0")
         digest.update((formal_dir / relative).read_bytes())
@@ -80,6 +56,18 @@ def main() -> int:
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    claims = ClaimRegistry.load_default()
+    contracts = ProofContractRegistry.load_default()
+    claim = claims.by_id(CLAIM_ID)
+    contract = contracts.for_claim(CLAIM_ID)
+    if claim is None or contract is None:
+        raise SystemExit(f"canonical claim/proof contract is missing for {CLAIM_ID}")
+    if claim.proof_contract_id != contract.contract_id:
+        raise SystemExit(
+            f"claim proof-contract binding mismatch: {claim.proof_contract_id!r} != "
+            f"{contract.contract_id!r}"
+        )
+
     if not args.qualification_system.strip() or not args.qualification_run_id.strip():
         raise SystemExit("qualification system/run id must be non-empty")
     if args.qualification_system == "github-actions" and (
@@ -93,44 +81,61 @@ def main() -> int:
     if len(commit) != 40:
         raise SystemExit("could not resolve exact 40-hex git commit")
     if out(["git", "status", "--porcelain"], cwd=repo_root):
-        raise SystemExit("refusing qualification attestation for a dirty working tree")
+        raise SystemExit("refusing qualification artifact for a dirty working tree")
 
+    expected_mathlib = contract.dependency_pins.get("mathlib_commit")
+    if not expected_mathlib:
+        raise SystemExit("proof contract does not pin mathlib_commit")
     mathlib_commit = out(
         ["git", "-C", str(formal_dir / ".lake/packages/mathlib"), "rev-parse", "HEAD"]
     )
-    if mathlib_commit != MATHLIB_COMMIT:
+    if mathlib_commit != expected_mathlib:
         raise SystemExit(
-            f"mathlib commit mismatch: expected {MATHLIB_COMMIT}, got {mathlib_commit}"
+            f"mathlib commit mismatch: expected {expected_mathlib}, got {mathlib_commit}"
         )
 
     data = {
+        "artifact_schema": ARTIFACT_SCHEMA,
         "release": "3.30.0-dev",
         "claim_id": CLAIM_ID,
+        "claim_statement": claim.statement,
+        "claim_scope": claim.scope,
         "status": "PASS",
         "commit": commit,
+        "proof_contract_id": contract.contract_id,
+        "proof_contract_sha256": contract.contract_sha256,
+        "proof_contract_registry_sha256": contracts.registry_sha256,
+        "claim_registry_sha256": claims.registry_sha256,
         "qualification_system": args.qualification_system.strip(),
         "qualification_run_id": args.qualification_run_id.strip(),
         "workflow_run_id": args.workflow_run_id,
         "lean_version": out(["lean", "--version"]),
         "mathlib_commit": mathlib_commit,
-        "build_target": "CACEFormal.V330AxiomAudit",
+        "build_target": contract.build_target,
         "mathlib_cache_scope": "CACEFormal/V330AxiomAudit.lean transitive import closure",
-        "audited_source_files": AUDITED_SOURCE_FILES,
-        "audited_source_bundle_sha256": source_bundle_sha256(formal_dir),
+        "endpoint_theorems": list(contract.endpoint_theorems),
+        "audited_source_files": list(contract.audited_source_files),
+        "audited_source_bundle_sha256": source_bundle_sha256(
+            formal_dir, contract.audited_source_files
+        ),
         "axiom_audit_sha256": hashlib.sha256(args.axiom_audit.read_bytes()).hexdigest(),
-        "scope": "Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.",
-        "theorems": THEOREMS,
+        "allowed_axioms": list(contract.allowed_axioms),
+        "required_checks": list(contract.required_checks),
+        "theorem_dependency_metadata": {
+            "state": contract.theorem_dependency_metadata_state,
+            "note": contract.theorem_dependency_metadata_note,
+        },
+        "claim_nonclaims": list(claim.nonclaims),
+        "proof_contract_nonclaims": list(contract.nonclaims),
         "promotion_guards": {
             "unfinished_tokens_rejected": True,
             "sorryAx_rejected": True,
             "nonfoundation_axioms_rejected": True,
-            "allowed_foundational_axioms": ["propext", "Classical.choice", "Quot.sound"],
             "open_problem_requires_artifact_bound_independent_reproduction": True,
             "open_problem_requires_artifact_bound_external_review": True,
             "module_self_promotion_reserved_flags_rejected": True,
             "numerical_symbolic_interval_evidence_cannot_self_promote": True,
         },
-        "nonclaims": NONCLAIMS,
     }
 
     path = output_dir / "v330_formal_qualification_attestation.json"
