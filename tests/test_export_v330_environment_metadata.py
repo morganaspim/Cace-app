@@ -35,6 +35,22 @@ def raw(*records: dict) -> str:
     )
 
 
+def artifact(item: dict | None = None, **overrides) -> dict:
+    kwargs = {
+        "raw_output": raw(item or record()),
+        "expected_endpoints": ["CACEFormal.Test.endpoint"],
+        "lean_version": "Lean 4.32.1",
+        "lean_toolchain": "leanprover/lean4:v4.32.1",
+        "mathlib_commit": "5" * 40,
+        "claim_id": "cace.test.claim",
+        "proof_contract_id": "cace.proof.test.v1",
+        "proof_contract_sha256": "a" * 64,
+        "git_commit": "b" * 40,
+    }
+    kwargs.update(overrides)
+    return envmeta.build_artifact(**kwargs)
+
+
 def test_missing_sentinel_fails_closed():
     with pytest.raises(envmeta.EnvironmentMetadataError, match="sentinel"):
         envmeta.parse_records("{}")
@@ -78,36 +94,38 @@ def test_extra_fields_fail_closed():
         )
 
 
-def test_artifact_is_deterministic_and_statement_bound():
-    first = envmeta.build_artifact(
-        raw_output=raw(record()),
-        expected_endpoints=["CACEFormal.Test.endpoint"],
-        lean_version="Lean 4.32.1",
-        lean_toolchain="leanprover/lean4:v4.32.1",
-        mathlib_commit="5" * 40,
-    )
-    second = envmeta.build_artifact(
-        raw_output=raw(record()),
-        expected_endpoints=["CACEFormal.Test.endpoint"],
-        lean_version="Lean 4.32.1",
-        lean_toolchain="leanprover/lean4:v4.32.1",
-        mathlib_commit="5" * 40,
-    )
+def test_artifact_is_deterministic_statement_contract_and_commit_bound():
+    first = artifact()
+    second = artifact()
     assert first == second
+    assert first["artifact_schema"] == "cace-lean-theorem-metadata-v2"
     assert first["metadata_state"] == "LEAN_GENERATED"
     assert first["provenance"] == "Lean.Environment"
+    assert first["proof_contract_id"] == "cace.proof.test.v1"
+    assert first["proof_contract_sha256"] == "a" * 64
+    assert first["git_commit"] == "b" * 40
+    assert "does not independently qualify" in first["proof_effect"]
 
     changed = record()
     changed["statement_pp_all"] = "∀ (x : Nat), x + 0 = x"
-    third = envmeta.build_artifact(
-        raw_output=raw(changed),
-        expected_endpoints=["CACEFormal.Test.endpoint"],
-        lean_version="Lean 4.32.1",
-        lean_toolchain="leanprover/lean4:v4.32.1",
-        mathlib_commit="5" * 40,
-    )
-    assert third["identity_sha256"] != first["identity_sha256"]
+    statement_changed = artifact(changed)
+    assert statement_changed["identity_sha256"] != first["identity_sha256"]
     assert (
-        third["endpoints"][0]["statement_sha256"]
+        statement_changed["endpoints"][0]["statement_sha256"]
         != first["endpoints"][0]["statement_sha256"]
     )
+
+    contract_changed = artifact(proof_contract_sha256="c" * 64)
+    assert contract_changed["identity_sha256"] != first["identity_sha256"]
+
+    commit_changed = artifact(git_commit="d" * 40)
+    assert commit_changed["identity_sha256"] != first["identity_sha256"]
+
+
+def test_malformed_binding_identities_fail_closed():
+    with pytest.raises(envmeta.EnvironmentMetadataError, match="proof_contract_sha256"):
+        artifact(proof_contract_sha256="not-a-hash")
+    with pytest.raises(envmeta.EnvironmentMetadataError, match="git_commit"):
+        artifact(git_commit="1234")
+    with pytest.raises(envmeta.EnvironmentMetadataError, match="claim_id"):
+        artifact(claim_id="")
