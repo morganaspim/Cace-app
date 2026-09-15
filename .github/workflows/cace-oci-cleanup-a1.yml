@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
 
+# retrigger after runner reconnect
 jobs:
   cleanup:
     runs-on: self-hosted
