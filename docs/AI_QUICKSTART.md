@@ -1,12 +1,12 @@
 # CACE for AI agents and command-line tools
 
-The development package version is 3.30.0.dev1. It is not a production release.
-Module versions and historical roadmap milestones use separate numbering.
-Start with AGENTS.md and docs/PRODUCTION_READINESS.md.
+The development package version is 3.36.0.dev1. It is not a production release and does not imply that every v3.32-v3.36 subsystem is qualified. Module versions, mathematical claim status and historical roadmap milestones use separate numbering.
+
+Start with `AGENTS.md`, `AI_REPO_MAP.json`, `docs/STATUS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, `docs/CLAIMS.md` and `docs/PRODUCTION_READINESS.md`.
 
 ## Setup
 
-Python 3.11+ and a C++20 compiler are required for the full test suite. Python 3.13.15 is used in CI.
+Python 3.11+ and a C++20 compiler are required for the full regression suite. Python 3.13.15 is used by the current CI workflows.
 
 ```sh
 python -m venv .venv
@@ -18,49 +18,83 @@ ctest --test-dir cpp/build --output-on-failure
 python -m pytest
 ```
 
-The GUI additionally needs `.[gui]`. Neither registry inspection nor headless execution imports Qt.
+The GUI additionally needs `.[gui]`. Ed25519 provenance attestations need `.[attest]`. Neither registry inspection nor ordinary headless graph execution requires Qt or an AI provider.
+
+## Generate deterministic AI navigation indexes
+
+The repository contains a deterministic generator rather than a manually duplicated compiled-source file. Generate the navigation artifacts when an AI or tool needs a compact repository map:
+
+```sh
+python scripts/generate_ai_indexes.py
+```
+
+It produces:
+
+- `MODULE_CATALOG.json`
+- `CLAIM_CATALOG.json`
+- `PROOF_DEPENDENCY_GRAPH.json`
+- `SOURCE_INDEX.json`
+- `generated/CACE_SOURCE_CONTEXT.txt`
+
+These are generated navigation aids, **not verification evidence**. Canonical claim status remains in `cace_studio/data/claim_registry.json` and `cace_studio/data/proof_ledger.json`; formal source remains under `formal/cace_formal/`.
 
 ## Discover and execute
 
 ```sh
 python -m cace_studio.cli registry
 python -m cace_studio.cli run examples/verified_quadratic.cace --seed 0 --output report.json
+python -m cace_studio.cli fingerprint examples/verified_quadratic.cace
 ```
 
-The installed short command is `cace`. Registry JSON includes module IDs, input/output ports,
-parameters, declared maturity, assumptions and declared proof status. Declaration is not verification.
-Run JSON includes actual verification records, certificates, outputs, claim decisions and seed.
+The installed short command is `cace`. Registry JSON includes module IDs, input/output ports, parameters, declared maturity, assumptions and declared proof status. Declaration is not verification. Run JSON includes actual verification records, certificates, outputs, claim decisions and seed.
 
-CLI schema version: 1. Run reports retain their own report_schema version.
-Exit codes: 0 = registry success or every emitted verifier passed with at least one record;
-1 = a verifier failed; 2 = invalid input/execution/serialization error;
-3 = computation completed but verification was absent or incomplete.
-Code 0 does not mean the whole application is formally proved.
-Errors are JSON on stderr. With --output, the report is written to that path.
-Default execution uses the CPU. For each numerical claim inspect its method, assumptions and metrics.
+CLI schema version: 1. Run reports retain their own `report_schema` version. Exit codes are: 0 = command success or every emitted verifier passed with at least one record; 1 = a verifier failed; 2 = invalid input/execution/serialization error; 3 = computation completed but verification was absent/incomplete or an eligibility policy was not satisfied. Code 0 does not mean the whole application is formally proved.
 
-## Formal checks
+Errors are JSON on stderr. With `--output`, supported commands write the report there. Default graph execution uses the CPU. For each scientific claim inspect its method, assumptions, limitations and metrics.
 
-From formal/cace_formal, install the version in lean-toolchain using elan, then:
+## Local AI
+
+CACE execution and verification do not depend on AI. Studio local-AI support is off by default and is restricted to loopback providers such as Ollama, LM Studio or llama.cpp/OpenAI-compatible local endpoints. AI output is never verification evidence.
+
+Install GUI support and configure the provider from Studio rather than editing source:
+
+```sh
+python -m pip install -e '.[gui]'
+cace-studio
+```
+
+## Formal v3.30 qualification checks
+
+From `formal/cace_formal`, install the version in `lean-toolchain` using elan, then use the exact audited dependency closure rather than downloading/building unrelated historical modules:
 
 ```sh
 MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
 lake build +Cache.Main
-lake env lean --run .lake/packages/mathlib/Cache/Main.lean get
-lake build CACEFormal
+lake env lean --run .lake/packages/mathlib/Cache/Main.lean get CACEFormal/V330AxiomAudit.lean
+lake build CACEFormal.V330AxiomAudit
 lake env lean CACEFormal/V330AxiomAudit.lean
 ```
 
-The GitHub workflow additionally checks the resolved Mathlib commit, rejects unfinished tokens,
-checks the axiom allowlist, and emits an attestation only after success.
-Inspect the dependency manifest and axiom logs in its diagnostic artifact.
-Do not treat a downloaded .olean or an old attestation as proof of edited source.
+The authoritative GitHub workflow additionally checks the exact Mathlib commit, rejects unfinished proof tokens, applies the kernel-axiom allowlist, records the audited source-bundle hash and emits an attestation only after success. Inspect the dependency manifest and axiom log in its diagnostic artifact. Do not treat a downloaded `.olean`, a historical workflow result or an old attestation as proof of edited source.
+
+Formal qualification is fail-closed: a module-local FORMAL result cannot promote itself. The canonical claim registry and proof ledger must bind the exact qualified commit and proof-artifact digest, and qualification-sensitive source drift requires a fresh attestation.
+
+## Provenance, signatures and E5 cross-verification
+
+Evidence bundles, Merkle roots and signatures establish artifact identity/integrity and verifier attestations; they do not create mathematical proof.
+
+With the optional attestation dependency installed:
+
+```sh
+python -m pip install -e '.[attest]'
+cace-attest keygen --private-key verifier.key --public-key verifier.pub
+cace-attest verify verifier-attestation.json
+```
+
+`cace-attest sign` binds an independent-reproduction statement to an exact CACE evidence-bundle hash, claim ID, qualified commit and proof-artifact hash. `cace-attest cross-verify` evaluates E5 eligibility only after the canonical claim is already current-head PASS qualified and multiple distinct approved verifier identities/keys attest the same exact artifact context. E5 does not self-promote proof status.
 
 ## Distribution
 
-The Python regression workflow builds a wheel, installs it in a separate environment, and tests
-registry access outside the checkout. Passing runs expose the wheel as a GitHub Actions artifact.
-This wheel provides the Python interface; the optional C++ runtime still requires its platform build.
-Compiled Lean/C++ binaries are platform/toolchain-specific and do not make source easier to review.
-The portable entry points, contracts, tests and source are the primary AI integration.
-A private repository still requires the connecting agent to have repository access.
+The Python regression workflow builds a wheel, installs it in a separate environment and tests registry access outside the checkout. Passing runs expose the wheel as a GitHub Actions artifact. This wheel provides the Python interface; the optional C++ runtime still requires its platform build.
+
+Compiled Lean/C++ binaries are platform/toolchain-specific and do not make source easier to review. Portable source, contracts, schemas, generated navigation indexes, tests and exact qualification artifacts are the primary AI integration surface. A private repository still requires the connecting agent to have repository access.
