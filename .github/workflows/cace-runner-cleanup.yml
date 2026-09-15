@@ -1,0 +1,49 @@
+name: CACE self-hosted runner cleanup
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [maintenance/v331-runner-cleanup]
+    paths: ['.github/workflows/cace-runner-cleanup.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-runner-maintenance
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    timeout-minutes: 8
+    steps:
+      - name: Reclaim stale CACE formal workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'Disk before cleanup:'
+          df -h / /var/tmp || true
+          echo 'Owned stale CACE formal trees:'
+          find /var/tmp -maxdepth 1 -mindepth 1 -type d \
+            -uid "$(id -u)" -name 'cace-formal.*' -print || true
+          while IFS= read -r -d '' dir; do
+            rm -rf -- "$dir"
+          done < <(
+            find /var/tmp -maxdepth 1 -mindepth 1 -type d \
+              -uid "$(id -u)" -name 'cace-formal.*' -print0
+          )
+
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < 5 * 1024 * 1024 )); then
+            echo 'Still below 5 GiB free; clearing rebuildable pip/uv caches.'
+            rm -rf -- "$HOME/.cache/pip" "$HOME/.cache/uv"
+          fi
+
+          echo 'Disk after cleanup:'
+          df -h / /var/tmp || true
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < 5 * 1024 * 1024 )); then
+            echo "Runner still has less than 5 GiB free (${available_kb} KiB); formal qualification should not start." >&2
+            exit 1
+          fi
