@@ -26,20 +26,19 @@
       "module_ids": [],
       "nonclaims": [
         "Does not by itself prove all Python/C++ program behavior.",
-        "Does not construct the unconditional H1/H(div) regularizers still required for reverse graph inclusion.",
-        "Does not yet identify the CACE distributional H1 graph relation with Mathlib Bessel-potential InH1 in the converse direction.",
+        "The H1 distributional-graph converse is representation-level and does not by itself construct unconditional H(div) graph density or every concrete PDE trace/core hypothesis.",
         "The weak-Green/orthogonality/continuum-Prager-Synge endpoints retain their explicit analytic and PDE-specific hypotheses."
       ],
-      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v2",
+      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "qualification": {
         "attested_commit": null,
         "current_head_qualified": false,
         "proof_artifact_sha256": null,
-        "reason": "Proof contract v2 requires a fresh exact-head pinned Lean build, kernel axiom audit, Lean.Environment theorem metadata bound to the contract and commit, and content-addressed attestation before FORMAL PASS can be emitted.",
+        "reason": "Proof contract v3 requires a fresh exact-head pinned Lean build, kernel axiom audit, Lean.Environment theorem metadata bound to the contract and commit, and content-addressed attestation before FORMAL PASS can be emitted.",
         "status": "NOT_RUN"
       },
-      "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v2.",
-      "statement": "The continuum chain contains graph-space, Green-identity, bounded normal-trace, density-reduction, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
+      "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",
+      "statement": "The continuum chain contains graph-space, unconditional representation-level H1 converse, Green-identity, bounded normal-trace, density-reduction, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
     }
   ],
   "policy": "fail-closed",
