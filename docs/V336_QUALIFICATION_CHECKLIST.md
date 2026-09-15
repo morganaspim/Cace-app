@@ -39,11 +39,17 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [x] Proof Explorer Studio integration prepared.
 - [x] Deterministic selected-fragment copy/paste prepared with fresh node IDs and internal-edge preservation.
 - [x] Basic alignment operations prepared with rollback-safe model/canvas restoration.
+- [x] Selected + transitive-upstream execution prepared with source/executed graph hashes, target IDs, included-node IDs and execution-scope SHA-256.
+- [x] Graph execution moved off the GUI thread through a snapshot-based worker.
+- [x] Cooperative pause/resume/cancel prepared at module boundaries.
+- [x] Incomplete/cancelled runs cannot satisfy `all_verifiers_passed` and record explicit interruption state.
+- [x] Results from a stale semantic graph snapshot are not attached to an edited experiment.
+- [x] Explicit port/parameter unit metadata prepared with exact-match fail-closed connection policy and no implicit conversion.
+- [x] Unit declarations are visible in Studio and included in module-contract fingerprints.
+- [ ] Add groups/subgraphs.
+- [ ] Add minimap.
 - [ ] Run GUI-focused tests on a supported execution environment.
-- [ ] Manual smoke qualification: drag/drop, click-connect, edit parameters, copy/paste, align, run, save/open `.cace`, recovery, Proof Explorer refresh.
-- [ ] Add selected/upstream subgraph execution with explicit execution-scope identity.
-- [ ] Add asynchronous execution plus cancel/pause semantics.
-- [ ] Add groups/subgraphs, explicit units and minimap.
+- [ ] Manual smoke qualification: drag/drop, click-connect, unit mismatch rejection, edit parameters, copy/paste, align, full/scoped run, pause/resume/cancel, save/open `.cace`, recovery, Proof Explorer refresh.
 - [ ] Cross-platform GUI packaging/launch qualification.
 
 ## v3.34 local AI
@@ -66,6 +72,7 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 - [x] Example plugin manifest exists.
 - [x] Plugin registration is transactional: failed registration cannot partially mutate the live registry.
 - [x] Core registry rejects non-Module classes, blank/whitespace IDs and duplicate IDs before mutation.
+- [x] SDK documents explicit units as contract metadata rather than automatic conversion.
 - [ ] Exact-head SDK tests pass.
 - [ ] Package-installed plugin discovery smoke test.
 - [ ] Add real process isolation/sandboxing for untrusted third-party code before production use.
@@ -76,18 +83,18 @@ Do not begin v3.37 scientific expansion until these prerequisites and the consol
 
 - [x] Canonical deterministic JSON identity rejects unsupported/non-finite identity values.
 - [x] Semantic/full experiment fingerprints prepared.
-- [x] Every prepared `RunResult` binds semantic/full experiment fingerprints, seed and execution scope.
-- [x] Run-report schema commits graph-certificate identity to those fingerprints.
-- [x] Module-contract fingerprinting prepared.
+- [x] Every prepared `RunResult` binds source and executed graph fingerprints, seed and execution scope.
+- [x] Run-report schema 4 commits source/executed graph identity, scope identity and completion/interruption state.
+- [x] Module-contract fingerprinting includes port/parameter unit declarations.
 - [x] Content-addressed evidence artifacts prepared.
 - [x] Deterministic artifact ordering and Merkle root prepared.
 - [x] Bundle parser verifies declared Merkle root.
 - [x] Artifact byte verification checks exact ID set, size and SHA-256.
 - [x] Hash-chained evidence ledger prepared.
 - [x] Ledger verification checks sequence, previous hash, entry hash and optional bundle/Merkle binding.
-- [ ] Require canonical second-resolution UTC ledger timestamps (`YYYY-MM-DDTHH:MM:SSZ`) in both runtime validation and JSON schema. Current implementation only requires a non-empty ledger timestamp string; this is a deterministic-format hardening gap, not a hash-integrity failure.
-- [ ] Exact-head evidence-ledger/reproducibility tests pass.
-- [ ] Add/confirm serialized malformed-input and canonical-timestamp negative tests.
+- [x] Canonical second-resolution UTC ledger timestamps (`YYYY-MM-DDTHH:MM:SSZ`) are required in runtime validation and JSON schema.
+- [x] Malformed/canonical-timestamp negative tests are staged.
+- [ ] Exact-head evidence-ledger/reproducibility/execution-scope/control/unit tests pass.
 
 ## Portable formal qualification
 
