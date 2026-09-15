@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Iterable
 import uuid
 from .graph import Experiment
 from .module import ExecutionContext, ValidationError
@@ -11,6 +11,7 @@ from .device import DeviceManager
 from .claim_promotion import fail_closed_module_decision, unsafe_self_promotion_paths
 from .formal_gate import enforce_formal_claim_qualification
 from .reproducibility import experiment_fingerprint
+from .execution_scope import ExecutionScope, build_upstream_subgraph, full_execution_scope
 
 
 @dataclass
@@ -23,6 +24,11 @@ class RunResult:
     experiment_name: str = ""
     semantic_experiment_sha256: str = ""
     full_experiment_sha256: str = ""
+    source_semantic_experiment_sha256: str = ""
+    source_full_experiment_sha256: str = ""
+    execution_scope_sha256: str = ""
+    scope_target_node_ids: tuple[str, ...] = ()
+    scope_included_node_ids: tuple[str, ...] = ()
     seed: int = 0
     run_scope: str = "full"
 
@@ -82,6 +88,33 @@ class GraphExecutor:
             raise ValidationError("experiment graph contains a cycle")
         return order
 
+    @staticmethod
+    def _validated_scope(
+        exp: Experiment,
+        *,
+        run_scope: str,
+        execution_scope: ExecutionScope | None,
+    ) -> ExecutionScope:
+        if not isinstance(run_scope, str) or not run_scope.strip():
+            raise ValidationError("run_scope must be a non-empty string")
+
+        if execution_scope is None:
+            return full_execution_scope(exp, kind=run_scope.strip())
+
+        if run_scope != "full" and run_scope.strip() != execution_scope.kind:
+            raise ValidationError("run_scope disagrees with the supplied execution scope")
+
+        semantic = experiment_fingerprint(exp, include_layout=False)
+        full = experiment_fingerprint(exp, include_layout=True)
+        if semantic != execution_scope.execution_semantic_experiment_sha256:
+            raise ValidationError("execution scope semantic graph hash does not match executed graph")
+        if full != execution_scope.execution_full_experiment_sha256:
+            raise ValidationError("execution scope full graph hash does not match executed graph")
+        included_ids = tuple(node.id for node in exp.nodes)
+        if included_ids != execution_scope.included_node_ids:
+            raise ValidationError("execution scope included-node identity does not match executed graph")
+        return execution_scope
+
     def run(
         self,
         exp: Experiment,
@@ -89,14 +122,18 @@ class GraphExecutor:
         seed: int = 0,
         *,
         run_scope: str = "full",
+        execution_scope: ExecutionScope | None = None,
     ) -> RunResult:
-        if not isinstance(run_scope, str) or not run_scope.strip():
-            raise ValidationError("run_scope must be a non-empty string")
+        scope = self._validated_scope(
+            exp,
+            run_scope=run_scope,
+            execution_scope=execution_scope,
+        )
 
-        # Bind every run to the exact graph identity before execution. These
-        # fingerprints establish executed-source identity, not scientific truth.
-        semantic_experiment_sha256 = experiment_fingerprint(exp, include_layout=False)
-        full_experiment_sha256 = experiment_fingerprint(exp, include_layout=True)
+        # Bind every run to the exact executed graph identity before execution.
+        # These fingerprints establish executed-source identity, not scientific truth.
+        semantic_experiment_sha256 = scope.execution_semantic_experiment_sha256
+        full_experiment_sha256 = scope.execution_full_experiment_sha256
 
         order = self._validate_and_order(exp)
         nodes = exp.node_map()
@@ -173,6 +210,26 @@ class GraphExecutor:
             experiment_name=exp.name,
             semantic_experiment_sha256=semantic_experiment_sha256,
             full_experiment_sha256=full_experiment_sha256,
+            source_semantic_experiment_sha256=scope.source_semantic_experiment_sha256,
+            source_full_experiment_sha256=scope.source_full_experiment_sha256,
+            execution_scope_sha256=scope.scope_sha256,
+            scope_target_node_ids=scope.target_node_ids,
+            scope_included_node_ids=scope.included_node_ids,
             seed=seed,
-            run_scope=run_scope.strip(),
+            run_scope=scope.kind,
+        )
+
+    def run_selected_upstream(
+        self,
+        source_exp: Experiment,
+        target_node_ids: Iterable[str],
+        external_inputs: dict[str, dict[str, Any]] | None = None,
+        seed: int = 0,
+    ) -> RunResult:
+        scoped_exp, scope = build_upstream_subgraph(source_exp, target_node_ids)
+        return self.run(
+            scoped_exp,
+            external_inputs=external_inputs,
+            seed=seed,
+            execution_scope=scope,
         )
