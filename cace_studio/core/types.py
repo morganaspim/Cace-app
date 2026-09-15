@@ -75,6 +75,21 @@ class ParameterSpec:
         validate_unit(self.unit)
 
 
+def port_connection_error(source: PortSpec, target: PortSpec) -> str | None:
+    """Return a fail-closed incompatibility reason, or None when compatible."""
+    if (
+        source.type_name != "any"
+        and target.type_name != "any"
+        and source.type_name != target.type_name
+    ):
+        return f"type mismatch: {source.type_name} -> {target.type_name}"
+    if not units_compatible(source.unit, target.unit):
+        source_unit = source.unit if source.unit is not None else "<unspecified>"
+        target_unit = target.unit if target.unit is not None else "<unspecified>"
+        return f"unit mismatch: {source_unit} -> {target_unit}"
+    return None
+
+
 @dataclass
 class ProofStatus:
     evidence: set[EvidenceKind] = field(default_factory=set)
