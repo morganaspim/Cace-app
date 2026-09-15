@@ -39,8 +39,9 @@ jobs:
           mkdir -p "$STATE_DIR"
 
           exec 9>"$LOCKFILE"
-          if ! flock -n 9; then
-            exit 0
+          if ! flock -w 20 9; then
+            printf '%s failed-to-acquire-watchdog-lock\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LOG"
+            exit 1
           fi
           echo $$ > "$PIDFILE"
           trap 'rm -f "$PIDFILE"' EXIT
@@ -136,17 +137,20 @@ jobs:
           EOF
           chmod 700 "$WATCHDOG"
 
-          # Replace an older watchdog if one is present. Never touch Runner.Listener here.
+          # Replace an older watchdog if one is present. It runs in its own session,
+          # so terminate the whole process group to release any lock inherited by sleep.
           if [[ -f "$STATE_DIR/watchdog.pid" ]]; then
             old_pid="$(cat "$STATE_DIR/watchdog.pid" 2>/dev/null || true)"
             if [[ "$old_pid" =~ ^[0-9]+$ ]] && kill -0 "$old_pid" 2>/dev/null; then
-              kill "$old_pid" || true
-              for _ in $(seq 1 20); do
+              kill -TERM -- "-$old_pid" 2>/dev/null || kill "$old_pid" 2>/dev/null || true
+              for _ in $(seq 1 40); do
                 kill -0 "$old_pid" 2>/dev/null || break
                 sleep 0.25
               done
             fi
           fi
+
+          rm -f "$STATE_DIR/heartbeat"
 
           # GitHub Runner.Worker normally kills descendants at job cleanup using
           # RUNNER_TRACKING_ID. Remove that marker and create a new session so this
@@ -154,8 +158,18 @@ jobs:
           env -u RUNNER_TRACKING_ID -u GITHUB_ACTION -u GITHUB_ACTIONS \
             setsid nohup "$WATCHDOG" </dev/null >> "$STATE_DIR/watchdog-launch.log" 2>&1 &
           watchdog_pid=$!
-          echo "$watchdog_pid" > "$STATE_DIR/watchdog.pid"
-          sleep 2
+
+          # Require a heartbeat produced by this new process, not a stale prior file.
+          for _ in $(seq 1 60); do
+            if ! kill -0 "$watchdog_pid" 2>/dev/null; then
+              echo "New watchdog process exited before producing a heartbeat." >&2
+              tail -n 50 "$STATE_DIR/watchdog-launch.log" 2>/dev/null || true
+              tail -n 50 "$STATE_DIR/watchdog.log" 2>/dev/null || true
+              exit 1
+            fi
+            [[ -s "$STATE_DIR/heartbeat" ]] && break
+            sleep 0.5
+          done
 
           kill -0 "$watchdog_pid"
           test -s "$STATE_DIR/heartbeat"
