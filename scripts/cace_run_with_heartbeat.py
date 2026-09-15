@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run a long qualification command with a compact progress heartbeat.
 
-This wrapper is observability and liveness infrastructure only.  It never turns a
-cached or partial result into proof evidence.  Qualification still depends on the
+This wrapper is observability and liveness infrastructure only. It never turns a
+cached or partial result into proof evidence. Qualification still depends on the
 fresh Lean build, kernel audit, environment metadata, hashes, and attestation.
 """
 
@@ -54,19 +54,13 @@ def main() -> int:
     parser.add_argument("--phase", required=True)
     parser.add_argument("--status-dir", default=os.environ.get("CACE_STATUS_DIR"))
     parser.add_argument(
-        "--heartbeat-seconds",
-        type=int,
-        default=_env_int("CACE_HEARTBEAT_SECONDS", 60),
+        "--heartbeat-seconds", type=int, default=_env_int("CACE_HEARTBEAT_SECONDS", 60)
     )
     parser.add_argument(
-        "--stall-warn-seconds",
-        type=int,
-        default=_env_int("CACE_STALL_WARN_SECONDS", 1800),
+        "--stall-warn-seconds", type=int, default=_env_int("CACE_STALL_WARN_SECONDS", 1800)
     )
     parser.add_argument(
-        "--stall-kill-seconds",
-        type=int,
-        default=_env_int("CACE_STALL_KILL_SECONDS", 7200),
+        "--stall-kill-seconds", type=int, default=_env_int("CACE_STALL_KILL_SECONDS", 7200)
     )
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -93,14 +87,9 @@ def main() -> int:
     heartbeat_path = status_dir / "heartbeat.jsonl"
     current_status_path = status_dir / "job_status.json"
 
-    start_wall = time.time()
     start_mono = time.monotonic()
     state_lock = threading.Lock()
-    state = {
-        "last_output_mono": start_mono,
-        "log_bytes": 0,
-        "last_line": "",
-    }
+    state = {"last_output_mono": start_mono, "log_bytes": 0, "last_line": ""}
 
     proc = subprocess.Popen(
         command,
@@ -171,7 +160,11 @@ def main() -> int:
     forced_stall = False
     try:
         while proc.poll() is None:
-            time.sleep(args.heartbeat_seconds)
+            try:
+                proc.wait(timeout=args.heartbeat_seconds)
+                break
+            except subprocess.TimeoutExpired:
+                pass
             now_mono = time.monotonic()
             with state_lock:
                 idle = now_mono - float(state["last_output_mono"])
