@@ -1,0 +1,72 @@
+name: CACE OCI formal cache prewarm
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-formal-cache-prewarm.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prewarm:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 120
+    env:
+      ELAN_HOME: /var/lib/cace-cache/elan
+      XDG_CACHE_HOME: /var/lib/cace-cache/xdg
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Prepare persistent pinned toolchain and dependency cache
+        shell: bash
+        working-directory: formal/cace_formal
+        run: |
+          set -euo pipefail
+          mkdir -p "$ELAN_HOME" "$XDG_CACHE_HOME" "$CACE_PACKAGE_CACHE"
+          test -w "$ELAN_HOME"
+          test -w "$XDG_CACHE_HOME"
+          test -w "$CACE_PACKAGE_CACHE"
+
+          if [[ ! -x "$ELAN_HOME/bin/elan" ]]; then
+            curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/cace-elan-init.sh
+            sh /tmp/cace-elan-init.sh -y --default-toolchain none
+            rm -f /tmp/cace-elan-init.sh
+          fi
+          export PATH="$ELAN_HOME/bin:$PATH"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          elan default "$CACE_TOOLCHAIN"
+          lean --version
+          lake --version
+
+          mkdir -p .lake
+          if [[ -e .lake/packages && ! -L .lake/packages ]]; then
+            rm -rf .lake/packages
+          fi
+          if [[ ! -L .lake/packages ]]; then
+            ln -s "$CACE_PACKAGE_CACHE" .lake/packages
+          fi
+
+          exec 9>/var/lib/cace-cache/mathlib/v330-prewarm.lock
+          flock -w 7200 9
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          actual="$(git -C .lake/packages/mathlib rev-parse HEAD)"
+          echo "mathlib_commit=$actual"
+          test "$actual" = "$CACE_MATHLIB_COMMIT"
+          lake build +Cache.Main
+
+          # Scoped Mathlib transfer cache only; the extracted package oleans remain
+          # in the persistent package tree for later exact-pin formal builds.
+          timeout 5400 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+            get CACEFormal/V330AxiomAudit.lean || true
+
+          echo '--- persistent cache sizes ---'
+          du -sh "$ELAN_HOME" "$XDG_CACHE_HOME" "$CACE_PACKAGE_CACHE" || true
+          df -h /var/lib/cace-cache
+          echo 'CACE_OCI_FORMAL_CACHE_PREWARMED'
