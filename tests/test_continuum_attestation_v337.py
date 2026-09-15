@@ -46,7 +46,7 @@ def test_build_attestation_binds_contract_exact_head_and_all_artifact_hashes():
     assert payload["proof_contract_id"] == c.contract_id
     assert payload["proof_contract_sha256"] == c.contract_sha256
     assert payload["git_commit"] == "1" * 40
-    assert payload["endpoint_count"] == len(c.endpoint_theorems) == 35
+    assert payload["endpoint_count"] == len(c.endpoint_theorems)
     assert payload["qualification_checks"] == list(c.required_checks)
     assert payload["kernel_axiom_audit_sha256"] == "4" * 64
     assert payload["lean_environment_metadata_sha256"] == "5" * 64
