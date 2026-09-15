@@ -1,0 +1,6 @@
+Operational trigger for exact-current-head CACE formal qualification.
+
+This file contains no Lean source, theorem statement, proof, axiom, or promoted claim.
+It exists only so a push under formal/** can deliberately start the existing qualification workflow without modifying audited proof files or qualification policy.
+
+Trigger date: 2026-09-15
