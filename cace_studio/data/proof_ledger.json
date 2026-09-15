@@ -23,9 +23,9 @@
     },
     {
       "blockers": [
-        "Current-head pinned Lean build satisfying proof contract v2 has not been accepted.",
-        "Kernel axiom audit for every v2 endpoint has not been accepted.",
-        "Lean.Environment theorem statement/dependency metadata bound to the exact commit and v2 contract hash has not been accepted.",
+        "Current-head pinned Lean build satisfying proof contract v3 has not been accepted.",
+        "Kernel axiom audit for every v3 endpoint has not been accepted.",
+        "Lean.Environment theorem statement/dependency metadata bound to the exact commit and v3 contract hash has not been accepted.",
         "Content-addressed proof artifact SHA-256 has not been recorded."
       ],
       "checks": [],
@@ -35,8 +35,8 @@
       "commit": null,
       "current_head_qualified": false,
       "proof_artifact_sha256": null,
-      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v2",
-      "proof_contract_sha256": "4bd09eb15a01a82506aca1b7fe2b35438fc99712fd32b0e29e182296babb395b",
+      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
+      "proof_contract_sha256": "2ed39e71f86877c7f8ed07a697be7f8ae6398549b6d90a9456bb29679eeac847",
       "qualification_run_id": null,
       "qualification_system": null,
       "release": "3.23.0-dev..3.37.0-dev",
