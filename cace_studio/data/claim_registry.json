@@ -28,14 +28,15 @@
         "Does not by itself prove all Python/C++ program behavior.",
         "Does not close obligations explicitly listed in the v3.30 proof-strengthening release notes."
       ],
+      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v1",
       "qualification": {
         "attested_commit": null,
         "current_head_qualified": false,
         "proof_artifact_sha256": null,
-        "reason": "No current-head pinned Lean build plus axiom audit has yet been accepted into this registry.",
+        "reason": "No current-head pinned Lean build plus axiom audit satisfying the bound proof contract has yet been accepted into this registry.",
         "status": "NOT_RUN"
       },
-      "scope": "Current development continuum chain; individual theorem scope is defined in Lean sources and release notes.",
+      "scope": "Current development continuum chain; exact audited endpoints and static qualification requirements are defined by the bound proof contract.",
       "statement": "The v3.23-v3.30 continuum chain contains graph-space, Green-identity, trace, density-reduction and Prager-Synge proof infrastructure."
     }
   ],
