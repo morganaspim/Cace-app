@@ -43,8 +43,13 @@ class GroupOverlayManager:
 
     def clear(self) -> None:
         for item in list(self.items.values()):
-            if item.scene() is self.scene:
-                self.scene.removeItem(item)
+            # QGraphicsScene.clear() may already have deleted the wrapped C++
+            # object during graph restoration. Treat that as already-cleared.
+            try:
+                if item.scene() is self.scene:
+                    self.scene.removeItem(item)
+            except RuntimeError:
+                pass
         self.items.clear()
 
     def _node_items(self) -> dict[str, object]:
@@ -64,22 +69,32 @@ class GroupOverlayManager:
 
     def refresh(self) -> None:
         node_items = self._node_items()
-        for item in self.items.values():
-            members = [node_items[node_id] for node_id in item.node_ids if node_id in node_items]
-            if not members:
-                item.setVisible(False)
+        for item in list(self.items.values()):
+            try:
+                members = [
+                    node_items[node_id]
+                    for node_id in item.node_ids
+                    if node_id in node_items
+                ]
+                if not members:
+                    item.setVisible(False)
+                    continue
+                rect = members[0].sceneBoundingRect()
+                for member in members[1:]:
+                    rect = rect.united(member.sceneBoundingRect())
+                item.setVisible(True)
+                item.set_group_rect(rect.adjusted(-18, -28, 18, 18))
+            except RuntimeError:
+                # A restore/new operation may destroy scene items between Qt
+                # events; the next sync recreates authoritative overlays.
                 continue
-            rect = members[0].sceneBoundingRect()
-            for member in members[1:]:
-                rect = rect.united(member.sceneBoundingRect())
-            item.setVisible(True)
-            item.set_group_rect(rect.adjusted(-18, -28, 18, 18))
 
     def selected_group_ids(self) -> tuple[str, ...]:
-        return tuple(
-            sorted(
-                group_id
-                for group_id, item in self.items.items()
-                if item.isSelected()
-            )
-        )
+        selected: list[str] = []
+        for group_id, item in self.items.items():
+            try:
+                if item.isSelected():
+                    selected.append(group_id)
+            except RuntimeError:
+                continue
+        return tuple(sorted(selected))
