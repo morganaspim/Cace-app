@@ -5,13 +5,20 @@ import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.H1DomainBridge
 import CACEFormal.DistributionalGraphRepresentatives
 import CACEFormal.H1BesselRieszReduction
+import CACEFormal.WeakGreenFunctional
+import CACEFormal.ContinuumOrthogonality
+import CACEFormal.ContinuumPragerSynge
 
 /-!
-# v3.30 kernel-assumption audit
+# Continuum kernel-assumption audit
 
 CI compiles this file with the pinned Lean/mathlib toolchain and parses the `#print axioms` output
-for every new proof-strengthening endpoint. Promotion is rejected if a theorem depends on `sorryAx`
+for every proof-strengthening endpoint. Promotion is rejected if a theorem depends on `sorryAx`
 or on any axiom outside the small foundational whitelist enforced by the workflow.
+
+The Green/orthogonality/Prager-Synge endpoints below are intentionally audited with their hypotheses
+intact. Their inclusion does not assert that CACE has constructed every concrete PDE pairing, smooth
+core, zero-trace witness, cross-term identity, or unconditional regularizer needed to instantiate them.
 -/
 
 #print axioms CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt
@@ -43,3 +50,11 @@ or on any axiom outside the small foundational whitelist enforced by the workflo
 #print axioms CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2
 #print axioms CACEFormal.Continuum.h1RieszCorrection_inH1
 #print axioms CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction
+
+#print axioms CACEFormal.Continuum.BoundedGreenPairing.normalTrace_bound
+#print axioms CACEFormal.Continuum.normalTrace_unique_of_dense_agreement
+#print axioms CACEFormal.Continuum.weakGreen_of_denseSmoothCore
+#print axioms CACEFormal.Continuum.volumePairing_eq_zero_of_zeroBoundaryTrace
+#print axioms CACEFormal.Continuum.zeroBoundaryOrthogonality
+#print axioms CACEFormal.Continuum.zeroBoundaryOrthogonality_of_mem
+#print axioms CACEFormal.Continuum.continuumPragerSynge_of_weakGreen
