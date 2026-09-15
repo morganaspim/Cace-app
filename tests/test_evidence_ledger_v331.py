@@ -162,6 +162,22 @@ def test_hash_chain_round_trip_and_tip():
     assert verify_ledger([first, second]) == second.entry_sha256
 
 
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        "",
+        "2026-09-14T22:00:00.123Z",
+        "2026-09-14T22:00:00+00:00",
+        "2026-09-14 22:00:00Z",
+        "2026-02-30T22:00:00Z",
+        "2026-09-14T22:00:00z",
+    ],
+)
+def test_ledger_timestamp_must_be_canonical_second_resolution_utc(timestamp):
+    with pytest.raises(EvidenceLedgerError, match="timestamp_utc"):
+        append_entry([], _bundle(), timestamp_utc=timestamp)
+
+
 def test_mutating_historical_entry_breaks_chain():
     bundle = _bundle()
     first = append_entry([], bundle, timestamp_utc="2026-09-14T22:00:00Z")
@@ -249,3 +265,11 @@ def test_serialized_ledger_round_trip_and_tamper_detection():
     tampered[0]["metadata"] = {"changed": True}
     with pytest.raises(EvidenceLedgerError, match="entry hash mismatch"):
         ledger_from_payload(tampered)
+
+
+def test_serialized_ledger_rejects_noncanonical_timestamp_before_acceptance():
+    entry = append_entry([], _bundle(), timestamp_utc="2026-09-14T22:00:00Z")
+    payload = [dict(entry.payload())]
+    payload[0]["timestamp_utc"] = "2026-09-14T22:00:00+00:00"
+    with pytest.raises(EvidenceLedgerError, match="timestamp_utc"):
+        ledger_from_payload(payload)
