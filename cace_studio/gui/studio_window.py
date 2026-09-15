@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool, Qt
 from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QFormLayout
+from PySide6.QtWidgets import QFormLayout, QInputDialog
 
 from cace_studio.core.execution_control import ExecutionControl
 from cace_studio.core.executor import GraphExecutor
@@ -12,23 +12,27 @@ from cace_studio.core.graph_edit import (
     copy_graph_fragment,
     paste_graph_fragment,
 )
+from cace_studio.core.graph_groups import (
+    create_group,
+    group_node_ids,
+    remove_nodes_from_groups,
+)
 from cace_studio.core.reproducibility import experiment_fingerprint
 
 from .execution_worker import ExecutionWorker
+from .group_overlay import GroupOverlayManager
 from .main_window import MainWindow
+from .minimap import MiniMapView
 from .proof_explorer import ProofExplorerWidget
 
 
 class StudioMainWindow(MainWindow):
-    """CACE Studio shell with Proof Explorer and production graph-edit tools.
+    """CACE Studio shell with proof, grouping and controlled execution tools.
 
-    Proof Explorer is strictly read-only. It mirrors canonical claim/ledger state
-    plus runtime verification records; it cannot promote evidence or mutate the
-    proof ledger.
-
-    Execution runs against an immutable experiment snapshot in a worker thread.
-    Pause/cancel are cooperative at module boundaries; arbitrary scientific
-    modules are never forcefully interrupted inside their execute method.
+    Proof Explorer is strictly read-only. Group overlays are presentation-only
+    views of persisted experiment group membership. Execution runs against an
+    immutable snapshot in a worker thread; pause/cancel are cooperative at
+    module boundaries rather than unsafe thread interruption inside modules.
     """
 
     def __init__(self, registry, settings):
@@ -40,8 +44,22 @@ class StudioMainWindow(MainWindow):
         self._execution_control: ExecutionControl | None = None
         self._execution_worker: ExecutionWorker | None = None
 
+        self._group_overlays = GroupOverlayManager(
+            self.scene,
+            on_selected=self._group_selected,
+        )
+        self._group_overlays.sync(self.experiment.groups)
+
         self._install_graph_edit_actions()
+        self._install_group_actions()
         self._install_scoped_run_action()
+
+        self.minimap = MiniMapView(self.scene, self.canvas, self)
+        self.minimap_dock = self._dock(
+            "Minimap",
+            self.minimap,
+            Qt.LeftDockWidgetArea,
+        )
 
         self.proof_explorer = ProofExplorerWidget(self)
         self.proof_explorer_dock = self._dock(
@@ -98,6 +116,21 @@ class StudioMainWindow(MainWindow):
             lambda: self._align_selection(axis="y", strategy="mean", label="horizontal row"),
         )
 
+    def _install_group_actions(self) -> None:
+        group_menu = self.menuBar().addMenu("Group")
+        self._action(
+            group_menu,
+            "Create Group from Selection",
+            self.create_group_from_selection,
+            "Ctrl+G",
+        )
+        self._action(
+            group_menu,
+            "Ungroup Selected Nodes",
+            self.ungroup_selection,
+            "Ctrl+Shift+G",
+        )
+
     def _install_scoped_run_action(self) -> None:
         run_menu = self._menu_named("Run")
         if run_menu is None:
@@ -147,6 +180,72 @@ class StudioMainWindow(MainWindow):
             if getattr(item, "node_id", None) in selected:
                 item.setSelected(True)
 
+    def _group_selected(self, group_id: str) -> None:
+        try:
+            node_ids = group_node_ids(self.experiment, group_id)
+        except KeyError:
+            return
+        self._reselect_nodes(node_ids)
+        first_id = node_ids[0] if node_ids else None
+        if first_id is not None:
+            for item in self.scene.items():
+                if getattr(item, "node_id", None) == first_id:
+                    self._selected(item)
+                    break
+        self.console.append(
+            f"Selected group {group_id}: {len(node_ids)} node(s). "
+            "Use Selected + Upstream to execute this named subgraph target set."
+        )
+
+    def create_group_from_selection(self) -> None:
+        selected = tuple(sorted(self.canvas.selected_node_ids()))
+        if not selected:
+            self.console.append("Create group: select at least one node.")
+            return
+        name, accepted = QInputDialog.getText(self, "Create Group", "Group name:")
+        if not accepted:
+            return
+        self._sync_positions()
+        try:
+            self._record_history(sync_positions=False)
+            group = create_group(self.experiment, selected, name=name)
+        except Exception as exc:
+            # If creation failed after the history snapshot, discard the no-op
+            # undo entry by restoring the previous snapshot through undo.
+            previous = self.history.undo(self.experiment)
+            if previous is not None:
+                self.experiment = previous
+            self._sync_history_actions()
+            self.console.append(f"Create group failed: {type(exc).__name__}: {exc}")
+            return
+        self._group_overlays.sync(self.experiment.groups)
+        self._sync_history_actions()
+        self._autosave_tick()
+        self.console.append(
+            f"Created group {group.name!r} ({group.id}) with {len(group.node_ids)} node(s). "
+            "Grouping is presentation metadata and does not invalidate run evidence."
+        )
+
+    def ungroup_selection(self) -> None:
+        selected = tuple(sorted(self.canvas.selected_node_ids()))
+        if not selected:
+            self.console.append("Ungroup: select grouped nodes first.")
+            return
+        trial = self.history.snapshot(self.experiment)
+        changed = remove_nodes_from_groups(trial, selected)
+        if not changed:
+            self.console.append("Ungroup: selected nodes are not grouped.")
+            return
+        self._record_history()
+        self.experiment = trial
+        self._group_overlays.sync(self.experiment.groups)
+        self._sync_history_actions()
+        self._autosave_tick()
+        self.console.append(
+            f"Updated/removed group(s): {', '.join(changed)}. "
+            "Scientific run evidence remains attached because graph semantics did not change."
+        )
+
     def copy_selection(self) -> None:
         self._sync_positions()
         selected = self.canvas.selected_node_ids()
@@ -161,7 +260,8 @@ class StudioMainWindow(MainWindow):
         self._paste_generation = 0
         edge_count = len(self._graph_clipboard.edges)
         self.console.append(
-            f"Copied {len(self._graph_clipboard.nodes)} node(s) and {edge_count} internal edge(s)."
+            f"Copied {len(self._graph_clipboard.nodes)} node(s) and {edge_count} internal edge(s). "
+            "Pasted nodes are intentionally ungrouped."
         )
 
     def paste_selection(self) -> None:
@@ -398,6 +498,30 @@ class StudioMainWindow(MainWindow):
                 if details:
                     field.setToolTip(details)
 
+    def _node_moved(self, item, old_pos, new_pos):
+        super()._node_moved(item, old_pos, new_pos)
+        self._group_overlays.refresh()
+        self.minimap.schedule_refresh()
+
+    def _delete_requested(self, node_ids, edge_keys):
+        super()._delete_requested(node_ids, edge_keys)
+        changed_groups = remove_nodes_from_groups(self.experiment, node_ids)
+        if changed_groups:
+            self._group_overlays.sync(self.experiment.groups)
+            self._autosave_tick()
+            self.console.append(
+                "Pruned deleted node(s) from group(s): " + ", ".join(changed_groups)
+            )
+
+    def _restore_experiment(self, experiment, *, log_message=None):
+        if hasattr(self, "_group_overlays"):
+            self._group_overlays.clear()
+        super()._restore_experiment(experiment, log_message=log_message)
+        if hasattr(self, "_group_overlays"):
+            self._group_overlays.sync(self.experiment.groups)
+        if hasattr(self, "minimap"):
+            self.minimap.schedule_refresh()
+
     def _selected_module_context(self):
         if not self.selected_node_id:
             return None
@@ -436,9 +560,13 @@ class StudioMainWindow(MainWindow):
         self._refresh_proof_explorer()
 
     def new_file(self):
+        if hasattr(self, "_group_overlays"):
+            self._group_overlays.clear()
         super().new_file()
         self._graph_clipboard = None
         self._paste_generation = 0
+        self._group_overlays.sync(self.experiment.groups)
+        self.minimap.schedule_refresh()
         self._refresh_proof_explorer()
 
     def closeEvent(self, event):
