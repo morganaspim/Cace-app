@@ -26,18 +26,20 @@
       "module_ids": [],
       "nonclaims": [
         "Does not by itself prove all Python/C++ program behavior.",
-        "Does not close obligations explicitly listed in the v3.30 proof-strengthening release notes."
+        "Does not construct the unconditional H1/H(div) regularizers still required for reverse graph inclusion.",
+        "Does not yet identify the CACE distributional H1 graph relation with Mathlib Bessel-potential InH1 in the converse direction.",
+        "The weak-Green/orthogonality/continuum-Prager-Synge endpoints retain their explicit analytic and PDE-specific hypotheses."
       ],
-      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v1",
+      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v2",
       "qualification": {
         "attested_commit": null,
         "current_head_qualified": false,
         "proof_artifact_sha256": null,
-        "reason": "No current-head pinned Lean build plus axiom audit satisfying the bound proof contract has yet been accepted into this registry.",
+        "reason": "Proof contract v2 requires a fresh exact-head pinned Lean build, kernel axiom audit, Lean.Environment theorem metadata bound to the contract and commit, and content-addressed attestation before FORMAL PASS can be emitted.",
         "status": "NOT_RUN"
       },
-      "scope": "Current development continuum chain; exact audited endpoints and static qualification requirements are defined by the bound proof contract.",
-      "statement": "The v3.23-v3.30 continuum chain contains graph-space, Green-identity, trace, density-reduction and Prager-Synge proof infrastructure."
+      "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v2.",
+      "statement": "The continuum chain contains graph-space, Green-identity, bounded normal-trace, density-reduction, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
     }
   ],
   "policy": "fail-closed",
