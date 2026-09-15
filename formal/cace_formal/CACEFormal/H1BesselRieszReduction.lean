@@ -2,7 +2,7 @@ import CACEFormal.DistributionalGraphRepresentatives
 
 namespace CACEFormal
 
-open Set Finset MeasureTheory
+open Set Finset MeasureTheory FourierTransform
 open scoped BigOperators LineDeriv SchwartzMap Real
 
 namespace Continuum
@@ -10,18 +10,16 @@ namespace Continuum
 noncomputable section
 
 /-!
-# v3.30 Bessel/Riesz reduction for the H1 converse
+# H1 Bessel/Riesz reconstruction
 
-The remaining converse in the scalar bridge is the classical implication
+The scalar converse is the classical implication
 
 `u ∈ L2` and `∂_i u ∈ L2` for every coordinate `i`  ==>  `u ∈ H1`.
 
-Rather than attacking the weighted Fourier L2 estimate monolithically, this module factors the proof
-through bounded Bessel/Riesz multipliers.  The only remaining analytic identity after these lemmas is
-the exact reconstruction of `u` from its low-frequency Bessel term and the coordinate Riesz terms.
-
-This is useful beyond this one theorem: each filtered derivative term is independently shown to lie
-in H1 using Mathlib's bounded Fourier-multiplier theorem.
+The proof is factored through bounded Bessel/Riesz multipliers.  The low-frequency term has Fourier
+symbol `1 / (1 + |xi|^2)`.  The coordinate Riesz correction has symbol
+`|xi|^2 / (1 + |xi|^2)`.  Their pointwise sum is exactly one, so the previously exposed
+reconstruction hypothesis is now discharged inside Lean.
 -/
 
 /-- Coordinate Bessel/Riesz symbol `xi_i / sqrt(1 + |xi|^2)`. -/
@@ -135,23 +133,171 @@ theorem h1RieszCorrection_inH1 {n : Nat} {u : ScalarDistribution n}
   intro i hi
   exact rieszFiltered_weakPartial_inH1_of_inL2 i (hdu i)
 
-/--
-Once the exact Bessel/Riesz reconstruction identity is available, the standard weak-derivative
-characterization of H1 follows immediately from the bounded-multiplier lemmas above.
+/-- Fourier symbol of the order `-2` Bessel low-frequency term. -/
+noncomputable def h1BesselLowSymbol {n : Nat} : EuclideanDomain n → ℂ :=
+  fun x => Complex.ofReal ((1 + ‖x‖ ^ 2) ^ (-1 : ℝ))
 
-This theorem deliberately exposes only the reconstruction identity as the remaining hypothesis; all
-Sobolev-order lifting, boundedness, and finite-sum closure are discharged here.
--/
+/-- Fourier symbol of the total coordinate Riesz correction. -/
+noncomputable def h1RieszEnergySymbol {n : Nat} : EuclideanDomain n → ℂ :=
+  fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x
+
+/-- The low-frequency symbol has temperate growth. -/
+theorem h1BesselLowSymbol_hasTemperateGrowth {n : Nat} :
+    (h1BesselLowSymbol (n := n)).HasTemperateGrowth := by
+  unfold h1BesselLowSymbol
+  fun_prop
+
+/-- The summed squared Riesz symbol has temperate growth. -/
+theorem h1RieszEnergySymbol_hasTemperateGrowth {n : Nat} :
+    (h1RieszEnergySymbol (n := n)).HasTemperateGrowth := by
+  unfold h1RieszEnergySymbol h1RieszSymbol
+  fun_prop
+
+/-- Canonical-coordinate Parseval identity used by the reconstruction symbol calculation. -/
+theorem sum_sq_inner_basisVector {n : Nat} (x : EuclideanDomain n) :
+    (∑ i : Fin n, (inner ℝ x (basisVector i)) ^ 2) = ‖x‖ ^ 2 := by
+  rw [EuclideanSpace.real_norm_sq_eq]
+  apply Finset.sum_congr rfl
+  intro i hi
+  simp [basisVector, EuclideanSpace.inner_single_right]
+
+/-- Squaring the order `-1/2` Bessel weight produces the order `-1` weight. -/
+theorem besselWeight_neg_half_sq {n : Nat} (x : EuclideanDomain n) :
+    ((1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) ^ 2 =
+      (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) := by
+  rw [← Real.rpow_mul_natCast (by positivity)]
+  norm_num
+
+/-- The low-frequency Bessel symbol and the summed Riesz-energy symbol form an exact partition of
+unity. -/
+theorem h1BesselLowSymbol_add_h1RieszEnergySymbol {n : Nat} (x : EuclideanDomain n) :
+    h1BesselLowSymbol x + h1RieszEnergySymbol x = 1 := by
+  unfold h1BesselLowSymbol h1RieszEnergySymbol h1RieszSymbol
+  simp only [Pi.mul_apply, ← Complex.ofReal_mul, ← Complex.ofReal_sum, ← Complex.ofReal_add]
+  norm_cast
+  calc
+    (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+        ∑ i : Fin n,
+          (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
+            (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ))
+        = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+            (∑ i : Fin n, (inner ℝ x (basisVector i)) ^ 2) *
+              ((1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) ^ 2 := by
+          congr 1
+          rw [Finset.sum_mul]
+          apply Finset.sum_congr rfl
+          intro i hi
+          ring
+    _ = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+          ‖x‖ ^ 2 * (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) := by
+          rw [sum_sq_inner_basisVector x, besselWeight_neg_half_sq x]
+    _ = 1 := by
+          rw [Real.rpow_neg (by positivity)]
+          norm_num
+          field_simp
+          ring
+
+/-- The order `-2` Bessel potential is exactly the multiplier with the low-frequency symbol. -/
+theorem besselPotential_neg_two_eq_h1BesselLowMultiplier {n : Nat}
+    (u : ScalarDistribution n) :
+    TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-2) u =
+      TemperedDistribution.fourierMultiplierCLM ℂ (h1BesselLowSymbol (n := n)) u := by
+  unfold TemperedDistribution.besselPotential h1BesselLowSymbol
+  apply congrArg
+    (fun g : EuclideanDomain n → ℂ =>
+      TemperedDistribution.fourierMultiplierCLM ℂ g u)
+  funext x
+  norm_num
+
+/-- The existing finite Riesz correction is exactly the Fourier multiplier with symbol
+`|xi|^2 / (1 + |xi|^2)`. -/
+theorem h1RieszCorrection_eq_energyMultiplier {n : Nat}
+    (u : ScalarDistribution n) :
+    h1RieszCorrection u =
+      TemperedDistribution.fourierMultiplierCLM ℂ (h1RieszEnergySymbol (n := n)) u := by
+  have hpi : (Real.pi : ℂ) ≠ 0 := by
+    exact_mod_cast Real.pi_ne_zero
+  have hI : Complex.I ≠ 0 := Complex.I_ne_zero
+  have halpha : (2 * (Real.pi : ℂ) * Complex.I) ≠ 0 := by
+    exact mul_ne_zero (mul_ne_zero (by norm_num) hpi) hI
+  have hder : ∀ i : Fin n,
+      TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-1)
+          (weakPartial i u) =
+        (2 * (Real.pi : ℂ) * Complex.I) •
+          TemperedDistribution.fourierMultiplierCLM ℂ (h1RieszSymbol i) u := by
+    intro i
+    simpa [weakPartial, h1RieszSymbol] using
+      (TemperedDistribution.besselPotential_neg_one_lineDerivOp_eq
+        (E := EuclideanDomain n) (F := ℂ) (m := basisVector i) u)
+  unfold h1RieszCorrection
+  simp_rw [hder, map_smul]
+  rw [← Finset.smul_sum, smul_smul, inv_mul_cancel₀ halpha, one_smul]
+  simp_rw [TemperedDistribution.fourierMultiplierCLM_fourierMultiplierCLM_apply
+    (h1RieszSymbol_hasTemperateGrowth (n := n) _)
+    (h1RieszSymbol_hasTemperateGrowth (n := n) _)]
+  have hg : ∀ i ∈ (Finset.univ : Finset (Fin n)),
+      ((h1RieszSymbol i) * (h1RieszSymbol i)).HasTemperateGrowth := by
+    intro i hi
+    fun_prop
+  have hsum := congrArg
+    (fun T : ScalarDistribution n →L[ℂ] ScalarDistribution n => T u)
+    (TemperedDistribution.fourierMultiplierCLM_sum
+      (F := ℂ) (s := (Finset.univ : Finset (Fin n)))
+      (g := fun i => (h1RieszSymbol i) * (h1RieszSymbol i)) hg)
+  simpa [h1RieszEnergySymbol] using hsum.symm
+
+/-- Exact Bessel/Riesz reconstruction of every scalar tempered distribution.  No Sobolev or L2
+hypothesis is needed for this operator identity. -/
+theorem besselRiesz_reconstruction {n : Nat} (u : ScalarDistribution n) :
+    u = TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-2) u +
+      h1RieszCorrection u := by
+  rw [besselPotential_neg_two_eq_h1BesselLowMultiplier,
+    h1RieszCorrection_eq_energyMultiplier]
+  have hsymbols :
+      h1BesselLowSymbol (n := n) + h1RieszEnergySymbol (n := n) =
+        (fun _ : EuclideanDomain n => (1 : ℂ)) := by
+    funext x
+    exact h1BesselLowSymbol_add_h1RieszEnergySymbol x
+  have hfourier :
+      TemperedDistribution.smulLeftCLM ℂ (h1BesselLowSymbol (n := n)) (𝓕 u) +
+          TemperedDistribution.smulLeftCLM ℂ (h1RieszEnergySymbol (n := n)) (𝓕 u) =
+        𝓕 u := by
+    change
+      (TemperedDistribution.smulLeftCLM ℂ (h1BesselLowSymbol (n := n)) +
+        TemperedDistribution.smulLeftCLM ℂ (h1RieszEnergySymbol (n := n))) (𝓕 u) =
+          𝓕 u
+    rw [← TemperedDistribution.smulLeftCLM_add
+      (h1BesselLowSymbol_hasTemperateGrowth (n := n))
+      (h1RieszEnergySymbol_hasTemperateGrowth (n := n)), hsymbols]
+    simp
+  rw [TemperedDistribution.fourierMultiplierCLM_apply,
+    TemperedDistribution.fourierMultiplierCLM_apply]
+  calc
+    u = 𝓕⁻ (𝓕 u) := (FourierTransform.fourierInv_fourier_eq u).symm
+    _ = 𝓕⁻
+        (TemperedDistribution.smulLeftCLM ℂ (h1BesselLowSymbol (n := n)) (𝓕 u) +
+          TemperedDistribution.smulLeftCLM ℂ (h1RieszEnergySymbol (n := n)) (𝓕 u)) := by
+        rw [hfourier]
+    _ = 𝓕⁻ (TemperedDistribution.smulLeftCLM ℂ (h1BesselLowSymbol (n := n)) (𝓕 u)) +
+        𝓕⁻ (TemperedDistribution.smulLeftCLM ℂ (h1RieszEnergySymbol (n := n)) (𝓕 u)) := by
+        rw [map_add]
+
+/-- Weak-derivative characterization of H1: an L2 tempered distribution whose coordinate weak
+derivatives are all L2 belongs to Mathlib's Bessel-potential H1. -/
 theorem inH1_of_besselRiesz_reconstruction {n : Nat} {u : ScalarDistribution n}
     (hu : InL2 u)
-    (hdu : ∀ i : Fin n, InL2 (weakPartial i u))
-    (hreconstruct :
-      u = TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-2) u +
-        h1RieszCorrection u) :
+    (hdu : ∀ i : Fin n, InL2 (weakPartial i u)) :
     InH1 u := by
-  rw [hreconstruct]
+  rw [besselRiesz_reconstruction u]
   exact (besselPotential_neg_two_inH1_of_inL2 hu).add
     (h1RieszCorrection_inH1 hdu)
+
+/-- Descriptive alias for the unconditional weak-derivative H1 converse. -/
+theorem inH1_of_inL2_weakPartial_inL2 {n : Nat} {u : ScalarDistribution n}
+    (hu : InL2 u)
+    (hdu : ∀ i : Fin n, InL2 (weakPartial i u)) :
+    InH1 u :=
+  inH1_of_besselRiesz_reconstruction hu hdu
 
 end
 
