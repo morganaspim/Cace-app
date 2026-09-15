@@ -1,4 +1,4 @@
-name: CACE v3.37 exact-head formal qualification
+name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
 
 on:
   workflow_dispatch:
@@ -24,9 +24,12 @@ on:
       - 'cace_studio/data/proof_ledger.json'
       - 'cace_studio/modules/research_dynamics.py'
       - 'cace_studio/modules/research_geometry.py'
+      - 'scripts/cace_run_with_heartbeat.py'
       - 'scripts/export_v330_environment_metadata.py'
       - 'scripts/build_continuum_attestation.py'
       - 'tests/test_cli.py'
+      - 'tests/test_claim_registry_v331.py'
+      - 'tests/test_qualification_drift_v331.py'
       - 'tests/test_research_dynamics_v337.py'
       - 'tests/test_research_geometry_v337.py'
       - 'tests/test_export_v330_environment_metadata.py'
@@ -38,20 +41,27 @@ on:
 permissions:
   contents: read
 
+# On the active H1 branch this deliberately shares the legacy v3.30 concurrency
+# key so this canonical run cancels any stale legacy qualification job before it
+# can consume the single OCI runner. Main keeps the independent canonical key.
 concurrency:
-  group: cace-v337-exact-head-${{ github.ref }}
+  group: ${{ github.ref == 'refs/heads/implement/cace-rigor-playground-v337' && format('cace-formal-v330-{0}', github.ref) || format('cace-v337-exact-head-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
   exact-head-formal-qualification:
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 180
+    timeout-minutes: 1400
     env:
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
       CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
       CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_PERSISTENT_BUILD_CACHE_ROOT: /var/lib/cace-cache/canonical-qualification-build
+      CACE_HEARTBEAT_SECONDS: '60'
+      CACE_STALL_WARN_SECONDS: '1800'
+      CACE_STALL_KILL_SECONDS: '7200'
 
     steps:
       - name: Bootstrap Git required for exact-head qualification
@@ -78,6 +88,7 @@ jobs:
           fi
           git --version
           command -v flock
+          command -v gzip
 
       - name: Checkout exact event commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -87,14 +98,20 @@ jobs:
           clean: true
           persist-credentials: false
 
-      - name: Establish exact-current-head boundary
+      - name: Establish exact-current-head boundary and status journal
         shell: bash
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
           test "$actual" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
+          status_dir="$RUNNER_TEMP/cace-v337-status-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -p "$status_dir"
+          printf '%s\n' "$actual" > "$status_dir/exact_head.txt"
+          printf '%s\n' "$GITHUB_RUN_ID" > "$status_dir/workflow_run_id.txt"
+          printf '%s\n' "$GITHUB_RUN_ATTEMPT" > "$status_dir/workflow_run_attempt.txt"
           echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
+          echo "CACE_STATUS_DIR=$status_dir" >> "$GITHUB_ENV"
           echo "exact_current_head=$actual"
 
       - name: Set up pinned ARM64-capable Python
@@ -110,7 +127,7 @@ jobs:
           echo "$RUNNER_TEMP/cace-v337-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cace-v337-venv/bin/python" --version
 
-      - name: Run truth architecture, attestation, and research playground tests
+      - name: Run truth architecture, proof-governance, attestation, and research tests
         shell: bash
         run: |
           set -euo pipefail
@@ -118,6 +135,8 @@ jobs:
           python -m pip install -e '.[test]'
           python -m pytest -q \
             tests/test_cli.py \
+            tests/test_claim_registry_v331.py \
+            tests/test_qualification_drift_v331.py \
             tests/test_research_dynamics_v337.py \
             tests/test_research_geometry_v337.py \
             tests/test_export_v330_environment_metadata.py \
@@ -125,7 +144,7 @@ jobs:
             tests/test_lean_theorem_metadata_v336.py \
             tests/test_proof_contract_v336.py
 
-      - name: Prepare isolated formal qualification build
+      - name: Prepare isolated formal qualification build and cache identity
         shell: bash
         run: |
           set -euo pipefail
@@ -133,16 +152,23 @@ jobs:
           mkdir -p "$cace_build_root/formal" "$cace_build_root/cache" "$cace_build_root/output"
           cp -a formal/cace_formal/. "$cace_build_root/formal/"
           rm -rf "$cace_build_root/formal/.lake/build"
+          formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
+          toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
+          build_cache="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT/$formal_tree"
           echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
           echo "CACE_OUTPUT_DIR=$cace_build_root/output" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_TREE_SHA=$formal_tree" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_BUILD_CACHE=$build_cache" >> "$GITHUB_ENV"
           echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
+          printf '%s\n' "$formal_tree" > "$CACE_STATUS_DIR/formal_tree_sha.txt"
           available_kb="$(df -Pk "$cace_build_root" | awk 'NR==2 {print $4}')"
           if (( available_kb < 5 * 1024 * 1024 )); then
             echo "Formal qualification requires at least 5 GiB free; found ${available_kb} KiB." >&2
             exit 1
           fi
+          df -h "$cace_build_root"
 
       - name: Seed isolated exact-pin dependency tree when available
         shell: bash
@@ -156,9 +182,9 @@ jobs:
             test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
             cp -a --reflink=auto "$CACE_PACKAGE_CACHE" "$CACE_FORMAL_DIR/.lake/packages"
             flock -u 9
-            echo 'Seeded isolated dependency tree from exact-pin OCI cache.'
+            echo 'CACE_DEPENDENCY_CACHE_HIT exact-pin package tree restored.'
           else
-            echo 'Persistent package cache absent; resolving from immutable pins.'
+            echo 'CACE_DEPENDENCY_CACHE_MISS persistent package cache absent; resolving from immutable pins.'
           fi
           rm -rf "$CACE_FORMAL_DIR/.lake/build"
 
@@ -203,12 +229,26 @@ jobs:
           MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
           lake build +Cache.Main
-          timeout 5400 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+          lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
             get CACEFormal/H1GraphConverse.lean || true
-          timeout 5400 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+          lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
             get CACEFormal/V330TheoremMetadata.lean || true
           find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete || true
           rm -rf .lake/build
+          echo "Resolved mathlib=$(git -C .lake/packages/mathlib rev-parse HEAD)"
+
+      - name: Restore exact-source resumable CACE build cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$CACE_FORMAL_DIR/.lake/build"
+          if [[ -d "$CACE_FORMAL_BUILD_CACHE/build" ]]; then
+            mkdir -p "$CACE_FORMAL_DIR/.lake"
+            cp -a --reflink=auto "$CACE_FORMAL_BUILD_CACHE/build" "$CACE_FORMAL_DIR/.lake/build"
+            echo "CACE_FORMAL_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
+          else
+            echo "CACE_FORMAL_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
+          fi
 
       - name: Reject unfinished proof tokens across audited source bundle
         shell: bash
@@ -249,7 +289,9 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          timeout 5400 lake build CACEFormal.H1GraphConverse
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase h1-graph-converse -- \
+            lake build CACEFormal.H1GraphConverse
 
       - name: Compile audited continuum dependency closure
         shell: bash
@@ -258,8 +300,12 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          timeout 5400 lake build CACEFormal.V330AxiomAudit
-          timeout 5400 lake build CACEFormal.V330TheoremMetadata
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase continuum-axiom-audit-build -- \
+            lake build CACEFormal.V330AxiomAudit
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase theorem-metadata-build -- \
+            lake build CACEFormal.V330TheoremMetadata
 
       - name: Emit loaded-environment theorem metadata
         shell: bash
@@ -366,6 +412,104 @@ jobs:
             ${{ env.CACE_OUTPUT_DIR }}/commit.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_id.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_attempt.txt
+
+      - name: Persist validated resumable proof caches
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CACE_FORMAL_DIR:-}" || ! -d "$CACE_FORMAL_DIR/.lake" ]]; then
+            echo 'No formal build tree available to persist.'
+            exit 0
+          fi
+          if [[ "$(git rev-parse HEAD)" != "${CACE_EXPECTED_SHA:-}" ]]; then
+            echo 'Refusing cache promotion: exact-head drift.' >&2
+            exit 1
+          fi
+          if ! diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR" >/dev/null; then
+            echo 'Refusing cache promotion: formal source drift.' >&2
+            exit 1
+          fi
+
+          if [[ -d "$CACE_FORMAL_DIR/.lake/packages/mathlib/.git" ]]; then
+            test "$(git -C "$CACE_FORMAL_DIR/.lake/packages/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+            mkdir -p "$(dirname "$CACE_PACKAGE_CACHE")"
+            exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+            flock -w 1800 9
+            package_staging="${CACE_PACKAGE_CACHE}.staging.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+            rm -rf "$package_staging"
+            cp -a --reflink=auto "$CACE_FORMAL_DIR/.lake/packages" "$package_staging"
+            test "$(git -C "$package_staging/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+            rm -rf "$CACE_PACKAGE_CACHE"
+            mv "$package_staging" "$CACE_PACKAGE_CACHE"
+            flock -u 9
+            echo 'CACE_DEPENDENCY_CACHE_PROMOTED exact-pin package/build tree.'
+          fi
+
+          if [[ -d "$CACE_FORMAL_DIR/.lake/build" && -n "${CACE_FORMAL_BUILD_CACHE:-}" ]]; then
+            mkdir -p "$CACE_FORMAL_BUILD_CACHE"
+            build_staging="$CACE_FORMAL_BUILD_CACHE/build.staging.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+            rm -rf "$build_staging"
+            cp -a --reflink=auto "$CACE_FORMAL_DIR/.lake/build" "$build_staging"
+            rm -rf "$CACE_FORMAL_BUILD_CACHE/build"
+            mv "$build_staging" "$CACE_FORMAL_BUILD_CACHE/build"
+            printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$CACE_FORMAL_BUILD_CACHE/formal_tree_sha.txt"
+            printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$CACE_FORMAL_BUILD_CACHE/mathlib_commit.txt"
+            printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_FORMAL_BUILD_CACHE/lean_toolchain.txt"
+            echo "CACE_FORMAL_BUILD_CACHE_PROMOTED tree=$CACE_FORMAL_TREE_SHA"
+          fi
+
+      - name: Finalize compressed heartbeat and diagnostic manifest
+        if: always()
+        shell: bash
+        env:
+          CACE_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CACE_STATUS_DIR:-}" ]]; then
+            exit 0
+          fi
+          mkdir -p "$CACE_STATUS_DIR"
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          status_dir = Path(os.environ['CACE_STATUS_DIR'])
+          output_dir = Path(os.environ['CACE_OUTPUT_DIR']) if os.environ.get('CACE_OUTPUT_DIR') else None
+          attestation = output_dir / 'cace_continuum_qualification_attestation.json' if output_dir else None
+          payload = {
+              'schema': 'cace-qualification-diagnostic-v1',
+              'timestamp_utc': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+              'job_status': os.environ.get('CACE_JOB_STATUS'),
+              'git_commit': os.environ.get('CACE_EXPECTED_SHA') or os.environ.get('GITHUB_SHA'),
+              'run_id': os.environ.get('GITHUB_RUN_ID'),
+              'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
+              'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
+              'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
+              'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
+              'qualification_attestation_present': bool(attestation and attestation.is_file()),
+              'cache_effect': 'acceleration-only; never qualification evidence',
+          }
+          (status_dir / 'final_status.json').write_text(
+              json.dumps(payload, sort_keys=True, indent=2) + '\n', encoding='utf-8'
+          )
+          PY
+          shopt -s nullglob
+          for file in "$CACE_STATUS_DIR"/*.log "$CACE_STATUS_DIR"/heartbeat.jsonl; do
+            gzip -f "$file"
+          done
+
+      - name: Upload qualification diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v337-qualification-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ env.CACE_STATUS_DIR }}
+            ${{ env.CACE_OUTPUT_DIR }}
 
       - name: Remove temporary formal build
         if: always()
