@@ -34,6 +34,8 @@ jobs:
           HEARTBEAT="$STATE_DIR/heartbeat"
           PIDFILE="$STATE_DIR/watchdog.pid"
           LOCKFILE="$STATE_DIR/watchdog.lock"
+          FORMAL_LOG="$STATE_DIR/formal-progress.log"
+          FORMAL_SNAPSHOT="$STATE_DIR/formal-latest.txt"
           mkdir -p "$STATE_DIR"
 
           exec 9>"$LOCKFILE"
@@ -47,7 +49,57 @@ jobs:
             printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$LOG"
           }
 
+          formal_snapshot() {
+            local build_root olean_count newest mem_avail_kb disk_avail_kb lake_pids lean_pids
+            build_root="$(find /var/tmp -maxdepth 1 -type d -name 'cace-formal.*' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
+            if [[ -z "$build_root" || ! -d "$build_root" ]]; then
+              return 0
+            fi
+
+            olean_count="$(find "$build_root" -type f -name '*.olean' 2>/dev/null | wc -l | tr -d ' ')"
+            newest="$(find "$build_root" -type f -name '*.olean' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
+            mem_avail_kb="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || true)"
+            disk_avail_kb="$(df -Pk "$build_root" 2>/dev/null | awk 'NR==2 {print $4}' || true)"
+            lake_pids="$(pgrep -d, -f 'lake (build|env)' 2>/dev/null || true)"
+            lean_pids="$(pgrep -d, -f '/lean( |$)|/lean-[^ ]*' 2>/dev/null || true)"
+
+            printf '%s build_root=%q olean_count=%s newest=%q mem_available_kb=%s disk_available_kb=%s lake_pids=%q lean_pids=%q\n' \
+              "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$build_root" "$olean_count" "$newest" \
+              "$mem_avail_kb" "$disk_avail_kb" "$lake_pids" "$lean_pids" >> "$FORMAL_LOG"
+
+            {
+              echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              echo "build_root=$build_root"
+              echo "olean_count=$olean_count"
+              echo "newest_olean=$newest"
+              echo "mem_available_kb=$mem_avail_kb"
+              echo "disk_available_kb=$disk_avail_kb"
+              echo "lake_pids=$lake_pids"
+              echo "lean_pids=$lean_pids"
+              echo
+              echo '=== formal processes ==='
+              ps -eo pid,ppid,pcpu,pmem,rss,vsz,etime,stat,cmd | grep -E 'lake (build|env)|/lean( |$)|/lean-[^ ]*' | grep -v grep || true
+              echo
+              echo '=== memory ==='
+              free -h || true
+              echo
+              echo '=== disk ==='
+              df -h "$build_root" || true
+              echo
+              echo '=== cgroup memory events ==='
+              cat /sys/fs/cgroup/memory.events 2>/dev/null || true
+              echo
+              echo '=== newest oleans ==='
+              find "$build_root" -type f -name '*.olean' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 30 || true
+              echo
+              echo '=== newest files ==='
+              find "$build_root" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 30 || true
+            } > "$FORMAL_SNAPSHOT.tmp"
+            mv "$FORMAL_SNAPSHOT.tmp" "$FORMAL_SNAPSHOT"
+          }
+
           log "watchdog-start pid=$$"
+          tick=0
           while true; do
             date -u +%Y-%m-%dT%H:%M:%SZ > "$HEARTBEAT.tmp"
             mv "$HEARTBEAT.tmp" "$HEARTBEAT"
@@ -73,6 +125,11 @@ jobs:
               else
                 log "listener-missing but run.sh pid=$runsh_pid is present; waiting"
               fi
+            fi
+
+            tick=$((tick + 1))
+            if (( tick % 3 == 0 )); then
+              formal_snapshot || true
             fi
             sleep 10
           done
@@ -127,6 +184,8 @@ jobs:
             tail -n 100 "$STATE_DIR/watchdog.log" 2>/dev/null || true
             echo '=== restart log ==='
             tail -n 100 "$STATE_DIR/runner-restarts.log" 2>/dev/null || true
+            echo '=== formal snapshot ==='
+            cat "$STATE_DIR/formal-latest.txt" 2>/dev/null || true
           } > cace-watchdog-diagnostics/install.txt 2>&1
 
       - name: Upload install diagnostics
