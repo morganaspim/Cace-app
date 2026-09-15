@@ -44,6 +44,8 @@ private def endpoints : List Name := [
   ``CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2,
   ``CACEFormal.Continuum.h1RieszCorrection_inH1,
   ``CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction,
+  ``CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule,
+  ``CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative,
   ``CACEFormal.Continuum.BoundedGreenPairing.normalTrace_bound,
   ``CACEFormal.Continuum.normalTrace_unique_of_dense_agreement,
   ``CACEFormal.Continuum.weakGreen_of_denseSmoothCore,
