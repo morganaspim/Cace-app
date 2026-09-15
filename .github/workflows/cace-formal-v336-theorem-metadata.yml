@@ -1,4 +1,4 @@
-name: CACE v3.37 rigor and Lean metadata qualification
+name: CACE v3.37 exact-head formal qualification
 
 on:
   workflow_dispatch:
@@ -23,10 +23,12 @@ on:
       - 'cace_studio/modules/research_dynamics.py'
       - 'cace_studio/modules/research_geometry.py'
       - 'scripts/export_v330_environment_metadata.py'
+      - 'scripts/build_continuum_attestation.py'
       - 'tests/test_cli.py'
       - 'tests/test_research_dynamics_v337.py'
       - 'tests/test_research_geometry_v337.py'
       - 'tests/test_export_v330_environment_metadata.py'
+      - 'tests/test_continuum_attestation_v337.py'
       - 'tests/test_lean_theorem_metadata_v336.py'
       - 'tests/test_proof_contract_v336.py'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
@@ -35,11 +37,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: cace-v337-rigor-metadata-${{ github.ref }}
+  group: cace-v337-exact-head-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  rigor-and-lean-environment-metadata:
+  exact-head-formal-qualification:
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 180
     env:
@@ -106,7 +108,7 @@ jobs:
           echo "$RUNNER_TEMP/cace-v337-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cace-v337-venv/bin/python" --version
 
-      - name: Run truth architecture and research playground tests
+      - name: Run truth architecture, attestation, and research playground tests
         shell: bash
         run: |
           set -euo pipefail
@@ -117,14 +119,15 @@ jobs:
             tests/test_research_dynamics_v337.py \
             tests/test_research_geometry_v337.py \
             tests/test_export_v330_environment_metadata.py \
+            tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
             tests/test_proof_contract_v336.py
 
-      - name: Prepare isolated formal metadata build
+      - name: Prepare isolated formal qualification build
         shell: bash
         run: |
           set -euo pipefail
-          cace_build_root="$(mktemp -d /var/tmp/cace-v337-metadata.XXXXXXXX)"
+          cace_build_root="$(mktemp -d /var/tmp/cace-v337-qualification.XXXXXXXX)"
           mkdir -p "$cace_build_root/formal" "$cace_build_root/cache" "$cace_build_root/output"
           cp -a formal/cace_formal/. "$cace_build_root/formal/"
           rm -rf "$cace_build_root/formal/.lake/build"
@@ -135,7 +138,7 @@ jobs:
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
           available_kb="$(df -Pk "$cace_build_root" | awk 'NR==2 {print $4}')"
           if (( available_kb < 5 * 1024 * 1024 )); then
-            echo "Theorem metadata qualification requires at least 5 GiB free; found ${available_kb} KiB." >&2
+            echo "Formal qualification requires at least 5 GiB free; found ${available_kb} KiB." >&2
             exit 1
           fi
 
@@ -203,6 +206,30 @@ jobs:
           find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete || true
           rm -rf .lake/build
 
+      - name: Reject unfinished proof tokens across audited source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          from cace_studio.core.proof_contract import ProofContractRegistry
+
+          contract = ProofContractRegistry.load_default().for_claim('cace.v330.continuum-proof-strengthening')
+          if contract is None:
+              raise SystemExit('missing ProofContract')
+          pattern = re.compile(r'\bsorry\b|\badmit\b|OPEN OBLIGATION')
+          failures = []
+          root = Path('formal/cace_formal')
+          for relative in contract.audited_source_files:
+              text = (root / relative).read_text(encoding='utf-8')
+              if pattern.search(text):
+                  failures.append(relative)
+          if failures:
+              raise SystemExit(f'Unfinished proof tokens in audited sources: {failures}')
+          print(f'CACE_UNFINISHED_TOKEN_GUARD_PASS:{len(contract.audited_source_files)}')
+          PY
+
       - name: Re-verify exact source state before formal qualification work
         shell: bash
         run: |
@@ -211,18 +238,25 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=no)"
           diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
 
-      - name: Compile and emit loaded-environment theorem metadata
+      - name: Compile audited continuum dependency closure
         shell: bash
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         env:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
+          timeout 5400 lake build CACEFormal.V330AxiomAudit
           timeout 5400 lake build CACEFormal.V330TheoremMetadata
+
+      - name: Emit loaded-environment theorem metadata
+        shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        run: |
+          set -euo pipefail
           lake env lean CACEFormal/V330TheoremMetadata.lean \
             | tee "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.raw.txt"
 
-      - name: Canonicalize metadata and rerun fail-closed kernel axiom audit
+      - name: Canonicalize metadata and run fail-closed kernel axiom audit
         shell: bash
         run: |
           set -euo pipefail
@@ -262,7 +296,7 @@ jobs:
           print('CACE_V337_METADATA_AND_KERNEL_AUDIT_BINDING_PASS')
           PY
 
-      - name: Re-verify exact head before artifact publication
+      - name: Verify exact-current-head attestation preconditions
         shell: bash
         run: |
           set -euo pipefail
@@ -270,19 +304,46 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=no)"
           diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
           test "$(git -C "$CACE_FORMAL_DIR/.lake/packages/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          test -s "$CACE_FORMAL_DIR/lake-manifest.json"
+          test -s "$CACE_OUTPUT_DIR/v330_kernel_axiom_audit.json"
+          test -s "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.json"
 
-      - name: Record exact qualification identity
+      - name: Build exact-current-head continuum proof attestation
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "$CACE_EXPECTED_SHA" > "$CACE_OUTPUT_DIR/commit.txt"
-          printf '%s\n' "$GITHUB_RUN_ID" > "$CACE_OUTPUT_DIR/workflow_run_id.txt"
+          PYTHONPATH="$GITHUB_WORKSPACE" python scripts/build_continuum_attestation.py \
+            --formal-dir "$CACE_FORMAL_DIR" \
+            --metadata "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.json" \
+            --axiom-audit "$CACE_OUTPUT_DIR/v330_kernel_axiom_audit.json" \
+            --git-commit "$CACE_EXPECTED_SHA" \
+            --workflow-run-id "$GITHUB_RUN_ID" \
+            --workflow-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --output "$CACE_OUTPUT_DIR/cace_continuum_qualification_attestation.json"
 
-      - name: Upload Lean-generated theorem metadata and kernel audit
+      - name: Final exact-head and artifact-integrity gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
+          cd "$CACE_OUTPUT_DIR"
+          sha256sum -c cace_continuum_qualification_attestation.json.sha256
+          sha256sum -c v330_lean_environment_metadata.json.sha256
+          sha256sum -c v330_kernel_axiom_audit.json.sha256
+          printf '%s\n' "$CACE_EXPECTED_SHA" > commit.txt
+          printf '%s\n' "$GITHUB_RUN_ID" > workflow_run_id.txt
+          printf '%s\n' "$GITHUB_RUN_ATTEMPT" > workflow_run_attempt.txt
+          echo CACE_V337_EXACT_HEAD_QUALIFICATION_PASS
+
+      - name: Upload exact-head continuum qualification artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cace-v337-lean-environment-metadata
+          name: cace-v337-exact-head-formal-qualification
           path: |
+            ${{ env.CACE_OUTPUT_DIR }}/cace_continuum_qualification_attestation.json
+            ${{ env.CACE_OUTPUT_DIR }}/cace_continuum_qualification_attestation.json.sha256
             ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.json
             ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.json.sha256
             ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.raw.txt
@@ -291,12 +352,13 @@ jobs:
             ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.raw.txt
             ${{ env.CACE_OUTPUT_DIR }}/commit.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_id.txt
+            ${{ env.CACE_OUTPUT_DIR }}/workflow_run_attempt.txt
 
       - name: Remove temporary formal build
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${CACE_BUILD_ROOT:-}" == /var/tmp/cace-v337-metadata.* && -O "$CACE_BUILD_ROOT" && ! -L "$CACE_BUILD_ROOT" ]]; then
+          if [[ "${CACE_BUILD_ROOT:-}" == /var/tmp/cace-v337-qualification.* && -O "$CACE_BUILD_ROOT" && ! -L "$CACE_BUILD_ROOT" ]]; then
             rm -rf -- "$CACE_BUILD_ROOT"
           fi
