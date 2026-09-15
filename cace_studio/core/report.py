@@ -28,12 +28,7 @@ def _stable_hash(v: Any) -> str:
 
 
 def _run_identity(result) -> dict[str, Any]:
-    """Return graph and execution-scope identity recorded by the executor.
-
-    Empty strings are retained for historical/manually-constructed RunResult
-    objects. Current v3.36 qualification must exercise GraphExecutor-created
-    results, which populate the exact source/executed graph and scope identities.
-    """
+    """Return graph and execution-scope identity recorded by the executor."""
     semantic = getattr(result, "semantic_experiment_sha256", "")
     full = getattr(result, "full_experiment_sha256", "")
     return {
@@ -51,6 +46,8 @@ def _run_identity(result) -> dict[str, Any]:
         "scope_included_node_ids": tuple(getattr(result, "scope_included_node_ids", ())),
         "seed": getattr(result, "seed", 0),
         "run_scope": getattr(result, "run_scope", "full"),
+        "completed": bool(getattr(result, "completed", True)),
+        "interruption_reason": getattr(result, "interruption_reason", ""),
     }
 
 
@@ -91,6 +88,8 @@ def run_report(result, experiment_name: str) -> dict[str, Any]:
         "experiment": recorded_name,
         "run_id": result.run_id,
         "run_scope": identity["run_scope"],
+        "completed": identity["completed"],
+        "interruption_reason": identity["interruption_reason"],
         "seed": identity["seed"],
         "semantic_experiment_sha256": identity["semantic_experiment_sha256"],
         "full_experiment_sha256": identity["full_experiment_sha256"],
