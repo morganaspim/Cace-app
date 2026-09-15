@@ -28,16 +28,27 @@ def _stable_hash(v: Any) -> str:
 
 
 def _run_identity(result) -> dict[str, Any]:
-    """Return experiment/run-scope identity recorded by the executor.
+    """Return graph and execution-scope identity recorded by the executor.
 
     Empty strings are retained for historical/manually-constructed RunResult
     objects. Current v3.36 qualification must exercise GraphExecutor-created
-    results, which populate both experiment fingerprints.
+    results, which populate the exact source/executed graph and scope identities.
     """
+    semantic = getattr(result, "semantic_experiment_sha256", "")
+    full = getattr(result, "full_experiment_sha256", "")
     return {
         "experiment_name": getattr(result, "experiment_name", ""),
-        "semantic_experiment_sha256": getattr(result, "semantic_experiment_sha256", ""),
-        "full_experiment_sha256": getattr(result, "full_experiment_sha256", ""),
+        "semantic_experiment_sha256": semantic,
+        "full_experiment_sha256": full,
+        "source_semantic_experiment_sha256": getattr(
+            result, "source_semantic_experiment_sha256", semantic
+        ),
+        "source_full_experiment_sha256": getattr(
+            result, "source_full_experiment_sha256", full
+        ),
+        "execution_scope_sha256": getattr(result, "execution_scope_sha256", ""),
+        "scope_target_node_ids": tuple(getattr(result, "scope_target_node_ids", ())),
+        "scope_included_node_ids": tuple(getattr(result, "scope_included_node_ids", ())),
         "seed": getattr(result, "seed", 0),
         "run_scope": getattr(result, "run_scope", "full"),
     }
@@ -76,13 +87,20 @@ def run_report(result, experiment_name: str) -> dict[str, Any]:
     identity = _run_identity(result)
     recorded_name = identity["experiment_name"] or experiment_name
     return {
-        "report_schema": 3,
+        "report_schema": 4,
         "experiment": recorded_name,
         "run_id": result.run_id,
         "run_scope": identity["run_scope"],
         "seed": identity["seed"],
         "semantic_experiment_sha256": identity["semantic_experiment_sha256"],
         "full_experiment_sha256": identity["full_experiment_sha256"],
+        "source_semantic_experiment_sha256": identity[
+            "source_semantic_experiment_sha256"
+        ],
+        "source_full_experiment_sha256": identity["source_full_experiment_sha256"],
+        "execution_scope_sha256": identity["execution_scope_sha256"],
+        "scope_target_node_ids": list(identity["scope_target_node_ids"]),
+        "scope_included_node_ids": list(identity["scope_included_node_ids"]),
         "all_verifiers_passed": result.all_verifiers_passed,
         "environment": {"python": sys.version, "platform": platform.platform()},
         "graph_certificate": graph_certificate(result),
