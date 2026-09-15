@@ -8,65 +8,65 @@ CACE is a research/development system. Production readiness is not established. 
 
 The canonical claim `cace.v330.continuum-proof-strengthening` remains **not current-head qualified**. No runtime, documentation, provenance or signature layer may convert that state to formal PASS until an exact clean commit completes the pinned Lean build, kernel axiom audit and attestation process and the resulting commit/artifact binding is deliberately accepted into the canonical registry and proof ledger.
 
-Historical GitHub/self-hosted attempts are retained only as infrastructure history. One self-hosted attempt exhausted disk before theorem compilation, a later self-hosted attempt terminated before reaching Lean, and a GitHub-hosted fallback job terminated before its first workflow step. None of those runs is a theorem failure and none is qualification evidence.
+Historical GitHub/self-hosted attempts are infrastructure history only. None is qualification evidence. Formal qualification is now runner-independent through `make qualify-v330`, `scripts/qualify_v330_portable.sh`, and `Dockerfile.qualify-v330`.
 
-Formal qualification is now runner-independent. The candidate contains the canonical portable path:
-
-- `make qualify-v330`
-- `bash scripts/qualify_v330_portable.sh`
-- `Dockerfile.qualify-v330`
-- `scripts/audit_v330_axioms.py`
-- `scripts/write_v330_qualification_attestation.py`
-- `docs/PORTABLE_QUALIFICATION.md`
-
-The proof-ledger model now records generic `qualification_system` + `qualification_run_id` provenance. `workflow_run_id` remains optional metadata except when GitHub Actions is itself the qualification system. Historical GitHub ledger entries remain backward-compatible.
-
-The remaining v3.31 gate is therefore straightforward: execute the portable qualifier successfully on the exact clean candidate commit, verify its output artifacts and SHA-256 digest, and accept only the exact earned claim/commit/artifact binding into the canonical claim registry and proof ledger.
+The proof ledger records generic `qualification_system` + `qualification_run_id` provenance. `workflow_run_id` is optional except when GitHub Actions is itself the qualification system. The remaining v3.31 gate is therefore: successfully execute the portable qualifier on the exact clean candidate commit, verify the artifacts/digest, and accept only the exact earned claim/commit/artifact binding.
 
 ## Prepared v3.32-v3.36 candidate
 
-Engineering work after the original v3.31 boundary has been consolidated on `candidate/v336-consolidated`. It is intentionally unqualified.
+The candidate development package version is `3.36.0.dev1`. It is intentionally unqualified.
 
-The candidate development package version is `3.36.0.dev1`. Implemented/prepared areas include:
+Prepared areas include:
 
-- v3.32 repository/version/AI onboarding normalization, including deterministic module/claim/proof/source index generation;
-- v3.33 Studio UX hardening: drag/drop and typed click-connect editor, multi-select/delete, undo/redo, module search, zoom/fit, autosave/recovery, graph-fragment copy/paste, alignment tools, Proof Explorer integration and stale-evidence invalidation;
-- v3.34 optional local-AI providers including Ollama, LM Studio, llama.cpp and generic OpenAI-compatible loopback servers, with AI disabled by default and remote/proxy/redirect escape paths rejected;
-- v3.35 versioned module/plugin SDK, fail-closed compatibility/trust checks, transactional plugin registration and runtime registry contract validation;
-- v3.36 deterministic reproducibility fingerprints, content-addressed evidence bundles, Merkle identity, evidence ledger, run/report graph fingerprint binding, Proof Explorer, Ed25519 signed attestations and fail-closed E5 cross-verification evaluation;
-- headless attestation commands for key generation, signing, signature verification and E5 evaluation;
-- runner-independent formal qualification and generic qualification provenance;
-- CI-cost hygiene preventing selected obsolete historical workflows from waking on development-only changes.
+- v3.32 repository/version/AI onboarding normalization and deterministic repository indexes;
+- v3.33 Studio UX hardening: typed drag/drop/click-connect editor, multi-select/delete, undo/redo, module search, zoom/fit, autosave/recovery, copy/paste, alignment, Proof Explorer, stale-evidence invalidation, selected+upstream scoped execution, asynchronous execution with cooperative pause/resume/cancel, and explicit unit metadata/compatibility;
+- v3.34 optional local AI: Ollama, LM Studio, llama.cpp and generic loopback OpenAI-compatible servers, AI disabled by default, proxies disabled and redirects rejected;
+- v3.35 versioned plugin SDK, fail-closed compatibility/trust checks, transactional plugin registration and runtime registry validation;
+- v3.36 reproducibility/provenance: semantic/full graph fingerprints, source/execution-scope identity, report schema 4, canonical UTC evidence-ledger timestamps, content-addressed evidence bundles, Merkle identity, evidence ledger, Ed25519 signed attestations and fail-closed E5 evaluation;
+- runner-independent formal qualification and generic qualification provenance.
 
-These features have source/tests/static review, but the consolidated candidate has **not yet passed its required exact-head regression/formal qualification wave**. Implementation is not qualification.
+Implementation is not qualification. The candidate has source/tests/static review but has not yet passed its required exact-head consolidated regression/formal qualification wave.
+
+## v3.33 execution semantics
+
+Full and selected-upstream executions now run against immutable graph snapshots. Selected-upstream execution computes the complete transitive upstream closure and records source graph hashes, executed graph hashes, target IDs, included IDs and a deterministic execution-scope SHA-256.
+
+Studio execution is asynchronous. Pause/cancel is deliberately cooperative at module boundaries: CACE does not forcefully interrupt arbitrary scientific code inside a module. Cancelled/incomplete runs carry `completed=false` plus an interruption reason and can never satisfy `all_verifiers_passed`.
+
+If the semantic graph changes while a worker runs, its result is not attached to the edited experiment. Starting a new run clears previously attached runtime evidence immediately.
+
+## Units contract
+
+Port and parameter units are optional canonical strings such as `m`, `s`, `m/s`, or `1`. CACE currently performs no implicit conversion. Two legacy unspecified-unit ports remain compatible; once either side declares a unit, both connected ports must declare the exact same unit. Unit declarations are visible in Studio and included in module-contract reproducibility fingerprints.
 
 ## Known remaining v3.33-v3.36 gaps
 
-v3.33 still lacks the higher-risk production-pass items: selected/upstream subgraph execution with explicit scope identity, asynchronous execution/cancel/pause, groups/subgraphs, explicit units and minimap. These should not be added by bypassing deterministic execution/provenance semantics.
+v3.33 now mainly lacks groups/subgraphs and minimap, plus actual GUI/cross-platform qualification. Future richer dimensional algebra/conversion must be explicit and versioned rather than silently changing the exact-match unit contract.
 
 v3.35 still lacks a real third-party plugin sandbox/process-isolation layer, enforceable capability permissions, publisher signing/identity policy and production plugin lifecycle governance. Manifest trust labels are policy metadata, not a sandbox.
 
-v3.36 still has one explicit deterministic-format hardening gap: evidence-ledger timestamps should require canonical second-resolution UTC `YYYY-MM-DDTHH:MM:SSZ` in runtime validation and JSON schema. The current non-empty timestamp check does not weaken the existing hash-chain integrity, but canonical timestamp formatting should be completed before v3.36 exit.
+v3.36 implementation gaps are now mostly operational qualification/governance rather than missing provenance primitives: exact-head tests still need to run; production key management/verifier-independence policy remains later work.
 
 ## Immutable provenance status
 
-The scientific-provenance layer is substantially implemented in the candidate: content-addressed artifacts, deterministic evidence bundles, signed verifier attestations, evidence-ledger structures and E5 policy/CLI support exist. These mechanisms authenticate artifact identity and provenance only; they do not prove mathematical statements.
+The scientific-provenance layer is substantially implemented: content-addressed artifacts, deterministic bundles, canonical timestamps, signed verifier attestations, evidence-ledger structures and E5 policy/CLI support exist. These mechanisms authenticate identity and provenance only; they do not prove mathematics.
 
 Still later-phase: production key-management policy, organizational verifier-independence policy, mature append-only transparency-log operations and optional anchoring to an established external timestamp/blockchain system. CACE must never require a token, cryptocurrency or blockchain connection for execution or mathematical rigor.
 
 ## Next dependency-ordered actions
 
-1. Finish static/low-risk v3.36 hardening, especially canonical evidence-ledger timestamps and portable-qualification contract tests.
-2. Execute `make qualify-v330` or the Docker equivalent on the exact clean candidate commit.
-3. If Lean build and axiom audit pass, verify the generated attestation and record only the exact earned claim/commit/artifact binding in the canonical registry/ledger.
-4. Run one consolidated native C++/Python/package/GUI/local-AI/plugin/reproducibility/provenance/E5 regression wave on the exact candidate head using any available local or external execution environment; GitHub Actions is optional.
-5. Re-run the portable formal qualifier after any qualification-sensitive fixes.
-6. Fix exact-head regressions without weakening evidence policy.
-7. Only after those gates pass, begin v3.37 certified FEM/PDE end-to-end integration.
+1. Finish the last low-risk v3.33 Studio gaps (groups/subgraphs and minimap) without changing proof semantics.
+2. Complete static portable-qualification contract tests/documentation and deterministic AI index generation readiness.
+3. Execute `make qualify-v330` or Docker equivalent on the exact clean candidate commit.
+4. If Lean build and axiom audit pass, verify the attestation and record only the exact earned claim/commit/artifact binding.
+5. Run one consolidated native C++/Python/package/GUI/local-AI/plugin/reproducibility/provenance/E5 regression wave on the same exact head using any suitable local/container/external environment.
+6. Re-run portable formal qualification after any qualification-sensitive fixes.
+7. Fix exact-head regressions without weakening evidence policy.
+8. Only after those gates pass, begin v3.37 certified FEM/PDE end-to-end integration.
 
 ## Remaining major roadmap
 
-After the current qualification/integration gates: v3.37 certified FEM/PDE end-to-end; v3.38 Geometry/GA and legacy migration; v3.39 advanced research modules; v3.40 production engineering candidate; optional external provenance anchoring; then v4.0 only after the production definition of done is actually satisfied.
+After current qualification/integration: v3.37 certified FEM/PDE; v3.38 Geometry/GA and legacy migration; v3.39 advanced research modules; v3.40 production engineering candidate; optional external provenance anchoring; then v4.0 only after the production definition of done is actually satisfied.
 
 Open mathematical research obligations remain explicit. Conditional H1/H(div) bridge theorems do not become unconditional because surrounding infrastructure compiles. CACE must preserve theorem hypotheses and distinguish reductions/criteria from completed analytic constructions.
 
