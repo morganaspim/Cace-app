@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a long qualification command with a compact progress heartbeat.
+"""Run a long qualification command with compact heartbeat + GitHub UI status.
 
 This wrapper is observability and liveness infrastructure only. It never turns a
 cached or partial result into proof evidence. Qualification still depends on the
@@ -19,6 +19,11 @@ import subprocess
 import sys
 import threading
 import time
+
+import cace_github_live_check
+
+
+_PROGRESS_RE = re.compile(r"\[(\d+)\s*/\s*(\d+)\]")
 
 
 def _env_int(name: str, default: int) -> int:
@@ -89,7 +94,13 @@ def main() -> int:
 
     start_mono = time.monotonic()
     state_lock = threading.Lock()
-    state = {"last_output_mono": start_mono, "log_bytes": 0, "last_line": ""}
+    state = {
+        "last_output_mono": start_mono,
+        "log_bytes": 0,
+        "last_line": "",
+        "progress_current": None,
+        "progress_total": None,
+    }
 
     proc = subprocess.Popen(
         command,
@@ -106,8 +117,10 @@ def main() -> int:
             last_output_mono = float(state["last_output_mono"])
             log_bytes = int(state["log_bytes"])
             last_line = str(state["last_line"])
+            progress_current = state["progress_current"]
+            progress_total = state["progress_total"]
         payload = {
-            "schema": "cace-job-heartbeat-v1",
+            "schema": "cace-job-heartbeat-v2",
             "timestamp_utc": _utc_now(),
             "run_id": os.environ.get("GITHUB_RUN_ID"),
             "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
@@ -119,6 +132,8 @@ def main() -> int:
             "seconds_since_output": round(now_mono - last_output_mono, 3),
             "log_bytes": log_bytes,
             "last_line": last_line[-240:],
+            "progress_current": progress_current,
+            "progress_total": progress_total,
             "command": command,
         }
         if returncode is not None:
@@ -129,11 +144,29 @@ def main() -> int:
             stream.write(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
             stream.flush()
         _write_json_atomic(current_status_path, payload)
+
+        progress_text = (
+            f" progress=[{progress_current}/{progress_total}]"
+            if progress_current is not None and progress_total is not None
+            else ""
+        )
         print(
             "CACE_HEARTBEAT "
             f"phase={phase_slug} status={status} elapsed={payload['elapsed_seconds']}s "
-            f"idle={payload['seconds_since_output']}s bytes={log_bytes}",
+            f"idle={payload['seconds_since_output']}s bytes={log_bytes}{progress_text}",
             flush=True,
+        )
+
+        cace_github_live_check.publish(
+            status_dir=status_dir,
+            phase=phase,
+            runner_state=status,
+            progress_current=progress_current,
+            progress_total=progress_total,
+            elapsed_seconds=float(payload["elapsed_seconds"]),
+            idle_seconds=float(payload["seconds_since_output"]),
+            last_line=last_line,
+            note=note,
         )
         return payload
 
@@ -147,10 +180,14 @@ def main() -> int:
                 sys.stdout.buffer.write(raw)
                 sys.stdout.buffer.flush()
                 decoded = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+                progress = _PROGRESS_RE.search(decoded)
                 with state_lock:
                     state["last_output_mono"] = time.monotonic()
                     state["log_bytes"] = int(state["log_bytes"]) + len(raw)
                     state["last_line"] = decoded
+                    if progress:
+                        state["progress_current"] = int(progress.group(1))
+                        state["progress_total"] = int(progress.group(2))
 
     reader = threading.Thread(target=read_output, name="cace-heartbeat-log-reader", daemon=True)
     reader.start()
