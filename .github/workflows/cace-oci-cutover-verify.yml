@@ -1,0 +1,69 @@
+name: CACE OCI cutover verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-cutover-verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 15
+    steps:
+      - name: Prove job is executing on durable OCI VM
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "hostname=$(hostname)"
+          echo "runner_name=${RUNNER_NAME:-unknown}"
+          echo "runner_arch=${RUNNER_ARCH:-unknown}"
+          echo "kernel=$(uname -r)"
+          echo "machine=$(uname -m)"
+          test "$(hostname)" = "cace-oci-a1"
+          test "$(uname -m)" = "aarch64"
+          test "${RUNNER_NAME:-}" = "cace-oci-a1"
+
+          service="$(cat /opt/actions-runner/.service)"
+          test -n "$service"
+          systemctl is-active --quiet "$service"
+          systemctl is-enabled --quiet "$service"
+          systemctl is-active --quiet cace-runner-watchdog.service
+          systemctl is-enabled --quiet cace-runner-watchdog.service
+
+          for p in \
+            /var/lib/cace-cache/elan \
+            /var/lib/cace-cache/xdg \
+            /var/lib/cace-cache/uv \
+            /var/lib/cace-cache/pip \
+            /var/lib/cace-cache/mathlib \
+            /var/lib/cace-cache/telemetry; do
+            test -d "$p"
+            test -w "$p"
+          done
+
+          test -f /var/lib/cace-cache/telemetry/heartbeat
+          python3 - <<'PY'
+          from datetime import datetime, timezone
+          from pathlib import Path
+          s=Path('/var/lib/cace-cache/telemetry/heartbeat').read_text().strip()
+          t=datetime.strptime(s,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+          age=(datetime.now(timezone.utc)-t).total_seconds()
+          print(f'watchdog_heartbeat_age_seconds={age:.1f}')
+          if age > 120:
+              raise SystemExit('stale watchdog heartbeat')
+          PY
+
+          echo '--- capacity ---'
+          nproc
+          free -h
+          df -h /
+          echo '--- runner ---'
+          systemctl status "$service" --no-pager -l | head -n 80
+          echo '--- watchdog ---'
+          systemctl status cace-runner-watchdog.service --no-pager -l | head -n 80
+          echo 'CACE_OCI_CUTOVER_VERIFIED'
