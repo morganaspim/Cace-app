@@ -1,0 +1,142 @@
+name: CACE OCI runner register and cutover
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-register-cutover.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  register:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Register durable OCI runner using short-lived token
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
+          PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+          TENANCY_OCID="$(python3 - "$CONFIG_FILE" "$PROFILE" <<'PY'
+          import configparser,sys
+          cfg=configparser.ConfigParser(); cfg.read(sys.argv[1])
+          print(cfg[sys.argv[2]]['tenancy'].strip())
+          PY
+          )"
+
+          instances="$(oci compute instance list --compartment-id "$TENANCY_OCID" --all --output json)"
+          INSTANCE_ID="$(python3 - <<'PY' "$instances"
+          import json,sys
+          for x in json.loads(sys.argv[1]).get('data',[]):
+              if x.get('display-name')!='cace-runner-a1' or x.get('lifecycle-state')!='RUNNING':
+                  continue
+              c=x.get('shape-config') or {}
+              if x.get('shape')=='VM.Standard.A1.Flex' and float(c.get('ocpus') or 0)==2 and float(c.get('memory-in-gbs') or 0)==12:
+                  print(x['id']); break
+          PY
+          )"
+          test -n "$INSTANCE_ID"
+          echo "durable_instance_prefix=${INSTANCE_ID:0:36}..."
+
+          echo 'Waiting for OCI Run Command plugin...'
+          ready=''
+          for _ in $(seq 1 60); do
+            plugins="$(oci instance-agent plugin list --compartment-id "$TENANCY_OCID" --instanceagent-id "$INSTANCE_ID" --all --output json 2>/dev/null || true)"
+            if [[ -n "$plugins" ]]; then
+              ready="$(python3 - <<'PY' "$plugins"
+          import json,sys
+          for x in json.loads(sys.argv[1]).get('data',[]):
+              if (x.get('name') or x.get('plugin-name'))=='Compute Instance Run Command':
+                  print(x.get('status','')); break
+          PY
+              )"
+              echo "run_command_plugin=$ready"
+              [[ "$ready" == RUNNING ]] && break
+            fi
+            sleep 10
+          done
+          [[ "$ready" == RUNNING ]]
+
+          echo 'Checking VM bootstrap marker...'
+          python3 - "$INSTANCE_ID" <<'PY'
+          import json,pathlib,sys
+          pathlib.Path('/tmp/cace-target.json').write_text(json.dumps({'instanceId':sys.argv[1]}))
+          pathlib.Path('/tmp/cace-check.json').write_text(json.dumps({
+            'source': {'sourceType':'TEXT','text':'set -e; test -f /var/lib/cace-bootstrap-ready; test -x /usr/local/sbin/cace-register-runner; test -x /opt/actions-runner/config.sh; echo BOOTSTRAP_READY'},
+            'output': {'outputType':'TEXT'}
+          }))
+          PY
+          CHECK_ID="$(oci instance-agent command create --compartment-id "$TENANCY_OCID" --content file:///tmp/cace-check.json --target file:///tmp/cace-target.json --timeout-in-seconds 120 --display-name 'CACE bootstrap readiness' --query 'data.id' --raw-output)"
+          for _ in $(seq 1 30); do
+            j="$(oci instance-agent command-execution get --command-id "$CHECK_ID" --instance-id "$INSTANCE_ID" --output json 2>/dev/null || true)"
+            [[ -n "$j" ]] || { sleep 5; continue; }
+            state="$(python3 - <<'PY' "$j"
+          import json,sys; print(json.loads(sys.argv[1]).get('data',{}).get('lifecycle-state',''))
+          PY
+            )"
+            if [[ "$state" == SUCCEEDED ]]; then break; fi
+            if [[ "$state" =~ ^(FAILED|TIMED_OUT|CANCELED)$ ]]; then echo "bootstrap-check=$state" >&2; exit 31; fi
+            sleep 5
+          done
+          [[ "${state:-}" == SUCCEEDED ]]
+
+          echo 'Requesting short-lived GitHub registration token...'
+          REG_TOKEN=''
+          if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+            REG_TOKEN="$(gh api --method POST repos/morganaspim/Cace-app/actions/runners/registration-token --jq .token 2>/tmp/cace-gh-token-error || true)"
+          fi
+          if [[ -z "$REG_TOKEN" ]]; then
+            status="$(curl -sS -o /tmp/cace-token-response.json -w '%{http_code}' -X POST \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              https://api.github.com/repos/morganaspim/Cace-app/actions/runners/registration-token || true)"
+            if [[ "$status" == 201 ]]; then
+              REG_TOKEN="$(python3 - <<'PY'
+          import json; print(json.load(open('/tmp/cace-token-response.json')).get('token',''))
+          PY
+              )"
+            else
+              echo "GITHUB_TOKEN registration-token endpoint HTTP $status" >&2
+              if [[ -s /tmp/cace-gh-token-error ]]; then sed -E 's/[A-Za-z0-9_=-]{20,}/[redacted]/g' /tmp/cace-gh-token-error >&2; fi
+              echo 'A repository-admin credential is required for the one-time runner registration token.' >&2
+              exit 32
+            fi
+          fi
+          [[ -n "$REG_TOKEN" ]]
+
+          # Build the OCI Run Command payload without printing the short-lived token.
+          python3 - "$REG_TOKEN" <<'PY'
+          import json,pathlib,shlex,sys
+          token=sys.argv[1]
+          script='set -euo pipefail\nsudo /usr/local/sbin/cace-register-runner '+shlex.quote(token)+'\necho CACE_RUNNER_REGISTERED\n'
+          pathlib.Path('/tmp/cace-register.json').write_text(json.dumps({'source':{'sourceType':'TEXT','text':script},'output':{'outputType':'TEXT'}}))
+          PY
+          chmod 600 /tmp/cace-register.json
+          unset REG_TOKEN
+
+          CMD_ID="$(oci instance-agent command create --compartment-id "$TENANCY_OCID" --content file:///tmp/cace-register.json --target file:///tmp/cace-target.json --timeout-in-seconds 300 --display-name 'CACE GitHub runner registration' --query 'data.id' --raw-output)"
+          rm -f /tmp/cace-register.json /tmp/cace-token-response.json /tmp/cace-gh-token-error
+
+          final=''
+          for _ in $(seq 1 60); do
+            j="$(oci instance-agent command-execution get --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" --output json 2>/dev/null || true)"
+            [[ -n "$j" ]] || { sleep 5; continue; }
+            final="$(python3 - <<'PY' "$j"
+          import json,sys; print(json.loads(sys.argv[1]).get('data',{}).get('lifecycle-state',''))
+          PY
+            )"
+            echo "registration_command_state=$final"
+            [[ "$final" == SUCCEEDED ]] && break
+            if [[ "$final" =~ ^(FAILED|TIMED_OUT|CANCELED)$ ]]; then exit 33; fi
+            sleep 5
+          done
+          [[ "$final" == SUCCEEDED ]]
+          echo 'CACE_OCI_RUNNER_REGISTRATION_SENT_OK'
