@@ -15,19 +15,19 @@ from cace_studio.core.proof_explorer import ProofClaimView, ProofExplorer
 
 
 class ProofExplorerWidget(QWidget):
-    """Read-only view of canonical qualification and runtime proof evidence."""
+    """Read-only view of claim, proof contract, qualification and runtime evidence."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.explorer = ProofExplorer()
         self.title = QLabel(
-            "Canonical claim status. Declared capability, release qualification, "
-            "and runtime evidence are independent."
+            "Canonical proof architecture: claim → proof contract → qualification artifact/ledger → "
+            "runtime evidence. Theorem dependencies are shown only when actually generated."
         )
         self.title.setWordWrap(True)
         self.tree = QTreeWidget()
         self.tree.setColumnCount(2)
-        self.tree.setHeaderLabels(["Claim / evidence", "Status"])
+        self.tree.setHeaderLabels(["Claim / proof evidence", "Status / value"])
         self.tree.setAlternatingRowColors(True)
 
         layout = QVBoxLayout(self)
@@ -48,6 +48,38 @@ class ProofExplorerWidget(QWidget):
         self._child(root, "Scope", view.scope)
         self._child(root, "Declared evidence ceiling", view.evidence_ceiling)
         self._child(root, "Registry status", view.registry_status)
+
+        contract = self._child(
+            root,
+            "Proof contract",
+            view.proof_contract_id or "none",
+        )
+        self._child(contract, "Contract SHA-256", view.proof_contract_sha256 or "none")
+        self._child(contract, "Lean build target", view.proof_contract_build_target or "none")
+        self._child(
+            contract,
+            "Theorem dependency metadata",
+            view.theorem_dependency_metadata_state,
+        )
+        self._child(contract, "Dependency note", view.theorem_dependency_metadata_note)
+        endpoints = self._child(contract, "Audited endpoint theorems", str(len(view.endpoint_theorems)))
+        for theorem in view.endpoint_theorems:
+            self._child(endpoints, "endpoint", theorem)
+        sources = self._child(contract, "Audited source files", str(len(view.audited_source_files)))
+        for source in view.audited_source_files:
+            self._child(sources, "source", source)
+        axioms = self._child(contract, "Allowed foundational axioms", str(len(view.allowed_axioms)))
+        for axiom in view.allowed_axioms:
+            self._child(axioms, "axiom", axiom)
+        required = self._child(contract, "Contract-required checks", str(len(view.required_checks)))
+        for check in view.required_checks:
+            self._child(required, "required", check)
+        contract_nonclaims = self._child(
+            contract, "Contract nonclaims", str(len(view.contract_nonclaims))
+        )
+        for nonclaim in view.contract_nonclaims:
+            self._child(contract_nonclaims, "nonclaim", nonclaim)
+
         self._child(root, "Ledger release", view.ledger_release or "none")
         self._child(root, "Ledger status", view.ledger_status or "none")
         self._child(
@@ -57,13 +89,15 @@ class ProofExplorerWidget(QWidget):
         )
         self._child(root, "Attested commit", view.attested_commit or "none")
         self._child(root, "Proof artifact SHA-256", view.proof_artifact_sha256 or "none")
+        self._child(root, "Qualification system", view.qualification_system or "none")
+        self._child(root, "Qualification run ID", view.qualification_run_id or "none")
         self._child(
             root,
-            "Workflow run",
+            "GitHub workflow run",
             str(view.workflow_run_id) if view.workflow_run_id is not None else "none",
         )
 
-        checks = self._child(root, "Qualification checks", str(len(view.checks)))
+        checks = self._child(root, "Recorded qualification checks", str(len(view.checks)))
         for check in view.checks:
             self._child(checks, "check", check)
 
@@ -71,7 +105,7 @@ class ProofExplorerWidget(QWidget):
         for blocker in view.blockers:
             self._child(blockers, "blocker", blocker)
 
-        nonclaims = self._child(root, "Explicit nonclaims", str(len(view.nonclaims)))
+        nonclaims = self._child(root, "Claim-level nonclaims", str(len(view.nonclaims)))
         for nonclaim in view.nonclaims:
             self._child(nonclaims, "nonclaim", nonclaim)
 
