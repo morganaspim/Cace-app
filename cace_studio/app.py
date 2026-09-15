@@ -5,6 +5,7 @@ from .modules import register_all
 from .modules.formal_v322 import register_formal_v322
 from .modules.formal_v325 import register_formal_v325
 from .modules.research_dynamics import register_research_dynamics
+from .modules.research_geometry import register_research_geometry
 
 
 def build_registry() -> ModuleRegistry:
@@ -16,6 +17,8 @@ def build_registry() -> ModuleRegistry:
         register_formal_v325(r)
     if not r.contains("research.growth_rotation_walk"):
         register_research_dynamics(r)
+    if not r.contains("research.dyadic_prefix_cell"):
+        register_research_geometry(r)
     return r
 
 
