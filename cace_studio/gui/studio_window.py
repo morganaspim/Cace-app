@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool, Qt
 from PySide6.QtGui import QKeySequence
+from PySide6.QtWidgets import QFormLayout
 
 from cace_studio.core.execution_control import ExecutionControl
 from cace_studio.core.executor import GraphExecutor
@@ -276,9 +277,6 @@ class StudioMainWindow(MainWindow):
             self.console.append(f"Unknown execution scope: {scope_kind}")
             return
 
-        # A newly started execution invalidates any previously attached runtime
-        # evidence immediately. The new result is attached only if its source
-        # semantic graph still matches when the worker finishes.
         self.last_result = None
         self.verification.setPlainText(
             "Execution active. No current run evidence is attached until this run finishes."
@@ -383,6 +381,22 @@ class StudioMainWindow(MainWindow):
         self._execution_worker = None
         self._sync_execution_actions()
         self._refresh_proof_explorer()
+
+    def _selected(self, item):
+        super()._selected(item)
+        for row, spec in enumerate(item.module.parameters, start=1):
+            label_item = self.form.itemAt(row, QFormLayout.LabelRole)
+            field_item = self.form.itemAt(row, QFormLayout.FieldRole)
+            label = label_item.widget() if label_item is not None else None
+            field = field_item.widget() if field_item is not None else None
+            if label is not None and spec.unit:
+                label.setText(f"{spec.name} [{spec.unit}]")
+            if field is not None:
+                details = spec.description.strip()
+                if spec.unit:
+                    details = (details + "\n" if details else "") + f"Unit: {spec.unit}"
+                if details:
+                    field.setToolTip(details)
 
     def _selected_module_context(self):
         if not self.selected_node_id:
