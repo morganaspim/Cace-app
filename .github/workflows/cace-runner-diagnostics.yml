@@ -1,0 +1,157 @@
+name: CACE self-hosted runner diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-runner-diagnostics.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-runner-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  runner-diagnostics:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Capture pre-clean runner state
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p cace-runner-diagnostics/pre-clean
+          out='cace-runner-diagnostics/pre-clean/runner-state.txt'
+          exec > >(tee "$out") 2>&1
+
+          echo '=== timestamp ==='
+          date -Is
+          echo '=== runner environment ==='
+          printf 'RUNNER_NAME=%s\nRUNNER_OS=%s\nRUNNER_ARCH=%s\nRUNNER_TEMP=%s\nRUNNER_WORKSPACE=%s\n' \
+            "${RUNNER_NAME:-}" "${RUNNER_OS:-}" "${RUNNER_ARCH:-}" "${RUNNER_TEMP:-}" "${RUNNER_WORKSPACE:-}"
+          echo '=== kernel / uptime ==='
+          uname -a || true
+          uptime || true
+          echo '=== cpu / memory ==='
+          nproc || true
+          free -h || true
+          cat /proc/meminfo || true
+          echo '=== pressure stall information ==='
+          for f in /proc/pressure/cpu /proc/pressure/memory /proc/pressure/io; do
+            echo "--- $f"
+            cat "$f" 2>/dev/null || true
+          done
+          echo '=== cgroup memory state ==='
+          for f in /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.high /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.events.local /sys/fs/cgroup/memory.swap.current /sys/fs/cgroup/memory.swap.max; do
+            echo "--- $f"
+            cat "$f" 2>/dev/null || true
+          done
+          echo '=== filesystems ==='
+          df -h || true
+          df -i || true
+          echo '=== top processes by CPU ==='
+          ps -eo pid,ppid,stat,etime,%cpu,%mem,rss,vsz,args --sort=-%cpu | head -80 || true
+          echo '=== Lean/Lake/CACE processes ==='
+          ps -eo pid,ppid,stat,etime,%cpu,%mem,rss,vsz,args | grep -E '[l]ean|[l]ake|/var/tmp/cace-formal\.' || true
+
+          echo '=== stale CACE formal build directories ==='
+          shopt -s nullglob
+          dirs=(/var/tmp/cace-formal.*)
+          printf 'count=%s\n' "${#dirs[@]}"
+          for d in "${dirs[@]}"; do
+            echo "--- $d"
+            stat "$d" 2>/dev/null || true
+            du -sh "$d" 2>/dev/null || true
+            printf 'olean_count='; find "$d" -type f -name '*.olean' 2>/dev/null | wc -l || true
+            printf 'ilean_count='; find "$d" -type f -name '*.ilean' 2>/dev/null | wc -l || true
+            echo 'newest files:'
+            find "$d" -type f -printf '%T@ %TY-%Tm-%TdT%TH:%TM:%TS %s %p\n' 2>/dev/null | sort -nr | head -80 || true
+          done
+
+          echo '=== recent kernel OOM/crash evidence (best effort) ==='
+          journalctl -k --since '-6 hours' --no-pager 2>/dev/null | grep -Ei 'oom|out of memory|killed process|segfault|general protection|i/o error|ext4|overlay|cgroup' | tail -300 || true
+          dmesg -T 2>/dev/null | grep -Ei 'oom|out of memory|killed process|segfault|general protection|i/o error|ext4|overlay|cgroup' | tail -300 || true
+
+          echo '=== recent actions-runner diagnostic logs (best effort) ==='
+          if [[ -n "${RUNNER_TEMP:-}" ]]; then
+            runner_search_root="$(cd "$RUNNER_TEMP/../.." 2>/dev/null && pwd || true)"
+            if [[ -n "$runner_search_root" ]]; then
+              find "$runner_search_root" -maxdepth 3 -type f \( -name 'Runner_*.log' -o -name 'Worker_*.log' \) -printf '%T@ %p\n' 2>/dev/null \
+                | sort -nr | head -8 | cut -d' ' -f2- > cace-runner-diagnostics/pre-clean/runner-log-files.txt || true
+              while IFS= read -r log; do
+                [[ -f "$log" ]] || continue
+                echo "--- $log"
+                tail -250 "$log" 2>/dev/null || true
+              done < cace-runner-diagnostics/pre-clean/runner-log-files.txt
+            fi
+          fi
+
+      - name: Upload pre-clean diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-runner-pre-clean-diagnostics
+          path: cace-runner-diagnostics/pre-clean/
+
+      - name: Clean stale CACE qualification children
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cace-runner-diagnostics/post-clean
+          log='cace-runner-diagnostics/post-clean/cleanup.txt'
+          exec > >(tee "$log") 2>&1
+          date -Is
+
+          mapfile -t pids < <(
+            ps -eo pid=,args= | awk '
+              $0 ~ /\/var\/tmp\/cace-formal\./ &&
+              $0 ~ /(lean|lake|timeout)/ { print $1 }
+            '
+          )
+          echo "candidate stale process count=${#pids[@]}"
+          for pid in "${pids[@]}"; do
+            [[ "$pid" =~ ^[0-9]+$ ]] || continue
+            echo "TERM stale pid=$pid"
+            kill -TERM "$pid" 2>/dev/null || true
+          done
+          sleep 3
+          for pid in "${pids[@]}"; do
+            [[ "$pid" =~ ^[0-9]+$ ]] || continue
+            if kill -0 "$pid" 2>/dev/null; then
+              echo "KILL stale pid=$pid"
+              kill -KILL "$pid" 2>/dev/null || true
+            fi
+          done
+
+          shopt -s nullglob
+          for d in /var/tmp/cace-formal.*; do
+            if [[ -d "$d" && ! -L "$d" && -O "$d" ]]; then
+              echo "remove stale build $d"
+              rm -rf -- "$d"
+            else
+              echo "leave untouched (not owned directory or symlink): $d"
+            fi
+          done
+
+          echo '=== post-clean process state ==='
+          ps -eo pid,ppid,stat,etime,%cpu,%mem,rss,vsz,args | grep -E '[l]ean|[l]ake|/var/tmp/cace-formal\.' || true
+          echo '=== post-clean memory/disk ==='
+          free -h || true
+          df -h /var/tmp || true
+          for f in /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.current; do
+            echo "--- $f"
+            cat "$f" 2>/dev/null || true
+          done
+
+      - name: Upload post-clean diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-runner-post-clean-diagnostics
+          path: cace-runner-diagnostics/post-clean/
