@@ -13,6 +13,7 @@ from .formal_gate import enforce_formal_claim_qualification
 from .reproducibility import experiment_fingerprint
 from .execution_scope import ExecutionScope, build_upstream_subgraph, full_execution_scope
 from .execution_control import ExecutionControl
+from .types import port_connection_error
 
 
 @dataclass
@@ -74,9 +75,9 @@ class GraphExecutor:
             dp = {p.name: p for p in dst.inputs}
             if e.source_port not in sp or e.target_port not in dp:
                 raise ValidationError("edge references missing port")
-            st, dt = sp[e.source_port].type_name, dp[e.target_port].type_name
-            if st != "any" and dt != "any" and st != dt:
-                raise ValidationError(f"type mismatch: {st} -> {dt}")
+            incompatibility = port_connection_error(sp[e.source_port], dp[e.target_port])
+            if incompatibility is not None:
+                raise ValidationError(incompatibility)
             outgoing[e.source_node].append(e.target_node)
             incoming[e.target_node] += 1
         ready = sorted(k for k, v in incoming.items() if v == 0)
