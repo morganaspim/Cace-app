@@ -1,0 +1,50 @@
+name: CACE OCI git bootstrap
+
+on:
+  push:
+    branches: [ops/oci-git-bootstrap]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 20
+    steps:
+      - name: Install Git on durable OCI runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v git >/dev/null 2>&1; then
+            git --version
+            exit 0
+          fi
+
+          run_root() {
+            if command -v sudo >/dev/null 2>&1; then
+              sudo "$@"
+            else
+              "$@"
+            fi
+          }
+
+          if command -v dnf >/dev/null 2>&1; then
+            run_root dnf -y install git
+          elif command -v yum >/dev/null 2>&1; then
+            run_root yum -y install git
+          elif command -v microdnf >/dev/null 2>&1; then
+            run_root microdnf install -y git
+          elif command -v apt-get >/dev/null 2>&1; then
+            run_root apt-get update
+            run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y git
+          else
+            echo 'No supported package manager found for Git bootstrap.' >&2
+            cat /etc/os-release || true
+            exit 1
+          fi
+
+          git --version
+          command -v git
+          echo CACE_OCI_GIT_BOOTSTRAPPED
