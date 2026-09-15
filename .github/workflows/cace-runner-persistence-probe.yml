@@ -1,0 +1,65 @@
+name: CACE runner persistence probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-runner-persistence-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Probe persistence capabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runner-persistence-probe
+          {
+            echo '=== identity ==='
+            id
+            echo
+            echo '=== pid1 ==='
+            ps -p 1 -o pid,ppid,user,comm,args || true
+            cat /proc/1/cgroup 2>/dev/null || true
+            echo
+            echo '=== sudo ==='
+            command -v sudo || true
+            ls -l /usr/bin/sudo /bin/sudo 2>/dev/null || true
+            echo
+            echo '=== systemd ==='
+            systemctl is-system-running || true
+            systemctl --user is-system-running || true
+            echo
+            echo '=== container tools ==='
+            command -v docker || true
+            docker version 2>&1 || true
+            command -v podman || true
+            podman version 2>&1 || true
+            echo
+            echo '=== sockets ==='
+            ls -l /var/run/docker.sock /run/podman/podman.sock "$XDG_RUNTIME_DIR/podman/podman.sock" 2>/dev/null || true
+            echo
+            echo '=== shell persistence tools ==='
+            command -v tmux || true
+            command -v screen || true
+            command -v nohup || true
+            command -v setsid || true
+            command -v crontab || true
+            crontab -l 2>&1 || true
+            echo
+            echo '=== runner processes ==='
+            ps -eo pid,ppid,user,etime,cmd | grep -E 'Runner\.(Listener|Worker)|run\.sh' | grep -v grep || true
+          } 2>&1 | tee runner-persistence-probe/probe.txt
+
+      - name: Upload probe
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-runner-persistence-probe
+          path: runner-persistence-probe/
