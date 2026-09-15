@@ -21,6 +21,10 @@ def _is_git_commit(value: str | None) -> bool:
     return len(value) == 40 and all(c in "0123456789abcdef" for c in value)
 
 
+def _nonempty(value: str | None) -> bool:
+    return bool(value and value.strip())
+
+
 @dataclass(frozen=True)
 class ProofLedgerEntry:
     release: str
@@ -29,12 +33,35 @@ class ProofLedgerEntry:
     current_head_qualified: bool
     commit: str | None = None
     proof_artifact_sha256: str | None = None
+    qualification_system: str | None = None
+    qualification_run_id: str | None = None
     workflow_run_id: int | None = None
     checks: tuple[str, ...] = ()
     blockers: tuple[str, ...] = ()
 
     @classmethod
     def from_mapping(cls, raw: Mapping[str, Any]) -> "ProofLedgerEntry":
+        workflow_run_id = (
+            int(raw["workflow_run_id"]) if raw.get("workflow_run_id") is not None else None
+        )
+        qualification_system = (
+            str(raw["qualification_system"]).strip()
+            if raw.get("qualification_system") is not None
+            else None
+        )
+        qualification_run_id = (
+            str(raw["qualification_run_id"]).strip()
+            if raw.get("qualification_run_id") is not None
+            else None
+        )
+
+        # Backward compatibility for historical GitHub Actions ledger entries.
+        # New qualifications should record the generic provenance fields explicitly.
+        if qualification_system is None and workflow_run_id is not None:
+            qualification_system = "github-actions"
+        if qualification_run_id is None and workflow_run_id is not None:
+            qualification_run_id = str(workflow_run_id)
+
         entry = cls(
             release=str(raw["release"]),
             claim_ids=tuple(str(x) for x in raw.get("claim_ids", ())),
@@ -46,9 +73,9 @@ class ProofLedgerEntry:
                 if raw.get("proof_artifact_sha256")
                 else None
             ),
-            workflow_run_id=(
-                int(raw["workflow_run_id"]) if raw.get("workflow_run_id") is not None else None
-            ),
+            qualification_system=qualification_system,
+            qualification_run_id=qualification_run_id,
+            workflow_run_id=workflow_run_id,
             checks=tuple(str(x) for x in raw.get("checks", ())),
             blockers=tuple(str(x) for x in raw.get("blockers", ())),
         )
@@ -69,9 +96,19 @@ class ProofLedgerEntry:
                 raise ValueError(
                     f"{entry.release}: current-head qualification requires a 64-hex artifact hash"
                 )
-            if entry.workflow_run_id is None or entry.workflow_run_id <= 0:
+            if not _nonempty(entry.qualification_system):
                 raise ValueError(
-                    f"{entry.release}: current-head qualification requires a positive workflow_run_id"
+                    f"{entry.release}: current-head qualification requires qualification_system"
+                )
+            if not _nonempty(entry.qualification_run_id):
+                raise ValueError(
+                    f"{entry.release}: current-head qualification requires qualification_run_id"
+                )
+            if entry.qualification_system == "github-actions" and (
+                entry.workflow_run_id is None or entry.workflow_run_id <= 0
+            ):
+                raise ValueError(
+                    f"{entry.release}: github-actions qualification requires a positive workflow_run_id"
                 )
             if not entry.checks:
                 raise ValueError(
