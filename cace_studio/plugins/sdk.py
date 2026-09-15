@@ -9,6 +9,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Iterable
 
+from cace_studio.core.registry import ModuleRegistry
+
 PLUGIN_API_VERSION = "1.0"
 _PLUGIN_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -107,17 +109,32 @@ def _load_python_entrypoint(plugin_dir: Path, manifest: PluginManifest) -> Modul
     return module
 
 
+def _staging_registry(registry) -> tuple[ModuleRegistry, dict[str, type]]:
+    """Create an isolated registry snapshot for all-or-nothing plugin registration."""
+    before = {cls.metadata.module_id: cls for cls in registry.classes()}
+    staging = ModuleRegistry()
+    for cls in before.values():
+        staging.register(cls)
+    return staging, before
+
+
 def load_plugin_directory(
     path: str | Path,
     registry,
     *,
     allow_trust: Iterable[PluginTrust] = (PluginTrust.BUILTIN, PluginTrust.TRUSTED),
 ) -> PluginLoadResult:
-    """Load one explicitly selected plugin directory.
+    """Load one explicitly selected plugin directory transactionally.
 
     Python plugins execute arbitrary code at import time. This function therefore
     refuses manifests whose trust level is not explicitly allowed by the caller.
     There is intentionally no automatic scanning/import of untrusted directories.
+
+    Registration runs against an isolated staging registry first. The caller's
+    live registry is changed only after registration completes and the staging
+    registry is validated, so an exception cannot leave a half-registered plugin.
+    This is transactional registry behavior, not a sandbox: trusted Python plugin
+    code can still perform arbitrary process-level actions when imported/executed.
     """
     plugin_dir = Path(path)
     manifest = load_manifest(plugin_dir)
@@ -126,14 +143,39 @@ def load_plugin_directory(
         raise PluginError(
             f"refusing plugin {manifest.plugin_id}: trust={manifest.trust.value} is not allowed"
         )
-    before = {cls.metadata.module_id for cls in registry.classes()}
+
     module = _load_python_entrypoint(plugin_dir, manifest)
     register = getattr(module, "register", None)
     if not callable(register):
         raise PluginError(f"plugin {manifest.plugin_id} entrypoint must define register(registry)")
-    register(registry)
-    after = {cls.metadata.module_id for cls in registry.classes()}
-    added = tuple(sorted(after - before))
-    if not added:
+
+    staging, before = _staging_registry(registry)
+    try:
+        register(staging)
+    except Exception as exc:
+        raise PluginError(f"plugin {manifest.plugin_id} registration failed: {exc}") from exc
+
+    after = {cls.metadata.module_id: cls for cls in staging.classes()}
+    for module_id, cls in before.items():
+        if after.get(module_id) is not cls:
+            raise PluginError(
+                f"plugin {manifest.plugin_id} attempted to replace or remove existing module {module_id}"
+            )
+
+    added_ids = tuple(sorted(set(after) - set(before)))
+    if not added_ids:
         raise PluginError(f"plugin {manifest.plugin_id} registered no modules")
-    return PluginLoadResult(manifest, added)
+
+    # Preflight the live registry before committing the staged additions. In the
+    # normal single-threaded Studio/plugin-loading path these checks make the
+    # subsequent register calls deterministic and non-failing.
+    conflicts = [module_id for module_id in added_ids if registry.contains(module_id)]
+    if conflicts:
+        raise PluginError(
+            f"plugin {manifest.plugin_id} conflicts with existing module ids: {', '.join(conflicts)}"
+        )
+
+    for module_id in added_ids:
+        registry.register(after[module_id])
+
+    return PluginLoadResult(manifest, added_ids)
