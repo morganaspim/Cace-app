@@ -7,7 +7,7 @@ import pytest
 from cace_studio.core.proof_contract import ProofContract, ProofContractRegistry
 
 
-EXPECTED_V330_HASH = "a218ba03234a6ce616db7e687c8985f3471d7fb57591935b28690c4f9e75cf01"
+EXPECTED_CONTINUUM_V2_HASH = "4bd09eb15a01a82506aca1b7fe2b35438fc99712fd32b0e29e182296babb395b"
 
 
 def _contract_mapping() -> dict:
@@ -30,17 +30,21 @@ def _contract_mapping() -> dict:
     }
 
 
-def test_default_v330_contract_is_single_source_for_all_28_audited_endpoints():
+def test_default_continuum_contract_v2_is_single_source_for_all_35_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
     assert contract is not None
-    assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v1"
-    assert len(contract.endpoint_theorems) == 28
-    assert len(contract.audited_source_files) == 8
+    assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v2"
+    assert len(contract.endpoint_theorems) == 35
+    assert len(contract.audited_source_files) == 11
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
     assert contract.dependency_pins["mathlib_commit"] == "520045ab14e26149ee970e2e617ca04b09bde5d6"
-    assert contract.theorem_dependency_metadata_state == "NOT_GENERATED"
-    assert contract.contract_sha256 == EXPECTED_V330_HASH
+    assert contract.theorem_dependency_metadata_state == "LEAN_GENERATED"
+    assert "Lean.Environment" in contract.theorem_dependency_metadata_note
+    assert "lean-environment-theorem-metadata" in contract.required_checks
+    assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
+    assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
+    assert contract.contract_sha256 == EXPECTED_CONTINUUM_V2_HASH
 
 
 def test_contract_hash_changes_when_scope_changes():
@@ -80,7 +84,7 @@ def test_registry_rejects_multiple_contracts_for_same_claim():
         )
 
 
-def test_dependency_graph_is_explicitly_not_generated_not_inferred():
+def test_dependency_graph_state_is_explicit_and_never_inferred():
     contract = ProofContract.from_mapping(_contract_mapping())
     assert contract.theorem_dependency_metadata_state == "NOT_GENERATED"
     assert "No theorem dependency graph" in contract.theorem_dependency_metadata_note
