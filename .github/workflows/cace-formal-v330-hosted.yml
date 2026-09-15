@@ -1,0 +1,335 @@
+name: CACE Formal v3.30 hosted qualification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [qualification/v331-hosted]
+    paths:
+      - '.github/workflows/cace-formal-v330-hosted.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v330-hosted-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof-strengthening:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact qualification commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up pinned Python
+        shell: bash
+        env:
+          UV_VERSION: '0.12.13'
+        run: |
+          set -euo pipefail
+          curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" |
+            env UV_INSTALL_DIR="$RUNNER_TEMP/uv-bin" sh
+          "$RUNNER_TEMP/uv-bin/uv" python install 3.13.15
+          "$RUNNER_TEMP/uv-bin/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-venv"
+          echo "$RUNNER_TEMP/cace-venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/cace-venv/bin/python" --version
+
+      - name: Test global claim-promotion guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[test]'
+          python -m pytest -q \
+            tests/test_claim_promotion_v330.py \
+            tests/test_claim_registry_v331.py \
+            tests/test_qualification_drift_v331.py
+
+      - name: Prepare isolated formal build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cace_build_root="$(mktemp -d "$RUNNER_TEMP/cace-formal.XXXXXXXX")"
+          mkdir -p "$cace_build_root/formal" "$cace_build_root/elan" "$cace_build_root/cache"
+          cp -a formal/cace_formal/. "$cace_build_root/formal/"
+          echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
+          echo "ELAN_HOME=$cace_build_root/elan" >> "$GITHUB_ENV"
+          echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
+          df -h "$cace_build_root"
+          available_kb="$(df -Pk "$cace_build_root" | awk 'NR==2 {print $4}')"
+          if (( available_kb < 5 * 1024 * 1024 )); then
+            echo "Formal qualification requires at least 5 GiB free; found ${available_kb} KiB." >&2
+            exit 1
+          fi
+
+      - name: Configure verified TLS trust
+        shell: bash
+        run: |
+          set -euo pipefail
+          cace_ca_bundle=""
+          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem; do
+            if [[ -s "$candidate" ]]; then
+              cace_ca_bundle="$candidate"
+              break
+            fi
+          done
+          test -n "$cace_ca_bundle"
+          echo "CURL_CA_BUNDLE=$cace_ca_bundle" >> "$GITHUB_ENV"
+          echo "SSL_CERT_FILE=$cace_ca_bundle" >> "$GITHUB_ENV"
+          curl --fail --silent --show-error --location --cacert "$cace_ca_bundle" \
+            --connect-timeout 20 --max-time 60 \
+            https://raw.githubusercontent.com/leanprover-community/mathlib4/v4.32.1/lean-toolchain
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o "$CACE_BUILD_ROOT/elan-init.sh"
+          sh "$CACE_BUILD_ROOT/elan-init.sh" -y --default-toolchain none
+          echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned Lean toolchain
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve pinned mathlib for audited closure
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "520045ab14e26149ee970e2e617ca04b09bde5d6"
+          lake build +Cache.Main
+          timeout 900 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+            get CACEFormal/V330AxiomAudit.lean
+          du -sh "$XDG_CACHE_HOME" || true
+          df -h "$CACE_BUILD_ROOT" || true
+          find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete
+          df -h "$CACE_BUILD_ROOT" || true
+
+      - name: Reject unfinished proof tokens
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean
+            formal/cace_formal/CACEFormal/RegularizationClosure.lean
+            formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean
+            formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean
+            formal/cace_formal/CACEFormal/H1DomainBridge.lean
+            formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean
+            formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean
+            formal/cace_formal/CACEFormal/V330AxiomAudit.lean
+          )
+          if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
+            echo 'Unclosed v3.30 proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Record hosted build resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -a
+          nproc || true
+          free -h || true
+          df -h "$CACE_BUILD_ROOT" || true
+
+      - name: Compile v3.30 audited dependency closure
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          timeout 1200 lake build CACEFormal.V330AxiomAudit
+
+      - name: Kernel axiom audit
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean CACEFormal/V330AxiomAudit.lean 2>&1 | tee "$CACE_BUILD_ROOT/v330-axioms.txt"
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          text = (Path(os.environ['CACE_BUILD_ROOT']) / 'v330-axioms.txt').read_text(encoding='utf-8')
+          if 'sorryAx' in text:
+              raise SystemExit('Rejected: theorem dependency contains sorryAx')
+          expected = [
+              'smoothBoxProduct_hasFDerivAt',
+              'smoothBoxProduct_divergence_eq_greenVolume',
+              'smoothBoxGreen_schwartz',
+              'boxGraphNormalTrace_smooth_eq_classical_auto',
+              'submodule_topologicalClosure_eq_of_regularizer',
+              'submodule_topologicalClosure_eq_ker_of_regularizer',
+              'ker_le_topologicalClosure_of_regularizer',
+              'topologicalClosure_eq_top_of_regularizer',
+              'complexSmoothGraphClosure_eq_distributional_of_regularizer',
+              'distributional_le_complexSmoothGraphClosure_of_regularizer',
+              'realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer',
+              'realDistributionalPreimage_le_HDivSmoothGraphClosure_of_regularizer',
+              'mem_H1DistributionalGraphSubmodule_iff',
+              'smoothComplexH1GraphMap_mem_distributional',
+              'complexH1SmoothGraphClosure_le_distributional',
+              'complexH1SmoothGraphClosure_eq_distributional_of_regularizer',
+              'complexL2ToDistribution_l2RepresentativeOfInL2',
+              'inH1GraphRepresentative_mem',
+              'inHDivGraphRepresentative_mem',
+              'inHDiv_iff_exists_distributionalGraphRepresentative',
+              'besselRieszSymbol_norm_le',
+              'h1RieszSymbol_norm_le_one',
+              'h1RieszSymbol_hasTemperateGrowth',
+              'besselPotential_neg_two_inH1_of_inL2',
+              'besselPotential_neg_one_weakPartial_inH1_of_inL2',
+              'rieszFiltered_weakPartial_inH1_of_inL2',
+              'h1RieszCorrection_inH1',
+              'inH1_of_besselRiesz_reconstruction',
+          ]
+          allowed = {'propext', 'Classical.choice', 'Quot.sound'}
+          found = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", text)
+          audited = {}
+          for theorem, payload in found:
+              short = theorem.rsplit('.', 1)[-1]
+              if short not in expected:
+                  continue
+              axioms = {x.strip() for x in payload.split(',') if x.strip()}
+              unexpected = axioms - allowed
+              if unexpected:
+                  raise SystemExit(f'Rejected: {theorem} depends on non-whitelisted axioms: {sorted(unexpected)}')
+              audited[short] = sorted(axioms)
+          missing = sorted(set(expected) - set(audited))
+          if missing:
+              raise SystemExit(f'Rejected: missing theorem axiom reports: {missing}')
+          print('Kernel axiom audit PASS:', audited)
+          PY
+
+      - name: Collect formal diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v330-proof-diagnostics
+          printf 'run_id=%s\nattempt=%s\ncommit=%s\nrunner=%s\n' \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$RUNNER_NAME" \
+            > v330-proof-diagnostics/run.txt
+          if [[ -f "$CACE_FORMAL_DIR/lake-manifest.json" ]]; then
+            cp "$CACE_FORMAL_DIR/lake-manifest.json" v330-proof-diagnostics/lake-manifest.json
+          fi
+          if [[ -f "$CACE_BUILD_ROOT/v330-axioms.txt" ]]; then
+            cp "$CACE_BUILD_ROOT/v330-axioms.txt" v330-proof-diagnostics/v330-axioms.txt
+          fi
+
+      - name: Write v3.30 proof attestation
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          def out(cmd, cwd=None):
+              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+          formal_dir = Path(os.environ['CACE_FORMAL_DIR'])
+          audited_source_files = [
+              'CACEFormal/SmoothBoxGreenAuto.lean',
+              'CACEFormal/RegularizationClosure.lean',
+              'CACEFormal/GraphRegularizationCriterion.lean',
+              'CACEFormal/RealGraphRegularizationCriterion.lean',
+              'CACEFormal/H1DomainBridge.lean',
+              'CACEFormal/H1BesselRieszReduction.lean',
+              'CACEFormal/DistributionalGraphRepresentatives.lean',
+              'CACEFormal/V330AxiomAudit.lean',
+          ]
+          source_hash = hashlib.sha256()
+          for relative in audited_source_files:
+              source_hash.update(relative.encode('utf-8'))
+              source_hash.update(b'\0')
+              source_hash.update((formal_dir / relative).read_bytes())
+              source_hash.update(b'\0')
+          data = {
+              'release': '3.30.0-dev',
+              'claim_id': 'cace.v330.continuum-proof-strengthening',
+              'status': 'PASS',
+              'commit': out(['git', 'rev-parse', 'HEAD']),
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'workflow': os.environ['GITHUB_WORKFLOW'],
+              'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'workflow_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'event_name': os.environ['GITHUB_EVENT_NAME'],
+              'ref': os.environ['GITHUB_REF'],
+              'runner_environment': 'github-hosted ubuntu-24.04 x64',
+              'lean_version': out(['lean', '--version']),
+              'mathlib_commit': out(['git', '-C', str(formal_dir / '.lake/packages/mathlib'), 'rev-parse', 'HEAD']),
+              'build_target': 'CACEFormal.V330AxiomAudit',
+              'mathlib_cache_scope': 'CACEFormal/V330AxiomAudit.lean transitive import closure',
+              'audited_source_files': audited_source_files,
+              'audited_source_bundle_sha256': source_hash.hexdigest(),
+              'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.',
+              'theorems': [
+                  'CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt',
+                  'CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume',
+                  'CACEFormal.Continuum.smoothBoxGreen_schwartz',
+                  'CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto',
+                  'CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer',
+                  'CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer',
+                  'CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer',
+                  'CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer',
+                  'CACEFormal.Continuum.inH1GraphRepresentative_mem',
+                  'CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative',
+                  'CACEFormal.Continuum.h1RieszSymbol_norm_le_one',
+                  'CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2',
+                  'CACEFormal.Continuum.h1RieszCorrection_inH1',
+                  'CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction'
+              ],
+              'promotion_guards': {
+                  'unfinished_tokens_rejected': True,
+                  'sorryAx_rejected': True,
+                  'nonfoundation_axioms_rejected': True,
+                  'allowed_foundational_axioms': ['propext', 'Classical.choice', 'Quot.sound'],
+                  'open_problem_requires_artifact_bound_independent_reproduction': True,
+                  'open_problem_requires_artifact_bound_external_review': True,
+                  'module_self_promotion_reserved_flags_rejected': True,
+                  'numerical_symbolic_interval_evidence_cannot_self_promote': True
+              },
+              'nonclaims': [
+                  'The v3.30 H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.',
+                  'The new H1 distributional graph relation is not yet identified with Mathlib Bessel-potential InH1 in the converse direction.',
+                  'CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries.'
+              ]
+          }
+          path = Path('v330_github_formal_build_attestation.json')
+          rendered = json.dumps(data, indent=2, sort_keys=True) + '\n\n'
+          path.write_text(rendered, encoding='utf-8')
+          digest = hashlib.sha256(rendered.encode('utf-8')).hexdigest()
+          Path('v330_github_formal_build_attestation.sha256').write_text(f'{digest}  {path.name}\n', encoding='utf-8')
+          print(rendered, end='')
+          print('attestation_sha256:', digest)
+          PY
+
+      - name: Upload v3.30 attestation
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v330-formal-attestation-hosted
+          path: |
+            v330_github_formal_build_attestation.json
+            v330_github_formal_build_attestation.sha256
+
+      - name: Upload resolved dependency manifest and axiom audit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v330-proof-diagnostics-hosted
+          path: v330-proof-diagnostics/
