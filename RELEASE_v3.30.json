@@ -1,0 +1,139 @@
+{
+  "version": "3.30.0-dev",
+  "title": "Proof Strengthening and Claim Promotion Guard",
+  "status": "DEVELOPMENT_VALIDATION_INCOMPLETE",
+  "base_snapshot": "50cfdd10a6653c863d595502797b8f1a87c42333",
+  "branch": "roadmap/v3.30-proof-strengthening",
+  "ownership": {
+    "classification": "CONFIDENTIAL AND PROPRIETARY",
+    "owner": "Emmanuel Spiro",
+    "copyright": "Copyright © 2026 Emmanuel Spiro. All rights reserved.",
+    "license_file": "LICENSE",
+    "notice_file": "NOTICE",
+    "third_party_exception": "Third-party and open-source materials remain subject to their own licenses and copyright notices."
+  },
+  "scope": [
+    "automatic Schwartz-core product calculus for bounded-box Green identities",
+    "automatic smooth functional-trace to classical face-flux agreement endpoint",
+    "generic regularization-to-closure and kernel-regularization proof automation",
+    "complex and real H(div) reverse-inclusion criteria",
+    "closed distributional H1 graph relation and regularization criterion",
+    "exact L2 graph representatives for InL2, InH1, and InHDiv data",
+    "representation equivalence between InHDiv and existence of a closed distributional H(div) graph datum",
+    "bounded Bessel/Riesz multiplier reduction of the H1 converse to one exact reconstruction identity",
+    "kernel axiom audit for new formal endpoints",
+    "framework-level fail-closed open-problem claim promotion policy",
+    "artifact-bound independent reproduction and external-review requirements",
+    "executor rejection of reserved self-promotion flags",
+    "claim-decision sidecars hashed into graph certificates and emitted in run reports",
+    "adversarial promotion tests including the existing reliability proof DAG"
+  ],
+  "formal_targets": {
+    "status": "SOURCE_IMPLEMENTED_PENDING_PINNED_CI",
+    "theorems": [
+      "CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt",
+      "CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume",
+      "CACEFormal.Continuum.smoothBoxGreen_schwartz",
+      "CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto",
+      "CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer",
+      "CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer",
+      "CACEFormal.Continuum.ker_le_topologicalClosure_of_regularizer",
+      "CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer",
+      "CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer",
+      "CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer",
+      "CACEFormal.Continuum.mem_H1DistributionalGraphSubmodule_iff",
+      "CACEFormal.Continuum.smoothComplexH1GraphMap_mem_distributional",
+      "CACEFormal.Continuum.complexH1SmoothGraphClosure_le_distributional",
+      "CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer",
+      "CACEFormal.Continuum.complexL2ToDistribution_l2RepresentativeOfInL2",
+      "CACEFormal.Continuum.inH1GraphRepresentative_mem",
+      "CACEFormal.Continuum.inHDivGraphRepresentative_mem",
+      "CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative",
+      "CACEFormal.Continuum.besselRieszSymbol_norm_le",
+      "CACEFormal.Continuum.h1RieszSymbol_norm_le_one",
+      "CACEFormal.Continuum.h1RieszSymbol_hasTemperateGrowth",
+      "CACEFormal.Continuum.besselPotential_neg_two_inH1_of_inL2",
+      "CACEFormal.Continuum.besselPotential_neg_one_weakPartial_inH1_of_inL2",
+      "CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2",
+      "CACEFormal.Continuum.h1RieszCorrection_inH1",
+      "CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction"
+    ],
+    "lean_toolchain": "pinned by formal/cace_formal/lean-toolchain",
+    "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+    "axiom_policy": {
+      "reject_sorry": true,
+      "reject_admit": true,
+      "reject_sorryAx": true,
+      "allowed_foundational_axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ]
+    }
+  },
+  "claim_promotion": {
+    "status": "FRAMEWORK_TESTS_PASSED_ON_OBSERVED_COMMIT_CURRENT_HEAD_REQUIRES_VALIDATION",
+    "open_problem_stages": [
+      "research-candidate",
+      "formal-candidate",
+      "reproduced-formal-candidate",
+      "externally-reviewed-resolution"
+    ],
+    "resolution_wording_requires": [
+      "zero unresolved proof obligations",
+      "Lean kernel verification",
+      "axiom audit pass",
+      "pinned CI pass",
+      "valid SHA-256 digest of the exact theorem/statement artifact",
+      "at least one independent reproduction attestation bound to that exact SHA-256 digest",
+      "at least one external review attestation bound to that same SHA-256 digest"
+    ],
+    "legacy_reproduction_count_is_sufficient": false,
+    "review_of_different_artifact_is_sufficient": false,
+    "numerical_symbolic_interval_evidence_can_self_promote": false,
+    "module_output_can_self_assert_public_resolution": false,
+    "reserved_truthy_self_promotion_flags_rejected_by_executor": true,
+    "claim_decisions_emitted_in_run_result": true,
+    "claim_decisions_hashed_into_graph_certificate": true,
+    "external_reproducer_or_reviewer_identity_and_independence_proved_by_cace": false
+  },
+  "remaining_hard_analysis": {
+    "primary_obligation": "construct unconditional graph-norm regularizers for the whole-space H(div) and H1 distributional graph relations",
+    "secondary_obligation": "prove the exact Bessel/Riesz reconstruction identity, yielding the converse from the distributional H1 graph relation to Mathlib Bessel-potential InH1",
+    "ranked_routes": [
+      {
+        "rank": 1,
+        "route": "Fourier cutoff / multiplier regularization",
+        "reason": "best aligned with the tempered-distribution and whole-space Fourier/Sobolev representation already used by CACE"
+      },
+      {
+        "rank": 2,
+        "route": "mollification plus Schwartz cutoff",
+        "reason": "classical route but requires derivative/divergence cutoff-commutator estimates"
+      },
+      {
+        "rank": 3,
+        "route": "Hilbert annihilator / orthogonality density proof",
+        "reason": "reduces density to PDE-duality uniqueness but moves rather than removes the analytic burden"
+      }
+    ]
+  },
+  "verification": {
+    "observed_formal_workflow_run": 34889429471,
+    "attempted_commit": "e7ed5a41fa4bf1ed57067cb012cc737b54a308cd",
+    "formal_result": "BLOCKED_MATHLIB_CACHE_TLS",
+    "python_policy_test_result": "PASS_ON_OBSERVED_COMMIT",
+    "regression_workflow_run": 34889880923,
+    "regression_result": "QUEUED_AT_AUDIT",
+    "current_head_validation": "REQUIRED",
+    "production_ready": false
+  },
+  "nonclaims": [
+    "The unconditional reverse inclusion from arbitrary distributional H(div) graph data into the Schwartz graph closure is not yet proved.",
+    "The unconditional reverse inclusion for the new distributional H1 graph relation is not yet proved.",
+    "The exact Bessel/Riesz reconstruction identity—and therefore the converse equivalence from the new H1 graph relation to Bessel-potential InH1—is not yet proved.",
+    "The v3.30 Lean endpoints remain unverified; the Python claim-policy tests passed on the observed prior commit only.",
+    "Independent external mathematical review remains mandatory before CACE permits public resolution wording for a famous open problem."
+  ],
+  "package_version": "3.30.0.dev1"
+}

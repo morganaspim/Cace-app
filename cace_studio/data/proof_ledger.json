@@ -1,0 +1,48 @@
+{
+  "entries": [
+    {
+      "blockers": [
+        "Fresh current-head proof build and content-addressed proof artifact are required for runtime FORMAL PASS."
+      ],
+      "checks": [
+        "GitHub Actions CACE Formal v3.22 succeeded on the recorded immutable commit."
+      ],
+      "claim_ids": [
+        "cace.v322.concrete-mesh-prager-synge"
+      ],
+      "commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
+      "current_head_qualified": false,
+      "proof_artifact_sha256": null,
+      "proof_contract_id": null,
+      "proof_contract_sha256": null,
+      "qualification_run_id": "34806285322",
+      "qualification_system": "github-actions",
+      "release": "3.22.0",
+      "status": "HISTORICAL_PASS",
+      "workflow_run_id": 34806285322
+    },
+    {
+      "blockers": [
+        "Current-head pinned Lean build satisfying the bound proof contract has not been accepted.",
+        "Axiom audit has not been accepted.",
+        "Proof artifact SHA-256 has not been recorded."
+      ],
+      "checks": [],
+      "claim_ids": [
+        "cace.v330.continuum-proof-strengthening"
+      ],
+      "commit": null,
+      "current_head_qualified": false,
+      "proof_artifact_sha256": null,
+      "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v1",
+      "proof_contract_sha256": "a218ba03234a6ce616db7e687c8985f3471d7fb57591935b28690c4f9e75cf01",
+      "qualification_run_id": null,
+      "qualification_system": null,
+      "release": "3.23.0-dev..3.30.0-dev",
+      "status": "NOT_RUN",
+      "workflow_run_id": null
+    }
+  ],
+  "policy": "Current-head FORMAL PASS requires a successful pinned proof build, axiom audit, exact commit binding, exact proof-contract id/hash binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",
+  "schema_version": 1
+}

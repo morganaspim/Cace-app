@@ -1,0 +1,95 @@
+{
+  "$id": "https://cace.local/schema/signed-attestation-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "proof_effect": {
+      "const": "none"
+    },
+    "public_key_pem": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "cace-signed-attestation-v1"
+    },
+    "signature_algorithm": {
+      "const": "ed25519"
+    },
+    "signature_b64": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "statement": {
+      "additionalProperties": false,
+      "properties": {
+        "bindings": {
+          "type": "object"
+        },
+        "bundle_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "claim_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "created_at_utc": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "type": "string"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "purpose": {
+          "enum": [
+            "artifact-integrity",
+            "independent-reproduction"
+          ]
+        },
+        "schema": {
+          "const": "cace-attestation-statement-v1"
+        },
+        "signature_algorithm": {
+          "const": "ed25519"
+        },
+        "verifier_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "verifier_key_id": {
+          "pattern": "^ed25519:[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "signature_algorithm",
+        "proof_effect",
+        "verifier_id",
+        "verifier_key_id",
+        "claim_id",
+        "bundle_sha256",
+        "created_at_utc",
+        "purpose",
+        "bindings"
+      ],
+      "type": "object"
+    },
+    "statement_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "signature_algorithm",
+    "proof_effect",
+    "statement_sha256",
+    "statement",
+    "public_key_pem",
+    "signature_b64"
+  ],
+  "title": "CACE Signed Attestation v1",
+  "type": "object"
+}

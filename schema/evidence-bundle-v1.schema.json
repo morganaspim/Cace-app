@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/evidence-bundle-v1.schema.json",
+  "title": "CACE Evidence Bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "identity_algorithm",
+    "merkle_algorithm",
+    "proof_effect",
+    "artifacts",
+    "merkle_root_sha256",
+    "bindings",
+    "notes"
+  ],
+  "properties": {
+    "schema": {"const": "cace-evidence-bundle-v1"},
+    "identity_algorithm": {"const": "sha256/cace-canonical-json-v1"},
+    "merkle_algorithm": {"const": "sha256/cace-merkle-v1"},
+    "proof_effect": {"const": "none"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "merkle_root_sha256": {"$ref": "#/$defs/sha256"},
+    "bindings": {"type": "object"},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256",
+        "size_bytes",
+        "role",
+        "media_type",
+        "path",
+        "metadata"
+      ],
+      "properties": {
+        "artifact_id": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "role": {"type": "string", "minLength": 1},
+        "media_type": {"type": "string", "minLength": 1},
+        "path": {"type": ["string", "null"]},
+        "metadata": {"type": "object"}
+      }
+    }
+  }
+}

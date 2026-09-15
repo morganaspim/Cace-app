@@ -1,0 +1,100 @@
+name: CACE Python regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
+    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+  pull_request:
+    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+permissions:
+  contents: read
+concurrency:
+  group: cace-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: self-hosted
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Isolated Python and full regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/0.12.13/install.sh |
+            env UV_INSTALL_DIR="$RUNNER_TEMP/cace-uv" UV_NO_MODIFY_PATH=1 sh
+          "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-regression"
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip install -e '.[test]' cmake
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip freeze > regression-environment.txt
+          echo "$RUNNER_TEMP/cace-regression/bin" >> "$GITHUB_PATH"
+      - name: Native C++ build and smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build cpp/build --parallel 2
+          ctest --test-dir cpp/build --output-on-failure
+      - name: Generate deterministic AI navigation indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/generate_ai_indexes.py
+          python scripts/generate_ai_indexes.py --check
+      - name: Full Python regression with native library available
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest --junitxml=regression-results.xml
+      - name: Qualification drift audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/check_qualification_drift.py --output qualification-drift.json
+      - name: Build Python wheel and check installed interfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip wheel --no-deps . -w dist
+          "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-wheel"
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m cace_studio.cli registry > "$GITHUB_WORKSPACE/wheel-registry.json"
+          "$RUNNER_TEMP/cace-wheel/bin/cace-attest" --help > "$GITHUB_WORKSPACE/wheel-attest-help.txt"
+      - name: Check installed optional attestation extra
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install 'cryptography>=50.0.1,<51'
+          key_root="$RUNNER_TEMP/cace-wheel-attestation-smoke"
+          rm -rf -- "$key_root"
+          mkdir -p "$key_root"
+          "$RUNNER_TEMP/cace-wheel/bin/cace-attest" keygen \
+            --private-key "$key_root/verifier.key" \
+            --public-key "$key_root/verifier.pub" \
+            > "$GITHUB_WORKSPACE/wheel-attest-keygen.json"
+          test -s "$key_root/verifier.key"
+          test -s "$key_root/verifier.pub"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: cace-regression-evidence
+          path: |
+            regression-results.xml
+            regression-environment.txt
+            wheel-registry.json
+            wheel-attest-help.txt
+            wheel-attest-keygen.json
+            qualification-drift.json
+            MODULE_CATALOG.json
+            CLAIM_CATALOG.json
+            PROOF_DEPENDENCY_GRAPH.json
+            SOURCE_INDEX.json
+            generated/CACE_SOURCE_CONTEXT.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success()
+        with:
+          name: cace-python-wheel
+          path: dist/*.whl

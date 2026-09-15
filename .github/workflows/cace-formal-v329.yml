@@ -1,0 +1,153 @@
+name: CACE Formal v3.29 PDE/domain bridge
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'formal/cace_formal/CACEFormal/PDEDomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean'
+      - 'formal/cace_formal/CACEFormal/BoxGraphTrace.lean'
+      - 'formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean'
+      - 'formal/cace_formal/CACEFormal/BoxClassicalAgreement.lean'
+      - 'formal/cace_formal/CACEFormal.lean'
+      - 'RELEASE_v3.29.json'
+      - 'V329_PDE_DOMAIN_BRIDGE_RANKED.md'
+      - '.github/workflows/cace-formal-v329.yml'
+  pull_request:
+    paths:
+      - 'formal/cace_formal/CACEFormal/PDEDomainBridge.lean'
+      - 'formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean'
+      - 'formal/cace_formal/CACEFormal/BoxGraphTrace.lean'
+      - 'formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean'
+      - 'formal/cace_formal/CACEFormal/BoxClassicalAgreement.lean'
+      - 'formal/cace_formal/CACEFormal.lean'
+      - 'RELEASE_v3.29.json'
+      - 'V329_PDE_DOMAIN_BRIDGE_RANKED.md'
+      - '.github/workflows/cace-formal-v329.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-v329-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pde-domain-bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned Lean toolchain
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve pinned mathlib
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake update
+          lake exe cache get
+
+      - name: Check v3.29 proof source is closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            formal/cace_formal/CACEFormal/PDEDomainBridge.lean
+            formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean
+            formal/cace_formal/CACEFormal/BoxGraphTrace.lean
+            formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean
+            formal/cace_formal/CACEFormal/BoxClassicalAgreement.lean
+            formal/cace_formal/CACEFormal/ContinuumSobolev.lean
+            formal/cace_formal/CACEFormal/GraphDensity.lean
+            formal/cace_formal/CACEFormal/GraphClosedSpaces.lean
+            formal/cace_formal/CACEFormal/GraphGreenPairing.lean
+            formal/cace_formal/CACEFormal/BoxNormalTrace.lean
+            formal/cace_formal/CACEFormal/SmoothBoxGreen.lean
+          )
+          if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
+            echo 'Unclosed v3.29 proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Compile consolidated v3.29 bridge
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          # The aggregate imports every v3.29 module. Building it produces dependency .olean files
+          # through Lake rather than relying on sequential raw `lean` invocations.
+          lake build CACEFormal
+
+      - name: Write v3.29 attestation
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess
+          def out(cmd, cwd=None):
+              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+          data = {
+              'release': '3.29.0-dev',
+              'status': 'PASS',
+              'commit': out(['git', 'rev-parse', 'HEAD']),
+              'lean_version': out(['lean', '--version']),
+              'mathlib_commit': '520045ab14e26149ee970e2e617ca04b09bde5d6',
+              'scope': 'PDE/domain bridge: distributional H(div) graph relation; real-v3.28 to complex distributional bridge; bounded-box H1/H(div) graph closures; bounded box Green functional; and classical restricted-L2 pairing identities on the smooth core',
+              'theorems': [
+                  'CACEFormal.Continuum.mem_HDivDistributionalGraphSubmodule_iff',
+                  'CACEFormal.Continuum.isClosed_HDivDistributionalGraphSubmodule',
+                  'CACEFormal.Continuum.complexL2ToDistribution_inL2',
+                  'CACEFormal.Continuum.inHDiv_of_mem_distributionalGraph',
+                  'CACEFormal.Continuum.complexSmoothGraphClosure_le_distributional',
+                  'CACEFormal.Continuum.HDivGraphClosedSpace.toInHDiv',
+                  'CACEFormal.Continuum.dense_BoxH1DenseSmoothCore',
+                  'CACEFormal.Continuum.dense_BoxHDivDenseSmoothCore',
+                  'CACEFormal.Continuum.boxGraphWeakGreen',
+                  'CACEFormal.Continuum.boxSchwartzL2_inner_eq_setIntegral_mul',
+                  'CACEFormal.Continuum.boxSmooth_div_value_pairing_eq_integral',
+                  'CACEFormal.Continuum.boxSmooth_field_gradient_pairing_eq_integral',
+                  'CACEFormal.Continuum.smoothBoxTrace_eq_greenVolume',
+                  'CACEFormal.Continuum.normalTrace_eq_of_classicalCoreAgreement'
+              ],
+              'nonclaims': [
+                  'The final closure-level box normal trace is not yet identified with classical signed face flux until the common smooth-core agreement theorem is proved.',
+                  'The real v3.28 graph closure maps into the complex distributional H(div) relation, but reverse inclusion is not yet proved.',
+                  'Reverse inclusion of every distributional H(div) datum into the smooth graph closure requires a separate graph-norm density theorem.',
+                  'No zero-extension theorem across the box boundary is assumed.'
+              ]
+          }
+          open('v329_github_formal_build_attestation.json', 'w', encoding='utf-8').write(
+              json.dumps(data, indent=2, sort_keys=True) + '\n\n'
+          )
+          print(json.dumps(data, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload v3.29 attestation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cace-v329-formal-attestation
+          path: v329_github_formal_build_attestation.json

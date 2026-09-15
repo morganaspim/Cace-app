@@ -1,0 +1,70 @@
+{
+  "version": "3.29.0-dev",
+  "title": "PDE and Domain Bridge",
+  "status": "IMPLEMENTED_PENDING_PINNED_CI",
+  "scope": {
+    "distributional_hdiv_bridge": [
+      "complex L2 graph coordinates embedded canonically into tempered distributions",
+      "continuous distributional-divergence graph defect with a closed kernel relation encoding div(q) = g",
+      "smooth complex H(div) graph core and its topological closure map into the true distributional graph relation",
+      "explicit real-v3.28-to-complex graph map with Schwartz derivative/divergence compatibility",
+      "every field in the actual v3.28 real H(div) graph closure has a genuine distributional InHDiv complex image"
+    ],
+    "bounded_box_bridge": [
+      "box L2 spaces use volume.restrict (Set.Icc a b)",
+      "box H1 and H(div) smooth graph maps, graph cores, topological closures, and dense smooth cores",
+      "continuous bounded-box Green volume pairing and functional normal trace on the closed graph spaces",
+      "restricted-L2 inner products on Schwartz fields are identified with classical box integrals",
+      "the smooth closure trace is reduced to the classical Green volume integral and then to signed face flux under the hypotheses of the machine-checked smooth box Green theorem",
+      "dense-core uniqueness theorem characterizes any continuous extension agreeing with the box trace on the common dense smooth cores"
+    ]
+  },
+  "formal_modules": [
+    "CACEFormal/PDEDomainBridge.lean",
+    "CACEFormal/PDEDomainRealBridge.lean",
+    "CACEFormal/BoxGraphTrace.lean",
+    "CACEFormal/BoxGraphGreenPairing.lean",
+    "CACEFormal/BoxClassicalAgreement.lean"
+  ],
+  "implemented_theorem_targets": [
+    "CACEFormal.Continuum.complexSmoothGraphClosure_le_distributional",
+    "CACEFormal.Continuum.HDivGraphClosedSpace.toInHDiv",
+    "CACEFormal.Continuum.dense_BoxH1DenseSmoothCore",
+    "CACEFormal.Continuum.dense_BoxHDivDenseSmoothCore",
+    "CACEFormal.Continuum.boxGraphWeakGreen",
+    "CACEFormal.Continuum.ambientBoxGraphGreenPairing_smooth_eq_graphVolume",
+    "CACEFormal.Continuum.smoothBoxGraphVolume_eq_greenVolumeIntegral",
+    "CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical",
+    "CACEFormal.Continuum.boxGraphNormalTrace_unique_of_denseSmoothAgreement"
+  ],
+  "ranked_next_proofs": [
+    {
+      "rank": 1,
+      "goal": "Discharge the classical product-derivative hypotheses automatically for arbitrary Schwartz scalar/vector core fields, so the smooth trace-to-face-flux theorem no longer requires externally supplied F', Hd, Hi, or hprod witnesses."
+    },
+    {
+      "rank": 2,
+      "goal": "Prove a genuine graph-norm mollification/density theorem yielding the reverse inclusion from arbitrary distributional H(div) graph data to the smooth graph closure in a precisely stated domain scope."
+    },
+    {
+      "rank": 3,
+      "goal": "Use the bounded-box classical trace bridge to package the PDE-domain weak Green and zero-boundary orthogonality results directly for the box graph model and feed them into the continuum Prager-Synge endpoint."
+    }
+  ],
+  "nonclaims": [
+    "The latest bounded-box classical-agreement additions are not marked FORMAL_CI_PASS until an exact-head pinned GitHub Actions run actually executes and succeeds.",
+    "The real v3.28 graph closure maps into the complex distributional H(div) relation, but reverse inclusion is not yet proved.",
+    "No reverse inclusion from arbitrary distributional H(div) data to the smooth graph closure is claimed without a graph-norm density/mollification theorem.",
+    "No zero-extension theorem is assumed to commute with divergence across a box boundary.",
+    "The smooth trace agreement theorem currently retains the explicit smooth Green/product-derivative hypotheses instead of claiming they have all been discharged automatically for every Schwartz pair."
+  ],
+  "verification": {
+    "lean": "4.32.1",
+    "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+    "workflow": "CACE Formal v3.29 PDE/domain bridge",
+    "previous_green_distributional_bridge_run": 34844819063,
+    "latest_exact_head": "pending",
+    "result": "PENDING_GITHUB_HOSTED_RUNNER_EXECUTION"
+  }
+}
+

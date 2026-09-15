@@ -1,0 +1,69 @@
+{
+  "$id": "https://cace.local/schema/claim.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "claims": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "qualification": {
+                  "properties": {"current_head_qualified": {"const": true}},
+                  "required": ["current_head_qualified"]
+                }
+              },
+              "required": ["qualification"]
+            },
+            "then": {
+              "properties": {
+                "evidence_ceiling": {"enum": ["formally-verified", "cross-verified"]},
+                "proof_contract_id": {"minLength": 1, "type": "string"},
+                "qualification": {
+                  "properties": {
+                    "attested_commit": {"pattern": "^[0-9a-fA-F]{40}$", "type": "string"},
+                    "proof_artifact_sha256": {"pattern": "^[0-9a-fA-F]{64}$", "type": "string"},
+                    "status": {"const": "PASS"}
+                  },
+                  "required": ["status", "current_head_qualified", "attested_commit", "proof_artifact_sha256"]
+                }
+              },
+              "required": ["proof_contract_id"]
+            }
+          }
+        ],
+        "properties": {
+          "claim_id": {"minLength": 1, "type": "string"},
+          "evidence_ceiling": {"enum": ["experimental", "numerical", "symbolic", "interval-certified", "formally-verified", "cross-verified"]},
+          "module_ids": {"items": {"type": "string"}, "type": "array"},
+          "nonclaims": {"items": {"type": "string"}, "type": "array"},
+          "proof_contract_id": {"type": ["string", "null"]},
+          "qualification": {
+            "additionalProperties": false,
+            "properties": {
+              "attested_commit": {"type": ["string", "null"]},
+              "current_head_qualified": {"type": "boolean"},
+              "proof_artifact_sha256": {"type": ["string", "null"]},
+              "reason": {"type": "string"},
+              "status": {"type": "string"}
+            },
+            "required": ["status", "current_head_qualified"],
+            "type": "object"
+          },
+          "scope": {"type": "string"},
+          "statement": {"minLength": 1, "type": "string"}
+        },
+        "required": ["claim_id", "module_ids", "statement", "scope", "evidence_ceiling", "qualification"],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "policy": {"type": "string"},
+    "schema_version": {"minimum": 1, "type": "integer"}
+  },
+  "required": ["schema_version", "policy", "claims"],
+  "title": "CACE Claim Registry",
+  "type": "object"
+}

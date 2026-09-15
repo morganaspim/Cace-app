@@ -1,0 +1,45 @@
+import CACEFormal.SmoothBoxGreenAuto
+import CACEFormal.RegularizationClosure
+import CACEFormal.GraphRegularizationCriterion
+import CACEFormal.RealGraphRegularizationCriterion
+import CACEFormal.H1DomainBridge
+import CACEFormal.DistributionalGraphRepresentatives
+import CACEFormal.H1BesselRieszReduction
+
+/-!
+# v3.30 kernel-assumption audit
+
+CI compiles this file with the pinned Lean/mathlib toolchain and parses the `#print axioms` output
+for every new proof-strengthening endpoint. Promotion is rejected if a theorem depends on `sorryAx`
+or on any axiom outside the small foundational whitelist enforced by the workflow.
+-/
+
+#print axioms CACEFormal.Continuum.smoothBoxProduct_hasFDerivAt
+#print axioms CACEFormal.Continuum.smoothBoxProduct_divergence_eq_greenVolume
+#print axioms CACEFormal.Continuum.smoothBoxGreen_schwartz
+#print axioms CACEFormal.Continuum.boxGraphNormalTrace_smooth_eq_classical_auto
+#print axioms CACEFormal.Continuum.submodule_topologicalClosure_eq_of_regularizer
+#print axioms CACEFormal.Continuum.submodule_topologicalClosure_eq_ker_of_regularizer
+#print axioms CACEFormal.Continuum.ker_le_topologicalClosure_of_regularizer
+#print axioms CACEFormal.Continuum.topologicalClosure_eq_top_of_regularizer
+#print axioms CACEFormal.Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer
+#print axioms CACEFormal.Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer
+#print axioms CACEFormal.Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer
+#print axioms CACEFormal.Continuum.realDistributionalPreimage_le_HDivSmoothGraphClosure_of_regularizer
+#print axioms CACEFormal.Continuum.mem_H1DistributionalGraphSubmodule_iff
+#print axioms CACEFormal.Continuum.smoothComplexH1GraphMap_mem_distributional
+#print axioms CACEFormal.Continuum.complexH1SmoothGraphClosure_le_distributional
+#print axioms CACEFormal.Continuum.complexH1SmoothGraphClosure_eq_distributional_of_regularizer
+#print axioms CACEFormal.Continuum.complexL2ToDistribution_l2RepresentativeOfInL2
+#print axioms CACEFormal.Continuum.inH1GraphRepresentative_mem
+#print axioms CACEFormal.Continuum.inHDivGraphRepresentative_mem
+#print axioms CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative
+
+#print axioms CACEFormal.Continuum.besselRieszSymbol_norm_le
+#print axioms CACEFormal.Continuum.h1RieszSymbol_norm_le_one
+#print axioms CACEFormal.Continuum.h1RieszSymbol_hasTemperateGrowth
+#print axioms CACEFormal.Continuum.besselPotential_neg_two_inH1_of_inL2
+#print axioms CACEFormal.Continuum.besselPotential_neg_one_weakPartial_inH1_of_inL2
+#print axioms CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2
+#print axioms CACEFormal.Continuum.h1RieszCorrection_inH1
+#print axioms CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction

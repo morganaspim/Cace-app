@@ -3,6 +3,7 @@ name: CACE Formal v3.21
 on:
   workflow_dispatch:
   push:
+    branches: [main, roadmap/v3.30-proof-strengthening]
     paths:
       - 'formal/cace_formal/**'
       - 'cace_studio/core/mesh_orthogonality_bridge.py'
