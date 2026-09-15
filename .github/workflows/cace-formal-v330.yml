@@ -73,7 +73,7 @@ jobs:
           python -m pip install -e '.[test]'
           python -m pytest -q tests/test_claim_promotion_v330.py tests/test_claim_registry_v331.py tests/test_qualification_drift_v331.py
 
-      - name: Prepare isolated formal build on larger filesystem
+      - name: Prepare isolated formal build
         shell: bash
         run: |
           set -euo pipefail
@@ -85,6 +85,11 @@ jobs:
           echo "ELAN_HOME=$cace_build_root/elan" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
           df -h "$cace_build_root"
+          available_kb="$(df -Pk "$cace_build_root" | awk 'NR==2 {print $4}')"
+          if (( available_kb < 5 * 1024 * 1024 )); then
+            echo "Formal qualification requires at least 5 GiB free before dependency resolution; found ${available_kb} KiB." >&2
+            exit 1
+          fi
 
       - name: Configure verified TLS trust for Mathlib cache
         shell: bash
@@ -123,7 +128,7 @@ jobs:
           lean --version
           lake --version
 
-      - name: Resolve pinned mathlib
+      - name: Resolve pinned mathlib for audited closure
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         shell: bash
         run: |
@@ -131,7 +136,20 @@ jobs:
           MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "520045ab14e26149ee970e2e617ca04b09bde5d6"
           lake build +Cache.Main
-          timeout 900 lake env lean --run .lake/packages/mathlib/Cache/Main.lean get
+          # Mathlib's cache CLI accepts a Lean file/module and downloads only
+          # that root plus its transitive imports. Do not fetch all of Mathlib:
+          # the self-hosted runner has insufficient disk for the full cache.
+          timeout 900 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+            get CACEFormal/V330AxiomAudit.lean
+          echo "Cache footprint after scoped extraction:"
+          du -sh "$XDG_CACHE_HOME" || true
+          df -h "$CACE_BUILD_ROOT" || true
+          # The extracted oleans live under .lake/packages/*/.lake/build. The
+          # compressed transfer cache is no longer needed and is isolated to
+          # this run, so remove it before the CACE build to reclaim disk.
+          find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete
+          echo "Disk after removing compressed cache payloads:"
+          df -h "$CACE_BUILD_ROOT" || true
 
       - name: Reject unfinished proof tokens
         shell: bash
@@ -297,6 +315,7 @@ jobs:
               'lean_version': out(['lean', '--version']),
               'mathlib_commit': out(['git', '-C', str(formal_dir / '.lake/packages/mathlib'), 'rev-parse', 'HEAD']),
               'build_target': 'CACEFormal.V330AxiomAudit',
+              'mathlib_cache_scope': 'CACEFormal/V330AxiomAudit.lean transitive import closure',
               'audited_source_files': audited_source_files,
               'audited_source_bundle_sha256': source_hash.hexdigest(),
               'scope': 'Automatic smooth product calculus, generic kernel regularization-to-closure automation, H1/H(div) graph-density reductions, exact L2 graph representatives for distributional predicates, and framework-level artifact-bound claim promotion guards.',
