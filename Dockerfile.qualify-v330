@@ -1,0 +1,18 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    coreutils \
+    curl \
+    git \
+    grep \
+    python3 \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# The repository is intentionally bind-mounted at runtime rather than copied
+# into the image. Qualification therefore binds the exact checked-out Git
+# commit and the portable script can enforce a clean working tree.
+ENTRYPOINT ["bash", "-lc", "git config --global --add safe.directory /workspace && exec bash scripts/qualify_v330_portable.sh"]
