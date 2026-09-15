@@ -1,0 +1,145 @@
+name: CACE v3.36 Lean environment metadata bootstrap
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [candidate/v336-consolidated]
+    paths:
+      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
+      - 'formal/cace_formal/CACEFormal/V330TheoremMetadata.lean'
+      - 'formal/cace_formal/lean-toolchain'
+      - 'formal/cace_formal/lakefile.lean'
+      - 'cace_studio/core/proof_contract.py'
+      - 'cace_studio/data/proof_contracts.json'
+      - 'scripts/export_v330_environment_metadata.py'
+      - 'tests/test_export_v330_environment_metadata.py'
+      - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-v336-theorem-metadata-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lean-environment-metadata:
+    runs-on: self-hosted
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Run deterministic Python metadata tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pytest -q \
+            tests/test_export_v330_environment_metadata.py \
+            tests/test_lean_theorem_metadata_v336.py \
+            tests/test_proof_contract_v336.py
+
+      - name: Prepare isolated formal build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cace_build_root="$(mktemp -d /var/tmp/cace-v336-metadata.XXXXXXXX)"
+          mkdir -p "$cace_build_root/formal" "$cace_build_root/elan" "$cace_build_root/cache" "$cace_build_root/output"
+          cp -a formal/cace_formal/. "$cace_build_root/formal/"
+          echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
+          echo "CACE_OUTPUT_DIR=$cace_build_root/output" >> "$GITHUB_ENV"
+          echo "ELAN_HOME=$cace_build_root/elan" >> "$GITHUB_ENV"
+          echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
+
+      - name: Configure verified TLS trust
+        shell: bash
+        run: |
+          set -euo pipefail
+          cace_ca_bundle=""
+          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem; do
+            if [[ -s "$candidate" ]]; then
+              cace_ca_bundle="$candidate"
+              break
+            fi
+          done
+          test -n "$cace_ca_bundle"
+          echo "CURL_CA_BUNDLE=$cace_ca_bundle" >> "$GITHUB_ENV"
+          echo "SSL_CERT_FILE=$cace_ca_bundle" >> "$GITHUB_ENV"
+
+      - name: Install pinned Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            -o "$CACE_BUILD_ROOT/elan-init.sh"
+          sh "$CACE_BUILD_ROOT/elan-init.sh" -y --default-toolchain none
+          echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd "$CACE_FORMAL_DIR"
+          TOOLCHAIN="$(cat lean-toolchain)"
+          elan toolchain install "$TOOLCHAIN"
+          elan default "$TOOLCHAIN"
+          lean --version
+          lake --version
+
+      - name: Resolve exact mathlib and scoped cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$CACE_FORMAL_DIR"
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          expected="520045ab14e26149ee970e2e617ca04b09bde5d6"
+          actual="$(git -C .lake/packages/mathlib rev-parse HEAD)"
+          test "$actual" = "$expected"
+          lake build +Cache.Main
+          timeout 900 lake env lean --run .lake/packages/mathlib/Cache/Main.lean \
+            get CACEFormal/V330TheoremMetadata.lean
+          find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete || true
+
+      - name: Compile and emit loaded-environment theorem metadata
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          cd "$CACE_FORMAL_DIR"
+          timeout 1200 lake build CACEFormal.V330TheoremMetadata
+          lake env lean CACEFormal/V330TheoremMetadata.lean \
+            | tee "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.raw.txt"
+
+      - name: Canonicalize and fail-closed validate metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" python3 scripts/export_v330_environment_metadata.py \
+            --formal-dir "$CACE_FORMAL_DIR" \
+            --raw-output "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.raw.txt" \
+            --output "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.json"
+
+      - name: Record exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$GITHUB_SHA" > "$CACE_OUTPUT_DIR/commit.txt"
+
+      - name: Upload Lean-generated theorem metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v336-lean-environment-metadata
+          path: |
+            ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.json
+            ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.json.sha256
+            ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.raw.txt
+            ${{ env.CACE_OUTPUT_DIR }}/commit.txt
+
+      - name: Remove temporary formal build
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${CACE_BUILD_ROOT:-}" == /var/tmp/cace-v336-metadata.* && -O "$CACE_BUILD_ROOT" && ! -L "$CACE_BUILD_ROOT" ]]; then
+            rm -rf -- "$CACE_BUILD_ROOT"
+          fi
