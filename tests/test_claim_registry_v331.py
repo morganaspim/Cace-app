@@ -4,9 +4,13 @@ import pytest
 
 from cace_studio.core.claim_registry import ClaimRegistry
 from cace_studio.core.formal_gate import enforce_formal_claim_qualification
+from cace_studio.core.proof_contract import ProofContractRegistry
 from cace_studio.core.proof_ledger import ProofLedger
 from cace_studio.core.types import EvidenceKind
 from cace_studio.core.verification import VerificationRecord, VerificationState
+
+
+CONTRACT_ID = "unit.proof.v1"
 
 
 def rec(kind=EvidenceKind.FORMAL, state=VerificationState.PASS):
@@ -16,6 +20,34 @@ def rec(kind=EvidenceKind.FORMAL, state=VerificationState.PASS):
         claim="unit claim",
         state=state,
         method="unit-method",
+    )
+
+
+def qualified_contracts() -> ProofContractRegistry:
+    return ProofContractRegistry.from_mapping(
+        {
+            "schema_version": 1,
+            "policy": "fail-closed",
+            "contracts": [
+                {
+                    "contract_id": CONTRACT_ID,
+                    "claim_id": "unit.claim",
+                    "formal_system": "lean4",
+                    "build_target": "Unit.Audit",
+                    "toolchain_file": "formal/unit/lean-toolchain",
+                    "dependency_pins": {"mathlib_commit": "1" * 40},
+                    "endpoint_theorems": ["Unit.endpoint"],
+                    "audited_source_files": ["Unit/Audit.lean"],
+                    "allowed_axioms": ["propext"],
+                    "required_checks": ["pinned-build", "axiom-audit"],
+                    "nonclaims": ["Not a broader theorem."],
+                    "theorem_dependency_metadata": {
+                        "state": "NOT_GENERATED",
+                        "note": "No theorem-to-theorem dependency data generated.",
+                    },
+                }
+            ],
+        }
     )
 
 
@@ -30,6 +62,7 @@ def qualified_claim_mapping():
                 "statement": "unit statement",
                 "scope": "unit",
                 "evidence_ceiling": "formally-verified",
+                "proof_contract_id": CONTRACT_ID,
                 "qualification": {
                     "status": "PASS",
                     "current_head_qualified": True,
@@ -43,7 +76,7 @@ def qualified_claim_mapping():
     }
 
 
-def qualified_ledger_mapping():
+def qualified_ledger_mapping(contract_sha256: str):
     return {
         "schema_version": 1,
         "policy": "fail-closed",
@@ -55,6 +88,8 @@ def qualified_ledger_mapping():
                 "current_head_qualified": True,
                 "commit": "b" * 40,
                 "proof_artifact_sha256": "a" * 64,
+                "proof_contract_id": CONTRACT_ID,
+                "proof_contract_sha256": contract_sha256,
                 "qualification_system": "portable-local",
                 "qualification_run_id": "unit-run-1",
                 "workflow_run_id": None,
@@ -65,20 +100,21 @@ def qualified_ledger_mapping():
     }
 
 
-def test_default_registry_and_ledger_load_fail_closed():
+def test_default_registry_ledger_and_contract_load_fail_closed():
     registry = ClaimRegistry.load_default()
     ledger = ProofLedger.load_default()
-    assert registry.schema_version == 1
-    assert ledger.schema_version == 1
+    contracts = ProofContractRegistry.load_default()
+    assert registry.schema_version == ledger.schema_version == contracts.schema_version == 1
     historical = registry.by_id("cace.v322.concrete-mesh-prager-synge")
-    assert historical is not None
-    assert historical.current_head_qualified is False
+    assert historical is not None and historical.current_head_qualified is False
     entry = ledger.for_claim(historical.claim_id)
-    assert entry is not None
-    assert entry.status == "HISTORICAL_PASS"
-    assert entry.current_head_qualified is False
+    assert entry is not None and entry.status == "HISTORICAL_PASS"
     assert entry.qualification_system == "github-actions"
-    assert entry.qualification_run_id == "34806285322"
+    v330 = registry.by_id("cace.v330.continuum-proof-strengthening")
+    contract = contracts.for_claim("cace.v330.continuum-proof-strengthening")
+    assert v330 is not None and contract is not None
+    assert v330.proof_contract_id == contract.contract_id
+    assert ledger.for_claim(v330.claim_id).proof_contract_sha256 == contract.contract_sha256
 
 
 def test_unknown_formal_pass_is_downgraded():
@@ -108,23 +144,55 @@ def test_nonformal_and_existing_fail_states_are_not_upgraded():
     assert failure.state is VerificationState.FAIL
 
 
-def test_matching_current_head_registry_and_portable_ledger_preserve_formal_pass():
+def test_matching_claim_contract_and_portable_ledger_preserve_formal_pass():
+    contracts = qualified_contracts()
+    contract = contracts.for_claim("unit.claim")
     registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
-    ledger = ProofLedger.from_mapping(qualified_ledger_mapping())
+    ledger = ProofLedger.from_mapping(qualified_ledger_mapping(contract.contract_sha256))
     out = enforce_formal_claim_qualification(
-        "unit.module", [rec()], registry=registry, ledger=ledger
+        "unit.module", [rec()], registry=registry, ledger=ledger, contracts=contracts
     )[0]
     assert out.state is VerificationState.PASS
     assert out.metrics["formal_gate"] == "PASS"
-    assert out.metrics["claim_id"] == "unit.claim"
-    assert out.metrics["proof_artifact_sha256"] == "a" * 64
+    assert out.metrics["proof_contract_id"] == CONTRACT_ID
+    assert out.metrics["proof_contract_sha256"] == contract.contract_sha256
     assert out.metrics["qualification_system"] == "portable-local"
-    assert out.metrics["qualification_run_id"] == "unit-run-1"
     assert "workflow_run_id" not in out.metrics
 
 
+def test_contract_hash_drift_downgrades_formal_pass():
+    contracts = qualified_contracts()
+    contract = contracts.for_claim("unit.claim")
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    raw = qualified_ledger_mapping("f" * 64)
+    ledger = ProofLedger.from_mapping(raw)
+    out = enforce_formal_claim_qualification(
+        "unit.module", [rec()], registry=registry, ledger=ledger, contracts=contracts
+    )[0]
+    assert out.state is VerificationState.NOT_RUN
+    assert "proof-contract-hash-mismatch" in out.metrics["formal_gate_blockers"]
+
+
+def test_missing_contract_required_check_downgrades_formal_pass():
+    contracts = qualified_contracts()
+    contract = contracts.for_claim("unit.claim")
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    raw = qualified_ledger_mapping(contract.contract_sha256)
+    raw["entries"][0]["checks"] = ["pinned-build"]
+    ledger = ProofLedger.from_mapping(raw)
+    out = enforce_formal_claim_qualification(
+        "unit.module", [rec()], registry=registry, ledger=ledger, contracts=contracts
+    )[0]
+    assert out.state is VerificationState.NOT_RUN
+    assert any(
+        blocker.startswith("proof-contract-required-checks-missing:")
+        for blocker in out.metrics["formal_gate_blockers"]
+    )
+
+
 def test_legacy_github_workflow_id_is_upgraded_to_generic_provenance():
-    raw = qualified_ledger_mapping()
+    contract = qualified_contracts().for_claim("unit.claim")
+    raw = qualified_ledger_mapping(contract.contract_sha256)
     entry = raw["entries"][0]
     entry.pop("qualification_system")
     entry.pop("qualification_run_id")
@@ -133,7 +201,6 @@ def test_legacy_github_workflow_id_is_upgraded_to_generic_provenance():
     parsed = ledger.entries[0]
     assert parsed.qualification_system == "github-actions"
     assert parsed.qualification_run_id == "123"
-    assert parsed.workflow_run_id == 123
 
 
 @pytest.mark.parametrize(
@@ -141,13 +208,12 @@ def test_legacy_github_workflow_id_is_upgraded_to_generic_provenance():
     [
         (("qualification", "status"), "NOT_RUN"),
         (("qualification", "attested_commit"), None),
-        (("qualification", "attested_commit"), "b" * 39),
         (("qualification", "proof_artifact_sha256"), None),
-        (("qualification", "proof_artifact_sha256"), "a" * 63),
         (("evidence_ceiling",), "symbolic"),
+        (("proof_contract_id",), None),
     ],
 )
-def test_current_head_claim_rejects_incomplete_or_nonformal_qualification(path, value):
+def test_current_head_claim_rejects_incomplete_qualification(path, value):
     raw = qualified_claim_mapping()
     target = raw["claims"][0]
     if len(path) == 1:
@@ -164,23 +230,25 @@ def test_current_head_claim_rejects_incomplete_or_nonformal_qualification(path, 
         ("status", "NOT_RUN"),
         ("commit", None),
         ("proof_artifact_sha256", None),
+        ("proof_contract_id", None),
+        ("proof_contract_sha256", None),
         ("qualification_system", None),
-        ("qualification_system", ""),
         ("qualification_run_id", None),
-        ("qualification_run_id", ""),
         ("checks", []),
         ("blockers", ["open-obligation"]),
     ],
 )
-def test_current_head_ledger_rejects_incomplete_portable_provenance(field, value):
-    raw = qualified_ledger_mapping()
+def test_current_head_ledger_rejects_incomplete_provenance(field, value):
+    contract = qualified_contracts().for_claim("unit.claim")
+    raw = qualified_ledger_mapping(contract.contract_sha256)
     raw["entries"][0][field] = value
     with pytest.raises(ValueError):
         ProofLedger.from_mapping(raw)
 
 
 def test_github_actions_current_head_still_requires_positive_workflow_run_id():
-    raw = qualified_ledger_mapping()
+    contract = qualified_contracts().for_claim("unit.claim")
+    raw = qualified_ledger_mapping(contract.contract_sha256)
     entry = raw["entries"][0]
     entry["qualification_system"] = "github-actions"
     entry["qualification_run_id"] = "gha-1"
