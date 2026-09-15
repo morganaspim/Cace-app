@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
     QListWidget,
 )
 
+from cace_studio.core.types import port_connection_error
+
 MIME_MODULE = "application/x-cace-module"
 
 
@@ -48,16 +50,21 @@ class ModuleLibrary(QListWidget):
 class PortItem(QGraphicsEllipseItem):
     R = 5
 
-    def __init__(self, node, port_name: str, is_output: bool, y: float):
+    def __init__(self, node, port_spec, is_output: bool, y: float):
         x = node.W - self.R if is_output else -self.R
         super().__init__(x, y - self.R, self.R * 2, self.R * 2, node)
         self.node = node
-        self.port_name = port_name
+        self.port_spec = port_spec
+        self.port_name = port_spec.name
         self.is_output = is_output
         self.setBrush(QBrush(Qt.white))
         self.setPen(QPen(Qt.black))
         self.setZValue(3)
-        self.setToolTip(("Output: " if is_output else "Input: ") + port_name)
+        unit_text = port_spec.unit if port_spec.unit is not None else "unspecified"
+        self.setToolTip(
+            f"{'Output' if is_output else 'Input'}: {port_spec.name}\n"
+            f"Type: {port_spec.type_name}\nUnit: {unit_text}"
+        )
 
     def mousePressEvent(self, event):
         view = self.scene().views()[0]
@@ -92,15 +99,17 @@ class NodeItem(QGraphicsRectItem):
         self.output_ports = {}
         for index, port_spec in enumerate(module.inputs):
             y = 52 + index * 18
-            port = PortItem(self, port_spec.name, False, y)
+            port = PortItem(self, port_spec, False, y)
             self.input_ports[port_spec.name] = port
-            label = QGraphicsSimpleTextItem(port_spec.name, self)
+            text = port_spec.name + (f" [{port_spec.unit}]" if port_spec.unit else "")
+            label = QGraphicsSimpleTextItem(text, self)
             label.setPos(8, y - 8)
         for index, port_spec in enumerate(module.outputs):
             y = 52 + index * 18
-            port = PortItem(self, port_spec.name, True, y)
+            port = PortItem(self, port_spec, True, y)
             self.output_ports[port_spec.name] = port
-            label = QGraphicsSimpleTextItem(port_spec.name, self)
+            text = port_spec.name + (f" [{port_spec.unit}]" if port_spec.unit else "")
+            label = QGraphicsSimpleTextItem(text, self)
             label.setPos(self.W - 10 - label.boundingRect().width(), y - 8)
 
     def mousePressEvent(self, event):
@@ -203,9 +212,7 @@ class CanvasView(QGraphicsView):
     def connect_ports(self, source: PortItem, target: PortItem, notify=True) -> EdgeItem | None:
         if not source.is_output or target.is_output or source.node is target.node:
             return None
-        source_type = {p.name: p.type_name for p in source.node.module.outputs}[source.port_name]
-        target_type = {p.name: p.type_name for p in target.node.module.inputs}[target.port_name]
-        if source_type != "any" and target_type != "any" and source_type != target_type:
+        if port_connection_error(source.port_spec, target.port_spec) is not None:
             return None
         key = (
             source.node.node_id,
