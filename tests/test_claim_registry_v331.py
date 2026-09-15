@@ -55,7 +55,9 @@ def qualified_ledger_mapping():
                 "current_head_qualified": True,
                 "commit": "b" * 40,
                 "proof_artifact_sha256": "a" * 64,
-                "workflow_run_id": 1,
+                "qualification_system": "portable-local",
+                "qualification_run_id": "unit-run-1",
+                "workflow_run_id": None,
                 "checks": ["pinned-build", "axiom-audit"],
                 "blockers": [],
             }
@@ -75,6 +77,8 @@ def test_default_registry_and_ledger_load_fail_closed():
     assert entry is not None
     assert entry.status == "HISTORICAL_PASS"
     assert entry.current_head_qualified is False
+    assert entry.qualification_system == "github-actions"
+    assert entry.qualification_run_id == "34806285322"
 
 
 def test_unknown_formal_pass_is_downgraded():
@@ -104,7 +108,7 @@ def test_nonformal_and_existing_fail_states_are_not_upgraded():
     assert failure.state is VerificationState.FAIL
 
 
-def test_matching_current_head_registry_and_ledger_preserve_formal_pass():
+def test_matching_current_head_registry_and_portable_ledger_preserve_formal_pass():
     registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
     ledger = ProofLedger.from_mapping(qualified_ledger_mapping())
     out = enforce_formal_claim_qualification(
@@ -114,7 +118,22 @@ def test_matching_current_head_registry_and_ledger_preserve_formal_pass():
     assert out.metrics["formal_gate"] == "PASS"
     assert out.metrics["claim_id"] == "unit.claim"
     assert out.metrics["proof_artifact_sha256"] == "a" * 64
-    assert out.metrics["workflow_run_id"] == 1
+    assert out.metrics["qualification_system"] == "portable-local"
+    assert out.metrics["qualification_run_id"] == "unit-run-1"
+    assert "workflow_run_id" not in out.metrics
+
+
+def test_legacy_github_workflow_id_is_upgraded_to_generic_provenance():
+    raw = qualified_ledger_mapping()
+    entry = raw["entries"][0]
+    entry.pop("qualification_system")
+    entry.pop("qualification_run_id")
+    entry["workflow_run_id"] = 123
+    ledger = ProofLedger.from_mapping(raw)
+    parsed = ledger.entries[0]
+    assert parsed.qualification_system == "github-actions"
+    assert parsed.qualification_run_id == "123"
+    assert parsed.workflow_run_id == 123
 
 
 @pytest.mark.parametrize(
@@ -145,14 +164,26 @@ def test_current_head_claim_rejects_incomplete_or_nonformal_qualification(path, 
         ("status", "NOT_RUN"),
         ("commit", None),
         ("proof_artifact_sha256", None),
-        ("workflow_run_id", None),
-        ("workflow_run_id", 0),
+        ("qualification_system", None),
+        ("qualification_system", ""),
+        ("qualification_run_id", None),
+        ("qualification_run_id", ""),
         ("checks", []),
         ("blockers", ["open-obligation"]),
     ],
 )
-def test_current_head_ledger_rejects_incomplete_provenance(field, value):
+def test_current_head_ledger_rejects_incomplete_portable_provenance(field, value):
     raw = qualified_ledger_mapping()
     raw["entries"][0][field] = value
     with pytest.raises(ValueError):
+        ProofLedger.from_mapping(raw)
+
+
+def test_github_actions_current_head_still_requires_positive_workflow_run_id():
+    raw = qualified_ledger_mapping()
+    entry = raw["entries"][0]
+    entry["qualification_system"] = "github-actions"
+    entry["qualification_run_id"] = "gha-1"
+    entry["workflow_run_id"] = None
+    with pytest.raises(ValueError, match="workflow_run_id"):
         ProofLedger.from_mapping(raw)
