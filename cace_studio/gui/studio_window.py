@@ -58,6 +58,16 @@ class StudioMainWindow(MainWindow):
                 return action.menu()
         return None
 
+    def _run_action_named(self, title: str):
+        menu = self._menu_named("Run")
+        if menu is None:
+            return None
+        target = title.replace("&", "")
+        for action in menu.actions():
+            if action.text().replace("&", "") == target:
+                return action
+        return None
+
     def _install_graph_edit_actions(self) -> None:
         edit_menu = self._menu_named("Edit")
         if edit_menu is not None:
@@ -121,6 +131,9 @@ class StudioMainWindow(MainWindow):
         active = self._execution_control is not None
         paused = bool(active and self._execution_control.paused)
         cancelled = bool(active and self._execution_control.cancelled)
+        full_action = self._run_action_named("Execute + Verify Graph")
+        if full_action is not None:
+            full_action.setEnabled(not active)
         self.selected_run_action.setEnabled(not active)
         self.pause_run_action.setEnabled(active and not paused and not cancelled)
         self.resume_run_action.setEnabled(active and paused and not cancelled)
@@ -263,6 +276,15 @@ class StudioMainWindow(MainWindow):
             self.console.append(f"Unknown execution scope: {scope_kind}")
             return
 
+        # A newly started execution invalidates any previously attached runtime
+        # evidence immediately. The new result is attached only if its source
+        # semantic graph still matches when the worker finishes.
+        self.last_result = None
+        self.verification.setPlainText(
+            "Execution active. No current run evidence is attached until this run finishes."
+        )
+        self._refresh_proof_explorer()
+
         worker = ExecutionWorker(execute)
         worker.signals.finished.connect(self._execution_finished)
         worker.signals.failed.connect(self._execution_failed)
@@ -308,11 +330,12 @@ class StudioMainWindow(MainWindow):
         try:
             self._sync_positions()
             current_semantic = experiment_fingerprint(self.experiment, include_layout=False)
-            source_matches = (
-                current_semantic == result.source_semantic_experiment_sha256
-            )
+            source_matches = current_semantic == result.source_semantic_experiment_sha256
 
             if not source_matches:
+                self.verification.setPlainText(
+                    "Run finished for an earlier semantic graph snapshot and was not attached."
+                )
                 self.console.append(
                     f"Run {result.run_id} finished for an earlier graph snapshot and was not "
                     "attached because the semantic graph changed during execution."
@@ -338,6 +361,15 @@ class StudioMainWindow(MainWindow):
             if self.selected_node_id:
                 self._show_node_verification(self.selected_node_id)
             else:
+                if result.completed:
+                    self.verification.setPlainText(
+                        "Run completed. Select a node to inspect its verification records."
+                    )
+                else:
+                    self.verification.setPlainText(
+                        "Run is incomplete. Select an executed node to inspect partial records; "
+                        "incomplete runs never satisfy all_verifiers_passed."
+                    )
                 self._refresh_proof_explorer()
         finally:
             self._execution_control = None
@@ -346,9 +378,11 @@ class StudioMainWindow(MainWindow):
 
     def _execution_failed(self, error: str) -> None:
         self.console.append(f"Run failed: {error}")
+        self.verification.setPlainText("Run failed; no current runtime evidence is attached.")
         self._execution_control = None
         self._execution_worker = None
         self._sync_execution_actions()
+        self._refresh_proof_explorer()
 
     def _selected_module_context(self):
         if not self.selected_node_id:
@@ -392,3 +426,8 @@ class StudioMainWindow(MainWindow):
         self._graph_clipboard = None
         self._paste_generation = 0
         self._refresh_proof_explorer()
+
+    def closeEvent(self, event):
+        if self._execution_control is not None:
+            self._execution_control.cancel()
+        super().closeEvent(event)
