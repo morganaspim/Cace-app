@@ -5,6 +5,7 @@ from typing import Iterable, Mapping
 
 from .attestation import SignedAttestation, verify_attestation
 from .claim_registry import ClaimRegistry
+from .proof_contract import ProofContractRegistry
 from .proof_ledger import ProofLedger
 
 E5_STATUS = "E5-CROSS-VERIFIED"
@@ -16,6 +17,8 @@ class CrossVerificationResult:
     claim_id: str
     bundle_sha256: str
     qualified_commit: str | None
+    proof_contract_id: str | None
+    proof_contract_sha256: str | None
     eligible: bool
     status: str
     verifier_ids: tuple[str, ...]
@@ -35,26 +38,39 @@ def evaluate_e5(
     *,
     registry: ClaimRegistry | None = None,
     ledger: ProofLedger | None = None,
+    contracts: ProofContractRegistry | None = None,
     minimum_independent_verifiers: int = 2,
 ) -> CrossVerificationResult:
-    """Evaluate CACE E5 eligibility without mutating proof qualification.
+    """Evaluate E5 over an already-qualified, contract-bound canonical claim.
 
-    E5 is an additional cross-verification label over an already-qualified
-    canonical claim. It never creates or promotes a mathematical proof.
+    E5 never creates proof. Contract drift invalidates E5 eligibility even when
+    old signatures and proof-artifact hashes are otherwise internally valid.
     """
     if minimum_independent_verifiers < 2:
         raise ValueError("E5 requires at least two independent verifiers")
     registry = registry or ClaimRegistry.load_default()
     ledger = ledger or ProofLedger.load_default()
+    contracts = contracts or ProofContractRegistry.load_default()
     claim = registry.by_id(claim_id)
 
     reasons: list[str] = []
     qualified_commit: str | None = None
+    contract_id: str | None = None
+    contract_sha256: str | None = None
+    contract = None
 
     if claim is None:
         reasons.append("claim_id is not present in the canonical claim registry")
     else:
         qualified_commit = claim.attested_commit
+        contract_id = claim.proof_contract_id
+        contract = contracts.by_id(contract_id) if contract_id else None
+        if contract is None:
+            reasons.append("canonical claim has no resolvable proof contract")
+        else:
+            contract_sha256 = contract.contract_sha256
+            if contract.claim_id != claim_id:
+                reasons.append("proof contract is bound to a different claim")
         entry = ledger.for_claim(claim_id)
         if not claim.current_head_qualified or claim.qualification_status != "PASS":
             reasons.append("canonical claim is not current-head PASS qualified")
@@ -67,6 +83,16 @@ def evaluate_e5(
                 reasons.append("registry and proof ledger disagree on qualified commit")
             if entry.proof_artifact_sha256 != claim.proof_artifact_sha256:
                 reasons.append("registry and proof ledger disagree on proof artifact SHA-256")
+            if entry.proof_contract_id != contract_id:
+                reasons.append("registry and proof ledger disagree on proof-contract ID")
+            if contract is not None and entry.proof_contract_sha256 != contract.contract_sha256:
+                reasons.append("proof ledger is bound to a stale/different proof-contract hash")
+            if contract is not None:
+                missing_checks = sorted(set(contract.required_checks) - set(entry.checks))
+                if missing_checks:
+                    reasons.append(
+                        "proof ledger is missing contract-required checks: " + ", ".join(missing_checks)
+                    )
         if not claim.attested_commit or not claim.proof_artifact_sha256:
             reasons.append("canonical qualification is missing artifact-bound proof metadata")
 
@@ -110,7 +136,12 @@ def evaluate_e5(
             )
             continue
 
-        if claim is None or not claim.attested_commit or not claim.proof_artifact_sha256:
+        if (
+            claim is None
+            or contract is None
+            or not claim.attested_commit
+            or not claim.proof_artifact_sha256
+        ):
             continue
         if statement.bindings.get("qualified_commit") != claim.attested_commit:
             reasons.append(
@@ -120,6 +151,16 @@ def evaluate_e5(
         if statement.bindings.get("proof_artifact_sha256") != claim.proof_artifact_sha256:
             reasons.append(
                 f"{statement.verifier_id}: attestation is not bound to the qualified proof artifact"
+            )
+            continue
+        if statement.bindings.get("proof_contract_id") != contract.contract_id:
+            reasons.append(
+                f"{statement.verifier_id}: attestation is not bound to the qualified proof contract"
+            )
+            continue
+        if statement.bindings.get("proof_contract_sha256") != contract.contract_sha256:
+            reasons.append(
+                f"{statement.verifier_id}: attestation is not bound to the current proof-contract hash"
             )
             continue
 
@@ -147,6 +188,8 @@ def evaluate_e5(
         claim_id=claim_id,
         bundle_sha256=bundle_sha256,
         qualified_commit=qualified_commit,
+        proof_contract_id=contract_id,
+        proof_contract_sha256=contract_sha256,
         eligible=eligible,
         status=E5_STATUS if eligible else "E5-NOT-ELIGIBLE",
         verifier_ids=tuple(sorted(valid_verifiers)),
