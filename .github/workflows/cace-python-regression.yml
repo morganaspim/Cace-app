@@ -37,6 +37,12 @@ jobs:
           cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
           cmake --build cpp/build --parallel 2
           ctest --test-dir cpp/build --output-on-failure
+      - name: Generate deterministic AI navigation indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/generate_ai_indexes.py
+          python scripts/generate_ai_indexes.py --check
       - name: Full Python regression with native library available
         shell: bash
         run: |
@@ -47,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/check_qualification_drift.py --output qualification-drift.json
-      - name: Build Python wheel and check headless interface
+      - name: Build Python wheel and check installed interfaces
         shell: bash
         run: |
           set -euo pipefail
@@ -56,6 +62,21 @@ jobs:
           "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install dist/*.whl
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/cace-wheel/bin/python" -m cace_studio.cli registry > "$GITHUB_WORKSPACE/wheel-registry.json"
+          "$RUNNER_TEMP/cace-wheel/bin/cace-attest" --help > "$GITHUB_WORKSPACE/wheel-attest-help.txt"
+      - name: Check installed optional attestation extra
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install 'cryptography>=50.0.1,<51'
+          key_root="$RUNNER_TEMP/cace-wheel-attestation-smoke"
+          rm -rf -- "$key_root"
+          mkdir -p "$key_root"
+          "$RUNNER_TEMP/cace-wheel/bin/cace-attest" keygen \
+            --private-key "$key_root/verifier.key" \
+            --public-key "$key_root/verifier.pub" \
+            > "$GITHUB_WORKSPACE/wheel-attest-keygen.json"
+          test -s "$key_root/verifier.key"
+          test -s "$key_root/verifier.pub"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -64,7 +85,14 @@ jobs:
             regression-results.xml
             regression-environment.txt
             wheel-registry.json
+            wheel-attest-help.txt
+            wheel-attest-keygen.json
             qualification-drift.json
+            MODULE_CATALOG.json
+            CLAIM_CATALOG.json
+            PROOF_DEPENDENCY_GRAPH.json
+            SOURCE_INDEX.json
+            generated/CACE_SOURCE_CONTEXT.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success()
         with:
