@@ -26,6 +26,17 @@ import cace_github_live_check
 _PROGRESS_RE = re.compile(r"\[(\d+)\s*/\s*(\d+)\]")
 
 
+def _escape_workflow_command(value: str) -> str:
+    return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _progress_bucket(current: int | None, total: int | None) -> int | None:
+    if current is None or total is None or total <= 0:
+        return None
+    pct = max(0.0, min(100.0, 100.0 * current / total))
+    return int(pct // 5) * 5
+
+
 def _env_int(name: str, default: int) -> int:
     value = os.environ.get(name)
     if value is None:
@@ -101,6 +112,11 @@ def main() -> int:
         "progress_current": None,
         "progress_total": None,
     }
+    notice_state = {
+        "last_notice_mono": 0.0,
+        "last_progress_bucket": None,
+        "last_status": None,
+    }
 
     proc = subprocess.Popen(
         command,
@@ -110,6 +126,52 @@ def main() -> int:
         start_new_session=True,
     )
     assert proc.stdout is not None
+
+    def publish_ui_snapshot(payload: dict, *, force_notice: bool) -> None:
+        progress_current = payload.get("progress_current")
+        progress_total = payload.get("progress_total")
+        progress_bucket = _progress_bucket(progress_current, progress_total)
+        now_mono = time.monotonic()
+        should_notice = (
+            force_notice
+            or notice_state["last_status"] != payload["status"]
+            or notice_state["last_progress_bucket"] != progress_bucket
+            or now_mono - float(notice_state["last_notice_mono"]) >= 300.0
+        )
+        if should_notice:
+            progress_text = (
+                f"[{progress_current}/{progress_total}]"
+                if progress_current is not None and progress_total is not None
+                else "not-yet-reported"
+            )
+            message = (
+                f"phase={phase_slug} status={payload['status']} progress={progress_text} "
+                f"elapsed={payload['elapsed_seconds']}s idle={payload['seconds_since_output']}s"
+            )
+            print(
+                f"::notice title=CACE live status::{_escape_workflow_command(message)}",
+                flush=True,
+            )
+            notice_state["last_notice_mono"] = now_mono
+            notice_state["last_progress_bucket"] = progress_bucket
+            notice_state["last_status"] = payload["status"]
+
+        summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary_path:
+            summary = cace_github_live_check.build_summary(
+                phase=phase,
+                runner_state=str(payload["status"]),
+                run_id=payload.get("run_id"),
+                run_attempt=payload.get("run_attempt"),
+                git_commit=payload.get("git_commit"),
+                progress_current=progress_current,
+                progress_total=progress_total,
+                elapsed_seconds=float(payload["elapsed_seconds"]),
+                idle_seconds=float(payload["seconds_since_output"]),
+                last_line=str(payload.get("last_line") or ""),
+                note=str(payload.get("note")) if payload.get("note") is not None else None,
+            )
+            Path(summary_path).write_text(summary + "\n", encoding="utf-8")
 
     def emit(status: str, *, returncode: int | None = None, note: str | None = None) -> dict:
         now_mono = time.monotonic()
@@ -157,6 +219,7 @@ def main() -> int:
             flush=True,
         )
 
+        publish_ui_snapshot(payload, force_notice=(note == "phase-start" or status != "running"))
         cace_github_live_check.publish(
             status_dir=status_dir,
             phase=phase,
