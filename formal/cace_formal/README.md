@@ -10,7 +10,15 @@ Pinned Lean 4 / mathlib project for CACE theorem-prover evidence.
 4. `lake exe cache get`
 5. `lake build`
 
-This repository pins Lean and mathlib to v4.32.1. The current CACE build runtime had no Lean/elan/lake and could not resolve the elan download host, so Lean proof execution is recorded as `NOT_RUN`, never as a pass.
+This repository pins Lean to v4.32.1 and pins mathlib to the exact commit recorded by the formal project manifest/workflow. Qualification is never promoted from source inspection alone: the pinned target must compile, pass the kernel axiom audit, and produce an exact-head attestation.
+
+## Qualification runtime
+
+The v3.30 qualification workflow runs on the repository's ARM64 self-hosted runner because hosted-runner attempts have not provided a usable qualification environment. The runner environment is container-like (PID 1 is not systemd), so `svc.sh`/systemd service installation is not available inside that environment.
+
+To reduce infrastructure-induced false failures, the runner now uses a detached user-space watchdog outside the Actions worker process. The watchdog maintains a heartbeat, restarts `Runner.Listener` if the manual listener disappears, and records persistent formal-build telemetry (active Lean/Lake processes, `.olean` count/newest compiled files, memory, disk, and cgroup memory events). This watchdog is CI infrastructure only: it does not alter Lean sources, theorem statements, the pinned Lean/mathlib versions, the kernel axiom whitelist, or the attestation requirements.
+
+A qualification result remains unqualified until the required workflow gates themselves report success. Runner/watchdog health is not proof evidence and cannot substitute for compilation or kernel checking.
 
 ## Evidence boundary
 
