@@ -1,0 +1,165 @@
+name: CACE runner watchdog install
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-runner-watchdog.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  install-watchdog:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Install detached runner watchdog
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNNER_ROOT="/home/morganaspi/actions-runner"
+          STATE_DIR="$RUNNER_ROOT/.cace-watchdog"
+          WATCHDOG="$STATE_DIR/watchdog.sh"
+          mkdir -p "$STATE_DIR"
+          chmod 700 "$STATE_DIR"
+
+          cat > "$WATCHDOG" <<'EOF'
+          #!/usr/bin/env bash
+          set -uo pipefail
+          RUNNER_ROOT="/home/morganaspi/actions-runner"
+          STATE_DIR="$RUNNER_ROOT/.cace-watchdog"
+          LOG="$STATE_DIR/watchdog.log"
+          HEARTBEAT="$STATE_DIR/heartbeat"
+          PIDFILE="$STATE_DIR/watchdog.pid"
+          LOCKFILE="$STATE_DIR/watchdog.lock"
+          mkdir -p "$STATE_DIR"
+
+          exec 9>"$LOCKFILE"
+          if ! flock -n 9; then
+            exit 0
+          fi
+          echo $$ > "$PIDFILE"
+          trap 'rm -f "$PIDFILE"' EXIT
+
+          log() {
+            printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$LOG"
+          }
+
+          log "watchdog-start pid=$$"
+          while true; do
+            date -u +%Y-%m-%dT%H:%M:%SZ > "$HEARTBEAT.tmp"
+            mv "$HEARTBEAT.tmp" "$HEARTBEAT"
+
+            listener_pid="$(pgrep -f '^/home/morganaspi/actions-runner/(bin|bin\.[^/]+)/Runner\.Listener run$' | head -n 1 || true)"
+            runsh_pid="$(pgrep -f '^/bin/bash ./run\.sh$' | head -n 1 || true)"
+
+            if [[ -n "$listener_pid" ]]; then
+              printf '%s\n' "$listener_pid" > "$STATE_DIR/listener.pid"
+            else
+              rm -f "$STATE_DIR/listener.pid"
+              if [[ -z "$runsh_pid" ]]; then
+                log "listener-missing; restarting runner"
+                (
+                  cd "$RUNNER_ROOT"
+                  exec env -u RUNNER_TRACKING_ID -u GITHUB_ACTION -u GITHUB_ACTIONS \
+                    ./run.sh >> "$STATE_DIR/runner-restarts.log" 2>&1
+                ) &
+                child=$!
+                printf '%s\n' "$child" > "$STATE_DIR/restart-child.pid"
+                log "restart-launched child=$child"
+                sleep 15
+              else
+                log "listener-missing but run.sh pid=$runsh_pid is present; waiting"
+              fi
+            fi
+            sleep 10
+          done
+          EOF
+          chmod 700 "$WATCHDOG"
+
+          # Replace an older watchdog if one is present. Never touch Runner.Listener here.
+          if [[ -f "$STATE_DIR/watchdog.pid" ]]; then
+            old_pid="$(cat "$STATE_DIR/watchdog.pid" 2>/dev/null || true)"
+            if [[ "$old_pid" =~ ^[0-9]+$ ]] && kill -0 "$old_pid" 2>/dev/null; then
+              kill "$old_pid" || true
+              for _ in $(seq 1 20); do
+                kill -0 "$old_pid" 2>/dev/null || break
+                sleep 0.25
+              done
+            fi
+          fi
+
+          # GitHub Runner.Worker normally kills descendants at job cleanup using
+          # RUNNER_TRACKING_ID. Remove that marker and create a new session so this
+          # watchdog survives the job that installs it.
+          env -u RUNNER_TRACKING_ID -u GITHUB_ACTION -u GITHUB_ACTIONS \
+            setsid nohup "$WATCHDOG" </dev/null >> "$STATE_DIR/watchdog-launch.log" 2>&1 &
+          watchdog_pid=$!
+          echo "$watchdog_pid" > "$STATE_DIR/watchdog.pid"
+          sleep 2
+
+          kill -0 "$watchdog_pid"
+          test -s "$STATE_DIR/heartbeat"
+          echo "watchdog_pid=$watchdog_pid"
+          echo "heartbeat=$(cat "$STATE_DIR/heartbeat")"
+          ps -p "$watchdog_pid" -o pid,ppid,sid,user,etime,cmd
+          tail -n 20 "$STATE_DIR/watchdog.log" || true
+
+      - name: Capture watchdog install state
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          RUNNER_ROOT="/home/morganaspi/actions-runner"
+          STATE_DIR="$RUNNER_ROOT/.cace-watchdog"
+          mkdir -p cace-watchdog-diagnostics
+          {
+            date -u
+            echo '=== processes ==='
+            ps -eo pid,ppid,sid,user,etime,cmd | grep -E 'cace-watchdog|Runner\.(Listener|Worker)|/bin/bash ./run\.sh' | grep -v grep || true
+            echo '=== state dir ==='
+            ls -la "$STATE_DIR" 2>/dev/null || true
+            echo '=== heartbeat ==='
+            cat "$STATE_DIR/heartbeat" 2>/dev/null || true
+            echo '=== watchdog log ==='
+            tail -n 100 "$STATE_DIR/watchdog.log" 2>/dev/null || true
+            echo '=== restart log ==='
+            tail -n 100 "$STATE_DIR/runner-restarts.log" 2>/dev/null || true
+          } > cace-watchdog-diagnostics/install.txt 2>&1
+
+      - name: Upload install diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-runner-watchdog-install
+          path: cace-watchdog-diagnostics/
+
+  verify-watchdog:
+    needs: install-watchdog
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Verify watchdog survived prior job cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_DIR="/home/morganaspi/actions-runner/.cace-watchdog"
+          test -s "$STATE_DIR/watchdog.pid"
+          pid="$(cat "$STATE_DIR/watchdog.pid")"
+          kill -0 "$pid"
+          sleep 12
+          kill -0 "$pid"
+          test -s "$STATE_DIR/heartbeat"
+          now="$(date +%s)"
+          heartbeat_epoch="$(date -d "$(cat "$STATE_DIR/heartbeat")" +%s)"
+          age=$((now - heartbeat_epoch))
+          echo "watchdog_pid=$pid heartbeat_age_seconds=$age"
+          if (( age > 30 )); then
+            echo "Watchdog heartbeat is stale." >&2
+            exit 1
+          fi
+          pgrep -af 'Runner\.Listener run' || true
+          ps -p "$pid" -o pid,ppid,sid,user,etime,cmd
+          tail -n 30 "$STATE_DIR/watchdog.log" || true
