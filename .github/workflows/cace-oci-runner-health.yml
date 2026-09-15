@@ -1,0 +1,60 @@
+name: CACE OCI runner health
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 10
+    steps:
+      - name: Verify durable runner health
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "hostname=$(hostname)"
+          echo "arch=$(uname -m)"
+          echo "runner_name=${RUNNER_NAME:-unknown}"
+          echo "runner_arch=${RUNNER_ARCH:-unknown}"
+
+          test "$(uname -m)" = "aarch64"
+          test -d /opt/actions-runner
+          test -d /var/lib/cace-cache
+          test -d /var/lib/cace-cache/elan
+          test -d /var/lib/cace-cache/xdg
+          test -d /var/lib/cace-cache/mathlib
+          test -d /var/lib/cace-cache/telemetry
+
+          service="$(cat /opt/actions-runner/.service)"
+          test -n "$service"
+          systemctl is-enabled --quiet "$service"
+          systemctl is-active --quiet "$service"
+          systemctl is-enabled --quiet cace-runner-watchdog.service
+          systemctl is-active --quiet cace-runner-watchdog.service
+
+          test -f /var/lib/cace-cache/telemetry/heartbeat
+          python3 - <<'PY'
+          from datetime import datetime, timezone
+          from pathlib import Path
+          p=Path('/var/lib/cace-cache/telemetry/heartbeat')
+          s=p.read_text().strip()
+          t=datetime.strptime(s,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+          age=(datetime.now(timezone.utc)-t).total_seconds()
+          print(f'watchdog_heartbeat_age_seconds={age:.1f}')
+          if age > 120:
+              raise SystemExit('watchdog heartbeat is stale')
+          PY
+
+          echo '--- runner service ---'
+          systemctl status "$service" --no-pager -l | head -n 60
+          echo '--- watchdog service ---'
+          systemctl status cace-runner-watchdog.service --no-pager -l | head -n 60
+          echo '--- resources ---'
+          free -h
+          df -h / /var/lib/cace-cache
+          echo 'CACE_OCI_RUNNER_HEALTH_OK'
