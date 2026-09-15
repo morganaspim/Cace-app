@@ -172,7 +172,7 @@ jobs:
           # endpoints are promoted by this workflow. Lake therefore compiles
           # the exact transitive proof dependency closure, rather than unrelated
           # historical modules in the full CACEFormal umbrella.
-          lake build CACEFormal.V330AxiomAudit
+          timeout 1200 lake build CACEFormal.V330AxiomAudit
 
       - name: Kernel axiom audit
         working-directory: ${{ env.CACE_FORMAL_DIR }}
@@ -238,6 +238,20 @@ jobs:
               raise SystemExit(f'Rejected: missing theorem axiom reports: {missing}')
           print('Kernel axiom audit PASS:', audited)
           PY
+
+      - name: Collect formal diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v330-proof-diagnostics
+          printf 'run_id=%s\nattempt=%s\ncommit=%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" > v330-proof-diagnostics/run.txt
+          if [[ -n "${CACE_FORMAL_DIR:-}" && -f "$CACE_FORMAL_DIR/lake-manifest.json" ]]; then
+            cp "$CACE_FORMAL_DIR/lake-manifest.json" v330-proof-diagnostics/lake-manifest.json
+          fi
+          if [[ -n "${CACE_BUILD_ROOT:-}" && -f "$CACE_BUILD_ROOT/v330-axioms.txt" ]]; then
+            cp "$CACE_BUILD_ROOT/v330-axioms.txt" v330-proof-diagnostics/v330-axioms.txt
+          fi
 
       - name: Write v3.30 proof attestation
         if: success()
@@ -343,9 +357,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cace-v330-proof-diagnostics
-          path: |
-            ${{ env.CACE_FORMAL_DIR }}/lake-manifest.json
-            ${{ env.CACE_BUILD_ROOT }}/v330-axioms.txt
+          path: v330-proof-diagnostics/
 
       - name: Remove this run's temporary formal build
         if: always()
