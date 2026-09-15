@@ -45,7 +45,7 @@ Manifest trust levels are:
 
 The trust label is policy metadata, not a sandbox. A future production plugin manager may add signing, isolated processes and capability enforcement, but callers must not assume those controls exist today.
 
-## Entrypoint
+## Entrypoint and transactional registration
 
 The manifest entrypoint must be a Python file inside the plugin directory and define:
 
@@ -55,6 +55,24 @@ def register(registry):
 ```
 
 The SDK rejects entrypoints that escape the plugin directory, missing register hooks and plugins that register no new module IDs. Duplicate module IDs are rejected by the core registry.
+
+Registration is staged transactionally. CACE first snapshots the existing module classes into an isolated staging registry, executes `register(staging_registry)`, verifies that existing module identities were not replaced/removed, and only then commits the newly registered module classes to the live registry. If plugin registration raises after adding only part of its modules, the live registry remains unchanged.
+
+This transaction protects CACE registry consistency; it is **not** process isolation. Importing or executing an approved Python plugin can still perform arbitrary file/network/process actions with the host process permissions.
+
+## Current v1.0 limitations
+
+The v1.0 SDK is deliberately narrow. Before production-grade third-party plugin distribution, remaining work includes:
+
+- a stricter plugin-version compatibility policy beyond a non-empty version string;
+- enforceable capability declarations rather than descriptive capability metadata;
+- plugin signing/publisher identity policy where appropriate;
+- isolated-process or similarly strong containment for untrusted/high-risk plugins;
+- resource/time limits and crash containment;
+- automated admission evidence for plugin compatibility/security tests; and
+- migration/deprecation rules for future plugin API revisions.
+
+None of these limitations changes the rule that untrusted plugins are refused by default.
 
 ## Evidence boundary
 
