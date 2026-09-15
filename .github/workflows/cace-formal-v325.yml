@@ -3,6 +3,7 @@ name: CACE Formal v3.23-v3.25
 on:
   workflow_dispatch:
   push:
+    branches: [main, roadmap/v3.30-proof-strengthening]
     paths:
       - 'formal/cace_formal/**'
       - 'cace_studio/core/mesh_certificate.py'
@@ -138,7 +139,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           def out(cmd, cwd=None):
-              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+              return subprocess.check_output(cmd,cwd=cwd,text=True).strip()
           data = {
               "release_track": "3.23-3.25",
               "status": "PASS",

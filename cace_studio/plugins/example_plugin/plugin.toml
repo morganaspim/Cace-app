@@ -1,0 +1,9 @@
+[plugin]
+id = "example.negate"
+name = "CACE Example Negate Plugin"
+version = "1.0.0"
+api_version = "1.0"
+entrypoint = "__init__.py"
+description = "Built-in example demonstrating the versioned CACE plugin registration contract."
+trust = "builtin"
+capabilities = ["module-registration"]

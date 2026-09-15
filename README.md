@@ -1,21 +1,32 @@
-# CACE Studio — Confidential and Proprietary
+# CACE Studio — Verified Research Environment
 
 > **CONFIDENTIAL AND PROPRIETARY**  
 > **Owner:** Emmanuel Spiro  
 > **Copyright © 2026 Emmanuel Spiro. All rights reserved.**  
-> The original CACE materials in this repository are proprietary and may not be copied, distributed, disclosed, modified, or used without prior written authorization from Emmanuel Spiro. Third-party and open-source components remain subject to their own licenses and copyright notices. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+> Original CACE materials are proprietary. Third-party/open-source components retain their own licenses and notices. See `LICENSE` and `NOTICE`.
 
----
+CACE Studio is a modular scientific research environment combining a visual typed experiment graph, Python orchestration, native C++ kernels, reproducible run certificates and selectively formalized mathematics in Lean.
 
-## Current development: 3.30.0.dev1
+**Current software version:** `3.30.0.dev1`  
+**Current development focus:** v3.31 truth/formal qualification  
+**Production readiness:** **not established**
 
-Production readiness is **not yet established**. The v3.30 Lean source includes conditional
-H1/H(div) bridges; unconditional density and H1 reconstruction remain open.
+The project deliberately separates software maturity from evidence strength. A numerical test, exact checker, interval certificate and Lean theorem are different kinds of evidence. `NOT_RUN` or absent verification is never treated as `PASS`.
 
-- [Current readiness and ranked work](docs/PRODUCTION_READINESS.md)
-- [AI and headless quickstart](docs/AI_QUICKSTART.md)
-- [Repository agent instructions](AGENTS.md)
-- [Proof scope](V330_PROOF_STRENGTHENING.md)
+## Start here
+
+- `docs/STATUS.md` — current implementation and qualification state
+- `docs/ARCHITECTURE.md` — system boundaries and trusted-computing-base model
+- `docs/CONSTITUTION.md` — non-negotiable scientific/software rules
+- `docs/CLAIMS.md` — canonical claim registry/proof-ledger policy
+- `docs/ROADMAP.md` — v3.31 through v4.0 dependency-ordered roadmap
+- `docs/AI_QUICKSTART.md` — headless usage for tools and AI agents
+- `AGENTS.md` — repository instructions for coding/research agents
+- `AI_REPO_MAP.json` — machine-readable repository navigation
+- `docs/PROVENANCE_ATTESTATION.md` — later-phase immutable provenance/distributed-attestation design
+- `docs/HISTORY.md` — historical milestone notes; not current evidence
+
+## Quick start
 
 ```sh
 python -m pip install -e '.[test]'
@@ -23,217 +34,22 @@ python -m cace_studio.cli registry
 python -m cace_studio.cli run examples/verified_quadratic.cace --output report.json
 ```
 
-For the full tests, build the C++ runtime first using the quickstart.
-The sections below are historical milestone notes, not validation of the current commit.
+For the full native/Python qualification path, build and test the C++ runtime before running the complete Python suite. Formal qualification additionally uses the pinned Lean project in `formal/cace_formal/` and the v3.30 formal workflow.
 
-# CACE Studio VRE v0.76
+## Core repository areas
 
-## Reliability Theorem Discovery Engine
+`cace_studio/core/` contains graph execution, verification/certificates, serialization and claim/proof governance. `cace_studio/modules/` contains scientific modules. `cace_studio/gui/` contains the PySide6 visual playground. `cpp/` contains native kernels. `formal/cace_formal/` contains Lean sources. `tests/` contains behavioral/regression tests. `schema/` contains machine-readable contracts.
 
-v0.76 starts actively investigating the unresolved mesh-uniform 2D P1 residual reliability theorem without promoting numerical evidence into proof. It adds premise ablation, candidate-counterexample minimization, transparent empirical reliability-constant inference, and an explicit analytic proof-obligation DAG.
+## Formal-evidence rule
 
-The release includes one real certified manufactured-solution anchor from the existing reference-triangle bubble benchmark. Synthetic ablation fixtures are separately labeled and contribute no continuum theorem evidence. `reliability_theorem` remains explicitly unpromotable while residual representation, local quasi-interpolation, local trace, and finite-overlap obligations are unresolved.
+A module returning `FORMAL + PASS` is not sufficient for public formal evidence. CACE preserves formal PASS only when the canonical claim registry and proof ledger agree on a valid content-addressed qualification, workflow provenance and source state, and the qualification-drift checker confirms that no proof-sensitive source has changed since the attested commit.
 
-Qualification: 191 tests collected. The monolithic pytest invocation is watchdog-limited in this environment; all tests pass across four clean-exit partitions.
+Historical successful runs therefore do not automatically qualify later source revisions.
 
----
+## AI rule
 
-# CACE Studio VRE v0.25
+AI is optional. CACE execution and verification must work without an AI service. AI may help explain, propose or construct research workflows, but AI output is not evidence and cannot set formal proof status.
 
-## Consolidated evidence-aware solver policy
+## Scientific scope
 
-Combines dense-kernel benchmarks, memory accounting, conditional GPU equivalence, sparse scaling regressions, and an automatic native CPU solver selector that refuses unverified paths.
-
----
-
-# CACE Studio VRE v0.24
-
-## Larger sparse scaling/stress suite
-
-Adds increasing structured-2D FEM factorization regressions so ordering/fill/certification behavior is tracked beyond a single 169-DOF demonstration.
-
----
-
-# CACE Studio VRE v0.23
-
-## Optional CUDA/CuPy frontal equivalence
-
-Adds an explicitly conditional GPU dense-frontal comparison. Systems without CuPy/CUDA report NOT_RUN semantics instead of fabricating accelerator evidence.
-
----
-
-# CACE Studio VRE v0.22
-
-## Memory arena planning + allocation accounting
-
-Adds deterministic aligned supernode arena planning and explicit workspace reuse metrics, separating structural allocation proxies from OS-level memory claims.
-
----
-
-# CACE Studio VRE v0.21
-
-## BLAS-backed dense-kernel benchmark
-
-Adds a vendor-linked NumPy/BLAS dense-kernel benchmark and keeps native supernodal structure tied to the exact-rational oracle. No claim is made that the C++ kernel itself is BLAS-backed yet.
-
----
-
-# CACE Studio VRE v0.20
-
-## Dense-block supernodal LDLᵀ + reusable frontal workspaces + fixed thread pool
-
-v0.20 turns the symbolic supernodes introduced in v0.18 into real numeric units in the native C++20 runtime. Consecutive compatible pivot columns are factored as dense supernode blocks, child contribution matrices are assembled through the elimination-tree structure, and thread-local frontal buffers are grown and reused rather than allocated afresh for every front.
-
-The native runtime now exposes four comparable sparse-solve paths used by the release benchmark:
-
-- left-looking sparse LDLᵀ;
-- scalar multifrontal LDLᵀ;
-- dense-block supernodal LDLᵀ with one worker;
-- dense-block supernodal LDLᵀ scheduled through a fixed C++20 thread pool.
-
-Correctness is not inferred from speed. The exact-rational sparse LDLᵀ implementation remains the structural oracle. Native paths receive numerical/backend evidence only when their factor nonzero count and fill count match the oracle and a deterministic known-solution test meets the configured error/residual tolerance.
-
-### Scheduling and workspace contract
-
-Supernodes are scheduled level-by-level from leaves toward elimination-tree roots. Nodes on one level are independent under the current tree contract. Every supernode must be scheduled exactly once. Each worker owns a `thread_local` dense workspace; the buffer is resized only when a larger front is encountered and is reused on later fronts.
-
-Runtime instrumentation records:
-
-- symbolic supernode count and largest supernode;
-- thread count and scheduled task count;
-- workspace growth-reallocation count;
-- peak workspace entries;
-- peak front size;
-- dense-block flop proxy;
-- machine-dependent wall time.
-
-### Important limits
-
-v0.20 is a real dense-block supernodal numeric implementation, but its dense block kernels are hand-written C++ loops rather than BLAS/LAPACK kernels. The scheduler is fixed-pool and level-synchronous, not work-stealing. Timing results are therefore benchmark evidence, not mathematical evidence or a claim of universal speedup. The continuum PDE formal-verification status is unchanged.
-
-### Build and test
-
-```bash
-python -m pip install -e '.[dev]'
-pytest -q
-cmake -S cpp -B cpp/build
-cmake --build cpp/build
-./cpp/build/cace_runtime_smoke
-```
-
-The release example is `examples/supernodal_v020.cace`; its report, summary, and benchmark PNG are stored beside it.
-
-
-## v0.26
-
-Canonical reproducibility fingerprints for sparse systems and ordering analyses.
-
-
-## v0.27
-
-Mixed-precision iterative refinement with float64 residuals and exact structural oracle.
-
-
-## v0.28
-
-Hash-chained experiment checkpoints for resume/integrity auditing.
-
-
-## v0.29
-
-Sparse matrix health and conditioning-proxy diagnostics with explicit non-theorem scope.
-
-
-## v0.30
-
-Multi-right-hand-side solve campaigns reusing one certified sparse structure.
-
-
-## v0.31
-
-Structured 3D seven-point discrete Poisson stress testing; explicitly not tetrahedral continuum FEM.
-
-
-## v0.32
-
-Resource-aware solver portfolio scoring after correctness gates.
-
-
-## v0.33
-
-Content-addressed provenance manifests with deterministic root digest.
-
-
-## v0.34
-
-Negative/fault-injection verification that requires refusal under corrupted evidence.
-
-
-## v0.35
-
-Consolidated deterministic verification campaign spanning v0.26-v0.35.
-
-## v0.36
-
-Deterministic replay fingerprints. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.37
-
-Certificate schema validation. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.38
-
-Structural scaling/convergence audit. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.39
-
-Sparse operator health diagnostics. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.40
-
-Compensated reduction reference. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.41
-
-Deterministic parameter sweep. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.42
-
-Deterministic DAG campaign scheduling. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.43
-
-Ordering Pareto portfolio. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.44
-
-Exact factor replay checksum. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.45
-
-Verification failure minimization. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.46
-
-Append-only hash-chain evidence ledger. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.47
-
-Expanded 3D discrete scaling. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.48
-
-Performance regression budget policy. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.49
-
-Release qualification matrix. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-## v0.50
-
-Cumulative v0.50 evidence milestone. Evidence boundaries are unchanged unless explicitly stated by a verifier.
-
-
-## v0.75
-
-Cumulative verified-research milestone. See `RELEASE_MANIFEST.json`.
+CACE includes research work across certified FEM/PDE methods, graph-space/continuum analysis, geometric/Clifford algebra, numerical/HPC kernels, coordinate/tiling systems and additional experimental scientific modules. Each capability must be judged by its own documented assumptions, tests, evidence class and maturity. CACE does not claim resolution of famous open problems from simulations, benchmarks or incomplete formal reductions.

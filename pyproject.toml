@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cace-studio"
-version = "3.30.0.dev1"
+version = "3.36.0.dev1"
 description = "CACE Studio verified computational research environment — confidential and proprietary to Emmanuel Spiro"
 requires-python = ">=3.11"
 license = {text = "Proprietary - Copyright © 2026 Emmanuel Spiro. All rights reserved."}
@@ -13,12 +13,14 @@ dependencies = ["numpy>=2.0"]
 
 [project.optional-dependencies]
 gui = ["PySide6>=6.7", "matplotlib>=3.8"]
-test = ["pytest>=8", "hypothesis>=6", "matplotlib>=3.8"]
-dev = ["cace-studio[gui,test]"]
+attest = ["cryptography>=50.0.1,<51"]
+test = ["pytest>=8", "hypothesis>=6", "matplotlib>=3.8", "cryptography>=50.0.1,<51"]
+dev = ["cace-studio[gui,test,attest]"]
 
 [project.scripts]
 cace-studio = "cace_studio.app:main"
 cace = "cace_studio.cli:main"
+cace-attest = "cace_studio.attest_entry:main"
 
 [tool.setuptools.packages.find]
 include = ["cace_studio*"]

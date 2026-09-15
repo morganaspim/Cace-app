@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "status": "development navigation map; not verification evidence",
+  "project": {
+    "name": "CACE Studio",
+    "ownership": "Confidential and proprietary to Emmanuel Spiro; preserve third-party licenses",
+    "current_development_line": "v3.31 truth/formal qualification toward v4.0 production",
+    "production_ready": false
+  },
+  "start_here": [
+    "AGENTS.md",
+    "docs/STATUS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/CONSTITUTION.md",
+    "docs/CLAIMS.md",
+    "docs/ROADMAP.md",
+    "docs/AI_QUICKSTART.md"
+  ],
+  "canonical_truth_sources": {
+    "claim_registry": "cace_studio/data/claim_registry.json",
+    "proof_ledger": "cace_studio/data/proof_ledger.json",
+    "formal_sources": "formal/cace_formal/",
+    "experiment_runtime": "cace_studio/core/executor.py",
+    "formal_promotion_gate": "cace_studio/core/formal_gate.py",
+    "qualification_drift_gate": "cace_studio/core/qualification_drift.py",
+    "module_registry": "cace_studio/app.py",
+    "headless_cli": "cace_studio/cli.py",
+    "native_runtime": "cpp/",
+    "tests": "tests/"
+  },
+  "repository_areas": [
+    {
+      "path": "cace_studio/core/",
+      "purpose": "graph execution, module contracts, verification records, certificates, formal claim governance, serialization and numerical infrastructure",
+      "evidence_note": "core code is executable infrastructure, not mathematical proof by itself"
+    },
+    {
+      "path": "cace_studio/modules/",
+      "purpose": "scientific/research modules registered into experiments",
+      "evidence_note": "module version/name does not imply maturity or formal qualification"
+    },
+    {
+      "path": "cace_studio/gui/",
+      "purpose": "PySide6 visual scientific playground",
+      "evidence_note": "presentation must preserve core evidence semantics"
+    },
+    {
+      "path": "formal/cace_formal/",
+      "purpose": "pinned Lean formal mathematics",
+      "evidence_note": "a theorem is current formal evidence only after canonical qualification and source-drift checks"
+    },
+    {
+      "path": "cpp/",
+      "purpose": "C++20 computational kernels and native tests",
+      "evidence_note": "native speed/backend agreement is not mathematical proof"
+    },
+    {
+      "path": "schema/",
+      "purpose": "machine-readable public/certificate/provenance schemas",
+      "evidence_note": "schema validity is structural evidence only"
+    },
+    {
+      "path": "examples/",
+      "purpose": "experiments and historical output artifacts",
+      "evidence_note": "historical outputs do not qualify current source"
+    },
+    {
+      "path": "docs/",
+      "purpose": "architecture, scientific scope, status and operating policy",
+      "evidence_note": "documentation describes claims but does not establish them"
+    }
+  ],
+  "evidence_classes": [
+    "experimental",
+    "numerical",
+    "symbolic/exact",
+    "interval-certified",
+    "formally-verified",
+    "cross-verified"
+  ],
+  "verification_states": ["PASS", "FAIL", "NOT_RUN"],
+  "hard_rules_for_agents": [
+    "Never convert NOT_RUN or absent verification into PASS.",
+    "Never infer a continuum theorem from numerical tests.",
+    "Never treat GPU/CPU agreement as mathematical proof.",
+    "Never promote module-local FORMAL PASS without the canonical claim/proof gate.",
+    "Preserve theorem hypotheses and explicit unresolved obligations.",
+    "AI output is never verification evidence.",
+    "Check exact-commit workflow evidence before saying current source is formally qualified or production-ready.",
+    "Do not claim famous open problems are solved without genuinely complete proof and appropriate external review."
+  ],
+  "current_primary_gate": {
+    "branch": "implement/v331-truth-foundation",
+    "purpose": "v3.31 fail-closed truth foundation and v3.30 formal qualification",
+    "formal_workflow": ".github/workflows/cace-formal-v330.yml",
+    "regression_workflow": ".github/workflows/cace-python-regression.yml"
+  },
+  "planned_agent_indexes": [
+    "MODULE_CATALOG.json",
+    "CLAIM_CATALOG.json",
+    "PROOF_DEPENDENCY_GRAPH.json",
+    "SOURCE_INDEX.json",
+    "generated/CACE_SOURCE_CONTEXT.txt"
+  ],
+  "provenance_future": {
+    "document": "docs/PROVENANCE_ATTESTATION.md",
+    "design": "content addresses -> Merkle bundle -> signed attestations -> transparency ledger -> optional external timestamp/blockchain anchor",
+    "mathematical_truth_source": "unchanged; provenance never substitutes for the appropriate mathematical/numerical verifier"
+  }
+}
