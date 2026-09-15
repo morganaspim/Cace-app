@@ -38,9 +38,26 @@ Set `CACE_QUALIFICATION_OUTPUT` to choose another external artifact directory.
 Set `CACE_QUALIFICATION_RUN_ID` to a unique stable run identifier when another system supplies one.
 Set `CACE_QUALIFICATION_SYSTEM` to identify that system, for example `portable-local`, `docker`, or an approved external CI service.
 
+## Docker qualification
+
+`Dockerfile.qualify-v330` is a thin environment wrapper around the exact same portable command. It does not contain a separate proof procedure.
+
+From the repository root on a machine with Docker:
+
+```sh
+docker build -f Dockerfile.qualify-v330 -t cace-v330-qualify .
+docker run --rm \
+  -v "$PWD:/workspace" \
+  -v "$HOME/.cace:/root/.cace" \
+  -e CACE_QUALIFICATION_SYSTEM=docker \
+  cace-v330-qualify
+```
+
+The repository is bind-mounted instead of copied into the image so the qualifier can bind evidence to the exact Git checkout and reject dirty source. The second volume preserves the generated qualification artifacts outside the container.
+
 ## Requirements
 
-The portable shell driver currently targets Linux and WSL and requires:
+The direct shell driver currently targets Linux and WSL and requires:
 
 - `git`
 - `curl`
@@ -49,7 +66,7 @@ The portable shell driver currently targets Linux and WSL and requires:
 - GNU `timeout`
 - network access to the official Lean/Mathlib sources and cache
 
-The project can later wrap this command in Docker, GitHub Actions, another CI service, or a local GUI action without changing its mathematical meaning.
+The Docker path requires Docker plus network access. A future CI or GUI wrapper should call the same portable qualifier rather than reimplementing its proof policy.
 
 ## Qualification provenance model
 
