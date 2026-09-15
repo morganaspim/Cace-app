@@ -17,6 +17,7 @@ from .core.evidence_ledger import (
     verify_bundle,
 )
 from .core.executor import GraphExecutor
+from .core.proof_explorer import ProofExplorer
 from .core.report import run_report
 from .core.reproducibility import drift_report, reproducibility_manifest
 from .core.serialization import load_experiment
@@ -67,8 +68,6 @@ def _artifact_inputs(specs: list[str]) -> tuple[tuple[EvidenceArtifact, ...], di
                 data,
                 role="artifact",
                 media_type="application/octet-stream",
-                # Local filesystem paths are intentionally excluded from the
-                # content identity. artifact_id is the portable logical name.
                 path=None,
             )
         )
@@ -105,11 +104,67 @@ def _load_bundle_document(path: Path) -> tuple[EvidenceBundle, str | None]:
     return bundle_from_payload(document), None
 
 
+def _module_registry_payload() -> dict[str, Any]:
+    registry = build_registry()
+    return {
+        "cli_schema": 1,
+        "command": "modules-list",
+        "metadata_is_verification_evidence": False,
+        "modules": [
+            {
+                "metadata": asdict(cls.metadata),
+                "inputs": [asdict(p) for p in cls.inputs],
+                "outputs": [asdict(p) for p in cls.outputs],
+                "parameters": [asdict(p) for p in cls.parameters],
+                "declared_proof_status": cls.proof_status.to_dict(),
+            }
+            for cls in sorted(registry.classes(), key=lambda cls: cls.metadata.module_id)
+        ],
+    }
+
+
+def _claim_summary(view) -> dict[str, Any]:
+    return {
+        "claim_id": view.claim_id,
+        "statement": view.statement,
+        "evidence_ceiling": view.evidence_ceiling,
+        "qualification_state": view.qualification_state,
+        "current_head_qualified": view.current_head_qualified,
+        "proof_contract_id": view.proof_contract_id,
+        "proof_contract_sha256": view.proof_contract_sha256,
+        "theorem_dependency_metadata_state": view.theorem_dependency_metadata_state,
+        "attested_commit": view.attested_commit,
+        "proof_artifact_sha256": view.proof_artifact_sha256,
+        "blockers": list(view.blockers),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("registry", help="List module contracts; metadata is not executed evidence")
+    sub.add_parser("registry", help="Compatibility alias for `modules list`")
+
+    modules = sub.add_parser("modules", help="Inspect module contracts without executing them")
+    modules_sub = modules.add_subparsers(dest="modules_command", required=True)
+    modules_list = modules_sub.add_parser("list", help="List module contracts")
+    modules_list.add_argument("--output", type=Path)
+
+    claims = sub.add_parser("claims", help="Inspect canonical claim truth state")
+    claims_sub = claims.add_subparsers(dest="claims_command", required=True)
+    claims_list = claims_sub.add_parser("list", help="List canonical claims")
+    claims_list.add_argument("--output", type=Path)
+    claims_show = claims_sub.add_parser("show", help="Show one canonical claim and its proof bindings")
+    claims_show.add_argument("claim_id")
+    claims_show.add_argument("--output", type=Path)
+
+    proofs = sub.add_parser("proofs", help="Inspect ProofContract/ProofLedger qualification state")
+    proofs_sub = proofs.add_subparsers(dest="proofs_command", required=True)
+    proofs_status = proofs_sub.add_parser("status", help="Show fail-closed qualification status for all claims")
+    proofs_status.add_argument("--output", type=Path)
+    proofs_show = proofs_sub.add_parser("show", help="Show proof state for one canonical claim")
+    proofs_show.add_argument("claim_id")
+    proofs_show.add_argument("--output", type=Path)
 
     run = sub.add_parser("run", help="Execute a .cace experiment and emit its evidence report")
     run.add_argument("experiment", type=Path)
@@ -175,22 +230,64 @@ def main(argv: list[str] | None = None) -> int:
     try:
         output_path: Path | None = getattr(args, "output", None)
 
-        if args.command == "registry":
-            registry = build_registry()
-            payload = {
-                "cli_schema": 1,
-                "metadata_is_verification_evidence": False,
-                "modules": [
-                    {
-                        "metadata": asdict(cls.metadata),
-                        "inputs": [asdict(p) for p in cls.inputs],
-                        "outputs": [asdict(p) for p in cls.outputs],
-                        "parameters": [asdict(p) for p in cls.parameters],
-                        "declared_proof_status": cls.proof_status.to_dict(),
-                    }
-                    for cls in sorted(registry.classes(), key=lambda cls: cls.metadata.module_id)
-                ],
-            }
+        if args.command == "registry" or (
+            args.command == "modules" and args.modules_command == "list"
+        ):
+            payload = _module_registry_payload()
+            status = 0
+        elif args.command == "claims":
+            explorer = ProofExplorer()
+            if args.claims_command == "list":
+                views = explorer.all_claims()
+                payload = {
+                    "cli_schema": 1,
+                    "command": "claims-list",
+                    "proof_effect": "none",
+                    "metadata_is_verification_evidence": False,
+                    "claims": [_claim_summary(view) for view in views],
+                }
+            else:
+                view = explorer.claim_view(args.claim_id)
+                payload = {
+                    "cli_schema": 1,
+                    "command": "claims-show",
+                    "proof_effect": "none",
+                    "metadata_is_verification_evidence": False,
+                    "claim": view.to_dict(),
+                }
+            status = 0
+        elif args.command == "proofs":
+            explorer = ProofExplorer()
+            if args.proofs_command == "status":
+                views = explorer.all_claims()
+                state_counts: dict[str, int] = {}
+                for view in views:
+                    state_counts[view.qualification_state] = state_counts.get(view.qualification_state, 0) + 1
+                payload = {
+                    "cli_schema": 1,
+                    "command": "proofs-status",
+                    "proof_effect": "none",
+                    "qualification_is_derived_fail_closed": True,
+                    "all_current_head_qualified": bool(views) and all(
+                        view.current_head_qualified for view in views
+                    ),
+                    "state_counts": state_counts,
+                    "claims": [_claim_summary(view) for view in views],
+                    "note": (
+                        "This is a read-only canonical status view. It never promotes a claim; "
+                        "formal qualification requires matching registry, ProofContract, ProofLedger, "
+                        "current-head commit, and content-addressed proof artifact."
+                    ),
+                }
+            else:
+                view = explorer.claim_view(args.claim_id)
+                payload = {
+                    "cli_schema": 1,
+                    "command": "proofs-show",
+                    "proof_effect": "none",
+                    "qualification_is_derived_fail_closed": True,
+                    "proof": view.to_dict(),
+                }
             status = 0
         elif args.command == "run":
             registry = build_registry()
