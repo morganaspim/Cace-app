@@ -1,0 +1,187 @@
+name: CACE OCI VM start and inspect
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-vm-start-inspect.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  start-inspect:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Start existing A1 VM and inspect through Oracle Cloud Agent
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p oci-vm-inspect
+          exec > >(tee oci-vm-inspect/inspect.txt) 2>&1
+
+          CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
+          PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+          TENANCY_OCID="$(python3 - "$CONFIG_FILE" "$PROFILE" <<'PY'
+          import configparser, sys
+          cfg = configparser.ConfigParser()
+          cfg.read(sys.argv[1])
+          print(cfg[sys.argv[2]]['tenancy'].strip())
+          PY
+          )"
+
+          INSTANCE_ID="$(oci compute instance list --compartment-id "$TENANCY_OCID" --all \
+            --query 'data[?"display-name"==`instance-20260914-1035` && "lifecycle-state"!=`TERMINATED`].id | [0]' \
+            --raw-output)"
+          test -n "$INSTANCE_ID"
+          test "$INSTANCE_ID" != "null"
+
+          echo "=== pre-start instance ==="
+          oci compute instance get --instance-id "$INSTANCE_ID" \
+            --query 'data.{name:"display-name",state:"lifecycle-state",shape:shape,shapeConfig:"shape-config",ad:"availability-domain",fd:"fault-domain",timeCreated:"time-created"}' \
+            --output json
+
+          STATE="$(oci compute instance get --instance-id "$INSTANCE_ID" --query 'data."lifecycle-state"' --raw-output)"
+          if [[ "$STATE" == "STOPPED" ]]; then
+            echo "Starting instance..."
+            oci compute instance action --instance-id "$INSTANCE_ID" --action START \
+              --wait-for-state RUNNING --max-wait-seconds 600 >/dev/null
+          fi
+
+          echo "=== running instance ==="
+          oci compute instance get --instance-id "$INSTANCE_ID" \
+            --query 'data.{name:"display-name",state:"lifecycle-state",shape:shape,shapeConfig:"shape-config",ad:"availability-domain",fd:"fault-domain"}' \
+            --output json
+
+          AD="$(oci compute instance get --instance-id "$INSTANCE_ID" --query 'data."availability-domain"' --raw-output)"
+
+          echo "=== VNICs ==="
+          ATTACHMENTS_JSON="$(oci compute vnic-attachment list --compartment-id "$TENANCY_OCID" --instance-id "$INSTANCE_ID" --all --output json)"
+          python3 - <<'PY' "$ATTACHMENTS_JSON" > /tmp/cace-vnic-ids.txt
+          import json, sys
+          data=json.loads(sys.argv[1])['data']
+          for x in data:
+              if x.get('lifecycle-state') == 'ATTACHED':
+                  print(x['vnic-id'])
+          PY
+          while read -r VNIC_ID; do
+            [[ -n "$VNIC_ID" ]] || continue
+            oci network vnic get --vnic-id "$VNIC_ID" \
+              --query 'data.{name:"display-name",privateIp:"private-ip",publicIp:"public-ip",subnet:"subnet-id",state:"lifecycle-state"}' \
+              --output json
+          done < /tmp/cace-vnic-ids.txt
+
+          echo "=== boot volume ==="
+          BVA_JSON="$(oci compute boot-volume-attachment list --compartment-id "$TENANCY_OCID" \
+            --availability-domain "$AD" --instance-id "$INSTANCE_ID" --all --output json)"
+          BOOT_ID="$(python3 - <<'PY' "$BVA_JSON"
+          import json, sys
+          for x in json.loads(sys.argv[1])['data']:
+              if x.get('lifecycle-state') == 'ATTACHED':
+                  print(x['boot-volume-id']); break
+          PY
+          )"
+          if [[ -n "$BOOT_ID" ]]; then
+            oci bv boot-volume get --boot-volume-id "$BOOT_ID" \
+              --query 'data.{name:"display-name",sizeGB:"size-in-gbs",vpusPerGB:"vpus-per-gb",state:"lifecycle-state"}' \
+              --output json
+          fi
+
+          echo "=== Oracle Cloud Agent plugins ==="
+          # Agent can take a short period after boot to report plugin state.
+          for attempt in $(seq 1 18); do
+            PLUGINS="$(oci instance-agent plugin list --compartment-id "$TENANCY_OCID" \
+              --instanceagent-id "$INSTANCE_ID" --all --output json 2>/dev/null || true)"
+            if [[ -n "$PLUGINS" ]]; then
+              echo "$PLUGINS" | python3 -c 'import json,sys; d=json.load(sys.stdin).get("data",[]); print("\n".join(f"{x.get(chr(110)+chr(97)+chr(109)+chr(101), x.get(chr(112)+chr(108)+chr(117)+chr(103)+chr(105)+chr(110)+chr(45)+chr(110)+chr(97)+chr(109)+chr(101), "?"))}: {x.get(chr(115)+chr(116)+chr(97)+chr(116)+chr(117)+chr(115), "?")}" for x in d))'
+              if echo "$PLUGINS" | grep -qi 'run command'; then
+                break
+              fi
+            fi
+            sleep 10
+          done
+
+          echo "=== Run Command smoke test ==="
+          cat > /tmp/cace-smoke.sh <<'EOF'
+          set -e
+          echo "hostname=$(hostname)"
+          echo "user=$(id -un) uid=$(id -u)"
+          echo "arch=$(uname -m)"
+          echo "kernel=$(uname -r)"
+          echo "pid1=$(ps -p 1 -o comm=)"
+          echo '--- os-release ---'
+          cat /etc/os-release
+          echo '--- cpu ---'
+          nproc
+          lscpu | grep -E 'Architecture|CPU\(s\)|Model name' || true
+          echo '--- memory ---'
+          free -h
+          echo '--- disk ---'
+          df -h /
+          echo '--- systemd ---'
+          systemctl is-system-running || true
+          echo '--- existing github runner paths ---'
+          find /home /opt -maxdepth 3 -type f \( -name 'Runner.Listener' -o -name '.runner' \) -print 2>/dev/null || true
+          echo '--- existing github runner services ---'
+          systemctl list-unit-files 'actions.runner*' --no-pager 2>/dev/null || true
+          systemctl list-units 'actions.runner*' --all --no-pager 2>/dev/null || true
+          echo '--- cloud agent ---'
+          systemctl status oracle-cloud-agent --no-pager 2>/dev/null | head -n 30 || true
+          EOF
+
+          python3 - "$INSTANCE_ID" <<'PY'
+          import json, pathlib, sys
+          instance_id=sys.argv[1]
+          text=pathlib.Path('/tmp/cace-smoke.sh').read_text()
+          pathlib.Path('/tmp/cace-content.json').write_text(json.dumps({
+              'source': {'sourceType':'TEXT','text':text},
+              'output': {'outputType':'TEXT'}
+          }))
+          pathlib.Path('/tmp/cace-target.json').write_text(json.dumps({'instanceId':instance_id}))
+          PY
+
+          COMMAND_ID="$(oci instance-agent command create --compartment-id "$TENANCY_OCID" \
+            --content file:///tmp/cace-content.json --target file:///tmp/cace-target.json \
+            --timeout-in-seconds 300 --display-name 'CACE VM inspection' \
+            --query 'data.id' --raw-output)"
+          test -n "$COMMAND_ID"
+
+          for attempt in $(seq 1 60); do
+            EXEC_JSON="$(oci instance-agent command-execution get --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" --output json 2>/dev/null || true)"
+            if [[ -n "$EXEC_JSON" ]]; then
+              STATE="$(python3 - <<'PY' "$EXEC_JSON"
+          import json,sys
+          d=json.loads(sys.argv[1]).get('data',{})
+          print(d.get('lifecycle-state',''))
+          PY
+              )"
+              echo "run-command-state=$STATE"
+              if [[ "$STATE" == "SUCCEEDED" || "$STATE" == "FAILED" || "$STATE" == "TIMED_OUT" || "$STATE" == "CANCELED" ]]; then
+                echo "$EXEC_JSON" > oci-vm-inspect/run-command.json
+                python3 - <<'PY' "$EXEC_JSON"
+          import json,sys
+          d=json.loads(sys.argv[1]).get('data',{})
+          c=d.get('content') or {}
+          print('exit_code=', c.get('exit-code'))
+          print(c.get('text',''))
+          msg=c.get('message')
+          if msg: print('message=',msg)
+          PY
+                [[ "$STATE" == "SUCCEEDED" ]] || exit 1
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo 'Run Command did not complete within probe window.' >&2
+          exit 1
+
+      - name: Upload VM inspection
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-oci-vm-inspection
+          path: oci-vm-inspect/
