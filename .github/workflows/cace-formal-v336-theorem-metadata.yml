@@ -7,6 +7,9 @@ on:
     paths:
       - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
       - 'formal/cace_formal/CACEFormal/V330TheoremMetadata.lean'
+      - 'formal/cace_formal/CACEFormal/WeakGreenFunctional.lean'
+      - 'formal/cace_formal/CACEFormal/ContinuumOrthogonality.lean'
+      - 'formal/cace_formal/CACEFormal/ContinuumPragerSynge.lean'
       - 'formal/cace_formal/lean-toolchain'
       - 'formal/cace_formal/lakefile.lean'
       - 'cace_studio/app.py'
@@ -14,11 +17,15 @@ on:
       - 'cace_studio/core/proof_contract.py'
       - 'cace_studio/core/proof_explorer.py'
       - 'cace_studio/core/proof_ledger.py'
+      - 'cace_studio/data/claim_registry.json'
       - 'cace_studio/data/proof_contracts.json'
+      - 'cace_studio/data/proof_ledger.json'
       - 'cace_studio/modules/research_dynamics.py'
+      - 'cace_studio/modules/research_geometry.py'
       - 'scripts/export_v330_environment_metadata.py'
       - 'tests/test_cli.py'
       - 'tests/test_research_dynamics_v337.py'
+      - 'tests/test_research_geometry_v337.py'
       - 'tests/test_export_v330_environment_metadata.py'
       - 'tests/test_lean_theorem_metadata_v336.py'
       - 'tests/test_proof_contract_v336.py'
@@ -99,7 +106,7 @@ jobs:
           echo "$RUNNER_TEMP/cace-v337-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cace-v337-venv/bin/python" --version
 
-      - name: Run truth architecture and research dynamics tests
+      - name: Run truth architecture and research playground tests
         shell: bash
         run: |
           set -euo pipefail
@@ -108,6 +115,7 @@ jobs:
           python -m pytest -q \
             tests/test_cli.py \
             tests/test_research_dynamics_v337.py \
+            tests/test_research_geometry_v337.py \
             tests/test_export_v330_environment_metadata.py \
             tests/test_lean_theorem_metadata_v336.py \
             tests/test_proof_contract_v336.py
@@ -195,7 +203,7 @@ jobs:
           find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete || true
           rm -rf .lake/build
 
-      - name: Re-verify exact source state before Lean environment export
+      - name: Re-verify exact source state before formal qualification work
         shell: bash
         run: |
           set -euo pipefail
@@ -214,7 +222,7 @@ jobs:
           lake env lean CACEFormal/V330TheoremMetadata.lean \
             | tee "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.raw.txt"
 
-      - name: Canonicalize and bind metadata to contract and exact commit
+      - name: Canonicalize metadata and rerun fail-closed kernel axiom audit
         shell: bash
         run: |
           set -euo pipefail
@@ -224,7 +232,7 @@ jobs:
             --git-commit "$CACE_EXPECTED_SHA" \
             --output "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.json"
 
-      - name: Verify canonical metadata binding
+      - name: Verify canonical metadata and audit binding
         shell: bash
         run: |
           set -euo pipefail
@@ -233,11 +241,12 @@ jobs:
           from pathlib import Path
           from cace_studio.core.proof_contract import ProofContractRegistry
 
-          artifact = json.loads((Path(os.environ['CACE_OUTPUT_DIR']) / 'v330_lean_environment_metadata.json').read_text())
+          output = Path(os.environ['CACE_OUTPUT_DIR'])
+          artifact = json.loads((output / 'v330_lean_environment_metadata.json').read_text())
           contract = ProofContractRegistry.load_default().for_claim('cace.v330.continuum-proof-strengthening')
           if contract is None:
               raise SystemExit('missing proof contract')
-          assert artifact['artifact_schema'] == 'cace-lean-theorem-metadata-v2'
+          assert artifact['artifact_schema'] == 'cace-lean-theorem-metadata-v3'
           assert artifact['metadata_state'] == 'LEAN_GENERATED'
           assert artifact['claim_id'] == contract.claim_id
           assert artifact['proof_contract_id'] == contract.contract_id
@@ -245,8 +254,22 @@ jobs:
           assert artifact['git_commit'] == os.environ['CACE_EXPECTED_SHA']
           assert artifact['mathlib_commit'] == os.environ['CACE_MATHLIB_COMMIT']
           assert artifact['endpoint_count'] == len(contract.endpoint_theorems)
-          print('CACE_LEAN_METADATA_CONTRACT_BINDING_PASS')
+          assert artifact['kernel_axiom_audit_theorem_count'] == len(contract.endpoint_theorems)
+          assert len(artifact['kernel_axiom_audit_sha256']) == 64
+          assert (output / 'v330_kernel_axiom_audit.json').is_file()
+          assert (output / 'v330_kernel_axiom_audit.json.sha256').is_file()
+          assert (output / 'v330_kernel_axiom_audit.raw.txt').is_file()
+          print('CACE_V337_METADATA_AND_KERNEL_AUDIT_BINDING_PASS')
           PY
+
+      - name: Re-verify exact head before artifact publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
+          test "$(git -C "$CACE_FORMAL_DIR/.lake/packages/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
 
       - name: Record exact qualification identity
         shell: bash
@@ -255,7 +278,7 @@ jobs:
           printf '%s\n' "$CACE_EXPECTED_SHA" > "$CACE_OUTPUT_DIR/commit.txt"
           printf '%s\n' "$GITHUB_RUN_ID" > "$CACE_OUTPUT_DIR/workflow_run_id.txt"
 
-      - name: Upload Lean-generated theorem metadata
+      - name: Upload Lean-generated theorem metadata and kernel audit
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cace-v337-lean-environment-metadata
@@ -263,6 +286,9 @@ jobs:
             ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.json
             ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.json.sha256
             ${{ env.CACE_OUTPUT_DIR }}/v330_lean_environment_metadata.raw.txt
+            ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.json
+            ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.json.sha256
+            ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.raw.txt
             ${{ env.CACE_OUTPUT_DIR }}/commit.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_id.txt
 
