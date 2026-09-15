@@ -9,11 +9,38 @@ Scientific capabilities should subclass `cace_studio.core.module.Module` and dec
 - stable `ModuleMetadata` with unique `module_id`, name, version, category, description, maturity and assumptions;
 - typed input/output `PortSpec` declarations;
 - typed `ParameterSpec` declarations;
+- optional explicit canonical unit identifiers on ports/parameters where the quantity is unit-bearing;
 - explicit `ProofStatus` capabilities and limitations;
 - deterministic `execute(...)` behavior where the science permits it; and
 - `verify(...)` records only for verifiers that actually ran.
 
 A module must never convert missing verification into success. Module-local `FORMAL + PASS` is still subject to the canonical claim/proof promotion gate.
+
+### Units contract
+
+CACE v3.33 treats units as explicit **contract metadata**, not as an automatic conversion engine.
+
+Examples:
+
+```python
+inputs = (PortSpec("distance", "number", unit="m"),)
+outputs = (PortSpec("speed", "number", unit="m/s"),)
+parameters = (
+    ParameterSpec("dt", "number", 0.01, "Integration step", unit="s"),
+)
+```
+
+Rules:
+
+- a unit is either `None` (legacy/unspecified) or a non-empty canonical string such as `m`, `s`, `m/s`, or `1`;
+- CACE performs **no implicit unit conversion** in the v3.33 contract;
+- two unit-unspecified legacy ports remain compatible;
+- once either side declares a unit, both connected ports must declare the exact same canonical unit;
+- therefore `m -> s`, `m -> unspecified`, and `unspecified -> m` fail closed;
+- unit declarations are included in the module-contract reproducibility fingerprint;
+- parameter units describe the magnitude expected in the form/input value and are shown in Studio, but do not create a conversion rule.
+
+Future dimensional algebra or conversion support must be explicit, versioned and separately tested rather than silently changing this exact-match contract.
 
 ## Plugin manifest
 
@@ -54,7 +81,7 @@ def register(registry):
     registry.register(MyModule)
 ```
 
-The SDK rejects entrypoints that escape the plugin directory, missing register hooks and plugins that register no new module IDs. Duplicate module IDs are rejected by the core registry.
+The SDK rejects entrypoints that escape the plugin directory, missing register hooks and plugins that register no new module IDs. Duplicate module IDs are rejected by the core registry. The core registry also rejects non-`Module` classes and blank/whitespace module IDs before mutation.
 
 Registration is staged transactionally. CACE first snapshots the existing module classes into an isolated staging registry, executes `register(staging_registry)`, verifies that existing module identities were not replaced/removed, and only then commits the newly registered module classes to the live registry. If plugin registration raises after adding only part of its modules, the live registry remains unchanged.
 
@@ -83,7 +110,7 @@ A plugin can register a module that implements numerical, symbolic, interval or 
 A production candidate plugin should include:
 
 - manifest validation tests;
-- module contract/unit tests;
+- module contract/unit tests, including unit-boundary tests when units are declared;
 - malformed-input and negative verification tests;
 - serialization/replay tests when applicable;
 - compatibility tests against the declared plugin API version;
