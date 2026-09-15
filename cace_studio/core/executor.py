@@ -12,6 +12,7 @@ from .claim_promotion import fail_closed_module_decision, unsafe_self_promotion_
 from .formal_gate import enforce_formal_claim_qualification
 from .reproducibility import experiment_fingerprint
 from .execution_scope import ExecutionScope, build_upstream_subgraph, full_execution_scope
+from .execution_control import ExecutionControl
 
 
 @dataclass
@@ -31,9 +32,13 @@ class RunResult:
     scope_included_node_ids: tuple[str, ...] = ()
     seed: int = 0
     run_scope: str = "full"
+    completed: bool = True
+    interruption_reason: str = ""
 
     @property
     def all_verifiers_passed(self) -> bool:
+        if not self.completed:
+            return False
         records = [r for rs in self.verification.values() for r in rs]
         return bool(records) and all(r.state is VerificationState.PASS for r in records)
 
@@ -123,6 +128,7 @@ class GraphExecutor:
         *,
         run_scope: str = "full",
         execution_scope: ExecutionScope | None = None,
+        control: ExecutionControl | None = None,
     ) -> RunResult:
         scope = self._validated_scope(
             exp,
@@ -130,8 +136,6 @@ class GraphExecutor:
             execution_scope=execution_scope,
         )
 
-        # Bind every run to the exact executed graph identity before execution.
-        # These fingerprints establish executed-source identity, not scientific truth.
         semantic_experiment_sha256 = scope.execution_semantic_experiment_sha256
         full_experiment_sha256 = scope.execution_full_experiment_sha256
 
@@ -143,7 +147,15 @@ class GraphExecutor:
         certs = []
         verification = {}
         claim_decisions = {}
+        completed = True
+        interruption_reason = ""
+
         for node_id in order:
+            if control is not None and not control.wait_until_runnable():
+                completed = False
+                interruption_reason = f"cancelled-before-node:{node_id}"
+                break
+
             node = nodes[node_id]
             module = self.registry.create(node.module_id)
             ins = dict(external_inputs.get(node_id, {}))
@@ -162,8 +174,6 @@ class GraphExecutor:
             out = {k: DeviceManager.to_host(v) for k, v in out.items()}
             outputs[node_id] = out
 
-            # Public/open-problem promotion fields are globally reserved. Ordinary computational
-            # modules cannot authorize their own resolution status merely by changing category.
             attempted = unsafe_self_promotion_paths(out)
             decision = fail_closed_module_decision(module.metadata.category, module.proof_status, out)
             if attempted:
@@ -185,9 +195,6 @@ class GraphExecutor:
                 list(module.verify(ins, params, out, ctx)),
             )
             verification[node_id] = records
-            if any(r.state is VerificationState.FAIL for r in records):
-                # Failure is evidence, not a crash: preserve outputs/certificate for investigation.
-                pass
             certs.append(
                 RunCertificate.build(
                     run_id=run_id,
@@ -201,6 +208,12 @@ class GraphExecutor:
                     device=device,
                 )
             )
+
+            if control is not None and control.cancelled:
+                completed = False
+                interruption_reason = f"cancelled-after-node:{node_id}"
+                break
+
         return RunResult(
             run_id=run_id,
             outputs=outputs,
@@ -217,6 +230,8 @@ class GraphExecutor:
             scope_included_node_ids=scope.included_node_ids,
             seed=seed,
             run_scope=scope.kind,
+            completed=completed,
+            interruption_reason=interruption_reason,
         )
 
     def run_selected_upstream(
@@ -225,6 +240,8 @@ class GraphExecutor:
         target_node_ids: Iterable[str],
         external_inputs: dict[str, dict[str, Any]] | None = None,
         seed: int = 0,
+        *,
+        control: ExecutionControl | None = None,
     ) -> RunResult:
         scoped_exp, scope = build_upstream_subgraph(source_exp, target_node_ids)
         return self.run(
@@ -232,4 +249,5 @@ class GraphExecutor:
             external_inputs=external_inputs,
             seed=seed,
             execution_scope=scope,
+            control=control,
         )
