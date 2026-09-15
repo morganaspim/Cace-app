@@ -13,6 +13,8 @@
       "commit": "a69dd2bd83082baa20106eabb8baab30eb49302a",
       "current_head_qualified": false,
       "proof_artifact_sha256": null,
+      "qualification_run_id": "34806285322",
+      "qualification_system": "github-actions",
       "release": "3.22.0",
       "status": "HISTORICAL_PASS",
       "workflow_run_id": 34806285322
@@ -30,11 +32,13 @@
       "commit": null,
       "current_head_qualified": false,
       "proof_artifact_sha256": null,
+      "qualification_run_id": null,
+      "qualification_system": null,
       "release": "3.23.0-dev..3.30.0-dev",
       "status": "NOT_RUN",
       "workflow_run_id": null
     }
   ],
-  "policy": "Current-head FORMAL PASS requires a successful pinned proof build, axiom audit, exact commit binding, and SHA-256 proof artifact binding.",
+  "policy": "Current-head FORMAL PASS requires a successful pinned proof build, axiom audit, exact commit binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",
   "schema_version": 1
 }
