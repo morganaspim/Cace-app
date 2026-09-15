@@ -1,0 +1,59 @@
+name: CACE OCI A1 cleanup
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cace-oci-cleanup-a1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Terminate prior disposable A1 runner VM
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG_FILE="${OCI_CLI_CONFIG_FILE:-$HOME/.oci/config}"
+          PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
+          TENANCY_OCID="$(python3 - "$CONFIG_FILE" "$PROFILE" <<'PY'
+          import configparser, sys
+          cfg=configparser.ConfigParser(); cfg.read(sys.argv[1])
+          print(cfg[sys.argv[2]]['tenancy'].strip())
+          PY
+          )"
+
+          OLD_IDS="$(oci compute instance list --compartment-id "$TENANCY_OCID" --all \
+            --query 'data[?("display-name"==`instance-20260914-1035` || "display-name"==`cace-runner-a1`) && "lifecycle-state"!=`TERMINATED`].id' \
+            --raw-output)"
+
+          python3 - <<'PY' "$OLD_IDS" > /tmp/cace-old-instance-ids
+          import ast,sys
+          v=sys.argv[1].strip()
+          if not v: raise SystemExit
+          try: xs=ast.literal_eval(v)
+          except Exception: xs=[]
+          for x in xs:
+              if x: print(x)
+          PY
+
+          while read -r iid; do
+            [[ -n "$iid" ]] || continue
+            echo "Terminating prior disposable runner VM ${iid:0:36}..."
+            oci compute instance terminate \
+              --instance-id "$iid" \
+              --force \
+              --preserve-boot-volume false \
+              --wait-for-state SUCCEEDED \
+              --max-wait-seconds 900
+          done < /tmp/cace-old-instance-ids
+
+          echo 'Remaining nonterminated A1 instances:'
+          oci compute instance list --compartment-id "$TENANCY_OCID" --all \
+            --query 'data[?shape==`VM.Standard.A1.Flex` && "lifecycle-state"!=`TERMINATED`].{"name":"display-name",state:"lifecycle-state",ocpus:"shape-config".ocpus,memory:"shape-config"."memory-in-gbs"}' \
+            --output table || true
