@@ -1,52 +1,18 @@
-name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
+name: CACE Canonical Exact-Head Qualification
 
+# This is the single formal-acceptance path. It is deliberately manual-only:
+# the sequential CACE executor chooses when qualification is worth runner time.
+# External pinned dependency caches may accelerate the job, but CACE project
+# build outputs are never restored into this canonical acceptance run.
 on:
   workflow_dispatch:
-  push:
-    branches: [main, implement/cace-rigor-playground-v337]
-    paths:
-      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
-      - 'formal/cace_formal/CACEFormal/V330TheoremMetadata.lean'
-      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
-      - 'formal/cace_formal/CACEFormal/H1GraphConverse.lean'
-      - 'formal/cace_formal/CACEFormal/WeakGreenFunctional.lean'
-      - 'formal/cace_formal/CACEFormal/ContinuumOrthogonality.lean'
-      - 'formal/cace_formal/CACEFormal/ContinuumPragerSynge.lean'
-      - 'formal/cace_formal/lean-toolchain'
-      - 'formal/cace_formal/lakefile.lean'
-      - 'cace_studio/app.py'
-      - 'cace_studio/cli.py'
-      - 'cace_studio/core/proof_contract.py'
-      - 'cace_studio/core/proof_explorer.py'
-      - 'cace_studio/core/proof_ledger.py'
-      - 'cace_studio/data/claim_registry.json'
-      - 'cace_studio/data/proof_contracts.json'
-      - 'cace_studio/data/proof_ledger.json'
-      - 'cace_studio/modules/research_dynamics.py'
-      - 'cace_studio/modules/research_geometry.py'
-      - 'scripts/cace_run_with_heartbeat.py'
-      - 'scripts/export_v330_environment_metadata.py'
-      - 'scripts/build_continuum_attestation.py'
-      - 'tests/test_cli.py'
-      - 'tests/test_claim_registry_v331.py'
-      - 'tests/test_qualification_drift_v331.py'
-      - 'tests/test_research_dynamics_v337.py'
-      - 'tests/test_research_geometry_v337.py'
-      - 'tests/test_export_v330_environment_metadata.py'
-      - 'tests/test_continuum_attestation_v337.py'
-      - 'tests/test_lean_theorem_metadata_v336.py'
-      - 'tests/test_proof_contract_v336.py'
-      - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
 
 permissions:
   contents: read
 
-# On the active H1 branch this deliberately shares the legacy v3.30 concurrency
-# key so this canonical run cancels any stale legacy qualification job before it
-# can consume the single OCI runner. Main keeps the independent canonical key.
 concurrency:
-  group: ${{ github.ref == 'refs/heads/implement/cace-rigor-playground-v337' && format('cace-formal-v330-{0}', github.ref) || format('cace-v337-exact-head-{0}', github.ref) }}
-  cancel-in-progress: true
+  group: cace-canonical-exact-head-qualification
+  cancel-in-progress: false
 
 jobs:
   exact-head-formal-qualification:
@@ -237,18 +203,19 @@ jobs:
           rm -rf .lake/build
           echo "Resolved mathlib=$(git -C .lake/packages/mathlib rev-parse HEAD)"
 
-      - name: Restore exact-source resumable CACE build cache
+      - name: Enforce fresh CACE qualification boundary
         shell: bash
         run: |
           set -euo pipefail
+          # Exact-source CACE build caches are useful for development probes, but
+          # formal acceptance always starts with an empty CACE project build tree.
           rm -rf "$CACE_FORMAL_DIR/.lake/build"
           if [[ -d "$CACE_FORMAL_BUILD_CACHE/build" ]]; then
-            mkdir -p "$CACE_FORMAL_DIR/.lake"
-            cp -a --reflink=auto "$CACE_FORMAL_BUILD_CACHE/build" "$CACE_FORMAL_DIR/.lake/build"
-            echo "CACE_FORMAL_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
+            echo "CACE_FORMAL_BUILD_CACHE_AVAILABLE_NOT_RESTORED tree=$CACE_FORMAL_TREE_SHA"
           else
-            echo "CACE_FORMAL_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
+            echo "CACE_FORMAL_BUILD_CACHE_ABSENT tree=$CACE_FORMAL_TREE_SHA"
           fi
+          test ! -e "$CACE_FORMAL_DIR/.lake/build"
 
       - name: Reject unfinished proof tokens across audited source bundle
         shell: bash
@@ -272,6 +239,31 @@ jobs:
           if failures:
               raise SystemExit(f'Unfinished proof tokens in audited sources: {failures}')
           print(f'CACE_UNFINISHED_TOKEN_GUARD_PASS:{len(contract.audited_source_files)}')
+          PY
+
+      - name: Reject fragile scoped neighborhood notation in audited sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from cace_studio.core.proof_contract import ProofContractRegistry
+
+          contract = ProofContractRegistry.load_default().for_claim('cace.v330.continuum-proof-strengthening')
+          if contract is None:
+              raise SystemExit('missing ProofContract')
+          root = Path('formal/cace_formal')
+          failures = []
+          for relative in contract.audited_source_files:
+              text = (root / relative).read_text(encoding='utf-8')
+              if '𝓝' in text:
+                  failures.append(relative)
+          if failures:
+              raise SystemExit(
+                  'Fragile scoped neighborhood notation found; use explicit nhds in audited sources: '
+                  + ', '.join(failures)
+              )
+          print(f'CACE_EXPLICIT_NHDS_GUARD_PASS:{len(contract.audited_source_files)}')
           PY
 
       - name: Re-verify exact source state before formal qualification work
@@ -456,7 +448,8 @@ jobs:
             printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$CACE_FORMAL_BUILD_CACHE/formal_tree_sha.txt"
             printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$CACE_FORMAL_BUILD_CACHE/mathlib_commit.txt"
             printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_FORMAL_BUILD_CACHE/lean_toolchain.txt"
-            echo "CACE_FORMAL_BUILD_CACHE_PROMOTED tree=$CACE_FORMAL_TREE_SHA"
+            printf '%s\n' 'development-acceleration-only; never qualification evidence' > "$CACE_FORMAL_BUILD_CACHE/cache_policy.txt"
+            echo "CACE_FORMAL_BUILD_CACHE_PROMOTED_FOR_PROBES tree=$CACE_FORMAL_TREE_SHA"
           fi
 
       - name: Finalize compressed heartbeat and diagnostic manifest
@@ -489,7 +482,7 @@ jobs:
               'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
               'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
               'qualification_attestation_present': bool(attestation and attestation.is_file()),
-              'cache_effect': 'acceleration-only; never qualification evidence',
+              'cache_effect': 'external dependency acceleration only during qualification; CACE build cache not restored',
           }
           (status_dir / 'final_status.json').write_text(
               json.dumps(payload, sort_keys=True, indent=2) + '\n', encoding='utf-8'
