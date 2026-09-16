@@ -1,4 +1,5 @@
 import CACEFormal.BoxClassicalAgreement
+import Mathlib.Analysis.Calculus.FDeriv.Congr
 import Mathlib.Analysis.Calculus.FDeriv.Mul
 import Mathlib.Analysis.Calculus.FDeriv.Pi
 
@@ -39,9 +40,19 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
   have hq :
       HasFDerivAt (q i : BoxPoint n → ℝ) (fderiv ℝ (q i) x) x := by
     exact (q i).hasFDerivAt x
-  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
-    ContinuousLinearMap.proj_pi, Pi.smul_apply, Pi.mul_apply, smul_eq_mul] using
+  have hprod :
+      HasFDerivAt
+        ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ))
+        (v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)) x :=
     (v.hasFDerivAt x).smul hq
+  have hfun :
+      (fun y : BoxPoint n => v y * (q i) y) =ᶠ[𝓝 x]
+        ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ)) := by
+    filter_upwards [] with y
+    rfl
+  have htarget := hfun.hasFDerivAt_iff.mpr hprod
+  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
+    ContinuousLinearMap.proj_pi] using htarget
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
 `q · ∇v + (div q) v`. This is the local calculus obligation that v3.29 left explicit. -/
