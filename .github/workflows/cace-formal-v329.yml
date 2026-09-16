@@ -1,36 +1,13 @@
 name: CACE Formal v3.29 PDE/domain bridge
 
+# Historical validation workflow. Manual-only so current CACE work cannot fan out
+# into overlapping proof jobs; the canonical exact-head qualification path owns
+# formal acceptance.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'formal/cace_formal/CACEFormal/PDEDomainBridge.lean'
-      - 'formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean'
-      - 'formal/cace_formal/CACEFormal/BoxGraphTrace.lean'
-      - 'formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean'
-      - 'formal/cace_formal/CACEFormal/BoxClassicalAgreement.lean'
-      - 'formal/cace_formal/CACEFormal.lean'
-      - 'RELEASE_v3.29.json'
-      - 'V329_PDE_DOMAIN_BRIDGE_RANKED.md'
-      - '.github/workflows/cace-formal-v329.yml'
-  pull_request:
-    paths:
-      - 'formal/cace_formal/CACEFormal/PDEDomainBridge.lean'
-      - 'formal/cace_formal/CACEFormal/PDEDomainRealBridge.lean'
-      - 'formal/cace_formal/CACEFormal/BoxGraphTrace.lean'
-      - 'formal/cace_formal/CACEFormal/BoxGraphGreenPairing.lean'
-      - 'formal/cace_formal/CACEFormal/BoxClassicalAgreement.lean'
-      - 'formal/cace_formal/CACEFormal.lean'
-      - 'RELEASE_v3.29.json'
-      - 'V329_PDE_DOMAIN_BRIDGE_RANKED.md'
-      - '.github/workflows/cace-formal-v329.yml'
 
 permissions:
   contents: read
-
-concurrency:
-  group: cace-formal-v329-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   pde-domain-bridge:
@@ -96,8 +73,6 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          # The aggregate imports every v3.29 module. Building it produces dependency .olean files
-          # through Lake rather than relying on sequential raw `lean` invocations.
           lake build CACEFormal
 
       - name: Write v3.29 attestation
