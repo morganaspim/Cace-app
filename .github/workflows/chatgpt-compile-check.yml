@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   python-native:
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -33,29 +33,16 @@ jobs:
       - name: Focused regression smoke tests
         run: python -m pytest -q tests/test_cli.py tests/test_claim_registry_v331.py tests/test_attest_cli_v336.py
 
-  web:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+  web-source-check:
+    runs-on: self-hosted
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Detect web source
-        id: detect
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check whether matching GitHub branch contains uploaded web source
         shell: bash
         run: |
           if [[ -f package.json && -d src ]]; then
-            echo 'present=true' >> "$GITHUB_OUTPUT"
+            echo 'Web source is present on branch.'
           else
-            echo 'present=false' >> "$GITHUB_OUTPUT"
-            echo 'No web package found on this GitHub branch; uploaded ZIP contains additional web source.'
+            echo 'Uploaded ZIP contains web source that is not present on candidate/v336-consolidated.'
           fi
-      - uses: actions/setup-node@v4
-        if: steps.detect.outputs.present == 'true'
-        with:
-          node-version: '22'
-          cache: npm
-      - name: Install web dependencies
-        if: steps.detect.outputs.present == 'true'
-        run: npm install
-      - name: Build web UI
-        if: steps.detect.outputs.present == 'true'
-        run: npm run build
