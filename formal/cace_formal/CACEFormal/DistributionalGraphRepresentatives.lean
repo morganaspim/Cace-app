@@ -123,7 +123,7 @@ theorem inHDiv_iff_exists_distributionalGraphRepresentative {n : Nat}
       inHDivGraphRepresentative_mem q hq,
       inHDivGraphRepresentative_fieldDistribution q hq⟩
   · rintro ⟨x, hx, rfl⟩
-    exact inHDiv_of_mem_distributionalGraph x hx
+    exact inHDiv_of_mem_distributionalGraph n x hx
 
 end
 
