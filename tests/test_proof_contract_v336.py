@@ -6,6 +6,7 @@ import pytest
 
 from cace_studio.core.proof_contract import ProofContract, ProofContractRegistry
 
+# Final exact-SHA regression trigger for Rank-4 endpoint qualification.
 
 EXPECTED_CONTINUUM_V3_HASH = "2931b00e08e07004f8fa14b65932f084630575f8b4c8dcc2d2b602894caba33c"
 
