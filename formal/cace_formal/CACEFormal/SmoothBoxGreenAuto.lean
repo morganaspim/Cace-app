@@ -40,7 +40,7 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
       HasFDerivAt (q i : BoxPoint n → ℝ) (fderiv ℝ (q i) x) x := by
     exact (q i).hasFDerivAt x
   simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
-    ContinuousLinearMap.proj_pi, Pi.smul_apply, Pi.mul_apply, smul_eq_mul] using
+    ContinuousLinearMap.proj_pi, Pi.smul_apply, Pi.mul_apply, smul_eq_mul] using!
     (v.hasFDerivAt x).smul hq
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
