@@ -21,6 +21,9 @@ import threading
 import time
 
 
+_LAKE_PROGRESS_RE = re.compile(r"\[(\d+)/(\d+)\]")
+
+
 def _env_int(name: str, default: int) -> int:
     value = os.environ.get(name)
     if value is None:
@@ -89,7 +92,13 @@ def main() -> int:
 
     start_mono = time.monotonic()
     state_lock = threading.Lock()
-    state = {"last_output_mono": start_mono, "log_bytes": 0, "last_line": ""}
+    state = {
+        "last_output_mono": start_mono,
+        "log_bytes": 0,
+        "last_line": "",
+        "lake_current": None,
+        "lake_total": None,
+    }
 
     proc = subprocess.Popen(
         command,
@@ -106,6 +115,8 @@ def main() -> int:
             last_output_mono = float(state["last_output_mono"])
             log_bytes = int(state["log_bytes"])
             last_line = str(state["last_line"])
+            lake_current = state["lake_current"]
+            lake_total = state["lake_total"]
         payload = {
             "schema": "cace-job-heartbeat-v1",
             "timestamp_utc": _utc_now(),
@@ -121,6 +132,10 @@ def main() -> int:
             "last_line": last_line[-240:],
             "command": command,
         }
+        if isinstance(lake_current, int) and isinstance(lake_total, int) and lake_total > 0:
+            payload["lake_current"] = lake_current
+            payload["lake_total"] = lake_total
+            payload["lake_percent"] = round(100.0 * lake_current / lake_total, 3)
         if returncode is not None:
             payload["returncode"] = returncode
         if note is not None:
@@ -129,10 +144,16 @@ def main() -> int:
             stream.write(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
             stream.flush()
         _write_json_atomic(current_status_path, payload)
+        progress = ""
+        if "lake_current" in payload:
+            progress = (
+                f" lake={payload['lake_current']}/{payload['lake_total']}"
+                f" percent={payload['lake_percent']}%"
+            )
         print(
             "CACE_HEARTBEAT "
             f"phase={phase_slug} status={status} elapsed={payload['elapsed_seconds']}s "
-            f"idle={payload['seconds_since_output']}s bytes={log_bytes}",
+            f"idle={payload['seconds_since_output']}s bytes={log_bytes}{progress}",
             flush=True,
         )
         return payload
@@ -147,10 +168,17 @@ def main() -> int:
                 sys.stdout.buffer.write(raw)
                 sys.stdout.buffer.flush()
                 decoded = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+                progress_match = _LAKE_PROGRESS_RE.search(decoded)
                 with state_lock:
                     state["last_output_mono"] = time.monotonic()
                     state["log_bytes"] = int(state["log_bytes"]) + len(raw)
                     state["last_line"] = decoded
+                    if progress_match:
+                        current = int(progress_match.group(1))
+                        total = int(progress_match.group(2))
+                        if total > 0 and 0 <= current <= total:
+                            state["lake_current"] = current
+                            state["lake_total"] = total
 
     reader = threading.Thread(target=read_output, name="cace-heartbeat-log-reader", daemon=True)
     reader.start()
