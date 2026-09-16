@@ -1,4 +1,4 @@
-name: CACE formal isolated repair probe
+name: CACE theorem metadata isolated repair probe
 
 on:
   workflow_dispatch:
@@ -10,14 +10,9 @@ on:
 permissions:
   contents: read
 
-# Failure-prevention architecture:
-# - Reuse this already-registered/previously-executed isolation harness instead of
-#   creating a new one-off workflow for each proof failure.
-# - Every candidate edit is guarded by an exact source fingerprint.
-# - The originally failing modules must compile in isolation before the broader
-#   audited target is attempted.
-# - Results are development evidence only; canonical exact-head qualification is
-#   always required after source changes.
+# Non-qualifying development harness. The candidate repair is applied only in the
+# runner workspace. Success is engineering evidence; exact-head canonical
+# qualification remains mandatory after source promotion.
 concurrency:
   group: cace-formal-isolation-dev
   cancel-in-progress: false
@@ -58,7 +53,7 @@ jobs:
           echo "CACE_FORMAL_BUILD_CACHE=$build_cache" >> "$GITHUB_ENV"
           printf 'probe_head=%s\nformal_tree=%s\n' "$GITHUB_SHA" "$formal_tree"
 
-      - name: Restore exact pinned dependencies and failed-tree build frontier
+      - name: Restore exact pinned dependencies and retained build frontier
         shell: bash
         working-directory: formal/cace_formal
         run: |
@@ -72,28 +67,25 @@ jobs:
 
           mkdir -p .lake
           rm -rf .lake/packages .lake/build
-          if [[ -d "$CACE_PACKAGE_CACHE/mathlib/.git" ]]; then
-            exec 9>"$CACE_PACKAGE_CACHE_LOCK"
-            flock -s -w 900 9
-            test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-            cp -a --reflink=auto "$CACE_PACKAGE_CACHE" .lake/packages
-            flock -u 9
-            echo 'CACE_ISOLATION_DEPENDENCY_CACHE_HIT'
-          else
-            echo 'CACE_ISOLATION_DEPENDENCY_CACHE_MISS'
-          fi
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" .lake/packages
+          flock -u 9
+          echo CACE_METADATA_ISOLATION_DEPENDENCY_CACHE_HIT
 
           MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
 
           if [[ -d "$CACE_FORMAL_BUILD_CACHE/build" ]]; then
             cp -a --reflink=auto "$CACE_FORMAL_BUILD_CACHE/build" .lake/build
-            echo "CACE_ISOLATION_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
+            echo "CACE_METADATA_ISOLATION_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
           else
-            echo "CACE_ISOLATION_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
+            echo "CACE_METADATA_ISOLATION_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
           fi
 
-      - name: Apply exact-fingerprint continuum repair candidates
+      - name: Apply exact-fingerprint metadata repair candidate
         shell: bash
         run: |
           set -euo pipefail
@@ -101,82 +93,49 @@ jobs:
           from hashlib import sha256
           from pathlib import Path
 
-          root = Path('formal/cace_formal/CACEFormal')
-          hashes = []
+          path = Path('formal/cace_formal/CACEFormal/V330TheoremMetadata.lean')
+          before = path.read_bytes()
+          text = before.decode('utf-8')
 
-          def replace_exact(path: Path, old: str, new: str, expected: int = 1) -> None:
-              text = path.read_text(encoding='utf-8')
+          replacements = [
+              ('  let .thmInfo theorem := info\n', '  let .thmInfo thm := info\n', 1, 'CACE-LEAN-METADATA-RESERVED-BINDER-001'),
+              ('theorem.value', 'thm.value', 1, 'CACE-LEAN-METADATA-RESERVED-BINDER-001'),
+              ('theorem.type', 'thm.type', 2, 'CACE-LEAN-METADATA-RESERVED-BINDER-001'),
+              ('theorem.levelParams', 'thm.levelParams', 1, 'CACE-LEAN-METADATA-RESERVED-BINDER-001'),
+              ('    liftIO <| IO.println s!"CACE_THEOREM_METADATA\\t{record.compress}"\n',
+               '    IO.println s!"CACE_THEOREM_METADATA\\t{record.compress}"\n',
+               1, 'CACE-LEAN-METADATA-LIFTIO-001'),
+          ]
+          for old, new, expected, fingerprint in replacements:
               found = text.count(old)
               if found != expected:
-                  raise SystemExit(
-                      f'{path}: failure fingerprint mismatch; expected {expected}, found {found}: {old!r}'
-                  )
-              path.write_text(text.replace(old, new), encoding='utf-8')
+                  raise SystemExit(f'{fingerprint}: expected {expected} occurrence(s), found {found}: {old!r}')
+              text = text.replace(old, new)
 
-          # Failure fingerprint CACE-LEAN-NHDS-001:
-          # wrappers used unavailable neighborhood notation although the generic theorem
-          # already uses the explicit Filter function name.
-          for name in ('GraphRegularizationCriterion.lean', 'RealGraphRegularizationCriterion.lean'):
-              path = root / name
-              before = path.read_bytes()
-              text = before.decode('utf-8')
-              found = text.count('(𝓝 x)')
-              if found != 2:
-                  raise SystemExit(
-                      f'{path}: CACE-LEAN-NHDS-001 fingerprint mismatch; expected 2, found {found}'
-                  )
-              path.write_text(text.replace('(𝓝 x)', '(nhds x)'), encoding='utf-8')
-              after = path.read_bytes()
-              hashes.append((name, sha256(before).hexdigest(), sha256(after).hexdigest()))
+          if 'let .thmInfo theorem := info' in text:
+              raise SystemExit('CACE-LEAN-METADATA-RESERVED-BINDER-001 survived candidate repair')
+          if 'liftIO <| IO.println' in text:
+              raise SystemExit('CACE-LEAN-METADATA-LIFTIO-001 survived candidate repair')
 
-          # Failure fingerprints CACE-LEAN-PI-MUL-001 and CACE-LEAN-PI-ADD-001:
-          # make pointwise function multiplication/addition normalization explicit so
-          # elaboration is not dependent on incidental simp imports.
-          path = root / 'SmoothBoxGreenAuto.lean'
-          before = path.read_bytes()
-          replace_exact(
-              path,
-              '  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using\n',
-              '  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction, Pi.mul_apply] using\n',
-          )
-          replace_exact(
-              path,
-              '    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using\n      hsum.add hdiv\n',
-              '    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction, Pi.add_apply] using\n      hsum.add hdiv\n',
-          )
+          path.write_text(text, encoding='utf-8')
           after = path.read_bytes()
-          hashes.append((path.name, sha256(before).hexdigest(), sha256(after).hexdigest()))
-
-          out = Path('formal-isolation-hashes.txt')
-          out.write_text(''.join(
-              f'{name} original_sha256={old} patched_sha256={new}\n'
-              for name, old, new in hashes
-          ), encoding='utf-8')
-          print(out.read_text(encoding='utf-8'), end='')
+          Path('metadata-isolation-hashes.txt').write_text(
+              f'{path.name} original_sha256={sha256(before).hexdigest()} patched_sha256={sha256(after).hexdigest()}\n',
+              encoding='utf-8',
+          )
+          print(Path('metadata-isolation-hashes.txt').read_text(encoding='utf-8'), end='')
           PY
 
-      - name: Compile exact previously failing modules
+      - name: Compile exact failed theorem metadata target
         shell: bash
         working-directory: formal/cace_formal
         run: |
           set -euo pipefail
           export PATH="$ELAN_HOME/bin:$PATH"
-          lake build \
-            CACEFormal.RealGraphRegularizationCriterion \
-            CACEFormal.GraphRegularizationCriterion \
-            CACEFormal.SmoothBoxGreenAuto \
-            2>&1 | tee "$GITHUB_WORKSPACE/formal-isolation-targets.log"
+          lake build CACEFormal.V330TheoremMetadata \
+            2>&1 | tee "$GITHUB_WORKSPACE/metadata-isolation-target.log"
 
-      - name: Compile audited continuum closure after isolated targets pass
-        shell: bash
-        working-directory: formal/cace_formal
-        run: |
-          set -euo pipefail
-          export PATH="$ELAN_HOME/bin:$PATH"
-          lake build CACEFormal.V330AxiomAudit \
-            2>&1 | tee "$GITHUB_WORKSPACE/formal-isolation-audit-target.log"
-
-      - name: Write non-qualifying isolation evidence
+      - name: Write recurrence-prevention evidence
         if: always()
         shell: bash
         run: |
@@ -185,30 +144,34 @@ jobs:
           import hashlib, json, os
           from pathlib import Path
 
-          def digest(path: str):
+          def digest(path):
               p = Path(path)
               return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
 
-          hashes = Path('formal-isolation-hashes.txt')
+          hashes = Path('metadata-isolation-hashes.txt')
           payload = {
-              'schema': 'cace-formal-isolation-probe-v2',
+              'schema': 'cace-formal-isolation-probe-v3',
               'git_commit': os.environ.get('GITHUB_SHA'),
               'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
               'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
               'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
               'failure_fingerprints': [
-                  'CACE-LEAN-NHDS-001',
-                  'CACE-LEAN-PI-MUL-001',
-                  'CACE-LEAN-PI-ADD-001',
+                  'CACE-LEAN-METADATA-RESERVED-BINDER-001',
+                  'CACE-LEAN-METADATA-LIFTIO-001',
               ],
               'proof_effect': 'none',
               'qualification_effect': 'none',
               'candidate_source_hashes': hashes.read_text(encoding='utf-8').splitlines() if hashes.exists() else [],
-              'target_build_log_sha256': digest('formal-isolation-targets.log'),
-              'audit_target_build_log_sha256': digest('formal-isolation-audit-target.log'),
-              'nonclaim': 'This isolated development probe tests recurrence-prevention candidates only. It does not qualify or promote any theorem; canonical exact-head qualification remains required.',
+              'target_build_log_sha256': digest('metadata-isolation-target.log'),
+              'recurrence_prevention': [
+                  'reject reserved theorem binder pattern',
+                  'reject liftIO IO.println pattern in run_meta exporter',
+                  'compile V330TheoremMetadata in isolation before canonical retry',
+                  'do not retry unchanged failure fingerprint/input hash',
+              ],
+              'nonclaim': 'This probe is engineering evidence only. It does not qualify theorem metadata or any mathematical claim.',
           }
-          Path('formal-isolation-evidence.json').write_text(
+          Path('metadata-isolation-evidence.json').write_text(
               json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8'
           )
           print(json.dumps(payload, indent=2, sort_keys=True))
@@ -218,11 +181,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cace-formal-isolation-probe-${{ github.run_id }}
+          name: cace-theorem-metadata-isolation-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           retention-days: 14
           path: |
-            formal-isolation-targets.log
-            formal-isolation-audit-target.log
-            formal-isolation-hashes.txt
-            formal-isolation-evidence.json
+            metadata-isolation-hashes.txt
+            metadata-isolation-target.log
+            metadata-isolation-evidence.json
