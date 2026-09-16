@@ -269,6 +269,7 @@ theorem h1RieszCorrection_eq_energyMultiplier {n : Nat}
         ((h1RieszSymbol i) * (h1RieszSymbol i)) u) =
       TemperedDistribution.fourierMultiplierCLM ℂ
         (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
+  rw [← Finset.sum_apply]
   simpa only [Pi.mul_apply] using hsum.symm
 
 /-- Exact Bessel/Riesz reconstruction of every scalar tempered distribution.  No Sobolev or L2
