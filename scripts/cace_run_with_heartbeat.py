@@ -49,23 +49,6 @@ def _write_json_atomic(path: Path, payload: dict) -> None:
     os.replace(tmp, path)
 
 
-def _publish_cache_persistence_compatibility_alias() -> None:
-    """Bridge the v3.37 workflow's legacy cache variable typo for later steps.
-
-    This is deliberately an acceleration-only compatibility shim. It does not
-    alter the cache identity, Lean build, theorem set, kernel audit, metadata,
-    hashes, or attestation. Remove it after the workflow spelling is corrected.
-    """
-
-    build_cache = os.environ.get("CACE_FORMAL_BUILD_CACHE")
-    github_env = os.environ.get("GITHUB_ENV")
-    if not build_cache or not github_env:
-        return
-    with Path(github_env).open("a", encoding="utf-8") as stream:
-        stream.write(f"CACE_FORMORMAL_BUILD_CACHE={build_cache}\n")
-    print("CACE_CACHE_COMPAT_ALIAS published for later workflow steps", flush=True)
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase", required=True)
@@ -103,11 +86,6 @@ def main() -> int:
     log_path = status_dir / f"{phase_slug}.log"
     heartbeat_path = status_dir / "heartbeat.jsonl"
     current_status_path = status_dir / "job_status.json"
-
-    # The canonical workflow currently has one legacy misspelling in its
-    # persistence step. Publish the correctly resolved cache path under that
-    # legacy name for subsequent workflow steps without changing proof behavior.
-    _publish_cache_persistence_compatibility_alias()
 
     start_mono = time.monotonic()
     state_lock = threading.Lock()
