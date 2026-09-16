@@ -1,10 +1,11 @@
 import CACEFormal.BoxClassicalAgreement
+import Mathlib.Analysis.Calculus.FDeriv.Congr
 import Mathlib.Analysis.Calculus.FDeriv.Mul
 import Mathlib.Analysis.Calculus.FDeriv.Pi
 
 namespace CACEFormal
 
-open Set Finset MeasureTheory
+open Set Finset MeasureTheory Filter
 open scoped BigOperators LineDeriv SchwartzMap
 
 namespace Continuum
@@ -26,7 +27,7 @@ noncomputable def smoothBoxProductFDeriv {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     BoxPoint n →L[ℝ] BoxPoint n :=
   ContinuousLinearMap.pi fun i =>
-    v x • fderiv ℝ (q i) x + q i x • fderiv ℝ v x
+    v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)
 
 /-- The derivative used by the box divergence theorem is generated automatically from the
 Schwartz smooth-core data by the Frechet product rule. -/
@@ -34,8 +35,24 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     HasFDerivAt (scalarTimesVector v (smoothBoxVectorFunction q))
       (smoothBoxProductFDeriv q v x) x := by
-  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using
-    (hasFDerivAt_pi.2 fun i => (v.hasFDerivAt x).mul ((q i).hasFDerivAt x))
+  apply hasFDerivAt_pi'.2
+  intro i
+  have hq :
+      HasFDerivAt (q i : BoxPoint n → ℝ) (fderiv ℝ (q i) x) x := by
+    exact (q i).hasFDerivAt x
+  have hprod :
+      HasFDerivAt
+        ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ))
+        (v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)) x :=
+    (v.hasFDerivAt x).smul hq
+  have hfun :
+      (fun y : BoxPoint n => v y * (q i) y) =ᶠ[nhds x]
+        ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ)) := by
+    filter_upwards [] with y
+    rfl
+  have htarget := hfun.hasFDerivAt_iff.mpr hprod
+  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
+    ContinuousLinearMap.proj_pi] using htarget
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
 `q · ∇v + (div q) v`. This is the local calculus obligation that v3.29 left explicit. -/
@@ -55,7 +72,7 @@ theorem smoothBoxProduct_divergence_eq_greenVolume {n : Nat}
       apply Finset.sum_congr rfl
       intro i hi
       simp [smoothBoxProductFDeriv, SchwartzMap.lineDerivOp_apply_eq_fderiv,
-        boxBasisVector]
+        boxBasisVector, mul_comm]
     _ = (∑ i : Fin (n + 1), q i x * (∂_{boxBasisVector i} v) x) +
         (∑ i : Fin (n + 1), (∂_{boxBasisVector i} (q i)) x) * v x := by
       rw [Finset.sum_add_distrib, ← Finset.mul_sum]
@@ -95,14 +112,11 @@ theorem smoothBoxProduct_divergence_integrableOn {n : Nat}
         (fun x => ∑ i : Fin (n + 1), q i x * (∂_{boxBasisVector i} v) x)
         (Icc a b) := by
     exact integrable_finsetSum _ (fun i _ => hfield i)
-  have hgreen :
-      IntegrableOn
-        (smoothGreenVolumeTerm (smoothBoxVectorFunction q) v
-          (smoothBoxGradientFunction v) (smoothBoxDivergence q))
-        (Icc a b) := by
-    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using
-      hsum.add hdiv
-  simpa only [smoothBoxProduct_divergence_eq_greenVolume] using hgreen
+  exact (hsum.add hdiv).congr_fun
+    (fun x hx => by
+      simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using
+        (smoothBoxProduct_divergence_eq_greenVolume q v x).symm)
+    measurableSet_Icc
 
 /-- Fully automatic smooth Green identity on the actual Schwartz core used by CACE's bounded-box
 graph spaces. No caller-supplied derivative family, exceptional set, continuity proof,
