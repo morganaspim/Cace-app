@@ -25,9 +25,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pr-sentinel:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Confirm historical compatibility is deferred
+        shell: bash
+        run: |
+          echo 'Historical CACEFormal aggregate compatibility is manual-only and non-qualifying.'
+
   compatibility:
-    # PR events intentionally instantiate no runner job. Full historical compatibility
-    # is manual-only because it is non-qualifying and expensive.
+    # Full historical compatibility is manual-only because it is non-qualifying and expensive.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
