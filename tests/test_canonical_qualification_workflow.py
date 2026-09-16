@@ -8,6 +8,9 @@ WORKFLOW = ROOT / ".github/workflows/cace-formal-v336-theorem-metadata.yml"
 H1_BESSEL_RIESZ = (
     ROOT / "formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean"
 )
+THEOREM_METADATA = (
+    ROOT / "formal/cace_formal/CACEFormal/V330TheoremMetadata.lean"
+)
 LEGACY_PROOF_WORKFLOWS = (
     ROOT / ".github/workflows/cace-formal-v330.yml",
     ROOT / ".github/workflows/cace-h1-reconstruction-v337.yml",
@@ -113,3 +116,20 @@ def test_h1_bessel_riesz_uses_semantic_regression_boundaries():
 
     assert "exact fourierInv_add _ _" in text
     assert "rw [map_add]" not in text
+
+
+def test_theorem_metadata_rejects_known_lean432_recurrence_patterns():
+    """Fail cheaply before formal compilation if either metadata bug class returns."""
+    text = THEOREM_METADATA.read_text(encoding="utf-8")
+
+    assert "let .thmInfo theorem := info" not in text
+    assert "theorem.value" not in text
+    assert "theorem.type" not in text
+    assert "theorem.levelParams" not in text
+    assert "liftIO <| IO.println" not in text
+
+    assert "let .thmInfo thm := info" in text
+    assert "thm.value" in text
+    assert "thm.type" in text
+    assert "thm.levelParams" in text
+    assert 'IO.println s!"CACE_THEOREM_METADATA\\t{record.compress}"' in text

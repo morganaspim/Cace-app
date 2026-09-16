@@ -104,21 +104,21 @@ private def namesJson (names : List Name) : Json :=
 private def theoremRecord (env : Environment) (name : Name) : MetaM Json := do
   let some info := env.find? name
     | throwError "continuum metadata exporter: missing declaration {name}"
-  let .thmInfo theorem := info
+  let .thmInfo thm := info
     | throwError "continuum metadata exporter: {name} is not a theorem declaration"
-  let direct := theoremDependencies env name theorem.value
+  let direct := theoremDependencies env name thm.value
   let transitive := (theoremClosure env direct []).filter (· != name)
   let statement ← withOptions (fun options =>
       options.setBool `pp.all true |>.setBool `pp.universes true) do
-    pure s!"{← ppExpr theorem.type}"
+    pure s!"{← ppExpr thm.type}"
   pure <| Json.mkObj [
     ("schema", toJson "cace-lean-theorem-record-v1"),
     ("generator", toJson "CACEFormal.V330TheoremMetadata"),
     ("theorem", toJson name.toString),
     ("declaration_kind", toJson "theorem"),
-    ("level_parameters", toJson (theorem.levelParams.map Name.toString)),
+    ("level_parameters", toJson (thm.levelParams.map Name.toString)),
     ("statement_pp_all", toJson statement),
-    ("statement_constants", namesJson (collectConstants theorem.type)),
+    ("statement_constants", namesJson (collectConstants thm.type)),
     ("direct_cace_theorem_dependencies", namesJson direct),
     ("transitive_cace_theorem_dependencies", namesJson transitive)
   ]
@@ -127,6 +127,6 @@ run_meta do
   let env ← getEnv
   for name in endpoints do
     let record ← theoremRecord env name
-    liftIO <| IO.println s!"CACE_THEOREM_METADATA\t{record.compress}"
+    IO.println s!"CACE_THEOREM_METADATA\t{record.compress}"
 
 end CACEFormal.V330TheoremMetadata
