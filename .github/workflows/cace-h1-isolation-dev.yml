@@ -1,4 +1,4 @@
-name: CACE H1 isolated proof repair probe
+name: CACE formal isolated repair probe
 
 on:
   workflow_dispatch:
@@ -10,12 +10,20 @@ on:
 permissions:
   contents: read
 
+# Failure-prevention architecture:
+# - Reuse this already-registered/previously-executed isolation harness instead of
+#   creating a new one-off workflow for each proof failure.
+# - Every candidate edit is guarded by an exact source fingerprint.
+# - The originally failing modules must compile in isolation before the broader
+#   audited target is attempted.
+# - Results are development evidence only; canonical exact-head qualification is
+#   always required after source changes.
 concurrency:
-  group: cace-h1-isolation-dev
+  group: cace-formal-isolation-dev
   cancel-in-progress: false
 
 jobs:
-  h1-isolation:
+  formal-isolation:
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 30
     env:
@@ -85,7 +93,7 @@ jobs:
             echo "CACE_ISOLATION_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
           fi
 
-      - name: Apply isolated structural proof candidate
+      - name: Apply exact-fingerprint continuum repair candidates
         shell: bash
         run: |
           set -euo pipefail
@@ -93,29 +101,80 @@ jobs:
           from hashlib import sha256
           from pathlib import Path
 
-          path = Path('formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean')
-          text = path.read_text(encoding='utf-8')
-          old = '  rw [← Finset.sum_apply]\n'
-          new = '  rw [← _root_.sum_apply]\n'
-          if text.count(old) != 1:
-              raise SystemExit(f'expected exactly one Finset.sum_apply fingerprint; found {text.count(old)}')
-          original_hash = sha256(text.encode()).hexdigest()
-          patched = text.replace(old, new, 1)
-          patched_hash = sha256(patched.encode()).hexdigest()
-          path.write_text(patched, encoding='utf-8')
-          Path('h1-isolation-hashes.txt').write_text(
-              f'original_sha256={original_hash}\npatched_sha256={patched_hash}\n', encoding='utf-8'
+          root = Path('formal/cace_formal/CACEFormal')
+          hashes = []
+
+          def replace_exact(path: Path, old: str, new: str, expected: int = 1) -> None:
+              text = path.read_text(encoding='utf-8')
+              found = text.count(old)
+              if found != expected:
+                  raise SystemExit(
+                      f'{path}: failure fingerprint mismatch; expected {expected}, found {found}: {old!r}'
+                  )
+              path.write_text(text.replace(old, new), encoding='utf-8')
+
+          # Failure fingerprint CACE-LEAN-NHDS-001:
+          # wrappers used unavailable neighborhood notation although the generic theorem
+          # already uses the explicit Filter function name.
+          for name in ('GraphRegularizationCriterion.lean', 'RealGraphRegularizationCriterion.lean'):
+              path = root / name
+              before = path.read_bytes()
+              text = before.decode('utf-8')
+              found = text.count('(𝓝 x)')
+              if found != 2:
+                  raise SystemExit(
+                      f'{path}: CACE-LEAN-NHDS-001 fingerprint mismatch; expected 2, found {found}'
+                  )
+              path.write_text(text.replace('(𝓝 x)', '(nhds x)'), encoding='utf-8')
+              after = path.read_bytes()
+              hashes.append((name, sha256(before).hexdigest(), sha256(after).hexdigest()))
+
+          # Failure fingerprints CACE-LEAN-PI-MUL-001 and CACE-LEAN-PI-ADD-001:
+          # make pointwise function multiplication/addition normalization explicit so
+          # elaboration is not dependent on incidental simp imports.
+          path = root / 'SmoothBoxGreenAuto.lean'
+          before = path.read_bytes()
+          replace_exact(
+              path,
+              '  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using\n',
+              '  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction, Pi.mul_apply] using\n',
           )
-          print(f'CACE_H1_ISOLATION_PATCH original={original_hash} patched={patched_hash}')
+          replace_exact(
+              path,
+              '    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using\n      hsum.add hdiv\n',
+              '    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction, Pi.add_apply] using\n      hsum.add hdiv\n',
+          )
+          after = path.read_bytes()
+          hashes.append((path.name, sha256(before).hexdigest(), sha256(after).hexdigest()))
+
+          out = Path('formal-isolation-hashes.txt')
+          out.write_text(''.join(
+              f'{name} original_sha256={old} patched_sha256={new}\n'
+              for name, old, new in hashes
+          ), encoding='utf-8')
+          print(out.read_text(encoding='utf-8'), end='')
           PY
 
-      - name: Compile isolated H1 Bessel-Riesz module
+      - name: Compile exact previously failing modules
         shell: bash
         working-directory: formal/cace_formal
         run: |
           set -euo pipefail
           export PATH="$ELAN_HOME/bin:$PATH"
-          lake build CACEFormal.H1BesselRieszReduction 2>&1 | tee "$GITHUB_WORKSPACE/h1-isolation-build.log"
+          lake build \
+            CACEFormal.RealGraphRegularizationCriterion \
+            CACEFormal.GraphRegularizationCriterion \
+            CACEFormal.SmoothBoxGreenAuto \
+            2>&1 | tee "$GITHUB_WORKSPACE/formal-isolation-targets.log"
+
+      - name: Compile audited continuum closure after isolated targets pass
+        shell: bash
+        working-directory: formal/cace_formal
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          lake build CACEFormal.V330AxiomAudit \
+            2>&1 | tee "$GITHUB_WORKSPACE/formal-isolation-audit-target.log"
 
       - name: Write non-qualifying isolation evidence
         if: always()
@@ -126,21 +185,30 @@ jobs:
           import hashlib, json, os
           from pathlib import Path
 
-          log = Path('h1-isolation-build.log')
-          hashes = Path('h1-isolation-hashes.txt')
+          def digest(path: str):
+              p = Path(path)
+              return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+
+          hashes = Path('formal-isolation-hashes.txt')
           payload = {
-              'schema': 'cace-h1-isolation-probe-v1',
+              'schema': 'cace-formal-isolation-probe-v2',
               'git_commit': os.environ.get('GITHUB_SHA'),
               'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
               'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
               'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
+              'failure_fingerprints': [
+                  'CACE-LEAN-NHDS-001',
+                  'CACE-LEAN-PI-MUL-001',
+                  'CACE-LEAN-PI-ADD-001',
+              ],
               'proof_effect': 'none',
               'qualification_effect': 'none',
               'candidate_source_hashes': hashes.read_text(encoding='utf-8').splitlines() if hashes.exists() else [],
-              'build_log_sha256': hashlib.sha256(log.read_bytes()).hexdigest() if log.exists() else None,
-              'nonclaim': 'This isolated development probe does not qualify or promote any theorem. Canonical exact-head qualification remains required.',
+              'target_build_log_sha256': digest('formal-isolation-targets.log'),
+              'audit_target_build_log_sha256': digest('formal-isolation-audit-target.log'),
+              'nonclaim': 'This isolated development probe tests recurrence-prevention candidates only. It does not qualify or promote any theorem; canonical exact-head qualification remains required.',
           }
-          Path('h1-isolation-evidence.json').write_text(
+          Path('formal-isolation-evidence.json').write_text(
               json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8'
           )
           print(json.dumps(payload, indent=2, sort_keys=True))
@@ -150,10 +218,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cace-h1-isolation-probe-${{ github.run_id }}
+          name: cace-formal-isolation-probe-${{ github.run_id }}
           if-no-files-found: warn
           retention-days: 14
           path: |
-            h1-isolation-build.log
-            h1-isolation-hashes.txt
-            h1-isolation-evidence.json
+            formal-isolation-targets.log
+            formal-isolation-audit-target.log
+            formal-isolation-hashes.txt
+            formal-isolation-evidence.json
