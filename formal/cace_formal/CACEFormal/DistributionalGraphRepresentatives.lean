@@ -53,10 +53,8 @@ theorem inH1GraphRepresentative_mem {n : Nat}
     inH1GraphRepresentative u hu ∈ H1DistributionalGraphSubmodule n := by
   rw [mem_H1DistributionalGraphSubmodule_iff]
   intro i
-  rw [complexL2ToDistribution_l2RepresentativeOfInL2
-      u (h1_l2 hu),
-    complexL2ToDistribution_l2RepresentativeOfInL2
-      (weakPartial i u) (h1_weakPartial_l2 hu i)]
+  simpa [inH1GraphRepresentative,
+    complexL2ToDistribution_l2RepresentativeOfInL2]
 
 /-- The value coordinate of the chosen H1 graph representative is exactly the original distribution. -/
 theorem inH1GraphRepresentative_value {n : Nat}
