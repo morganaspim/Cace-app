@@ -1,5 +1,5 @@
 name: CACE Formal compatibility v3.21-v3.25
-# Compatibility trigger nonce: 2026-09-15-initial-validation
+# Historical compatibility is non-qualifying and must not consume the trusted proof runner.
 
 on:
   workflow_dispatch:
@@ -26,32 +26,39 @@ concurrency:
 
 jobs:
   compatibility:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, cace, oci, aarch64]
+    # PR events intentionally instantiate no runner job. Full historical compatibility
+    # is manual-only because it is non-qualifying and expensive.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
-      ELAN_HOME: /var/lib/cace-cache/elan
-      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
-      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
-      CACE_BUILD_CACHE_ROOT: /var/lib/cace-cache/canonical-qualification-build/leanprover_lean4_v4.32.1/520045ab14e26149ee970e2e617ca04b09bde5d6
 
     steps:
-      - name: Checkout exact PR head
+      - name: Checkout exact requested head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
           clean: true
           persist-credentials: false
+
+      - name: Configure ephemeral compatibility caches
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ELAN_HOME=$RUNNER_TEMP/cace-compat-elan" >> "$GITHUB_ENV"
+          echo "CACE_PACKAGE_CACHE=$RUNNER_TEMP/cace-compat-cache/packages" >> "$GITHUB_ENV"
+          echo "CACE_PACKAGE_CACHE_LOCK=$RUNNER_TEMP/cace-compat-cache.lock" >> "$GITHUB_ENV"
+          echo "CACE_BUILD_CACHE_ROOT=$RUNNER_TEMP/cace-compat-build-cache" >> "$GITHUB_ENV"
 
       - name: Establish exact compatibility head
         shell: bash
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          expected="$GITHUB_SHA"
           test "$actual" = "$expected"
           echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
           echo "compatibility_head=$actual"
