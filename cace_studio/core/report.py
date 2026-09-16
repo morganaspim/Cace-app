@@ -5,6 +5,9 @@ import hashlib, json, platform, sys
 from typing import Any
 
 
+REPORT_SCHEMA = 4
+
+
 def _clean(v: Any) -> Any:
     try:
         import numpy as np
@@ -84,7 +87,7 @@ def run_report(result, experiment_name: str) -> dict[str, Any]:
     identity = _run_identity(result)
     recorded_name = identity["experiment_name"] or experiment_name
     return {
-        "report_schema": 4,
+        "report_schema": REPORT_SCHEMA,
         "experiment": recorded_name,
         "run_id": result.run_id,
         "run_scope": identity["run_scope"],

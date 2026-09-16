@@ -192,10 +192,20 @@ def test_module_resolution_uses_registry_then_formal_artifact_fallback():
     assert missing is None
 
 
-def test_default_v330_exposes_contract_but_remains_unqualified():
-    view = ProofExplorer().claim_view("cace.v330.continuum-proof-strengthening")
+def test_default_v330_exposes_authoritative_contract_but_remains_unqualified():
+    claim_id = "cace.v330.continuum-proof-strengthening"
+    contract = ProofContractRegistry.load_default().for_claim(claim_id)
+    assert contract is not None
+
+    view = ProofExplorer().claim_view(claim_id)
     assert view.current_head_qualified is False
     assert view.qualification_state == "UNQUALIFIED"
-    assert view.proof_contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
-    assert len(view.endpoint_theorems) == 37
-    assert view.theorem_dependency_metadata_state == "LEAN_GENERATED"
+    assert view.proof_contract_id == contract.contract_id
+    assert view.proof_contract_sha256 == contract.contract_sha256
+    assert view.proof_contract_build_target == contract.build_target
+    assert view.endpoint_theorems == contract.endpoint_theorems
+    assert view.audited_source_files == contract.audited_source_files
+    assert view.allowed_axioms == contract.allowed_axioms
+    assert view.required_checks == contract.required_checks
+    assert view.theorem_dependency_metadata_state == contract.theorem_dependency_metadata_state
+    assert view.theorem_dependency_metadata_note == contract.theorem_dependency_metadata_note

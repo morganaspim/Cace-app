@@ -7,7 +7,7 @@ from cace_studio.core.execution_scope import build_upstream_subgraph
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.module import Module, ValidationError
 from cace_studio.core.registry import ModuleRegistry
-from cace_studio.core.report import run_report
+from cace_studio.core.report import REPORT_SCHEMA, run_report
 from cace_studio.core.types import Maturity, ModuleMetadata, ParameterSpec, PortSpec
 
 
@@ -107,7 +107,7 @@ def test_selected_upstream_execution_is_bound_to_source_and_scope_identity():
     assert len(result.execution_scope_sha256) == 64
 
     report = run_report(result, source.name)
-    assert report["report_schema"] == 4
+    assert report["report_schema"] == REPORT_SCHEMA
     assert report["run_scope"] == "selected-upstream"
     assert report["scope_target_node_ids"] == ["c"]
     assert report["scope_included_node_ids"] == ["a", "b", "c"]

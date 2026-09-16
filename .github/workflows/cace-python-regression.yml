@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
-    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'quality/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
   pull_request:
-    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
+    paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'quality/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
 permissions:
   contents: read
 concurrency:
@@ -56,6 +56,13 @@ jobs:
           "$RUNNER_TEMP/cace-regression/bin/python" -m pip install -e '.[test]' cmake
           "$RUNNER_TEMP/cace-regression/bin/python" -m pip freeze > regression-environment.txt
           echo "$RUNNER_TEMP/cace-regression/bin" >> "$GITHUB_PATH"
+      - name: Repository bug sweep
+        id: bug_sweep
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/check_bug_sweep.py --output bug-sweep.json
       - name: Native C++ build and smoke test
         shell: bash
         run: |
@@ -70,15 +77,37 @@ jobs:
           python scripts/generate_ai_indexes.py
           python scripts/generate_ai_indexes.py --check
       - name: Full Python regression with native library available
+        id: python_tests
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           python -m pytest --junitxml=regression-results.xml
       - name: Qualification drift audit
+        id: qualification_drift
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           python scripts/check_qualification_drift.py --output qualification-drift.json
+      - name: Core regression acceptance gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          check_outcome() {
+            local label="$1"
+            local outcome="$2"
+            if [[ "$outcome" != "success" ]]; then
+              echo "$label outcome: $outcome" >&2
+              failed=1
+            fi
+          }
+          check_outcome "repository bug sweep" "${{ steps.bug_sweep.outcome }}"
+          check_outcome "full Python regression" "${{ steps.python_tests.outcome }}"
+          check_outcome "qualification drift audit" "${{ steps.qualification_drift.outcome }}"
+          exit "$failed"
       - name: Build Python wheel and check installed interfaces
         shell: bash
         run: |
@@ -108,6 +137,7 @@ jobs:
         with:
           name: cace-regression-evidence
           path: |
+            bug-sweep.json
             regression-results.xml
             regression-environment.txt
             wheel-registry.json

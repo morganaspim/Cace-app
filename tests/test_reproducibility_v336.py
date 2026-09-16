@@ -11,42 +11,21 @@ from cace_studio.core.reproducibility import (
     experiment_fingerprint,
     reproducibility_manifest,
 )
-
-
-class _Meta:
-    module_id = "m.test"
-    name = "Test"
-    version = "1"
-    category = "Tests"
-    description = "test"
-    maturity = type("M", (), {"value": "experimental"})()
-    assumptions = ()
-
-
-class _Proof:
-    evidence = set()
-    unit_tests = True
-    property_tests = False
-    regression_tests = False
-    documentation = False
-    benchmarked = False
-    formal_artifact = None
-    limitations = []
-
-
-class _Port:
-    def __init__(self, name):
-        self.name = name
-        self.type_name = "number"
-        self.required = True
-        self.unit = None
+from cace_studio.core.types import Maturity, ModuleMetadata, PortSpec, ProofStatus
 
 
 class _Module:
-    metadata = _Meta()
-    proof_status = _Proof()
-    inputs = (_Port("x"),)
-    outputs = (_Port("y"),)
+    metadata = ModuleMetadata(
+        "m.test",
+        "Test",
+        "1",
+        "Tests",
+        "test",
+        Maturity.EXPERIMENTAL,
+    )
+    proof_status = ProofStatus(unit_tests=True)
+    inputs = (PortSpec("x", "number"),)
+    outputs = (PortSpec("y", "number"),)
     parameters = ()
     supports_gpu = False
 

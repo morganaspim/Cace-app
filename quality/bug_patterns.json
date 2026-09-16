@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "policy": "Every confirmed bug class receives a permanent machine-checkable guard when practical.",
+  "patterns": [
+    {
+      "id": "no-numeric-report-schema-test-oracles",
+      "description": "Tests must import the canonical REPORT_SCHEMA constant rather than duplicate a numeric schema version.",
+      "include": ["tests/**/*.py"],
+      "exclude": [],
+      "forbid_regex": "report\\[\\s*[\\\"']report_schema[\\\"']\\s*\\]\\s*==\\s*\\d+\\b"
+    },
+    {
+      "id": "no-hand-rolled-reproducibility-contract-stubs",
+      "description": "Reproducibility tests must use canonical ModuleMetadata, ProofStatus and PortSpec types so contract evolution is exercised directly.",
+      "include": ["tests/test_reproducibility_v336.py"],
+      "exclude": [],
+      "forbid_regex": "class\\s+_(?:Meta|Proof|Port)\\b"
+    }
+  ]
+}
