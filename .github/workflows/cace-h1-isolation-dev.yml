@@ -95,27 +95,15 @@ jobs:
 
           path = Path('formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean')
           text = path.read_text(encoding='utf-8')
-          old = '''  change
-            (∑ i : Fin n,
-              TemperedDistribution.fourierMultiplierCLM ℂ
-                ((h1RieszSymbol i) * (h1RieszSymbol i)) u) =
-              TemperedDistribution.fourierMultiplierCLM ℂ
-                (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
-          rw [← Finset.sum_apply]
-          simpa only [Pi.mul_apply] using hsum.symm
-          '''
-          new = '''  change
-            (∑ i : Fin n,
-              TemperedDistribution.fourierMultiplierCLM ℂ
-                ((h1RieszSymbol i) * (h1RieszSymbol i))) u =
-              TemperedDistribution.fourierMultiplierCLM ℂ
-                (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
-          simpa only [Pi.mul_apply] using hsum.symm
-          '''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected exactly one proof fingerprint; found {text.count(old)}')
+          old_grouping = '        ((h1RieszSymbol i) * (h1RieszSymbol i)) u) ='
+          new_grouping = '        ((h1RieszSymbol i) * (h1RieszSymbol i))) u ='
+          old_rewrite = '  rw [← Finset.sum_apply]\n'
+          if text.count(old_grouping) != 1:
+              raise SystemExit(f'expected exactly one CLM grouping fingerprint; found {text.count(old_grouping)}')
+          if text.count(old_rewrite) != 1:
+              raise SystemExit(f'expected exactly one sum_apply fingerprint; found {text.count(old_rewrite)}')
           original_hash = sha256(text.encode()).hexdigest()
-          patched = text.replace(old, new)
+          patched = text.replace(old_grouping, new_grouping, 1).replace(old_rewrite, '', 1)
           patched_hash = sha256(patched.encode()).hexdigest()
           path.write_text(patched, encoding='utf-8')
           Path('h1-isolation-hashes.txt').write_text(
