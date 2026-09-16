@@ -1,0 +1,223 @@
+name: CACE H¹ frontier probe v2
+
+# Development-only learning probe. This may reuse a compatible CACE build cache.
+# It is not qualification evidence and cannot produce a qualification attestation.
+on:
+  workflow_dispatch:
+  push:
+    branches: [executor/cace-proof-qualification-locked]
+    paths:
+      - '.github/workflows/cace-h1-frontier-probe-v2.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-h1-frontier-probe-v2
+  cancel-in-progress: false
+
+jobs:
+  h1-frontier:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 180
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_BUILD_CACHE_BASE: /var/lib/cace-cache/canonical-qualification-build/leanprover_lean4_v4.32.1/520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_BASELINE_TREE: ab2cdf037ba4a523adec35c994f13b278fb5e66f
+      CACE_HEARTBEAT_SECONDS: '30'
+      CACE_STALL_WARN_SECONDS: '600'
+      CACE_STALL_KILL_SECONDS: '3600'
+
+    steps:
+      - name: Checkout exact probe commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          clean: true
+          persist-credentials: false
+
+      - name: Establish exact-head probe boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          status_dir="$RUNNER_TEMP/cace-h1-v2-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          root="$(mktemp -d /var/tmp/cace-h1-v2.XXXXXXXX)"
+          mkdir -p "$status_dir" "$root/formal" "$root/cache" "$root/output"
+          cp -a formal/cace_formal/. "$root/formal/"
+          rm -rf "$root/formal/.lake/build"
+          formal_tree="$(git rev-parse "$actual:formal/cace_formal")"
+          echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
+          echo "CACE_STATUS_DIR=$status_dir" >> "$GITHUB_ENV"
+          echo "CACE_BUILD_ROOT=$root" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_DIR=$root/formal" >> "$GITHUB_ENV"
+          echo "CACE_OUTPUT_DIR=$root/output" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_TREE_SHA=$formal_tree" >> "$GITHUB_ENV"
+          echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
+          echo "XDG_CACHE_HOME=$root/cache" >> "$GITHUB_ENV"
+          printf '%s\n' "$actual" > "$status_dir/exact_head.txt"
+          printf '%s\n' "$formal_tree" > "$status_dir/formal_tree_sha.txt"
+          printf '%s\n' 'DEVELOPMENT_PROBE_ONLY' > "$status_dir/evidence_class.txt"
+
+      - name: Seed pinned dependencies and Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          test -x "$ELAN_HOME/bin/elan"
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          mkdir -p "$CACE_FORMAL_DIR/.lake"
+          rm -rf "$CACE_FORMAL_DIR/.lake/packages"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" "$CACE_FORMAL_DIR/.lake/packages"
+          flock -u 9
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat "$CACE_FORMAL_DIR/lean-toolchain")" = "$CACE_TOOLCHAIN"
+          (cd "$CACE_FORMAL_DIR" && lean --version && lake --version)
+
+      - name: Resolve exact dependency closure
+        shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        run: |
+          set -euo pipefail
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          lake build +Cache.Main
+          rm -rf .lake/build
+
+      - name: Restore validated ancestor CACE cache for probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline="$CACE_BUILD_CACHE_BASE/$CACE_BASELINE_TREE"
+          test -d "$baseline/build"
+          test "$(cat "$baseline/mathlib_commit.txt")" = "$CACE_MATHLIB_COMMIT"
+          test "$(cat "$baseline/lean_toolchain.txt")" = "$CACE_TOOLCHAIN"
+          mkdir -p "$CACE_FORMAL_DIR/.lake"
+          cp -a --reflink=auto "$baseline/build" "$CACE_FORMAL_DIR/.lake/build"
+          touch "$CACE_FORMAL_DIR/CACEFormal/DistributionalGraphRepresentatives.lean"
+          touch "$CACE_FORMAL_DIR/CACEFormal/H1GraphConverse.lean"
+          printf '%s\n' "$CACE_BASELINE_TREE" > "$CACE_STATUS_DIR/cache_baseline_tree.txt"
+          printf '%s\n' 'ancestor-for-development-only' > "$CACE_STATUS_DIR/cache_mode.txt"
+          echo "CACE_PROBE_CACHE_HIT baseline=$CACE_BASELINE_TREE current=$CACE_FORMAL_TREE_SHA"
+
+      - name: Static proof guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            formal/cace_formal/CACEFormal/H1DomainBridge.lean
+            formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean
+            formal/cace_formal/CACEFormal/H1GraphConverse.lean
+          )
+          if grep -nE '\bsorry\b|\badmit\b|OPEN OBLIGATION' "${files[@]}"; then
+            echo 'Unfinished proof token in H1 frontier.' >&2
+            exit 1
+          fi
+          if grep -n '𝓝' "${files[@]}"; then
+            echo 'Fragile neighborhood notation remains in H1 frontier.' >&2
+            exit 1
+          fi
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_SHA"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
+
+      - name: Compile H1 frontier
+        shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase h1-frontier-v2 -- lake build CACEFormal.H1GraphConverse
+
+      - name: Kernel axiom probe for H1 endpoints
+        shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        run: |
+          set -euo pipefail
+          cat > "$CACE_OUTPUT_DIR/H1AxiomProbe.lean" <<'LEAN'
+          import CACEFormal.H1GraphConverse
+          #print axioms CACEFormal.Continuum.besselRiesz_reconstruction
+          #print axioms CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction
+          #print axioms CACEFormal.Continuum.inH1_of_inL2_weakPartial_inL2
+          #print axioms CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule
+          #print axioms CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative
+          LEAN
+          output="$(lake env lean "$CACE_OUTPUT_DIR/H1AxiomProbe.lean")"
+          printf '%s\n' "$output" | tee "$CACE_OUTPUT_DIR/h1_axioms.txt"
+          if grep -q 'sorryAx' <<<"$output"; then exit 1; fi
+          python3 - "$output" <<'PY'
+          import re, sys
+          text = sys.argv[1]
+          allowed = {'propext', 'Classical.choice', 'Quot.sound'}
+          expected = {
+            'CACEFormal.Continuum.besselRiesz_reconstruction',
+            'CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction',
+            'CACEFormal.Continuum.inH1_of_inL2_weakPartial_inL2',
+            'CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule',
+            'CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative',
+          }
+          found = {}
+          for name, body in re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", text):
+              found[name] = {x.strip() for x in body.split(',') if x.strip()}
+          for name in re.findall(r"'([^']+)' does not depend on any axioms", text):
+              found[name] = set()
+          missing = expected - found.keys()
+          if missing:
+              raise SystemExit(f'missing axiom reports: {sorted(missing)}')
+          bad = {name: sorted(axes - allowed) for name, axes in found.items() if axes - allowed}
+          if bad:
+              raise SystemExit(f'non-whitelisted axioms: {bad}')
+          print('CACE_H1_AXIOM_PROBE_PASS')
+          PY
+
+      - name: Persist exact-tree development cache
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -d "${CACE_FORMAL_DIR:-}/.lake/build" ]]; then exit 0; fi
+          test "$(git rev-parse HEAD)" = "${CACE_EXPECTED_SHA:-}"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR" >/dev/null
+          target="$CACE_BUILD_CACHE_BASE/$CACE_FORMAL_TREE_SHA"
+          mkdir -p "$target"
+          staging="$target/build.staging.$GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT"
+          rm -rf "$staging"
+          cp -a --reflink=auto "$CACE_FORMAL_DIR/.lake/build" "$staging"
+          rm -rf "$target/build"
+          mv "$staging" "$target/build"
+          printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$target/mathlib_commit.txt"
+          printf '%s\n' "$CACE_TOOLCHAIN" > "$target/lean_toolchain.txt"
+          printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$target/formal_tree_sha.txt"
+          printf '%s\n' 'development-acceleration-only; never qualification evidence' > "$target/cache_policy.txt"
+          echo "CACE_PROBE_CACHE_PROMOTED tree=$CACE_FORMAL_TREE_SHA"
+
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-h1-frontier-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ env.CACE_STATUS_DIR }}
+            ${{ env.CACE_OUTPUT_DIR }}
+
+      - name: Clean temporary build
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${CACE_BUILD_ROOT:-}" == /var/tmp/cace-h1-v2.* && -O "$CACE_BUILD_ROOT" && ! -L "$CACE_BUILD_ROOT" ]]; then
+            rm -rf -- "$CACE_BUILD_ROOT"
+          fi
