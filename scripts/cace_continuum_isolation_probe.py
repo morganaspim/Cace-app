@@ -5,36 +5,93 @@ from pathlib import Path
 
 ROOT = Path("formal/cace_formal/CACEFormal")
 
+FAILURE_FINGERPRINTS = (
+    "CACE-LEAN-NHDS-001",
+    "CACE-LEAN-SMOOTH-CONGR-001",
+    "CACE-LEAN-COMPLEX-KERNEL-INFERENCE-001",
+)
+
 
 def replace_exact(path: Path, old: str, new: str, expected: int = 1) -> None:
     text = path.read_text(encoding="utf-8")
     found = text.count(old)
     if found != expected:
         raise SystemExit(
-            f"{path}: expected {expected} occurrences, found {found}: {old!r}"
+            f"{path}: failure fingerprint mismatch; expected {expected} occurrences, "
+            f"found {found}: {old!r}"
         )
     path.write_text(text.replace(old, new), encoding="utf-8")
+
+
+def record_hash(hashes: list[tuple[str, str, str]], path: Path, before: bytes) -> None:
+    after = path.read_bytes()
+    hashes.append((path.name, sha256(before).hexdigest(), sha256(after).hexdigest()))
 
 
 def main() -> None:
     hashes: list[tuple[str, str, str]] = []
 
-    for name in (
-        "GraphRegularizationCriterion.lean",
-        "RealGraphRegularizationCriterion.lean",
-    ):
-        path = ROOT / name
-        before = path.read_bytes()
-        text = before.decode("utf-8")
-        found = text.count("(𝓝 x)")
-        if found != 2:
-            raise SystemExit(
-                f"{path}: expected 2 neighborhood-notation occurrences, found {found}"
-            )
-        path.write_text(text.replace("(𝓝 x)", "(nhds x)"), encoding="utf-8")
-        after = path.read_bytes()
-        hashes.append((name, sha256(before).hexdigest(), sha256(after).hexdigest()))
+    # CACE-LEAN-NHDS-001
+    # Use the explicit Filter function name already used by the generic regularization theorem.
+    real_path = ROOT / "RealGraphRegularizationCriterion.lean"
+    real_before = real_path.read_bytes()
+    real_text = real_before.decode("utf-8")
+    real_found = real_text.count("(𝓝 x)")
+    if real_found != 2:
+        raise SystemExit(
+            f"{real_path}: CACE-LEAN-NHDS-001 mismatch; expected 2, found {real_found}"
+        )
+    real_path.write_text(real_text.replace("(𝓝 x)", "(nhds x)"), encoding="utf-8")
+    record_hash(hashes, real_path, real_before)
 
+    graph_path = ROOT / "GraphRegularizationCriterion.lean"
+    graph_before = graph_path.read_bytes()
+    graph_text = graph_before.decode("utf-8")
+    graph_found = graph_text.count("(𝓝 x)")
+    if graph_found != 2:
+        raise SystemExit(
+            f"{graph_path}: CACE-LEAN-NHDS-001 mismatch; expected 2, found {graph_found}"
+        )
+    graph_path.write_text(graph_text.replace("(𝓝 x)", "(nhds x)"), encoding="utf-8")
+
+    # CACE-LEAN-COMPLEX-KERNEL-INFERENCE-001
+    # Avoid the expensive kernel-definitional elaboration path.  The target relation already has a
+    # proved closedness theorem, so use the same generic closed-target regularization principle that
+    # compiles for the real wrapper.  This changes proof search, not the theorem statement.
+    old_eq = """  change (ComplexHDivSmoothGraphCore n).topologicalClosure =
+    (complexHDivGraphDefect n).ker
+  exact submodule_topologicalClosure_eq_ker_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    R hcore htendsto
+"""
+    new_eq = """  exact submodule_topologicalClosure_eq_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (HDivDistributionalGraphSubmodule n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
+    R hcore htendsto
+"""
+    replace_exact(graph_path, old_eq, new_eq)
+
+    old_le = """  change (complexHDivGraphDefect n).ker ≤
+    (ComplexHDivSmoothGraphCore n).topologicalClosure
+  exact ker_le_topologicalClosure_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    R hcore htendsto
+"""
+    new_le = """  exact submodule_le_topologicalClosure_of_regularizer
+    (ComplexHDivSmoothGraphCore n) (HDivDistributionalGraphSubmodule n)
+    (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
+    R hcore htendsto
+"""
+    replace_exact(graph_path, old_le, new_le)
+    record_hash(hashes, graph_path, graph_before)
+
+    # CACE-LEAN-SMOOTH-CONGR-001
+    # Replace fragile definitional/simp normalization with explicit derivative and integrability
+    # congruence bridges.  This candidate already compiled successfully in isolation.
     path = ROOT / "SmoothBoxGreenAuto.lean"
     before = path.read_bytes()
 
@@ -100,9 +157,11 @@ def main() -> None:
 """
     replace_exact(path, old_integrable, new_integrable)
 
-    after = path.read_bytes()
-    hashes.append((path.name, sha256(before).hexdigest(), sha256(after).hexdigest()))
+    record_hash(hashes, path, before)
 
+    Path("continuum-isolation-fingerprints.txt").write_text(
+        "\n".join(FAILURE_FINGERPRINTS) + "\n", encoding="utf-8"
+    )
     out = Path("continuum-isolation-hashes.txt")
     out.write_text(
         "".join(
@@ -111,6 +170,7 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
+    print(Path("continuum-isolation-fingerprints.txt").read_text(encoding="utf-8"), end="")
     print(out.read_text(encoding="utf-8"), end="")
 
 
