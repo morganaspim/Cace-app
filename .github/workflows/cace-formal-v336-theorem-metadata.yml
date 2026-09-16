@@ -1,5 +1,5 @@
 name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
-# Qualification trigger nonce: 2026-09-15-integrated-main-qualification
+# Qualification trigger nonce: 2026-09-16-proof-governance-overlay
 
 # Canonical OCI qualification is manual, with one deliberate self-trigger: a
 # change to this workflow file on the locked executor branch. Formal/source
@@ -109,6 +109,7 @@ jobs:
             tests/test_cli.py \
             tests/test_claim_registry_v331.py \
             tests/test_qualification_drift_v331.py \
+            tests/test_qualification_overlay_v337.py \
             tests/test_research_dynamics_v337.py \
             tests/test_research_geometry_v337.py \
             tests/test_export_v330_environment_metadata.py \
