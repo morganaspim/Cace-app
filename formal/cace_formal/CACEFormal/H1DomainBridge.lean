@@ -138,11 +138,14 @@ theorem complexH1SmoothGraphClosure_eq_distributional_of_regularizer
       Tendsto (fun k => R k x) atTop (nhds x)) :
     (ComplexH1SmoothGraphCore n).topologicalClosure =
       H1DistributionalGraphSubmodule n := by
-  change (ComplexH1SmoothGraphCore n).topologicalClosure =
-    (complexH1GraphDefect n).ker
-  exact submodule_topologicalClosure_eq_ker_of_regularizer
-    (ComplexH1SmoothGraphCore n) (complexH1GraphDefect n)
+  -- Use the already-closed distributional graph relation directly.  Re-unfolding it to a
+  -- continuous-linear-map kernel here forces Lean through a much larger definitional-equality
+  -- search without strengthening the theorem.
+  exact submodule_topologicalClosure_eq_of_regularizer
+    (𝕜 := ℂ) (E := H1ComplexGraphAmbient n)
+    (ComplexH1SmoothGraphCore n) (H1DistributionalGraphSubmodule n)
     (ComplexH1SmoothGraphCore_le_distributional n)
+    (isClosed_H1DistributionalGraphSubmodule n)
     R hcore htendsto
 
 end
