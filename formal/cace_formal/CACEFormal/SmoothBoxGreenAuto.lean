@@ -34,8 +34,11 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     HasFDerivAt (scalarTimesVector v (smoothBoxVectorFunction q))
       (smoothBoxProductFDeriv q v x) x := by
-  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using
-    (hasFDerivAt_pi.2 fun i => (v.hasFDerivAt x).mul ((q i).hasFDerivAt x))
+  apply hasFDerivAt_pi'.2
+  intro i
+  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
+    ContinuousLinearMap.proj_pi] using
+    (v.hasFDerivAt x).mul ((q i).hasFDerivAt x)
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
 `q · ∇v + (div q) v`. This is the local calculus obligation that v3.29 left explicit. -/
@@ -95,14 +98,11 @@ theorem smoothBoxProduct_divergence_integrableOn {n : Nat}
         (fun x => ∑ i : Fin (n + 1), q i x * (∂_{boxBasisVector i} v) x)
         (Icc a b) := by
     exact integrable_finsetSum _ (fun i _ => hfield i)
-  have hgreen :
-      IntegrableOn
-        (smoothGreenVolumeTerm (smoothBoxVectorFunction q) v
-          (smoothBoxGradientFunction v) (smoothBoxDivergence q))
-        (Icc a b) := by
-    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using
-      hsum.add hdiv
-  simpa only [smoothBoxProduct_divergence_eq_greenVolume] using hgreen
+  exact (hsum.add hdiv).congr_fun
+    (fun x hx => by
+      simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using
+        (smoothBoxProduct_divergence_eq_greenVolume q v x).symm)
+    measurableSet_Icc
 
 /-- Fully automatic smooth Green identity on the actual Schwartz core used by CACE's bounded-box
 graph spaces. No caller-supplied derivative family, exceptional set, continuity proof,
