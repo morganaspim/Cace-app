@@ -18,6 +18,11 @@ from typing import Any, Mapping
 from .proof_contract import ProofContractRegistry
 
 ATTESTATION_SCHEMA = "cace-continuum-qualification-attestation-v2"
+CACHE_POLICY = (
+    "Pinned Lean/toolchain state and exact-pin dependencies may be reused only as inputs; "
+    "CACE project build outputs, kernel audit results, theorem metadata, and attestations "
+    "are regenerated in the isolated exact-head qualification run."
+)
 _ALLOWED_SYSTEMS = frozenset({"github-actions", "local-exact-head"})
 _HEX = frozenset("0123456789abcdef")
 _EXPECTED_KEYS = frozenset(
@@ -187,7 +192,14 @@ def verify_qualification_attestation_bytes(
     if payload["build_target"] != contract.build_target:
         raise QualificationAttestationError("build_target differs from canonical contract")
     _require_nonempty(payload["lean_version"], "lean_version")
-    _require_nonempty(payload["lean_toolchain"], "lean_toolchain")
+    lean_toolchain = _require_nonempty(payload["lean_toolchain"], "lean_toolchain")
+    expected_toolchain = contract.dependency_pins.get("lean_toolchain")
+    if not expected_toolchain:
+        raise QualificationAttestationError(
+            "canonical proof contract is missing the Lean toolchain dependency pin"
+        )
+    if lean_toolchain != expected_toolchain:
+        raise QualificationAttestationError("Lean toolchain differs from canonical pin")
 
     mathlib_commit = _require_hex(payload["mathlib_commit"], 40, "mathlib_commit")
     if mathlib_commit != contract.dependency_pins.get("mathlib_commit"):
@@ -246,7 +258,11 @@ def verify_qualification_attestation_bytes(
     )
     _require_nonempty(payload["runner_name"], "runner_name")
     _require_nonempty(payload["runner_arch"], "runner_arch")
-    _require_nonempty(payload["cache_policy"], "cache_policy")
+    cache_policy = _require_nonempty(payload["cache_policy"], "cache_policy")
+    if cache_policy != CACHE_POLICY:
+        raise QualificationAttestationError(
+            "cache_policy differs from the fail-closed qualification policy"
+        )
 
     if qualification_system == "github-actions" and qualification_run_id != str(workflow_run_id):
         raise QualificationAttestationError(

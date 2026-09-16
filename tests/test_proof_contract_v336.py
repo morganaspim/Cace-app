@@ -7,7 +7,7 @@ import pytest
 from cace_studio.core.proof_contract import ProofContract, ProofContractRegistry
 
 
-EXPECTED_CONTINUUM_V3_HASH = "2ed39e71f86877c7f8ed07a697be7f8ae6398549b6d90a9456bb29679eeac847"
+EXPECTED_CONTINUUM_V3_HASH = "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0"
 
 
 def _contract_mapping() -> dict:
@@ -17,7 +17,10 @@ def _contract_mapping() -> dict:
         "formal_system": "lean4",
         "build_target": "Test.Audit",
         "toolchain_file": "formal/test/lean-toolchain",
-        "dependency_pins": {"mathlib_commit": "1" * 40},
+        "dependency_pins": {
+            "lean_toolchain": "leanprover/lean4:v4.32.1",
+            "mathlib_commit": "1" * 40,
+        },
         "endpoint_theorems": ["Test.endpoint"],
         "audited_source_files": ["Test/Audit.lean"],
         "allowed_axioms": ["propext"],
@@ -38,6 +41,7 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert len(contract.endpoint_theorems) == 37
     assert len(contract.audited_source_files) == 12
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
+    assert contract.dependency_pins["lean_toolchain"] == "leanprover/lean4:v4.32.1"
     assert contract.dependency_pins["mathlib_commit"] == "520045ab14e26149ee970e2e617ca04b09bde5d6"
     assert contract.theorem_dependency_metadata_state == "LEAN_GENERATED"
     assert "Lean.Environment" in contract.theorem_dependency_metadata_note
@@ -55,6 +59,15 @@ def test_contract_hash_changes_when_scope_changes():
     first = ProofContract.from_mapping(raw)
     changed = deepcopy(raw)
     changed["endpoint_theorems"].append("Test.secondEndpoint")
+    second = ProofContract.from_mapping(changed)
+    assert first.contract_sha256 != second.contract_sha256
+
+
+def test_contract_hash_changes_when_toolchain_pin_changes():
+    raw = _contract_mapping()
+    first = ProofContract.from_mapping(raw)
+    changed = deepcopy(raw)
+    changed["dependency_pins"]["lean_toolchain"] = "leanprover/lean4:v4.31.0"
     second = ProofContract.from_mapping(changed)
     assert first.contract_sha256 != second.contract_sha256
 

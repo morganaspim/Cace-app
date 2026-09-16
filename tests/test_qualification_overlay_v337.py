@@ -9,6 +9,7 @@ from cace_studio.cli import main as cli_main
 from cace_studio.core.proof_contract import ProofContractRegistry
 from cace_studio.core.proof_explorer import ProofExplorer
 from cace_studio.core.qualification_attestation import (
+    CACHE_POLICY,
     QualificationAttestationError,
     verify_qualification_attestation_bytes,
 )
@@ -37,7 +38,7 @@ def _payload(*, commit: str = COMMIT) -> dict:
         "formal_system": contract.formal_system,
         "build_target": contract.build_target,
         "lean_version": "Lean (version 4.32.1)",
-        "lean_toolchain": "leanprover/lean4:v4.32.1",
+        "lean_toolchain": contract.dependency_pins["lean_toolchain"],
         "mathlib_commit": contract.dependency_pins["mathlib_commit"],
         "audited_source_files": list(contract.audited_source_files),
         "audited_source_bundle_sha256": "2" * 64,
@@ -56,7 +57,7 @@ def _payload(*, commit: str = COMMIT) -> dict:
         "runner_name": "cace-oci-a1",
         "runner_arch": "ARM64",
         "current_head_required": True,
-        "cache_policy": "cache is acceleration-only and never qualification evidence",
+        "cache_policy": CACHE_POLICY,
         "nonclaims": list(contract.nonclaims),
     }
 
@@ -128,6 +129,37 @@ def test_contract_endpoint_or_check_drift_fails_closed():
     for field in ("endpoint_theorems", "qualification_checks"):
         payload = _payload()
         payload[field] = payload[field][:-1]
+        data = _bytes(payload)
+        with pytest.raises(QualificationAttestationError):
+            _verify(data)
+
+
+def test_toolchain_dependency_or_axiom_drift_fails_closed():
+    mutations = {
+        "lean_toolchain": "leanprover/lean4:v4.31.0",
+        "mathlib_commit": "7" * 40,
+        "allowed_axioms": [*_contract().allowed_axioms, "CACE.fakeAxiom"],
+    }
+    for field, value in mutations.items():
+        payload = _payload()
+        payload[field] = value
+        data = _bytes(payload)
+        with pytest.raises(QualificationAttestationError):
+            _verify(data)
+
+
+def test_cache_policy_downgrade_fails_closed():
+    payload = _payload()
+    payload["cache_policy"] = "cached qualification may be inherited"
+    data = _bytes(payload)
+    with pytest.raises(QualificationAttestationError, match="cache_policy"):
+        _verify(data)
+
+
+def test_status_and_current_head_requirement_cannot_be_downgraded():
+    for field, value in (("status", "NOT_RUN"), ("current_head_required", False)):
+        payload = _payload()
+        payload[field] = value
         data = _bytes(payload)
         with pytest.raises(QualificationAttestationError):
             _verify(data)

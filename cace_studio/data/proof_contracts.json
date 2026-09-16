@@ -24,6 +24,7 @@
       "claim_id": "cace.v330.continuum-proof-strengthening",
       "contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "dependency_pins": {
+        "lean_toolchain": "leanprover/lean4:v4.32.1",
         "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6"
       },
       "endpoint_theorems": [

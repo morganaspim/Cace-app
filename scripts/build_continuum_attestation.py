@@ -21,6 +21,11 @@ from typing import Any, Mapping
 ATTESTATION_SCHEMA = "cace-continuum-qualification-attestation-v2"
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
 QUALIFICATION_SYSTEM = "github-actions"
+CACHE_POLICY = (
+    "Pinned Lean/toolchain state and exact-pin dependencies may be reused only as inputs; "
+    "CACE project build outputs, kernel audit results, theorem metadata, and attestations "
+    "are regenerated in the isolated exact-head qualification run."
+)
 
 
 class AttestationError(RuntimeError):
@@ -203,6 +208,11 @@ def build_attestation(
     runner_arch = require_nonempty(runner_arch, "runner_arch")
     if workflow_run_id <= 0 or workflow_run_attempt <= 0:
         raise AttestationError("workflow run id and attempt must be positive")
+    expected_toolchain = contract.dependency_pins.get("lean_toolchain")
+    if not expected_toolchain:
+        raise AttestationError("ProofContract is missing the Lean toolchain dependency pin")
+    if lean_toolchain != expected_toolchain:
+        raise AttestationError("attested Lean toolchain differs from ProofContract pin")
     if mathlib_commit != contract.dependency_pins.get("mathlib_commit"):
         raise AttestationError("attested Mathlib commit differs from ProofContract pin")
 
@@ -239,11 +249,7 @@ def build_attestation(
         "runner_name": runner_name,
         "runner_arch": runner_arch,
         "current_head_required": True,
-        "cache_policy": (
-            "Pinned Lean/toolchain state and exact-pin dependencies may be reused only as inputs; "
-            "CACE project build outputs, kernel audit results, theorem metadata, and attestations "
-            "are regenerated in the isolated exact-head qualification run."
-        ),
+        "cache_policy": CACHE_POLICY,
         "nonclaims": list(contract.nonclaims),
     }
 

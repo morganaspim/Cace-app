@@ -36,7 +36,7 @@
       "current_head_qualified": false,
       "proof_artifact_sha256": null,
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
-      "proof_contract_sha256": "2ed39e71f86877c7f8ed07a697be7f8ae6398549b6d90a9456bb29679eeac847",
+      "proof_contract_sha256": "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0",
       "qualification_run_id": null,
       "qualification_system": null,
       "release": "3.23.0-dev..3.37.0-dev",
