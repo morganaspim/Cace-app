@@ -23,8 +23,7 @@ jobs:
           "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-compile-check"
           echo "$RUNNER_TEMP/cace-compile-check/bin" >> "$GITHUB_PATH"
       - name: Install package and test dependencies
-        run: |
-          python -m pip install -e '.[test]' cmake
+        run: python -m pip install -e '.[test]' cmake
       - name: Compile Python sources
         run: python -m compileall -q cace_studio
       - name: Build native C++ runtime
@@ -48,5 +47,25 @@ jobs:
           if [[ -f package.json && -d src ]]; then
             echo 'Web source is present on branch.'
           else
-            echo 'Uploaded ZIP contains web source that is not present on candidate/v336-consolidated.'
+            echo 'Uploaded ZIP web manifest is staged for dependency resolution, but src is only in the uploaded ZIP.'
           fi
+
+  web-deps:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact uploaded web dependencies
+        run: npm install
+      - name: Pack dependency tree for uploaded ZIP build
+        shell: bash
+        run: tar -czf "$RUNNER_TEMP/cace-node-modules.tgz" node_modules package-lock.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-web-node-modules
+          path: ${{ runner.temp }}/cace-node-modules.tgz
+          compression-level: 0
+          retention-days: 1
