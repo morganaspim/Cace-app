@@ -1,23 +1,10 @@
 name: CACE Formal v3.22
 
+# Historical validation workflow. Manual-only so current CACE work cannot fan out
+# into overlapping proof jobs; the canonical exact-head qualification path owns
+# formal acceptance.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'cace_studio/core/mesh_orthogonality_bridge.py'
-      - 'cace_studio/formal/**'
-      - 'cace_studio/modules/formal_v322.py'
-      - 'tests/test_formal_v322.py'
-      - '.github/workflows/cace-formal-v322.yml'
-  pull_request:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'cace_studio/core/mesh_orthogonality_bridge.py'
-      - 'cace_studio/formal/**'
-      - 'cace_studio/modules/formal_v322.py'
-      - 'tests/test_formal_v322.py'
-      - '.github/workflows/cace-formal-v322.yml'
 
 permissions:
   contents: read
