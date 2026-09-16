@@ -5,13 +5,21 @@ on:
   push:
     branches: [main, implement/cace-rigor-playground-v337]
     paths:
-      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
-      - 'formal/cace_formal/CACEFormal/V330TheoremMetadata.lean'
+      # ProofContract v3 audited Lean source closure. Keep this synchronized by test.
+      - 'formal/cace_formal/CACEFormal/SmoothBoxGreenAuto.lean'
+      - 'formal/cace_formal/CACEFormal/RegularizationClosure.lean'
+      - 'formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'
+      - 'formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'
+      - 'formal/cace_formal/CACEFormal/H1DomainBridge.lean'
       - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
       - 'formal/cace_formal/CACEFormal/H1GraphConverse.lean'
+      - 'formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'
       - 'formal/cace_formal/CACEFormal/WeakGreenFunctional.lean'
       - 'formal/cace_formal/CACEFormal/ContinuumOrthogonality.lean'
       - 'formal/cace_formal/CACEFormal/ContinuumPragerSynge.lean'
+      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
+      # Qualification producer/toolchain inputs.
+      - 'formal/cace_formal/CACEFormal/V330TheoremMetadata.lean'
       - 'formal/cace_formal/lean-toolchain'
       - 'formal/cace_formal/lakefile.lean'
       - 'cace_studio/app.py'
@@ -24,6 +32,7 @@ on:
       - 'cace_studio/data/proof_ledger.json'
       - 'cace_studio/modules/research_dynamics.py'
       - 'cace_studio/modules/research_geometry.py'
+      - 'scripts/cace_github_live_check.py'
       - 'scripts/cace_run_with_heartbeat.py'
       - 'scripts/export_v330_environment_metadata.py'
       - 'scripts/build_continuum_attestation.py'
@@ -36,10 +45,13 @@ on:
       - 'tests/test_continuum_attestation_v337.py'
       - 'tests/test_lean_theorem_metadata_v336.py'
       - 'tests/test_proof_contract_v336.py'
+      - 'tests/test_cace_github_ui_status.py'
+      - 'tests/test_canonical_qualification_workflow.py'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
 
 permissions:
   contents: read
+  checks: write
 
 # On the active H1 branch this deliberately shares the legacy v3.30 concurrency
 # key so this canonical run cancels any stale legacy qualification job before it
@@ -50,11 +62,20 @@ concurrency:
 
 jobs:
   exact-head-formal-qualification:
+    # Dispatch authorization is fail-closed before runner work. The shell preflight
+    # below independently re-verifies these identities on the runner.
+    if: >-
+      github.repository == 'morganaspim/Cace-app' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/implement/cace-rigor-playground-v337')
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 1400
     env:
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_EXPECTED_REPOSITORY: morganaspim/Cace-app
+      CACE_EXPECTED_WORKFLOW_PATH: .github/workflows/cace-formal-v336-theorem-metadata.yml
+      CACE_EXPECTED_RUNNER_NAME: cace-oci-a1
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
       CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
       CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
@@ -98,10 +119,23 @@ jobs:
           clean: true
           persist-credentials: false
 
-      - name: Establish exact-current-head boundary and status journal
+      - name: Verify authorized dispatch, runner identity, and exact-current-head boundary
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$CACE_EXPECTED_REPOSITORY"
+          case "$GITHUB_EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) echo "Unauthorized event: $GITHUB_EVENT_NAME" >&2; exit 1 ;;
+          esac
+          case "$GITHUB_REF" in
+            refs/heads/main|refs/heads/implement/cace-rigor-playground-v337) ;;
+            *) echo "Unauthorized ref: $GITHUB_REF" >&2; exit 1 ;;
+          esac
+          expected_workflow_ref="$CACE_EXPECTED_REPOSITORY/$CACE_EXPECTED_WORKFLOW_PATH@$GITHUB_REF"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref"
+          test "$RUNNER_NAME" = "$CACE_EXPECTED_RUNNER_NAME"
+
           actual="$(git rev-parse HEAD)"
           test "$actual" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
@@ -110,9 +144,12 @@ jobs:
           printf '%s\n' "$actual" > "$status_dir/exact_head.txt"
           printf '%s\n' "$GITHUB_RUN_ID" > "$status_dir/workflow_run_id.txt"
           printf '%s\n' "$GITHUB_RUN_ATTEMPT" > "$status_dir/workflow_run_attempt.txt"
+          printf '%s\n' "$RUNNER_NAME" > "$status_dir/runner_name.txt"
+          printf '%s\n' "$GITHUB_WORKFLOW_REF" > "$status_dir/workflow_ref.txt"
           echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
           echo "CACE_STATUS_DIR=$status_dir" >> "$GITHUB_ENV"
           echo "exact_current_head=$actual"
+          echo "authorized_runner=$RUNNER_NAME"
 
       - name: Set up pinned ARM64-capable Python
         shell: bash
@@ -127,7 +164,7 @@ jobs:
           echo "$RUNNER_TEMP/cace-v337-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/cace-v337-venv/bin/python" --version
 
-      - name: Run truth architecture, proof-governance, attestation, and research tests
+      - name: Run truth architecture, proof-governance, attestation, observability, and research tests
         shell: bash
         run: |
           set -euo pipefail
@@ -142,7 +179,9 @@ jobs:
             tests/test_export_v330_environment_metadata.py \
             tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
-            tests/test_proof_contract_v336.py
+            tests/test_proof_contract_v336.py \
+            tests/test_cace_github_ui_status.py \
+            tests/test_canonical_qualification_workflow.py
 
       - name: Prepare isolated formal qualification build and cache identity
         shell: bash
@@ -287,6 +326,7 @@ jobs:
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         env:
           LEAN_ABORT_ON_PANIC: '1'
+          CACE_GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
@@ -298,6 +338,7 @@ jobs:
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         env:
           LEAN_ABORT_ON_PANIC: '1'
+          CACE_GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
@@ -394,6 +435,8 @@ jobs:
           printf '%s\n' "$CACE_EXPECTED_SHA" > commit.txt
           printf '%s\n' "$GITHUB_RUN_ID" > workflow_run_id.txt
           printf '%s\n' "$GITHUB_RUN_ATTEMPT" > workflow_run_attempt.txt
+          printf '%s\n' "$RUNNER_NAME" > runner_name.txt
+          printf '%s\n' "$GITHUB_WORKFLOW_REF" > workflow_ref.txt
           echo CACE_V337_EXACT_HEAD_QUALIFICATION_PASS
 
       - name: Upload exact-head continuum qualification artifact
@@ -412,6 +455,8 @@ jobs:
             ${{ env.CACE_OUTPUT_DIR }}/commit.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_id.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_attempt.txt
+            ${{ env.CACE_OUTPUT_DIR }}/runner_name.txt
+            ${{ env.CACE_OUTPUT_DIR }}/workflow_ref.txt
 
       - name: Persist validated resumable proof caches
         if: always()
@@ -479,17 +524,21 @@ jobs:
           output_dir = Path(os.environ['CACE_OUTPUT_DIR']) if os.environ.get('CACE_OUTPUT_DIR') else None
           attestation = output_dir / 'cace_continuum_qualification_attestation.json' if output_dir else None
           payload = {
-              'schema': 'cace-qualification-diagnostic-v1',
+              'schema': 'cace-qualification-diagnostic-v2',
               'timestamp_utc': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
               'job_status': os.environ.get('CACE_JOB_STATUS'),
               'git_commit': os.environ.get('CACE_EXPECTED_SHA') or os.environ.get('GITHUB_SHA'),
               'run_id': os.environ.get('GITHUB_RUN_ID'),
               'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
+              'repository': os.environ.get('GITHUB_REPOSITORY'),
+              'workflow_ref': os.environ.get('GITHUB_WORKFLOW_REF'),
+              'runner_name': os.environ.get('RUNNER_NAME'),
               'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
               'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
               'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
               'qualification_attestation_present': bool(attestation and attestation.is_file()),
               'cache_effect': 'acceleration-only; never qualification evidence',
+              'runner_trust_effect': 'provenance/security only; never mathematical evidence',
           }
           (status_dir / 'final_status.json').write_text(
               json.dumps(payload, sort_keys=True, indent=2) + '\n', encoding='utf-8'
@@ -499,6 +548,19 @@ jobs:
           for file in "$CACE_STATUS_DIR"/*.log "$CACE_STATUS_DIR"/heartbeat.jsonl; do
             gzip -f "$file"
           done
+
+      - name: Publish final runner-authored GitHub Check status
+        if: always() && env.CACE_STATUS_DIR != ''
+        shell: bash
+        env:
+          CACE_JOB_STATUS: ${{ job.status }}
+          CACE_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python scripts/cace_github_live_check.py \
+            --phase qualification-complete \
+            --job-status "$CACE_JOB_STATUS" \
+            --note 'workflow complete; formal status still depends on qualification artifacts'
 
       - name: Upload qualification diagnostics even on failure
         if: always()
