@@ -135,7 +135,7 @@ theorem complexH1SmoothGraphClosure_eq_distributional_of_regularizer
     (hcore : ∀ k x, x ∈ H1DistributionalGraphSubmodule n →
       R k x ∈ ComplexH1SmoothGraphCore n)
     (htendsto : ∀ x, x ∈ H1DistributionalGraphSubmodule n →
-      Tendsto (fun k => R k x) atTop (𝓝 x)) :
+      Tendsto (fun k => R k x) atTop (nhds x)) :
     (ComplexH1SmoothGraphCore n).topologicalClosure =
       H1DistributionalGraphSubmodule n := by
   change (ComplexH1SmoothGraphCore n).topologicalClosure =
