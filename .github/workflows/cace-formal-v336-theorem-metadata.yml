@@ -1,5 +1,5 @@
 name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
-# Qualification trigger nonce: 2026-09-16-rank3-qualification-hardening
+# Qualification trigger nonce: 2026-09-16-rank4-endpoint-coverage
 
 # Canonical OCI qualification is manual, with one deliberate self-trigger: a
 # change to this workflow file on the locked executor branch. Formal/source
@@ -357,7 +357,6 @@ jobs:
 
           for module in sorted(affected):
               module_to_path[module].touch()
-
           (status_dir / 'cache_invalidated_modules.txt').write_text(
               ''.join(f'{m}\n' for m in sorted(affected)), encoding='utf-8'
           )

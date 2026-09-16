@@ -2,7 +2,7 @@ name: CACE Python regression
 on:
   workflow_dispatch:
   push:
-    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation, executor/cace-proof-governance-hardening]
+    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
     paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'quality/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
   pull_request:
     paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'quality/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
@@ -14,7 +14,8 @@ concurrency:
 jobs:
   regression:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: self-hosted
+    # General regression is intentionally isolated from the trusted CACE proof runner.
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
