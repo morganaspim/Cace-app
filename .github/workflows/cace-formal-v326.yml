@@ -1,24 +1,13 @@
 name: CACE Formal v3.26
 
+# Historical validation workflow. Manual-only so current CACE work cannot fan out
+# into overlapping proof jobs; the canonical exact-head qualification path owns
+# formal acceptance.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'RELEASE_v3.26.json'
-      - '.github/workflows/cace-formal-v326.yml'
-  pull_request:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'RELEASE_v3.26.json'
-      - '.github/workflows/cace-formal-v326.yml'
 
 permissions:
   contents: read
-
-concurrency:
-  group: cace-formal-v326-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   continuum-sobolev:
