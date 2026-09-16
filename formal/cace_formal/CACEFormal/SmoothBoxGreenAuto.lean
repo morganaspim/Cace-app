@@ -37,7 +37,7 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
   apply hasFDerivAt_pi'.2
   intro i
   simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
-    ContinuousLinearMap.proj_pi] using
+    ContinuousLinearMap.proj_pi] using!
     (v.hasFDerivAt x).mul ((q i).hasFDerivAt x)
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
