@@ -198,4 +198,4 @@ def test_default_v330_exposes_contract_but_remains_unqualified():
     assert view.qualification_state == "UNQUALIFIED"
     assert view.proof_contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
     assert len(view.endpoint_theorems) == 37
-    assert view.theorem_dependency_metadata_state == "NOT_GENERATED"
+    assert view.theorem_dependency_metadata_state == "LEAN_GENERATED"
