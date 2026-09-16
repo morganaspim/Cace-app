@@ -1,0 +1,222 @@
+name: CACE Formal compatibility v3.21-v3.25
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'formal/cace_formal/**'
+      - 'cace_studio/core/mesh_orthogonality_bridge.py'
+      - 'cace_studio/formal/**'
+      - 'cace_studio/modules/formal_v321.py'
+      - 'cace_studio/core/mesh_certificate.py'
+      - 'cace_studio/modules/formal_v325.py'
+      - 'cace_studio/app.py'
+      - 'tests/test_formal_v321.py'
+      - 'tests/test_mesh_certificate_v325.py'
+      - 'pyproject.toml'
+      - '.github/workflows/cace-formal-compatibility.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-formal-compat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 180
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_BUILD_CACHE_ROOT: /var/lib/cace-cache/canonical-qualification-build/leanprover_lean4_v4.32.1/520045ab14e26149ee970e2e617ca04b09bde5d6
+
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          clean: true
+          persist-credentials: false
+
+      - name: Establish exact compatibility head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$actual" = "$expected"
+          echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
+          echo "compatibility_head=$actual"
+
+      - name: Install isolated Python test environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/0.12.13/install.sh |
+            env UV_INSTALL_DIR="$RUNNER_TEMP/cace-compat-uv" UV_NO_MODIFY_PATH=1 sh
+          "$RUNNER_TEMP/cace-compat-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-formal-compat"
+          "$RUNNER_TEMP/cace-formal-compat/bin/python" -m pip install -e '.[test]'
+          echo "$RUNNER_TEMP/cace-formal-compat/bin" >> "$GITHUB_PATH"
+
+      - name: Run legacy exact-checker regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_formal_v321.py tests/test_mesh_certificate_v325.py
+
+      - name: Generate v3.25 Lean smoke witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from cace_studio.core.mesh_certificate import generate_mesh_certificate, render_lean_mesh_certificate
+
+          generated = Path('formal/cace_formal/CACEFormal/Generated')
+          generated.mkdir(parents=True, exist_ok=True)
+
+          vertices = [["0", "0"], ["1", "0"], ["1", "1"], ["0", "1"], ["1/2", "1/2"]]
+          triangles = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]]
+          labels = {"0-1": "bottom", "1-2": "right", "2-3": "top", "0-3": "left"}
+          cert = generate_mesh_certificate(vertices, triangles, labels)
+          generated.joinpath('StudioSmoke.lean').write_text(
+              render_lean_mesh_certificate(cert, 'studioSmokeMesh'), encoding='utf-8'
+          )
+
+          single = generate_mesh_certificate(
+              [["0", "0"], ["1", "0"], ["0", "1"]],
+              [[0, 1, 2]],
+          )
+          generated.joinpath('StudioSingleTriangleSmoke.lean').write_text(
+              render_lean_mesh_certificate(single, 'studioSingleTriangleMesh'), encoding='utf-8'
+          )
+          print(cert['sha256'])
+          print(single['sha256'])
+          PY
+
+      - name: Ensure pinned Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ELAN_HOME"
+          if [[ ! -x "$ELAN_HOME/bin/elan" ]]; then
+            curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o "$RUNNER_TEMP/cace-compat-elan-init.sh"
+            sh "$RUNNER_TEMP/cace-compat-elan-init.sh" -y --default-toolchain none
+          fi
+          echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          (cd formal/cace_formal && lean --version && lake --version)
+
+      - name: Seed exact pinned dependency and compatible build caches
+        shell: bash
+        run: |
+          set -euo pipefail
+          formal='formal/cace_formal'
+          mkdir -p "$formal/.lake"
+          rm -rf "$formal/.lake/packages" "$formal/.lake/build"
+
+          if [[ -d "$CACE_PACKAGE_CACHE/mathlib/.git" ]]; then
+            exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+            flock -s -w 900 9
+            test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+            cp -a --reflink=auto "$CACE_PACKAGE_CACHE" "$formal/.lake/packages"
+            flock -u 9
+          fi
+
+          formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
+          build_cache="$CACE_BUILD_CACHE_ROOT/$formal_tree/build"
+          if [[ -d "$build_cache" ]]; then
+            cp -a --reflink=auto "$build_cache" "$formal/.lake/build"
+            echo "compatibility_build_cache=exact-tree"
+          else
+            echo "compatibility_build_cache=miss"
+          fi
+
+      - name: Resolve and verify pinned Mathlib
+        working-directory: formal/cace_formal
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+      - name: Reject unfinished formal sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn --include='*.lean' -E '\bsorry\b|\badmit\b|OPEN OBLIGATION' \
+              formal/cace_formal/CACEFormal formal/cace_formal/CACEFormal.lean; then
+            echo 'Unclosed Lean proof obligation found.' >&2
+            exit 1
+          fi
+
+      - name: Build complete historical CACEFormal aggregate
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          lake build CACEFormal
+
+      - name: Compile generated v3.25 witnesses
+        working-directory: formal/cace_formal
+        shell: bash
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          lake env lean CACEFormal/Generated/StudioSmoke.lean
+          lake env lean CACEFormal/Generated/StudioSingleTriangleSmoke.lean
+
+      - name: Write non-qualifying compatibility evidence
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+
+          formal = Path('formal/cace_formal')
+          payload = {
+              'schema': 'cace-formal-compatibility-v1',
+              'status': 'PASS',
+              'git_commit': os.environ['CACE_EXPECTED_SHA'],
+              'lean_toolchain': formal.joinpath('lean-toolchain').read_text(encoding='utf-8').strip(),
+              'mathlib_commit': subprocess.check_output(
+                  ['git', '-C', str(formal / '.lake/packages/mathlib'), 'rev-parse', 'HEAD'], text=True
+              ).strip(),
+              'full_caceformal_build': 'PASS',
+              'v321_exact_checker_regression': 'PASS',
+              'v325_mesh_generator_regression': 'PASS',
+              'v325_generated_lean_witnesses': 'PASS',
+              'proof_effect': 'none',
+              'nonclaim': 'This compatibility regression is not current-head formal qualification and cannot replace the canonical kernel-audited attestation.',
+          }
+          Path('formal-compatibility.json').write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-formal-compatibility-evidence
+          if-no-files-found: warn
+          path: formal-compatibility.json
