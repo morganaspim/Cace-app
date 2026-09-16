@@ -1,0 +1,139 @@
+name: CACE v337 Lean Identity Resolution Probe
+
+on:
+  push:
+    branches:
+      - probe/v337-lean-identity-resolution
+    paths:
+      - .github/workflows/cace-v337-lean-identity-probe.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-single-job
+  cancel-in-progress: false
+
+jobs:
+  lean-identity-probe:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 15
+    env:
+      CACE_BASE_SHA: 70614c784305a51c7a1ed2563d855e334c0d7d11
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+    steps:
+      - name: Checkout probe commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          clean: true
+          persist-credentials: false
+
+      - name: Verify isolated exact-base boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$CACE_BASE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          test "$(git diff --name-only "$CACE_BASE_SHA" HEAD)" = ".github/workflows/cace-v337-lean-identity-probe.yml"
+
+      - name: Reproduce and isolate Lean identity resolution
+        id: probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          formal_dir="$GITHUB_WORKSPACE/formal/cace_formal"
+          test -f "$formal_dir/lean-toolchain"
+          test "$(tr -d '\r\n' < "$formal_dir/lean-toolchain")" = "$CACE_TOOLCHAIN"
+
+          mkdir -p "$RUNNER_TEMP/cace-v337-lean-identity-probe"
+          out="$RUNNER_TEMP/cace-v337-lean-identity-probe/probe.txt"
+          {
+            echo "base_sha=$CACE_BASE_SHA"
+            echo "probe_sha=$(git rev-parse HEAD)"
+            echo "toolchain=$(cat "$formal_dir/lean-toolchain")"
+            echo "elan_home=$ELAN_HOME"
+            echo "--- bare lean --version (known failing route) ---"
+          } > "$out"
+
+          set +e
+          lean --version >> "$out" 2>&1
+          bare_rc=$?
+          set -e
+          echo "bare_lean_rc=$bare_rc" >> "$out"
+
+          echo "--- lake env lean --version (candidate exact-pin route) ---" >> "$out"
+          (
+            cd "$formal_dir"
+            lake env lean --version
+          ) >> "$out" 2>&1
+
+          python - <<'PY' >> "$out"
+          from pathlib import Path
+          import importlib.util
+          root = Path.cwd()
+          script = root / "scripts/export_v330_environment_metadata.py"
+          text = script.read_text(encoding="utf-8")
+          old = 'lean_version = _command_output(["lean", "--version"])'
+          new = 'lean_version = _command_output(["lake", "env", "lean", "--version"], cwd=formal_dir)'
+          assert old in text, "expected failing identity-resolution call not found"
+          patched = text.replace(old, new, 1)
+          assert old not in patched
+          assert new in patched
+          compile(patched, str(script), "exec")
+          print("candidate_patch_static_compile=PASS")
+          print("candidate_replacement_count=1")
+          PY
+
+          python - <<'PY' >> "$out"
+          from pathlib import Path
+          import subprocess
+          formal_dir = Path("formal/cace_formal").resolve()
+          value = subprocess.check_output(
+              ["lake", "env", "lean", "--version"],
+              cwd=formal_dir,
+              text=True,
+          ).strip()
+          assert value.startswith("Lean (version 4.32.1"), value
+          print("candidate_runtime_identity_resolution=PASS")
+          print(f"resolved_lean_version={value}")
+          PY
+
+          cat "$out"
+
+      - name: Emit recurrence fingerprint
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/cace-v337-lean-identity-probe"
+          mkdir -p "$dir"
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          d = Path(os.environ["RUNNER_TEMP"]) / "cace-v337-lean-identity-probe"
+          payload = {
+              "schema": "cace-failure-fingerprint-v1",
+              "base_sha": os.environ["CACE_BASE_SHA"],
+              "failure_class": "qualification-identity-resolution",
+              "fingerprint": "bare-lean-no-default-toolchain",
+              "observed_error": "no default toolchain configured",
+              "candidate_repair": "resolve Lean version through lake env lean --version in formal_dir",
+              "evidence_class": "ENGINEERING_EVIDENCE",
+          }
+          raw = json.dumps(payload, sort_keys=True, indent=2).encode() + b"\n"
+          (d / "failure-fingerprint.json").write_bytes(raw)
+          (d / "failure-fingerprint.sha256").write_text(hashlib.sha256(raw).hexdigest() + "\n")
+          PY
+
+      - name: Upload probe diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v337-lean-identity-probe-${{ github.run_id }}
+          path: ${{ runner.temp }}/cace-v337-lean-identity-probe
+          if-no-files-found: error
+          retention-days: 14
