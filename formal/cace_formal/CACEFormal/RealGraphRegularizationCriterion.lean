@@ -30,10 +30,12 @@ theorem realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer
     (hcore : ∀ k x, x ∈ RealHDivDistributionalPreimage n →
       R k x ∈ HDivSmoothGraphCore n)
     (htendsto : ∀ x, x ∈ RealHDivDistributionalPreimage n →
-      Tendsto (fun k => R k x) atTop (𝓝 x)) :
+      Tendsto (fun k => R k x) atTop (nhds x)) :
     (HDivSmoothGraphCore n).topologicalClosure =
       RealHDivDistributionalPreimage n := by
   exact submodule_topologicalClosure_eq_of_regularizer
+    (𝕜 := ℝ)
+    (E := HDivGraphAmbient n)
     (HDivSmoothGraphCore n) (RealHDivDistributionalPreimage n)
     (HDivSmoothGraphCore_le_RealHDivDistributionalPreimage n)
     (isClosed_RealHDivDistributionalPreimage n)
@@ -46,10 +48,12 @@ theorem realDistributionalPreimage_le_HDivSmoothGraphClosure_of_regularizer
     (hcore : ∀ k x, x ∈ RealHDivDistributionalPreimage n →
       R k x ∈ HDivSmoothGraphCore n)
     (htendsto : ∀ x, x ∈ RealHDivDistributionalPreimage n →
-      Tendsto (fun k => R k x) atTop (𝓝 x)) :
+      Tendsto (fun k => R k x) atTop (nhds x)) :
     RealHDivDistributionalPreimage n ≤
       (HDivSmoothGraphCore n).topologicalClosure := by
   exact submodule_le_topologicalClosure_of_regularizer
+    (𝕜 := ℝ)
+    (E := HDivGraphAmbient n)
     (HDivSmoothGraphCore n) (RealHDivDistributionalPreimage n)
     (HDivSmoothGraphCore_le_RealHDivDistributionalPreimage n)
     (isClosed_RealHDivDistributionalPreimage n)

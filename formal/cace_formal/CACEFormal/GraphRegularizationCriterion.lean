@@ -35,12 +35,15 @@ theorem complexSmoothGraphClosure_eq_distributional_of_regularizer
     (hcore : ∀ k x, x ∈ HDivDistributionalGraphSubmodule n →
       R k x ∈ ComplexHDivSmoothGraphCore n)
     (htendsto : ∀ x, x ∈ HDivDistributionalGraphSubmodule n →
-      Tendsto (fun k => R k x) atTop (𝓝 x)) :
+      Tendsto (fun k => R k x) atTop (nhds x)) :
     (ComplexHDivSmoothGraphCore n).topologicalClosure =
       HDivDistributionalGraphSubmodule n := by
   change (ComplexHDivSmoothGraphCore n).topologicalClosure =
     (complexHDivGraphDefect n).ker
   exact submodule_topologicalClosure_eq_ker_of_regularizer
+    (𝕜 := ℂ)
+    (E := HDivComplexGraphAmbient n)
+    (F := ScalarDistribution n)
     (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
     (ComplexHDivSmoothGraphCore_le_distributional n)
     R hcore htendsto
@@ -53,12 +56,15 @@ theorem distributional_le_complexSmoothGraphClosure_of_regularizer
     (hcore : ∀ k x, x ∈ HDivDistributionalGraphSubmodule n →
       R k x ∈ ComplexHDivSmoothGraphCore n)
     (htendsto : ∀ x, x ∈ HDivDistributionalGraphSubmodule n →
-      Tendsto (fun k => R k x) atTop (𝓝 x)) :
+      Tendsto (fun k => R k x) atTop (nhds x)) :
     HDivDistributionalGraphSubmodule n ≤
       (ComplexHDivSmoothGraphCore n).topologicalClosure := by
   change (complexHDivGraphDefect n).ker ≤
     (ComplexHDivSmoothGraphCore n).topologicalClosure
   exact ker_le_topologicalClosure_of_regularizer
+    (𝕜 := ℂ)
+    (E := HDivComplexGraphAmbient n)
+    (F := ScalarDistribution n)
     (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
     (ComplexHDivSmoothGraphCore_le_distributional n)
     R hcore htendsto
