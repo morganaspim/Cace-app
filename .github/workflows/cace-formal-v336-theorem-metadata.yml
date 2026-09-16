@@ -1,52 +1,18 @@
 name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
 
+# Canonical OCI qualification is deliberately manual-only. The sequential CACE
+# executor decides when this single expensive runner job has the highest benefit.
 on:
   workflow_dispatch:
-  push:
-    branches: [main, implement/cace-rigor-playground-v337]
-    paths:
-      - 'formal/cace_formal/CACEFormal/V330AxiomAudit.lean'
-      - 'formal/cace_formal/CACEFormal/V330TheoremMetadata.lean'
-      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
-      - 'formal/cace_formal/CACEFormal/H1GraphConverse.lean'
-      - 'formal/cace_formal/CACEFormal/WeakGreenFunctional.lean'
-      - 'formal/cace_formal/CACEFormal/ContinuumOrthogonality.lean'
-      - 'formal/cace_formal/CACEFormal/ContinuumPragerSynge.lean'
-      - 'formal/cace_formal/lean-toolchain'
-      - 'formal/cace_formal/lakefile.lean'
-      - 'cace_studio/app.py'
-      - 'cace_studio/cli.py'
-      - 'cace_studio/core/proof_contract.py'
-      - 'cace_studio/core/proof_explorer.py'
-      - 'cace_studio/core/proof_ledger.py'
-      - 'cace_studio/data/claim_registry.json'
-      - 'cace_studio/data/proof_contracts.json'
-      - 'cace_studio/data/proof_ledger.json'
-      - 'cace_studio/modules/research_dynamics.py'
-      - 'cace_studio/modules/research_geometry.py'
-      - 'scripts/cace_run_with_heartbeat.py'
-      - 'scripts/export_v330_environment_metadata.py'
-      - 'scripts/build_continuum_attestation.py'
-      - 'tests/test_cli.py'
-      - 'tests/test_claim_registry_v331.py'
-      - 'tests/test_qualification_drift_v331.py'
-      - 'tests/test_research_dynamics_v337.py'
-      - 'tests/test_research_geometry_v337.py'
-      - 'tests/test_export_v330_environment_metadata.py'
-      - 'tests/test_continuum_attestation_v337.py'
-      - 'tests/test_lean_theorem_metadata_v336.py'
-      - 'tests/test_proof_contract_v336.py'
-      - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
 
 permissions:
   contents: read
 
-# On the active H1 branch this deliberately shares the legacy v3.30 concurrency
-# key so this canonical run cancels any stale legacy qualification job before it
-# can consume the single OCI runner. Main keeps the independent canonical key.
+# Never cancel or replace an in-flight qualification. The executor additionally
+# checks repository-wide queued/running state before every manual dispatch.
 concurrency:
-  group: ${{ github.ref == 'refs/heads/implement/cace-rigor-playground-v337' && format('cace-formal-v330-{0}', github.ref) || format('cace-v337-exact-head-{0}', github.ref) }}
-  cancel-in-progress: true
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
 
 jobs:
   exact-head-formal-qualification:
@@ -90,11 +56,11 @@ jobs:
           command -v flock
           command -v gzip
 
-      - name: Checkout exact event commit
+      - name: Checkout exact event commit with bounded first-parent history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: 64
           clean: true
           persist-credentials: false
 
@@ -154,12 +120,16 @@ jobs:
           rm -rf "$cace_build_root/formal/.lake/build"
           formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
           toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
-          build_cache="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT/$formal_tree"
+          build_cache_base="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT"
+          build_cache="$build_cache_base/$formal_tree"
           echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
           echo "CACE_OUTPUT_DIR=$cace_build_root/output" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_TREE_SHA=$formal_tree" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_BUILD_CACHE_BASE=$build_cache_base" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_BUILD_CACHE=$build_cache" >> "$GITHUB_ENV"
+          echo "CACE_CACHE_MODE=miss" >> "$GITHUB_ENV"
+          echo "CACE_CACHE_BASELINE_TREE=" >> "$GITHUB_ENV"
           echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
           printf '%s\n' "$formal_tree" > "$CACE_STATUS_DIR/formal_tree_sha.txt"
@@ -237,18 +207,147 @@ jobs:
           rm -rf .lake/build
           echo "Resolved mathlib=$(git -C .lake/packages/mathlib rev-parse HEAD)"
 
-      - name: Restore exact-source resumable CACE build cache
+      - name: Restore exact or nearest compatible resumable CACE build cache
         shell: bash
         run: |
           set -euo pipefail
           rm -rf "$CACE_FORMAL_DIR/.lake/build"
-          if [[ -d "$CACE_FORMAL_BUILD_CACHE/build" ]]; then
-            mkdir -p "$CACE_FORMAL_DIR/.lake"
+          mkdir -p "$CACE_FORMAL_DIR/.lake"
+
+          validate_cache_identity() {
+            local cache_dir="$1"
+            [[ -d "$cache_dir/build" ]] || return 1
+            [[ -s "$cache_dir/mathlib_commit.txt" ]] || return 1
+            [[ -s "$cache_dir/lean_toolchain.txt" ]] || return 1
+            [[ "$(cat "$cache_dir/mathlib_commit.txt")" = "$CACE_MATHLIB_COMMIT" ]] || return 1
+            [[ "$(cat "$cache_dir/lean_toolchain.txt")" = "$CACE_TOOLCHAIN" ]] || return 1
+          }
+
+          if validate_cache_identity "$CACE_FORMAL_BUILD_CACHE"; then
             cp -a --reflink=auto "$CACE_FORMAL_BUILD_CACHE/build" "$CACE_FORMAL_DIR/.lake/build"
-            echo "CACE_FORMAL_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
-          else
-            echo "CACE_FORMAL_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
+            echo "CACE_CACHE_MODE=exact" >> "$GITHUB_ENV"
+            echo "CACE_CACHE_BASELINE_TREE=$CACE_FORMAL_TREE_SHA" >> "$GITHUB_ENV"
+            printf '%s\n' 'exact' > "$CACE_STATUS_DIR/cache_mode.txt"
+            printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$CACE_STATUS_DIR/cache_baseline_tree.txt"
+            echo "CACE_FORMAL_BUILD_CACHE_HIT exact tree=$CACE_FORMAL_TREE_SHA"
+            exit 0
           fi
+
+          # Cross-tree reuse is acceleration only. It is permitted only from a
+          # first-parent ancestor with the same pinned Lean and Mathlib identity.
+          # Lake still recompiles every changed module and all reverse CACE import
+          # dependents before any theorem metadata or kernel audit is accepted.
+          baseline_commit=''
+          baseline_tree=''
+          baseline_cache=''
+          while read -r ancestor; do
+            [[ -n "$ancestor" ]] || continue
+            tree="$(git rev-parse "$ancestor:formal/cace_formal" 2>/dev/null || true)"
+            [[ -n "$tree" ]] || continue
+            candidate="$CACE_FORMAL_BUILD_CACHE_BASE/$tree"
+            if validate_cache_identity "$candidate"; then
+              baseline_commit="$ancestor"
+              baseline_tree="$tree"
+              baseline_cache="$candidate"
+              break
+            fi
+          done < <(git rev-list --first-parent --max-count=63 HEAD^ 2>/dev/null || true)
+
+          if [[ -z "$baseline_cache" ]]; then
+            echo "CACE_FORMAL_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA no-compatible-ancestor"
+            printf '%s\n' 'miss' > "$CACE_STATUS_DIR/cache_mode.txt"
+            exit 0
+          fi
+
+          mapfile -t changed < <(git diff --name-only "$baseline_commit" "$CACE_EXPECTED_SHA" -- formal/cace_formal)
+          printf '%s\n' "${changed[@]}" > "$CACE_STATUS_DIR/cache_changed_paths.txt"
+
+          # Build-system or toolchain edits invalidate all project build reuse.
+          for path in "${changed[@]}"; do
+            case "$path" in
+              formal/cace_formal/lean-toolchain|formal/cace_formal/lakefile.lean|formal/cace_formal/lakefile.toml|formal/cace_formal/lake-manifest.json)
+                echo "CACE_FORMAL_BUILD_CACHE_COLD_CONFIG_CHANGE path=$path"
+                printf '%s\n' 'miss-config-change' > "$CACE_STATUS_DIR/cache_mode.txt"
+                exit 0
+                ;;
+            esac
+          done
+
+          cp -a --reflink=auto "$baseline_cache/build" "$CACE_FORMAL_DIR/.lake/build"
+          echo "CACE_CACHE_MODE=ancestor" >> "$GITHUB_ENV"
+          echo "CACE_CACHE_BASELINE_TREE=$baseline_tree" >> "$GITHUB_ENV"
+          printf '%s\n' 'ancestor' > "$CACE_STATUS_DIR/cache_mode.txt"
+          printf '%s\n' "$baseline_tree" > "$CACE_STATUS_DIR/cache_baseline_tree.txt"
+          printf '%s\n' "$baseline_commit" > "$CACE_STATUS_DIR/cache_baseline_commit.txt"
+
+          # Compute a conservative reverse-import closure among CACE-owned Lean
+          # modules. Every affected source is touched so Lake cannot accept a stale
+          # project artifact merely because it was copied from an ancestor cache.
+          python - "$baseline_commit" "$CACE_EXPECTED_SHA" "$CACE_FORMAL_DIR" "$CACE_STATUS_DIR" <<'PY'
+          import re
+          import subprocess
+          import sys
+          from collections import defaultdict, deque
+          from pathlib import Path
+
+          baseline, head, formal_dir_s, status_dir_s = sys.argv[1:]
+          formal_dir = Path(formal_dir_s)
+          status_dir = Path(status_dir_s)
+          prefix = 'formal/cace_formal/'
+          changed = subprocess.check_output(
+              ['git', 'diff', '--name-only', baseline, head, '--', 'formal/cace_formal'],
+              text=True,
+          ).splitlines()
+
+          source_files = sorted((formal_dir / 'CACEFormal').rglob('*.lean'))
+          module_to_path = {
+              '.'.join(path.relative_to(formal_dir).with_suffix('').parts): path
+              for path in source_files
+          }
+          reverse = defaultdict(set)
+          import_re = re.compile(r'^\s*import\s+(.+?)\s*$')
+          for module, path in module_to_path.items():
+              for line in path.read_text(encoding='utf-8').splitlines():
+                  m = import_re.match(line)
+                  if not m:
+                      continue
+                  for imported in m.group(1).split():
+                      if imported in module_to_path:
+                          reverse[imported].add(module)
+
+          seeds = set()
+          for rel in changed:
+              if not rel.startswith(prefix) or not rel.endswith('.lean'):
+                  continue
+              local = Path(rel[len(prefix):])
+              module = '.'.join(local.with_suffix('').parts)
+              if module in module_to_path:
+                  seeds.add(module)
+
+          affected = set(seeds)
+          q = deque(sorted(seeds))
+          while q:
+              module = q.popleft()
+              for dependent in sorted(reverse.get(module, ())):
+                  if dependent not in affected:
+                      affected.add(dependent)
+                      q.append(dependent)
+
+          # Always refresh the two qualification aggregators on an ancestor seed.
+          for module in ('CACEFormal.V330AxiomAudit', 'CACEFormal.V330TheoremMetadata'):
+              if module in module_to_path:
+                  affected.add(module)
+
+          for module in sorted(affected):
+              module_to_path[module].touch()
+
+          (status_dir / 'cache_invalidated_modules.txt').write_text(
+              ''.join(f'{m}\n' for m in sorted(affected)), encoding='utf-8'
+          )
+          print(f'CACE_ANCESTOR_CACHE_INVALIDATION changed={len(seeds)} affected={len(affected)}')
+          PY
+
+          echo "CACE_FORMAL_BUILD_CACHE_HIT ancestor_tree=$baseline_tree current_tree=$CACE_FORMAL_TREE_SHA"
 
       - name: Reject unfinished proof tokens across audited source bundle
         shell: bash
@@ -479,7 +578,7 @@ jobs:
           output_dir = Path(os.environ['CACE_OUTPUT_DIR']) if os.environ.get('CACE_OUTPUT_DIR') else None
           attestation = output_dir / 'cace_continuum_qualification_attestation.json' if output_dir else None
           payload = {
-              'schema': 'cace-qualification-diagnostic-v1',
+              'schema': 'cace-qualification-diagnostic-v2',
               'timestamp_utc': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
               'job_status': os.environ.get('CACE_JOB_STATUS'),
               'git_commit': os.environ.get('CACE_EXPECTED_SHA') or os.environ.get('GITHUB_SHA'),
@@ -488,6 +587,8 @@ jobs:
               'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
               'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
               'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
+              'cache_mode': os.environ.get('CACE_CACHE_MODE', 'miss'),
+              'cache_baseline_tree': os.environ.get('CACE_CACHE_BASELINE_TREE') or None,
               'qualification_attestation_present': bool(attestation and attestation.is_file()),
               'cache_effect': 'acceleration-only; never qualification evidence',
           }
