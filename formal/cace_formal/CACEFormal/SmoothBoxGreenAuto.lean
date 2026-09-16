@@ -26,7 +26,7 @@ noncomputable def smoothBoxProductFDeriv {n : Nat}
     (q : BoxSmoothVector n) (v : BoxSmoothScalar n) (x : BoxPoint n) :
     BoxPoint n →L[ℝ] BoxPoint n :=
   ContinuousLinearMap.pi fun i =>
-    v x • fderiv ℝ (q i) x + q i x • fderiv ℝ v x
+    v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)
 
 /-- The derivative used by the box divergence theorem is generated automatically from the
 Schwartz smooth-core data by the Frechet product rule. -/
@@ -36,9 +36,12 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
       (smoothBoxProductFDeriv q v x) x := by
   apply hasFDerivAt_pi'.2
   intro i
+  have hq :
+      HasFDerivAt (q i : BoxPoint n → ℝ) (fderiv ℝ (q i) x) x := by
+    exact (q i).hasFDerivAt x
   simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
-    ContinuousLinearMap.proj_pi] using
-    (v.hasFDerivAt x).mul ((q i).hasFDerivAt x)
+    ContinuousLinearMap.proj_pi, Pi.smul_apply, smul_eq_mul] using
+    (v.hasFDerivAt x).smul hq
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
 `q · ∇v + (div q) v`. This is the local calculus obligation that v3.29 left explicit. -/
