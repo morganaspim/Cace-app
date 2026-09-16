@@ -443,9 +443,10 @@ jobs:
 
       - name: Canonicalize metadata and run fail-closed kernel axiom audit
         shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
         run: |
           set -euo pipefail
-          PYTHONPATH="$GITHUB_WORKSPACE" python scripts/export_v330_environment_metadata.py \
+          PYTHONPATH="$GITHUB_WORKSPACE" python "$GITHUB_WORKSPACE/scripts/export_v330_environment_metadata.py" \
             --formal-dir "$CACE_FORMAL_DIR" \
             --raw-output "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.raw.txt" \
             --git-commit "$CACE_EXPECTED_SHA" \
