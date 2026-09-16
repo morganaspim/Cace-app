@@ -174,24 +174,37 @@ theorem besselWeight_neg_half_sq {n : Nat} (x : EuclideanDomain n) :
 unity. -/
 theorem h1BesselLowSymbol_add_h1RieszEnergySymbol {n : Nat} (x : EuclideanDomain n) :
     h1BesselLowSymbol x + h1RieszEnergySymbol x = 1 := by
+  have hreal :
+      (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+          ∑ i : Fin n,
+            (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
+              (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) =
+        (1 : ℝ) := by
+    calc
+      (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+          ∑ i : Fin n,
+            (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
+              (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ))
+          = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+              (∑ i : Fin n, (inner ℝ x (basisVector i)) ^ 2) *
+                ((1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) ^ 2 := by
+            congr 1
+            rw [Finset.sum_mul]
+            apply Finset.sum_congr rfl
+            intro i hi
+            ring
+      _ = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+            ‖x‖ ^ 2 * (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) := by
+            rw [sum_sq_inner_basisVector x, besselWeight_neg_half_sq x]
+      _ = 1 := by
+            rw [Real.rpow_neg (by positivity)]
+            norm_num
+            field_simp
+            ring
   unfold h1BesselLowSymbol h1RieszEnergySymbol h1RieszSymbol
-  simp only [Pi.mul_apply, ← Complex.ofReal_mul, ← Complex.ofReal_sum, ← Complex.ofReal_add]
-  norm_cast
-  have hsum :
-      (∑ i : Fin n,
-        (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
-          (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ))) =
-        (∑ i : Fin n, (inner ℝ x (basisVector i)) ^ 2) *
-          ((1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) ^ 2 := by
-    rw [Finset.sum_mul]
-    apply Finset.sum_congr rfl
-    intro i hi
-    ring
-  rw [hsum, sum_sq_inner_basisVector x, besselWeight_neg_half_sq x]
-  rw [Real.rpow_neg (by positivity)]
-  norm_num
-  field_simp
-  ring
+  have hcomplex := congrArg Complex.ofReal hreal
+  simpa only [Complex.ofReal_add, Complex.ofReal_mul, Complex.ofReal_sum,
+    Complex.ofReal_one] using hcomplex
 
 /-- The order `-2` Bessel potential is exactly the multiplier with the low-frequency symbol. -/
 theorem besselPotential_neg_two_eq_h1BesselLowMultiplier {n : Nat}
@@ -253,7 +266,7 @@ theorem h1RieszCorrection_eq_energyMultiplier {n : Nat}
         ((h1RieszSymbol i) * (h1RieszSymbol i)) u) =
       TemperedDistribution.fourierMultiplierCLM ℂ
         (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
-  exact hsum.symm
+  simpa only [Pi.mul_apply] using hsum.symm
 
 /-- Exact Bessel/Riesz reconstruction of every scalar tempered distribution.  No Sobolev or L2
 hypothesis is needed for this operator identity. -/
