@@ -81,7 +81,7 @@ theorem besselPotential_neg_two_inH1_of_inL2 {n : Nat}
       (E := EuclideanDomain n) (F := ℂ) (s := (0 : ℝ)) (s' := (-1 : ℝ))
       (by norm_num) hu
   rw [TemperedDistribution.memSobolev_besselPotential_iff]
-  simpa using huNegOne
+  convert huNegOne using 1 <;> norm_num
 
 /-- If one weak coordinate derivative is L2, its order `-1` Bessel potential is H1. -/
 theorem besselPotential_neg_one_weakPartial_inH1_of_inL2 {n : Nat}
@@ -92,8 +92,10 @@ theorem besselPotential_neg_one_weakPartial_inH1_of_inL2 {n : Nat}
     (E := EuclideanDomain n) (F := ℂ) (1 : ℝ) 2
       (TemperedDistribution.besselPotential (EuclideanDomain n) ℂ (-1)
         (weakPartial i u))
+  change TemperedDistribution.MemSobolev
+    (E := EuclideanDomain n) (F := ℂ) (0 : ℝ) 2 (weakPartial i u) at hdu
   rw [TemperedDistribution.memSobolev_besselPotential_iff]
-  simpa using hdu
+  convert hdu using 1 <;> norm_num
 
 /-- Applying the bounded coordinate Riesz multiplier to the Bessel-smoothed weak derivative preserves
 H1. -/
@@ -150,8 +152,13 @@ theorem h1BesselLowSymbol_hasTemperateGrowth {n : Nat} :
 /-- The summed squared Riesz symbol has temperate growth. -/
 theorem h1RieszEnergySymbol_hasTemperateGrowth {n : Nat} :
     (h1RieszEnergySymbol (n := n)).HasTemperateGrowth := by
-  unfold h1RieszEnergySymbol h1RieszSymbol
-  fun_prop
+  unfold h1RieszEnergySymbol
+  have hg : ∀ i ∈ (Finset.univ : Finset (Fin n)),
+      ((h1RieszSymbol i) * (h1RieszSymbol i)).HasTemperateGrowth := by
+    intro i hi
+    exact (h1RieszSymbol_hasTemperateGrowth i).mul
+      (h1RieszSymbol_hasTemperateGrowth i)
+  simpa using (Function.HasTemperateGrowth.sum hg)
 
 /-- Canonical-coordinate Parseval identity used by the reconstruction symbol calculation. -/
 theorem sum_sq_inner_basisVector {n : Nat} (x : EuclideanDomain n) :
@@ -172,30 +179,36 @@ theorem besselWeight_neg_half_sq {n : Nat} (x : EuclideanDomain n) :
 unity. -/
 theorem h1BesselLowSymbol_add_h1RieszEnergySymbol {n : Nat} (x : EuclideanDomain n) :
     h1BesselLowSymbol x + h1RieszEnergySymbol x = 1 := by
+  have hreal :
+      (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+          ∑ i : Fin n,
+            (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
+              (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) = 1 := by
+    calc
+      (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+          ∑ i : Fin n,
+            (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
+              (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ))
+          = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+              (∑ i : Fin n, (inner ℝ x (basisVector i)) ^ 2) *
+                ((1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) ^ 2 := by
+            congr 1
+            rw [Finset.sum_mul]
+            apply Finset.sum_congr rfl
+            intro i hi
+            ring
+      _ = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
+            ‖x‖ ^ 2 * (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) := by
+            rw [sum_sq_inner_basisVector x, besselWeight_neg_half_sq x]
+      _ = 1 := by
+            rw [Real.rpow_neg (by positivity)]
+            norm_num
+            field_simp
+            ring
   unfold h1BesselLowSymbol h1RieszEnergySymbol h1RieszSymbol
-  simp only [Pi.mul_apply, ← Complex.ofReal_mul, ← Complex.ofReal_sum, ← Complex.ofReal_add]
-  norm_cast
-  calc
-    (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
-        ∑ i : Fin n,
-          (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) *
-            (inner ℝ x (basisVector i) * (1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ))
-        = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
-            (∑ i : Fin n, (inner ℝ x (basisVector i)) ^ 2) *
-              ((1 + ‖x‖ ^ 2) ^ (-1 / 2 : ℝ)) ^ 2 := by
-          congr 1
-          rw [Finset.sum_mul]
-          apply Finset.sum_congr rfl
-          intro i hi
-          ring
-    _ = (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) +
-          ‖x‖ ^ 2 * (1 + ‖x‖ ^ 2) ^ (-1 : ℝ) := by
-          rw [sum_sq_inner_basisVector x, besselWeight_neg_half_sq x]
-    _ = 1 := by
-          rw [Real.rpow_neg (by positivity)]
-          norm_num
-          field_simp
-          ring
+  have hcomplex := congrArg Complex.ofReal hreal
+  simpa only [Complex.ofReal_add, Complex.ofReal_mul, Complex.ofReal_sum,
+    Complex.ofReal_one] using hcomplex
 
 /-- The order `-2` Bessel potential is exactly the multiplier with the low-frequency symbol. -/
 theorem besselPotential_neg_two_eq_h1BesselLowMultiplier {n : Nat}
@@ -226,7 +239,7 @@ theorem h1RieszCorrection_eq_energyMultiplier {n : Nat}
         (2 * (Real.pi : ℂ) * Complex.I) •
           TemperedDistribution.fourierMultiplierCLM ℂ (h1RieszSymbol i) u := by
     intro i
-    simpa [weakPartial, h1RieszSymbol] using
+    simpa only [weakPartial, h1RieszSymbol] using
       (TemperedDistribution.besselPotential_neg_one_lineDerivOp_eq
         (E := EuclideanDomain n) (F := ℂ) (m := basisVector i) u)
   unfold h1RieszCorrection
@@ -238,13 +251,20 @@ theorem h1RieszCorrection_eq_energyMultiplier {n : Nat}
   have hg : ∀ i ∈ (Finset.univ : Finset (Fin n)),
       ((h1RieszSymbol i) * (h1RieszSymbol i)).HasTemperateGrowth := by
     intro i hi
-    fun_prop
+    exact (h1RieszSymbol_hasTemperateGrowth i).mul
+      (h1RieszSymbol_hasTemperateGrowth i)
   have hsum := congrArg
     (fun T : ScalarDistribution n →L[ℂ] ScalarDistribution n => T u)
     (TemperedDistribution.fourierMultiplierCLM_sum
       (F := ℂ) (s := (Finset.univ : Finset (Fin n)))
       (g := fun i => (h1RieszSymbol i) * (h1RieszSymbol i)) hg)
-  simpa [h1RieszEnergySymbol] using hsum.symm
+  change
+    (∑ i : Fin n,
+      TemperedDistribution.fourierMultiplierCLM ℂ
+        ((h1RieszSymbol i) * (h1RieszSymbol i)) u) =
+      TemperedDistribution.fourierMultiplierCLM ℂ
+        (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
+  exact hsum.symm
 
 /-- Exact Bessel/Riesz reconstruction of every scalar tempered distribution.  No Sobolev or L2
 hypothesis is needed for this operator identity. -/
@@ -280,7 +300,7 @@ theorem besselRiesz_reconstruction {n : Nat} (u : ScalarDistribution n) :
         rw [hfourier]
     _ = 𝓕⁻ (TemperedDistribution.smulLeftCLM ℂ (h1BesselLowSymbol (n := n)) (𝓕 u)) +
         𝓕⁻ (TemperedDistribution.smulLeftCLM ℂ (h1RieszEnergySymbol (n := n)) (𝓕 u)) := by
-        rw [map_add]
+        exact fourierInv_add _ _
 
 /-- Weak-derivative characterization of H1: an L2 tempered distribution whose coordinate weak
 derivatives are all L2 belongs to Mathlib's Bessel-potential H1. -/
