@@ -39,6 +39,7 @@ class _Port:
         self.name = name
         self.type_name = "number"
         self.required = True
+        self.unit = None
 
 
 class _Module:

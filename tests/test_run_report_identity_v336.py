@@ -49,12 +49,12 @@ def test_executor_binds_run_result_to_exact_experiment_fingerprints():
     assert result.run_scope == "full"
 
 
-def test_report_schema_three_surfaces_executor_recorded_identity():
+def test_report_schema_four_surfaces_executor_recorded_identity():
     exp = _experiment(2.0)
     result = GraphExecutor(_registry()).run(exp, seed=3, run_scope="full")
     report = run_report(result, "caller-supplied-wrong-name")
 
-    assert report["report_schema"] == 3
+    assert report["report_schema"] == 4
     assert report["experiment"] == "identity-test"
     assert report["semantic_experiment_sha256"] == result.semantic_experiment_sha256
     assert report["full_experiment_sha256"] == result.full_experiment_sha256

@@ -196,6 +196,6 @@ def test_default_v330_exposes_contract_but_remains_unqualified():
     view = ProofExplorer().claim_view("cace.v330.continuum-proof-strengthening")
     assert view.current_head_qualified is False
     assert view.qualification_state == "UNQUALIFIED"
-    assert view.proof_contract_id == "cace.proof.v330.continuum-proof-strengthening.v1"
-    assert len(view.endpoint_theorems) == 28
+    assert view.proof_contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
+    assert len(view.endpoint_theorems) == 37
     assert view.theorem_dependency_metadata_state == "NOT_GENERATED"

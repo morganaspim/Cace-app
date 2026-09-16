@@ -8,7 +8,7 @@ from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.module import Module, ValidationError
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.report import run_report
-from cace_studio.core.types import Maturity, ModuleMetadata, PortSpec
+from cace_studio.core.types import Maturity, ModuleMetadata, ParameterSpec, PortSpec
 
 
 class Const(Module):
@@ -20,6 +20,7 @@ class Const(Module):
         "Constant source for execution-scope tests.",
         Maturity.EXPERIMENTAL,
     )
+    parameters = (ParameterSpec("nested", "object", None),)
     outputs = (PortSpec("x", "number"),)
 
     def execute(self, inputs, params, ctx):

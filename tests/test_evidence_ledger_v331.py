@@ -95,7 +95,7 @@ def test_byte_mutation_is_detected():
     artifact = EvidenceArtifact.from_bytes("a", b"original", role="result")
     verify_artifact_bytes(artifact, b"original")
     with pytest.raises(EvidenceLedgerError, match="SHA-256 mismatch"):
-        verify_artifact_bytes(artifact, b"mutated")
+        verify_artifact_bytes(artifact, b"mutated!")
 
 
 def test_bundle_byte_set_is_exact_not_subset():
