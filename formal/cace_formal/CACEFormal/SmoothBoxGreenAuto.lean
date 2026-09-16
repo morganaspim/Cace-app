@@ -40,7 +40,7 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
       HasFDerivAt (q i : BoxPoint n → ℝ) (fderiv ℝ (q i) x) x := by
     exact (q i).hasFDerivAt x
   simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
-    ContinuousLinearMap.proj_pi, Pi.smul_apply, smul_eq_mul] using
+    ContinuousLinearMap.proj_pi, Pi.smul_apply, Pi.mul_apply, smul_eq_mul] using
     (v.hasFDerivAt x).smul hq
 
 /-- Taking the coordinate trace of the automatically generated product derivative gives exactly
@@ -61,7 +61,7 @@ theorem smoothBoxProduct_divergence_eq_greenVolume {n : Nat}
       apply Finset.sum_congr rfl
       intro i hi
       simp [smoothBoxProductFDeriv, SchwartzMap.lineDerivOp_apply_eq_fderiv,
-        boxBasisVector]
+        boxBasisVector, mul_comm]
     _ = (∑ i : Fin (n + 1), q i x * (∂_{boxBasisVector i} v) x) +
         (∑ i : Fin (n + 1), (∂_{boxBasisVector i} (q i)) x) * v x := by
       rw [Finset.sum_add_distrib, ← Finset.mul_sum]
