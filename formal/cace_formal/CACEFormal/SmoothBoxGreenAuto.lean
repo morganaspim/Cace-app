@@ -46,7 +46,7 @@ theorem smoothBoxProduct_hasFDerivAt {n : Nat}
         (v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)) x :=
     (v.hasFDerivAt x).smul hq
   have hfun :
-      (fun y : BoxPoint n => v y * (q i) y) =ᶠ[𝓝 x]
+      (fun y : BoxPoint n => v y * (q i) y) =ᶠ[nhds x]
         ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ)) := by
     filter_upwards [] with y
     rfl
