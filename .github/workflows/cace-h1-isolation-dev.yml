@@ -1,0 +1,174 @@
+name: CACE H1 isolated proof repair probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [implement/cace-rigor-playground-v337]
+    paths:
+      - '.github/workflows/cace-h1-isolation-dev.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-h1-isolation-dev
+  cancel-in-progress: false
+
+jobs:
+  h1-isolation:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 30
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_BUILD_CACHE_ROOT: /var/lib/cace-cache/canonical-qualification-build
+
+    steps:
+      - name: Checkout exact probe head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          clean: true
+          persist-credentials: false
+
+      - name: Verify exact probe boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/implement/cace-rigor-playground-v337'
+          test "$RUNNER_NAME" = 'cace-oci-a1'
+          test -z "$(git status --porcelain --untracked-files=no)"
+          formal_tree="$(git rev-parse HEAD:formal/cace_formal)"
+          toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
+          build_cache="$CACE_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT/$formal_tree"
+          echo "CACE_FORMAL_TREE_SHA=$formal_tree" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_BUILD_CACHE=$build_cache" >> "$GITHUB_ENV"
+          printf 'probe_head=%s\nformal_tree=%s\n' "$GITHUB_SHA" "$formal_tree"
+
+      - name: Restore exact pinned dependencies and failed-tree build frontier
+        shell: bash
+        working-directory: formal/cace_formal
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          test -x "$ELAN_HOME/bin/elan"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat lean-toolchain)" = "$CACE_TOOLCHAIN"
+          lean --version
+          lake --version
+
+          mkdir -p .lake
+          rm -rf .lake/packages .lake/build
+          if [[ -d "$CACE_PACKAGE_CACHE/mathlib/.git" ]]; then
+            exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+            flock -s -w 900 9
+            test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+            cp -a --reflink=auto "$CACE_PACKAGE_CACHE" .lake/packages
+            flock -u 9
+            echo 'CACE_ISOLATION_DEPENDENCY_CACHE_HIT'
+          else
+            echo 'CACE_ISOLATION_DEPENDENCY_CACHE_MISS'
+          fi
+
+          MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+          if [[ -d "$CACE_FORMAL_BUILD_CACHE/build" ]]; then
+            cp -a --reflink=auto "$CACE_FORMAL_BUILD_CACHE/build" .lake/build
+            echo "CACE_ISOLATION_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
+          else
+            echo "CACE_ISOLATION_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
+          fi
+
+      - name: Apply isolated structural proof candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+
+          path = Path('formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean')
+          text = path.read_text(encoding='utf-8')
+          old = '''  change
+            (∑ i : Fin n,
+              TemperedDistribution.fourierMultiplierCLM ℂ
+                ((h1RieszSymbol i) * (h1RieszSymbol i)) u) =
+              TemperedDistribution.fourierMultiplierCLM ℂ
+                (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
+          rw [← Finset.sum_apply]
+          simpa only [Pi.mul_apply] using hsum.symm
+          '''
+          new = '''  change
+            (∑ i : Fin n,
+              TemperedDistribution.fourierMultiplierCLM ℂ
+                ((h1RieszSymbol i) * (h1RieszSymbol i))) u =
+              TemperedDistribution.fourierMultiplierCLM ℂ
+                (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
+          simpa only [Pi.mul_apply] using hsum.symm
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one proof fingerprint; found {text.count(old)}')
+          original_hash = sha256(text.encode()).hexdigest()
+          patched = text.replace(old, new)
+          patched_hash = sha256(patched.encode()).hexdigest()
+          path.write_text(patched, encoding='utf-8')
+          Path('h1-isolation-hashes.txt').write_text(
+              f'original_sha256={original_hash}\npatched_sha256={patched_hash}\n', encoding='utf-8'
+          )
+          print(f'CACE_H1_ISOLATION_PATCH original={original_hash} patched={patched_hash}')
+          PY
+
+      - name: Compile isolated H1 Bessel-Riesz module
+        shell: bash
+        working-directory: formal/cace_formal
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          lake build CACEFormal.H1BesselRieszReduction 2>&1 | tee "$GITHUB_WORKSPACE/h1-isolation-build.log"
+
+      - name: Write non-qualifying isolation evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          log = Path('h1-isolation-build.log')
+          hashes = Path('h1-isolation-hashes.txt')
+          payload = {
+              'schema': 'cace-h1-isolation-probe-v1',
+              'git_commit': os.environ.get('GITHUB_SHA'),
+              'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
+              'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
+              'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
+              'proof_effect': 'none',
+              'qualification_effect': 'none',
+              'candidate_source_hashes': hashes.read_text(encoding='utf-8').splitlines() if hashes.exists() else [],
+              'build_log_sha256': hashlib.sha256(log.read_bytes()).hexdigest() if log.exists() else None,
+              'nonclaim': 'This isolated development probe does not qualify or promote any theorem. Canonical exact-head qualification remains required.',
+          }
+          Path('h1-isolation-evidence.json').write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload isolation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-h1-isolation-probe-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            h1-isolation-build.log
+            h1-isolation-hashes.txt
+            h1-isolation-evidence.json
