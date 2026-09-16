@@ -1,0 +1,8 @@
+{
+  "name": "ksee-final-web-release",
+  "private": true,
+  "version": "3.36.0-web.1",
+  "type": "module",
+  "scripts": {"start": "node server.mjs"},
+  "engines": {"node": ">=20"}
+}
