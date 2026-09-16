@@ -58,6 +58,14 @@ def test_heartbeat_progress_parser_and_notice_buckets():
     assert heartbeat._escape_workflow_command("a%\nb") == "a%25%0Ab"
 
 
+def test_proof_child_environment_scrubs_github_status_token(monkeypatch):
+    monkeypatch.setenv("CACE_GITHUB_TOKEN", "must-not-reach-lean")
+    monkeypatch.setenv("CACE_SAFE_SENTINEL", "kept")
+    child = heartbeat._child_environment()
+    assert "CACE_GITHUB_TOKEN" not in child
+    assert child["CACE_SAFE_SENTINEL"] == "kept"
+
+
 def test_publish_creates_then_updates_single_check_run(tmp_path, monkeypatch):
     monkeypatch.setenv("CACE_GITHUB_TOKEN", "test-token")
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
