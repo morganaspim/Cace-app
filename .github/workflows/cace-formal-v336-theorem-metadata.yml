@@ -1,15 +1,20 @@
 name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
 
-# Canonical OCI qualification is deliberately manual-only. The sequential CACE
-# executor decides when this single expensive runner job has the highest benefit.
+# Canonical OCI qualification is manual, with one deliberate self-trigger: a
+# change to this workflow file on the locked executor branch. Formal/source
+# commits cannot summon the OCI runner.
 on:
   workflow_dispatch:
+  push:
+    branches: [executor/cace-proof-qualification-locked]
+    paths:
+      - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
 
 permissions:
   contents: read
 
 # Never cancel or replace an in-flight qualification. The executor additionally
-# checks repository-wide queued/running state before every manual dispatch.
+# checks repository-wide queued/running state before every deliberate dispatch.
 concurrency:
   group: cace-canonical-qualification-oci
   cancel-in-progress: false
@@ -554,7 +559,7 @@ jobs:
             mv "$build_staging" "$CACE_FORMAL_BUILD_CACHE/build"
             printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$CACE_FORMAL_BUILD_CACHE/formal_tree_sha.txt"
             printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$CACE_FORMAL_BUILD_CACHE/mathlib_commit.txt"
-            printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_FORMAL_BUILD_CACHE/lean_toolchain.txt"
+            printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_FORMORMAL_BUILD_CACHE/lean_toolchain.txt"
             echo "CACE_FORMAL_BUILD_CACHE_PROMOTED tree=$CACE_FORMAL_TREE_SHA"
           fi
 
