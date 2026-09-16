@@ -1,13 +1,9 @@
 name: CACE v3.21 Lean formal gate
 
+# Historical gate. Manual-only so current CACE proof work is validated through
+# exactly one deliberately selected qualification job at a time.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'Dockerfile.lean'
-      - '.github/workflows/lean-v321.yml'
-      - 'examples/v310_discrete_prager_synge_certificate.json'
 
 jobs:
   lean-formal:
