@@ -2,7 +2,7 @@ name: CACE Python regression
 on:
   workflow_dispatch:
   push:
-    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation]
+    branches: [main, roadmap/v3.30-proof-strengthening, implement/v331-truth-foundation, executor/cace-proof-governance-hardening]
     paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'quality/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
   pull_request:
     paths: ['cace_studio/**', 'tests/**', 'scripts/**', 'quality/**', 'cpp/**', 'examples/**', 'pyproject.toml', '.github/workflows/cace-python-regression.yml']
