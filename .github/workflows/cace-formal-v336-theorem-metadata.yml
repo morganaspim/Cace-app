@@ -559,7 +559,7 @@ jobs:
             mv "$build_staging" "$CACE_FORMAL_BUILD_CACHE/build"
             printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$CACE_FORMAL_BUILD_CACHE/formal_tree_sha.txt"
             printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$CACE_FORMAL_BUILD_CACHE/mathlib_commit.txt"
-            printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_FORMORMAL_BUILD_CACHE/lean_toolchain.txt"
+            printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_FORMAL_BUILD_CACHE/lean_toolchain.txt"
             echo "CACE_FORMAL_BUILD_CACHE_PROMOTED tree=$CACE_FORMAL_TREE_SHA"
           fi
 
