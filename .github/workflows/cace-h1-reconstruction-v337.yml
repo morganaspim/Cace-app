@@ -1,6 +1,6 @@
 # Fast exact-head development probe for the unconditional H1 converse.
 # This workflow is NOT qualification evidence. Compatible CACE build outputs may
-# accelerate this probe; canonical qualification must use a clean CACE build.
+# accelerate this probe; canonical qualification independently revalidates exact-head closure.
 name: CACE H¹ proof-frontier probe
 
 on:
@@ -84,7 +84,7 @@ jobs:
           echo "CACE_EXACT_BUILD_CACHE=$exact_cache" >> "$GITHUB_ENV"
           echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$root/cache" >> "$GITHUB_ENV"
-          printf '%s\n' "$formal_tree" > "$status_dir/formal_tree_sha.txt"
+          printf '%s\n' "$formal_tree" > "$CACE_STATUS_DIR/formal_tree_sha.txt"
 
       - name: Seed exact-pin dependency tree
         shell: bash
@@ -241,6 +241,7 @@ jobs:
           from pathlib import Path
           files = [
               Path('formal/cace_formal/CACEFormal/H1DomainBridge.lean'),
+              Path('formal/cace_formal/CACEFormal/DistributionalGraphRepresentatives.lean'),
               Path('formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'),
               Path('formal/cace_formal/CACEFormal/H1GraphConverse.lean'),
               Path('formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'),
