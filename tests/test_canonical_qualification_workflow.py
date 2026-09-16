@@ -5,6 +5,10 @@ from cace_studio.core.proof_contract import ProofContractRegistry
 
 ROOT = Path(__file__).parents[1]
 WORKFLOW = ROOT / ".github/workflows/cace-formal-v336-theorem-metadata.yml"
+LEGACY_PROOF_WORKFLOWS = (
+    ROOT / ".github/workflows/cace-formal-v330.yml",
+    ROOT / ".github/workflows/cace-h1-reconstruction-v337.yml",
+)
 
 
 def _workflow_text() -> str:
@@ -45,3 +49,14 @@ def test_canonical_workflow_wires_observability_and_authorized_dispatch_guards()
     assert "github.repository == 'morganaspim/Cace-app'" in text
     assert "CACE_GITHUB_TOKEN: ${{ github.token }}" in text
     assert "runs-on: [self-hosted, cace, oci, aarch64]" in text
+
+
+def test_legacy_proof_workflows_cannot_claim_self_hosted_runner_automatically():
+    for workflow in LEGACY_PROOF_WORKFLOWS:
+        text = workflow.read_text(encoding="utf-8")
+        trigger_section = text.split("\npermissions:", 1)[0]
+        assert "runs-on: [self-hosted" not in text, workflow
+        assert "runs-on: self-hosted" not in text, workflow
+        assert "\n  push:" not in trigger_section, workflow
+        assert "\n  pull_request:" not in trigger_section, workflow
+        assert "\n  workflow_dispatch:" in trigger_section, workflow
