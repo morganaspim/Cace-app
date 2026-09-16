@@ -1,9 +1,10 @@
 name: CACE OCI runner health
 
+# Runner-exclusive maintenance probe. Deliberately manual-only so an hourly
+# health check can never steal the single OCI runner from the highest-ranked
+# CACE proof/development/release job.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 * * * *'
 
 permissions:
   contents: read
