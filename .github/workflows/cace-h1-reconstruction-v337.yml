@@ -1,34 +1,33 @@
-# Exact-head compile/axiom probe for the unconditional H1 converse.
-name: CACE v3.37 H1 reconstruction proof probe
+# Fast, exact-head development probe for the unconditional H1 converse.
+# This workflow is NOT qualification evidence. It may reuse compatible CACE build
+# outputs to learn the next proof frontier quickly. The canonical qualification
+# workflow always rebuilds CACE project outputs from a clean .lake/build tree.
+name: CACE H¹ proof-frontier probe
 
 on:
   workflow_dispatch:
-  push:
-    branches: [implement/cace-rigor-playground-v337]
-    paths:
-      - 'formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'
-      - 'formal/cace_formal/CACEFormal/H1GraphConverse.lean'
-      - 'formal/cace_formal/lean-toolchain'
-      - 'formal/cace_formal/lakefile.lean'
-      - '.github/workflows/cace-h1-reconstruction-v337.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: cace-v337-h1-reconstruction-${{ github.ref }}
-  cancel-in-progress: true
+  group: cace-h1-proof-frontier-probe
+  cancel-in-progress: false
 
 jobs:
   h1-reconstruction:
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
       CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
       CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_PERSISTENT_BUILD_CACHE_ROOT: /var/lib/cace-cache/canonical-qualification-build
+      CACE_HEARTBEAT_SECONDS: '60'
+      CACE_STALL_WARN_SECONDS: '1200'
+      CACE_STALL_KILL_SECONDS: '5400'
 
     steps:
       - name: Bootstrap Git
@@ -62,27 +61,42 @@ jobs:
           clean: true
           persist-credentials: false
 
-      - name: Establish exact-head boundary
+      - name: Establish exact-head boundary and probe journal
         shell: bash
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
           test "$actual" = "$GITHUB_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
+          status_dir="$RUNNER_TEMP/cace-h1-probe-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -p "$status_dir"
+          printf '%s\n' "$actual" > "$status_dir/exact_head.txt"
+          printf '%s\n' "$GITHUB_RUN_ID" > "$status_dir/workflow_run_id.txt"
+          printf '%s\n' "$GITHUB_RUN_ATTEMPT" > "$status_dir/workflow_run_attempt.txt"
           echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
+          echo "CACE_STATUS_DIR=$status_dir" >> "$GITHUB_ENV"
 
-      - name: Prepare isolated formal build
+      - name: Prepare isolated formal build and cache identities
         shell: bash
         run: |
           set -euo pipefail
           root="$(mktemp -d /var/tmp/cace-h1-v337.XXXXXXXX)"
-          mkdir -p "$root/formal" "$root/cache"
+          mkdir -p "$root/formal" "$root/cache" "$root/output"
           cp -a formal/cace_formal/. "$root/formal/"
           rm -rf "$root/formal/.lake/build"
+          formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
+          toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
+          cache_family="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT"
+          exact_cache="$cache_family/$formal_tree"
           echo "CACE_BUILD_ROOT=$root" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_DIR=$root/formal" >> "$GITHUB_ENV"
+          echo "CACE_OUTPUT_DIR=$root/output" >> "$GITHUB_ENV"
+          echo "CACE_FORMAL_TREE_SHA=$formal_tree" >> "$GITHUB_ENV"
+          echo "CACE_CACHE_FAMILY=$cache_family" >> "$GITHUB_ENV"
+          echo "CACE_EXACT_BUILD_CACHE=$exact_cache" >> "$GITHUB_ENV"
           echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$root/cache" >> "$GITHUB_ENV"
+          printf '%s\n' "$formal_tree" > "$status_dir/formal_tree_sha.txt"
 
       - name: Seed exact-pin package tree when available
         shell: bash
@@ -96,6 +110,9 @@ jobs:
             test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
             cp -a --reflink=auto "$CACE_PACKAGE_CACHE" "$CACE_FORMAL_DIR/.lake/packages"
             flock -u 9
+            echo 'CACE_DEPENDENCY_CACHE_HIT'
+          else
+            echo 'CACE_DEPENDENCY_CACHE_MISS'
           fi
           rm -rf "$CACE_FORMAL_DIR/.lake/build"
 
@@ -147,6 +164,66 @@ jobs:
           find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete || true
           rm -rf .lake/build
 
+      - name: Restore best compatible CACE build cache for probe only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CACE_FORMAL_DIR/.lake"
+          rm -rf "$CACE_FORMAL_DIR/.lake/build"
+          candidate=''
+          mode='MISS'
+
+          if [[ -d "$CACE_EXACT_BUILD_CACHE/build" ]]; then
+            candidate="$CACE_EXACT_BUILD_CACHE"
+            mode='EXACT_TREE_HIT'
+          elif [[ -d "$CACE_CACHE_FAMILY" ]]; then
+            # Development-only cross-tree reuse: choose the newest compatible cache.
+            # Lake's trace hashes invalidate any source/module whose inputs changed.
+            while IFS= read -r dir; do
+              [[ -d "$dir/build" ]] || continue
+              [[ -f "$dir/mathlib_commit.txt" ]] || continue
+              [[ -f "$dir/lean_toolchain.txt" ]] || continue
+              [[ "$(cat "$dir/mathlib_commit.txt")" = "$CACE_MATHLIB_COMMIT" ]] || continue
+              [[ "$(cat "$dir/lean_toolchain.txt")" = "$CACE_TOOLCHAIN" ]] || continue
+              candidate="$dir"
+              mode='COMPATIBLE_PRIOR_TREE_HIT'
+              break
+            done < <(find "$CACE_CACHE_FAMILY" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' 2>/dev/null | sort -nr | cut -d' ' -f2-)
+          fi
+
+          if [[ -n "$candidate" ]]; then
+            cp -a --reflink=auto "$candidate/build" "$CACE_FORMAL_DIR/.lake/build"
+            echo "CACE_PROBE_BUILD_CACHE_$mode source=$candidate current_tree=$CACE_FORMAL_TREE_SHA"
+            printf '%s\n' "$mode" > "$CACE_STATUS_DIR/build_cache_mode.txt"
+            printf '%s\n' "$candidate" > "$CACE_STATUS_DIR/build_cache_source.txt"
+          else
+            echo "CACE_PROBE_BUILD_CACHE_MISS current_tree=$CACE_FORMAL_TREE_SHA"
+            printf '%s\n' 'MISS' > "$CACE_STATUS_DIR/build_cache_mode.txt"
+          fi
+
+      - name: Static frontier guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          files = [
+              Path('formal/cace_formal/CACEFormal/H1DomainBridge.lean'),
+              Path('formal/cace_formal/CACEFormal/GraphRegularizationCriterion.lean'),
+              Path('formal/cace_formal/CACEFormal/RealGraphRegularizationCriterion.lean'),
+              Path('formal/cace_formal/CACEFormal/H1BesselRieszReduction.lean'),
+              Path('formal/cace_formal/CACEFormal/H1GraphConverse.lean'),
+          ]
+          for path in files:
+              text = path.read_text(encoding='utf-8')
+              if '𝓝' in text:
+                  raise SystemExit(f'fragile scoped neighborhood notation remains in {path}')
+              for token in ('sorry', 'admit', 'OPEN OBLIGATION'):
+                  if token in text:
+                      raise SystemExit(f'forbidden unfinished token {token!r} in {path}')
+          print('CACE_H1_STATIC_FRONTIER_GUARDS_PASS')
+          PY
+
       - name: Recheck exact source before proof compile
         shell: bash
         run: |
@@ -162,9 +239,11 @@ jobs:
           LEAN_ABORT_ON_PANIC: '1'
         run: |
           set -euo pipefail
-          timeout 5400 lake build CACEFormal.H1GraphConverse
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase h1-proof-frontier-probe -- \
+            lake build CACEFormal.H1GraphConverse
 
-      - name: Kernel axiom probe for new endpoints
+      - name: Kernel axiom probe for H1 endpoints
         shell: bash
         working-directory: ${{ env.CACE_FORMAL_DIR }}
         run: |
@@ -178,7 +257,7 @@ jobs:
           #print axioms CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative
           LEAN
           output="$(lake env lean H1ReconstructionAxiomProbe.lean)"
-          printf '%s\n' "$output"
+          printf '%s\n' "$output" | tee "$CACE_OUTPUT_DIR/h1_axiom_probe.txt"
           if grep -q 'sorryAx' <<<"$output"; then
             echo 'Forbidden sorryAx dependency.' >&2
             exit 1
@@ -208,13 +287,78 @@ jobs:
           print('CACE_H1_RECONSTRUCTION_AXIOM_PROBE_PASS')
           PY
 
-      - name: Final exact-head check
+      - name: Final exact-head probe check
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
-          echo CACE_H1_RECONSTRUCTION_COMPILE_PASS
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
+          echo CACE_H1_PROOF_FRONTIER_PROBE_PASS
+
+      - name: Persist exact-tree development cache
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CACE_FORMAL_DIR:-}" || ! -d "$CACE_FORMAL_DIR/.lake/build" ]]; then
+            echo 'No build tree available to persist.'
+            exit 0
+          fi
+          test "$(git rev-parse HEAD)" = "${CACE_EXPECTED_SHA:-}"
+          diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR" >/dev/null
+          mkdir -p "$CACE_EXACT_BUILD_CACHE"
+          staging="$CACE_EXACT_BUILD_CACHE/build.staging.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+          rm -rf "$staging"
+          cp -a --reflink=auto "$CACE_FORMAL_DIR/.lake/build" "$staging"
+          rm -rf "$CACE_EXACT_BUILD_CACHE/build"
+          mv "$staging" "$CACE_EXACT_BUILD_CACHE/build"
+          printf '%s\n' "$CACE_FORMAL_TREE_SHA" > "$CACE_EXACT_BUILD_CACHE/formal_tree_sha.txt"
+          printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$CACE_EXACT_BUILD_CACHE/mathlib_commit.txt"
+          printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_EXACT_BUILD_CACHE/lean_toolchain.txt"
+          printf '%s\n' 'development-acceleration-only; never qualification evidence' > "$CACE_EXACT_BUILD_CACHE/cache_policy.txt"
+          echo "CACE_PROBE_BUILD_CACHE_PERSISTED tree=$CACE_FORMAL_TREE_SHA"
+
+      - name: Write probe manifest
+        if: always()
+        shell: bash
+        env:
+          CACE_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$CACE_STATUS_DIR"
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          status = Path(os.environ['CACE_STATUS_DIR'])
+          payload = {
+              'schema': 'cace-h1-proof-frontier-probe-v1',
+              'timestamp_utc': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+              'job_status': os.environ.get('CACE_JOB_STATUS'),
+              'git_commit': os.environ.get('CACE_EXPECTED_SHA'),
+              'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
+              'run_id': os.environ.get('GITHUB_RUN_ID'),
+              'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
+              'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
+              'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
+              'evidence_class': 'DEVELOPMENT_PROBE_ONLY',
+              'qualification_effect': 'none',
+              'cache_policy': 'compatible CACE build outputs may accelerate this probe; canonical qualification never restores them',
+          }
+          (status / 'probe_manifest.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+
+      - name: Upload probe diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-h1-proof-frontier-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ env.CACE_STATUS_DIR }}
+            ${{ env.CACE_OUTPUT_DIR }}
 
       - name: Remove temporary build
         if: always()
