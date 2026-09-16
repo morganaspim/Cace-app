@@ -52,6 +52,29 @@ def _write_json_atomic(path: Path, payload: dict) -> None:
     os.replace(tmp, path)
 
 
+def _mine_workspace() -> int:
+    """Refresh the non-proof mining manifest while the disposable build still exists."""
+    formal_dir = os.environ.get("CACE_FORMAL_DIR")
+    status_dir = os.environ.get("CACE_STATUS_DIR")
+    workspace = Path(os.environ.get("GITHUB_WORKSPACE", ".")).resolve()
+    miner = workspace / "scripts" / "cace_mine_formal_workspace.py"
+    if not formal_dir or not status_dir or not Path(formal_dir).is_dir():
+        print("CACE_EPHEMERAL_BUILD_MINING_SKIPPED no-formal-workspace", flush=True)
+        return 0
+    if not miner.is_file():
+        print(f"CACE_EPHEMERAL_BUILD_MINING_FAILED missing-miner={miner}", file=sys.stderr, flush=True)
+        return 125
+    completed = subprocess.run([sys.executable, str(miner)], check=False)
+    if completed.returncode != 0:
+        print(
+            f"CACE_EPHEMERAL_BUILD_MINING_FAILED returncode={completed.returncode}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 125
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase", required=True)
@@ -238,11 +261,17 @@ def main() -> int:
 
     if forced_stall:
         emit("failed", returncode=124, note="stalled without output")
+        _mine_workspace()
         return 124
     if returncode == 0:
         emit("passed", returncode=0, note="phase-complete")
+        mining_returncode = _mine_workspace()
+        if mining_returncode != 0:
+            emit("failed", returncode=mining_returncode, note="ephemeral-build-mining-failed")
+            return mining_returncode
         return 0
     emit("failed", returncode=returncode, note="command-exit")
+    _mine_workspace()
     return returncode
 
 
