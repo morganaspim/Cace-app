@@ -53,10 +53,16 @@ theorem inH1GraphRepresentative_mem {n : Nat}
     inH1GraphRepresentative u hu ∈ H1DistributionalGraphSubmodule n := by
   rw [mem_H1DistributionalGraphSubmodule_iff]
   intro i
-  rw [complexL2ToDistribution_l2RepresentativeOfInL2
-      u (h1_l2 hu),
-    complexL2ToDistribution_l2RepresentativeOfInL2
-      (weakPartial i u) (h1_weakPartial_l2 hu i)]
+  calc
+    weakPartial i (complexL2ToDistribution n (inH1GraphRepresentative u hu).1) =
+        weakPartial i u := by
+      simpa [inH1GraphRepresentative] using
+        congrArg (weakPartial i)
+          (complexL2ToDistribution_l2RepresentativeOfInL2 u (h1_l2 hu))
+    _ = complexL2ToDistribution n (inH1GraphRepresentative u hu).2 i := by
+      simpa [inH1GraphRepresentative] using
+        (complexL2ToDistribution_l2RepresentativeOfInL2
+          (weakPartial i u) (h1_weakPartial_l2 hu i)).symm
 
 /-- The value coordinate of the chosen H1 graph representative is exactly the original distribution. -/
 theorem inH1GraphRepresentative_value {n : Nat}
@@ -116,9 +122,8 @@ theorem inHDiv_iff_exists_distributionalGraphRepresentative {n : Nat}
     exact ⟨inHDivGraphRepresentative q hq,
       inHDivGraphRepresentative_mem q hq,
       inHDivGraphRepresentative_fieldDistribution q hq⟩
-  · rintro ⟨x, hx, hxq⟩
-    rw [← hxq]
-    exact inHDiv_of_mem_distributionalGraph n x hx
+  · rintro ⟨x, hx, rfl⟩
+    exact inHDiv_of_mem_distributionalGraph x hx
 
 end
 
