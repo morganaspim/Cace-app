@@ -1,0 +1,173 @@
+--- a/package.json
++++ b/package.json
+@@ -10,22 +10,22 @@
+     "preview": "vite preview --port 3000 --host 0.0.0.0"
+   },
+   "dependencies": {
+-    "clsx": "^2.1.1",
+-    "lucide-react": "^0.468.0",
+-    "motion": "^12.4.7",
+-    "qrcode": "^1.5.4",
+-    "react": "^18.3.1",
+-    "react-dom": "^18.3.1",
+-    "tailwind-merge": "^2.6.0"
++    "clsx": "2.1.1",
++    "lucide-react": "0.468.0",
++    "motion": "12.43.0",
++    "qrcode": "1.5.4",
++    "react": "18.3.1",
++    "react-dom": "18.3.1",
++    "tailwind-merge": "2.6.1"
+   },
+   "devDependencies": {
+-    "@tailwindcss/vite": "^4.0.0",
+-    "@types/qrcode": "^1.5.6",
+-    "@types/react": "^18.3.18",
+-    "@types/react-dom": "^18.3.5",
+-    "@vitejs/plugin-react": "^4.3.4",
+-    "tailwindcss": "^4.0.0",
+-    "typescript": "^5.7.2",
+-    "vite": "^6.0.7"
++    "@tailwindcss/vite": "4.3.3",
++    "@types/qrcode": "1.5.6",
++    "@types/react": "18.3.31",
++    "@types/react-dom": "18.3.7",
++    "@vitejs/plugin-react": "4.7.0",
++    "tailwindcss": "4.3.3",
++    "typescript": "5.9.3",
++    "vite": "6.4.3"
+   }
+ }
+--- a/index.html
++++ b/index.html
+@@ -4,10 +4,10 @@
+     <meta charset="UTF-8" />
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔬</text></svg>" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-    <title>CACE Studio</title>
+-    <meta name="description" content="Verified computational research environment featuring interactive experiment graphs, Clifford Projective Geometric Algebra (PGA ℝ₃,₀,₁), Discrete Exterior Calculus (DEC) & Hodge decomposition, certified FEM & PDE solver with a-posteriori error bounds, and Lean 4 proof ledger." />
+-    <meta property="og:title" content="CACE Studio" />
+-    <meta property="og:description" content="Verified computational research environment featuring interactive experiment graphs, Clifford Projective Geometric Algebra (PGA ℝ₃,₀,₁), Discrete Exterior Calculus (DEC) & Hodge decomposition, certified FEM & PDE solver with a-posteriori error bounds, and Lean 4 proof ledger." />
++    <title>KSEE FINAL · CACE Studio</title>
++    <meta name="description" content="Evidence-aware scientific computing and formal-verification workbench with interactive experiment graphs, certified numerical modules, reproducible provenance, and claim-specific Lean 4 proof metadata. Formal status is exact-head and claim-specific." />
++    <meta property="og:title" content="KSEE FINAL · CACE Studio" />
++    <meta property="og:description" content="Evidence-aware scientific computing and formal-verification workbench with interactive experiment graphs, certified numerical modules, reproducible provenance, and claim-specific Lean 4 proof metadata. Formal status is exact-head and claim-specific." />
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -4,6 +4,20 @@
+ 
+ export default defineConfig({
+   plugins: [react(), tailwindcss()],
++  build: {
++    rollupOptions: {
++      output: {
++        manualChunks(id) {
++          if (!id.includes('node_modules')) return;
++          if (id.includes('/react/') || id.includes('/react-dom/')) return 'react-vendor';
++          if (id.includes('lucide-react')) return 'icons';
++          if (id.includes('qrcode')) return 'qrcode';
++          if (id.includes('motion')) return 'motion';
++          return 'vendor';
++        }
++      }
++    }
++  },
+   server: {
+     host: '0.0.0.0',
+     port: 3000,
+--- a/src/index.css
++++ b/src/index.css
+@@ -6,8 +6,15 @@
+     --font-mono: 'JetBrains Mono', monospace;
+   }
+   
++  html, body, #root {
++    width: 100%;
++    height: 100%;
++    margin: 0;
++  }
++
+   body {
+     font-family: var(--font-sans);
++    overflow: hidden;
+   }
+   
+   code, pre, kbd {
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,4 +1,4 @@
+-import React, { useState, useEffect } from 'react';
++import React, { useState, useEffect, lazy, Suspense } from 'react';
+ import { CaceExperiment, NodeExecutionResult, RunReport, GrowthLoopConfig } from './types';
+ import { PRESET_EXPERIMENTS } from './data/caceData';
+ import { GraphExecutionEngine } from './engine/executor';
+@@ -6,27 +6,29 @@
+ import { GrowthLoopBanner } from './components/GrowthLoopBanner';
+ import { GraphCanvas } from './components/GraphCanvas';
+ import { NodePropertiesPanel } from './components/NodePropertiesPanel';
+-import { AdaptiveWorldView } from './components/AdaptiveWorldView';
+-import { ClaimRegistryView } from './components/ClaimRegistryView';
+-import { AssumptionDagView } from './components/AssumptionDagView';
+-import { ModuleCatalogView } from './components/ModuleCatalogView';
+-import { RepresentationOptimizerView } from './components/RepresentationOptimizerView';
+-import { ReproducibilityView } from './components/ReproducibilityView';
+ import { ExecutionReportModal } from './components/ExecutionReportModal';
+ import { CliTerminalModal } from './components/CliTerminalModal';
+ import { BugLedgerModal } from './components/BugLedgerModal';
+-import { RankedRoadmapView } from './components/RankedRoadmapView';
+-import { RigorKernelSecurityView } from './components/RigorKernelSecurityView';
+-import { CertifiedFemPdeView } from './components/CertifiedFemPdeView';
+-import { DiscreteExteriorCalculusView } from './components/DiscreteExteriorCalculusView';
+-import { CliffordPgaView } from './components/CliffordPgaView';
+-import { HelpDocumentationView } from './components/HelpDocumentationView';
+ import { MoneroUnlockModal } from './components/MoneroUnlockModal';
+ import { CopyrightFooterBadge } from './components/CopyrightFooterBadge';
+ import { DynamicTosModal } from './components/DynamicTosModal';
+ import { CaceLicenseState, LicenseService } from './services/licenseService';
+ import { UserDatabaseService, UserRecord } from './services/userDatabaseService';
+ 
++
++const AdaptiveWorldView = lazy(() => import('./components/AdaptiveWorldView').then(m => ({ default: m.AdaptiveWorldView })));
++const ClaimRegistryView = lazy(() => import('./components/ClaimRegistryView').then(m => ({ default: m.ClaimRegistryView })));
++const AssumptionDagView = lazy(() => import('./components/AssumptionDagView').then(m => ({ default: m.AssumptionDagView })));
++const ModuleCatalogView = lazy(() => import('./components/ModuleCatalogView').then(m => ({ default: m.ModuleCatalogView })));
++const RepresentationOptimizerView = lazy(() => import('./components/RepresentationOptimizerView').then(m => ({ default: m.RepresentationOptimizerView })));
++const ReproducibilityView = lazy(() => import('./components/ReproducibilityView').then(m => ({ default: m.ReproducibilityView })));
++const RankedRoadmapView = lazy(() => import('./components/RankedRoadmapView').then(m => ({ default: m.RankedRoadmapView })));
++const RigorKernelSecurityView = lazy(() => import('./components/RigorKernelSecurityView').then(m => ({ default: m.RigorKernelSecurityView })));
++const CertifiedFemPdeView = lazy(() => import('./components/CertifiedFemPdeView').then(m => ({ default: m.CertifiedFemPdeView })));
++const DiscreteExteriorCalculusView = lazy(() => import('./components/DiscreteExteriorCalculusView').then(m => ({ default: m.DiscreteExteriorCalculusView })));
++const CliffordPgaView = lazy(() => import('./components/CliffordPgaView').then(m => ({ default: m.CliffordPgaView })));
++const HelpDocumentationView = lazy(() => import('./components/HelpDocumentationView').then(m => ({ default: m.HelpDocumentationView })));
++
+ export const App: React.FC = () => {
+   const [activeTab, setActiveTab] = useState<CaceTab>('graph');
+   const [currentExperiment, setCurrentExperiment] = useState<CaceExperiment>(PRESET_EXPERIMENTS.verified_quadratic);
+@@ -133,7 +135,7 @@
+   };
+ 
+   return (
+-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
++    <div className="h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100 flex flex-col font-sans">
+       {/* Header bar */}
+       <Header
+         activeTab={activeTab}
+@@ -183,6 +185,7 @@
+ 
+       {/* Main Tab Content */}
+       <main className="flex-1 flex overflow-hidden">
++        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-xs font-mono text-neutral-500">Loading workspace…</div>}>
+         {activeTab === 'graph' && (
+           <div className="flex-1 flex overflow-hidden">
+             <GraphCanvas
+@@ -227,6 +230,7 @@
+         {activeTab === 'dec' && <DiscreteExteriorCalculusView />}
+         {activeTab === 'pga' && <CliffordPgaView />}
+         {activeTab === 'help' && <HelpDocumentationView />}
++        </Suspense>
+       </main>
+ 
+       {/* Execution Report Modal */}

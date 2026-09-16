@@ -1,0 +1,160 @@
+--- a/src/components/RigorKernelSecurityView.tsx
++++ b/src/components/RigorKernelSecurityView.tsx
+@@ -69,14 +69,13 @@
+           </div>
+           <div>
+             <div className="flex items-center gap-2">
+-              <h1 className="text-xl font-bold text-white tracking-tight">Rigor Kernel Security & IP Hardening</h1>
++              <h1 className="text-xl font-bold text-white tracking-tight">Rigor Kernel Security Model & Attack Simulation</h1>
+               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-bold uppercase tracking-wider">
+-                TCB Layer 0 Enclave
++                CLIENT MODEL ONLY
+               </span>
+             </div>
+             <p className="text-xs text-neutral-400 mt-1 max-w-2xl leading-relaxed">
+-              Constitutional trusted-computing-base enforcement. Protects Emmanuel Spiro's proprietary solvers, 
+-              Lean theorem specifications, and native C++ kernels from client-side extraction, parameter injection, and proof ledger tampering.
++              Interactive model of the intended trusted-computing-base controls. This public browser build is not a hardware enclave and does not establish proof qualification, server isolation, or source secrecy.
+             </p>
+           </div>
+         </div>
+@@ -87,7 +86,7 @@
+             <span className="text-[10px] uppercase font-mono text-neutral-500 font-semibold">Perimeter State</span>
+             <span className="text-xs font-bold text-emerald-400 flex items-center justify-end gap-1.5 font-mono">
+               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+-              ARMORED & FAIL-CLOSED
++              SIMULATION / FAIL-CLOSED UI
+             </span>
+           </div>
+         </div>
+@@ -97,20 +96,20 @@
+       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+         <div className="p-3.5 rounded-lg bg-neutral-900/80 border border-neutral-800 flex flex-col gap-1">
+           <div className="flex items-center justify-between text-neutral-400">
+-            <span className="text-[10px] uppercase font-mono">Kernel Enclave</span>
++            <span className="text-[10px] uppercase font-mono">Browser Boundary</span>
+             <Lock className="w-3.5 h-3.5 text-indigo-400" />
+           </div>
+-          <span className="text-sm font-bold text-white font-mono">ISOLATED TCB</span>
+-          <span className="text-[9px] text-neutral-500">Zero raw source in DOM</span>
++          <span className="text-sm font-bold text-white font-mono">MODEL ONLY</span>
++          <span className="text-[9px] text-neutral-500">No hardware enclave claim</span>
+         </div>
+ 
+         <div className="p-3.5 rounded-lg bg-neutral-900/80 border border-neutral-800 flex flex-col gap-1">
+           <div className="flex items-center justify-between text-neutral-400">
+-            <span className="text-[10px] uppercase font-mono">IP Anti-Extraction</span>
++            <span className="text-[10px] uppercase font-mono">Anti-Extraction Model</span>
+             <EyeOff className="w-3.5 h-3.5 text-cyan-400" />
+           </div>
+-          <span className="text-sm font-bold text-cyan-300 font-mono">HARDENED</span>
+-          <span className="text-[9px] text-neutral-500">Masked AST & memory heap</span>
++          <span className="text-sm font-bold text-cyan-300 font-mono">SIMULATED</span>
++          <span className="text-[9px] text-neutral-500">Not a browser security boundary</span>
+         </div>
+ 
+         <div className="p-3.5 rounded-lg bg-neutral-900/80 border border-neutral-800 flex flex-col gap-1">
+@@ -124,20 +123,20 @@
+ 
+         <div className="p-3.5 rounded-lg bg-neutral-900/80 border border-neutral-800 flex flex-col gap-1">
+           <div className="flex items-center justify-between text-neutral-400">
+-            <span className="text-[10px] uppercase font-mono">Tamper Watchdog</span>
++            <span className="text-[10px] uppercase font-mono">Tamper Model</span>
+             <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
+           </div>
+-          <span className="text-sm font-bold text-emerald-300 font-mono">ACTIVE (SECURE)</span>
+-          <span className="text-[9px] text-neutral-500">Proto-pollution freeze</span>
++          <span className="text-sm font-bold text-emerald-300 font-mono">SIMULATION ACTIVE</span>
++          <span className="text-[9px] text-neutral-500">Client validation only</span>
+         </div>
+ 
+         <div className="p-3.5 rounded-lg bg-neutral-900/80 border border-neutral-800 flex flex-col gap-1 col-span-2 md:col-span-1">
+           <div className="flex items-center justify-between text-neutral-400">
+-            <span className="text-[10px] uppercase font-mono">Threats Blocked</span>
++            <span className="text-[10px] uppercase font-mono">Simulated Cases</span>
+             <Flame className="w-3.5 h-3.5 text-rose-400" />
+           </div>
+-          <span className="text-sm font-bold text-white font-mono">{status.total_threats_neutralized} Incursions</span>
+-          <span className="text-[9px] text-emerald-400 font-semibold">100% Defense Rate</span>
++          <span className="text-sm font-bold text-white font-mono">{status.total_threats_neutralized} Scenarios</span>
++          <span className="text-[9px] text-emerald-400 font-semibold">No real-world rate claimed</span>
+         </div>
+       </div>
+ 
+@@ -170,7 +169,7 @@
+           }`}
+         >
+           <Layers className="w-3.5 h-3.5" />
+-          <span>Enclave Boundary Architecture</span>
++          <span>Target Boundary Architecture</span>
+         </button>
+ 
+         <button
+@@ -196,7 +195,7 @@
+           }`}
+         >
+           <Lock className="w-3.5 h-3.5" />
+-          <span>IP Hardening Policies</span>
++          <span>Model Policies</span>
+         </button>
+ 
+         <button
+@@ -213,14 +212,14 @@
+         </button>
+       </div>
+ 
+-      {/* Tab 1: Enclave Boundary Architecture Diagram */}
++      {/* Tab 1: Target Boundary Architecture Diagram */}
+       {activeTab === 'architecture' && (
+         <div className="flex flex-col gap-6">
+           <div className="p-5 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-4">
+             <div>
+-              <h2 className="text-sm font-bold text-white">Rigor Kernel Enclave Boundary Isolation Model</h2>
++              <h2 className="text-sm font-bold text-white">Rigor Browser Boundary Isolation Model</h2>
+               <p className="text-xs text-neutral-400 mt-0.5">
+-                How CACE physically eliminates proprietary code theft: the browser never receives raw algorithm routines.
++                Target architecture for separating an untrusted UI from trusted compute. The current public build ships client code and should not be treated as an anti-extraction boundary.
+               </p>
+             </div>
+ 
+@@ -245,11 +244,11 @@
+                   </li>
+                   <li className="flex items-center gap-1.5">
+                     <EyeOff className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+-                    <span className="text-neutral-300 font-semibold">Zero proprietary code loaded here</span>
++                    <span className="text-neutral-300 font-semibold">Client code is inspectable by design</span>
+                   </li>
+                 </ul>
+                 <div className="p-2.5 rounded bg-neutral-900 border border-neutral-800 text-[10px] font-mono text-neutral-500 mt-auto">
+-                  Only JSON experiment graph specifications and signed certificates are exchanged.
++                  Target server architecture: exchange typed graph requests and independently verified certificates.
+                 </div>
+               </div>
+ 
+@@ -281,7 +280,7 @@
+                 </div>
+               </div>
+ 
+-              {/* Layer 3: Rigor Kernel Enclave */}
++              {/* Layer 3: Rigor Browser Boundary */}
+               <div className="p-4 rounded-lg bg-neutral-950 border border-emerald-900/60 flex flex-col gap-3 relative ring-1 ring-emerald-500/20">
+                 <div className="flex items-center justify-between">
+                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold uppercase">
+@@ -519,7 +518,7 @@
+               {([
+                 {
+                   key: 'kernel_enclave_isolation' as const,
+-                  title: 'Kernel Enclave Boundary Isolation (TCB Layer 0)',
++                  title: 'Browser Boundary Isolation (TCB Layer 0)',
+                   desc: 'Isolates core Lean 4 and C++20 solvers from DOM visibility. Code execution executes in isolated sandbox.',
+                   required: true
+                 },
+@@ -537,7 +536,7 @@
+                 },
+                 {
+                   key: 'tamper_guard_watchdog' as const,
+-                  title: 'Prototype Pollution & Tamper Watchdog',
++                  title: 'Prototype Pollution & Tamper Model',
+                   desc: 'Freezes Object.prototype critical descriptors and scrubs incoming graph deserialization payloads.',
+                   required: false
+                 },

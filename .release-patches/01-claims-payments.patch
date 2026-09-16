@@ -1,0 +1,170 @@
+--- a/src/components/MoneroUnlockModal.tsx
++++ b/src/components/MoneroUnlockModal.tsx
+@@ -45,7 +45,9 @@
+   onClose,
+   licenseState,
+   onLicenseUpdate,
+-  isTriggeredByLimit = false
++  isTriggeredByLimit = false,
++  onOpenDeepMindModal,
++  onOpenProofIpModal
+ }) => {
+   const [selectedTier, setSelectedTier] = useState<MoneroTier>(MONERO_TIERS[1]); // 30-day default
+   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+@@ -99,27 +101,11 @@
+   };
+ 
+   const handleVerifyAndUnlock = () => {
+-    setIsVerifying(true);
+-    setVerificationStep('Querying Monero p2p node mempool...');
+-
+-    setTimeout(() => {
+-      setVerificationStep('Validating ring signature output & stealth commitment...');
+-      setTimeout(() => {
+-        setVerificationStep('Confirming block proof & activating cryptographic license token...');
+-        setTimeout(() => {
+-          const result = LicenseService.unlockWithMonero(selectedTier.id, txHashInput);
+-          onLicenseUpdate(result.state);
+-          setIsVerifying(false);
+-          setVerificationStep('');
+-          setSuccessReceipt({
+-            tierName: selectedTier.name,
+-            amountXmr: selectedTier.amountXmr,
+-            txHash: txHashInput || `xmr_tx_${Date.now()}`,
+-            expiresAt: result.state.unlockedExpiresAt
+-          });
+-        }, 800);
+-      }, 800);
+-    }, 900);
++    // Production fail-closed rule: browser-local state must never manufacture a
++    // payment confirmation. A real deployment must bind this action to an
++    // authenticated server-side Monero verifier before unlocks are enabled.
++    setIsVerifying(false);
++    setVerificationStep('Server-side Monero verification is not configured. No license state was changed.');
+   };
+ 
+   const handleSimulateExceeded = () => {
+@@ -133,14 +119,8 @@
+   };
+ 
+   const handleActivateEnterpriseTrial = () => {
+-    const result = LicenseService.activateFreeEnterpriseTrial();
+-    onLicenseUpdate(result.state);
+-    setSuccessReceipt({
+-      tierName: 'Enterprise Research Cluster (48-Hour Free Trial)',
+-      amountXmr: 0,
+-      txHash: `trial_grant_${Date.now().toString(36)}`,
+-      expiresAt: result.state.unlockedExpiresAt
+-    });
++    // Production fail-closed rule: entitlement grants require a trusted backend.
++    setVerificationStep('Enterprise trial activation requires a configured entitlement backend. No license state was changed.');
+   };
+ 
+   const trialSecondsLeft = LicenseService.getEnterpriseTrialRemainingSeconds(licenseState);
+@@ -502,7 +482,7 @@
+                 Transaction Verification & Unlock
+               </span>
+               <span className="text-[10px] font-mono text-neutral-500">
+-                Instant Mempool / On-Chain Check
++                Server-side verification required
+               </span>
+             </div>
+ 
+@@ -510,7 +490,7 @@
+               <input
+                 id="input-monero-txhash"
+                 type="text"
+-                placeholder="Optional: Enter 64-char Monero Tx Hash (or verify automatically)"
++                placeholder="Enter 64-char Monero Tx Hash for server verification"
+                 value={txHashInput}
+                 onChange={(e) => setTxHashInput(e.target.value)}
+                 className="w-full bg-neutral-900 border border-neutral-800 text-neutral-200 text-xs font-mono rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500"
+@@ -530,20 +510,22 @@
+                 ) : (
+                   <>
+                     <Zap className="w-3.5 h-3.5 fill-current" />
+-                    <span>Verify & Unlock Now</span>
++                    <span>Verify with Backend</span>
+                   </>
+                 )}
+               </button>
+             </div>
+ 
+-            {isVerifying && (
+-              <div className="text-[11px] font-mono text-amber-400/90 flex items-center gap-2 pt-1 animate-pulse">
+-                <RefreshCw className="w-3 h-3 animate-spin" />
++            {verificationStep && (
++              <div className="text-[11px] font-mono text-amber-300/90 flex items-center gap-2 pt-1">
++                {isVerifying ? <RefreshCw className="w-3 h-3 animate-spin" /> : <AlertTriangle className="w-3 h-3" />}
+                 <span>{verificationStep}</span>
+               </div>
+             )}
+           </div>
+ 
++          {Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV) && (
++            <>
+           {/* Developer / Testing Helpers */}
+           <div className="p-3.5 rounded-xl bg-neutral-950/60 border border-neutral-800/60 space-y-2">
+             <div className="flex items-center justify-between text-[11px]">
+@@ -571,6 +553,8 @@
+               </button>
+             </div>
+           </div>
++            </>
++          )}
+         </div>
+ 
+         {/* Footer */}
+--- a/src/components/ClaimRegistryView.tsx
++++ b/src/components/ClaimRegistryView.tsx
+@@ -97,11 +97,11 @@
+       module_ids: [newModuleId.trim()],
+       nonclaims: [newNonclaim.trim() || 'Does not imply continuum validation outside measured parameter bounds.'],
+       qualification: {
+-        status: 'QUALIFIED',
+-        attested_commit: 'HEAD-' + Math.random().toString(16).substring(2, 10),
+-        current_head_qualified: true,
+-        proof_artifact_sha256: 'sha256:' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+-        reason: 'Novel experiment observation verified against simulated conservation invariants.'
++        status: 'NOT_RUN',
++        attested_commit: null,
++        current_head_qualified: false,
++        proof_artifact_sha256: null,
++        reason: 'User-authored research candidate. Formal qualification has not run; numerical or simulated observations cannot create formal PASS.'
+       }
+     };
+ 
+@@ -183,11 +183,11 @@
+       module_ids: [disc.module],
+       nonclaims: [disc.nonclaim],
+       qualification: {
+-        status: 'QUALIFIED',
+-        attested_commit: 'HEAD-' + Math.random().toString(16).substring(2, 10),
+-        current_head_qualified: true,
+-        proof_artifact_sha256: 'sha256:' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+-        reason: 'Novel experiment observation verified against simulated conservation invariants.'
++        status: 'NOT_RUN',
++        attested_commit: null,
++        current_head_qualified: false,
++        proof_artifact_sha256: null,
++        reason: 'Detected research candidate. Promotion requires the declared evidence pipeline and exact-head qualification; simulated observations are not formal evidence.'
+       }
+     };
+ 
+--- a/src/data/caceData.ts
++++ b/src/data/caceData.ts
+@@ -51,11 +51,11 @@
+     ],
+     proof_contract_id: "cace.proof.v336.mesh-orthogonality.v1",
+     qualification: {
+-      status: "QUALIFIED",
++      status: "HISTORICAL_PASS",
+       attested_commit: "9f82d11bc4028fae4739103c809183427be51992",
+-      current_head_qualified: true,
++      current_head_qualified: false,
+       proof_artifact_sha256: "88a38c29193b04c8612f01f2aa6178c18fa36a8947514856f4d2f60a92a7e713",
+-      reason: "Audited in pinned Lean 4.32.1 environment with zero unproven sorries and verified content-addressed Merkle bundle."
++      reason: "Historical pinned Lean qualification at the recorded immutable commit. It must not be treated as current-head qualification for a different source identity."
+     }
+   }
+ ];

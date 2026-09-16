@@ -1,0 +1,8 @@
+{
+  "name": "ksee-final-web-runtime",
+  "private": true,
+  "version": "3.36.0",
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "dependencies": {"mongodb": "6.19.0"}
+}

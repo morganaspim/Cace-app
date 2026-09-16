@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+dist
+.pytest_cache
+__pycache__
+*.pyc
+formal
+cpp
+tests
+docs
+examples
+web-release

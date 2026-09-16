@@ -1,0 +1,157 @@
+--- a/src/services/licenseService.ts
++++ b/src/services/licenseService.ts
+@@ -230,53 +230,13 @@
+    * Unlocks the license after a verified Monero transaction.
+    */
+   public static unlockWithMonero(
+-    tierId: string,
+-    txHash: string = ''
++    _tierId: string,
++    _txHash: string = ''
+   ): { success: boolean; state: CaceLicenseState } {
+-    const state = this.getLicenseState();
+-    const tier = MONERO_TIERS.find((t) => t.id === tierId) || MONERO_TIERS[0];
+-
+-    const generatedTx = txHash.trim() || `xmr_tx_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+-
+-    let expiresAt: string | null = null;
+-    let newTier: CaceLicenseState['activeTier'] = 'monero_unlocked_24h';
+-
+-    if (tier.id === 'pass_24h') {
+-      expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+-      newTier = 'monero_unlocked_24h';
+-    } else if (tier.id === 'pass_30d') {
+-      expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+-      newTier = 'monero_unlocked_30d';
+-    } else if (tier.id === 'pass_enterprise') {
+-      expiresAt = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString();
+-      newTier = 'pass_enterprise';
+-      state.enterpriseAiConnected = true;
+-      state.enterpriseAiProvider = 'google_deepmind_gemini';
+-    } else if (tier.id === 'pass_perpetual') {
+-      expiresAt = null; // Infinite
+-      newTier = 'perpetual';
+-      state.enterpriseAiConnected = true;
+-      state.enterpriseAiProvider = 'google_deepmind_gemini';
+-    }
+-
+-    state.isUnlocked = true;
+-    state.activeTier = newTier;
+-    state.unlockedExpiresAt = expiresAt;
+-
+-    const record: MoneroPaymentRecord = {
+-      id: `rcpt_${Date.now()}`,
+-      txHash: generatedTx,
+-      amountXmr: tier.amountXmr,
+-      tierId: tier.id,
+-      tierName: tier.name,
+-      timestamp: new Date().toISOString(),
+-      status: 'CONFIRMED'
+-    };
+-
+-    state.paymentHistory.unshift(record);
+-    this.saveLicenseState(state);
+-
+-    return { success: true, state };
++    // Fail closed in the browser. A paid entitlement must be granted only after
++    // an authenticated server-side verifier confirms the transaction and signs
++    // or otherwise authoritatively records the entitlement.
++    return { success: false, state: this.getLicenseState() };
+   }
+ 
+   /**
+@@ -284,21 +244,9 @@
+    * Grants unlimited compute and Google DeepMind AI research assistant access.
+    */
+   public static activateFreeEnterpriseTrial(): { success: boolean; state: CaceLicenseState } {
+-    const state = this.getLicenseState();
+-    const trialDurationMs = 48 * 3600 * 1000;
+-    const expiresAt = new Date(Date.now() + trialDurationMs).toISOString();
+-
+-    state.isUnlocked = true;
+-    state.activeTier = 'enterprise_trial';
+-    state.isEnterpriseTrial = true;
+-    state.enterpriseTrialActivatedAt = new Date().toISOString();
+-    state.unlockedExpiresAt = expiresAt;
+-    state.enterpriseAiConnected = true;
+-    state.enterpriseAiProvider = 'google_deepmind_gemini';
+-    state.enterpriseAiModel = 'gemini-1.5-pro-enterprise';
+-
+-    this.saveLicenseState(state);
+-    return { success: true, state };
++    // Fail closed in the browser. Trial/enterprise entitlements require a
++    // trusted backend; local UI state cannot manufacture an authorization.
++    return { success: false, state: this.getLicenseState() };
+   }
+ 
+   /**
+@@ -341,57 +289,23 @@
+    * Records purchase and conveyance of Full IP Rights to a generated mathematical proof.
+    */
+   public static purchaseProofIpRights(
+-    theoremId: string,
+-    theoremName: string,
+-    assigneeName: string,
+-    jurisdiction: string = 'Local Jurisdiction / Delaware Commercial Code',
+-    txHash?: string
+-  ): { success: boolean; record: ProofIpPurchaseRecord; state: CaceLicenseState } {
+-    const state = this.getLicenseState();
+-    if (!state.purchasedProofIpRecords) {
+-      state.purchasedProofIpRecords = [];
+-    }
+-
+-    // Generate SHA-256 certificate hash
+-    const certSeed = `${theoremId}:${assigneeName}:${jurisdiction}:${Date.now()}`;
+-    let hash = 0;
+-    for (let i = 0; i < certSeed.length; i++) {
+-      hash = ((hash << 5) - hash) + certSeed.charCodeAt(i);
+-      hash |= 0;
+-    }
+-    const hexHash = Math.abs(hash).toString(16).padStart(16, '0') + Math.random().toString(36).substring(2, 18);
+-    const certificateSha256 = `sha256:ip_${hexHash}`;
+-
+-    const record: ProofIpPurchaseRecord = {
+-      id: `ip_conveyance_${Date.now()}`,
+-      theoremId,
+-      theoremName,
+-      assigneeName: assigneeName.trim() || 'Enterprise Research Organization',
+-      jurisdiction,
+-      timestamp: new Date().toISOString(),
+-      txHash: txHash || `tx_ip_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+-      certificateSha256
+-    };
+-
+-    state.purchasedProofIpRecords.push(record);
+-    this.saveLicenseState(state);
+-
+-    return { success: true, record, state };
++    _theoremId: string,
++    _theoremName: string,
++    _assigneeName: string,
++    _jurisdiction: string = 'Unspecified',
++    _txHash?: string
++  ): { success: boolean; record: ProofIpPurchaseRecord | null; state: CaceLicenseState } {
++    // Fail closed. A browser cannot create, verify, or legally effect an IP
++    // assignment. A trusted backend must authenticate payment/identity, bind the
++    // exact theorem/proof artifact, and persist an authoritative signed record.
++    return { success: false, record: null, state: this.getLicenseState() };
+   }
+ 
+   /**
+    * Returns whether full IP rights for a theorem have been purchased or are included.
+    */
+-  public static isProofIpPurchased(theoremId: string, state?: CaceLicenseState): boolean {
+-    const current = state || this.getLicenseState();
+-    // If explicitly purchased
+-    if (current.purchasedProofIpRecords?.some((r) => r.theoremId === theoremId)) {
+-      return true;
+-    }
+-    // Perpetual tier includes all proof IP rights automatically
+-    if (current.activeTier === 'perpetual' && current.isUnlocked) {
+-      return true;
+-    }
++  public static isProofIpPurchased(_theoremId: string, _state?: CaceLicenseState): boolean {
++    // Browser/localStorage state is never authoritative for legal entitlement.
+     return false;
+   }
+ 

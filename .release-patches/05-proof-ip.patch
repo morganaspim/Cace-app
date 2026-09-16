@@ -1,0 +1,87 @@
+--- a/src/components/ProofIpPurchaseModal.tsx
++++ b/src/components/ProofIpPurchaseModal.tsx
+@@ -73,6 +73,9 @@
+       );
+       onLicenseUpdate(result.state);
+       setIsProcessing(false);
++      if (!result.success) {
++        window.alert('IP assignment is not available from the browser. A trusted backend verifier and signed authoritative record are required.');
++      }
+     }, 600);
+   };
+ 
+@@ -96,17 +99,19 @@
+ 
+   const handleDownloadDeed = () => {
+     const deedData = {
++      document_status: 'DRAFT_ONLY_UNVERIFIED',
++      notice: 'Client-generated draft only. This is not a legal IP assignment and is not a formal proof attestation.',
+       contract: IP_ASSIGNMENT_CONTRACT_TERMS.title,
+       theorem_id: theorem.theoremId,
+       theorem_name: theorem.name,
+       assignor: IP_ASSIGNMENT_CONTRACT_TERMS.assignor,
+       assignee: purchaseRecord?.assigneeName || assigneeName,
+       jurisdiction: purchaseRecord?.jurisdiction || jurisdiction,
+-      certificate_sha256: purchaseRecord?.certificateSha256 || 'sha256:enterprise_unlocked',
++      certificate_sha256: purchaseRecord?.certificateSha256 || null,
+       timestamp: purchaseRecord?.timestamp || new Date().toISOString(),
+-      governing_laws: 'Local Commercial Code / WIPO Copyright Treaty & Trade Secret Conveyance',
+-      lean_kernel_audit: 'AUDITED_PASS (0 axioms of choice contamination, 0 sorries)',
+-      latex_manuscript_sha256: 'sha256:9f83a21b33c0429fbe9182390a12e8b4'
++      governing_laws: 'UNVERIFIED_DRAFT',
++      lean_kernel_audit: 'NOT_BOUND_TO_CURRENT_HEAD',
++      latex_manuscript_sha256: null
+     };
+     const blob = new Blob([JSON.stringify(deedData, null, 2)], { type: 'application/json' });
+     const url = URL.createObjectURL(blob);
+@@ -241,7 +246,7 @@
+                   className="px-3 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
+                 >
+                   <Download className="w-3.5 h-3.5" />
+-                  <span>Download Cryptographic Deed (.json)</span>
++                  <span>Download Unverified Draft (.json)</span>
+                 </button>
+               </div>
+ 
+@@ -459,10 +464,10 @@
+                 <div className="text-[11px] text-neutral-400">
+                   {isEnterpriseActive ? (
+                     <span className="text-emerald-400 font-semibold font-mono">
+-                      ✓ Enterprise Account Detected: Complimentary IP Conveyance Included
++                      Enterprise UI state detected; server-side entitlement verification still required
+                     </span>
+                   ) : (
+-                    <span>Instant cryptographic conveyance receipt generated upon signature</span>
++                    <span>Browser cannot create an authoritative conveyance; backend verification is required</span>
+                   )}
+                 </div>
+ 
+@@ -470,7 +475,7 @@
+                   id="btn-execute-ip-purchase"
+                   type="button"
+                   onClick={handleExecuteIpConveyance}
+-                  disabled={isProcessing || (!hasAgreedTerms && !isEnterpriseActive)}
++                  disabled={true}
+                   className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs flex items-center gap-2 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                   <Sparkles className="w-4 h-4 fill-current" />
+@@ -478,8 +483,8 @@
+                     {isProcessing 
+                       ? 'Recording Cryptographic Deed...' 
+                       : isEnterpriseActive 
+-                      ? 'Execute Enterprise IP Deed (Included)' 
+-                      : `Sign Contract & Acquire Full IP (${theorem.ipPriceXmr} XMR)`}
++                      ? 'Backend Verification Required' 
++                      : 'Backend Verification Required'}
+                   </span>
+                 </button>
+               </div>
+@@ -491,7 +496,7 @@
+         <div className="px-6 py-3.5 border-t border-neutral-800 bg-neutral-950/80 flex items-center justify-between text-xs text-neutral-400">
+           <div className="flex items-center gap-1.5">
+             <ShieldCheck className="w-4 h-4 text-emerald-400" />
+-            <span>Formal Rigor Kernel Machine Qualification &bull; Merkle Root Anchored</span>
++            <span>Client draft view only &bull; Formal and legal status require authoritative backend records</span>
+           </div>
+ 
+           <button

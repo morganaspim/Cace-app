@@ -1,0 +1,105 @@
+--- a/src/engine/rigorKernelSecurity.ts
++++ b/src/engine/rigorKernelSecurity.ts
+@@ -8,7 +8,7 @@
+   RigorKernelEnvelope 
+ } from '../types';
+ 
+-// Simple deterministic hash generator (SHA-256 simulation if crypto.subtle is unavailable)
++// SHA-256 helper. If Web Crypto is unavailable, return an explicitly non-cryptographic fallback label; never mislabel it as SHA-256 evidence.
+ export async function computeSha256(text: string): Promise<string> {
+   if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+     try {
+@@ -31,7 +31,7 @@
+   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+   const raw = 4294967296 * (2097151 & h2) + (h1 >>> 0);
+-  return 'cace_sha256_' + raw.toString(16).padStart(16, '0') + Math.abs(h1).toString(16).padStart(16, '0');
++  return 'noncryptographic-fallback:' + raw.toString(16).padStart(16, '0') + Math.abs(h1).toString(16).padStart(16, '0');
+ }
+ 
+ export class RigorKernelSecurityEngine {
+@@ -47,29 +47,9 @@
+ 
+   private static activePolicies: HardeningPolicies = { ...RigorKernelSecurityEngine.defaultPolicies };
+ 
+-  private static incidents: SecurityIncident[] = [
+-    {
+-      id: 'sec-init-01',
+-      timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+-      threat_vector: 'CODE_EXTRACTION_ATTEMPT',
+-      severity: 'HIGH',
+-      defense_action: 'Enclave boundary intercepted devtools memory scrape. Obfuscated AST returned.',
+-      target_boundary: 'TCB_LAYER_0_KERNEL_SOLVER',
+-      blocked: true,
+-      forensic_fingerprint: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+-    },
+-    {
+-      id: 'sec-init-02',
+-      timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+-      threat_vector: 'PROOF_LEDGER_TAMPER',
+-      severity: 'CRITICAL',
+-      defense_action: 'Merkle root mismatch detected on unproven theorem token. Fail-closed lockdown triggered.',
+-      target_boundary: 'CLAIM_REGISTRY_PROOF_LEDGER',
+-      blocked: true,
+-      forensic_fingerprint: 'sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069'
+-    }
+-  ];
+-
++  // Runtime incident history starts empty. Only explicit user-triggered simulation events
++  // or real client-side validation incidents are recorded; no fabricated past attacks.
++  private static incidents: SecurityIncident[] = [];
+   public static getPolicies(): HardeningPolicies {
+     return { ...this.activePolicies };
+   }
+@@ -91,20 +71,17 @@
+     const hasTamper = this.incidents.some(i => i.threat_vector === 'PROOF_LEDGER_TAMPER' && !i.blocked);
+ 
+     return {
+-      enclave_state: this.activePolicies.kernel_enclave_isolation 
+-        ? 'ARMORED_ENCLAVE_ACTIVE' 
+-        : 'ISOLATED',
+-      anti_extraction_shield: this.activePolicies.anti_extraction_obfuscation 
+-        ? 'MAXIMUM_HARDENING' 
+-        : 'MONITORING',
++      // The public web build is not a hardware enclave. These values describe the
++      // client-side model only and intentionally avoid claiming deployed isolation.
++      enclave_state: 'ISOLATED',
++      anti_extraction_shield: 'MONITORING',
+       tamper_defense: hasTamper 
+         ? 'TAMPER_DETECTED' 
+         : hasCritical 
+         ? 'LOCKED_DOWN' 
+         : 'SECURE',
+-      merkle_ledger_integrity: this.activePolicies.merkle_provenance_enforced 
+-        ? 'CANONICAL_MATCH' 
+-        : 'DRIFT_DETECTED',
++      // A browser toggle cannot establish a canonical proof-ledger match.
++      merkle_ledger_integrity: 'DRIFT_DETECTED',
+       fail_closed_policy: this.activePolicies.fail_closed_lockdown 
+         ? 'ENFORCED' 
+         : 'STANDBY',
+@@ -149,15 +126,19 @@
+       };
+     });
+ 
++    const nonce = typeof crypto !== 'undefined' && 'randomUUID' in crypto
++      ? crypto.randomUUID()
++      : `client-${Date.now()}`;
+     const envelope: RigorKernelEnvelope = {
+-      experiment_digest: `exp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
++      // Synchronous client sanitization does not create cryptographic proof evidence.
++      experiment_digest: 'UNVERIFIED_CLIENT_DIGEST',
+       timestamp: new Date().toISOString(),
+-      enclave_nonce: `nonce_${Math.random().toString(36).substring(2, 10)}`,
+-      session_watermark: `cace_tcb_wm_${Math.random().toString(36).substring(2, 12)}`,
++      enclave_nonce: `nonce_${nonce}`,
++      session_watermark: `client_session_${nonce}`,
+       tcb_layer: 0,
+       sanitization_state: 'CLEAN',
+-      merkle_root: `merkle_${Math.random().toString(36).substring(2, 16)}`,
+-      signature_verified: true
++      merkle_root: 'UNVERIFIED_CLIENT_MERKLE_ROOT',
++      signature_verified: false
+     };
+ 
+     return {

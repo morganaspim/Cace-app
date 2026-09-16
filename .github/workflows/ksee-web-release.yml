@@ -1,0 +1,61 @@
+name: KSEE web release gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'package.json'
+      - 'Dockerfile.web'
+      - '.dockerignore'
+      - 'web/**'
+      - '.release-patches/**'
+      - '.github/workflows/ksee-web-release.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ksee-web-release-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  web-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Build production Docker image from pristine source + reviewed patches
+        run: docker build -f Dockerfile.web -t ksee-final-web:${{ github.sha }} .
+      - name: Apply reviewed production patches in CI workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          for p in .release-patches/*.patch; do patch --batch -p1 < "$p"; done
+      - name: Install pinned frontend dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck and production build
+        run: npm run lint && npm run build
+      - name: Install Python regression dependencies
+        run: python -m pip install -e '.[test]'
+      - name: Focused fail-closed regression suite
+        run: python -m pytest -q tests/test_claim_promotion_v330.py tests/test_graph_edit_v333.py tests/test_local_ai_security_v334.py
+      - name: Static server smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4017 REQUIRE_MONGO=false node web/server.mjs >/tmp/ksee-web.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4017/healthz >/tmp/health.json; then break; fi
+            sleep 0.25
+          done
+          curl --fail --silent http://127.0.0.1:4017/ | grep -q 'KSEE FINAL'
+          curl --fail --silent http://127.0.0.1:4017/api/status | python -m json.tool
+          cat /tmp/health.json | python -m json.tool
