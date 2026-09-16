@@ -12,6 +12,18 @@ LEGACY_PROOF_WORKFLOWS = (
     ROOT / ".github/workflows/cace-formal-v330.yml",
     ROOT / ".github/workflows/cace-h1-reconstruction-v337.yml",
 )
+ARCHIVED_AUTO_WORKFLOWS = (
+    "cace-formal-quiesce.yml",
+    "cace-formal-v321.yml",
+    "cace-formal-v322.yml",
+    "cace-formal-v325.yml",
+    "cace-formal-v326.yml",
+    "cace-formal-v328.yml",
+    "cace-formal-v329.yml",
+    "cace-python-regression.yml",
+    "lean-v321.yml",
+    "lean-v322.yml",
+)
 
 
 def _workflow_text() -> str:
@@ -56,6 +68,14 @@ def test_canonical_workflow_wires_observability_and_authorized_dispatch_guards()
     assert "runs-on: [self-hosted, cace, oci, aarch64]" in text
 
 
+def test_archived_auto_workflows_are_not_action_entrypoints():
+    active_root = ROOT / ".github/workflows"
+    archive_root = ROOT / ".github/workflow-archive"
+    for name in ARCHIVED_AUTO_WORKFLOWS:
+        assert not (active_root / name).exists(), name
+        assert (archive_root / name).is_file(), name
+
+
 def test_legacy_proof_workflows_cannot_claim_self_hosted_runner_automatically():
     for workflow in LEGACY_PROOF_WORKFLOWS:
         text = workflow.read_text(encoding="utf-8")
@@ -73,7 +93,7 @@ def test_h1_bessel_riesz_uses_semantic_regression_boundaries():
     These checks intentionally target bug classes rather than theorem output: Sobolev-order
     arithmetic must be normalized explicitly, multiplier growth must be composed from the named
     symbol theorem, real/complex normalization must cross an explicit semantic boundary, and
-    inverse Fourier additivity must use the Fourier API rather than generic `map_add` rewriting.
+    Fourier multiplier identities must expose their definitional/function-space boundaries.
     """
     text = H1_BESSEL_RIESZ.read_text(encoding="utf-8")
 
@@ -82,8 +102,10 @@ def test_h1_bessel_riesz_uses_semantic_regression_boundaries():
     assert "simpa using huNegOne" not in text
     assert "simpa using hdu" not in text
 
-    assert "simpa only [weakPartial, h1RieszSymbol]" in text
+    assert "simpa only [weakPartial, h1RieszSymbol]" not in text
+    assert "TemperedDistribution.besselPotential_neg_one_lineDerivOp_eq" in text
     assert "(h1RieszSymbol_hasTemperateGrowth i).mul" in text
+    assert "simpa only [Pi.mul_apply] using hsum.symm" in text
 
     assert "have hreal :" in text
     assert "congrArg Complex.ofReal hreal" in text
