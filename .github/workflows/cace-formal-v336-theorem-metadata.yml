@@ -286,8 +286,9 @@ jobs:
           printf '%s\n' "$baseline_commit" > "$CACE_STATUS_DIR/cache_baseline_commit.txt"
 
           # Compute a conservative reverse-import closure among CACE-owned Lean
-          # modules. Every affected source is touched so Lake cannot accept a stale
-          # project artifact merely because it was copied from an ancestor cache.
+          # modules. If any changed formal path cannot be mapped to a current
+          # module, invalidate the full CACE module set rather than risk stale
+          # ancestor artifacts. Qualification remains fresh exact-head evidence.
           python - "$baseline_commit" "$CACE_EXPECTED_SHA" "$CACE_FORMAL_DIR" "$CACE_STATUS_DIR" <<'PY'
           import re
           import subprocess
@@ -320,23 +321,32 @@ jobs:
                       if imported in module_to_path:
                           reverse[imported].add(module)
 
+          path_to_module = {
+              prefix + path.relative_to(formal_dir).as_posix(): module
+              for module, path in module_to_path.items()
+          }
           seeds = set()
+          unrecognized = []
           for rel in changed:
-              if not rel.startswith(prefix) or not rel.endswith('.lean'):
-                  continue
-              local = Path(rel[len(prefix):])
-              module = '.'.join(local.with_suffix('').parts)
-              if module in module_to_path:
+              module = path_to_module.get(rel)
+              if module is None:
+                  unrecognized.append(rel)
+              else:
                   seeds.add(module)
 
-          affected = set(seeds)
-          q = deque(sorted(seeds))
-          while q:
-              module = q.popleft()
-              for dependent in sorted(reverse.get(module, ())):
-                  if dependent not in affected:
-                      affected.add(dependent)
-                      q.append(dependent)
+          if unrecognized:
+              invalidation_mode = 'full-unrecognized-formal-change'
+              affected = set(module_to_path)
+          else:
+              invalidation_mode = 'reverse-import-closure'
+              affected = set(seeds)
+              q = deque(sorted(seeds))
+              while q:
+                  module = q.popleft()
+                  for dependent in sorted(reverse.get(module, ())):
+                      if dependent not in affected:
+                          affected.add(dependent)
+                          q.append(dependent)
 
           # Always refresh the two qualification aggregators on an ancestor seed.
           for module in ('CACEFormal.V330AxiomAudit', 'CACEFormal.V330TheoremMetadata'):
@@ -349,7 +359,18 @@ jobs:
           (status_dir / 'cache_invalidated_modules.txt').write_text(
               ''.join(f'{m}\n' for m in sorted(affected)), encoding='utf-8'
           )
-          print(f'CACE_ANCESTOR_CACHE_INVALIDATION changed={len(seeds)} affected={len(affected)}')
+          (status_dir / 'cache_unrecognized_formal_paths.txt').write_text(
+              ''.join(f'{rel}\n' for rel in unrecognized), encoding='utf-8'
+          )
+          (status_dir / 'cache_invalidation_mode.txt').write_text(
+              invalidation_mode + '\n', encoding='utf-8'
+          )
+          print(
+              'CACE_ANCESTOR_CACHE_INVALIDATION '
+              f'changed_paths={len(changed)} seeds={len(seeds)} '
+              f'unrecognized={len(unrecognized)} affected={len(affected)} '
+              f'mode={invalidation_mode}'
+          )
           PY
 
           echo "CACE_FORMAL_BUILD_CACHE_HIT ancestor_tree=$baseline_tree current_tree=$CACE_FORMAL_TREE_SHA"
