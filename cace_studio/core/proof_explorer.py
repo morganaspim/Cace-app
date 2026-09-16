@@ -6,6 +6,7 @@ from typing import Iterable
 from .claim_registry import ClaimEntry, ClaimRegistry
 from .proof_contract import ProofContract, ProofContractRegistry
 from .proof_ledger import ProofLedger, ProofLedgerEntry
+from .qualification_attestation import VerifiedQualification
 from .verification import VerificationRecord
 
 
@@ -52,6 +53,7 @@ class ProofClaimView:
     ledger_release: str | None
     ledger_status: str | None
     qualification_state: str
+    qualification_source: str
     current_head_qualified: bool
     attested_commit: str | None
     proof_artifact_sha256: str | None
@@ -74,7 +76,8 @@ def _qualification_state(
     claim: ClaimEntry,
     ledger: ProofLedgerEntry | None,
     contract: ProofContract | None,
-) -> tuple[str, bool, tuple[str, ...]]:
+    external: VerifiedQualification | None = None,
+) -> tuple[str, bool, tuple[str, ...], str]:
     conflicts: list[str] = []
     blockers: list[str] = []
 
@@ -90,6 +93,10 @@ def _qualification_state(
         blockers.append("No canonical proof-ledger entry is bound to this claim.")
         if claim.current_head_qualified:
             conflicts.append("Registry marks current-head qualified but the proof ledger has no entry.")
+        if external is not None:
+            conflicts.append(
+                "External qualification cannot apply without a canonical proof-ledger entry."
+            )
     else:
         if claim.current_head_qualified != ledger.current_head_qualified:
             conflicts.append("Registry and proof ledger disagree about current-head qualification.")
@@ -124,11 +131,39 @@ def _qualification_state(
                     )
         blockers.extend(ledger.blockers)
 
+    if external is not None:
+        if contract is None:
+            conflicts.append("External qualification has no canonical proof contract.")
+        else:
+            if external.claim_id != claim.claim_id:
+                conflicts.append("External qualification is bound to a different claim.")
+            if external.proof_contract_id != contract.contract_id:
+                conflicts.append("External qualification proof-contract ID does not match.")
+            if external.proof_contract_sha256 != contract.contract_sha256:
+                conflicts.append("External qualification proof-contract SHA-256 does not match.")
+            if external.endpoint_theorems != contract.endpoint_theorems:
+                conflicts.append("External qualification endpoint set does not match.")
+            if external.checks != contract.required_checks:
+                conflicts.append("External qualification required-check set does not match.")
+        if claim.current_head_qualified:
+            if claim.attested_commit != external.git_commit:
+                conflicts.append("Registry attested commit disagrees with external qualification.")
+            if claim.proof_artifact_sha256 != external.proof_artifact_sha256:
+                conflicts.append("Registry artifact digest disagrees with external qualification.")
+        if ledger is not None and ledger.current_head_qualified:
+            if ledger.commit != external.git_commit:
+                conflicts.append("Proof ledger commit disagrees with external qualification.")
+            if ledger.proof_artifact_sha256 != external.proof_artifact_sha256:
+                conflicts.append("Proof ledger artifact digest disagrees with external qualification.")
+
     if claim.reason:
         blockers.append(claim.reason)
 
     if conflicts:
-        return "CONFLICT", False, tuple(dict.fromkeys(conflicts + blockers))
+        return "CONFLICT", False, tuple(dict.fromkeys(conflicts + blockers)), "conflict"
+
+    if external is not None:
+        return "QUALIFIED", True, tuple(), external.source
 
     exact_qualified = bool(
         ledger is not None
@@ -146,22 +181,31 @@ def _qualification_state(
         and bool(claim.proof_artifact_sha256)
     )
     if exact_qualified:
-        return "QUALIFIED", True, tuple()
-    return "UNQUALIFIED", False, tuple(dict.fromkeys(blockers))
+        return "QUALIFIED", True, tuple(), "canonical-static"
+    return "UNQUALIFIED", False, tuple(dict.fromkeys(blockers)), "canonical-static"
 
 
 class ProofExplorer:
-    """Read-only claim -> proof contract -> ledger -> runtime evidence view."""
+    """Read-only claim -> proof contract -> ledger -> exact qualification view."""
 
     def __init__(
         self,
         registry: ClaimRegistry | None = None,
         ledger: ProofLedger | None = None,
         contracts: ProofContractRegistry | None = None,
+        qualifications: Iterable[VerifiedQualification] = (),
     ) -> None:
         self.registry = registry or ClaimRegistry.load_default()
         self.ledger = ledger or ProofLedger.load_default()
         self.contracts = contracts or ProofContractRegistry.load_default()
+        indexed: dict[str, VerifiedQualification] = {}
+        for qualification in qualifications:
+            if qualification.claim_id in indexed:
+                raise ValueError(
+                    f"duplicate external qualification for claim {qualification.claim_id!r}"
+                )
+            indexed[qualification.claim_id] = qualification
+        self.qualifications = indexed
 
     def claim_view(
         self,
@@ -177,10 +221,39 @@ class ProofExplorer:
             if claim.proof_contract_id
             else None
         )
-        state, qualified, derived_blockers = _qualification_state(claim, ledger, contract)
+        external = self.qualifications.get(claim_id)
+        state, qualified, derived_blockers, source = _qualification_state(
+            claim, ledger, contract, external
+        )
         runtime = tuple(
             RuntimeEvidenceView.from_record(record, claim_id)
             for record in runtime_records
+        )
+        attested_commit = external.git_commit if external is not None and qualified else claim.attested_commit
+        artifact_sha = (
+            external.proof_artifact_sha256
+            if external is not None and qualified
+            else claim.proof_artifact_sha256
+        )
+        qualification_system = (
+            external.qualification_system
+            if external is not None and qualified
+            else (ledger.qualification_system if ledger else None)
+        )
+        qualification_run_id = (
+            external.qualification_run_id
+            if external is not None and qualified
+            else (ledger.qualification_run_id if ledger else None)
+        )
+        workflow_run_id = (
+            external.workflow_run_id
+            if external is not None and qualified
+            else (ledger.workflow_run_id if ledger else None)
+        )
+        checks = (
+            external.checks
+            if external is not None and qualified
+            else (ledger.checks if ledger else ())
         )
         return ProofClaimView(
             claim_id=claim.claim_id,
@@ -206,13 +279,14 @@ class ProofExplorer:
             ledger_release=ledger.release if ledger else None,
             ledger_status=ledger.status if ledger else None,
             qualification_state=state,
+            qualification_source=source,
             current_head_qualified=qualified,
-            attested_commit=claim.attested_commit,
-            proof_artifact_sha256=claim.proof_artifact_sha256,
-            qualification_system=ledger.qualification_system if ledger else None,
-            qualification_run_id=ledger.qualification_run_id if ledger else None,
-            workflow_run_id=ledger.workflow_run_id if ledger else None,
-            checks=ledger.checks if ledger else (),
+            attested_commit=attested_commit,
+            proof_artifact_sha256=artifact_sha,
+            qualification_system=qualification_system,
+            qualification_run_id=qualification_run_id,
+            workflow_run_id=workflow_run_id,
+            checks=checks,
             blockers=derived_blockers,
             nonclaims=claim.nonclaims,
             contract_nonclaims=contract.nonclaims if contract else (),
