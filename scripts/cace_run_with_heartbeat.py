@@ -37,6 +37,13 @@ def _progress_bucket(current: int | None, total: int | None) -> int | None:
     return int(pct // 5) * 5
 
 
+def _child_environment() -> dict[str, str]:
+    """Return the proof child environment with observability credentials removed."""
+    env = os.environ.copy()
+    env.pop("CACE_GITHUB_TOKEN", None)
+    return env
+
+
 def _env_int(name: str, default: int) -> int:
     value = os.environ.get(name)
     if value is None:
@@ -124,6 +131,7 @@ def main() -> int:
         stderr=subprocess.STDOUT,
         bufsize=0,
         start_new_session=True,
+        env=_child_environment(),
     )
     assert proc.stdout is not None
 
