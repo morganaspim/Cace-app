@@ -18,6 +18,7 @@ from .core.evidence_ledger import (
 )
 from .core.executor import GraphExecutor
 from .core.proof_explorer import ProofExplorer
+from .core.qualification_attestation import load_qualification_attestation
 from .core.report import run_report
 from .core.reproducibility import drift_report, reproducibility_manifest
 from .core.serialization import load_experiment
@@ -129,6 +130,7 @@ def _claim_summary(view) -> dict[str, Any]:
         "statement": view.statement,
         "evidence_ceiling": view.evidence_ceiling,
         "qualification_state": view.qualification_state,
+        "qualification_source": view.qualification_source,
         "current_head_qualified": view.current_head_qualified,
         "proof_contract_id": view.proof_contract_id,
         "proof_contract_sha256": view.proof_contract_sha256,
@@ -137,6 +139,45 @@ def _claim_summary(view) -> dict[str, Any]:
         "proof_artifact_sha256": view.proof_artifact_sha256,
         "blockers": list(view.blockers),
     }
+
+
+def _add_qualification_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--qualification-attestation",
+        type=Path,
+        help=(
+            "External exact-head qualification JSON. Requires both --qualification-sha256 "
+            "and --current-head; the artifact alone is never trusted."
+        ),
+    )
+    parser.add_argument(
+        "--qualification-sha256",
+        help="Expected SHA-256 for the exact attestation bytes from an external trust channel.",
+    )
+    parser.add_argument(
+        "--current-head",
+        help="Exact 40-hex Git commit that must be attested by the external qualification artifact.",
+    )
+
+
+def _proof_explorer(args: argparse.Namespace) -> ProofExplorer:
+    path = getattr(args, "qualification_attestation", None)
+    digest = getattr(args, "qualification_sha256", None)
+    current_head = getattr(args, "current_head", None)
+    supplied = [path is not None, digest is not None, current_head is not None]
+    if any(supplied) and not all(supplied):
+        raise ValueError(
+            "external qualification requires --qualification-attestation, "
+            "--qualification-sha256, and --current-head together"
+        )
+    if path is None:
+        return ProofExplorer()
+    qualification = load_qualification_attestation(
+        path,
+        expected_git_commit=current_head,
+        expected_artifact_sha256=digest,
+    )
+    return ProofExplorer(qualifications=(qualification,))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -154,17 +195,21 @@ def main(argv: list[str] | None = None) -> int:
     claims_sub = claims.add_subparsers(dest="claims_command", required=True)
     claims_list = claims_sub.add_parser("list", help="List canonical claims")
     claims_list.add_argument("--output", type=Path)
+    _add_qualification_args(claims_list)
     claims_show = claims_sub.add_parser("show", help="Show one canonical claim and its proof bindings")
     claims_show.add_argument("claim_id")
     claims_show.add_argument("--output", type=Path)
+    _add_qualification_args(claims_show)
 
     proofs = sub.add_parser("proofs", help="Inspect ProofContract/ProofLedger qualification state")
     proofs_sub = proofs.add_subparsers(dest="proofs_command", required=True)
     proofs_status = proofs_sub.add_parser("status", help="Show fail-closed qualification status for all claims")
     proofs_status.add_argument("--output", type=Path)
+    _add_qualification_args(proofs_status)
     proofs_show = proofs_sub.add_parser("show", help="Show proof state for one canonical claim")
     proofs_show.add_argument("claim_id")
     proofs_show.add_argument("--output", type=Path)
+    _add_qualification_args(proofs_show)
 
     run = sub.add_parser("run", help="Execute a .cace experiment and emit its evidence report")
     run.add_argument("experiment", type=Path)
@@ -236,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = _module_registry_payload()
             status = 0
         elif args.command == "claims":
-            explorer = ProofExplorer()
+            explorer = _proof_explorer(args)
             if args.claims_command == "list":
                 views = explorer.all_claims()
                 payload = {
@@ -257,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
                 }
             status = 0
         elif args.command == "proofs":
-            explorer = ProofExplorer()
+            explorer = _proof_explorer(args)
             if args.proofs_command == "status":
                 views = explorer.all_claims()
                 state_counts: dict[str, int] = {}
@@ -274,9 +319,10 @@ def main(argv: list[str] | None = None) -> int:
                     "state_counts": state_counts,
                     "claims": [_claim_summary(view) for view in views],
                     "note": (
-                        "This is a read-only canonical status view. It never promotes a claim; "
-                        "formal qualification requires matching registry, ProofContract, ProofLedger, "
-                        "current-head commit, and content-addressed proof artifact."
+                        "This is a read-only canonical status view. It never mutates source truth. "
+                        "A current-head PASS may come from matching static registry/ledger state or "
+                        "from an externally supplied content-addressed qualification artifact whose "
+                        "bytes, exact commit, ProofContract, endpoints, pins and checks all validate."
                     ),
                 }
             else:
