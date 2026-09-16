@@ -1,0 +1,76 @@
+name: CACE v337 Direct Pinned Lean Identity Probe
+
+on:
+  push:
+    branches:
+      - probe/v337-direct-pinned-lean-identity
+
+permissions:
+  contents: read
+
+env:
+  CACE_BASE_SHA: 70614c784305a51c7a1ed2563d855e334c0d7d11
+  CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+  CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+
+jobs:
+  direct-pinned-lean-identity:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 5
+    steps:
+      - name: Checkout probe commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          clean: true
+          persist-credentials: false
+
+      - name: Verify isolated exact-base boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$CACE_BASE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          test "$(git diff --name-only "$CACE_BASE_SHA" HEAD)" = ".github/workflows/cace-v337-direct-pinned-lean-identity-probe.yml"
+
+      - name: Resolve direct pinned Lean executable without Lake
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          formal_dir="$GITHUB_WORKSPACE/formal/cace_formal"
+          test -f "$formal_dir/lean-toolchain"
+          test "$(tr -d '\r\n' < "$formal_dir/lean-toolchain")" = "$CACE_TOOLCHAIN"
+          out="$RUNNER_TEMP/cace-v337-direct-pinned-lean-identity"
+          mkdir -p "$out"
+          toolchain_dir="$ELAN_HOME/toolchains/leanprover--lean4---v4.32.1"
+          lean_bin="$toolchain_dir/bin/lean"
+          test -x "$lean_bin"
+          timeout 15s "$lean_bin" --version | tee "$out/lean-version.txt"
+          grep -F "Lean (version 4.32.1" "$out/lean-version.txt"
+          printf '%s\n' "$lean_bin" > "$out/resolved-path.txt"
+          sha256sum "$lean_bin" > "$out/lean-binary.sha256"
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          d = Path(os.environ['RUNNER_TEMP']) / 'cace-v337-direct-pinned-lean-identity'
+          payload = {
+              'schema': 'cace-identity-resolution-v1',
+              'base_sha': os.environ['CACE_BASE_SHA'],
+              'toolchain': os.environ['CACE_TOOLCHAIN'],
+              'method': 'direct-pinned-elan-toolchain-binary',
+              'evidence_class': 'ENGINEERING_EVIDENCE',
+          }
+          raw = json.dumps(payload, sort_keys=True, indent=2).encode() + b'\n'
+          (d / 'identity-resolution.json').write_bytes(raw)
+          (d / 'identity-resolution.sha256').write_text(hashlib.sha256(raw).hexdigest() + '\n')
+          PY
+
+      - name: Upload probe diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-v337-direct-pinned-lean-identity-${{ github.run_id }}
+          path: ${{ runner.temp }}/cace-v337-direct-pinned-lean-identity
+          if-no-files-found: warn
+          retention-days: 14
