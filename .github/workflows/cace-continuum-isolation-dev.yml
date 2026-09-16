@@ -3,9 +3,10 @@ name: CACE continuum isolated repair probe
 on:
   workflow_dispatch:
   push:
-    branches: [implement/cace-rigor-playground-v337]
+    branches:
+      - implement/cace-rigor-playground-v337
     paths:
-      - '.github/workflows/cace-continuum-isolation-dev.yml'
+      - .github/workflows/cace-continuum-isolation-dev.yml
 
 permissions:
   contents: read
@@ -40,8 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$GITHUB_REF" = 'refs/heads/implement/cace-rigor-playground-v337'
-          test "$RUNNER_NAME" = 'cace-oci-a1'
+          test "$GITHUB_REF" = refs/heads/implement/cace-rigor-playground-v337
+          test "$RUNNER_NAME" = cace-oci-a1
           test -z "$(git status --porcelain --untracked-files=no)"
           formal_tree="$(git rev-parse HEAD:formal/cace_formal)"
           toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
@@ -61,7 +62,6 @@ jobs:
           test "$(cat lean-toolchain)" = "$CACE_TOOLCHAIN"
           lean --version
           lake --version
-
           mkdir -p .lake
           rm -rf .lake/packages .lake/build
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
@@ -70,11 +70,9 @@ jobs:
           test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
           cp -a --reflink=auto "$CACE_PACKAGE_CACHE" .lake/packages
           flock -u 9
-          echo 'CACE_CONTINUUM_ISOLATION_DEPENDENCY_CACHE_HIT'
-
+          echo CACE_CONTINUUM_ISOLATION_DEPENDENCY_CACHE_HIT
           MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-
           if [[ -d "$CACE_FORMAL_BUILD_CACHE/build" ]]; then
             cp -a --reflink=auto "$CACE_FORMAL_BUILD_CACHE/build" .lake/build
             echo "CACE_CONTINUUM_ISOLATION_BUILD_CACHE_HIT tree=$CACE_FORMAL_TREE_SHA"
@@ -82,103 +80,11 @@ jobs:
             echo "CACE_CONTINUUM_ISOLATION_BUILD_CACHE_MISS tree=$CACE_FORMAL_TREE_SHA"
           fi
 
-      - name: Apply isolated qualified-pattern candidates
+      - name: Apply isolated repair candidates
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from hashlib import sha256
-          from pathlib import Path
-
-          root = Path('formal/cace_formal/CACEFormal')
-          hashes = []
-
-          def replace_exact(path: Path, old: str, new: str, expected: int = 1) -> None:
-              text = path.read_text(encoding='utf-8')
-              found = text.count(old)
-              if found != expected:
-                  raise SystemExit(f'{path}: expected {expected} occurrences, found {found}: {old!r}')
-              path.write_text(text.replace(old, new), encoding='utf-8')
-
-          # The previously qualified formulation used the explicit Filter function name.
-          for name in ('GraphRegularizationCriterion.lean', 'RealGraphRegularizationCriterion.lean'):
-              path = root / name
-              before = path.read_bytes()
-              text = before.decode()
-              found = text.count('(𝓝 x)')
-              if found != 2:
-                  raise SystemExit(f'{path}: expected 2 neighborhood-notation occurrences, found {found}')
-              path.write_text(text.replace('(𝓝 x)', '(nhds x)'), encoding='utf-8')
-              after = path.read_bytes()
-              hashes.append((name, sha256(before).hexdigest(), sha256(after).hexdigest()))
-
-          path = root / 'SmoothBoxGreenAuto.lean'
-          before = path.read_bytes()
-
-          replace_exact(
-              path,
-              'import CACEFormal.BoxClassicalAgreement\nimport Mathlib.Analysis.Calculus.FDeriv.Mul\n',
-              'import CACEFormal.BoxClassicalAgreement\nimport Mathlib.Analysis.Calculus.FDeriv.Congr\nimport Mathlib.Analysis.Calculus.FDeriv.Mul\n')
-          replace_exact(path, 'open Set Finset MeasureTheory\n', 'open Set Finset MeasureTheory Filter\n')
-          replace_exact(
-              path,
-              '    v x • fderiv ℝ (q i) x + q i x • fderiv ℝ v x\n',
-              '    v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)\n')
-
-          old_deriv = '''  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction] using
-    (hasFDerivAt_pi.2 fun i => (v.hasFDerivAt x).mul ((q i).hasFDerivAt x))
-'''
-          new_deriv = '''  apply hasFDerivAt_pi'.2
-  intro i
-  have hq :
-      HasFDerivAt (q i : BoxPoint n → ℝ) (fderiv ℝ (q i) x) x := by
-    exact (q i).hasFDerivAt x
-  have hprod :
-      HasFDerivAt
-        ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ))
-        (v x • fderiv ℝ (q i) x + (fderiv ℝ v x).smulRight (q i x)) x :=
-    (v.hasFDerivAt x).smul hq
-  have hfun :
-      (fun y : BoxPoint n => v y * (q i) y) =ᶠ[nhds x]
-        ((v : BoxPoint n → ℝ) * (q i : BoxPoint n → ℝ)) := by
-    filter_upwards [] with y
-    rfl
-  have htarget := hfun.hasFDerivAt_iff.mpr hprod
-  simpa only [smoothBoxProductFDeriv, scalarTimesVector, smoothBoxVectorFunction,
-    ContinuousLinearMap.proj_pi] using htarget
-'''
-          replace_exact(path, old_deriv, new_deriv)
-          replace_exact(
-              path,
-              '        boxBasisVector]\n',
-              '        boxBasisVector, mul_comm]\n')
-
-          old_integrable = '''  have hgreen :
-      IntegrableOn
-        (smoothGreenVolumeTerm (smoothBoxVectorFunction q) v
-          (smoothBoxGradientFunction v) (smoothBoxDivergence q))
-        (Icc a b) := by
-    simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using
-      hsum.add hdiv
-  simpa only [smoothBoxProduct_divergence_eq_greenVolume] using hgreen
-'''
-          new_integrable = '''  exact (hsum.add hdiv).congr_fun
-    (fun x hx => by
-      simpa [smoothGreenVolumeTerm, smoothBoxVectorFunction, smoothBoxGradientFunction] using
-        (smoothBoxProduct_divergence_eq_greenVolume q v x).symm)
-    measurableSet_Icc
-'''
-          replace_exact(path, old_integrable, new_integrable)
-          after = path.read_bytes()
-          hashes.append((path.name, sha256(before).hexdigest(), sha256(after).hexdigest()))
-
-          out = Path('continuum-isolation-hashes.txt')
-          out.write_text(''.join(
-              f'{name} original_sha256={old} patched_sha256={new}\n'
-              for name, old, new in hashes
-          ), encoding='utf-8')
-          print(out.read_text(encoding='utf-8'), end='')
-          PY
+          python scripts/cace_continuum_isolation_probe.py
 
       - name: Compile isolated failed continuum modules
         shell: bash
@@ -186,11 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$ELAN_HOME/bin:$PATH"
-          lake build \
-            CACEFormal.RealGraphRegularizationCriterion \
-            CACEFormal.GraphRegularizationCriterion \
-            CACEFormal.SmoothBoxGreenAuto \
-            2>&1 | tee "$GITHUB_WORKSPACE/continuum-isolation-targets.log"
+          lake build CACEFormal.RealGraphRegularizationCriterion CACEFormal.GraphRegularizationCriterion CACEFormal.SmoothBoxGreenAuto 2>&1 | tee "$GITHUB_WORKSPACE/continuum-isolation-targets.log"
 
       - name: Compile isolated audited continuum closure
         shell: bash
@@ -198,8 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$ELAN_HOME/bin:$PATH"
-          lake build CACEFormal.V330AxiomAudit \
-            2>&1 | tee "$GITHUB_WORKSPACE/continuum-isolation-audit-target.log"
+          lake build CACEFormal.V330AxiomAudit 2>&1 | tee "$GITHUB_WORKSPACE/continuum-isolation-audit-target.log"
 
       - name: Write non-qualifying isolation evidence
         if: always()
@@ -207,10 +108,12 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import hashlib, json, os
+          import hashlib
+          import json
+          import os
           from pathlib import Path
 
-          def digest(path: str):
+          def digest(path):
               p = Path(path)
               return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
 
@@ -226,11 +129,9 @@ jobs:
               'candidate_source_hashes': hashes.read_text(encoding='utf-8').splitlines() if hashes.exists() else [],
               'target_build_log_sha256': digest('continuum-isolation-targets.log'),
               'audit_target_build_log_sha256': digest('continuum-isolation-audit-target.log'),
-              'nonclaim': 'This development probe tests candidate repairs only. It does not qualify or promote any theorem; canonical exact-head qualification remains required.',
+              'nonclaim': 'Development probe only; canonical exact-head qualification remains required.',
           }
-          Path('continuum-isolation-evidence.json').write_text(
-              json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8'
-          )
+          Path('continuum-isolation-evidence.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           print(json.dumps(payload, indent=2, sort_keys=True))
           PY
 
