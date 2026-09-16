@@ -5,7 +5,7 @@ import Mathlib.Analysis.Calculus.FDeriv.Pi
 
 namespace CACEFormal
 
-open Set Finset MeasureTheory
+open Set Finset MeasureTheory Filter
 open scoped BigOperators LineDeriv SchwartzMap
 
 namespace Continuum
