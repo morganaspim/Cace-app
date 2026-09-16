@@ -51,6 +51,7 @@ core, zero-trace witness, cross-term identity, or unconditional regularizer need
 #print axioms CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2
 #print axioms CACEFormal.Continuum.h1RieszCorrection_inH1
 #print axioms CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction
+#print axioms CACEFormal.Continuum.inH1_of_inL2_weakPartial_inL2
 #print axioms CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule
 #print axioms CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative
 

@@ -7,7 +7,7 @@ import pytest
 from cace_studio.core.proof_contract import ProofContract, ProofContractRegistry
 
 
-EXPECTED_CONTINUUM_V3_HASH = "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0"
+EXPECTED_CONTINUUM_V3_HASH = "2931b00e08e07004f8fa14b65932f084630575f8b4c8dcc2d2b602894caba33c"
 
 
 def _contract_mapping() -> dict:
@@ -33,12 +33,12 @@ def _contract_mapping() -> dict:
     }
 
 
-def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpoints():
+def test_default_continuum_contract_v3_is_single_source_for_all_38_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
     assert contract is not None
     assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
-    assert len(contract.endpoint_theorems) == 37
+    assert len(contract.endpoint_theorems) == 38
     assert len(contract.audited_source_files) == 12
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
     assert contract.dependency_pins["lean_toolchain"] == "leanprover/lean4:v4.32.1"
@@ -47,6 +47,8 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "Lean.Environment" in contract.theorem_dependency_metadata_note
     assert "lean-environment-theorem-metadata" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.inH1_of_inL2_weakPartial_inL2" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files

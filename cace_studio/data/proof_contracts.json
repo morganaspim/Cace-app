@@ -56,6 +56,7 @@
         "CACEFormal.Continuum.rieszFiltered_weakPartial_inH1_of_inL2",
         "CACEFormal.Continuum.h1RieszCorrection_inH1",
         "CACEFormal.Continuum.inH1_of_besselRiesz_reconstruction",
+        "CACEFormal.Continuum.inH1_of_inL2_weakPartial_inL2",
         "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule",
         "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative",
         "CACEFormal.Continuum.BoundedGreenPairing.normalTrace_bound",
