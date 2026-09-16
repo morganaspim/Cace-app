@@ -7,6 +7,7 @@ on:
       - implement/cace-rigor-playground-v337
     paths:
       - .github/workflows/cace-continuum-isolation-dev.yml
+      - scripts/cace_continuum_isolation_probe.py
 
 permissions:
   contents: read
@@ -118,14 +119,16 @@ jobs:
               return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
 
           hashes = Path('continuum-isolation-hashes.txt')
+          fingerprints = Path('continuum-isolation-fingerprints.txt')
           payload = {
-              'schema': 'cace-continuum-isolation-probe-v1',
+              'schema': 'cace-continuum-isolation-probe-v2',
               'git_commit': os.environ.get('GITHUB_SHA'),
               'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
               'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
               'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
               'proof_effect': 'none',
               'qualification_effect': 'none',
+              'failure_fingerprints': fingerprints.read_text(encoding='utf-8').splitlines() if fingerprints.exists() else [],
               'candidate_source_hashes': hashes.read_text(encoding='utf-8').splitlines() if hashes.exists() else [],
               'target_build_log_sha256': digest('continuum-isolation-targets.log'),
               'audit_target_build_log_sha256': digest('continuum-isolation-audit-target.log'),
@@ -146,4 +149,5 @@ jobs:
             continuum-isolation-targets.log
             continuum-isolation-audit-target.log
             continuum-isolation-hashes.txt
+            continuum-isolation-fingerprints.txt
             continuum-isolation-evidence.json
