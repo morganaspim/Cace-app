@@ -200,7 +200,6 @@ theorem h1BesselLowSymbol_add_h1RieszEnergySymbol {n : Nat} (x : EuclideanDomain
             rw [Real.rpow_neg (by positivity)]
             norm_num
             field_simp
-            ring
   unfold h1BesselLowSymbol h1RieszEnergySymbol h1RieszSymbol
   have hcomplex := congrArg Complex.ofReal hreal
   simpa only [Complex.ofReal_add, Complex.ofReal_mul, Complex.ofReal_sum,
@@ -266,7 +265,7 @@ theorem h1RieszCorrection_eq_energyMultiplier {n : Nat}
         ((h1RieszSymbol i) * (h1RieszSymbol i)) u) =
       TemperedDistribution.fourierMultiplierCLM ℂ
         (fun x => ∑ i : Fin n, h1RieszSymbol i x * h1RieszSymbol i x) u
-  simpa only [Pi.mul_apply] using hsum.symm
+  simpa only [Pi.mul_apply, _root_.sum_apply] using hsum.symm
 
 /-- Exact Bessel/Riesz reconstruction of every scalar tempered distribution.  No Sobolev or L2
 hypothesis is needed for this operator identity. -/
