@@ -1,24 +1,13 @@
 name: CACE Formal v3.28 continuum graph closure
 
+# Historical validation workflow. Manual-only so current CACE work cannot fan out
+# into overlapping proof jobs; the canonical exact-head qualification path owns
+# formal acceptance.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'RELEASE_v3.28.json'
-      - '.github/workflows/cace-formal-v328.yml'
-  pull_request:
-    paths:
-      - 'formal/cace_formal/**'
-      - 'RELEASE_v3.28.json'
-      - '.github/workflows/cace-formal-v328.yml'
 
 permissions:
   contents: read
-
-concurrency:
-  group: cace-formal-v328-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   continuum-graph-closure:
@@ -110,7 +99,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           def out(cmd, cwd=None):
-              return subprocess.check_output(cmd, cwd=cwd, text=True).strip()
+              return subprocess.check_output(cmd, cwd=cwd,text=True).strip()
           data = {
               'release': '3.28.0-dev',
               'status': 'PASS',
