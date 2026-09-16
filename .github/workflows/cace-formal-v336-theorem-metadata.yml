@@ -1,5 +1,5 @@
 name: CACE Canonical Qualification + H¹ Closure + Resumable Proof Cache
-# Qualification trigger nonce: 2026-09-15-pointwise-normalization
+# Qualification trigger nonce: 2026-09-15-integrated-main-qualification
 
 # Canonical OCI qualification is manual, with one deliberate self-trigger: a
 # change to this workflow file on the locked executor branch. Formal/source
