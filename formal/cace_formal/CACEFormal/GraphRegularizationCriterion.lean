@@ -38,14 +38,13 @@ theorem complexSmoothGraphClosure_eq_distributional_of_regularizer
       Tendsto (fun k => R k x) atTop (nhds x)) :
     (ComplexHDivSmoothGraphCore n).topologicalClosure =
       HDivDistributionalGraphSubmodule n := by
-  change (ComplexHDivSmoothGraphCore n).topologicalClosure =
-    (complexHDivGraphDefect n).ker
-  exact submodule_topologicalClosure_eq_ker_of_regularizer
+  exact submodule_topologicalClosure_eq_of_regularizer
     (𝕜 := ℂ)
     (E := HDivComplexGraphAmbient n)
-    (F := ScalarDistribution n)
-    (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
+    (ComplexHDivSmoothGraphCore n)
+    (HDivDistributionalGraphSubmodule n)
     (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
     R hcore htendsto
 
 /-- Once a regularizer is available, every distributional H(div) graph datum lies in the smooth
@@ -59,14 +58,13 @@ theorem distributional_le_complexSmoothGraphClosure_of_regularizer
       Tendsto (fun k => R k x) atTop (nhds x)) :
     HDivDistributionalGraphSubmodule n ≤
       (ComplexHDivSmoothGraphCore n).topologicalClosure := by
-  change (complexHDivGraphDefect n).ker ≤
-    (ComplexHDivSmoothGraphCore n).topologicalClosure
-  exact ker_le_topologicalClosure_of_regularizer
+  exact submodule_le_topologicalClosure_of_regularizer
     (𝕜 := ℂ)
     (E := HDivComplexGraphAmbient n)
-    (F := ScalarDistribution n)
-    (ComplexHDivSmoothGraphCore n) (complexHDivGraphDefect n)
+    (ComplexHDivSmoothGraphCore n)
+    (HDivDistributionalGraphSubmodule n)
     (ComplexHDivSmoothGraphCore_le_distributional n)
+    (isClosed_HDivDistributionalGraphSubmodule n)
     R hcore htendsto
 
 end
