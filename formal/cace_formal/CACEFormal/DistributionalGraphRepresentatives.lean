@@ -59,7 +59,7 @@ theorem inH1GraphRepresentative_mem {n : Nat}
       simpa [inH1GraphRepresentative] using
         congrArg (weakPartial i)
           (complexL2ToDistribution_l2RepresentativeOfInL2 u (h1_l2 hu))
-    _ = complexL2ToDistribution n (inH1GraphRepresentative u hu).2 i := by
+    _ = complexL2ToDistribution n ((inH1GraphRepresentative u hu).2 i) := by
       simpa [inH1GraphRepresentative] using
         (complexL2ToDistribution_l2RepresentativeOfInL2
           (weakPartial i u) (h1_weakPartial_l2 hu i)).symm
