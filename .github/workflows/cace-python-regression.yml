@@ -20,6 +20,32 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Ensure native C++ toolchain on durable runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v c++ >/dev/null 2>&1; then
+            c++ --version
+            exit 0
+          fi
+          run_root() {
+            if command -v sudo >/dev/null 2>&1; then sudo "$@"; else "$@"; fi
+          }
+          if command -v dnf >/dev/null 2>&1; then
+            run_root dnf -y install gcc-c++
+          elif command -v yum >/dev/null 2>&1; then
+            run_root yum -y install gcc-c++
+          elif command -v microdnf >/dev/null 2>&1; then
+            run_root microdnf install -y gcc-c++
+          elif command -v apt-get >/dev/null 2>&1; then
+            run_root apt-get update
+            run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y g++
+          else
+            echo 'No supported package manager found for C++ compiler bootstrap.' >&2
+            exit 1
+          fi
+          command -v c++
+          c++ --version
       - name: Isolated Python and full regression
         shell: bash
         run: |
