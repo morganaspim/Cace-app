@@ -210,27 +210,52 @@ jobs:
                   for imported in match.group(1).split():
                       if imported in module_to_path:
                           reverse[imported].add(module)
-          seeds = set()
+
           prefix = 'formal/cace_formal/'
+          path_to_module = {
+              prefix + path.relative_to(formal_dir).as_posix(): module
+              for module, path in module_to_path.items()
+          }
+          seeds = set()
+          unrecognized = []
           for rel in changed:
-              if rel.startswith(prefix) and rel.endswith('.lean'):
-                  module = '.'.join(Path(rel[len(prefix):]).with_suffix('').parts)
-                  if module in module_to_path:
-                      seeds.add(module)
-          affected = set(seeds)
-          queue = deque(sorted(seeds))
-          while queue:
-              module = queue.popleft()
-              for dependent in sorted(reverse.get(module, ())):
-                  if dependent not in affected:
-                      affected.add(dependent)
-                      queue.append(dependent)
+              module = path_to_module.get(rel)
+              if module is None:
+                  unrecognized.append(rel)
+              else:
+                  seeds.add(module)
+
+          if unrecognized:
+              invalidation_mode = 'full-unrecognized-formal-change'
+              affected = set(module_to_path)
+          else:
+              invalidation_mode = 'reverse-import-closure'
+              affected = set(seeds)
+              queue = deque(sorted(seeds))
+              while queue:
+                  module = queue.popleft()
+                  for dependent in sorted(reverse.get(module, ())):
+                      if dependent not in affected:
+                          affected.add(dependent)
+                          queue.append(dependent)
+
           for module in sorted(affected):
               module_to_path[module].touch()
           (status_dir / 'cache_invalidated_modules.txt').write_text(
               ''.join(f'{module}\n' for module in sorted(affected)), encoding='utf-8'
           )
-          print(f'CACE_PROBE_CACHE_INVALIDATION changed={len(seeds)} affected={len(affected)}')
+          (status_dir / 'cache_unrecognized_formal_paths.txt').write_text(
+              ''.join(f'{rel}\n' for rel in unrecognized), encoding='utf-8'
+          )
+          (status_dir / 'cache_invalidation_mode.txt').write_text(
+              invalidation_mode + '\n', encoding='utf-8'
+          )
+          print(
+              'CACE_PROBE_CACHE_INVALIDATION '
+              f'changed_paths={len(changed)} seeds={len(seeds)} '
+              f'unrecognized={len(unrecognized)} affected={len(affected)} '
+              f'mode={invalidation_mode}'
+          )
           PY
           echo "CACE_PROBE_BUILD_CACHE_HIT ancestor_tree=$baseline_tree current_tree=$CACE_FORMAL_TREE_SHA"
 
