@@ -27,6 +27,7 @@ EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7
 EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE = "b4b8fd30eba2c99cc911486e866e80c16efda76316dce69a7ace853bf95b027c"
 ROOT = Path(__file__).parents[1]
 SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
+AXIOM_AUDIT_SCRIPT = ROOT / "scripts" / "audit_v330_axioms.py"
 
 
 def _contract_mapping() -> dict:
@@ -58,6 +59,39 @@ def _source_binding_verifier():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _axiom_audit_module():
+    spec = importlib.util.spec_from_file_location("axiom_audit_v330", AXIOM_AUDIT_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_v330_axiom_audit_uses_contract_canonical_environment_theorem_names():
+    audit = _axiom_audit_module()
+    contract = ProofContractRegistry.load_default().for_claim(
+        "cace.v330.continuum-proof-strengthening"
+    )
+    assert contract is not None
+
+    raw = "\n".join(
+        f"{audit.METADATA_SENTINEL}{audit.json.dumps({'theorem': theorem}, sort_keys=True)}"
+        for theorem in contract.endpoint_theorems
+    )
+    assert audit.validate_environment_metadata_theorems(
+        raw, contract.endpoint_theorems
+    ) == set(contract.endpoint_theorems)
+
+    mismatched = list(contract.endpoint_theorems)
+    mismatched[0] = mismatched[0].rsplit(".", 1)[-1]
+    bad_raw = "\n".join(
+        f"{audit.METADATA_SENTINEL}{audit.json.dumps({'theorem': theorem}, sort_keys=True)}"
+        for theorem in mismatched
+    )
+    with pytest.raises(ValueError, match="theorem set differs from proof contract"):
+        audit.validate_environment_metadata_theorems(bad_raw, contract.endpoint_theorems)
 
 
 def test_default_continuum_contract_v3_is_single_source_for_all_38_audited_endpoints():
