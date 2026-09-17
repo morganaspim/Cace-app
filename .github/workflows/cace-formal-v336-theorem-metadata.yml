@@ -243,6 +243,10 @@ jobs:
             exit 0
           fi
 
+          # Cross-tree reuse is acceleration only. It is permitted only from a
+          # first-parent ancestor with the same pinned Lean and Mathlib identity.
+          # Lake still recompiles every changed module and all reverse CACE import
+          # dependents before any theorem metadata or kernel audit is accepted.
           baseline_commit=''
           baseline_tree=''
           baseline_cache=''
@@ -268,6 +272,7 @@ jobs:
           mapfile -t changed < <(git diff --name-only "$baseline_commit" "$CACE_EXPECTED_SHA" -- formal/cace_formal)
           printf '%s\n' "${changed[@]}" > "$CACE_STATUS_DIR/cache_changed_paths.txt"
 
+          # Build-system or toolchain edits invalidate all project build reuse.
           for path in "${changed[@]}"; do
             case "$path" in
               formal/cace_formal/lean-toolchain|formal/cace_formal/lakefile.lean|formal/cace_formal/lakefile.toml|formal/cace_formal/lake-manifest.json)
@@ -285,6 +290,10 @@ jobs:
           printf '%s\n' "$baseline_tree" > "$CACE_STATUS_DIR/cache_baseline_tree.txt"
           printf '%s\n' "$baseline_commit" > "$CACE_STATUS_DIR/cache_baseline_commit.txt"
 
+          # Compute a conservative reverse-import closure among CACE-owned Lean
+          # modules. If any changed formal path cannot be mapped to a current
+          # module, invalidate the full CACE module set rather than risk stale
+          # ancestor artifacts. Qualification remains fresh exact-head evidence.
           python - "$baseline_commit" "$CACE_EXPECTED_SHA" "$CACE_FORMAL_DIR" "$CACE_STATUS_DIR" <<'PY'
           import re
           import subprocess
@@ -344,6 +353,7 @@ jobs:
                           affected.add(dependent)
                           q.append(dependent)
 
+          # Always refresh the two qualification aggregators on an ancestor seed.
           for module in ('CACEFormal.V330AxiomAudit', 'CACEFormal.V330TheoremMetadata'):
               if module in module_to_path:
                   affected.add(module)
@@ -587,7 +597,22 @@ jobs:
           CACE_JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
-          python scripts/finalize_qualification_diagnostics.py
+          if [[ ! -f scripts/finalize_qualification_diagnostics.py ]]; then
+            if [[ "$CACE_JOB_STATUS" == success ]]; then
+              echo 'Diagnostic finalizer is missing after an otherwise successful job.' >&2
+              exit 1
+            fi
+            echo 'Diagnostic finalizer unavailable after an earlier failure; preserving primary job status.' >&2
+            exit 0
+          fi
+          if ! python scripts/finalize_qualification_diagnostics.py; then
+            if [[ "$CACE_JOB_STATUS" == success ]]; then
+              echo 'Diagnostic finalizer failed after an otherwise successful job.' >&2
+              exit 1
+            fi
+            echo 'Diagnostic finalizer failed after an earlier failure; preserving primary job status.' >&2
+            exit 0
+          fi
 
       - name: Upload qualification diagnostics even on failure
         if: always()
