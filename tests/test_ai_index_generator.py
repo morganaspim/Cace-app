@@ -23,10 +23,11 @@ def test_ai_index_generation_is_deterministic_and_self_describing() -> None:
     assert set(first) == {
         "MODULE_CATALOG.json",
         "CLAIM_CATALOG.json",
-        "PROOF_DEPENDENCY_GRAPH.json",
+        "LEAN_IMPORT_GRAPH.json",
         "SOURCE_INDEX.json",
         "generated/CACE_SOURCE_CONTEXT.txt",
     }
+    assert "PROOF_DEPENDENCY_GRAPH.json" not in first
 
     modules = json.loads(first["MODULE_CATALOG.json"])
     module_ids = [item["module_id"] for item in modules["modules"]]
@@ -40,11 +41,13 @@ def test_ai_index_generation_is_deterministic_and_self_describing() -> None:
     assert len(claim_ids) == claims["claim_count"]
     assert claims["canonical_source"] == "cace_studio/data/claim_registry.json"
 
-    proof_graph = json.loads(first["PROOF_DEPENDENCY_GRAPH.json"])
-    node_ids = {item["id"] for item in proof_graph["nodes"]}
-    assert len(node_ids) == proof_graph["node_count"]
-    assert all(edge["from"] in node_ids and edge["to"] in node_ids for edge in proof_graph["edges"])
-    assert proof_graph["edge_count"] == len(proof_graph["edges"])
+    import_graph = json.loads(first["LEAN_IMPORT_GRAPH.json"])
+    node_ids = {item["id"] for item in import_graph["nodes"]}
+    assert len(node_ids) == import_graph["node_count"]
+    assert all(edge["from"] in node_ids and edge["to"] in node_ids for edge in import_graph["edges"])
+    assert import_graph["edge_count"] == len(import_graph["edges"])
+    assert import_graph["schema"] == "cace-lean-import-graph-v1"
+    assert "not theorem dependency" in import_graph["artifact_role"]
 
     source_index = json.loads(first["SOURCE_INDEX.json"])
     paths = [item["path"] for item in source_index["files"]]
@@ -56,4 +59,5 @@ def test_ai_index_generation_is_deterministic_and_self_describing() -> None:
     context = first["generated/CACE_SOURCE_CONTEXT.txt"]
     assert "GENERATED NAVIGATION ONLY" in context
     assert "Do not infer PASS" in context
-    assert "cace_studio/data/claim_registry.json" in context
+    assert "LEAN_IMPORT_GRAPH.json" in context
+    assert "PROOF_DEPENDENCY_GRAPH.json is reserved" in context

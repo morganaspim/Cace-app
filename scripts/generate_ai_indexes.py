@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUTS = {
     "MODULE_CATALOG.json",
     "CLAIM_CATALOG.json",
-    "PROOF_DEPENDENCY_GRAPH.json",
+    "LEAN_IMPORT_GRAPH.json",
     "SOURCE_INDEX.json",
     "generated/CACE_SOURCE_CONTEXT.txt",
 }
@@ -112,13 +112,17 @@ def _lean_files() -> list[Path]:
     return sorted((p for p in base.rglob("*.lean") if p.is_file()), key=lambda p: p.as_posix())
 
 
-def build_proof_dependency_graph() -> dict[str, Any]:
+def build_lean_import_graph() -> dict[str, Any]:
+    """Return source-level Lean imports only; this is never a theorem proof graph."""
     files = _lean_files()
-    local_names = {p.relative_to(ROOT / "formal/cace_formal/CACEFormal").with_suffix("").as_posix().replace("/", ".") for p in files}
+    base = ROOT / "formal/cace_formal/CACEFormal"
+    local_names = {
+        p.relative_to(base).with_suffix("").as_posix().replace("/", ".") for p in files
+    }
     edges: list[dict[str, str]] = []
     nodes = []
     for path in files:
-        rel = path.relative_to(ROOT / "formal/cace_formal/CACEFormal").with_suffix("").as_posix().replace("/", ".")
+        rel = path.relative_to(base).with_suffix("").as_posix().replace("/", ".")
         nodes.append({"id": rel, "path": path.relative_to(ROOT).as_posix()})
         for line in path.read_text(encoding="utf-8").splitlines():
             match = LEAN_IMPORT_RE.match(line)
@@ -126,12 +130,12 @@ def build_proof_dependency_graph() -> dict[str, Any]:
                 edges.append({"from": rel, "to": match.group(1)})
     edges.sort(key=lambda item: (item["from"], item["to"]))
     return {
-        "artifact_role": "generated Lean import graph; compilation/axiom audit remains authoritative",
+        "artifact_role": "generated Lean import navigation only; not theorem dependency or verification evidence",
         "edge_count": len(edges),
         "edges": edges,
         "node_count": len(nodes),
         "nodes": nodes,
-        "schema_version": 1,
+        "schema": "cace-lean-import-graph-v1",
     }
 
 
@@ -171,7 +175,7 @@ def build_source_index() -> dict[str, Any]:
     }
 
 
-def build_context_text(module_catalog: dict[str, Any], claim_catalog: dict[str, Any], proof_graph: dict[str, Any], source_index: dict[str, Any]) -> str:
+def build_context_text(module_catalog: dict[str, Any], claim_catalog: dict[str, Any], lean_import_graph: dict[str, Any], source_index: dict[str, Any]) -> str:
     return "\n".join(
         [
             "CACE SOURCE CONTEXT — GENERATED NAVIGATION ONLY",
@@ -180,11 +184,12 @@ def build_context_text(module_catalog: dict[str, Any], claim_catalog: dict[str, 
             "Do not infer PASS from metadata, historical artifacts, AI output, or absent verification.",
             "Canonical current claim status lives in cace_studio/data/claim_registry.json and proof_ledger.json.",
             "Formal source lives in formal/cace_formal/ and requires exact-commit qualification.",
+            "PROOF_DEPENDENCY_GRAPH.json is reserved for evidence-derived theorem/assumption DAG output.",
             "",
             f"Registered modules: {module_catalog['module_count']}",
             f"Canonical claims: {claim_catalog['claim_count']}",
-            f"Lean proof nodes: {proof_graph['node_count']}",
-            f"Lean local import edges: {proof_graph['edge_count']}",
+            f"Lean import nodes: {lean_import_graph['node_count']}",
+            f"Lean local import edges: {lean_import_graph['edge_count']}",
             f"Indexed source files: {source_index['file_count']}",
             "",
             "Read first:",
@@ -197,7 +202,7 @@ def build_context_text(module_catalog: dict[str, Any], claim_catalog: dict[str, 
             "- AI_REPO_MAP.json",
             "- MODULE_CATALOG.json",
             "- CLAIM_CATALOG.json",
-            "- PROOF_DEPENDENCY_GRAPH.json",
+            "- LEAN_IMPORT_GRAPH.json",
             "- SOURCE_INDEX.json",
             "",
         ]
@@ -207,14 +212,14 @@ def build_context_text(module_catalog: dict[str, Any], claim_catalog: dict[str, 
 def render_outputs() -> dict[str, str]:
     modules = build_module_catalog()
     claims = build_claim_catalog()
-    proof_graph = build_proof_dependency_graph()
+    lean_import_graph = build_lean_import_graph()
     source_index = build_source_index()
     return {
         "MODULE_CATALOG.json": _stable_json(modules),
         "CLAIM_CATALOG.json": _stable_json(claims),
-        "PROOF_DEPENDENCY_GRAPH.json": _stable_json(proof_graph),
+        "LEAN_IMPORT_GRAPH.json": _stable_json(lean_import_graph),
         "SOURCE_INDEX.json": _stable_json(source_index),
-        "generated/CACE_SOURCE_CONTEXT.txt": build_context_text(modules, claims, proof_graph, source_index),
+        "generated/CACE_SOURCE_CONTEXT.txt": build_context_text(modules, claims, lean_import_graph, source_index),
     }
 
 
