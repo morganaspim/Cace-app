@@ -60,10 +60,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m venv "$RUNNER_TEMP/cace-collaboration-tests"
-          "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip install --disable-pip-version-check 'pytest==8.4.2'
+          "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip install --disable-pip-version-check -e '.[test]'
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip freeze > collaboration-test-environment.txt
 
-      - name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests
+      - name: Run collaboration plus canonical formal-preflight tests
         shell: bash
         run: |
           set -euo pipefail
@@ -72,11 +72,18 @@ jobs:
             tests/test_collaboration_lifecycle.py \
             tests/test_actions_serialization_guard.py \
             tests/test_actions_policy_audit.py \
-            tests/test_proof_contract_v336.py \
+            tests/test_cli.py \
             tests/test_claim_registry_v331.py \
             tests/test_qualification_drift_v331.py \
+            tests/test_qualification_overlay_v337.py \
             tests/test_qualification_diagnostics_v337.py \
             tests/test_bug_class_registry_v337.py \
+            tests/test_research_dynamics_v337.py \
+            tests/test_research_geometry_v337.py \
+            tests/test_export_v330_environment_metadata.py \
+            tests/test_continuum_attestation_v337.py \
+            tests/test_lean_theorem_metadata_v336.py \
+            tests/test_proof_contract_v336.py \
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
             tests/test_qualification_promotion_v339.py
@@ -147,7 +154,7 @@ jobs:
           if qualification.get('proof_artifact_sha256') != ledger.get('proof_artifact_sha256'):
             raise SystemExit('claim registry/proof ledger proof artifact mismatch')
           summary={
-            'schema':'cace-collaboration-validation-v7',
+            'schema':'cace-collaboration-validation-v8',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
