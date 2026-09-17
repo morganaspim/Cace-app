@@ -6,35 +6,13 @@ on:
     paths:
       - 'collaboration/**'
       - 'quality/**'
-      - 'cace_studio/core/proof_contract.py'
-      - 'cace_studio/core/formal_gate.py'
-      - 'cace_studio/core/qualification_drift.py'
-      - 'cace_studio/data/proof_contracts.json'
-      - 'schema/proof-contracts.schema.json'
-      - 'scripts/build_continuum_attestation.py'
-      - 'scripts/verify_collaboration_records.py'
-      - 'scripts/validate_collaboration_lifecycle.py'
-      - 'scripts/cace_actions_serialization_guard.py'
-      - 'scripts/audit_cace_actions_policy.py'
-      - 'scripts/check_bug_sweep.py'
-      - 'scripts/finalize_qualification_diagnostics.py'
-      - 'scripts/verify_v330_qualification_bundle.py'
-      - 'scripts/verify_v330_qualification_source_binding.py'
-      - 'tests/test_collaboration_records.py'
-      - 'tests/test_collaboration_lifecycle.py'
-      - 'tests/test_actions_serialization_guard.py'
-      - 'tests/test_actions_policy_audit.py'
-      - 'tests/test_proof_contract_v336.py'
-      - 'tests/test_claim_registry_v331.py'
-      - 'tests/test_qualification_drift_v331.py'
-      - 'tests/test_qualification_overlay_v337.py'
-      - 'tests/test_qualification_diagnostics_v337.py'
-      - 'tests/test_bug_class_registry_v337.py'
-      - 'tests/test_qualification_bundle_verifier_v338.py'
-      - 'tests/test_qualification_source_binding_v339.py'
-      - '.github/workflows/cace-collaboration-validation.yml'
-      - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
-      - '.github/workflows/cace-python-regression.yml'
+      - 'formal/**'
+      - 'cace_studio/**'
+      - 'schema/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/cace-*.yml'
 
 permissions:
   contents: read
@@ -135,39 +113,28 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import hashlib, json, pathlib, subprocess
-          files = sorted(map(pathlib.Path, [
-            'collaboration/PROTOCOL.md',
-            'collaboration/schema/cace-collaboration-record.schema.json',
-            'collaboration/DISCOVERY_LEDGER.json',
-            'quality/bug_patterns.json',
-            'quality/bug_classes.json',
-            'cace_studio/core/proof_contract.py',
-            'cace_studio/core/formal_gate.py',
-            'cace_studio/core/qualification_drift.py',
-            'cace_studio/data/proof_contracts.json',
-            'schema/proof-contracts.schema.json',
-            'scripts/build_continuum_attestation.py',
-            'scripts/verify_collaboration_records.py',
-            'scripts/validate_collaboration_lifecycle.py',
-            'scripts/cace_actions_serialization_guard.py',
-            'scripts/audit_cace_actions_policy.py',
-            'scripts/check_bug_sweep.py',
-            'scripts/finalize_qualification_diagnostics.py',
-            'scripts/verify_v330_qualification_bundle.py',
-            'scripts/verify_v330_qualification_source_binding.py',
-            'tests/test_actions_policy_audit.py',
-            'tests/test_proof_contract_v336.py',
-            'tests/test_claim_registry_v331.py',
-            'tests/test_qualification_drift_v331.py',
-            'tests/test_qualification_overlay_v337.py',
-            'tests/test_qualification_diagnostics_v337.py',
-            'tests/test_bug_class_registry_v337.py',
-            'tests/test_qualification_bundle_verifier_v338.py',
-            'tests/test_qualification_source_binding_v339.py',
-            '.github/workflows/cace-collaboration-validation.yml',
-            '.github/workflows/cace-formal-v336-theorem-metadata.yml',
-            '.github/workflows/cace-python-regression.yml',
-          ]))
+
+          roots = [
+            pathlib.Path('collaboration'),
+            pathlib.Path('quality'),
+            pathlib.Path('formal'),
+            pathlib.Path('cace_studio'),
+            pathlib.Path('schema'),
+            pathlib.Path('scripts'),
+            pathlib.Path('tests'),
+          ]
+          files = set()
+          for root in roots:
+            if root.is_dir():
+              files.update(path for path in root.rglob('*') if path.is_file())
+          pyproject = pathlib.Path('pyproject.toml')
+          if pyproject.is_file():
+            files.add(pyproject)
+          workflow_root = pathlib.Path('.github/workflows')
+          if workflow_root.is_dir():
+            files.update(path for path in workflow_root.glob('cace-*.yml') if path.is_file())
+          files = sorted(files)
+
           claim_id='cace.v330.continuum-proof-strengthening'
           claims=json.loads(pathlib.Path('cace_studio/data/claim_registry.json').read_text())['claims']
           entries=json.loads(pathlib.Path('cace_studio/data/proof_ledger.json').read_text())['entries']
@@ -179,12 +146,13 @@ jobs:
           if qualification.get('proof_artifact_sha256') != ledger.get('proof_artifact_sha256'):
             raise SystemExit('claim registry/proof ledger proof artifact mismatch')
           summary={
-            'schema':'cace-collaboration-validation-v6',
+            'schema':'cace-collaboration-validation-v7',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'qualified_baseline':qualification['attested_commit'],
             'qualified_proof_artifact_sha256':qualification['proof_artifact_sha256'],
+            'covered_file_count':len(files),
             'sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
           }
           pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
