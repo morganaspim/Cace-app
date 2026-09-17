@@ -98,6 +98,10 @@
         {
           "path": "tests/test_actions_policy_audit.py",
           "contains": "test_collaboration_bug_sweep_uses_explicit_repository_import_root"
+        },
+        {
+          "path": "tests/test_bug_sweep_standalone_v337.py",
+          "contains": "test_bug_sweep_standalone_bootstraps_repository_import_root"
         }
       ],
       "guard_refs": [
@@ -111,15 +115,19 @@
         },
         {
           "path": "scripts/check_bug_sweep.py",
-          "contains": "from cace_studio.core.claim_registry import ClaimRegistry"
+          "contains": "sys.path.insert(0, str(ROOT))"
+        },
+        {
+          "path": "tests/test_bug_sweep_standalone_v337.py",
+          "contains": "test_bug_sweep_standalone_bootstraps_repository_import_root"
         },
         {
           "path": "scripts/check_bug_sweep.py",
           "contains": "_check_bug_class_registry"
         }
       ],
-      "closure_rule": "The isolated validator explicitly exports the repository root for bug-sweep imports, a policy test requires that safe invocation, and the content-addressed registry verifies both guards remain live.",
-      "fingerprint_sha256": "01d8aa18f7a5913c304750d7ba92d688c684f946b691c54f84f53b22a97192a3"
+      "closure_rule": "The isolated validator explicitly exports the repository root and the sweep self-bootstraps that root before importing CACE; a policy test and isolated-interpreter fault injection require both protections; the content-addressed registry verifies every guard remains live.",
+      "fingerprint_sha256": "e10a1a2d42c55ef39cf02f94ebf55c08db5bed821780dc9b8d79915c2d3c26f2"
     }
   ]
 }
