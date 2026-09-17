@@ -1,8 +1,13 @@
 name: CACE Python regression
 on:
   workflow_dispatch:
+  push:
+    branches: [executor/cace-regression-locked]
+    paths:
+      - '.github/workflows/cace-python-regression.yml'
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: cace-canonical-qualification-oci
   cancel-in-progress: false
@@ -14,6 +19,25 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Establish exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          printf '%s\n' "$GITHUB_SHA" > regression-exact-head.txt
+          printf 'exact_head=%s\n' "$GITHUB_SHA"
+      - name: Enforce repository-wide CACE Actions serialization
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}"
+      - name: Enforce repository-wide CACE Actions policy
+        run: python scripts/audit_cace_actions_policy.py
+      - name: Validate collaboration record structure and hashes
+        run: python scripts/verify_collaboration_records.py
+      - name: Validate collaboration lifecycle
+        run: python scripts/validate_collaboration_lifecycle.py
       - name: Ensure native C++ toolchain on durable runner
         shell: bash
         run: |
@@ -83,6 +107,7 @@ jobs:
         with:
           name: cace-regression-evidence
           path: |
+            regression-exact-head.txt
             bug-sweep.json
             regression-results.xml
             regression-environment.txt
