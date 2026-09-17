@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-collaboration-record.schema.json",
+  "title": "CACE Collaboration Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "record_type",
+    "sender",
+    "target",
+    "head_sha",
+    "evidence_class",
+    "created_at",
+    "payload",
+    "content_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "cace-collaboration-v1"},
+    "record_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{8,160}$"},
+    "record_type": {"enum": ["TASK_LEASE", "PROPOSAL", "REVIEW", "DECISION", "HANDOFF", "CLOSED"]},
+    "sender": {"type": "string", "minLength": 1, "maxLength": 120},
+    "target": {"type": "string", "minLength": 1, "maxLength": 120},
+    "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "evidence_class": {"enum": ["AI_PROPOSAL", "ENGINEERING_VERIFIED", "CERTIFIED_NUMERICAL", "PROVED"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "supersedes": {"type": ["string", "null"]},
+    "discovery_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "payload": {"type": "object"},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
