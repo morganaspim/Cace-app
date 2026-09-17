@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
@@ -58,6 +59,14 @@ def test_collaboration_bug_sweep_uses_explicit_repository_import_root() -> None:
         '"$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py'
     )
     assert safe in text
+
+
+def test_collaboration_qualified_baseline_is_derived_from_canonical_provenance() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    assert "cace_studio/data/claim_registry.json" in text
+    assert "cace_studio/data/proof_ledger.json" in text
+    assert "claim registry/proof ledger qualified commit mismatch" in text
+    assert not re.search(r"\bbaseline\s*=\s*[\"']?[0-9a-f]{40}\b", text)
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
