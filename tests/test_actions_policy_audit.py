@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -48,6 +49,7 @@ def test_current_qualification_provenance_is_enrolled_and_drift_clean() -> None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONPATH": str(ROOT)},
     )
     assert proc.returncode == 0, proc.stderr or proc.stdout
     payload = json.loads(proc.stdout)
