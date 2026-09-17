@@ -80,7 +80,8 @@
         "The H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.",
         "The H1 distributional-graph converse endpoints establish the representation-level H1 identification only; they do not by themselves construct unconditional H(div) graph density or every concrete PDE trace/core hypothesis.",
         "The audited weak-Green and continuum Prager-Synge endpoints remain conditional on their explicit BoundedGreenPairing, GreenSmoothCore, zero-boundary-trace, and cross-term-identification hypotheses; this contract does not construct every concrete PDE instance.",
-        "CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries."
+        "CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries.",
+        "The executable binding certifies theorem-endpoint membership and qualified proof provenance only; it does not establish that runtime PDE inputs satisfy theorem hypotheses or that arbitrary numerical outputs are formally verified."
       ],
       "required_checks": [
         "clean-tree",
