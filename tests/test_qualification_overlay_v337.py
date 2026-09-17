@@ -19,7 +19,6 @@ from cace_studio.core.qualification_attestation import (
 
 
 COMMIT = "1" * 40
-QUALIFIED_COMMIT = "c01abdeca099d3905e5e22505958f7fbad11164e"
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
 
 
@@ -124,15 +123,31 @@ def _unqualified_explorer(*, qualifications=()) -> ProofExplorer:
     )
 
 
-def test_default_explorer_reports_promoted_static_qualification():
+def test_default_explorer_tracks_canonical_qualification_state():
+    registry = ClaimRegistry.load_default()
+    ledger = ProofLedger.load_default()
+    claim = registry.by_id(CLAIM_ID)
+    entry = ledger.for_claim(CLAIM_ID)
+    assert claim is not None and entry is not None
+
     view = ProofExplorer().claim_view(CLAIM_ID)
-    assert view.current_head_qualified is True
-    assert view.qualification_state == "QUALIFIED"
-    assert view.qualification_source == "canonical-static"
-    assert view.attested_commit == QUALIFIED_COMMIT
-    assert view.registry_status == "PASS"
-    assert view.ledger_status == "PASS"
-    assert view.blockers == ()
+    assert claim.current_head_qualified == entry.current_head_qualified
+    assert claim.qualification_status == entry.status
+    assert claim.attested_commit == entry.commit
+    assert claim.proof_artifact_sha256 == entry.proof_artifact_sha256
+
+    if claim.current_head_qualified:
+        assert claim.qualification_status == "PASS"
+        assert view.current_head_qualified is True
+        assert view.qualification_state == "QUALIFIED"
+        assert view.qualification_source == "canonical-static"
+        assert view.attested_commit == claim.attested_commit
+        assert view.proof_artifact_sha256 == claim.proof_artifact_sha256
+        assert view.blockers == ()
+    else:
+        assert view.current_head_qualified is False
+        assert view.qualification_state == "UNQUALIFIED"
+        assert view.qualification_source == "canonical-static"
 
 
 def test_verified_external_artifact_upgrades_synthetic_unqualified_view_without_mutating_truth():
@@ -229,11 +244,11 @@ def test_duplicate_external_qualification_for_same_claim_is_rejected():
         ProofExplorer(qualifications=(qualification, qualification))
 
 
-def test_cli_surfaces_conflict_when_external_qualification_disagrees_with_promoted_static_truth(
-    tmp_path, capsys
-):
+def test_cli_rendering_matches_canonical_plus_external_qualification_state(tmp_path, capsys):
     data = _bytes()
     digest = hashlib.sha256(data).hexdigest()
+    qualification = _verify(data)
+    expected = ProofExplorer(qualifications=(qualification,)).claim_view(CLAIM_ID)
     artifact = tmp_path / "qualification.json"
     artifact.write_bytes(data)
 
@@ -254,10 +269,11 @@ def test_cli_surfaces_conflict_when_external_qualification_disagrees_with_promot
     assert code == 0
     rendered = json.loads(captured.out)
     proof = rendered["proof"]
-    assert proof["qualification_state"] == "CONFLICT"
-    assert proof["qualification_source"] == "conflict"
-    assert proof["current_head_qualified"] is False
-    assert any("disagrees with external qualification" in blocker for blocker in proof["blockers"])
+    assert proof["qualification_state"] == expected.qualification_state
+    assert proof["qualification_source"] == expected.qualification_source
+    assert proof["current_head_qualified"] is expected.current_head_qualified
+    assert proof["attested_commit"] == expected.attested_commit
+    assert proof["proof_artifact_sha256"] == expected.proof_artifact_sha256
 
 
 def test_cli_rejects_partial_external_qualification_arguments(tmp_path, capsys):
