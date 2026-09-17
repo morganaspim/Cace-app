@@ -32,3 +32,9 @@ cace_studio = ["data/*.json"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+
+# Vercel serves only the lightweight web boundary.  The PySide6 desktop GUI,
+# C++ computation, Lean qualification, and attestation runners remain outside
+# the serverless request lifecycle.
+[tool.vercel]
+entrypoint = "api/index.py"
