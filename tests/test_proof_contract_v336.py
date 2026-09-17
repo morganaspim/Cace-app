@@ -22,8 +22,9 @@ from cace_studio.modules.formal_v330 import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "99b0e46fa41bb9b76c7be4822e69b7648340c2d4d25060368f683b5b02620813"
+EXPECTED_CONTINUUM_V3_HASH = "d1d34295f6c9821af0330435af781e4f28c263076259b0b0075e4c9580ee8e8d"
 EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
+EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE = "b4b8fd30eba2c99cc911486e866e80c16efda76316dce69a7ace853bf95b027c"
 ROOT = Path(__file__).parents[1]
 SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
 
@@ -82,12 +83,26 @@ def test_default_continuum_contract_v3_is_single_source_for_all_38_audited_endpo
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
     assert any("executable binding certifies theorem-endpoint membership" in item for item in contract.nonclaims)
     assert any("hasZeroBoundaryTrace_zero endpoint discharges only" in item for item in contract.nonclaims)
-    assert len(contract.executable_bindings) == 1
+    assert len(contract.executable_bindings) == 3
+
     binding = contract.executable_binding_for_module(MODULE_ID)
     assert binding is not None
     assert binding.source_files == ("cace_studio/modules/formal_v330.py",)
     assert binding.source_bundle_sha256 == EXPECTED_FORMAL330_BUNDLE
     assert binding.current_source_bundle_sha256(ROOT) == EXPECTED_FORMAL330_BUNDLE
+
+    for bridge_module_id in (
+        "formal_bridge.resolve_prager_synge_zero_trace",
+        "formal_bridge.zero_boundary_trace_zero",
+    ):
+        bridge_binding = contract.executable_binding_for_module(bridge_module_id)
+        assert bridge_binding is not None
+        assert bridge_binding.source_files == (
+            "cace_studio/modules/formal_hypothesis_bridges.py",
+        )
+        assert bridge_binding.source_bundle_sha256 == EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE
+        assert bridge_binding.current_source_bundle_sha256(ROOT) == EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE
+
     assert contract.contract_sha256 == EXPECTED_CONTINUUM_V3_HASH
 
 
