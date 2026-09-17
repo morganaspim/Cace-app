@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inventory CACE Actions trigger/concurrency policy.
+"""Audit the executable CACE GitHub Actions surface.
 
 This is engineering coordination only. It does not create proof evidence.
 """
@@ -14,9 +14,15 @@ AUTO_TRIGGERS = {
     "push", "pull_request", "pull_request_target", "schedule", "merge_group",
     "workflow_run", "repository_dispatch", "issues", "issue_comment",
 }
-MANUAL_TRIGGERS = {"workflow_dispatch", "workflow_call"}
-GLOBAL_GROUP = "cace-global-runner-lane"
-ALLOWED_AUTOMATIC = {"cace-collaboration-validation.yml"}
+GLOBAL_GROUP = "cace-canonical-qualification-oci"
+EXPECTED_ACTIVE = {
+    "cace-collaboration-validation.yml",
+    "cace-formal-v336-theorem-metadata.yml",
+}
+ALLOWED_AUTOMATIC = {
+    "cace-collaboration-validation.yml",
+    "cace-formal-v336-theorem-metadata.yml",
+}
 
 
 def _top_block(lines: list[str], key: str) -> list[str]:
@@ -67,13 +73,7 @@ def _is_cace(path: Path, name: str) -> bool:
 
 
 def _uses_self_hosted(lines: list[str]) -> bool:
-    """Return true only when a runs-on declaration selects self-hosted.
-
-    Searching the entire YAML text is unsound because comments, step names, and
-    shell strings may mention "self-hosted" without selecting that runner.
-    This parser intentionally handles the scalar/inline-list and indented-list
-    forms used by this repository without depending on a YAML implementation.
-    """
+    """Return true only when a runs-on declaration selects self-hosted."""
     for index, line in enumerate(lines):
         match = re.match(r"^(\s+)runs-on:\s*(.*?)\s*$", line)
         if not match:
@@ -122,11 +122,19 @@ def inspect(path: Path) -> dict | None:
 def audit(root: Path) -> dict:
     workflows = []
     violations = []
+    active_files = set()
     for path in sorted(root.glob("*.y*ml")):
         item = inspect(path)
         if item is None:
             continue
+        active_files.add(item["file"])
         workflows.append(item)
+        if item["file"] not in EXPECTED_ACTIVE:
+            violations.append({
+                "file": item["file"],
+                "kind": "unexpected-active-cace-workflow",
+                "detail": "archive or explicitly admit this workflow before activation",
+            })
         if item["automatic_triggers"] and item["file"] not in ALLOWED_AUTOMATIC:
             violations.append({
                 "file": item["file"],
@@ -146,9 +154,17 @@ def audit(root: Path) -> dict:
                     "kind": "self-hosted-cancellation-policy",
                     "detail": item["cancel_in_progress"],
                 })
+    missing = sorted(EXPECTED_ACTIVE - active_files)
+    for filename in missing:
+        violations.append({
+            "file": filename,
+            "kind": "missing-required-active-workflow",
+            "detail": None,
+        })
     return {
-        "schema": "cace-actions-policy-audit-v1",
+        "schema": "cace-actions-policy-audit-v2",
         "global_group": GLOBAL_GROUP,
+        "expected_active": sorted(EXPECTED_ACTIVE),
         "allowed_automatic": sorted(ALLOWED_AUTOMATIC),
         "workflows": workflows,
         "violations": violations,

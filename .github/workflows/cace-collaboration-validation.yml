@@ -19,7 +19,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: cace-global-runner-lane
+  group: cace-canonical-qualification-oci
   cancel-in-progress: false
 
 jobs:
@@ -46,8 +46,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}"
 
-      - name: Report repository-wide CACE Actions policy
-        run: python scripts/audit_cace_actions_policy.py --report-only
+      - name: Enforce repository-wide CACE Actions policy
+        run: python scripts/audit_cace_actions_policy.py
 
       - name: Validate collaboration record structure and hashes
         run: python scripts/verify_collaboration_records.py
