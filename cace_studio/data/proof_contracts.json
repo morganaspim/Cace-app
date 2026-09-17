@@ -74,6 +74,20 @@
           "source_files": [
             "cace_studio/modules/formal_v330.py"
           ]
+        },
+        {
+          "module_id": "formal_bridge.resolve_prager_synge_zero_trace",
+          "source_bundle_sha256": "b4b8fd30eba2c99cc911486e866e80c16efda76316dce69a7ace853bf95b027c",
+          "source_files": [
+            "cace_studio/modules/formal_hypothesis_bridges.py"
+          ]
+        },
+        {
+          "module_id": "formal_bridge.zero_boundary_trace_zero",
+          "source_bundle_sha256": "b4b8fd30eba2c99cc911486e866e80c16efda76316dce69a7ace853bf95b027c",
+          "source_files": [
+            "cace_studio/modules/formal_hypothesis_bridges.py"
+          ]
         }
       ],
       "formal_system": "lean4",
