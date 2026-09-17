@@ -71,6 +71,7 @@ def test_collaboration_qualified_baseline_is_derived_from_canonical_provenance()
 
 def test_collaboration_gate_enrolls_both_qualification_verifiers() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    trigger_block = text.split("pull_request:", 1)[1].split("permissions:", 1)[0]
     unit_suite = text.split(
         "- name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests",
         1,
@@ -81,7 +82,7 @@ def test_collaboration_gate_enrolls_both_qualification_verifiers() -> None:
         "tests/test_qualification_bundle_verifier_v338.py",
         "tests/test_independent_qualification_verifier_v338.py",
     ):
-        assert path in text
+        assert path in trigger_block
     assert "tests/test_qualification_bundle_verifier_v338.py" in unit_suite
     assert "tests/test_independent_qualification_verifier_v338.py" in unit_suite
 
