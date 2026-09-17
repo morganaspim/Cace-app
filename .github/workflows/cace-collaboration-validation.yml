@@ -4,7 +4,14 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - '**'
+      - 'collaboration/**'
+      - 'scripts/verify_collaboration_records.py'
+      - 'scripts/validate_collaboration_lifecycle.py'
+      - 'scripts/cace_actions_serialization_guard.py'
+      - 'tests/test_collaboration_records.py'
+      - 'tests/test_collaboration_lifecycle.py'
+      - 'tests/test_actions_serialization_guard.py'
+      - '.github/workflows/cace-collaboration-validation.yml'
 
 permissions:
   contents: read
