@@ -41,6 +41,7 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
         "tests/test_qualification_bundle_verifier_v338.py",
         "tests/test_qualification_diagnostics_v337.py",
         "tests/test_qualification_drift_v331.py",
+        "tests/test_qualification_overlay_v337.py",
         "tests/test_qualification_promotion_v339.py",
         "tests/test_qualification_source_binding_v339.py",
         ".github/workflows/cace-formal-v330.yml",
