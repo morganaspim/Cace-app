@@ -24,8 +24,10 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
         "schema/claim.schema.json",
         "schema/proof-ledger.schema.json",
         "scripts/check_qualification_drift.py",
+        "scripts/verify_continuum_qualification_bundle.py",
         "tests/test_claim_promotion_v330.py",
         "tests/test_claim_registry_v331.py",
+        "tests/test_independent_qualification_verifier_v338.py",
         "tests/test_qualification_drift_v331.py",
         ".github/workflows/cace-formal-v330.yml",
     }
