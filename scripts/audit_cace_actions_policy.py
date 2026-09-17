@@ -66,6 +66,35 @@ def _is_cace(path: Path, name: str) -> bool:
     )
 
 
+def _uses_self_hosted(lines: list[str]) -> bool:
+    """Return true only when a runs-on declaration selects self-hosted.
+
+    Searching the entire YAML text is unsound because comments, step names, and
+    shell strings may mention "self-hosted" without selecting that runner.
+    This parser intentionally handles the scalar/inline-list and indented-list
+    forms used by this repository without depending on a YAML implementation.
+    """
+    for index, line in enumerate(lines):
+        match = re.match(r"^(\s+)runs-on:\s*(.*?)\s*$", line)
+        if not match:
+            continue
+        base_indent = len(match.group(1))
+        inline = match.group(2)
+        if "self-hosted" in inline:
+            return True
+        if inline:
+            continue
+        for nested in lines[index + 1:]:
+            if not nested.strip() or nested.lstrip().startswith("#"):
+                continue
+            indent = len(nested) - len(nested.lstrip())
+            if indent <= base_indent:
+                break
+            if "self-hosted" in nested:
+                return True
+    return False
+
+
 def inspect(path: Path) -> dict | None:
     text = path.read_text()
     name = _workflow_name(text, path)
@@ -84,7 +113,7 @@ def inspect(path: Path) -> dict | None:
         "name": name,
         "triggers": triggers,
         "automatic_triggers": automatic,
-        "uses_self_hosted": "self-hosted" in text,
+        "uses_self_hosted": _uses_self_hosted(lines),
         "concurrency_group": group,
         "cancel_in_progress": cancel,
     }
