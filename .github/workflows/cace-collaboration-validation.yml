@@ -13,6 +13,8 @@ on:
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
       - '.github/workflows/cace-collaboration-validation.yml'
+      - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
+      - '.github/workflows/cace-python-regression.yml'
 
 permissions:
   contents: read

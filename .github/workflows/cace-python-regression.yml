@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   regression:
-    runs-on: self-hosted
+    runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

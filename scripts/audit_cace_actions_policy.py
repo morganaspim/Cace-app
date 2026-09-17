@@ -24,6 +24,7 @@ ALLOWED_AUTOMATIC = {
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
 }
+REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}
 
 
 def _top_block(lines: list[str], key: str) -> list[str]:
@@ -73,17 +74,28 @@ def _is_cace(path: Path, name: str) -> bool:
     )
 
 
-def _uses_self_hosted(lines: list[str]) -> bool:
-    """Return true only when a runs-on declaration selects self-hosted."""
+def _clean_label(value: str) -> str:
+    return value.strip().strip("[] ,\t'\"")
+
+
+def _runner_labels(lines: list[str]) -> set[str]:
+    labels: set[str] = set()
     for index, line in enumerate(lines):
         match = re.match(r"^(\s+)runs-on:\s*(.*?)\s*$", line)
         if not match:
             continue
         base_indent = len(match.group(1))
-        inline = match.group(2)
-        if "self-hosted" in inline:
-            return True
+        inline = match.group(2).strip()
         if inline:
+            if inline.startswith("[") and inline.endswith("]"):
+                labels.update(
+                    label for part in inline[1:-1].split(",")
+                    if (label := _clean_label(part))
+                )
+            else:
+                label = _clean_label(inline)
+                if label:
+                    labels.add(label)
             continue
         for nested in lines[index + 1:]:
             if not nested.strip() or nested.lstrip().startswith("#"):
@@ -91,9 +103,12 @@ def _uses_self_hosted(lines: list[str]) -> bool:
             indent = len(nested) - len(nested.lstrip())
             if indent <= base_indent:
                 break
-            if "self-hosted" in nested:
-                return True
-    return False
+            item = re.match(r"^\s*-\s*(.+?)\s*$", nested)
+            if item:
+                label = _clean_label(item.group(1))
+                if label:
+                    labels.add(label)
+    return labels
 
 
 def inspect(path: Path) -> dict | None:
@@ -109,12 +124,14 @@ def inspect(path: Path) -> dict | None:
     cancel_match = re.search(r"(?m)^\s+cancel-in-progress:\s*(.+?)\s*$", concurrency)
     group = group_match.group(1).strip(" '\"") if group_match else None
     cancel = cancel_match.group(1).strip().lower() if cancel_match else None
+    runner_labels = _runner_labels(lines)
     return {
         "file": path.name,
         "name": name,
         "triggers": triggers,
         "automatic_triggers": automatic,
-        "uses_self_hosted": _uses_self_hosted(lines),
+        "uses_self_hosted": "self-hosted" in runner_labels,
+        "runner_labels": sorted(runner_labels),
         "concurrency_group": group,
         "cancel_in_progress": cancel,
     }
@@ -155,6 +172,15 @@ def audit(root: Path) -> dict:
                     "kind": "self-hosted-cancellation-policy",
                     "detail": item["cancel_in_progress"],
                 })
+            missing_labels = sorted(
+                REQUIRED_SELF_HOSTED_LABELS - set(item["runner_labels"])
+            )
+            if missing_labels:
+                violations.append({
+                    "file": item["file"],
+                    "kind": "self-hosted-runner-labels",
+                    "detail": {"missing": missing_labels, "observed": item["runner_labels"]},
+                })
     missing = sorted(EXPECTED_ACTIVE - active_files)
     for filename in missing:
         violations.append({
@@ -163,8 +189,9 @@ def audit(root: Path) -> dict:
             "detail": None,
         })
     return {
-        "schema": "cace-actions-policy-audit-v2",
+        "schema": "cace-actions-policy-audit-v3",
         "global_group": GLOBAL_GROUP,
+        "required_self_hosted_labels": sorted(REQUIRED_SELF_HOSTED_LABELS),
         "expected_active": sorted(EXPECTED_ACTIVE),
         "allowed_automatic": sorted(ALLOWED_AUTOMATIC),
         "workflows": workflows,
