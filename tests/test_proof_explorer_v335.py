@@ -192,14 +192,28 @@ def test_module_resolution_uses_registry_then_formal_artifact_fallback():
     assert missing is None
 
 
-def test_default_v330_exposes_authoritative_contract_but_remains_unqualified():
+def test_default_v330_exposes_authoritative_contract_and_canonical_qualification_state():
     claim_id = "cace.v330.continuum-proof-strengthening"
+    registry = ClaimRegistry.load_default()
+    ledger = ProofLedger.load_default()
+    claim = registry.by_id(claim_id)
+    ledger_entry = ledger.for_claim(claim_id)
     contract = ProofContractRegistry.load_default().for_claim(claim_id)
+    assert claim is not None
+    assert ledger_entry is not None
     assert contract is not None
 
+    assert claim.current_head_qualified == ledger_entry.current_head_qualified
+    assert claim.attested_commit == ledger_entry.commit
+    assert claim.proof_artifact_sha256 == ledger_entry.proof_artifact_sha256
+
     view = ProofExplorer().claim_view(claim_id)
-    assert view.current_head_qualified is False
-    assert view.qualification_state == "UNQUALIFIED"
+    assert view.current_head_qualified is claim.current_head_qualified
+    assert view.qualification_state == (
+        "QUALIFIED" if claim.current_head_qualified else "UNQUALIFIED"
+    )
+    assert view.attested_commit == claim.attested_commit
+    assert view.proof_artifact_sha256 == claim.proof_artifact_sha256
     assert view.proof_contract_id == contract.contract_id
     assert view.proof_contract_sha256 == contract.contract_sha256
     assert view.proof_contract_build_target == contract.build_target
