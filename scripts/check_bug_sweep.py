@@ -17,6 +17,9 @@ import sys
 from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 PATTERN_REGISTRY = ROOT / "quality" / "bug_patterns.json"
 BUG_CLASS_REGISTRY = ROOT / "quality" / "bug_classes.json"
 ACTIVE_CONTRACT_GLOBS = (
