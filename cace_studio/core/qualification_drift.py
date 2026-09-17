@@ -44,6 +44,7 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
         "tests/test_qualification_overlay_v337.py",
         "tests/test_qualification_promotion_v339.py",
         "tests/test_qualification_source_binding_v339.py",
+        "tests/test_zero_boundary_trace_bridge_v343.py",
         ".github/workflows/cace-formal-v330.yml",
         ".github/workflows/cace-formal-v336-theorem-metadata.yml",
     }
