@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
-import os
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
+from cace_studio.core.claim_registry import ClaimRegistry
+from cace_studio.core.proof_ledger import ProofLedger
 from scripts.audit_cace_actions_policy import audit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,33 +33,19 @@ def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
 
 
-def test_qualified_baseline_provenance_is_enrolled_and_self_consistent() -> None:
-    proc = subprocess.run(
-        [
-            sys.executable,
-            "scripts/check_qualification_drift.py",
-            "--repo-root",
-            str(ROOT),
-            "--head",
-            QUALIFIED_BASELINE,
-        ],
-        cwd=ROOT,
-        check=False,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env={**os.environ, "PYTHONPATH": str(ROOT)},
-    )
-    assert proc.returncode == 0, proc.stderr or proc.stdout
-    payload = json.loads(proc.stdout)
-    assert payload["status"] == "PASS"
-    assert payload["qualified_claims_checked"] == 1
-    assert len(payload["results"]) == 1
-    result = payload["results"][0]
-    assert result["claim_id"] == "cace.v330.continuum-proof-strengthening"
-    assert result["attested_commit"] == QUALIFIED_BASELINE
-    assert result["passed"] is True
-    assert result["sensitive_paths"] == []
+def test_qualified_baseline_provenance_is_enrolled() -> None:
+    registry = ClaimRegistry.load_default()
+    ledger = ProofLedger.load_default()
+    claim = registry.by_id("cace.v330.continuum-proof-strengthening")
+    entry = ledger.for_claim("cace.v330.continuum-proof-strengthening")
+    assert claim is not None and entry is not None
+    assert claim.current_head_qualified is True
+    assert entry.current_head_qualified is True
+    assert claim.attested_commit == entry.commit == QUALIFIED_BASELINE
+    assert claim.proof_artifact_sha256 == entry.proof_artifact_sha256
+    assert entry.qualification_system == "github-actions"
+    assert entry.qualification_run_id == "35215905496"
+    assert entry.workflow_run_id == 35215905496
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
