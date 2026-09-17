@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'collaboration/**'
+      - 'quality/**'
       - 'cace_studio/core/proof_contract.py'
       - 'cace_studio/core/formal_gate.py'
       - 'schema/proof-contracts.schema.json'
@@ -12,12 +13,17 @@ on:
       - 'scripts/validate_collaboration_lifecycle.py'
       - 'scripts/cace_actions_serialization_guard.py'
       - 'scripts/audit_cace_actions_policy.py'
+      - 'scripts/check_bug_sweep.py'
+      - 'scripts/finalize_qualification_diagnostics.py'
       - 'tests/test_collaboration_records.py'
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
       - 'tests/test_actions_policy_audit.py'
       - 'tests/test_proof_contract_v336.py'
       - 'tests/test_claim_registry_v331.py'
+      - 'tests/test_qualification_overlay_v337.py'
+      - 'tests/test_qualification_diagnostics_v337.py'
+      - 'tests/test_bug_class_registry_v337.py'
       - '.github/workflows/cace-collaboration-validation.yml'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
       - '.github/workflows/cace-python-regression.yml'
@@ -71,7 +77,7 @@ jobs:
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip install --disable-pip-version-check 'pytest==8.4.2'
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip freeze > collaboration-test-environment.txt
 
-      - name: Run collaboration and proof-linkage unit tests
+      - name: Run collaboration, proof-linkage, and bug-flush unit tests
         shell: bash
         run: |
           set -euo pipefail
@@ -81,13 +87,16 @@ jobs:
             tests/test_actions_serialization_guard.py \
             tests/test_actions_policy_audit.py \
             tests/test_proof_contract_v336.py \
-            tests/test_claim_registry_v331.py
+            tests/test_claim_registry_v331.py \
+            tests/test_qualification_diagnostics_v337.py \
+            tests/test_bug_class_registry_v337.py
+          "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify qualified baseline remains an ancestor
         shell: bash
         run: |
           set -euo pipefail
-          baseline=c01abdeca099d3905e5e22505958f7fbad11164e
+          baseline=f6b60a9f7f832d60147fe9285d24fb339a51ecec
           git merge-base --is-ancestor "$baseline" HEAD
           printf 'qualified_baseline_ancestor=%s\n' "$baseline"
 
@@ -101,6 +110,8 @@ jobs:
             'collaboration/PROTOCOL.md',
             'collaboration/schema/cace-collaboration-record.schema.json',
             'collaboration/DISCOVERY_LEDGER.json',
+            'quality/bug_patterns.json',
+            'quality/bug_classes.json',
             'cace_studio/core/proof_contract.py',
             'cace_studio/core/formal_gate.py',
             'schema/proof-contracts.schema.json',
@@ -108,19 +119,24 @@ jobs:
             'scripts/validate_collaboration_lifecycle.py',
             'scripts/cace_actions_serialization_guard.py',
             'scripts/audit_cace_actions_policy.py',
+            'scripts/check_bug_sweep.py',
+            'scripts/finalize_qualification_diagnostics.py',
             'tests/test_actions_policy_audit.py',
             'tests/test_proof_contract_v336.py',
             'tests/test_claim_registry_v331.py',
+            'tests/test_qualification_overlay_v337.py',
+            'tests/test_qualification_diagnostics_v337.py',
+            'tests/test_bug_class_registry_v337.py',
             '.github/workflows/cace-collaboration-validation.yml',
             '.github/workflows/cace-formal-v336-theorem-metadata.yml',
             '.github/workflows/cace-python-regression.yml',
           ]))
           summary={
-            'schema':'cace-collaboration-validation-v3',
+            'schema':'cace-collaboration-validation-v4',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-            'qualified_baseline':'c01abdeca099d3905e5e22505958f7fbad11164e',
+            'qualified_baseline':'f6b60a9f7f832d60147fe9285d24fb339a51ecec',
             'sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
           }
           pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
