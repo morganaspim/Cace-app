@@ -2,15 +2,17 @@
 """Build a fail-closed, content-addressed continuum qualification attestation.
 
 The attestation is created only after a successful exact-head Lean build, kernel
-axiom audit, and Lean.Environment theorem metadata export. It binds those dynamic
-artifacts to the canonical ProofContract, audited source bytes, resolved Lake
-manifest, exact Git commit, pinned Lean/Mathlib identity, and qualification-run
-provenance. The JSON itself is the proof artifact; its SHA-256 is written beside it.
+axiom audit, Lean.Environment theorem metadata export, and an independent
+source-bound evidence verification. It binds those dynamic artifacts to the canonical
+ProofContract, audited source bytes, resolved Lake manifest, exact Git commit, pinned
+Lean/Mathlib identity, and qualification-run provenance. The JSON itself is the proof
+artifact; its SHA-256 is written beside it.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -21,6 +23,8 @@ from typing import Any, Mapping
 ATTESTATION_SCHEMA = "cace-continuum-qualification-attestation-v2"
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
 QUALIFICATION_SYSTEM = "github-actions"
+RESOLVED_MANIFEST_NAME = "v330_resolved_lake_manifest.json"
+SOURCE_BINDING_REPORT_NAME = "v330_source_binding_verification.json"
 CACHE_POLICY = (
     "Pinned Lean/toolchain state and exact-pin dependencies may be reused only as inputs; "
     "CACE project build outputs, kernel audit results, theorem metadata, and attestations "
@@ -219,6 +223,10 @@ def build_attestation(
     checks = list(contract.required_checks)
     if len(checks) != len(set(checks)):
         raise AttestationError("ProofContract required checks contain duplicates")
+    if "independent-source-bound-verification" not in checks:
+        raise AttestationError(
+            "ProofContract must require independent-source-bound-verification"
+        )
 
     return {
         "attestation_schema": ATTESTATION_SCHEMA,
@@ -254,6 +262,18 @@ def build_attestation(
     }
 
 
+def _load_source_binding_verifier(repo_root: Path):
+    path = repo_root / "scripts" / "verify_v330_qualification_source_binding.py"
+    if not path.is_file():
+        raise AttestationError("independent source-bound verifier is missing")
+    spec = importlib.util.spec_from_file_location("cace_source_binding_verifier", path)
+    if spec is None or spec.loader is None:
+        raise AttestationError("cannot load independent source-bound verifier")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--formal-dir", type=Path, required=True)
@@ -275,21 +295,42 @@ def main(argv: list[str] | None = None) -> int:
         print("attestation rejected: canonical continuum ProofContract is missing", file=sys.stderr)
         return 2
 
+    output_path = args.output.resolve()
+    output_dir = output_path.parent
+    attestation_sidecar = output_path.with_suffix(output_path.suffix + ".sha256")
+    manifest_snapshot = output_dir / RESOLVED_MANIFEST_NAME
+    manifest_sidecar = manifest_snapshot.with_suffix(manifest_snapshot.suffix + ".sha256")
+    verification_report = output_dir / SOURCE_BINDING_REPORT_NAME
+    verification_sidecar = verification_report.with_suffix(verification_report.suffix + ".sha256")
+
     try:
         formal_dir = args.formal_dir.resolve()
         metadata_path = args.metadata.resolve()
         axiom_audit_path = args.axiom_audit.resolve()
         expected_commit = require_commit(args.git_commit, "--git-commit")
-        repo_head = require_commit(command_output(["git", "rev-parse", "HEAD"], cwd=repo_root), "repository HEAD")
+        repo_head = require_commit(
+            command_output(["git", "rev-parse", "HEAD"], cwd=repo_root),
+            "repository HEAD",
+        )
         if repo_head != expected_commit:
             raise AttestationError(
                 f"repository HEAD {repo_head} differs from requested exact commit {expected_commit}"
             )
-        if command_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=repo_root):
+        if command_output(
+            ["git", "status", "--porcelain", "--untracked-files=no"], cwd=repo_root
+        ):
             raise AttestationError("repository tracked tree is not clean")
 
         mathlib_commit = require_commit(
-            command_output(["git", "-C", str(formal_dir / ".lake/packages/mathlib"), "rev-parse", "HEAD"]),
+            command_output(
+                [
+                    "git",
+                    "-C",
+                    str(formal_dir / ".lake/packages/mathlib"),
+                    "rev-parse",
+                    "HEAD",
+                ]
+            ),
             "mathlib_commit",
         )
         if mathlib_commit != contract.dependency_pins.get("mathlib_commit"):
@@ -323,41 +364,98 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         workflow_run_id = args.workflow_run_id or int(os.environ.get("GITHUB_RUN_ID", "0"))
-        workflow_run_attempt = args.workflow_run_attempt or int(os.environ.get("GITHUB_RUN_ATTEMPT", "0"))
-        qualification_system = QUALIFICATION_SYSTEM if os.environ.get("GITHUB_ACTIONS") == "true" else "local-exact-head"
-        qualification_run_id = str(workflow_run_id) if workflow_run_id > 0 else f"local:{expected_commit}"
+        workflow_run_attempt = args.workflow_run_attempt or int(
+            os.environ.get("GITHUB_RUN_ATTEMPT", "0")
+        )
+        qualification_system = (
+            QUALIFICATION_SYSTEM
+            if os.environ.get("GITHUB_ACTIONS") == "true"
+            else "local-exact-head"
+        )
+        effective_run_id = workflow_run_id if workflow_run_id > 0 else 1
+        effective_run_attempt = workflow_run_attempt if workflow_run_attempt > 0 else 1
+        qualification_run_id = (
+            str(workflow_run_id)
+            if workflow_run_id > 0
+            else f"local:{expected_commit}"
+        )
 
+        manifest_bytes = manifest_path.read_bytes()
         attestation = build_attestation(
             contract=contract,
             git_commit=expected_commit,
             lean_version=lean_version,
             lean_toolchain=toolchain,
             mathlib_commit=mathlib_commit,
-            source_bundle_sha256=audited_source_bundle_sha256(formal_dir, contract.audited_source_files),
-            lake_manifest_sha256=sha256_file(manifest_path),
+            source_bundle_sha256=audited_source_bundle_sha256(
+                formal_dir, contract.audited_source_files
+            ),
+            lake_manifest_sha256=sha256_bytes(manifest_bytes),
             kernel_axiom_audit_sha256=axiom_sha,
             lean_environment_metadata_sha256=sha256_file(metadata_path),
             lean_environment_identity_sha256=str(metadata_payload["identity_sha256"]),
             qualification_system=qualification_system,
             qualification_run_id=qualification_run_id,
-            workflow_run_id=workflow_run_id if workflow_run_id > 0 else 1,
-            workflow_run_attempt=workflow_run_attempt if workflow_run_attempt > 0 else 1,
+            workflow_run_id=effective_run_id,
+            workflow_run_attempt=effective_run_attempt,
             runner_name=os.environ.get("RUNNER_NAME", "local"),
             runner_arch=os.environ.get("RUNNER_ARCH", os.uname().machine),
         )
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        manifest_snapshot.write_bytes(manifest_bytes)
+        manifest_digest = sha256_bytes(manifest_bytes)
+        manifest_sidecar.write_text(
+            f"{manifest_digest}  {manifest_snapshot.name}\n", encoding="utf-8"
+        )
+        rendered = canonical_json_bytes(attestation)
+        output_path.write_bytes(rendered)
+        digest = sha256_bytes(rendered)
+        attestation_sidecar.write_text(
+            f"{digest}  {output_path.name}\n", encoding="utf-8"
+        )
+
+        verifier = _load_source_binding_verifier(repo_root)
+        try:
+            report = verifier.verify_source_binding(
+                output_dir,
+                formal_dir=formal_dir,
+                proof_contracts=repo_root / "cace_studio" / "data" / "proof_contracts.json",
+                expected_attestation_sha256=digest,
+                expected_git_commit=expected_commit,
+                expected_workflow_run_id=effective_run_id,
+                expected_workflow_run_attempt=effective_run_attempt,
+            )
+        except Exception as exc:
+            raise AttestationError(
+                f"independent source-bound verification failed: {exc}"
+            ) from exc
+
+        report_bytes = canonical_json_bytes(report)
+        verification_report.write_bytes(report_bytes)
+        report_digest = sha256_bytes(report_bytes)
+        verification_sidecar.write_text(
+            f"{report_digest}  {verification_report.name}\n", encoding="utf-8"
+        )
     except (AttestationError, OSError, ValueError, json.JSONDecodeError, KeyError) as exc:
+        for path in (
+            output_path,
+            attestation_sidecar,
+            manifest_snapshot,
+            manifest_sidecar,
+            verification_report,
+            verification_sidecar,
+        ):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
         print(f"attestation rejected: {exc}", file=sys.stderr)
         return 2
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    rendered = canonical_json_bytes(attestation)
-    args.output.write_bytes(rendered)
-    digest = sha256_bytes(rendered)
-    args.output.with_suffix(args.output.suffix + ".sha256").write_text(
-        f"{digest}  {args.output.name}\n", encoding="utf-8"
-    )
-    print(f"continuum qualification attestation PASS: {args.output}")
+    print(f"continuum qualification attestation PASS: {output_path}")
     print(f"proof_artifact_sha256: {digest}")
+    print(f"source_binding_verification_sha256: {report_digest}")
     return 0
 
 
