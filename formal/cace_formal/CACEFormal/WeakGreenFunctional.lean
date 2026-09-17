@@ -96,6 +96,16 @@ def HasZeroBoundaryTrace
     (G : BoundedGreenPairing V Q) (v : V) : Prop :=
   ∀ q : Q, G.normalTrace q v = 0
 
+/-- The zero test field has zero boundary trace for every bounded Green pairing. -/
+@[simp]
+theorem hasZeroBoundaryTrace_zero
+    {V Q : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup Q] [NormedSpace ℝ Q]
+    (G : BoundedGreenPairing V Q) :
+    HasZeroBoundaryTrace G (0 : V) := by
+  simp [HasZeroBoundaryTrace]
+
 /-- Zero-boundary test fields form a linear subspace. -/
 def zeroBoundarySubmodule
     {V Q : Type*}
