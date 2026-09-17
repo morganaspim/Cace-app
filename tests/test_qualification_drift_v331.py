@@ -82,6 +82,7 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
         "formal/cace_formal/CACEFormal/X.lean",
         "cace_studio/core/formal_gate.py",
         "cace_studio/modules/formal_v330.py",
+        "cace_studio/modules/formal_hypothesis_bridges.py",
         "cace_studio/data/proof_contracts.json",
         "schema/proof-contracts.schema.json",
         "scripts/build_continuum_attestation.py",
@@ -98,6 +99,7 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
         "tests/test_qualification_overlay_v337.py",
         "tests/test_qualification_promotion_v339.py",
         "tests/test_qualification_source_binding_v339.py",
+        "tests/test_zero_boundary_trace_bridge_v343.py",
         ".github/workflows/cace-formal-v330.yml",
         ".github/workflows/cace-formal-v336-theorem-metadata.yml",
     ):
@@ -139,6 +141,15 @@ def test_overlay_oracle_change_always_requires_requalification():
     assert classify_qualification_sensitive(
         ["tests/test_qualification_overlay_v337.py"]
     ) == ("tests/test_qualification_overlay_v337.py",)
+
+
+def test_zero_trace_bridge_guard_change_always_requires_requalification():
+    assert classify_qualification_sensitive(
+        [
+            "tests/test_zero_boundary_trace_bridge_v343.py",
+            "cace_studio/data/proof_ledger.json",
+        ]
+    ) == ("tests/test_zero_boundary_trace_bridge_v343.py",)
 
 
 def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descendant(tmp_path):
