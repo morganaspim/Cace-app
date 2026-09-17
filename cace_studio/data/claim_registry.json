@@ -31,11 +31,11 @@
       ],
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "qualification": {
-        "attested_commit": null,
-        "current_head_qualified": false,
-        "proof_artifact_sha256": null,
-        "reason": "Proof contract v3 requires a fresh exact-head pinned Lean build, kernel axiom audit, Lean.Environment theorem metadata bound to the contract and commit, and content-addressed attestation before FORMAL PASS can be emitted.",
-        "status": "NOT_RUN"
+        "attested_commit": "c01abdeca099d3905e5e22505958f7fbad11164e",
+        "current_head_qualified": true,
+        "proof_artifact_sha256": "e82d5c581fc4ba8864e818364889170decfbc523626c66f3c1a01b94cdc123c3",
+        "reason": "Canonical exact-head qualification run 35215905496 passed at c01abdeca099d3905e5e22505958f7fbad11164e; the content-addressed qualification attestation is the proof artifact.",
+        "status": "PASS"
       },
       "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",
       "statement": "The continuum chain contains graph-space, unconditional representation-level H1 converse, Green-identity, bounded normal-trace, density-reduction, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
