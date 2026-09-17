@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib.resources import files
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
+import hashlib
 import json
+import re
 
 from .reproducibility import sha256_identity
 
@@ -14,6 +16,7 @@ _ALLOWED_DEPENDENCY_STATES = {
     "SOURCE_IMPORT_CLOSURE_ONLY",
     "LEAN_GENERATED",
 }
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _nonempty(value: Any, field_name: str) -> str:
@@ -40,6 +43,120 @@ def _relative_source(value: str) -> str:
     return value
 
 
+def _relative_executable_source(value: str) -> str:
+    path = PurePosixPath(value)
+    if path.is_absolute() or ".." in path.parts or not path.name:
+        raise ValueError(f"executable source must be a safe relative path: {value!r}")
+    return path.as_posix()
+
+
+def _sha256(value: Any, field_name: str) -> str:
+    digest = _nonempty(value, field_name).lower()
+    if not _SHA256_RE.fullmatch(digest):
+        raise ValueError(f"{field_name} must be a lowercase 64-hex SHA-256 digest")
+    return digest
+
+
+class ExecutableBindingError(ValueError):
+    """Stable fail-closed error raised while resolving an executable binding."""
+
+
+def executable_source_bundle_manifest(
+    source_root: Path | str,
+    source_files: tuple[str, ...] | list[str],
+) -> dict[str, Any]:
+    """Return a deterministic manifest for the exact executable source bytes.
+
+    Paths are canonical repository/package-root-relative POSIX paths. Each file is
+    hashed independently, then the sorted manifest is itself content-addressed by
+    :func:`executable_source_bundle_sha256`.
+    """
+
+    root = Path(source_root).resolve()
+    entries: list[dict[str, Any]] = []
+    canonical = sorted(_relative_executable_source(item) for item in source_files)
+    if not canonical:
+        raise ExecutableBindingError("executable-source-files-empty")
+    if len(canonical) != len(set(canonical)):
+        raise ExecutableBindingError("executable-source-files-duplicate")
+
+    for relative in canonical:
+        candidate = (root / PurePosixPath(relative)).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ExecutableBindingError(
+                f"executable-source-path-escape:{relative}"
+            ) from exc
+        if not candidate.is_file():
+            raise ExecutableBindingError(f"executable-source-missing:{relative}")
+        try:
+            data = candidate.read_bytes()
+        except OSError as exc:
+            raise ExecutableBindingError(
+                f"executable-source-unreadable:{relative}"
+            ) from exc
+        entries.append(
+            {
+                "path": relative,
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "size": len(data),
+            }
+        )
+
+    return {
+        "algorithm": "cace-executable-source-bundle-v1",
+        "files": entries,
+    }
+
+
+def executable_source_bundle_sha256(
+    source_root: Path | str,
+    source_files: tuple[str, ...] | list[str],
+) -> str:
+    return sha256_identity(executable_source_bundle_manifest(source_root, source_files))
+
+
+@dataclass(frozen=True)
+class ExecutableBinding:
+    module_id: str
+    source_files: tuple[str, ...]
+    source_bundle_sha256: str
+
+    @classmethod
+    def from_mapping(cls, raw: Mapping[str, Any]) -> "ExecutableBinding":
+        if not isinstance(raw, Mapping):
+            raise ValueError("executable binding must be an object")
+        allowed = {"module_id", "source_files", "source_bundle_sha256"}
+        extra = sorted(set(raw) - allowed)
+        if extra:
+            raise ValueError(f"unexpected executable binding fields: {extra}")
+        source_files = tuple(
+            sorted(
+                _relative_executable_source(value)
+                for value in _strings(raw.get("source_files"), "executable binding source_files")
+            )
+        )
+        return cls(
+            module_id=_nonempty(raw.get("module_id"), "executable binding module_id"),
+            source_files=source_files,
+            source_bundle_sha256=_sha256(
+                raw.get("source_bundle_sha256"),
+                "executable binding source_bundle_sha256",
+            ),
+        )
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            "module_id": self.module_id,
+            "source_files": list(self.source_files),
+            "source_bundle_sha256": self.source_bundle_sha256,
+        }
+
+    def current_source_bundle_sha256(self, source_root: Path | str) -> str:
+        return executable_source_bundle_sha256(source_root, list(self.source_files))
+
+
 @dataclass(frozen=True)
 class ProofContract:
     contract_id: str
@@ -55,6 +172,7 @@ class ProofContract:
     nonclaims: tuple[str, ...]
     theorem_dependency_metadata_state: str
     theorem_dependency_metadata_note: str
+    executable_bindings: tuple[ExecutableBinding, ...]
     contract_sha256: str
 
     @classmethod
@@ -83,6 +201,19 @@ class ProofContract:
             _relative_source(value)
             for value in _strings(raw.get("audited_source_files"), "audited_source_files")
         )
+        bindings_raw = raw.get("executable_bindings", [])
+        if not isinstance(bindings_raw, list):
+            raise ValueError("executable_bindings must be an array")
+        bindings = tuple(
+            sorted(
+                (ExecutableBinding.from_mapping(item) for item in bindings_raw),
+                key=lambda item: item.module_id,
+            )
+        )
+        binding_ids = [item.module_id for item in bindings]
+        if len(binding_ids) != len(set(binding_ids)):
+            raise ValueError("executable_bindings must not repeat a module_id")
+
         payload = {
             "contract_id": _nonempty(raw.get("contract_id"), "contract_id"),
             "claim_id": _nonempty(raw.get("claim_id"), "claim_id"),
@@ -97,6 +228,12 @@ class ProofContract:
             "nonclaims": list(_strings(raw.get("nonclaims"), "nonclaims")),
             "theorem_dependency_metadata": {"state": state, "note": note},
         }
+        # Backward-compatible contract identity: an absent/empty executable layer
+        # does not rewrite already-attested formal-only contract hashes. The first
+        # real executable binding becomes part of the content-addressed contract.
+        if bindings:
+            payload["executable_bindings"] = [item.payload() for item in bindings]
+
         return cls(
             contract_id=payload["contract_id"],
             claim_id=payload["claim_id"],
@@ -111,11 +248,12 @@ class ProofContract:
             nonclaims=tuple(payload["nonclaims"]),
             theorem_dependency_metadata_state=state,
             theorem_dependency_metadata_note=note,
+            executable_bindings=bindings,
             contract_sha256=sha256_identity(payload),
         )
 
     def payload(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "contract_id": self.contract_id,
             "claim_id": self.claim_id,
             "formal_system": self.formal_system,
@@ -132,6 +270,12 @@ class ProofContract:
                 "note": self.theorem_dependency_metadata_note,
             },
         }
+        if self.executable_bindings:
+            payload["executable_bindings"] = [item.payload() for item in self.executable_bindings]
+        return payload
+
+    def executable_binding_for_module(self, module_id: str) -> ExecutableBinding | None:
+        return next((item for item in self.executable_bindings if item.module_id == module_id), None)
 
 
 @dataclass(frozen=True)
