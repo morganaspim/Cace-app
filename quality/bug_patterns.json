@@ -15,6 +15,13 @@
       "include": ["tests/test_reproducibility_v336.py"],
       "exclude": [],
       "forbid_regex": "class\\s+_(?:Meta|Proof|Port)\\b"
+    },
+    {
+      "id": "no-hardcoded-promoted-qualification-head-oracle",
+      "description": "Qualification overlay tests must derive canonical qualification provenance instead of pinning a previously promoted attested commit in a QUALIFIED_COMMIT-style oracle.",
+      "include": ["tests/test_qualification_overlay_v337.py"],
+      "exclude": [],
+      "forbid_regex": "\\bQUALIFIED_COMMIT\\s*=\\s*[\\\"'][0-9a-fA-F]{40}[\\\"']"
     }
   ]
 }
