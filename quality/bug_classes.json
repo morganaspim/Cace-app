@@ -75,6 +75,39 @@
       ],
       "closure_rule": "Failure-path finalization is standalone and idempotent, tolerates absent optional evidence, and the always-run workflow wrapper cannot replace a prior failure with a cleanup failure; fault injection is permanent and workflow usage is verified by bug-sweep.",
       "fingerprint_sha256": "293db0e4de23da2354d81472db9f64b77458d89574d45ce8d6439ecacd3d84ff"
+    },
+    {
+      "id": "bug-sweep-standalone-repository-import-root",
+      "status": "GUARDED",
+      "description": "Repository bug sweep must run from a clean isolated interpreter without requiring CACE to be installed as a package.",
+      "first_observed": {
+        "workflow_run_id": 35223389834,
+        "head_sha": "c9915ada6f28fcb77147695dca2668af811e7f82",
+        "signature": "canonical-contract-links: unexpected ModuleNotFoundError: No module named 'cace_studio'"
+      },
+      "root_cause": "The sweep is launched as `python scripts/check_bug_sweep.py`, so Python seeds sys.path with the scripts directory. Canonical contract-link checks imported cace_studio as though the repository root were already importable or the package were installed, but the clean validation venv intentionally installs only pytest.",
+      "reproducer_refs": [
+        {
+          "path": "tests/test_bug_sweep_standalone_v337.py",
+          "contains": "test_bug_sweep_standalone_bootstraps_repository_import_root"
+        }
+      ],
+      "guard_refs": [
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "sys.path.insert(0, str(ROOT))"
+        },
+        {
+          "path": "tests/test_bug_sweep_standalone_v337.py",
+          "contains": "test_bug_sweep_standalone_bootstraps_repository_import_root"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "_check_bug_class_registry"
+        }
+      ],
+      "closure_rule": "The standalone sweep explicitly bootstraps the repository root before importing CACE modules; an isolated-interpreter subprocess test proves that no ambient PYTHONPATH or package installation is required; bug-sweep verifies the permanent guard references.",
+      "fingerprint_sha256": "109a4ecb410743f15ced4ecf982738624fbe78d6680e487d03ff34d64f4dc902"
     }
   ]
 }
