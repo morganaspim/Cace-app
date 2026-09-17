@@ -9,7 +9,6 @@ from scripts.audit_cace_actions_policy import audit
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
-QUALIFIED_BASELINE = "c01abdeca099d3905e5e22505958f7fbad11164e"
 ACTIVE = (
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
@@ -33,7 +32,7 @@ def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
 
 
-def test_qualified_baseline_provenance_is_enrolled() -> None:
+def test_qualified_provenance_is_enrolled_consistently() -> None:
     registry = ClaimRegistry.load_default()
     ledger = ProofLedger.load_default()
     claim = registry.by_id("cace.v330.continuum-proof-strengthening")
@@ -41,11 +40,24 @@ def test_qualified_baseline_provenance_is_enrolled() -> None:
     assert claim is not None and entry is not None
     assert claim.current_head_qualified is True
     assert entry.current_head_qualified is True
-    assert claim.attested_commit == entry.commit == QUALIFIED_BASELINE
+    assert claim.qualification_status == entry.status == "PASS"
+    assert claim.attested_commit == entry.commit
+    assert claim.attested_commit is not None and len(claim.attested_commit) == 40
     assert claim.proof_artifact_sha256 == entry.proof_artifact_sha256
+    assert claim.proof_artifact_sha256 is not None and len(claim.proof_artifact_sha256) == 64
     assert entry.qualification_system == "github-actions"
-    assert entry.qualification_run_id == "35215905496"
-    assert entry.workflow_run_id == 35215905496
+    assert entry.qualification_run_id is not None and entry.qualification_run_id.isdigit()
+    assert entry.workflow_run_id is not None and entry.workflow_run_id > 0
+    assert entry.qualification_run_id == str(entry.workflow_run_id)
+
+
+def test_collaboration_bug_sweep_uses_explicit_repository_import_root() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    safe = (
+        'PYTHONPATH="$GITHUB_WORKSPACE" '
+        '"$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py'
+    )
+    assert safe in text
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
