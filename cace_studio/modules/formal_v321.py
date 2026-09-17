@@ -4,6 +4,7 @@ from pathlib import Path
 
 from cace_studio.modules.formal_v301_320_common import *
 from cace_studio.core.mesh_orthogonality_bridge import invoke_mesh_orthogonality_checker
+from cace_studio.modules.formal_v330 import register_formal_v330
 
 def mesh_orthogonality_artifact():
     return {
@@ -156,3 +157,4 @@ class FormalV321(FormalStepModule):
 
 def register_formal_v321(registry):
     registry.register(FormalV321)
+    register_formal_v330(registry)
