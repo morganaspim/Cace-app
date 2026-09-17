@@ -22,7 +22,7 @@ from cace_studio.modules.formal_v330 import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "d70c19e54b6f75689b2ae7748a4bc400ce8ee4f283d0eed953d80807599265af"
+EXPECTED_CONTINUUM_V3_HASH = "cb95144e31577b9b151b0e1d332e821f0674a5679f26f63ea2e9aacf57105f09"
 EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
 ROOT = Path(__file__).parents[1]
 SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
@@ -79,6 +79,7 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
+    assert any("executable binding certifies theorem-endpoint membership" in item for item in contract.nonclaims)
     assert len(contract.executable_bindings) == 1
     binding = contract.executable_binding_for_module(MODULE_ID)
     assert binding is not None
