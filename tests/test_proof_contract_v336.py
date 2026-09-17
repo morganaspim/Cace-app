@@ -28,6 +28,7 @@ EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE = "b4b8fd30eba2c99cc911486e866e80c16efda76316d
 ROOT = Path(__file__).parents[1]
 SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
 AXIOM_AUDIT_SCRIPT = ROOT / "scripts" / "audit_v330_axioms.py"
+THEOREM_METADATA_SOURCE = ROOT / "formal" / "cace_formal" / "CACEFormal" / "V330TheoremMetadata.lean"
 
 
 def _contract_mapping() -> dict:
@@ -92,6 +93,20 @@ def test_v330_axiom_audit_uses_contract_canonical_environment_theorem_names():
     )
     with pytest.raises(ValueError, match="theorem set differs from proof contract"):
         audit.validate_environment_metadata_theorems(bad_raw, contract.endpoint_theorems)
+
+
+def test_v330_environment_metadata_exporter_exactly_matches_proof_contract_endpoints():
+    contract = ProofContractRegistry.load_default().for_claim(
+        "cace.v330.continuum-proof-strengthening"
+    )
+    assert contract is not None
+    source = THEOREM_METADATA_SOURCE.read_text(encoding="utf-8")
+    exported = tuple(
+        line.strip()[2:].removesuffix(",")
+        for line in source.splitlines()
+        if line.strip().startswith("``CACEFormal.")
+    )
+    assert exported == contract.endpoint_theorems
 
 
 def test_default_continuum_contract_v3_is_single_source_for_all_38_audited_endpoints():
