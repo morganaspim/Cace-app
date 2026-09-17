@@ -5,6 +5,9 @@ on:
   pull_request:
     paths:
       - 'collaboration/**'
+      - 'cace_studio/core/proof_contract.py'
+      - 'cace_studio/core/formal_gate.py'
+      - 'schema/proof-contracts.schema.json'
       - 'scripts/verify_collaboration_records.py'
       - 'scripts/validate_collaboration_lifecycle.py'
       - 'scripts/cace_actions_serialization_guard.py'
@@ -13,6 +16,8 @@ on:
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
       - 'tests/test_actions_policy_audit.py'
+      - 'tests/test_proof_contract_v336.py'
+      - 'tests/test_claim_registry_v331.py'
       - '.github/workflows/cace-collaboration-validation.yml'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
       - '.github/workflows/cace-python-regression.yml'
@@ -66,7 +71,7 @@ jobs:
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip install --disable-pip-version-check 'pytest==8.4.2'
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip freeze > collaboration-test-environment.txt
 
-      - name: Run collaboration unit tests
+      - name: Run collaboration and proof-linkage unit tests
         shell: bash
         run: |
           set -euo pipefail
@@ -74,13 +79,15 @@ jobs:
             tests/test_collaboration_records.py \
             tests/test_collaboration_lifecycle.py \
             tests/test_actions_serialization_guard.py \
-            tests/test_actions_policy_audit.py
+            tests/test_actions_policy_audit.py \
+            tests/test_proof_contract_v336.py \
+            tests/test_claim_registry_v331.py
 
       - name: Verify qualified baseline remains an ancestor
         shell: bash
         run: |
           set -euo pipefail
-          baseline=ce2487e2a7b85c095e0926b11c97fc1c4eba5de8
+          baseline=c01abdeca099d3905e5e22505958f7fbad11164e
           git merge-base --is-ancestor "$baseline" HEAD
           printf 'qualified_baseline_ancestor=%s\n' "$baseline"
 
@@ -94,21 +101,26 @@ jobs:
             'collaboration/PROTOCOL.md',
             'collaboration/schema/cace-collaboration-record.schema.json',
             'collaboration/DISCOVERY_LEDGER.json',
+            'cace_studio/core/proof_contract.py',
+            'cace_studio/core/formal_gate.py',
+            'schema/proof-contracts.schema.json',
             'scripts/verify_collaboration_records.py',
             'scripts/validate_collaboration_lifecycle.py',
             'scripts/cace_actions_serialization_guard.py',
             'scripts/audit_cace_actions_policy.py',
             'tests/test_actions_policy_audit.py',
+            'tests/test_proof_contract_v336.py',
+            'tests/test_claim_registry_v331.py',
             '.github/workflows/cace-collaboration-validation.yml',
             '.github/workflows/cace-formal-v336-theorem-metadata.yml',
             '.github/workflows/cace-python-regression.yml',
           ]))
           summary={
-            'schema':'cace-collaboration-validation-v2',
+            'schema':'cace-collaboration-validation-v3',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-            'qualified_baseline':'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8',
+            'qualified_baseline':'c01abdeca099d3905e5e22505958f7fbad11164e',
             'sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
           }
           pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
