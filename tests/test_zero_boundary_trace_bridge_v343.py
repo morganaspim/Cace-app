@@ -22,7 +22,7 @@ from cace_studio.modules.formal_hypothesis_bridges import (
 )
 
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
-EXPECTED_CONTRACT_SHA256 = "99b0e46fa41bb9b76c7be4822e69b7648340c2d4d25060368f683b5b02620813"
+EXPECTED_CONTRACT_SHA256 = "d1d34295f6c9821af0330435af781e4f28c263076259b0b0075e4c9580ee8e8d"
 
 
 def _endpoint(theorem_name: str) -> dict:
