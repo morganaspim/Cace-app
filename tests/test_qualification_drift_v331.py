@@ -81,13 +81,19 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
     assert is_qualification_sensitive("cace_studio/core/formal_gate.py")
     assert is_qualification_sensitive("cace_studio/modules/formal_v330.py")
     assert is_qualification_sensitive(".github/workflows/cace-formal-v330.yml")
+    assert is_qualification_sensitive("scripts/verify_continuum_qualification_bundle.py")
+    assert is_qualification_sensitive("tests/test_independent_qualification_verifier_v338.py")
     assert classify_qualification_sensitive(
         [
             "docs/CLAIMS.md",
             "cace_studio/data/proof_ledger.json",
             "cace_studio/core/executor.py",
+            "scripts/verify_continuum_qualification_bundle.py",
         ]
-    ) == ("cace_studio/core/executor.py",)
+    ) == (
+        "cace_studio/core/executor.py",
+        "scripts/verify_continuum_qualification_bundle.py",
+    )
 
 
 def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descendant(tmp_path):
@@ -96,9 +102,13 @@ def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descenda
     subprocess.check_call(["git", "config", "user.name", "CACE Test"], cwd=tmp_path)
 
     (tmp_path / "formal").mkdir()
-    (tmp_path / "formal" / "proof.lean").write_text("theorem x : True := by trivial\n", encoding="utf-8")
+    (tmp_path / "formal" / "proof.lean").write_text(
+        "theorem x : True := by trivial\n", encoding="utf-8"
+    )
     (tmp_path / "cace_studio" / "data").mkdir(parents=True)
-    (tmp_path / "cace_studio" / "data" / "proof_ledger.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "cace_studio" / "data" / "proof_ledger.json").write_text(
+        "{}\n", encoding="utf-8"
+    )
     attested = _commit_all(tmp_path, "attested")
 
     registry, ledger = _qualified_pair(attested)
