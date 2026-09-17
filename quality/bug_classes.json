@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "policy": "A confirmed semantic bug class is closed only when its content-addressed record is GUARDED and every reproducer/guard reference remains present and machine-checkable.",
+  "classes": [
+    {
+      "id": "qualification-promotion-stale-state-oracle",
+      "status": "GUARDED",
+      "description": "Qualification tests must derive mutable canonical qualification state from the registry and ledger instead of hard-coding a previously attested commit or pre-promotion state.",
+      "first_observed": {
+        "workflow_run_id": 35220637146,
+        "head_sha": "08c5c2ffe04347a616d8d6c0ada5deaf417f5703",
+        "signature": "test_default_explorer_remains_fail_closed_without_external_artifact: expected False but canonical-static qualification was True"
+      },
+      "root_cause": "The qualification provenance promotion changed canonical source truth from NOT_RUN to PASS, while overlay tests retained historical state oracles. The tests were coupled to a prior repository epoch instead of the canonical state machine.",
+      "reproducer_refs": [
+        {
+          "path": "tests/test_qualification_overlay_v337.py",
+          "contains": "test_default_explorer_tracks_canonical_qualification_state"
+        }
+      ],
+      "guard_refs": [
+        {
+          "path": "tests/test_qualification_overlay_v337.py",
+          "contains": "ClaimRegistry.load_default()"
+        },
+        {
+          "path": "quality/bug_patterns.json",
+          "contains": "no-hardcoded-promoted-qualification-head-oracle"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "_check_bug_class_registry"
+        }
+      ],
+      "closure_rule": "Canonical qualification state is data-derived; a registered guard forbids a hard-coded promoted qualification SHA oracle; bug-sweep verifies the content-addressed class and guard references.",
+      "fingerprint_sha256": "59b2c121993feadc7cd47b65592eb09ee6b22b24d2a2db0ace9fc97a429b117b"
+    },
+    {
+      "id": "qualification-diagnostics-missing-optional-heartbeat",
+      "status": "GUARDED",
+      "description": "Qualification failure cleanup must succeed even when execution stops before heartbeat or phase-log creation.",
+      "first_observed": {
+        "workflow_run_id": 35220637146,
+        "head_sha": "08c5c2ffe04347a616d8d6c0ada5deaf417f5703",
+        "signature": "gzip: heartbeat.jsonl: No such file or directory"
+      },
+      "root_cause": "The always-run diagnostic finalizer treated an optional heartbeat file as mandatory, allowing cleanup to add a second failure and obscure the primary pre-Lean test failure.",
+      "reproducer_refs": [
+        {
+          "path": "tests/test_qualification_diagnostics_v337.py",
+          "contains": "test_missing_optional_heartbeat_is_safe_and_idempotent"
+        }
+      ],
+      "guard_refs": [
+        {
+          "path": "scripts/finalize_qualification_diagnostics.py",
+          "contains": "_compress_optional"
+        },
+        {
+          "path": "tests/test_qualification_diagnostics_v337.py",
+          "contains": "test_missing_optional_heartbeat_is_safe_and_idempotent"
+        },
+        {
+          "path": ".github/workflows/cace-formal-v336-theorem-metadata.yml",
+          "contains": "finalize_qualification_diagnostics.py"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "_check_bug_class_registry"
+        }
+      ],
+      "closure_rule": "Failure-path finalization is standalone, idempotent, and tolerant of absent optional evidence; fault injection is permanent and workflow usage is verified by bug-sweep.",
+      "fingerprint_sha256": "f5f05306901497a2a77f496e5e0aef7706548332354e6cb5d4aea82d033f64bc"
+    }
+  ]
+}
