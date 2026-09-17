@@ -110,12 +110,15 @@ jobs:
             tests/test_claim_registry_v331.py \
             tests/test_qualification_drift_v331.py \
             tests/test_qualification_overlay_v337.py \
+            tests/test_qualification_diagnostics_v337.py \
+            tests/test_bug_class_registry_v337.py \
             tests/test_research_dynamics_v337.py \
             tests/test_research_geometry_v337.py \
             tests/test_export_v330_environment_metadata.py \
             tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
             tests/test_proof_contract_v336.py
+          python scripts/check_bug_sweep.py
 
       - name: Prepare isolated formal qualification build and cache identity
         shell: bash
@@ -594,41 +597,22 @@ jobs:
           CACE_JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
-          if [[ -z "${CACE_STATUS_DIR:-}" ]]; then
+          if [[ ! -f scripts/finalize_qualification_diagnostics.py ]]; then
+            if [[ "$CACE_JOB_STATUS" == success ]]; then
+              echo 'Diagnostic finalizer is missing after an otherwise successful job.' >&2
+              exit 1
+            fi
+            echo 'Diagnostic finalizer unavailable after an earlier failure; preserving primary job status.' >&2
             exit 0
           fi
-          mkdir -p "$CACE_STATUS_DIR"
-          python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          from pathlib import Path
-
-          status_dir = Path(os.environ['CACE_STATUS_DIR'])
-          output_dir = Path(os.environ['CACE_OUTPUT_DIR']) if os.environ.get('CACE_OUTPUT_DIR') else None
-          attestation = output_dir / 'cace_continuum_qualification_attestation.json' if output_dir else None
-          payload = {
-              'schema': 'cace-qualification-diagnostic-v2',
-              'timestamp_utc': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
-              'job_status': os.environ.get('CACE_JOB_STATUS'),
-              'git_commit': os.environ.get('CACE_EXPECTED_SHA') or os.environ.get('GITHUB_SHA'),
-              'run_id': os.environ.get('GITHUB_RUN_ID'),
-              'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
-              'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
-              'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
-              'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
-              'cache_mode': os.environ.get('CACE_CACHE_MODE', 'miss'),
-              'cache_baseline_tree': os.environ.get('CACE_CACHE_BASELINE_TREE') or None,
-              'qualification_attestation_present': bool(attestation and attestation.is_file()),
-              'cache_effect': 'acceleration-only; never qualification evidence',
-          }
-          (status_dir / 'final_status.json').write_text(
-              json.dumps(payload, sort_keys=True, indent=2) + '\n', encoding='utf-8'
-          )
-          PY
-          shopt -s nullglob
-          for file in "$CACE_STATUS_DIR"/*.log "$CACE_STATUS_DIR"/heartbeat.jsonl; do
-            gzip -f "$file"
-          done
+          if ! python scripts/finalize_qualification_diagnostics.py; then
+            if [[ "$CACE_JOB_STATUS" == success ]]; then
+              echo 'Diagnostic finalizer failed after an otherwise successful job.' >&2
+              exit 1
+            fi
+            echo 'Diagnostic finalizer failed after an earlier failure; preserving primary job status.' >&2
+            exit 0
+          fi
 
       - name: Upload qualification diagnostics even on failure
         if: always()

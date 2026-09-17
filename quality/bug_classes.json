@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "policy": "A confirmed semantic bug class is closed only when its content-addressed record is GUARDED and every reproducer/guard reference remains present and machine-checkable.",
+  "classes": [
+    {
+      "id": "qualification-promotion-stale-state-oracle",
+      "status": "GUARDED",
+      "description": "Qualification tests must derive mutable canonical qualification provenance from the registry and ledger instead of hard-coding a previously attested commit, workflow run, or pre-promotion state.",
+      "first_observed": {
+        "workflow_run_id": 35220637146,
+        "head_sha": "08c5c2ffe04347a616d8d6c0ada5deaf417f5703",
+        "signature": "test_default_explorer_remains_fail_closed_without_external_artifact: expected False but canonical-static qualification was True"
+      },
+      "root_cause": "Qualification provenance promotion changed canonical source truth from NOT_RUN to PASS, while tests retained historical SHA/run/state oracles. Those tests were coupled to a prior repository epoch instead of the canonical state machine.",
+      "reproducer_refs": [
+        {
+          "path": "tests/test_qualification_overlay_v337.py",
+          "contains": "test_default_explorer_tracks_canonical_qualification_state"
+        },
+        {
+          "path": "tests/test_actions_policy_audit.py",
+          "contains": "test_qualified_provenance_is_enrolled_consistently"
+        }
+      ],
+      "guard_refs": [
+        {
+          "path": "tests/test_qualification_overlay_v337.py",
+          "contains": "ClaimRegistry.load_default()"
+        },
+        {
+          "path": "tests/test_actions_policy_audit.py",
+          "contains": "entry.qualification_run_id == str(entry.workflow_run_id)"
+        },
+        {
+          "path": "quality/bug_patterns.json",
+          "contains": "no-hardcoded-promoted-qualification-provenance-oracle"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "_check_bug_class_registry"
+        }
+      ],
+      "closure_rule": "Canonical qualification state and provenance are data-derived; a registered guard forbids hard-coded promoted qualification SHA/run oracles in the relevant tests; bug-sweep verifies the content-addressed class and guard references.",
+      "fingerprint_sha256": "9913535f57e2a56223ff05149474bf268e72eefc72a90ca730e80cccfd348a7e"
+    },
+    {
+      "id": "qualification-diagnostics-missing-optional-heartbeat",
+      "status": "GUARDED",
+      "description": "Qualification failure cleanup must succeed even when execution stops before heartbeat or phase-log creation.",
+      "first_observed": {
+        "workflow_run_id": 35220637146,
+        "head_sha": "08c5c2ffe04347a616d8d6c0ada5deaf417f5703",
+        "signature": "gzip: heartbeat.jsonl: No such file or directory"
+      },
+      "root_cause": "The always-run diagnostic finalizer treated an optional heartbeat file as mandatory, allowing cleanup to add a second failure and obscure the primary pre-Lean test failure.",
+      "reproducer_refs": [
+        {
+          "path": "tests/test_qualification_diagnostics_v337.py",
+          "contains": "test_missing_optional_heartbeat_is_safe_and_idempotent"
+        }
+      ],
+      "guard_refs": [
+        {
+          "path": "scripts/finalize_qualification_diagnostics.py",
+          "contains": "_compress_optional"
+        },
+        {
+          "path": "tests/test_qualification_diagnostics_v337.py",
+          "contains": "test_missing_optional_heartbeat_is_safe_and_idempotent"
+        },
+        {
+          "path": ".github/workflows/cace-formal-v336-theorem-metadata.yml",
+          "contains": "finalize_qualification_diagnostics.py"
+        },
+        {
+          "path": ".github/workflows/cace-formal-v336-theorem-metadata.yml",
+          "contains": "preserving primary job status"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "_check_bug_class_registry"
+        }
+      ],
+      "closure_rule": "Failure-path finalization is standalone and idempotent, tolerates absent optional evidence, and the always-run workflow wrapper cannot replace a prior failure with a cleanup failure; fault injection is permanent and workflow usage is verified by bug-sweep.",
+      "fingerprint_sha256": "293db0e4de23da2354d81472db9f64b77458d89574d45ce8d6439ecacd3d84ff"
+    },
+    {
+      "id": "isolated-venv-script-missing-repository-import-root",
+      "status": "GUARDED",
+      "description": "Repository scripts executed by an isolated virtual-environment interpreter must preserve the repository root on the Python import path when the package is not installed into that environment.",
+      "first_observed": {
+        "workflow_run_id": 35223389834,
+        "head_sha": "c9915ada6f28fcb77147695dca2668af811e7f82",
+        "signature": "canonical-contract-links: unexpected ModuleNotFoundError: No module named 'cace_studio'"
+      },
+      "root_cause": "The PR validator invoked scripts/check_bug_sweep.py by filesystem path with an isolated venv that contained pytest but not CACE. Python set sys.path[0] to scripts/, so the repository package root was unavailable when the sweep imported cace_studio.",
+      "reproducer_refs": [
+        {
+          "path": "tests/test_actions_policy_audit.py",
+          "contains": "test_collaboration_bug_sweep_uses_explicit_repository_import_root"
+        }
+      ],
+      "guard_refs": [
+        {
+          "path": ".github/workflows/cace-collaboration-validation.yml",
+          "contains": "PYTHONPATH=\"$GITHUB_WORKSPACE\" \"$RUNNER_TEMP/cace-collaboration-tests/bin/python\" scripts/check_bug_sweep.py"
+        },
+        {
+          "path": "tests/test_actions_policy_audit.py",
+          "contains": "test_collaboration_bug_sweep_uses_explicit_repository_import_root"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "from cace_studio.core.claim_registry import ClaimRegistry"
+        },
+        {
+          "path": "scripts/check_bug_sweep.py",
+          "contains": "_check_bug_class_registry"
+        }
+      ],
+      "closure_rule": "The isolated validator explicitly exports the repository root for bug-sweep imports, a policy test requires that safe invocation, and the content-addressed registry verifies both guards remain live.",
+      "fingerprint_sha256": "01d8aa18f7a5913c304750d7ba92d688c684f946b691c54f84f53b22a97192a3"
+    }
+  ]
+}

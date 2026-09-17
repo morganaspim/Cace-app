@@ -15,6 +15,16 @@
       "include": ["tests/test_reproducibility_v336.py"],
       "exclude": [],
       "forbid_regex": "class\\s+_(?:Meta|Proof|Port)\\b"
+    },
+    {
+      "id": "no-hardcoded-promoted-qualification-provenance-oracle",
+      "description": "Qualification tests must derive mutable canonical qualification provenance instead of pinning a previously promoted SHA or workflow run identity.",
+      "include": [
+        "tests/test_qualification_overlay_v337.py",
+        "tests/test_actions_policy_audit.py"
+      ],
+      "exclude": [],
+      "forbid_regex": "(?:\\bQUALIFIED_(?:COMMIT|BASELINE)\\s*=\\s*[\\\"'][0-9a-fA-F]{40}[\\\"']|\\bentry\\.qualification_run_id\\s*==\\s*[\\\"']\\d+[\\\"']|\\bentry\\.workflow_run_id\\s*==\\s*\\d+\\b)"
     }
   ]
 }

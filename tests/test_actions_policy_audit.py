@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
-import os
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
+from cace_studio.core.claim_registry import ClaimRegistry
+from cace_studio.core.proof_ledger import ProofLedger
 from scripts.audit_cace_actions_policy import audit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,33 +32,32 @@ def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
 
 
-def test_current_qualification_provenance_is_enrolled_and_drift_clean() -> None:
-    proc = subprocess.run(
-        [
-            sys.executable,
-            "scripts/check_qualification_drift.py",
-            "--repo-root",
-            str(ROOT),
-            "--head",
-            "HEAD",
-        ],
-        cwd=ROOT,
-        check=False,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env={**os.environ, "PYTHONPATH": str(ROOT)},
+def test_qualified_provenance_is_enrolled_consistently() -> None:
+    registry = ClaimRegistry.load_default()
+    ledger = ProofLedger.load_default()
+    claim = registry.by_id("cace.v330.continuum-proof-strengthening")
+    entry = ledger.for_claim("cace.v330.continuum-proof-strengthening")
+    assert claim is not None and entry is not None
+    assert claim.current_head_qualified is True
+    assert entry.current_head_qualified is True
+    assert claim.qualification_status == entry.status == "PASS"
+    assert claim.attested_commit == entry.commit
+    assert claim.attested_commit is not None and len(claim.attested_commit) == 40
+    assert claim.proof_artifact_sha256 == entry.proof_artifact_sha256
+    assert claim.proof_artifact_sha256 is not None and len(claim.proof_artifact_sha256) == 64
+    assert entry.qualification_system == "github-actions"
+    assert entry.qualification_run_id is not None and entry.qualification_run_id.isdigit()
+    assert entry.workflow_run_id is not None and entry.workflow_run_id > 0
+    assert entry.qualification_run_id == str(entry.workflow_run_id)
+
+
+def test_collaboration_bug_sweep_uses_explicit_repository_import_root() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    safe = (
+        'PYTHONPATH="$GITHUB_WORKSPACE" '
+        '"$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py'
     )
-    assert proc.returncode == 0, proc.stderr or proc.stdout
-    payload = json.loads(proc.stdout)
-    assert payload["status"] == "PASS"
-    assert payload["qualified_claims_checked"] == 1
-    assert len(payload["results"]) == 1
-    result = payload["results"][0]
-    assert result["claim_id"] == "cace.v330.continuum-proof-strengthening"
-    assert result["attested_commit"] == "c01abdeca099d3905e5e22505958f7fbad11164e"
-    assert result["passed"] is True
-    assert result["sensitive_paths"] == []
+    assert safe in text
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:

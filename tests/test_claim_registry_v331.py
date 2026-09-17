@@ -4,7 +4,10 @@ import pytest
 
 from cace_studio.core.claim_registry import ClaimRegistry
 from cace_studio.core.formal_gate import enforce_formal_claim_qualification
-from cace_studio.core.proof_contract import ProofContractRegistry
+from cace_studio.core.proof_contract import (
+    ProofContractRegistry,
+    executable_source_bundle_sha256,
+)
 from cace_studio.core.proof_ledger import ProofLedger
 from cace_studio.core.types import EvidenceKind
 from cace_studio.core.verification import VerificationRecord, VerificationState
@@ -23,30 +26,42 @@ def rec(kind=EvidenceKind.FORMAL, state=VerificationState.PASS):
     )
 
 
-def qualified_contracts() -> ProofContractRegistry:
+def qualified_contracts(source_root=None) -> ProofContractRegistry:
+    contract = {
+        "contract_id": CONTRACT_ID,
+        "claim_id": "unit.claim",
+        "formal_system": "lean4",
+        "build_target": "Unit.Audit",
+        "toolchain_file": "formal/unit/lean-toolchain",
+        "dependency_pins": {"mathlib_commit": "1" * 40},
+        "endpoint_theorems": ["Unit.endpoint"],
+        "audited_source_files": ["Unit/Audit.lean"],
+        "allowed_axioms": ["propext"],
+        "required_checks": ["pinned-build", "axiom-audit"],
+        "nonclaims": ["Not a broader theorem."],
+        "theorem_dependency_metadata": {
+            "state": "NOT_GENERATED",
+            "note": "No theorem-to-theorem dependency data generated.",
+        },
+    }
+    if source_root is not None:
+        source = source_root / "unit_runtime.py"
+        if not source.exists():
+            source.write_text("VALUE = 1\n", encoding="utf-8")
+        contract["executable_bindings"] = [
+            {
+                "module_id": "unit.module",
+                "source_files": ["unit_runtime.py"],
+                "source_bundle_sha256": executable_source_bundle_sha256(
+                    source_root, ["unit_runtime.py"]
+                ),
+            }
+        ]
     return ProofContractRegistry.from_mapping(
         {
             "schema_version": 1,
             "policy": "fail-closed",
-            "contracts": [
-                {
-                    "contract_id": CONTRACT_ID,
-                    "claim_id": "unit.claim",
-                    "formal_system": "lean4",
-                    "build_target": "Unit.Audit",
-                    "toolchain_file": "formal/unit/lean-toolchain",
-                    "dependency_pins": {"mathlib_commit": "1" * 40},
-                    "endpoint_theorems": ["Unit.endpoint"],
-                    "audited_source_files": ["Unit/Audit.lean"],
-                    "allowed_axioms": ["propext"],
-                    "required_checks": ["pinned-build", "axiom-audit"],
-                    "nonclaims": ["Not a broader theorem."],
-                    "theorem_dependency_metadata": {
-                        "state": "NOT_GENERATED",
-                        "note": "No theorem-to-theorem dependency data generated.",
-                    },
-                }
-            ],
+            "contracts": [contract],
         }
     )
 
@@ -144,7 +159,33 @@ def test_nonformal_and_existing_fail_states_are_not_upgraded():
     assert failure.state is VerificationState.FAIL
 
 
-def test_matching_claim_contract_and_portable_ledger_preserve_formal_pass():
+def test_matching_claim_contract_executable_and_portable_ledger_preserve_formal_pass(tmp_path):
+    contracts = qualified_contracts(tmp_path)
+    contract = contracts.for_claim("unit.claim")
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    ledger = ProofLedger.from_mapping(qualified_ledger_mapping(contract.contract_sha256))
+    out = enforce_formal_claim_qualification(
+        "unit.module",
+        [rec()],
+        registry=registry,
+        ledger=ledger,
+        contracts=contracts,
+        source_root=tmp_path,
+    )[0]
+    assert out.state is VerificationState.PASS
+    assert out.metrics["formal_gate"] == "PASS"
+    assert out.metrics["proof_contract_id"] == CONTRACT_ID
+    assert out.metrics["proof_contract_sha256"] == contract.contract_sha256
+    assert out.metrics["qualification_system"] == "portable-local"
+    assert out.metrics["executable_binding_module_id"] == "unit.module"
+    assert (
+        out.metrics["executable_source_bundle_sha256_current"]
+        == out.metrics["executable_source_bundle_sha256_expected"]
+    )
+    assert "workflow_run_id" not in out.metrics
+
+
+def test_formal_pass_without_executable_binding_is_downgraded():
     contracts = qualified_contracts()
     contract = contracts.for_claim("unit.claim")
     registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
@@ -152,12 +193,70 @@ def test_matching_claim_contract_and_portable_ledger_preserve_formal_pass():
     out = enforce_formal_claim_qualification(
         "unit.module", [rec()], registry=registry, ledger=ledger, contracts=contracts
     )[0]
+    assert out.state is VerificationState.NOT_RUN
+    assert "proof-contract-executable-binding-missing" in out.metrics["formal_gate_blockers"]
+
+
+def test_bound_executable_byte_mutation_downgrades_formal_pass(tmp_path):
+    contracts = qualified_contracts(tmp_path)
+    contract = contracts.for_claim("unit.claim")
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    ledger = ProofLedger.from_mapping(qualified_ledger_mapping(contract.contract_sha256))
+    (tmp_path / "unit_runtime.py").write_text("VALUE = 2\n", encoding="utf-8")
+
+    out = enforce_formal_claim_qualification(
+        "unit.module",
+        [rec()],
+        registry=registry,
+        ledger=ledger,
+        contracts=contracts,
+        source_root=tmp_path,
+    )[0]
+    assert out.state is VerificationState.NOT_RUN
+    assert "executable-source-bundle-hash-mismatch" in out.metrics["formal_gate_blockers"]
+    assert (
+        out.metrics["executable_source_bundle_sha256_current"]
+        != out.metrics["executable_source_bundle_sha256_expected"]
+    )
+
+
+def test_unrelated_file_mutation_does_not_invalidate_bound_executable(tmp_path):
+    contracts = qualified_contracts(tmp_path)
+    contract = contracts.for_claim("unit.claim")
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    ledger = ProofLedger.from_mapping(qualified_ledger_mapping(contract.contract_sha256))
+    unrelated = tmp_path / "unrelated.py"
+    unrelated.write_text("VALUE = 1\n", encoding="utf-8")
+    unrelated.write_text("VALUE = 2\n", encoding="utf-8")
+
+    out = enforce_formal_claim_qualification(
+        "unit.module",
+        [rec()],
+        registry=registry,
+        ledger=ledger,
+        contracts=contracts,
+        source_root=tmp_path,
+    )[0]
     assert out.state is VerificationState.PASS
-    assert out.metrics["formal_gate"] == "PASS"
-    assert out.metrics["proof_contract_id"] == CONTRACT_ID
-    assert out.metrics["proof_contract_sha256"] == contract.contract_sha256
-    assert out.metrics["qualification_system"] == "portable-local"
-    assert "workflow_run_id" not in out.metrics
+
+
+def test_missing_bound_executable_source_downgrades_formal_pass(tmp_path):
+    contracts = qualified_contracts(tmp_path)
+    contract = contracts.for_claim("unit.claim")
+    registry = ClaimRegistry.from_mapping(qualified_claim_mapping())
+    ledger = ProofLedger.from_mapping(qualified_ledger_mapping(contract.contract_sha256))
+    (tmp_path / "unit_runtime.py").unlink()
+
+    out = enforce_formal_claim_qualification(
+        "unit.module",
+        [rec()],
+        registry=registry,
+        ledger=ledger,
+        contracts=contracts,
+        source_root=tmp_path,
+    )[0]
+    assert out.state is VerificationState.NOT_RUN
+    assert "executable-source-missing:unit_runtime.py" in out.metrics["formal_gate_blockers"]
 
 
 def test_contract_hash_drift_downgrades_formal_pass():

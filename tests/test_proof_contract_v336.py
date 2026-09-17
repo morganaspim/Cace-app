@@ -4,7 +4,12 @@ from copy import deepcopy
 
 import pytest
 
-from cace_studio.core.proof_contract import ProofContract, ProofContractRegistry
+from cace_studio.core.proof_contract import (
+    ExecutableBindingError,
+    ProofContract,
+    ProofContractRegistry,
+    executable_source_bundle_sha256,
+)
 
 
 EXPECTED_CONTINUUM_V3_HASH = "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0"
@@ -51,6 +56,7 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
+    assert contract.executable_bindings == ()
     assert contract.contract_sha256 == EXPECTED_CONTINUUM_V3_HASH
 
 
@@ -70,6 +76,66 @@ def test_contract_hash_changes_when_toolchain_pin_changes():
     changed["dependency_pins"]["lean_toolchain"] = "leanprover/lean4:v4.31.0"
     second = ProofContract.from_mapping(changed)
     assert first.contract_sha256 != second.contract_sha256
+
+
+def test_empty_executable_binding_layer_preserves_existing_contract_identity():
+    raw = _contract_mapping()
+    explicit_empty = deepcopy(raw)
+    explicit_empty["executable_bindings"] = []
+    assert ProofContract.from_mapping(raw).contract_sha256 == ProofContract.from_mapping(
+        explicit_empty
+    ).contract_sha256
+
+
+def test_executable_binding_is_content_addressed_and_detects_byte_drift(tmp_path):
+    source = tmp_path / "unit_runtime.py"
+    source.write_text("VALUE = 1\n", encoding="utf-8")
+    digest = executable_source_bundle_sha256(tmp_path, ["unit_runtime.py"])
+
+    raw = _contract_mapping()
+    raw["executable_bindings"] = [
+        {
+            "module_id": "unit.module",
+            "source_files": ["unit_runtime.py"],
+            "source_bundle_sha256": digest,
+        }
+    ]
+    contract = ProofContract.from_mapping(raw)
+    binding = contract.executable_binding_for_module("unit.module")
+    assert binding is not None
+    assert binding.current_source_bundle_sha256(tmp_path) == digest
+    assert contract.contract_sha256 != ProofContract.from_mapping(_contract_mapping()).contract_sha256
+
+    source.write_text("VALUE = 2\n", encoding="utf-8")
+    assert binding.current_source_bundle_sha256(tmp_path) != digest
+
+
+def test_executable_bundle_rejects_missing_or_escaping_source(tmp_path):
+    with pytest.raises(ExecutableBindingError, match="executable-source-missing"):
+        executable_source_bundle_sha256(tmp_path, ["missing.py"])
+
+    raw = _contract_mapping()
+    raw["executable_bindings"] = [
+        {
+            "module_id": "unit.module",
+            "source_files": ["../escape.py"],
+            "source_bundle_sha256": "a" * 64,
+        }
+    ]
+    with pytest.raises(ValueError, match="safe relative path"):
+        ProofContract.from_mapping(raw)
+
+
+def test_executable_binding_rejects_duplicate_module_id():
+    raw = _contract_mapping()
+    binding = {
+        "module_id": "unit.module",
+        "source_files": ["unit_runtime.py"],
+        "source_bundle_sha256": "a" * 64,
+    }
+    raw["executable_bindings"] = [binding, deepcopy(binding)]
+    with pytest.raises(ValueError, match="repeat a module_id"):
+        ProofContract.from_mapping(raw)
 
 
 @pytest.mark.parametrize(
