@@ -13,6 +13,7 @@ from cace_studio.modules.fem_nd import _simplex_geometry,_facet_tuples
 THEOREM_ID='poisson1d-p1-constant-v1'
 RIEZ_CLAIM_ID='cace.v330.continuum-proof-strengthening'
 RIEZ_THEOREM='CACEFormal.Continuum.h1RieszSymbol_norm_le_one'
+PRAGER_SYNG_THEOREM='CACEFormal.Continuum.continuumPragerSynge_of_weakGreen'
 HYPOTHESIS_PACKET_SCHEMA='cace-runtime-formal-hypothesis-packet-v1'
 
 
@@ -51,6 +52,17 @@ def _riesz_norm_interval(vector,index):
     denom_sq=add(singleton(1.0),norm_sq)
     denom=sqrt_interval(Interval(max(0.0,denom_sq.lo),denom_sq.hi))
     return div(abs_interval(coords[index]),denom)
+
+
+def _binary64_product_interval(a,b):
+    product=float(a)*float(b)
+    if not math.isfinite(product):
+        raise ValidationError('Prager-Synge adapter product exceeds the audited binary64 interval range')
+    return Interval(math.nextafter(product,-math.inf),math.nextafter(product,math.inf))
+
+
+def _dot_interval(left,right):
+    return sum_intervals(_binary64_product_interval(a,b) for a,b in zip(left,right))
 
 
 class MeshShapeCertificate(Module):
@@ -295,6 +307,200 @@ class H1RieszSymbolHypothesisAdapter(Module):
         )]
 
 
+class PragerSyngeHypothesisInventoryAdapter(Module):
+    metadata=ModuleMetadata(
+        'fem_cont.prager_synge_hypothesis_adapter',
+        'Continuum Prager-Synge Hypothesis Adapter',
+        '3.42.0',
+        'Formal Runtime Adapter',
+        'Inventory the exact premises of continuumPragerSynge_of_weakGreen against a qualified endpoint descriptor and concrete error vectors without pretending unresolved abstract Lean structures are satisfied.',
+        Maturity.BETA,
+        assumptions=(
+            'the upstream theorem endpoint descriptor is produced by formal330.qualified_theorem_endpoint',
+            'e_grad and e_flux are concrete coordinates in a common finite-dimensional real inner-product representation used only for diagnostics',
+        ),
+    )
+    inputs=(PortSpec('theorem_endpoint','object'),PortSpec('e_grad','array'),PortSpec('e_flux','array'))
+    outputs=(PortSpec('hypothesis_packet','formal_hypothesis_packet'),)
+    proof_status=ProofStatus(
+        evidence={EvidenceKind.SYMBOLIC,EvidenceKind.INTERVAL},
+        unit_tests=True,
+        regression_tests=True,
+        documentation=True,
+        limitations=[
+            'This adapter deliberately leaves BoundedGreenPairing, GreenSmoothCore, HasZeroBoundaryTrace, and the exact weak-Green cross-term identity unresolved.',
+            'Numerical orthogonality or a near-zero cross term does not instantiate the Lean theorem hypotheses.',
+            'This adapter never emits FORMAL evidence and runtime_ready remains false until dedicated bridge certificates are implemented and independently bound.',
+        ],
+    )
+
+    @staticmethod
+    def _contract():
+        return ProofContractRegistry.load_default().for_claim(RIEZ_CLAIM_ID)
+
+    def validate(self,inputs,params):
+        super().validate(inputs,params)
+        e_grad=np.asarray(inputs['e_grad'],dtype=float)
+        e_flux=np.asarray(inputs['e_flux'],dtype=float)
+        if e_grad.ndim != 1 or e_flux.ndim != 1 or e_grad.size == 0 or e_flux.size == 0:
+            raise ValidationError('Prager-Synge adapter requires non-empty one-dimensional error vectors')
+        if e_grad.shape != e_flux.shape:
+            raise ValidationError('Prager-Synge adapter error vectors must have identical dimensions')
+        if not np.all(np.isfinite(e_grad)) or not np.all(np.isfinite(e_flux)):
+            raise ValidationError('Prager-Synge adapter error-vector coordinates must be finite')
+        if max(float(np.max(np.abs(e_grad))),float(np.max(np.abs(e_flux)))) > 1e150:
+            raise ValidationError('Prager-Synge adapter coordinates exceed the audited binary64 interval range')
+
+    def _packet(self,inputs):
+        endpoint=inputs['theorem_endpoint']
+        e_grad=np.asarray(inputs['e_grad'],dtype=float)
+        e_flux=np.asarray(inputs['e_flux'],dtype=float)
+        contract=self._contract()
+        endpoint_ok=bool(
+            isinstance(endpoint,dict)
+            and contract is not None
+            and endpoint.get('claim_id') == RIEZ_CLAIM_ID
+            and endpoint.get('theorem_name') == PRAGER_SYNG_THEOREM
+            and endpoint.get('endpoint_member') is True
+            and endpoint.get('proof_contract_id') == contract.contract_id
+            and endpoint.get('proof_contract_sha256') == contract.contract_sha256
+            and PRAGER_SYNG_THEOREM in contract.endpoint_theorems
+        )
+        inner=_dot_interval(e_grad,e_flux)
+        gap=add(inner,inner)
+        zero_consistent=bool(gap.lo <= 0.0 <= gap.hi)
+        explicit_hypotheses=[
+            {
+                'id':'bounded-green-pairing',
+                'lean_interface':'G : BoundedGreenPairing V Q',
+                'state':'unresolved',
+                'resolution_requirement':'a dedicated executable bridge must construct and bind the concrete runtime Green pairing to the qualified Lean interface',
+            },
+            {
+                'id':'green-smooth-core',
+                'lean_interface':'C : GreenSmoothCore G',
+                'state':'unresolved',
+                'resolution_requirement':'a dedicated executable bridge must establish the smooth-core/density structure for the same bound Green pairing',
+            },
+            {
+                'id':'zero-boundary-trace',
+                'lean_interface':'hv : HasZeroBoundaryTrace G v',
+                'state':'unresolved',
+                'resolution_requirement':'a boundary-trace bridge certificate must connect concrete runtime data to HasZeroBoundaryTrace for the same G and v',
+            },
+            {
+                'id':'weak-green-cross-term-identity',
+                'lean_interface':'hcross : inner real eGrad eFlux = G.volumePairing q v',
+                'state':'unresolved',
+                'resolution_requirement':'an exact weak-Green bridge certificate is required; numerical orthogonality or interval overlap is diagnostic only',
+            },
+        ]
+        runtime_obligations=[
+            {
+                'id':'canonical-endpoint-descriptor',
+                'theorem_interface':'qualified endpoint identity and current proof-contract identity',
+                'state':'pass' if endpoint_ok else 'fail',
+                'method':'exact claim/theorem/contract-id/contract-sha comparison against the current canonical proof contract',
+            },
+            {
+                'id':'common-error-vector-representation',
+                'theorem_interface':'eGrad eFlux : E',
+                'state':'pass',
+                'method':'matching non-empty one-dimensional finite binary64 coordinate vectors checked during module validation',
+                'dimension':int(e_grad.size),
+            },
+        ]
+        unresolved=[item['id'] for item in explicit_hypotheses if item['state']=='unresolved']
+        packet={
+            'schema':HYPOTHESIS_PACKET_SCHEMA,
+            'claim_id':RIEZ_CLAIM_ID,
+            'theorem_name':PRAGER_SYNG_THEOREM,
+            'proof_contract_id':contract.contract_id if contract else None,
+            'proof_contract_sha256':contract.contract_sha256 if contract else None,
+            'theorem_explicit_hypotheses':explicit_hypotheses,
+            'runtime_representation_obligations':runtime_obligations,
+            'runtime_diagnostics':{
+                'inner_product_interval':inner.to_list(),
+                'hypercircle_gap_interval':gap.to_list(),
+                'zero_gap_numerically_consistent':zero_consistent,
+                'interpretation':'The gap diagnostic equals 2*inner(eGrad,eFlux) in the concrete coordinate model. It does not discharge hcross or any abstract Green-pairing premise.',
+            },
+            'unresolved_hypotheses':unresolved,
+            'runtime_ready':bool(endpoint_ok and not unresolved and all(item['state']=='pass' for item in runtime_obligations)),
+            'formal_instantiation':False,
+            'formal_provenance_source':'upstream verification record for formal330.qualified_theorem_endpoint',
+            'scope_note':'This packet inventories theorem premises and concrete diagnostics only. Unresolved abstract bridges block theorem application even when the numerical hypercircle gap contains zero.',
+        }
+        packet['packet_sha256']=_canonical_sha256(packet)
+        return packet
+
+    def execute(self,inputs,params,ctx):
+        return {'hypothesis_packet':self._packet(inputs)}
+
+    def verify(self,inputs,params,outputs,ctx):
+        expected=self._packet(inputs)
+        actual=outputs.get('hypothesis_packet')
+        consistent=isinstance(actual,dict) and actual == expected
+        endpoint_ok=expected['runtime_representation_obligations'][0]['state']=='pass'
+        unresolved_exactly={
+            'bounded-green-pairing',
+            'green-smooth-core',
+            'zero-boundary-trace',
+            'weak-green-cross-term-identity',
+        } == set(expected['unresolved_hypotheses'])
+        inventory_ok=bool(
+            consistent
+            and endpoint_ok
+            and unresolved_exactly
+            and expected['runtime_ready'] is False
+            and expected['formal_instantiation'] is False
+        )
+        diagnostic=expected['runtime_diagnostics']
+        diagnostic_ok=bool(
+            isinstance(diagnostic.get('inner_product_interval'),list)
+            and len(diagnostic['inner_product_interval']) == 2
+            and isinstance(diagnostic.get('hypercircle_gap_interval'),list)
+            and len(diagnostic['hypercircle_gap_interval']) == 2
+        )
+        return [
+            VerificationRecord(
+                'prager-synge-hypothesis-inventory',
+                EvidenceKind.SYMBOLIC,
+                'the exact explicit premises of continuumPragerSynge_of_weakGreen are inventoried and unresolved bridge obligations prevent runtime theorem readiness',
+                VerificationState.PASS if inventory_ok else VerificationState.FAIL,
+                'canonical endpoint matching plus fail-closed theorem-premise inventory',
+                {
+                    'theorem_name':PRAGER_SYNG_THEOREM,
+                    'runtime_ready':expected['runtime_ready'],
+                    'unresolved_hypotheses':expected['unresolved_hypotheses'],
+                    'packet_sha256':expected['packet_sha256'],
+                    'formal_instantiation':False,
+                    'output_consistent':consistent,
+                },
+                notes=(
+                    'A PASS here certifies the correctness of the obligation inventory, not satisfaction of the unresolved Lean hypotheses.',
+                    'No user-supplied boolean or numerical orthogonality test can promote these unresolved premises.',
+                ),
+            ),
+            VerificationRecord(
+                'prager-synge-hypercircle-diagnostic',
+                EvidenceKind.INTERVAL,
+                'the concrete coordinate-model inner product and hypercircle gap are enclosed by outward-rounded binary64 intervals',
+                VerificationState.PASS if diagnostic_ok else VerificationState.FAIL,
+                'outward-rounded products and interval summation; gap computed as 2*inner(eGrad,eFlux)',
+                {
+                    'inner_product_interval':diagnostic['inner_product_interval'],
+                    'hypercircle_gap_interval':diagnostic['hypercircle_gap_interval'],
+                    'zero_gap_numerically_consistent':diagnostic['zero_gap_numerically_consistent'],
+                    'formal_instantiation':False,
+                },
+                notes=(
+                    'This diagnostic does not discharge the exact weak-Green cross-term identity hcross.',
+                ),
+            ),
+        ]
+
+
 class TheoremObligationExport(Module):
     metadata=ModuleMetadata('fem_cont.theorem_export','Lean Theorem Obligation Export','0.5.0','Formal Verification',
         'Export the scoped continuum theorem statement and proof obligations as a Lean-oriented artifact. Export is structural; Lean checking is not claimed.',Maturity.PROTOTYPE)
@@ -319,5 +525,5 @@ class TheoremObligationExport(Module):
 
 
 def register_fem_continuum(registry):
-    for cls in (MeshShapeCertificate,Poisson1DContinuumCertificate,TotalContinuumErrorCertificate,H1RieszSymbolHypothesisAdapter,TheoremObligationExport):
+    for cls in (MeshShapeCertificate,Poisson1DContinuumCertificate,TotalContinuumErrorCertificate,H1RieszSymbolHypothesisAdapter,PragerSyngeHypothesisInventoryAdapter,TheoremObligationExport):
         registry.register(cls)
