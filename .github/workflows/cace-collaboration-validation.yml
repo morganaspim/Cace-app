@@ -24,6 +24,7 @@ on:
       - 'tests/test_qualification_overlay_v337.py'
       - 'tests/test_qualification_diagnostics_v337.py'
       - 'tests/test_bug_class_registry_v337.py'
+      - 'tests/test_bug_sweep_standalone_v337.py'
       - '.github/workflows/cace-collaboration-validation.yml'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
       - '.github/workflows/cace-python-regression.yml'
@@ -89,7 +90,8 @@ jobs:
             tests/test_proof_contract_v336.py \
             tests/test_claim_registry_v331.py \
             tests/test_qualification_diagnostics_v337.py \
-            tests/test_bug_class_registry_v337.py
+            tests/test_bug_class_registry_v337.py \
+            tests/test_bug_sweep_standalone_v337.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify qualified baseline remains an ancestor
@@ -127,6 +129,7 @@ jobs:
             'tests/test_qualification_overlay_v337.py',
             'tests/test_qualification_diagnostics_v337.py',
             'tests/test_bug_class_registry_v337.py',
+            'tests/test_bug_sweep_standalone_v337.py',
             '.github/workflows/cace-collaboration-validation.yml',
             '.github/workflows/cace-formal-v336-theorem-metadata.yml',
             '.github/workflows/cace-python-regression.yml',
