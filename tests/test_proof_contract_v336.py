@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -12,7 +13,8 @@ from cace_studio.core.proof_contract import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "d6b415fdacb809702154fe254f8202df07120247d16a5b1878ecfc1ac07b37c7"
+EXPECTED_CONTINUUM_V3_HASH = "d70c19e54b6f75689b2ae7748a4bc400ce8ee4f283d0eed953d80807599265af"
+EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
 
 
 def _contract_mapping() -> dict:
@@ -52,12 +54,18 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "Lean.Environment" in contract.theorem_dependency_metadata_note
     assert "lean-environment-theorem-metadata" in contract.required_checks
     assert "independent-source-bound-verification" in contract.required_checks
+    assert "executable-source-binding" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
-    assert contract.executable_bindings == ()
+    assert len(contract.executable_bindings) == 1
+    binding = contract.executable_binding_for_module("formal330.qualified_theorem_endpoint")
+    assert binding is not None
+    assert binding.source_files == ("cace_studio/modules/formal_v330.py",)
+    assert binding.source_bundle_sha256 == EXPECTED_FORMAL330_BUNDLE
+    assert binding.current_source_bundle_sha256(Path(__file__).parents[1]) == EXPECTED_FORMAL330_BUNDLE
     assert contract.contract_sha256 == EXPECTED_CONTINUUM_V3_HASH
 
 
