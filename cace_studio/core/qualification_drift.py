@@ -29,6 +29,7 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
         "scripts/check_qualification_drift.py",
         "scripts/export_v330_environment_metadata.py",
         "scripts/finalize_qualification_diagnostics.py",
+        "scripts/promote_v330_qualification.py",
         "scripts/verify_v330_qualification_bundle.py",
         "scripts/verify_v330_qualification_source_binding.py",
         "tests/test_claim_promotion_v330.py",
@@ -39,8 +40,9 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
         "tests/test_proof_contract_v336.py",
         "tests/test_qualification_bundle_verifier_v338.py",
         "tests/test_qualification_diagnostics_v337.py",
-        "tests/test_qualification_source_binding_v339.py",
         "tests/test_qualification_drift_v331.py",
+        "tests/test_qualification_promotion_v339.py",
+        "tests/test_qualification_source_binding_v339.py",
         ".github/workflows/cace-formal-v330.yml",
         ".github/workflows/cace-formal-v336-theorem-metadata.yml",
     }
