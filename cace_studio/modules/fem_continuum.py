@@ -1,13 +1,19 @@
 from __future__ import annotations
+import hashlib
+import json
 import math
 import numpy as np
 from cace_studio.core.module import Module, ValidationError
+from cace_studio.core.proof_contract import ProofContractRegistry
 from cace_studio.core.types import ModuleMetadata,PortSpec,ParameterSpec,ProofStatus,Maturity,EvidenceKind
 from cace_studio.core.verification import VerificationRecord,VerificationState
-from cace_studio.core.interval import Interval,singleton,sub,abs_interval,add,div,cube,sqrt_interval,up
+from cace_studio.core.interval import Interval,singleton,sub,abs_interval,add,div,cube,sqrt_interval,up,square,sum_intervals
 from cace_studio.modules.fem_nd import _simplex_geometry,_facet_tuples
 
 THEOREM_ID='poisson1d-p1-constant-v1'
+RIEZ_CLAIM_ID='cace.v330.continuum-proof-strengthening'
+RIEZ_THEOREM='CACEFormal.Continuum.h1RieszSymbol_norm_le_one'
+HYPOTHESIS_PACKET_SCHEMA='cace-runtime-formal-hypothesis-packet-v1'
 
 
 def _edges_cover_unit_interval(mesh):
@@ -31,6 +37,20 @@ def _edges_cover_unit_interval(mesh):
 
 def _edge_length_interval(x0:float,x1:float):
     return abs_interval(sub(singleton(float(x1)),singleton(float(x0))))
+
+
+def _canonical_sha256(value):
+    payload=json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode('utf-8')
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _riesz_norm_interval(vector,index):
+    coords=[singleton(float(value)) for value in vector]
+    norm_sq=sum_intervals(square(coord) for coord in coords)
+    norm_sq=Interval(max(0.0,norm_sq.lo),max(0.0,norm_sq.hi))
+    denom_sq=add(singleton(1.0),norm_sq)
+    denom=sqrt_interval(Interval(max(0.0,denom_sq.lo),denom_sq.hi))
+    return div(abs_interval(coords[index]),denom)
 
 
 class MeshShapeCertificate(Module):
@@ -133,6 +153,148 @@ class TotalContinuumErrorCertificate(Module):
             'triangle inequality over certified energy-norm component upper bounds',c)]
 
 
+class H1RieszSymbolHypothesisAdapter(Module):
+    metadata=ModuleMetadata(
+        'fem_cont.h1_riesz_hypothesis_adapter',
+        'H1 Riesz Symbol Hypothesis Adapter',
+        '3.41.0',
+        'Formal Runtime Adapter',
+        'Connect a qualified v3.30 theorem endpoint descriptor to concrete Euclidean runtime data and certify the Riesz-symbol bound with outward-rounded interval arithmetic.',
+        Maturity.BETA,
+        assumptions=(
+            'the upstream theorem endpoint descriptor is produced by formal330.qualified_theorem_endpoint',
+            'the runtime vector represents a concrete EuclideanDomain coordinate vector',
+        ),
+    )
+    inputs=(PortSpec('theorem_endpoint','object'),PortSpec('vector','array'))
+    outputs=(PortSpec('hypothesis_packet','formal_hypothesis_packet'),)
+    parameters=(ParameterSpec('index','int',0,'Coordinate index corresponding to Lean Fin n.'),)
+    proof_status=ProofStatus(
+        evidence={EvidenceKind.INTERVAL,EvidenceKind.SYMBOLIC},
+        unit_tests=True,
+        regression_tests=True,
+        documentation=True,
+        limitations=[
+            'This adapter does not emit FORMAL evidence and does not instantiate Lean terms.',
+            'Formal proof provenance remains an independent upstream verification record.',
+            'PASS certifies only the runtime representation obligations and interval evaluation recorded in the packet.',
+        ],
+    )
+
+    @staticmethod
+    def _contract():
+        return ProofContractRegistry.load_default().for_claim(RIEZ_CLAIM_ID)
+
+    def validate(self,inputs,params):
+        super().validate(inputs,params)
+        vector=np.asarray(inputs['vector'],dtype=float)
+        if vector.ndim != 1 or vector.size == 0:
+            raise ValidationError('Riesz adapter requires a non-empty one-dimensional vector')
+        if not np.all(np.isfinite(vector)):
+            raise ValidationError('Riesz adapter vector coordinates must be finite')
+        if np.max(np.abs(vector)) > 1e150:
+            raise ValidationError('Riesz adapter coordinates exceed the audited binary64 interval range')
+        try:
+            int(params['index'])
+        except Exception as exc:
+            raise ValidationError('Riesz adapter index must be an integer') from exc
+
+    def _packet(self,inputs,params):
+        endpoint=inputs['theorem_endpoint']
+        vector=np.asarray(inputs['vector'],dtype=float)
+        index=int(params['index'])
+        contract=self._contract()
+        endpoint_ok=bool(
+            isinstance(endpoint,dict)
+            and contract is not None
+            and endpoint.get('claim_id') == RIEZ_CLAIM_ID
+            and endpoint.get('theorem_name') == RIEZ_THEOREM
+            and endpoint.get('endpoint_member') is True
+            and endpoint.get('proof_contract_id') == contract.contract_id
+            and endpoint.get('proof_contract_sha256') == contract.contract_sha256
+            and RIEZ_THEOREM in contract.endpoint_theorems
+        )
+        index_ok=0 <= index < int(vector.size)
+        bound_interval=None
+        bound_ok=False
+        if index_ok:
+            bound=_riesz_norm_interval(vector,index)
+            bound_interval=bound.to_list()
+            bound_ok=bool(bound.hi <= 1.0)
+        obligations=[
+            {
+                'id':'canonical-endpoint-descriptor',
+                'theorem_interface':'qualified endpoint identity and current proof-contract identity',
+                'state':'pass' if endpoint_ok else 'fail',
+                'method':'exact claim/theorem/contract-id/contract-sha comparison against the current canonical proof contract',
+            },
+            {
+                'id':'euclidean-runtime-vector',
+                'theorem_interface':'x : EuclideanDomain n',
+                'state':'pass',
+                'method':'non-empty one-dimensional finite binary64 coordinate vector checked during module validation',
+                'dimension':int(vector.size),
+            },
+            {
+                'id':'fin-index-range',
+                'theorem_interface':'i : Fin n',
+                'state':'pass' if index_ok else 'fail',
+                'method':'integer range check 0 <= index < dimension',
+                'index':index,
+                'dimension':int(vector.size),
+            },
+            {
+                'id':'riesz-symbol-bound-cross-check',
+                'theorem_interface':'norm (h1RieszSymbol i x) <= 1',
+                'state':'pass' if bound_ok else ('not-run' if not index_ok else 'fail'),
+                'method':'outward-rounded interval evaluation of abs(x_i)/sqrt(1+sum_j x_j^2)',
+                'norm_interval':bound_interval,
+            },
+        ]
+        packet={
+            'schema':HYPOTHESIS_PACKET_SCHEMA,
+            'claim_id':RIEZ_CLAIM_ID,
+            'theorem_name':RIEZ_THEOREM,
+            'proof_contract_id':contract.contract_id if contract else None,
+            'proof_contract_sha256':contract.contract_sha256 if contract else None,
+            'theorem_explicit_hypotheses':[],
+            'runtime_representation_obligations':obligations,
+            'runtime_ready':all(item['state']=='pass' for item in obligations),
+            'formal_instantiation':False,
+            'formal_provenance_source':'upstream verification record for formal330.qualified_theorem_endpoint',
+            'scope_note':'This packet checks the concrete runtime representation and an interval cross-check of the theorem conclusion; it does not transfer Lean proof status to the numerical computation.',
+        }
+        packet['packet_sha256']=_canonical_sha256(packet)
+        return packet
+
+    def execute(self,inputs,params,ctx):
+        return {'hypothesis_packet':self._packet(inputs,params)}
+
+    def verify(self,inputs,params,outputs,ctx):
+        expected=self._packet(inputs,params)
+        actual=outputs.get('hypothesis_packet')
+        consistent=isinstance(actual,dict) and actual == expected
+        passed=bool(consistent and expected['runtime_ready'])
+        return [VerificationRecord(
+            'h1-riesz-runtime-hypothesis-adapter',
+            EvidenceKind.INTERVAL,
+            'runtime representation obligations for the qualified h1RieszSymbol_norm_le_one endpoint are checked and the concrete symbol norm is interval-enclosed by 1',
+            VerificationState.PASS if passed else VerificationState.FAIL,
+            'canonical endpoint descriptor comparison plus outward-rounded interval evaluation',
+            {
+                'theorem_name':RIEZ_THEOREM,
+                'runtime_ready':expected['runtime_ready'],
+                'packet_sha256':expected['packet_sha256'],
+                'formal_instantiation':False,
+                'output_consistent':consistent,
+            },
+            notes=(
+                'Formal theorem provenance is separate and must come from the upstream formal330 verification record.',
+                'This adapter cannot promote numerical or interval evidence to FORMAL evidence.',
+            ),
+        )]
+
+
 class TheoremObligationExport(Module):
     metadata=ModuleMetadata('fem_cont.theorem_export','Lean Theorem Obligation Export','0.5.0','Formal Verification',
         'Export the scoped continuum theorem statement and proof obligations as a Lean-oriented artifact. Export is structural; Lean checking is not claimed.',Maturity.PROTOTYPE)
@@ -157,5 +319,5 @@ class TheoremObligationExport(Module):
 
 
 def register_fem_continuum(registry):
-    for cls in (MeshShapeCertificate,Poisson1DContinuumCertificate,TotalContinuumErrorCertificate,TheoremObligationExport):
+    for cls in (MeshShapeCertificate,Poisson1DContinuumCertificate,TotalContinuumErrorCertificate,H1RieszSymbolHypothesisAdapter,TheoremObligationExport):
         registry.register(cls)
