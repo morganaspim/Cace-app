@@ -1,0 +1,19 @@
+{
+  "schema_version": "cace-collaboration-v1",
+  "record_id": "task:baseline-qualification",
+  "record_type": "TASK_LEASE",
+  "sender": "chatgpt",
+  "target": "all-agents",
+  "head_sha": "ce2487e2a7b85c095e0926b11c97fc1c4eba5de8",
+  "evidence_class": "ENGINEERING_VERIFIED",
+  "created_at": "2026-09-17T09:24:18Z",
+  "payload": {
+    "task": "Establish the exact qualified source identity used as the collaboration-layer baseline.",
+    "owner": "chatgpt"
+  },
+  "evidence_refs": [
+    "github-actions:35204273914",
+    "git:ce2487e2a7b85c095e0926b11c97fc1c4eba5de8"
+  ],
+  "content_sha256": "5ec5ca302c450127e6f26f0103e961b6fdb103083767fcc877c07a5f98b87a50"
+}
