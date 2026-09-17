@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cace-collaboration-record.schema.json",
+  "title": "CACE Collaboration Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "record_type",
+    "sender",
+    "base_sha",
+    "created_at",
+    "evidence_class",
+    "summary",
+    "payload_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "cace-collaboration-v1"},
+    "record_id": {"type": "string", "minLength": 8},
+    "record_type": {"enum": ["MESSAGE", "ACKNOWLEDGEMENT", "DECISION", "LEASE"]},
+    "sender": {"type": "string", "minLength": 1},
+    "target": {"type": ["string", "null"]},
+    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "evidence_class": {"enum": ["AI_PROPOSAL", "ENGINEERING_VERIFIED", "CERTIFIED_NUMERICAL", "PROVED"]},
+    "summary": {"type": "string", "minLength": 1},
+    "task": {"type": ["string", "null"]},
+    "status": {"enum": ["OPEN", "ACTIVE", "RELEASED", "SUPERSEDED", "ACCEPT", "MODIFY", "REJECT", "NEEDS_EVIDENCE", "INFORMATIONAL"]},
+    "files_affected": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "discovery_ledger_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "supersedes": {"type": ["string", "null"]},
+    "payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
