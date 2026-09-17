@@ -1,0 +1,22 @@
+name: CACE Actions Registration Probe
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cace-actions-registration-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  registration-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm workflow registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'event=%s\n' "$GITHUB_EVENT_NAME"
+          printf 'sha=%s\n' "$GITHUB_SHA"
+          printf 'ref=%s\n' "$GITHUB_REF"
