@@ -78,20 +78,27 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
     assert not is_qualification_sensitive("cace_studio/data/claim_registry.json")
     assert not is_qualification_sensitive("cace_studio/data/proof_ledger.json")
 
-    assert is_qualification_sensitive("formal/cace_formal/CACEFormal/X.lean")
-    assert is_qualification_sensitive("cace_studio/core/formal_gate.py")
-    assert is_qualification_sensitive("cace_studio/modules/formal_v330.py")
-    assert is_qualification_sensitive("cace_studio/data/proof_contracts.json")
-    assert is_qualification_sensitive("schema/proof-contracts.schema.json")
-    assert is_qualification_sensitive("scripts/build_continuum_attestation.py")
-    assert is_qualification_sensitive("scripts/verify_v330_qualification_bundle.py")
-    assert is_qualification_sensitive("scripts/verify_v330_qualification_source_binding.py")
-    assert is_qualification_sensitive("tests/test_qualification_bundle_verifier_v338.py")
-    assert is_qualification_sensitive("tests/test_qualification_source_binding_v339.py")
-    assert is_qualification_sensitive(".github/workflows/cace-formal-v330.yml")
-    assert is_qualification_sensitive(
-        ".github/workflows/cace-formal-v336-theorem-metadata.yml"
-    )
+    for path in (
+        "formal/cace_formal/CACEFormal/X.lean",
+        "cace_studio/core/formal_gate.py",
+        "cace_studio/modules/formal_v330.py",
+        "cace_studio/data/proof_contracts.json",
+        "schema/proof-contracts.schema.json",
+        "scripts/build_continuum_attestation.py",
+        "scripts/export_v330_environment_metadata.py",
+        "scripts/finalize_qualification_diagnostics.py",
+        "scripts/verify_v330_qualification_bundle.py",
+        "scripts/verify_v330_qualification_source_binding.py",
+        "tests/test_continuum_attestation_v337.py",
+        "tests/test_export_v330_environment_metadata.py",
+        "tests/test_lean_theorem_metadata_v336.py",
+        "tests/test_qualification_bundle_verifier_v338.py",
+        "tests/test_qualification_diagnostics_v337.py",
+        "tests/test_qualification_source_binding_v339.py",
+        ".github/workflows/cace-formal-v330.yml",
+        ".github/workflows/cace-formal-v336-theorem-metadata.yml",
+    ):
+        assert is_qualification_sensitive(path), path
 
     assert classify_qualification_sensitive(
         [
