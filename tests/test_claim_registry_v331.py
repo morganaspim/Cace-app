@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -9,11 +10,13 @@ from cace_studio.core.proof_contract import (
     executable_source_bundle_sha256,
 )
 from cace_studio.core.proof_ledger import ProofLedger
+from cace_studio.core.qualification_drift import audit_current_qualifications
 from cace_studio.core.types import EvidenceKind
 from cace_studio.core.verification import VerificationRecord, VerificationState
 
 
 CONTRACT_ID = "unit.proof.v1"
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def rec(kind=EvidenceKind.FORMAL, state=VerificationState.PASS):
@@ -127,9 +130,24 @@ def test_default_registry_ledger_and_contract_load_fail_closed():
     assert entry.qualification_system == "github-actions"
     v330 = registry.by_id("cace.v330.continuum-proof-strengthening")
     contract = contracts.for_claim("cace.v330.continuum-proof-strengthening")
-    assert v330 is not None and contract is not None
+    current_entry = ledger.for_claim("cace.v330.continuum-proof-strengthening")
+    assert v330 is not None and contract is not None and current_entry is not None
     assert v330.proof_contract_id == contract.contract_id
-    assert ledger.for_claim(v330.claim_id).proof_contract_sha256 == contract.contract_sha256
+
+    if current_entry.proof_contract_sha256 == contract.contract_sha256:
+        return
+
+    # A proof-contract transition is allowed only while Git drift independently
+    # proves that the old qualification is stale. This avoids the bootstrap
+    # deadlock where a new contract could never reach the qualification workflow,
+    # while still rejecting an unexplained ledger/contract mismatch on a clean tree.
+    drift = next(
+        item
+        for item in audit_current_qualifications(ROOT, registry=registry, ledger=ledger)
+        if item.claim_id == v330.claim_id
+    )
+    assert drift.passed is False
+    assert "cace_studio/data/proof_contracts.json" in drift.sensitive_paths
 
 
 def test_unknown_formal_pass_is_downgraded():
