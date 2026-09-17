@@ -13,7 +13,7 @@ Qualified baseline: `ce2487e2a7b85c095e0926b11c97fc1c4eba5de8`, canonical qualif
 5. Allowed evidence classes are `AI_PROPOSAL`, `ENGINEERING_VERIFIED`, `CERTIFIED_NUMERICAL`, and `PROVED`.
 6. `PROVED` requires a named kernel-checked theorem/evidence artifact and exact qualified source identity; prose or model consensus cannot set it.
 7. `CERTIFIED_NUMERICAL` requires a rigorous numerical/error certificate with stated assumptions and bounds.
-8. Before dispatching any CACE Actions job, an agent must verify repository-wide that no CACE job is queued or in progress. Exactly one CACE Actions job may be active or queued at a time.
+8. Before dispatching any CACE Actions job, or mutating a branch/PR/ref in a way that can trigger a CACE Actions workflow, an agent must verify repository-wide that no CACE job is queued or in progress. Exactly one CACE Actions job may be active or queued at a time.
 9. A task lease has one effective owner. Another agent may review it, but may not independently dispatch or mutate the leased task without an explicit valid handoff.
 10. SHA-256 is used for content identity/integrity. A digest is never treated as proof of semantic or mathematical correctness.
 
@@ -80,6 +80,14 @@ python scripts/validate_collaboration_lifecycle.py --authorization-head <40-hex-
 Authorization succeeds only when that exact source SHA has one valid live lease/handoff, the requested actor is its effective owner, and the task has no effective `DECISION` or `CLOSED` record. Historical records for another SHA remain valid history but do not authorize the requested source state.
 
 The authorization check governs source mutation/dispatch. Append-only coordination bookkeeping needed to record a decision, closure, or correction is validated by the lifecycle rules themselves.
+
+## Actions serialization boundary
+
+The executable CACE Actions surface is intentionally small. Every active self-hosted CACE workflow must use the same repository-wide concurrency group with `cancel-in-progress: false`; `scripts/audit_cace_actions_policy.py` fails closed if the admitted workflow set, automatic-trigger set, concurrency group, or cancellation policy drifts.
+
+GitHub concurrency serializes execution but can retain a pending run. Therefore the stronger CACE invariant—no second CACE run may even be queued while another is queued or in progress—is enforced before the trigger is created: agents must perform the repository-wide lane-clear check before explicit dispatch and before any branch/PR/ref mutation that can cause an automatic CACE workflow run. The in-job serialization guard is a second fail-closed check, not a substitute for this pre-trigger rule.
+
+Historical workflow definitions that are not part of the admitted active surface are retained under `.github/workflow-archive/`. Moving one back into `.github/workflows/` requires policy review before it becomes executable.
 
 ## Discovery Ledger linkage
 
