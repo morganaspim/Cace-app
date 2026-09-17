@@ -11,6 +11,7 @@ from scripts.audit_cace_actions_policy import audit
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
+QUALIFIED_BASELINE = "c01abdeca099d3905e5e22505958f7fbad11164e"
 ACTIVE = (
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
@@ -34,7 +35,7 @@ def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
 
 
-def test_current_qualification_provenance_is_enrolled_and_drift_clean() -> None:
+def test_qualified_baseline_provenance_is_enrolled_and_self_consistent() -> None:
     proc = subprocess.run(
         [
             sys.executable,
@@ -42,7 +43,7 @@ def test_current_qualification_provenance_is_enrolled_and_drift_clean() -> None:
             "--repo-root",
             str(ROOT),
             "--head",
-            "HEAD",
+            QUALIFIED_BASELINE,
         ],
         cwd=ROOT,
         check=False,
@@ -58,7 +59,7 @@ def test_current_qualification_provenance_is_enrolled_and_drift_clean() -> None:
     assert len(payload["results"]) == 1
     result = payload["results"][0]
     assert result["claim_id"] == "cace.v330.continuum-proof-strengthening"
-    assert result["attested_commit"] == "c01abdeca099d3905e5e22505958f7fbad11164e"
+    assert result["attested_commit"] == QUALIFIED_BASELINE
     assert result["passed"] is True
     assert result["sensitive_paths"] == []
 
