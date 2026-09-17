@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Verify CACE v3.30 qualification evidence against external/source trust anchors.
 
-This companion verifier is intentionally standard-library-only and separate from both
-Lean and the attestation producer. It is stricter than the offline bundle-integrity
-verifier: a caller must provide the accepted attestation SHA-256, exact Git commit,
-workflow run identity, canonical proof-contract registry, and the audited formal source
-tree. It then re-derives the proof-contract identity, audited-source bundle digest,
-resolved Lake-manifest digest, audit-source digest, and dynamic artifact bindings.
+This verifier is standard-library-only and separate from Lean and the attestation
+producer. It re-derives proof-contract identity, audited Lean source identity,
+resolved Lake-manifest identity, audit-source identity, and (when required by the
+proof contract) every executable-source binding from repository bytes.
 
-A PASS verifies recorded qualification evidence; it does not itself prove a theorem.
+A PASS verifies recorded qualification evidence; it does not itself prove a theorem
+or establish that runtime scientific inputs satisfy theorem hypotheses.
 """
 from __future__ import annotations
 
@@ -33,7 +32,7 @@ _GIT_COMMIT = re.compile(r"^[0-9a-f]{40}$")
 
 
 class SourceBindingVerificationError(RuntimeError):
-    """Raised when qualification evidence cannot be tied to external/source anchors."""
+    """Raised when qualification evidence cannot be tied to source/external anchors."""
 
 
 def require(condition: bool, message: str) -> None:
@@ -87,7 +86,7 @@ def compact_identity_bytes(value: Any) -> bytes:
 
 
 def safe_relative(value: Any, *, suffix: str | None = None) -> str:
-    require(isinstance(value, str) and value, "audited source path must be non-empty")
+    require(isinstance(value, str) and value, "source path must be non-empty")
     path = PurePosixPath(value)
     require(
         not path.is_absolute() and ".." not in path.parts and bool(path.name),
@@ -145,8 +144,7 @@ def load_contract(path: Path, contract_id: str) -> tuple[dict[str, Any], str]:
     ]
     require(len(matches) == 1, f"expected exactly one proof contract {contract_id!r}")
     contract = normalized_contract(matches[0])
-    digest = sha256_bytes(compact_identity_bytes(contract))
-    return contract, digest
+    return contract, sha256_bytes(compact_identity_bytes(contract))
 
 
 def source_bundle_sha256(formal_dir: Path, source_files: tuple[str, ...]) -> str:
@@ -169,6 +167,114 @@ def source_bundle_sha256(formal_dir: Path, source_files: tuple[str, ...]) -> str
     return digest.hexdigest()
 
 
+def executable_source_bundle_manifest(
+    repo_root: Path,
+    source_files: tuple[str, ...],
+) -> dict[str, Any]:
+    root = repo_root.resolve()
+    canonical = tuple(sorted(safe_relative(item) for item in source_files))
+    require(bool(canonical), "executable binding source_files must not be empty")
+    require(
+        len(canonical) == len(set(canonical)),
+        "executable binding source_files contains duplicates",
+    )
+    files: list[dict[str, Any]] = []
+    for relative in canonical:
+        path = (root / PurePosixPath(relative)).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise SourceBindingVerificationError(
+                f"executable source escapes repository root: {relative}"
+            ) from exc
+        require(path.is_file(), f"executable source file is missing: {relative}")
+        data = path.read_bytes()
+        files.append(
+            {
+                "path": relative,
+                "sha256": sha256_bytes(data),
+                "size": len(data),
+            }
+        )
+    return {
+        "algorithm": "cace-executable-source-bundle-v1",
+        "files": files,
+    }
+
+
+def executable_source_bundle_sha256(
+    repo_root: Path,
+    source_files: tuple[str, ...],
+) -> str:
+    return sha256_bytes(
+        compact_identity_bytes(executable_source_bundle_manifest(repo_root, source_files))
+    )
+
+
+def verify_executable_bindings(
+    contract: Mapping[str, Any],
+    *,
+    repo_root: Path,
+) -> list[dict[str, Any]]:
+    checks = string_list(contract.get("required_checks"), "contract.required_checks")
+    raw_bindings = contract.get("executable_bindings", [])
+    require(isinstance(raw_bindings, list), "proof contract executable_bindings must be an array")
+
+    check_required = "executable-source-binding" in checks
+    if raw_bindings and not check_required:
+        raise SourceBindingVerificationError(
+            "proof contract contains executable bindings without executable-source-binding check"
+        )
+    if check_required:
+        require(bool(raw_bindings), "executable-source-binding check requires executable bindings")
+
+    reports: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in raw_bindings:
+        require(isinstance(raw, Mapping), "executable binding must be an object")
+        require(
+            set(raw) == {"module_id", "source_files", "source_bundle_sha256"},
+            "executable binding keys mismatch",
+        )
+        module_id = raw.get("module_id")
+        require(
+            isinstance(module_id, str) and bool(module_id.strip()),
+            "executable binding module_id must be non-empty",
+        )
+        module_id = module_id.strip()
+        require(module_id not in seen, f"duplicate executable binding module_id: {module_id}")
+        seen.add(module_id)
+        source_files = string_list(raw.get("source_files"), f"{module_id}.source_files")
+        expected = require_sha256(
+            raw.get("source_bundle_sha256"),
+            f"{module_id}.source_bundle_sha256",
+        )
+        actual = executable_source_bundle_sha256(repo_root, source_files)
+        require(
+            actual == expected,
+            f"executable source bundle differs from proof contract for {module_id}",
+        )
+        reports.append(
+            {
+                "module_id": module_id,
+                "source_files": list(sorted(source_files)),
+                "source_bundle_sha256": actual,
+            }
+        )
+    return sorted(reports, key=lambda item: item["module_id"])
+
+
+def _default_repo_root(proof_contracts: Path) -> Path:
+    resolved = proof_contracts.resolve()
+    if (
+        resolved.name == "proof_contracts.json"
+        and resolved.parent.name == "data"
+        and resolved.parent.parent.name == "cace_studio"
+    ):
+        return resolved.parent.parent.parent
+    return resolved.parent
+
+
 def verify_source_binding(
     root: Path,
     *,
@@ -178,6 +284,7 @@ def verify_source_binding(
     expected_git_commit: str,
     expected_workflow_run_id: int,
     expected_workflow_run_attempt: int,
+    repo_root: Path | None = None,
 ) -> dict[str, Any]:
     expected_attestation = require_sha256(
         expected_attestation_sha256, "expected_attestation_sha256"
@@ -281,6 +388,11 @@ def verify_source_binding(
         "audited formal source bundle differs from attestation",
     )
 
+    executable_reports = verify_executable_bindings(
+        contract,
+        repo_root=(repo_root or _default_repo_root(proof_contracts)),
+    )
+
     actual_manifest = sha256_bytes(manifest_path.read_bytes())
     require(
         actual_manifest
@@ -357,6 +469,7 @@ def verify_source_binding(
         "proof_contract_sha256": contract_sha,
         "attestation_sha256": actual_attestation,
         "audited_source_bundle_sha256": actual_source_bundle,
+        "executable_bindings": executable_reports,
         "lake_manifest_sha256": actual_manifest,
         "lean_environment_metadata_sha256": actual_meta,
         "kernel_axiom_audit_sha256": actual_audit,
@@ -391,6 +504,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("bundle", type=Path)
     parser.add_argument("--formal-dir", type=Path, required=True)
     parser.add_argument("--proof-contracts", type=Path, required=True)
+    parser.add_argument("--repo-root", type=Path)
     parser.add_argument("--expected-attestation-sha256", required=True)
     parser.add_argument("--expected-git-commit", required=True)
     parser.add_argument("--expected-workflow-run-id", type=int, required=True)
@@ -403,6 +517,7 @@ def main(argv: list[str] | None = None) -> int:
                 root,
                 formal_dir=args.formal_dir,
                 proof_contracts=args.proof_contracts,
+                repo_root=args.repo_root,
                 expected_attestation_sha256=args.expected_attestation_sha256,
                 expected_git_commit=args.expected_git_commit,
                 expected_workflow_run_id=args.expected_workflow_run_id,
