@@ -25,13 +25,27 @@ After activation on `main`, accepted collaboration records are append-only. A co
 
 This bootstrap exception does not upgrade the evidentiary status of any record and does not weaken the exact-head or proof rules.
 
-## Record layout
+## Record layout and canonical order
 
 Records live under `collaboration/records/` as JSON. Each record validates against `collaboration/schema/cace-collaboration-record.schema.json`.
 
 Required fields bind the record to an exact repository state and make its role explicit: `record_id`, `record_type`, `sender`, `target`, `head_sha`, `evidence_class`, `created_at`, `payload`, and `content_sha256`.
 
 `content_sha256` is the SHA-256 of canonical JSON containing every field except `content_sha256`: UTF-8, sorted keys, compact separators (`,` and `:`), and no NaN/Infinity. This makes records content-addressable without claiming that the hash proves the payload.
+
+Canonical record order is lexicographic filename order. Persisted record filenames begin with an 8-digit ordinal followed by `-`; later records use a strictly larger ordinal. `created_at` must be timezone-aware and nondecreasing in canonical record order. Any `supersedes` reference must point to an earlier record in that same order.
+
+These ordering rules make lifecycle evaluation deterministic. They do not make timestamps or filenames proof evidence.
+
+## Supersession and corrections
+
+Lease-chain supersession and message correction are intentionally distinct.
+
+A `TASK_LEASE` or `HANDOFF` may supersede only an earlier `TASK_LEASE` or `HANDOFF` on the same exact `head_sha`, subject to the ownership rules below. Lease-chain supersession changes which owner is live.
+
+A non-lease record (`PROPOSAL`, `REVIEW`, `DECISION`, or `CLOSED`) may supersede only an earlier record of the same `record_type`, on the same exact `head_sha`, from the same `sender`. This is an append-only correction relation; it does not alter lease ownership. A record may be superseded at most once.
+
+Cross-head supersession is forbidden. A correction by a different agent is not a correction of the original author's record; that agent should use an appropriate `REVIEW` or `DECISION` record instead.
 
 ## Lease ownership and handoff
 
@@ -41,25 +55,31 @@ A `HANDOFF` transfers ownership on the same exact `head_sha`: its `sender` must 
 
 A later `TASK_LEASE` may refresh an existing lease chain only when its `sender` is already the effective owner. A direct owner change through a new `TASK_LEASE` is invalid; ownership changes require `HANDOFF`.
 
-Each exact head may have at most one unsuperseded lease/handoff chain. One lease/handoff record may be superseded at most once.
+Each exact head may have at most one unsuperseded lease/handoff chain.
 
 ## Task lifecycle
 
-A task begins with `TASK_LEASE`. `PROPOSAL` and `REVIEW` records may follow while the lease remains active. A `HANDOFF` may transfer ownership before completion. A `DECISION` records the disposition, and `CLOSED` may follow only after a decision.
+A task begins with `TASK_LEASE`. `PROPOSAL` and `REVIEW` records may follow while the task remains open. A `HANDOFF` may transfer ownership before completion.
 
-Messages such as `PROPOSAL`, `REVIEW`, `DECISION`, and `CLOSED` must refer to the same exact source head as an earlier lease/handoff. Cross-head supersession is forbidden.
+A `DECISION` records the disposition. After a decision, new lease refreshes, handoffs, proposals, and reviews for that task are invalid. `CLOSED` may follow only after a decision.
+
+After `CLOSED`, no new lifecycle activity is valid except append-only same-type corrections to an earlier message record. At most one effective `DECISION` and one effective `CLOSED` record may remain after correction chains are applied.
+
+Messages such as `PROPOSAL`, `REVIEW`, `DECISION`, and `CLOSED` must refer to the same exact source head as an earlier lease/handoff.
 
 ## Exact-head authorization
 
 `head_sha` identifies the exact source state being authorized; it does not need to equal the later repository commit that stores a historical record.
 
-Before an agent mutates or dispatches work for an exact source state, it should validate the live lease chain for that source SHA:
+Before an agent mutates or dispatches source work for an exact source state, it should validate the live lease chain for that source SHA:
 
 ```text
 python scripts/validate_collaboration_lifecycle.py --authorization-head <40-hex-sha> --actor <agent>
 ```
 
-Authorization succeeds only when that exact source SHA has one valid live lease/handoff and the requested actor is its effective owner. Historical records for another SHA remain valid history but do not authorize the requested source state.
+Authorization succeeds only when that exact source SHA has one valid live lease/handoff, the requested actor is its effective owner, and the task has no effective `DECISION` or `CLOSED` record. Historical records for another SHA remain valid history but do not authorize the requested source state.
+
+The authorization check governs source mutation/dispatch. Append-only coordination bookkeeping needed to record a decision, closure, or correction is validated by the lifecycle rules themselves.
 
 ## Discovery Ledger linkage
 
