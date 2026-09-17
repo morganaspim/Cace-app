@@ -8,6 +8,7 @@ on:
       - 'scripts/verify_collaboration_records.py'
       - 'scripts/validate_collaboration_lifecycle.py'
       - 'scripts/cace_actions_serialization_guard.py'
+      - 'scripts/audit_cace_actions_policy.py'
       - 'tests/test_collaboration_records.py'
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
@@ -44,6 +45,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}"
+
+      - name: Report repository-wide CACE Actions policy
+        run: python scripts/audit_cace_actions_policy.py --report-only
 
       - name: Validate collaboration record structure and hashes
         run: python scripts/verify_collaboration_records.py
@@ -85,7 +89,8 @@ jobs:
           files = sorted(map(pathlib.Path, [
             'collaboration/PROTOCOL.md','collaboration/schema/cace-collaboration-record.schema.json',
             'collaboration/DISCOVERY_LEDGER.json','scripts/verify_collaboration_records.py',
-            'scripts/validate_collaboration_lifecycle.py','scripts/cace_actions_serialization_guard.py']))
+            'scripts/validate_collaboration_lifecycle.py','scripts/cace_actions_serialization_guard.py',
+            'scripts/audit_cace_actions_policy.py']))
           summary={'schema':'cace-collaboration-validation-v1','evidence_class':'ENGINEERING_VERIFIED','proof_implication':'none','head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'qualified_baseline':'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8','sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
           pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
           print(json.dumps(summary,indent=2,sort_keys=True))
