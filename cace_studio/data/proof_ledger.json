@@ -38,16 +38,16 @@
       "claim_ids": [
         "cace.v330.continuum-proof-strengthening"
       ],
-      "commit": "c01abdeca099d3905e5e22505958f7fbad11164e",
+      "commit": "eb3df4ace270927173f49184c0c13b8df47d9b19",
       "current_head_qualified": true,
-      "proof_artifact_sha256": "e82d5c581fc4ba8864e818364889170decfbc523626c66f3c1a01b94cdc123c3",
+      "proof_artifact_sha256": "1a31534b4d14e6fa47690684890a6b48cc03f4099b8bc94a3273452e9aca326d",
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "proof_contract_sha256": "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0",
-      "qualification_run_id": "35215905496",
+      "qualification_run_id": "35224055942",
       "qualification_system": "github-actions",
       "release": "3.23.0-dev..3.37.0-dev",
       "status": "PASS",
-      "workflow_run_id": 35215905496
+      "workflow_run_id": 35224055942
     }
   ],
   "policy": "Current-head FORMAL PASS requires a successful pinned proof build, kernel axiom audit, exact commit binding, exact proof-contract id/hash binding, Lean.Environment theorem-metadata binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",
