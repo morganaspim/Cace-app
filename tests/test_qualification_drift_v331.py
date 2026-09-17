@@ -77,17 +77,46 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
     assert not is_qualification_sensitive("docs/CLAIMS.md")
     assert not is_qualification_sensitive("cace_studio/data/claim_registry.json")
     assert not is_qualification_sensitive("cace_studio/data/proof_ledger.json")
+
     assert is_qualification_sensitive("formal/cace_formal/CACEFormal/X.lean")
     assert is_qualification_sensitive("cace_studio/core/formal_gate.py")
     assert is_qualification_sensitive("cace_studio/modules/formal_v330.py")
+    assert is_qualification_sensitive("cace_studio/data/proof_contracts.json")
+    assert is_qualification_sensitive("schema/proof-contracts.schema.json")
+    assert is_qualification_sensitive("scripts/build_continuum_attestation.py")
+    assert is_qualification_sensitive("scripts/verify_v330_qualification_bundle.py")
+    assert is_qualification_sensitive("scripts/verify_v330_qualification_source_binding.py")
+    assert is_qualification_sensitive("tests/test_qualification_bundle_verifier_v338.py")
+    assert is_qualification_sensitive("tests/test_qualification_source_binding_v339.py")
     assert is_qualification_sensitive(".github/workflows/cace-formal-v330.yml")
+    assert is_qualification_sensitive(
+        ".github/workflows/cace-formal-v336-theorem-metadata.yml"
+    )
+
     assert classify_qualification_sensitive(
         [
             "docs/CLAIMS.md",
             "cace_studio/data/proof_ledger.json",
             "cace_studio/core/executor.py",
+            "cace_studio/data/proof_contracts.json",
+            "scripts/verify_v330_qualification_source_binding.py",
         ]
-    ) == ("cace_studio/core/executor.py",)
+    ) == (
+        "cace_studio/core/executor.py",
+        "cace_studio/data/proof_contracts.json",
+        "scripts/verify_v330_qualification_source_binding.py",
+    )
+
+
+def test_proof_contract_change_is_never_treated_as_provenance_only():
+    sensitive = classify_qualification_sensitive(
+        [
+            "cace_studio/data/claim_registry.json",
+            "cace_studio/data/proof_ledger.json",
+            "cace_studio/data/proof_contracts.json",
+        ]
+    )
+    assert sensitive == ("cace_studio/data/proof_contracts.json",)
 
 
 def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descendant(tmp_path):
