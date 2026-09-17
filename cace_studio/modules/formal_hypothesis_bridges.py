@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from typing import Any
 
 import numpy as np
@@ -18,6 +19,12 @@ ZERO_TRACE_THEOREM = "CACEFormal.Continuum.hasZeroBoundaryTrace_zero"
 PRAGER_SYNG_THEOREM = "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen"
 BRIDGE_SCHEMA = "cace-formal-hypothesis-bridge-v1"
 PACKET_SCHEMA = "cace-runtime-formal-hypothesis-packet-v1"
+_EXPECTED_PRAGER_PREMISES = {
+    "bounded-green-pairing",
+    "green-smooth-core",
+    "zero-boundary-trace",
+    "weak-green-cross-term-identity",
+}
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -28,6 +35,17 @@ def _canonical_sha256(value: Any) -> str:
         ensure_ascii=False,
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _embedded_digest_valid(value: Any, field: str) -> bool:
+    if not isinstance(value, dict):
+        return False
+    expected = value.get(field)
+    if not isinstance(expected, str) or len(expected) != 64:
+        return False
+    payload = json.loads(json.dumps(value))
+    payload.pop(field, None)
+    return _canonical_sha256(payload) == expected
 
 
 def _current_contract():
@@ -88,6 +106,48 @@ def _vector_manifest(vector: np.ndarray) -> dict[str, Any]:
         "coordinates": canonical,
         "sha256": _canonical_sha256(canonical),
     }
+
+
+def _zero_manifest_valid(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    coords = value.get("coordinates")
+    if not isinstance(coords, list) or not coords:
+        return False
+    try:
+        canonical = [float(item) for item in coords]
+    except (TypeError, ValueError):
+        return False
+    return bool(
+        value.get("representation") == "finite-real-coordinate-vector"
+        and value.get("dimension") == len(canonical)
+        and all(math.isfinite(item) and item == 0.0 for item in canonical)
+        and value.get("sha256") == _canonical_sha256(canonical)
+    )
+
+
+def _base_prager_packet_valid(packet: Any, contract) -> bool:
+    if not isinstance(packet, dict) or contract is None:
+        return False
+    hypotheses = packet.get("theorem_explicit_hypotheses")
+    if not isinstance(hypotheses, list):
+        return False
+    ids = [item.get("id") for item in hypotheses if isinstance(item, dict)]
+    states = [item.get("state") for item in hypotheses if isinstance(item, dict)]
+    return bool(
+        packet.get("schema") == PACKET_SCHEMA
+        and packet.get("claim_id") == CLAIM_ID
+        and packet.get("theorem_name") == PRAGER_SYNG_THEOREM
+        and packet.get("proof_contract_id") == contract.contract_id
+        and packet.get("proof_contract_sha256") == contract.contract_sha256
+        and _embedded_digest_valid(packet, "packet_sha256")
+        and len(ids) == len(_EXPECTED_PRAGER_PREMISES)
+        and set(ids) == _EXPECTED_PRAGER_PREMISES
+        and all(state == "unresolved" for state in states)
+        and set(packet.get("unresolved_hypotheses", [])) == _EXPECTED_PRAGER_PREMISES
+        and packet.get("runtime_ready") is False
+        and packet.get("formal_instantiation") is False
+    )
 
 
 class ZeroBoundaryTraceZeroBridge(Module):
@@ -229,16 +289,8 @@ class ResolvePragerSyngeZeroTrace(Module):
         bridge = inputs["bridge_certificate"]
         contract = _current_contract()
         current_qualification = _qualification_anchor()
-        base_ok = bool(
-            isinstance(packet, dict)
-            and packet.get("schema") == PACKET_SCHEMA
-            and packet.get("claim_id") == CLAIM_ID
-            and packet.get("theorem_name") == PRAGER_SYNG_THEOREM
-            and contract is not None
-            and packet.get("proof_contract_id") == contract.contract_id
-            and packet.get("proof_contract_sha256") == contract.contract_sha256
-        )
-        bridge_ok = bool(
+        base_ok = _base_prager_packet_valid(packet, contract)
+        bridge_structural_ok = bool(
             isinstance(bridge, dict)
             and bridge.get("schema") == BRIDGE_SCHEMA
             and bridge.get("claim_id") == CLAIM_ID
@@ -248,9 +300,14 @@ class ResolvePragerSyngeZeroTrace(Module):
             and bridge.get("proof_contract_sha256") == (contract.contract_sha256 if contract else None)
             and bridge.get("endpoint_descriptor_valid") is True
             and bridge.get("qualification_anchor") == current_qualification
-            and current_qualification.get("state") == "pass"
             and bridge.get("runtime_representation_exact_zero") is True
+            and _zero_manifest_valid(bridge.get("runtime_representation"))
             and bridge.get("formal_instantiation") == {"v": "0"}
+            and _embedded_digest_valid(bridge, "certificate_sha256")
+        )
+        bridge_ok = bool(
+            bridge_structural_ok
+            and current_qualification.get("state") == "pass"
             and bridge.get("state") == "pass"
         )
         result = json.loads(json.dumps(packet)) if isinstance(packet, dict) else {}
@@ -288,6 +345,8 @@ class ResolvePragerSyngeZeroTrace(Module):
             [bridge.get("certificate_sha256")] if resolution_applied else []
         )
         result["resolution_status"] = "applied" if resolution_applied else "rejected"
+        result["bridge_structural_valid"] = bridge_structural_ok
+        result["base_packet_valid"] = base_ok
         result["qualification_anchor"] = current_qualification
         result.pop("packet_sha256", None)
         result["packet_sha256"] = _canonical_sha256(result)
@@ -312,12 +371,18 @@ class ResolvePragerSyngeZeroTrace(Module):
             "green-smooth-core",
             "weak-green-cross-term-identity",
         }
-        if expected.get("qualification_anchor", {}).get("state") != "pass":
-            state = VerificationState.NOT_RUN if consistent else VerificationState.FAIL
+        structural_ok = bool(
+            consistent
+            and expected.get("base_packet_valid") is True
+            and expected.get("bridge_structural_valid") is True
+        )
+        if not structural_ok:
+            state = VerificationState.FAIL
+        elif expected.get("qualification_anchor", {}).get("state") != "pass":
+            state = VerificationState.NOT_RUN
         else:
             passed = bool(
-                consistent
-                and expected.get("resolution_status") == "applied"
+                expected.get("resolution_status") == "applied"
                 and hv.get("state") == "pass"
                 and hv.get("bridge_theorem_name") == ZERO_TRACE_THEOREM
                 and correct_remaining
@@ -331,11 +396,13 @@ class ResolvePragerSyngeZeroTrace(Module):
                 EvidenceKind.SYMBOLIC,
                 "the zero-boundary-trace premise is resolved through the qualified v = 0 bridge while the remaining independent theorem premises stay unresolved",
                 state,
-                "content-addressed bridge-certificate validation, canonical formal-gate qualification, and exact single-premise substitution",
+                "content-addressed bridge replay validation, canonical formal-gate qualification, and exact single-premise substitution",
                 {
                     "resolution_status": expected.get("resolution_status"),
                     "unresolved_hypotheses": expected.get("unresolved_hypotheses"),
                     "runtime_instantiations": expected.get("runtime_instantiations"),
+                    "bridge_structural_valid": expected.get("bridge_structural_valid"),
+                    "base_packet_valid": expected.get("base_packet_valid"),
                     "qualification_anchor": expected.get("qualification_anchor"),
                     "packet_sha256": expected.get("packet_sha256"),
                     "output_consistent": consistent,
