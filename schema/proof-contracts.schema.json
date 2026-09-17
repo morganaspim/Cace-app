@@ -14,6 +14,24 @@
           "contract_id": {"minLength": 1, "type": "string"},
           "dependency_pins": {"additionalProperties": {"minLength": 1, "type": "string"}, "minProperties": 1, "type": "object"},
           "endpoint_theorems": {"items": {"minLength": 3, "pattern": ".+\\..+", "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+          "executable_bindings": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "module_id": {"minLength": 1, "type": "string"},
+                "source_bundle_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+                "source_files": {
+                  "items": {"pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+", "type": "string"},
+                  "minItems": 1,
+                  "type": "array",
+                  "uniqueItems": true
+                }
+              },
+              "required": ["module_id", "source_files", "source_bundle_sha256"],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "formal_system": {"minLength": 1, "type": "string"},
           "nonclaims": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
           "required_checks": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
