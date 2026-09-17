@@ -110,12 +110,15 @@ jobs:
             tests/test_claim_registry_v331.py \
             tests/test_qualification_drift_v331.py \
             tests/test_qualification_overlay_v337.py \
+            tests/test_qualification_diagnostics_v337.py \
+            tests/test_bug_class_registry_v337.py \
             tests/test_research_dynamics_v337.py \
             tests/test_research_geometry_v337.py \
             tests/test_export_v330_environment_metadata.py \
             tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
             tests/test_proof_contract_v336.py
+          python scripts/check_bug_sweep.py
 
       - name: Prepare isolated formal qualification build and cache identity
         shell: bash
@@ -240,10 +243,6 @@ jobs:
             exit 0
           fi
 
-          # Cross-tree reuse is acceleration only. It is permitted only from a
-          # first-parent ancestor with the same pinned Lean and Mathlib identity.
-          # Lake still recompiles every changed module and all reverse CACE import
-          # dependents before any theorem metadata or kernel audit is accepted.
           baseline_commit=''
           baseline_tree=''
           baseline_cache=''
@@ -269,7 +268,6 @@ jobs:
           mapfile -t changed < <(git diff --name-only "$baseline_commit" "$CACE_EXPECTED_SHA" -- formal/cace_formal)
           printf '%s\n' "${changed[@]}" > "$CACE_STATUS_DIR/cache_changed_paths.txt"
 
-          # Build-system or toolchain edits invalidate all project build reuse.
           for path in "${changed[@]}"; do
             case "$path" in
               formal/cace_formal/lean-toolchain|formal/cace_formal/lakefile.lean|formal/cace_formal/lakefile.toml|formal/cace_formal/lake-manifest.json)
@@ -287,10 +285,6 @@ jobs:
           printf '%s\n' "$baseline_tree" > "$CACE_STATUS_DIR/cache_baseline_tree.txt"
           printf '%s\n' "$baseline_commit" > "$CACE_STATUS_DIR/cache_baseline_commit.txt"
 
-          # Compute a conservative reverse-import closure among CACE-owned Lean
-          # modules. If any changed formal path cannot be mapped to a current
-          # module, invalidate the full CACE module set rather than risk stale
-          # ancestor artifacts. Qualification remains fresh exact-head evidence.
           python - "$baseline_commit" "$CACE_EXPECTED_SHA" "$CACE_FORMAL_DIR" "$CACE_STATUS_DIR" <<'PY'
           import re
           import subprocess
@@ -350,7 +344,6 @@ jobs:
                           affected.add(dependent)
                           q.append(dependent)
 
-          # Always refresh the two qualification aggregators on an ancestor seed.
           for module in ('CACEFormal.V330AxiomAudit', 'CACEFormal.V330TheoremMetadata'):
               if module in module_to_path:
                   affected.add(module)
@@ -594,41 +587,7 @@ jobs:
           CACE_JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
-          if [[ -z "${CACE_STATUS_DIR:-}" ]]; then
-            exit 0
-          fi
-          mkdir -p "$CACE_STATUS_DIR"
-          python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          from pathlib import Path
-
-          status_dir = Path(os.environ['CACE_STATUS_DIR'])
-          output_dir = Path(os.environ['CACE_OUTPUT_DIR']) if os.environ.get('CACE_OUTPUT_DIR') else None
-          attestation = output_dir / 'cace_continuum_qualification_attestation.json' if output_dir else None
-          payload = {
-              'schema': 'cace-qualification-diagnostic-v2',
-              'timestamp_utc': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
-              'job_status': os.environ.get('CACE_JOB_STATUS'),
-              'git_commit': os.environ.get('CACE_EXPECTED_SHA') or os.environ.get('GITHUB_SHA'),
-              'run_id': os.environ.get('GITHUB_RUN_ID'),
-              'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
-              'formal_tree_sha': os.environ.get('CACE_FORMAL_TREE_SHA'),
-              'lean_toolchain': os.environ.get('CACE_TOOLCHAIN'),
-              'mathlib_commit': os.environ.get('CACE_MATHLIB_COMMIT'),
-              'cache_mode': os.environ.get('CACE_CACHE_MODE', 'miss'),
-              'cache_baseline_tree': os.environ.get('CACE_CACHE_BASELINE_TREE') or None,
-              'qualification_attestation_present': bool(attestation and attestation.is_file()),
-              'cache_effect': 'acceleration-only; never qualification evidence',
-          }
-          (status_dir / 'final_status.json').write_text(
-              json.dumps(payload, sort_keys=True, indent=2) + '\n', encoding='utf-8'
-          )
-          PY
-          shopt -s nullglob
-          for file in "$CACE_STATUS_DIR"/*.log "$CACE_STATUS_DIR"/heartbeat.jsonl; do
-            gzip -f "$file"
-          done
+          python scripts/finalize_qualification_diagnostics.py
 
       - name: Upload qualification diagnostics even on failure
         if: always()
