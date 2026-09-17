@@ -8,6 +8,7 @@ on:
       - 'quality/**'
       - 'cace_studio/core/proof_contract.py'
       - 'cace_studio/core/formal_gate.py'
+      - 'cace_studio/core/qualification_drift.py'
       - 'schema/proof-contracts.schema.json'
       - 'scripts/verify_collaboration_records.py'
       - 'scripts/validate_collaboration_lifecycle.py'
@@ -15,6 +16,7 @@ on:
       - 'scripts/audit_cace_actions_policy.py'
       - 'scripts/check_bug_sweep.py'
       - 'scripts/finalize_qualification_diagnostics.py'
+      - 'scripts/verify_continuum_qualification_bundle.py'
       - 'tests/test_collaboration_records.py'
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
@@ -24,6 +26,8 @@ on:
       - 'tests/test_qualification_overlay_v337.py'
       - 'tests/test_qualification_diagnostics_v337.py'
       - 'tests/test_bug_class_registry_v337.py'
+      - 'tests/test_independent_qualification_verifier_v338.py'
+      - 'tests/test_qualification_drift_v331.py'
       - '.github/workflows/cace-collaboration-validation.yml'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
       - '.github/workflows/cace-python-regression.yml'
@@ -77,7 +81,7 @@ jobs:
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip install --disable-pip-version-check 'pytest==8.4.2'
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip freeze > collaboration-test-environment.txt
 
-      - name: Run collaboration, proof-linkage, and bug-flush unit tests
+      - name: Run collaboration, proof-linkage, qualification, and bug-flush unit tests
         shell: bash
         run: |
           set -euo pipefail
@@ -88,7 +92,9 @@ jobs:
             tests/test_actions_policy_audit.py \
             tests/test_proof_contract_v336.py \
             tests/test_claim_registry_v331.py \
+            tests/test_qualification_drift_v331.py \
             tests/test_qualification_diagnostics_v337.py \
+            tests/test_independent_qualification_verifier_v338.py \
             tests/test_bug_class_registry_v337.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
@@ -114,6 +120,7 @@ jobs:
             'quality/bug_classes.json',
             'cace_studio/core/proof_contract.py',
             'cace_studio/core/formal_gate.py',
+            'cace_studio/core/qualification_drift.py',
             'schema/proof-contracts.schema.json',
             'scripts/verify_collaboration_records.py',
             'scripts/validate_collaboration_lifecycle.py',
@@ -121,18 +128,21 @@ jobs:
             'scripts/audit_cace_actions_policy.py',
             'scripts/check_bug_sweep.py',
             'scripts/finalize_qualification_diagnostics.py',
+            'scripts/verify_continuum_qualification_bundle.py',
             'tests/test_actions_policy_audit.py',
             'tests/test_proof_contract_v336.py',
             'tests/test_claim_registry_v331.py',
             'tests/test_qualification_overlay_v337.py',
+            'tests/test_qualification_drift_v331.py',
             'tests/test_qualification_diagnostics_v337.py',
+            'tests/test_independent_qualification_verifier_v338.py',
             'tests/test_bug_class_registry_v337.py',
             '.github/workflows/cace-collaboration-validation.yml',
             '.github/workflows/cace-formal-v336-theorem-metadata.yml',
             '.github/workflows/cace-python-regression.yml',
           ]))
           summary={
-            'schema':'cace-collaboration-validation-v4',
+            'schema':'cace-collaboration-validation-v5',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
