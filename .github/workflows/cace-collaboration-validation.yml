@@ -16,6 +16,7 @@ on:
       - 'scripts/check_bug_sweep.py'
       - 'scripts/finalize_qualification_diagnostics.py'
       - 'scripts/verify_v330_qualification_bundle.py'
+      - 'scripts/verify_continuum_qualification_bundle.py'
       - 'tests/test_collaboration_records.py'
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
@@ -26,6 +27,7 @@ on:
       - 'tests/test_qualification_diagnostics_v337.py'
       - 'tests/test_bug_class_registry_v337.py'
       - 'tests/test_qualification_bundle_verifier_v338.py'
+      - 'tests/test_independent_qualification_verifier_v338.py'
       - '.github/workflows/cace-collaboration-validation.yml'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
       - '.github/workflows/cace-python-regression.yml'
@@ -92,7 +94,8 @@ jobs:
             tests/test_claim_registry_v331.py \
             tests/test_qualification_diagnostics_v337.py \
             tests/test_bug_class_registry_v337.py \
-            tests/test_qualification_bundle_verifier_v338.py
+            tests/test_qualification_bundle_verifier_v338.py \
+            tests/test_independent_qualification_verifier_v338.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
@@ -143,6 +146,7 @@ jobs:
             'scripts/check_bug_sweep.py',
             'scripts/finalize_qualification_diagnostics.py',
             'scripts/verify_v330_qualification_bundle.py',
+            'scripts/verify_continuum_qualification_bundle.py',
             'tests/test_actions_policy_audit.py',
             'tests/test_proof_contract_v336.py',
             'tests/test_claim_registry_v331.py',
@@ -150,6 +154,7 @@ jobs:
             'tests/test_qualification_diagnostics_v337.py',
             'tests/test_bug_class_registry_v337.py',
             'tests/test_qualification_bundle_verifier_v338.py',
+            'tests/test_independent_qualification_verifier_v338.py',
             '.github/workflows/cace-collaboration-validation.yml',
             '.github/workflows/cace-formal-v336-theorem-metadata.yml',
             '.github/workflows/cace-python-regression.yml',

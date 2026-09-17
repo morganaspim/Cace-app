@@ -69,11 +69,21 @@ def test_collaboration_qualified_baseline_is_derived_from_canonical_provenance()
     assert not re.search(r"\bbaseline\s*=\s*[\"']?[0-9a-f]{40}\b", text)
 
 
-def test_collaboration_gate_enrolls_independent_qualification_verifier() -> None:
+def test_collaboration_gate_enrolls_both_qualification_verifiers() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
-    assert "scripts/verify_v330_qualification_bundle.py" in text
-    assert "tests/test_qualification_bundle_verifier_v338.py" in text
-    assert "tests/test_qualification_bundle_verifier_v338.py" in text.split("- name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests", 1)[1]
+    unit_suite = text.split(
+        "- name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests",
+        1,
+    )[1]
+    for path in (
+        "scripts/verify_v330_qualification_bundle.py",
+        "scripts/verify_continuum_qualification_bundle.py",
+        "tests/test_qualification_bundle_verifier_v338.py",
+        "tests/test_independent_qualification_verifier_v338.py",
+    ):
+        assert path in text
+    assert "tests/test_qualification_bundle_verifier_v338.py" in unit_suite
+    assert "tests/test_independent_qualification_verifier_v338.py" in unit_suite
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
@@ -121,7 +131,7 @@ def test_collaboration_trigger_must_cover_policy_test(tmp_path: Path) -> None:
     assert "collaboration-trigger-paths" in _kinds(audit(root))
 
 
-def test_collaboration_trigger_must_cover_qualification_verifier(tmp_path: Path) -> None:
+def test_collaboration_trigger_must_cover_portable_qualification_verifier(tmp_path: Path) -> None:
     root = _fixture(tmp_path)
     path = root / "cace-collaboration-validation.yml"
     text = path.read_text().replace(
