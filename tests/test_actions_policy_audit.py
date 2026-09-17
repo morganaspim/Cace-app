@@ -69,11 +69,32 @@ def test_collaboration_qualified_baseline_is_derived_from_canonical_provenance()
     assert not re.search(r"\bbaseline\s*=\s*[\"']?[0-9a-f]{40}\b", text)
 
 
-def test_collaboration_gate_enrolls_independent_qualification_verifier() -> None:
+def test_collaboration_gate_enrolls_both_qualification_verifiers() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
-    assert "scripts/verify_v330_qualification_bundle.py" in text
     assert "tests/test_qualification_bundle_verifier_v338.py" in text
-    assert "tests/test_qualification_bundle_verifier_v338.py" in text.split("- name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests", 1)[1]
+    assert "tests/test_qualification_source_binding_v339.py" in text
+    run_block = text.split(
+        "- name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests",
+        1,
+    )[1]
+    assert "tests/test_qualification_bundle_verifier_v338.py" in run_block
+    assert "tests/test_qualification_source_binding_v339.py" in run_block
+
+
+def test_collaboration_trigger_uses_future_proof_protected_surfaces() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    for path in (
+        "collaboration/**",
+        "quality/**",
+        "formal/**",
+        "cace_studio/**",
+        "schema/**",
+        "scripts/**",
+        "tests/**",
+        "pyproject.toml",
+        ".github/workflows/cace-*.yml",
+    ):
+        assert f"- '{path}'" in text
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
@@ -110,24 +131,25 @@ def test_regression_cannot_gain_second_automatic_trigger(tmp_path: Path) -> None
     assert "automatic-trigger-set" in _kinds(audit(root))
 
 
-def test_collaboration_trigger_must_cover_policy_test(tmp_path: Path) -> None:
+def test_collaboration_trigger_must_keep_scripts_surface(tmp_path: Path) -> None:
     root = _fixture(tmp_path)
     path = root / "cace-collaboration-validation.yml"
-    text = path.read_text().replace(
-        "      - 'tests/test_actions_policy_audit.py'\n",
-        "",
-    )
+    text = path.read_text().replace("      - 'scripts/**'\n", "", 1)
     path.write_text(text)
     assert "collaboration-trigger-paths" in _kinds(audit(root))
 
 
-def test_collaboration_trigger_must_cover_qualification_verifier(tmp_path: Path) -> None:
+def test_collaboration_trigger_must_keep_formal_surface(tmp_path: Path) -> None:
     root = _fixture(tmp_path)
     path = root / "cace-collaboration-validation.yml"
-    text = path.read_text().replace(
-        "      - 'scripts/verify_v330_qualification_bundle.py'\n",
-        "",
-        1,
-    )
+    text = path.read_text().replace("      - 'formal/**'\n", "", 1)
+    path.write_text(text)
+    assert "collaboration-trigger-paths" in _kinds(audit(root))
+
+
+def test_collaboration_trigger_must_keep_cace_source_surface(tmp_path: Path) -> None:
+    root = _fixture(tmp_path)
+    path = root / "cace-collaboration-validation.yml"
+    text = path.read_text().replace("      - 'cace_studio/**'\n", "", 1)
     path.write_text(text)
     assert "collaboration-trigger-paths" in _kinds(audit(root))
