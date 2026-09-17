@@ -1,0 +1,29 @@
+{
+  "schema": "cace-discovery-ledger-bridge-v1",
+  "qualified_baseline": {
+    "git_sha": "ce2487e2a7b85c095e0926b11c97fc1c4eba5de8",
+    "canonical_run_id": 35204273914,
+    "canonical_run_number": 44
+  },
+  "authority": {
+    "coordination_records_are_proof": false,
+    "ai_consensus_is_proof": false,
+    "sha256_is_semantic_proof": false,
+    "promotion_requires_independent_domain_evidence": true
+  },
+  "evidence_classes": [
+    "AI_PROPOSAL",
+    "ENGINEERING_VERIFIED",
+    "CERTIFIED_NUMERICAL",
+    "PROVED"
+  ],
+  "entries": [
+    {
+      "id": "collaboration-layer-v1",
+      "status": "ENGINEERING_VERIFIED",
+      "description": "Repository coordination protocol, content-addressed records, stale-head checks, lease lifecycle validation, and Actions serialization guard.",
+      "record_refs": ["decision:00000001"],
+      "proof_implication": "none"
+    }
+  ]
+}
