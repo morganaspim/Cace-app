@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 from typing import Iterable
 
 from .claim_registry import ClaimRegistry
-from .proof_contract import ProofContractRegistry
+from .proof_contract import ExecutableBindingError, ProofContractRegistry
 from .proof_ledger import ProofLedger
 from .types import EvidenceKind
 from .verification import VerificationRecord, VerificationState
@@ -17,19 +18,23 @@ def enforce_formal_claim_qualification(
     registry: ClaimRegistry | None = None,
     ledger: ProofLedger | None = None,
     contracts: ProofContractRegistry | None = None,
+    source_root: Path | str | None = None,
 ) -> list[VerificationRecord]:
     """Fail closed for formal PASS records.
 
     FORMAL+PASS survives only when claim registry, proof contract and proof ledger
-    agree on current-head, content-addressed qualification. Contract drift,
-    missing required checks, or missing provenance downgrades the runtime record
-    to NOT_RUN rather than inheriting stale proof status.
+    agree on current-head, content-addressed qualification and the runtime module
+    has an exact executable-source binding whose bytes still match the contract.
+    Contract drift, executable drift, missing required checks, or missing
+    provenance downgrades the runtime record to NOT_RUN rather than inheriting
+    stale proof status.
     """
 
     reg = registry or ClaimRegistry.load_default()
     proof_ledger = ledger or ProofLedger.load_default()
     proof_contracts = contracts or ProofContractRegistry.load_default()
     claim = reg.for_module(module_id)
+    executable_root = Path(source_root).resolve() if source_root is not None else Path(__file__).resolve().parents[2]
     out: list[VerificationRecord] = []
 
     for record in records:
@@ -67,6 +72,8 @@ def enforce_formal_claim_qualification(
         )
         ledger_entry = proof_ledger.for_claim(claim.claim_id)
         blockers: list[str] = []
+        executable_binding = None
+        executable_bundle_current: str | None = None
 
         if claim.qualification_status != "PASS":
             blockers.append("claim-registry-status-not-pass")
@@ -80,6 +87,20 @@ def enforce_formal_claim_qualification(
             blockers.append("proof-contract-missing")
         elif contract.claim_id != claim.claim_id:
             blockers.append("proof-contract-claim-mismatch")
+        else:
+            executable_binding = contract.executable_binding_for_module(module_id)
+            if executable_binding is None:
+                blockers.append("proof-contract-executable-binding-missing")
+            else:
+                try:
+                    executable_bundle_current = executable_binding.current_source_bundle_sha256(
+                        executable_root
+                    )
+                except ExecutableBindingError as exc:
+                    blockers.append(str(exc))
+                else:
+                    if executable_bundle_current != executable_binding.source_bundle_sha256:
+                        blockers.append("executable-source-bundle-hash-mismatch")
 
         if ledger_entry is None:
             blockers.append("proof-ledger-entry-missing")
@@ -116,6 +137,18 @@ def enforce_formal_claim_qualification(
                         "proof-contract-required-checks-missing:" + ",".join(missing_checks)
                     )
 
+        executable_metrics = {
+            "executable_binding_module_id": (
+                executable_binding.module_id if executable_binding is not None else None
+            ),
+            "executable_source_bundle_sha256_expected": (
+                executable_binding.source_bundle_sha256
+                if executable_binding is not None
+                else None
+            ),
+            "executable_source_bundle_sha256_current": executable_bundle_current,
+        }
+
         if blockers:
             reason = claim.reason or ",".join(blockers)
             out.append(
@@ -136,17 +169,19 @@ def enforce_formal_claim_qualification(
                         "proof_ledger_sha256": proof_ledger.ledger_sha256,
                         "qualification_status": claim.qualification_status,
                         "attested_commit": claim.attested_commit,
+                        **executable_metrics,
                     },
                     notes=record.notes
                     + (
                         "Formal PASS downgraded to NOT_RUN because canonical claim, proof-contract, "
-                        f"or proof-ledger qualification is incomplete for {claim.claim_id}.",
+                        "proof-ledger qualification, or executable-source binding is incomplete "
+                        f"for {claim.claim_id}.",
                     ),
                 )
             )
             continue
 
-        assert ledger_entry is not None and contract is not None
+        assert ledger_entry is not None and contract is not None and executable_binding is not None
         provenance_metrics = {
             "qualification_system": ledger_entry.qualification_system,
             "qualification_run_id": ledger_entry.qualification_run_id,
@@ -168,12 +203,14 @@ def enforce_formal_claim_qualification(
                     "qualification_status": claim.qualification_status,
                     "attested_commit": ledger_entry.commit,
                     "proof_artifact_sha256": ledger_entry.proof_artifact_sha256,
+                    **executable_metrics,
                     **provenance_metrics,
                 },
                 notes=record.notes
                 + (
                     f"Formal evidence bound to claim {claim.claim_id}, proof contract "
-                    f"{contract.contract_id}@{contract.contract_sha256}, commit {ledger_entry.commit}, "
+                    f"{contract.contract_id}@{contract.contract_sha256}, executable bundle "
+                    f"{executable_binding.source_bundle_sha256}, commit {ledger_entry.commit}, "
                     f"proof artifact {ledger_entry.proof_artifact_sha256}, and qualification "
                     f"{ledger_entry.qualification_system}:{ledger_entry.qualification_run_id}.",
                 ),
