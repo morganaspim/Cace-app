@@ -83,7 +83,8 @@
         "lean-build",
         "kernel-axiom-audit",
         "lean-environment-theorem-metadata",
-        "content-addressed-attestation"
+        "content-addressed-attestation",
+        "independent-source-bound-verification"
       ],
       "theorem_dependency_metadata": {
         "note": "Qualification requires theorem statements and direct/transitive CACE theorem dependencies generated from Lean.Environment, bound to this proof-contract SHA-256 and the exact Git commit.",
