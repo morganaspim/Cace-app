@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Fail-closed repository sweep for recurring bug classes and contract drift.
 
-This is intentionally complementary to pytest. It catches structural failure
-patterns before runtime tests, validates canonical registries against one
-another, and turns confirmed bug families into permanent repository-wide guards.
+This complements pytest. It catches structural failure patterns, validates canonical
+registries against one another, and turns confirmed bug families into permanent
+repository-wide guards. A deliberate proof-contract transition is not treated as a
+repository conflict only when qualification drift independently proves the previous
+qualification stale and the mismatch is limited to the narrow transition blockers.
 """
 from __future__ import annotations
 
@@ -28,6 +30,16 @@ ACTIVE_CONTRACT_GLOBS = (
 PYTHON_ROOTS = ("cace_studio", "scripts", "tests")
 JSON_ROOTS = ("cace_studio/data", "schema", "quality")
 V330_CLAIM_ID = "cace.v330.continuum-proof-strengthening"
+_PROOF_CONTRACT_PATH = "cace_studio/data/proof_contracts.json"
+_TRANSITION_EXACT_BLOCKERS = frozenset(
+    {
+        "Proof ledger is bound to a different proof-contract SHA-256.",
+        "Qualified ledger proof-contract hash does not match current contract.",
+    }
+)
+_TRANSITION_PREFIXES = (
+    "Qualified ledger is missing contract-required checks: ",
+)
 
 
 def _iter_globs(patterns: Iterable[str]) -> list[Path]:
@@ -48,7 +60,7 @@ def _location(text: str, offset: int) -> tuple[int, int]:
 
 def _is_hex(value: object, length: int) -> bool:
     return isinstance(value, str) and len(value) == length and all(
-        c in "0123456789abcdef" for c in value.lower()
+        char in "0123456789abcdef" for char in value.lower()
     )
 
 
@@ -111,6 +123,7 @@ def _check_pattern_registry(errors: list[str], summary: dict[str, int]) -> None:
     if not isinstance(patterns, list):
         errors.append("bug-pattern-registry: patterns must be an array")
         return
+
     seen: set[str] = set()
     files_checked = 0
     for item in patterns:
@@ -128,10 +141,16 @@ def _check_pattern_registry(errors: list[str], summary: dict[str, int]) -> None:
         includes = item.get("include")
         excludes = item.get("exclude", [])
         expression = item.get("forbid_regex")
-        if not isinstance(includes, list) or not includes or not all(isinstance(x, str) and x for x in includes):
-            errors.append(f"bug-pattern-registry:{pattern_id}: include must be a non-empty string array")
+        if not isinstance(includes, list) or not includes or not all(
+            isinstance(value, str) and value for value in includes
+        ):
+            errors.append(
+                f"bug-pattern-registry:{pattern_id}: include must be a non-empty string array"
+            )
             continue
-        if not isinstance(excludes, list) or not all(isinstance(x, str) and x for x in excludes):
+        if not isinstance(excludes, list) or not all(
+            isinstance(value, str) and value for value in excludes
+        ):
             errors.append(f"bug-pattern-registry:{pattern_id}: exclude must be a string array")
             continue
         if not isinstance(expression, str) or not expression:
@@ -151,7 +170,8 @@ def _check_pattern_registry(errors: list[str], summary: dict[str, int]) -> None:
             for match in regex.finditer(text):
                 line, column = _location(text, match.start())
                 errors.append(
-                    f"bug-pattern:{pattern_id}:{rel}:{line}:{column}: forbidden recurring bug pattern {match.group(0)!r}"
+                    f"bug-pattern:{pattern_id}:{rel}:{line}:{column}: "
+                    f"forbidden recurring bug pattern {match.group(0)!r}"
                 )
     summary["bug_patterns_checked"] = len(seen)
     summary["bug_pattern_file_checks"] = files_checked
@@ -181,13 +201,16 @@ def _check_bug_class_ref(
         errors.append(f"bug-class-registry:{class_id}:{kind}: path escapes repository: {rel!r}")
         return
     if not path.is_file():
-        errors.append(f"bug-class-registry:{class_id}:{kind}: missing guard/reproducer file {rel!r}")
+        errors.append(
+            f"bug-class-registry:{class_id}:{kind}: missing guard/reproducer file {rel!r}"
+        )
         return
     try:
         text = path.read_text(encoding="utf-8")
     except Exception as exc:
         errors.append(
-            f"bug-class-registry:{class_id}:{kind}: cannot read {rel!r}: {type(exc).__name__}: {exc}"
+            f"bug-class-registry:{class_id}:{kind}: cannot read {rel!r}: "
+            f"{type(exc).__name__}: {exc}"
         )
         return
     if needle not in text:
@@ -227,7 +250,9 @@ def _check_bug_class_registry(errors: list[str], summary: dict[str, int]) -> Non
         seen.add(class_id)
 
         if item.get("status") != "GUARDED":
-            errors.append(f"bug-class-registry:{class_id}: status must be GUARDED before CI can pass")
+            errors.append(
+                f"bug-class-registry:{class_id}: status must be GUARDED before CI can pass"
+            )
         else:
             guarded += 1
         for field in ("description", "root_cause", "closure_rule"):
@@ -273,11 +298,50 @@ def _check_bug_class_registry(errors: list[str], summary: dict[str, int]) -> Non
     summary["bug_class_refs_checked"] = refs_checked
 
 
+def _transition_blocker_allowed(blocker: str) -> bool:
+    return blocker in _TRANSITION_EXACT_BLOCKERS or any(
+        blocker.startswith(prefix) for prefix in _TRANSITION_PREFIXES
+    )
+
+
+def _is_drift_proven_contract_transition(
+    *,
+    claim,
+    ledger_entry,
+    contract,
+    blockers: tuple[str, ...],
+    drift_result,
+) -> bool:
+    """Return True only for the narrow stale-ledger state required before requalification."""
+    if ledger_entry is None or contract is None or drift_result is None:
+        return False
+    if not claim.current_head_qualified or not ledger_entry.current_head_qualified:
+        return False
+    if claim.proof_contract_id != contract.contract_id:
+        return False
+    if ledger_entry.proof_contract_id != contract.contract_id:
+        return False
+    if ledger_entry.proof_contract_sha256 == contract.contract_sha256:
+        return False
+    if drift_result.passed or _PROOF_CONTRACT_PATH not in set(drift_result.sensitive_paths):
+        return False
+
+    structural = tuple(
+        blocker
+        for blocker in blockers
+        if not (claim.reason and blocker == claim.reason)
+    )
+    if not structural:
+        return False
+    return all(_transition_blocker_allowed(blocker) for blocker in structural)
+
+
 def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) -> None:
     from cace_studio.core.claim_registry import ClaimRegistry
     from cace_studio.core.proof_contract import ProofContractRegistry
     from cace_studio.core.proof_explorer import ProofExplorer
     from cace_studio.core.proof_ledger import ProofLedger
+    from cace_studio.core.qualification_drift import audit_current_qualifications
 
     claims = ClaimRegistry.load_default()
     contracts = ProofContractRegistry.load_default()
@@ -287,11 +351,13 @@ def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) 
         claim = claims.by_id(contract.claim_id)
         if claim is None:
             errors.append(
-                f"canonical-link: proof contract {contract.contract_id!r} references missing claim {contract.claim_id!r}"
+                f"canonical-link: proof contract {contract.contract_id!r} references missing claim "
+                f"{contract.claim_id!r}"
             )
         elif claim.proof_contract_id != contract.contract_id:
             errors.append(
-                f"canonical-link: claim {claim.claim_id!r} binds {claim.proof_contract_id!r}, expected {contract.contract_id!r}"
+                f"canonical-link: claim {claim.claim_id!r} binds {claim.proof_contract_id!r}, "
+                f"expected {contract.contract_id!r}"
             )
 
     for claim in claims.claims:
@@ -299,11 +365,13 @@ def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) 
             contract = contracts.by_id(claim.proof_contract_id)
             if contract is None:
                 errors.append(
-                    f"canonical-link: claim {claim.claim_id!r} references missing proof contract {claim.proof_contract_id!r}"
+                    f"canonical-link: claim {claim.claim_id!r} references missing proof contract "
+                    f"{claim.proof_contract_id!r}"
                 )
             elif contract.claim_id != claim.claim_id:
                 errors.append(
-                    f"canonical-link: proof contract {contract.contract_id!r} is bound to {contract.claim_id!r}, not {claim.claim_id!r}"
+                    f"canonical-link: proof contract {contract.contract_id!r} is bound to "
+                    f"{contract.claim_id!r}, not {claim.claim_id!r}"
                 )
 
     for entry in ledger.entries:
@@ -316,27 +384,59 @@ def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) 
             contract = contracts.by_id(entry.proof_contract_id)
             if contract is None:
                 errors.append(
-                    f"canonical-link: ledger release {entry.release!r} references missing contract {entry.proof_contract_id!r}"
+                    f"canonical-link: ledger release {entry.release!r} references missing contract "
+                    f"{entry.proof_contract_id!r}"
                 )
             elif contract.claim_id not in entry.claim_ids:
                 errors.append(
-                    f"canonical-link: ledger release {entry.release!r} contract claim {contract.claim_id!r} is absent from entry claim_ids"
+                    f"canonical-link: ledger release {entry.release!r} contract claim "
+                    f"{contract.claim_id!r} is absent from entry claim_ids"
                 )
+
+    try:
+        drift_by_claim = {
+            result.claim_id: result
+            for result in audit_current_qualifications(
+                ROOT,
+                registry=claims,
+                ledger=ledger,
+            )
+        }
+    except Exception as exc:
+        errors.append(
+            f"canonical-link: qualification drift audit failed closed: {type(exc).__name__}: {exc}"
+        )
+        drift_by_claim = {}
 
     explorer = ProofExplorer(claims, ledger, contracts)
     conflicts = 0
+    pending_requalification = 0
     for claim in claims.claims:
         view = explorer.claim_view(claim.claim_id)
-        if view.qualification_state == "CONFLICT":
-            conflicts += 1
-            errors.append(
-                f"canonical-link: claim {claim.claim_id!r} is in CONFLICT state: {'; '.join(view.blockers)}"
-            )
+        if view.qualification_state != "CONFLICT":
+            continue
+        ledger_entry = ledger.for_claim(claim.claim_id)
+        contract = contracts.by_id(claim.proof_contract_id) if claim.proof_contract_id else None
+        if _is_drift_proven_contract_transition(
+            claim=claim,
+            ledger_entry=ledger_entry,
+            contract=contract,
+            blockers=view.blockers,
+            drift_result=drift_by_claim.get(claim.claim_id),
+        ):
+            pending_requalification += 1
+            continue
+        conflicts += 1
+        errors.append(
+            f"canonical-link: claim {claim.claim_id!r} is in CONFLICT state: "
+            f"{'; '.join(view.blockers)}"
+        )
 
     summary["canonical_claims_checked"] = len(claims.claims)
     summary["proof_contracts_checked"] = len(contracts.contracts)
     summary["proof_ledger_entries_checked"] = len(ledger.entries)
     summary["qualification_conflicts"] = conflicts
+    summary["qualification_transitions_pending_requalification"] = pending_requalification
 
     current = contracts.for_claim(V330_CLAIM_ID)
     if current is None:
@@ -345,7 +445,8 @@ def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) 
     match = re.fullmatch(r"(.+)\.v(\d+)", current.contract_id)
     if match is None:
         errors.append(
-            f"canonical-link: current v330 contract id has no terminal version suffix: {current.contract_id!r}"
+            f"canonical-link: current v330 contract id has no terminal version suffix: "
+            f"{current.contract_id!r}"
         )
         return
     prefix = match.group(1)
@@ -360,7 +461,8 @@ def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) 
                 stale_refs += 1
                 line, column = _location(text, ref.start())
                 errors.append(
-                    f"stale-contract-ref:{rel}:{line}:{column}: {value!r} != authoritative {current.contract_id!r}"
+                    f"stale-contract-ref:{rel}:{line}:{column}: {value!r} != authoritative "
+                    f"{current.contract_id!r}"
                 )
     summary["stale_authoritative_contract_refs"] = stale_refs
 
