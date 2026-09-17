@@ -1,0 +1,82 @@
+name: CACE Collaboration Coordination Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cace-collaboration-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Establish exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          printf 'exact_head=%s\n' "${GITHUB_SHA}"
+
+      - name: Enforce repository-wide CACE Actions serialization
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}"
+
+      - name: Validate collaboration record structure and hashes
+        run: python scripts/verify_collaboration_records.py
+
+      - name: Validate collaboration lifecycle
+        run: python scripts/validate_collaboration_lifecycle.py
+
+      - name: Run collaboration unit tests
+        run: python -m pytest -q tests/test_collaboration_records.py tests/test_collaboration_lifecycle.py tests/test_actions_serialization_guard.py
+
+      - name: Verify qualified baseline remains an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline=ce2487e2a7b85c095e0926b11c97fc1c4eba5de8
+          git merge-base --is-ancestor "$baseline" HEAD
+          printf 'qualified_baseline_ancestor=%s\n' "$baseline"
+
+      - name: Emit engineering-only validation summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess
+          files = sorted([
+              pathlib.Path('collaboration/PROTOCOL.md'),
+              pathlib.Path('collaboration/schema/cace-collaboration-record.schema.json'),
+              pathlib.Path('collaboration/DISCOVERY_LEDGER.json'),
+              pathlib.Path('scripts/verify_collaboration_records.py'),
+              pathlib.Path('scripts/validate_collaboration_lifecycle.py'),
+              pathlib.Path('scripts/cace_actions_serialization_guard.py'),
+          ])
+          summary = {
+              'schema': 'cace-collaboration-validation-v1',
+              'evidence_class': 'ENGINEERING_VERIFIED',
+              'proof_implication': 'none',
+              'head_sha': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+              'qualified_baseline': 'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8',
+              'sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
+          }
+          pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cace-collaboration-validation
+          path: collaboration-validation-summary.json
+          if-no-files-found: error
