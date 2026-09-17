@@ -87,6 +87,7 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
         "scripts/build_continuum_attestation.py",
         "scripts/export_v330_environment_metadata.py",
         "scripts/finalize_qualification_diagnostics.py",
+        "scripts/promote_v330_qualification.py",
         "scripts/verify_v330_qualification_bundle.py",
         "scripts/verify_v330_qualification_source_binding.py",
         "tests/test_continuum_attestation_v337.py",
@@ -94,6 +95,7 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
         "tests/test_lean_theorem_metadata_v336.py",
         "tests/test_qualification_bundle_verifier_v338.py",
         "tests/test_qualification_diagnostics_v337.py",
+        "tests/test_qualification_promotion_v339.py",
         "tests/test_qualification_source_binding_v339.py",
         ".github/workflows/cace-formal-v330.yml",
         ".github/workflows/cace-formal-v336-theorem-metadata.yml",
@@ -124,6 +126,12 @@ def test_proof_contract_change_is_never_treated_as_provenance_only():
         ]
     )
     assert sensitive == ("cace_studio/data/proof_contracts.json",)
+
+
+def test_promotion_implementation_change_always_requires_requalification():
+    assert classify_qualification_sensitive(
+        ["scripts/promote_v330_qualification.py", "cace_studio/data/proof_ledger.json"]
+    ) == ("scripts/promote_v330_qualification.py",)
 
 
 def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descendant(tmp_path):
