@@ -30,6 +30,7 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
         "tests/test_independent_qualification_verifier_v338.py",
         "tests/test_qualification_drift_v331.py",
         ".github/workflows/cace-formal-v330.yml",
+        ".github/workflows/cace-formal-v336-theorem-metadata.yml",
     }
 )
 
