@@ -65,12 +65,16 @@
           "contains": "finalize_qualification_diagnostics.py"
         },
         {
+          "path": ".github/workflows/cace-formal-v336-theorem-metadata.yml",
+          "contains": "preserving primary job status"
+        },
+        {
           "path": "scripts/check_bug_sweep.py",
           "contains": "_check_bug_class_registry"
         }
       ],
-      "closure_rule": "Failure-path finalization is standalone, idempotent, and tolerant of absent optional evidence; fault injection is permanent and workflow usage is verified by bug-sweep.",
-      "fingerprint_sha256": "f5f05306901497a2a77f496e5e0aef7706548332354e6cb5d4aea82d033f64bc"
+      "closure_rule": "Failure-path finalization is standalone and idempotent, tolerates absent optional evidence, and the always-run workflow wrapper cannot replace a prior failure with a cleanup failure; fault injection is permanent and workflow usage is verified by bug-sweep.",
+      "fingerprint_sha256": "293db0e4de23da2354d81472db9f64b77458d89574d45ce8d6439ecacd3d84ff"
     }
   ]
 }
