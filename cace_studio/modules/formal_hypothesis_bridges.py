@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from typing import Any
 
 import numpy as np
 
+from cace_studio.core.formal_gate import enforce_formal_claim_qualification
 from cace_studio.core.module import Module, ValidationError
 from cace_studio.core.proof_contract import ProofContractRegistry
 from cace_studio.core.types import EvidenceKind, Maturity, ModuleMetadata, PortSpec, ProofStatus
 from cace_studio.core.verification import VerificationRecord, VerificationState
 
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
+FORMAL_ENDPOINT_MODULE_ID = "formal330.qualified_theorem_endpoint"
 ZERO_TRACE_THEOREM = "CACEFormal.Continuum.hasZeroBoundaryTrace_zero"
 PRAGER_SYNG_THEOREM = "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen"
 BRIDGE_SCHEMA = "cace-formal-hypothesis-bridge-v1"
@@ -47,6 +48,38 @@ def _canonical_endpoint(endpoint: Any, theorem_name: str) -> bool:
     )
 
 
+def _qualification_anchor() -> dict[str, Any]:
+    probe = VerificationRecord(
+        "formal-hypothesis-bridge-qualification-probe",
+        EvidenceKind.FORMAL,
+        "probe the canonical current qualification used by formal hypothesis bridges",
+        VerificationState.PASS,
+        "canonical formal-gate probe",
+        {},
+    )
+    gated = enforce_formal_claim_qualification(FORMAL_ENDPOINT_MODULE_ID, [probe])[0]
+    metrics = gated.metrics
+    return {
+        "state": "pass" if gated.state is VerificationState.PASS else "not-qualified",
+        "formal_gate": metrics.get("formal_gate"),
+        "formal_gate_reason": metrics.get("formal_gate_reason"),
+        "claim_id": metrics.get("claim_id"),
+        "proof_contract_id": metrics.get("proof_contract_id"),
+        "proof_contract_sha256": metrics.get("proof_contract_sha256"),
+        "attested_commit": metrics.get("attested_commit"),
+        "proof_artifact_sha256": metrics.get("proof_artifact_sha256"),
+        "qualification_system": metrics.get("qualification_system"),
+        "qualification_run_id": metrics.get("qualification_run_id"),
+        "workflow_run_id": metrics.get("workflow_run_id"),
+        "executable_source_bundle_sha256_expected": metrics.get(
+            "executable_source_bundle_sha256_expected"
+        ),
+        "executable_source_bundle_sha256_current": metrics.get(
+            "executable_source_bundle_sha256_current"
+        ),
+    }
+
+
 def _vector_manifest(vector: np.ndarray) -> dict[str, Any]:
     canonical = [float(value) for value in vector.tolist()]
     return {
@@ -66,7 +99,7 @@ class ZeroBoundaryTraceZeroBridge(Module):
         "Bind an exactly-zero concrete runtime vector to the qualified Lean endpoint HasZeroBoundaryTrace G 0 for arbitrary bounded Green pairings.",
         Maturity.BETA,
         assumptions=(
-            "the theorem endpoint descriptor comes from formal330.qualified_theorem_endpoint",
+            "the theorem endpoint descriptor identifies the current canonical hasZeroBoundaryTrace_zero endpoint",
             "the supplied coordinate vector is the complete runtime representation of the theorem test field v",
         ),
     )
@@ -83,7 +116,7 @@ class ZeroBoundaryTraceZeroBridge(Module):
         limitations=[
             "This bridge certifies only the exact zero test field v = 0.",
             "It does not certify sampled boundary values, approximate zeros, or arbitrary nonzero fields.",
-            "The bridge itself does not emit FORMAL evidence; formal proof provenance comes from the upstream qualified endpoint record.",
+            "The bridge itself does not emit FORMAL evidence; it requires the canonical formal gate to confirm current qualified proof provenance.",
         ],
     )
 
@@ -101,7 +134,13 @@ class ZeroBoundaryTraceZeroBridge(Module):
         contract = _current_contract()
         endpoint_ok = _canonical_endpoint(endpoint, ZERO_TRACE_THEOREM)
         exact_zero = bool(np.all(vector == 0.0))
-        manifest = _vector_manifest(vector)
+        qualification = _qualification_anchor()
+        if not endpoint_ok or not exact_zero:
+            state = "fail"
+        elif qualification["state"] != "pass":
+            state = "not-qualified"
+        else:
+            state = "pass"
         certificate = {
             "schema": BRIDGE_SCHEMA,
             "claim_id": CLAIM_ID,
@@ -111,12 +150,13 @@ class ZeroBoundaryTraceZeroBridge(Module):
             "proof_contract_id": contract.contract_id if contract else None,
             "proof_contract_sha256": contract.contract_sha256 if contract else None,
             "endpoint_descriptor_valid": endpoint_ok,
-            "runtime_representation": manifest,
+            "qualification_anchor": qualification,
+            "runtime_representation": _vector_manifest(vector),
             "formal_instantiation": {"v": "0"} if exact_zero else None,
             "runtime_representation_exact_zero": exact_zero,
-            "state": "pass" if endpoint_ok and exact_zero else "fail",
-            "formal_provenance_source": "upstream verification record for formal330.qualified_theorem_endpoint",
-            "scope_note": "PASS binds only an exact zero runtime representation to the qualified theorem HasZeroBoundaryTrace G 0; no nonzero trace statement is inferred.",
+            "state": state,
+            "formal_provenance_source": "canonical formal gate over claim registry, proof contract, proof ledger, and executable-source binding",
+            "scope_note": "PASS binds only an exact zero runtime representation to the currently qualified theorem HasZeroBoundaryTrace G 0; no nonzero trace statement is inferred.",
         }
         certificate["certificate_sha256"] = _canonical_sha256(certificate)
         return certificate
@@ -128,23 +168,29 @@ class ZeroBoundaryTraceZeroBridge(Module):
         expected = self._certificate(inputs)
         actual = outputs.get("bridge_certificate")
         consistent = isinstance(actual, dict) and actual == expected
-        passed = bool(consistent and expected["state"] == "pass")
+        if consistent and expected["state"] == "pass":
+            state = VerificationState.PASS
+        elif consistent and expected["state"] == "not-qualified":
+            state = VerificationState.NOT_RUN
+        else:
+            state = VerificationState.FAIL
         return [
             VerificationRecord(
                 "zero-boundary-trace-zero-runtime-bridge",
                 EvidenceKind.SYMBOLIC,
-                "an exact zero runtime test-field representation is bound to the qualified hasZeroBoundaryTrace_zero theorem endpoint",
-                VerificationState.PASS if passed else VerificationState.FAIL,
-                "exact coordinate equality to zero plus canonical theorem/claim/proof-contract identity matching",
+                "an exact zero runtime test-field representation is bound to the currently qualified hasZeroBoundaryTrace_zero theorem endpoint",
+                state,
+                "exact coordinate equality to zero plus canonical endpoint matching and canonical formal-gate qualification",
                 {
                     "bridge_theorem_name": ZERO_TRACE_THEOREM,
                     "state": expected["state"],
                     "runtime_representation_exact_zero": expected["runtime_representation_exact_zero"],
+                    "qualification_anchor": expected["qualification_anchor"],
                     "certificate_sha256": expected["certificate_sha256"],
                     "output_consistent": consistent,
                 },
                 notes=(
-                    "Formal proof provenance is separate and must be supplied by the upstream formal endpoint verification record.",
+                    "Before the new proof contract is requalified and promoted, an otherwise valid exact-zero bridge remains NOT_RUN.",
                     "No tolerance is used: near-zero values fail this bridge.",
                 ),
             )
@@ -182,6 +228,7 @@ class ResolvePragerSyngeZeroTrace(Module):
         packet = inputs["hypothesis_packet"]
         bridge = inputs["bridge_certificate"]
         contract = _current_contract()
+        current_qualification = _qualification_anchor()
         base_ok = bool(
             isinstance(packet, dict)
             and packet.get("schema") == PACKET_SCHEMA
@@ -200,6 +247,8 @@ class ResolvePragerSyngeZeroTrace(Module):
             and bridge.get("proof_contract_id") == (contract.contract_id if contract else None)
             and bridge.get("proof_contract_sha256") == (contract.contract_sha256 if contract else None)
             and bridge.get("endpoint_descriptor_valid") is True
+            and bridge.get("qualification_anchor") == current_qualification
+            and current_qualification.get("state") == "pass"
             and bridge.get("runtime_representation_exact_zero") is True
             and bridge.get("formal_instantiation") == {"v": "0"}
             and bridge.get("state") == "pass"
@@ -239,6 +288,7 @@ class ResolvePragerSyngeZeroTrace(Module):
             [bridge.get("certificate_sha256")] if resolution_applied else []
         )
         result["resolution_status"] = "applied" if resolution_applied else "rejected"
+        result["qualification_anchor"] = current_qualification
         result.pop("packet_sha256", None)
         result["packet_sha256"] = _canonical_sha256(result)
         return result
@@ -262,26 +312,31 @@ class ResolvePragerSyngeZeroTrace(Module):
             "green-smooth-core",
             "weak-green-cross-term-identity",
         }
-        passed = bool(
-            consistent
-            and expected.get("resolution_status") == "applied"
-            and hv.get("state") == "pass"
-            and hv.get("bridge_theorem_name") == ZERO_TRACE_THEOREM
-            and correct_remaining
-            and expected.get("runtime_ready") is False
-            and expected.get("formal_instantiation") is False
-        )
+        if expected.get("qualification_anchor", {}).get("state") != "pass":
+            state = VerificationState.NOT_RUN if consistent else VerificationState.FAIL
+        else:
+            passed = bool(
+                consistent
+                and expected.get("resolution_status") == "applied"
+                and hv.get("state") == "pass"
+                and hv.get("bridge_theorem_name") == ZERO_TRACE_THEOREM
+                and correct_remaining
+                and expected.get("runtime_ready") is False
+                and expected.get("formal_instantiation") is False
+            )
+            state = VerificationState.PASS if passed else VerificationState.FAIL
         return [
             VerificationRecord(
                 "prager-synge-zero-trace-premise-resolution",
                 EvidenceKind.SYMBOLIC,
                 "the zero-boundary-trace premise is resolved through the qualified v = 0 bridge while the remaining independent theorem premises stay unresolved",
-                VerificationState.PASS if passed else VerificationState.FAIL,
-                "content-addressed bridge-certificate validation and exact single-premise substitution",
+                state,
+                "content-addressed bridge-certificate validation, canonical formal-gate qualification, and exact single-premise substitution",
                 {
                     "resolution_status": expected.get("resolution_status"),
                     "unresolved_hypotheses": expected.get("unresolved_hypotheses"),
                     "runtime_instantiations": expected.get("runtime_instantiations"),
+                    "qualification_anchor": expected.get("qualification_anchor"),
                     "packet_sha256": expected.get("packet_sha256"),
                     "output_consistent": consistent,
                 },
