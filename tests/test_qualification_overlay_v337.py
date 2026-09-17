@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import json
 
 import pytest
 
 from cace_studio.cli import main as cli_main
+from cace_studio.core.claim_registry import ClaimRegistry
 from cace_studio.core.proof_contract import ProofContractRegistry
 from cace_studio.core.proof_explorer import ProofExplorer
+from cace_studio.core.proof_ledger import ProofLedger
 from cace_studio.core.qualification_attestation import (
     CACHE_POLICY,
     QualificationAttestationError,
@@ -16,12 +19,12 @@ from cace_studio.core.qualification_attestation import (
 
 
 COMMIT = "1" * 40
+QUALIFIED_COMMIT = "c01abdeca099d3905e5e22505958f7fbad11164e"
+CLAIM_ID = "cace.v330.continuum-proof-strengthening"
 
 
 def _contract():
-    contract = ProofContractRegistry.load_default().for_claim(
-        "cace.v330.continuum-proof-strengthening"
-    )
+    contract = ProofContractRegistry.load_default().for_claim(CLAIM_ID)
     assert contract is not None
     return contract
 
@@ -75,19 +78,67 @@ def _verify(data: bytes, *, commit: str = COMMIT):
     )
 
 
-def test_default_explorer_remains_fail_closed_without_external_artifact():
-    view = ProofExplorer().claim_view("cace.v330.continuum-proof-strengthening")
-    assert view.current_head_qualified is False
-    assert view.qualification_state == "UNQUALIFIED"
+def _unqualified_explorer(*, qualifications=()) -> ProofExplorer:
+    default_registry = ClaimRegistry.load_default()
+    default_ledger = ProofLedger.load_default()
+    claim = default_registry.by_id(CLAIM_ID)
+    entry = default_ledger.for_claim(CLAIM_ID)
+    assert claim is not None and entry is not None
+
+    unqualified_claim = replace(
+        claim,
+        qualification_status="NOT_RUN",
+        current_head_qualified=False,
+        attested_commit=None,
+        proof_artifact_sha256=None,
+        reason="",
+    )
+    unqualified_entry = replace(
+        entry,
+        status="NOT_RUN",
+        current_head_qualified=False,
+        commit=None,
+        proof_artifact_sha256=None,
+        qualification_system=None,
+        qualification_run_id=None,
+        workflow_run_id=None,
+        checks=(),
+        blockers=(),
+    )
+    registry = ClaimRegistry(
+        schema_version=default_registry.schema_version,
+        policy=default_registry.policy,
+        claims=(unqualified_claim,),
+        registry_sha256="synthetic-unqualified-registry",
+    )
+    ledger = ProofLedger(
+        schema_version=default_ledger.schema_version,
+        policy=default_ledger.policy,
+        entries=(unqualified_entry,),
+        ledger_sha256="synthetic-unqualified-ledger",
+    )
+    return ProofExplorer(
+        registry=registry,
+        ledger=ledger,
+        qualifications=qualifications,
+    )
+
+
+def test_default_explorer_reports_promoted_static_qualification():
+    view = ProofExplorer().claim_view(CLAIM_ID)
+    assert view.current_head_qualified is True
+    assert view.qualification_state == "QUALIFIED"
     assert view.qualification_source == "canonical-static"
+    assert view.attested_commit == QUALIFIED_COMMIT
+    assert view.registry_status == "PASS"
+    assert view.ledger_status == "PASS"
+    assert view.blockers == ()
 
 
-def test_verified_external_artifact_upgrades_read_only_view_without_mutating_static_truth():
+def test_verified_external_artifact_upgrades_synthetic_unqualified_view_without_mutating_truth():
     data = _bytes()
     qualification = _verify(data)
-    view = ProofExplorer(qualifications=(qualification,)).claim_view(
-        "cace.v330.continuum-proof-strengthening"
-    )
+    view = _unqualified_explorer(qualifications=(qualification,)).claim_view(CLAIM_ID)
 
     assert view.current_head_qualified is True
     assert view.qualification_state == "QUALIFIED"
@@ -99,7 +150,6 @@ def test_verified_external_artifact_upgrades_read_only_view_without_mutating_sta
     assert view.workflow_run_id == 12345
     assert view.checks == _contract().required_checks
 
-    # Source-truth files remain a fail-closed baseline, avoiding commit self-reference.
     assert view.registry_status == "NOT_RUN"
     assert view.ledger_status == "NOT_RUN"
     assert view.blockers == ()
@@ -179,7 +229,9 @@ def test_duplicate_external_qualification_for_same_claim_is_rejected():
         ProofExplorer(qualifications=(qualification, qualification))
 
 
-def test_cli_can_render_verified_external_qualification(tmp_path, capsys):
+def test_cli_surfaces_conflict_when_external_qualification_disagrees_with_promoted_static_truth(
+    tmp_path, capsys
+):
     data = _bytes()
     digest = hashlib.sha256(data).hexdigest()
     artifact = tmp_path / "qualification.json"
@@ -189,7 +241,7 @@ def test_cli_can_render_verified_external_qualification(tmp_path, capsys):
         [
             "proofs",
             "show",
-            "cace.v330.continuum-proof-strengthening",
+            CLAIM_ID,
             "--qualification-attestation",
             str(artifact),
             "--qualification-sha256",
@@ -201,9 +253,11 @@ def test_cli_can_render_verified_external_qualification(tmp_path, capsys):
     captured = capsys.readouterr()
     assert code == 0
     rendered = json.loads(captured.out)
-    assert rendered["proof"]["qualification_state"] == "QUALIFIED"
-    assert rendered["proof"]["qualification_source"] == "external-attestation"
-    assert rendered["proof"]["current_head_qualified"] is True
+    proof = rendered["proof"]
+    assert proof["qualification_state"] == "CONFLICT"
+    assert proof["qualification_source"] == "conflict"
+    assert proof["current_head_qualified"] is False
+    assert any("disagrees with external qualification" in blocker for blocker in proof["blockers"])
 
 
 def test_cli_rejects_partial_external_qualification_arguments(tmp_path, capsys):
@@ -213,7 +267,7 @@ def test_cli_rejects_partial_external_qualification_arguments(tmp_path, capsys):
         [
             "proofs",
             "show",
-            "cace.v330.continuum-proof-strengthening",
+            CLAIM_ID,
             "--qualification-attestation",
             str(artifact),
         ]
