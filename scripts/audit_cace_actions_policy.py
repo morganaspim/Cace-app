@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Audit the executable CACE GitHub Actions surface.
 
-This is engineering coordination only. It does not create proof evidence.
+This is engineering coordination only. It does not create proof evidence. The audit
+fails closed if the self-hosted workflows broaden their automatic triggers, lose the
+shared serialization group, or if collaboration validation stops covering one of the
+broad proof-sensitive repository surfaces.
 """
 from __future__ import annotations
 
@@ -11,8 +14,15 @@ import re
 from pathlib import Path
 
 AUTO_TRIGGERS = {
-    "push", "pull_request", "pull_request_target", "schedule", "merge_group",
-    "workflow_run", "repository_dispatch", "issues", "issue_comment",
+    "push",
+    "pull_request",
+    "pull_request_target",
+    "schedule",
+    "merge_group",
+    "workflow_run",
+    "repository_dispatch",
+    "issues",
+    "issue_comment",
 }
 GLOBAL_GROUP = "cace-canonical-qualification-oci"
 EXPECTED_ACTIVE = {
@@ -35,80 +45,68 @@ LOCKED_PUSH_SCOPE = {
         "paths": {".github/workflows/cace-python-regression.yml"},
     },
 }
+# Broad surfaces are deliberate. New proof/governance files placed under these
+# roots are automatically enrolled without updating a per-file allowlist.
 COLLAB_REQUIRED_PATHS = {
     "collaboration/**",
-    "scripts/verify_collaboration_records.py",
-    "scripts/validate_collaboration_lifecycle.py",
-    "scripts/cace_actions_serialization_guard.py",
-    "scripts/audit_cace_actions_policy.py",
-    "scripts/verify_v330_qualification_bundle.py",
-    "tests/test_collaboration_records.py",
-    "tests/test_collaboration_lifecycle.py",
-    "tests/test_actions_serialization_guard.py",
-    "tests/test_actions_policy_audit.py",
-    "tests/test_qualification_bundle_verifier_v338.py",
-    ".github/workflows/cace-collaboration-validation.yml",
-    ".github/workflows/cace-formal-v336-theorem-metadata.yml",
-    ".github/workflows/cace-python-regression.yml",
+    "quality/**",
+    "formal/**",
+    "cace_studio/**",
+    "schema/**",
+    "scripts/**",
+    "tests/**",
+    "pyproject.toml",
+    ".github/workflows/cace-*.yml",
 }
 REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}
 
 
 def _top_block(lines: list[str], key: str) -> list[str]:
-    start = None
-    base = 0
-    for i, line in enumerate(lines):
+    for index, line in enumerate(lines):
         if re.match(rf"^{re.escape(key)}:\s*$", line):
-            start = i + 1
             base = len(line) - len(line.lstrip())
-            break
-    if start is None:
-        return []
-    out = []
-    for line in lines[start:]:
-        if not line.strip() or line.lstrip().startswith("#"):
-            out.append(line)
-            continue
-        indent = len(line) - len(line.lstrip())
-        if indent <= base:
-            break
-        out.append(line)
-    return out
+            out: list[str] = []
+            for nested in lines[index + 1 :]:
+                if not nested.strip() or nested.lstrip().startswith("#"):
+                    out.append(nested)
+                    continue
+                indent = len(nested) - len(nested.lstrip())
+                if indent <= base:
+                    break
+                out.append(nested)
+            return out
+    return []
 
 
 def _mapping_keys(block: list[str], indent: int = 2) -> set[str]:
-    found = set()
+    result: set[str] = set()
     for line in block:
         if line.lstrip().startswith("#"):
             continue
         match = re.match(rf"^\s{{{indent}}}([A-Za-z0-9_-]+):", line)
         if match:
-            found.add(match.group(1))
-    return found
+            result.add(match.group(1))
+    return result
 
 
 def _child_block(block: list[str], key: str, indent: int = 2) -> list[str]:
-    start = None
-    for i, line in enumerate(block):
+    for index, line in enumerate(block):
         if re.match(rf"^\s{{{indent}}}{re.escape(key)}:\s*$", line):
-            start = i + 1
-            break
-    if start is None:
-        return []
-    out = []
-    for line in block[start:]:
-        if not line.strip() or line.lstrip().startswith("#"):
-            out.append(line)
-            continue
-        current = len(line) - len(line.lstrip())
-        if current <= indent:
-            break
-        out.append(line)
-    return out
+            out: list[str] = []
+            for nested in block[index + 1 :]:
+                if not nested.strip() or nested.lstrip().startswith("#"):
+                    out.append(nested)
+                    continue
+                current = len(nested) - len(nested.lstrip())
+                if current <= indent:
+                    break
+                out.append(nested)
+            return out
+    return []
 
 
 def _list_values(block: list[str], key: str, indent: int = 4) -> set[str]:
-    for i, line in enumerate(block):
+    for index, line in enumerate(block):
         match = re.match(rf"^\s{{{indent}}}{re.escape(key)}:\s*(.*?)\s*$", line)
         if not match:
             continue
@@ -121,8 +119,8 @@ def _list_values(block: list[str], key: str, indent: int = 4) -> set[str]:
                     if value.strip().strip("'\"")
                 }
             return {inline.strip("'\"")}
-        values = set()
-        for nested in block[i + 1:]:
+        result: set[str] = set()
+        for nested in block[index + 1 :]:
             if not nested.strip() or nested.lstrip().startswith("#"):
                 continue
             current = len(nested) - len(nested.lstrip())
@@ -130,8 +128,8 @@ def _list_values(block: list[str], key: str, indent: int = 4) -> set[str]:
                 break
             item = re.match(r"^\s*-\s*(.+?)\s*$", nested)
             if item:
-                values.add(item.group(1).strip().strip("'\""))
-        return values
+                result.add(item.group(1).strip().strip("'\""))
+        return result
     return set()
 
 
@@ -142,11 +140,7 @@ def _workflow_name(text: str, path: Path) -> str:
 
 def _is_cace(path: Path, name: str) -> bool:
     low = f"{path.name} {name}".lower()
-    return (
-        "cace" in low
-        or path.name.startswith("lean-v")
-        or "chatgpt compile check" in low
-    )
+    return "cace" in low or path.name.startswith("lean-v") or "chatgpt compile check" in low
 
 
 def _clean_label(value: str) -> str:
@@ -164,7 +158,8 @@ def _runner_labels(lines: list[str]) -> set[str]:
         if inline:
             if inline.startswith("[") and inline.endswith("]"):
                 labels.update(
-                    label for part in inline[1:-1].split(",")
+                    label
+                    for part in inline[1:-1].split(",")
                     if (label := _clean_label(part))
                 )
             else:
@@ -172,22 +167,20 @@ def _runner_labels(lines: list[str]) -> set[str]:
                 if label:
                     labels.add(label)
             continue
-        for nested in lines[index + 1:]:
+        for nested in lines[index + 1 :]:
             if not nested.strip() or nested.lstrip().startswith("#"):
                 continue
             indent = len(nested) - len(nested.lstrip())
             if indent <= base_indent:
                 break
             item = re.match(r"^\s*-\s*(.+?)\s*$", nested)
-            if item:
-                label = _clean_label(item.group(1))
-                if label:
-                    labels.add(label)
+            if item and (label := _clean_label(item.group(1))):
+                labels.add(label)
     return labels
 
 
 def inspect(path: Path) -> dict | None:
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     name = _workflow_name(text, path)
     if not _is_cace(path, name):
         return None
@@ -195,7 +188,7 @@ def inspect(path: Path) -> dict | None:
     on_block = _top_block(lines, "on")
     triggers = sorted(_mapping_keys(on_block))
     automatic = sorted(set(triggers) & AUTO_TRIGGERS)
-    automatic_scope = {}
+    automatic_scope: dict[str, dict[str, list[str]]] = {}
     for trigger in automatic:
         block = _child_block(on_block, trigger)
         automatic_scope[trigger] = {
@@ -205,26 +198,24 @@ def inspect(path: Path) -> dict | None:
     concurrency = "\n".join(_top_block(lines, "concurrency"))
     group_match = re.search(r"(?m)^\s+group:\s*(.+?)\s*$", concurrency)
     cancel_match = re.search(r"(?m)^\s+cancel-in-progress:\s*(.+?)\s*$", concurrency)
-    group = group_match.group(1).strip(" '\"") if group_match else None
-    cancel = cancel_match.group(1).strip().lower() if cancel_match else None
-    runner_labels = _runner_labels(lines)
+    labels = _runner_labels(lines)
     return {
         "file": path.name,
         "name": name,
         "triggers": triggers,
         "automatic_triggers": automatic,
         "automatic_scope": automatic_scope,
-        "uses_self_hosted": "self-hosted" in runner_labels,
-        "runner_labels": sorted(runner_labels),
-        "concurrency_group": group,
-        "cancel_in_progress": cancel,
+        "uses_self_hosted": "self-hosted" in labels,
+        "runner_labels": sorted(labels),
+        "concurrency_group": group_match.group(1).strip(" '\"") if group_match else None,
+        "cancel_in_progress": cancel_match.group(1).strip().lower() if cancel_match else None,
     }
 
 
 def audit(root: Path) -> dict:
-    workflows = []
-    violations = []
-    active_files = set()
+    workflows: list[dict] = []
+    violations: list[dict] = []
+    active_files: set[str] = set()
     for path in sorted(root.glob("*.y*ml")):
         item = inspect(path)
         if item is None:
@@ -233,81 +224,95 @@ def audit(root: Path) -> dict:
         active_files.add(filename)
         workflows.append(item)
         if filename not in EXPECTED_ACTIVE:
-            violations.append({
-                "file": filename,
-                "kind": "unexpected-active-cace-workflow",
-                "detail": "archive or explicitly admit this workflow before activation",
-            })
+            violations.append(
+                {
+                    "file": filename,
+                    "kind": "unexpected-active-cace-workflow",
+                    "detail": "archive or explicitly admit this workflow before activation",
+                }
+            )
         expected_automatic = EXPECTED_AUTOMATIC.get(filename, set())
         if set(item["automatic_triggers"]) != expected_automatic:
-            violations.append({
-                "file": filename,
-                "kind": "automatic-trigger-set",
-                "detail": {
-                    "expected": sorted(expected_automatic),
-                    "observed": item["automatic_triggers"],
-                },
-            })
+            violations.append(
+                {
+                    "file": filename,
+                    "kind": "automatic-trigger-set",
+                    "detail": {
+                        "expected": sorted(expected_automatic),
+                        "observed": item["automatic_triggers"],
+                    },
+                }
+            )
         locked = LOCKED_PUSH_SCOPE.get(filename)
         if locked is not None:
             observed = item["automatic_scope"].get("push", {})
             observed_branches = set(observed.get("branches", []))
             observed_paths = set(observed.get("paths", []))
             if observed_branches != locked["branches"] or observed_paths != locked["paths"]:
-                violations.append({
-                    "file": filename,
-                    "kind": "locked-push-scope",
-                    "detail": {
-                        "expected_branches": sorted(locked["branches"]),
-                        "observed_branches": sorted(observed_branches),
-                        "expected_paths": sorted(locked["paths"]),
-                        "observed_paths": sorted(observed_paths),
-                    },
-                })
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "locked-push-scope",
+                        "detail": {
+                            "expected_branches": sorted(locked["branches"]),
+                            "observed_branches": sorted(observed_branches),
+                            "expected_paths": sorted(locked["paths"]),
+                            "observed_paths": sorted(observed_paths),
+                        },
+                    }
+                )
         if filename == "cace-collaboration-validation.yml":
             observed_paths = set(
                 item["automatic_scope"].get("pull_request", {}).get("paths", [])
             )
             missing_paths = sorted(COLLAB_REQUIRED_PATHS - observed_paths)
             if missing_paths:
-                violations.append({
-                    "file": filename,
-                    "kind": "collaboration-trigger-paths",
-                    "detail": {"missing": missing_paths},
-                })
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "collaboration-trigger-paths",
+                        "detail": {"missing": missing_paths},
+                    }
+                )
         if item["uses_self_hosted"]:
             if item["concurrency_group"] != GLOBAL_GROUP:
-                violations.append({
-                    "file": filename,
-                    "kind": "self-hosted-concurrency-group",
-                    "detail": item["concurrency_group"],
-                })
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "self-hosted-concurrency-group",
+                        "detail": item["concurrency_group"],
+                    }
+                )
             if item["cancel_in_progress"] != "false":
-                violations.append({
-                    "file": filename,
-                    "kind": "self-hosted-cancellation-policy",
-                    "detail": item["cancel_in_progress"],
-                })
-            missing_labels = sorted(
-                REQUIRED_SELF_HOSTED_LABELS - set(item["runner_labels"])
-            )
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "self-hosted-cancellation-policy",
+                        "detail": item["cancel_in_progress"],
+                    }
+                )
+            missing_labels = sorted(REQUIRED_SELF_HOSTED_LABELS - set(item["runner_labels"]))
             if missing_labels:
-                violations.append({
-                    "file": filename,
-                    "kind": "self-hosted-runner-labels",
-                    "detail": {"missing": missing_labels, "observed": item["runner_labels"]},
-                })
-    missing = sorted(EXPECTED_ACTIVE - active_files)
-    for filename in missing:
-        violations.append({
-            "file": filename,
-            "kind": "missing-required-active-workflow",
-            "detail": None,
-        })
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "self-hosted-runner-labels",
+                        "detail": {"missing": missing_labels, "observed": item["runner_labels"]},
+                    }
+                )
+    for filename in sorted(EXPECTED_ACTIVE - active_files):
+        violations.append(
+            {
+                "file": filename,
+                "kind": "missing-required-active-workflow",
+                "detail": None,
+            }
+        )
     return {
-        "schema": "cace-actions-policy-audit-v4",
+        "schema": "cace-actions-policy-audit-v5",
         "global_group": GLOBAL_GROUP,
         "required_self_hosted_labels": sorted(REQUIRED_SELF_HOSTED_LABELS),
+        "collaboration_required_paths": sorted(COLLAB_REQUIRED_PATHS),
         "expected_active": sorted(EXPECTED_ACTIVE),
         "expected_automatic": {
             key: sorted(value) for key, value in sorted(EXPECTED_AUTOMATIC.items())
