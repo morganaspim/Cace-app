@@ -1,17 +1,8 @@
-name: CACE Collaboration Coordination Validation
+name: CACE PR Validation Entry Point
 
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'collaboration/**'
-      - 'scripts/verify_collaboration_records.py'
-      - 'scripts/validate_collaboration_lifecycle.py'
-      - 'scripts/cace_actions_serialization_guard.py'
-      - 'tests/test_collaboration_records.py'
-      - 'tests/test_collaboration_lifecycle.py'
-      - 'tests/test_actions_serialization_guard.py'
-      - '.github/workflows/cace-collaboration-validation.yml'
 
 permissions:
   contents: read
@@ -24,7 +15,7 @@ concurrency:
 jobs:
   validate:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: self-hosted
+    runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -79,14 +70,14 @@ jobs:
             'collaboration/PROTOCOL.md','collaboration/schema/cace-collaboration-record.schema.json',
             'collaboration/DISCOVERY_LEDGER.json','scripts/verify_collaboration_records.py',
             'scripts/validate_collaboration_lifecycle.py','scripts/cace_actions_serialization_guard.py']))
-          summary={'schema':'cace-collaboration-validation-v1','evidence_class':'ENGINEERING_VERIFIED','proof_implication':'none','head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'qualified_baseline':'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8','sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
+          summary={'schema':'cace-pr-validation-v1','evidence_class':'ENGINEERING_VERIFIED','proof_implication':'none','head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'qualified_baseline':'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8','sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
           pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
           print(json.dumps(summary,indent=2,sort_keys=True))
           PY
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cace-collaboration-validation
+          name: cace-pr-validation
           path: |
             collaboration-validation-summary.json
             collaboration-test-environment.txt
