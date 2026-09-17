@@ -66,6 +66,15 @@
         "CACEFormal.Continuum.zeroBoundaryOrthogonality_of_mem",
         "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen"
       ],
+      "executable_bindings": [
+        {
+          "module_id": "formal330.qualified_theorem_endpoint",
+          "source_bundle_sha256": "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0",
+          "source_files": [
+            "cace_studio/modules/formal_v330.py"
+          ]
+        }
+      ],
       "formal_system": "lean4",
       "nonclaims": [
         "The H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.",
@@ -84,7 +93,8 @@
         "kernel-axiom-audit",
         "lean-environment-theorem-metadata",
         "content-addressed-attestation",
-        "independent-source-bound-verification"
+        "independent-source-bound-verification",
+        "executable-source-binding"
       ],
       "theorem_dependency_metadata": {
         "note": "Qualification requires theorem statements and direct/transitive CACE theorem dependencies generated from Lean.Environment, bound to this proof-contract SHA-256 and the exact Git commit.",
