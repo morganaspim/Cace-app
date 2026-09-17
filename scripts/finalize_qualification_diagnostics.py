@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 """Finalize qualification diagnostics without masking an earlier failure.
 
-The finalizer is deliberately tolerant of optional/missing heartbeat and log files.
-It must be safe to run after a failure at any earlier workflow phase and safe to
-run more than once. Diagnostic cleanup is evidence plumbing, never proof evidence.
+The finalizer is deliberately tolerant of optional/missing heartbeat and log files
+after a failed run. On an otherwise successful qualification, however, it fails
+closed unless the attestation, resolved Lake manifest snapshot, and independent
+source-binding verification report all exist. This preserves replay evidence in the
+always-uploaded diagnostics artifact without turning cache/diagnostic metadata into
+proof evidence.
 """
 from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
 from typing import Mapping
+
+ATTESTATION_NAME = "cace_continuum_qualification_attestation.json"
+RESOLVED_MANIFEST_NAME = "v330_resolved_lake_manifest.json"
+SOURCE_BINDING_REPORT_NAME = "v330_source_binding_verification.json"
 
 
 def _optional_path(value: str | None) -> Path | None:
@@ -32,6 +40,10 @@ def _compress_optional(path: Path) -> bool:
     return True
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def finalize_diagnostics(
     *,
     status_dir: Path,
@@ -41,13 +53,30 @@ def finalize_diagnostics(
 ) -> dict:
     source = os.environ if env is None else env
     status_dir.mkdir(parents=True, exist_ok=True)
-    attestation = (
-        output_dir / "cace_continuum_qualification_attestation.json"
-        if output_dir is not None
-        else None
-    )
+    evidence_paths = {
+        "qualification_attestation": output_dir / ATTESTATION_NAME if output_dir else None,
+        "resolved_lake_manifest": output_dir / RESOLVED_MANIFEST_NAME if output_dir else None,
+        "source_binding_verification": output_dir / SOURCE_BINDING_REPORT_NAME if output_dir else None,
+    }
+    if job_status == "success" and output_dir is not None:
+        missing = [
+            name
+            for name, path in evidence_paths.items()
+            if path is None or not path.is_file()
+        ]
+        if missing:
+            raise RuntimeError(
+                "successful qualification is missing required replay evidence: "
+                + ", ".join(missing)
+            )
+
+    evidence_sha256 = {
+        name: _sha256(path)
+        for name, path in evidence_paths.items()
+        if path is not None and path.is_file()
+    }
     payload = {
-        "schema": "cace-qualification-diagnostic-v3",
+        "schema": "cace-qualification-diagnostic-v4",
         "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "job_status": job_status,
         "git_commit": source.get("CACE_EXPECTED_SHA") or source.get("GITHUB_SHA"),
@@ -58,8 +87,12 @@ def finalize_diagnostics(
         "mathlib_commit": source.get("CACE_MATHLIB_COMMIT"),
         "cache_mode": source.get("CACE_CACHE_MODE", "miss"),
         "cache_baseline_tree": source.get("CACE_CACHE_BASELINE_TREE") or None,
-        "qualification_attestation_present": bool(attestation and attestation.is_file()),
+        "qualification_attestation_present": "qualification_attestation" in evidence_sha256,
+        "resolved_lake_manifest_present": "resolved_lake_manifest" in evidence_sha256,
+        "source_binding_verification_present": "source_binding_verification" in evidence_sha256,
+        "replay_evidence_sha256": evidence_sha256,
         "cache_effect": "acceleration-only; never qualification evidence",
+        "diagnostic_effect": "retention/integrity metadata only; proof status comes from qualification gates",
     }
     (status_dir / "final_status.json").write_text(
         json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8"
