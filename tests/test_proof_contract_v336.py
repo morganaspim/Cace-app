@@ -22,7 +22,7 @@ from cace_studio.modules.formal_v330 import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "cb95144e31577b9b151b0e1d332e821f0674a5679f26f63ea2e9aacf57105f09"
+EXPECTED_CONTINUUM_V3_HASH = "99b0e46fa41bb9b76c7be4822e69b7648340c2d4d25060368f683b5b02620813"
 EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
 ROOT = Path(__file__).parents[1]
 SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
@@ -59,12 +59,12 @@ def _source_binding_verifier():
     return module
 
 
-def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpoints():
+def test_default_continuum_contract_v3_is_single_source_for_all_38_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
     assert contract is not None
     assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
-    assert len(contract.endpoint_theorems) == 37
+    assert len(contract.endpoint_theorems) == 38
     assert len(contract.audited_source_files) == 12
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
     assert contract.dependency_pins["lean_toolchain"] == "leanprover/lean4:v4.32.1"
@@ -75,11 +75,13 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "independent-source-bound-verification" in contract.required_checks
     assert "executable-source-binding" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.hasZeroBoundaryTrace_zero" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
     assert any("executable binding certifies theorem-endpoint membership" in item for item in contract.nonclaims)
+    assert any("hasZeroBoundaryTrace_zero endpoint discharges only" in item for item in contract.nonclaims)
     assert len(contract.executable_bindings) == 1
     binding = contract.executable_binding_for_module(MODULE_ID)
     assert binding is not None
