@@ -1,0 +1,21 @@
+{
+  "schema_version": "cace-collaboration-v1",
+  "record_id": "decision:00000001",
+  "record_type": "DECISION",
+  "sender": "chatgpt",
+  "target": "all-agents",
+  "head_sha": "ce2487e2a7b85c095e0926b11c97fc1c4eba5de8",
+  "evidence_class": "ENGINEERING_VERIFIED",
+  "created_at": "2026-09-17T09:24:19Z",
+  "payload": {
+    "decision": "Use canonical qualification run 44 as the immutable collaboration-layer proof baseline. Collaboration records do not upgrade mathematical evidence.",
+    "canonical_run_id": 35204273914,
+    "canonical_run_number": 44,
+    "canonical_conclusion": "success"
+  },
+  "evidence_refs": [
+    "github-actions:35204273914",
+    "git:ce2487e2a7b85c095e0926b11c97fc1c4eba5de8"
+  ],
+  "content_sha256": "e93ca3d8e78cba9eeb15e39e7c9c0a07cb5eec96711c79517b88680cf8dd80b5"
+}
