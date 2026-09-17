@@ -82,6 +82,7 @@ def _unqualified_explorer(*, qualifications=()) -> ProofExplorer:
     default_ledger = ProofLedger.load_default()
     claim = default_registry.by_id(CLAIM_ID)
     entry = default_ledger.for_claim(CLAIM_ID)
+    contract = _contract()
     assert claim is not None and entry is not None
 
     unqualified_claim = replace(
@@ -98,6 +99,8 @@ def _unqualified_explorer(*, qualifications=()) -> ProofExplorer:
         current_head_qualified=False,
         commit=None,
         proof_artifact_sha256=None,
+        proof_contract_id=contract.contract_id,
+        proof_contract_sha256=contract.contract_sha256,
         qualification_system=None,
         qualification_run_id=None,
         workflow_run_id=None,
@@ -128,6 +131,7 @@ def test_default_explorer_tracks_canonical_qualification_state():
     ledger = ProofLedger.load_default()
     claim = registry.by_id(CLAIM_ID)
     entry = ledger.for_claim(CLAIM_ID)
+    contract = _contract()
     assert claim is not None and entry is not None
 
     view = ProofExplorer().claim_view(CLAIM_ID)
@@ -136,7 +140,13 @@ def test_default_explorer_tracks_canonical_qualification_state():
     assert claim.attested_commit == entry.commit
     assert claim.proof_artifact_sha256 == entry.proof_artifact_sha256
 
-    if claim.current_head_qualified:
+    static_evidence_matches_current_contract = bool(
+        entry.proof_contract_id == contract.contract_id
+        and entry.proof_contract_sha256 == contract.contract_sha256
+        and set(contract.required_checks).issubset(entry.checks)
+    )
+
+    if claim.current_head_qualified and static_evidence_matches_current_contract:
         assert claim.qualification_status == "PASS"
         assert view.current_head_qualified is True
         assert view.qualification_state == "QUALIFIED"
@@ -144,6 +154,15 @@ def test_default_explorer_tracks_canonical_qualification_state():
         assert view.attested_commit == claim.attested_commit
         assert view.proof_artifact_sha256 == claim.proof_artifact_sha256
         assert view.blockers == ()
+    elif claim.current_head_qualified:
+        assert claim.qualification_status == "PASS"
+        assert view.current_head_qualified is False
+        assert view.qualification_state == "CONFLICT"
+        assert view.qualification_source == "conflict"
+        assert any(
+            "proof-contract" in blocker.lower() or "contract-required checks" in blocker.lower()
+            for blocker in view.blockers
+        )
     else:
         assert view.current_head_qualified is False
         assert view.qualification_state == "UNQUALIFIED"

@@ -12,7 +12,7 @@ from cace_studio.core.proof_contract import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0"
+EXPECTED_CONTINUUM_V3_HASH = "d6b415fdacb809702154fe254f8202df07120247d16a5b1878ecfc1ac07b37c7"
 
 
 def _contract_mapping() -> dict:
@@ -51,6 +51,7 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert contract.theorem_dependency_metadata_state == "LEAN_GENERATED"
     assert "Lean.Environment" in contract.theorem_dependency_metadata_note
     assert "lean-environment-theorem-metadata" in contract.required_checks
+    assert "independent-source-bound-verification" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
