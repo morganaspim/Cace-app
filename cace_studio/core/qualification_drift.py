@@ -20,14 +20,23 @@ QUALIFICATION_SENSITIVE_EXACT_PATHS = frozenset(
     {
         "cace_studio/app.py",
         "cace_studio/modules/__init__.py",
+        "cace_studio/data/proof_contracts.json",
         "pyproject.toml",
         "schema/claim.schema.json",
         "schema/proof-ledger.schema.json",
+        "schema/proof-contracts.schema.json",
+        "scripts/build_continuum_attestation.py",
         "scripts/check_qualification_drift.py",
+        "scripts/verify_v330_qualification_bundle.py",
+        "scripts/verify_v330_qualification_source_binding.py",
         "tests/test_claim_promotion_v330.py",
         "tests/test_claim_registry_v331.py",
+        "tests/test_proof_contract_v336.py",
+        "tests/test_qualification_bundle_verifier_v338.py",
+        "tests/test_qualification_source_binding_v339.py",
         "tests/test_qualification_drift_v331.py",
         ".github/workflows/cace-formal-v330.yml",
+        ".github/workflows/cace-formal-v336-theorem-metadata.yml",
     }
 )
 
