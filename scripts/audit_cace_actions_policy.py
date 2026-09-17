@@ -18,6 +18,7 @@ GLOBAL_GROUP = "cace-canonical-qualification-oci"
 EXPECTED_ACTIVE = {
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
+    "cace-python-regression.yml",
 }
 ALLOWED_AUTOMATIC = {
     "cace-collaboration-validation.yml",
