@@ -33,6 +33,14 @@ def _pytest_paths(text: str) -> set[str]:
     return set(re.findall(r"tests/[A-Za-z0-9_./-]+\.py", text))
 
 
+def _python_runtime_pin(text: str) -> tuple[str, str]:
+    uv = re.search(r"UV_VERSION:\s*'([^']+)'", text)
+    python = re.search(r"python install\s+([0-9]+(?:\.[0-9]+)+)", text)
+    assert uv is not None
+    assert python is not None
+    return uv.group(1), python.group(1)
+
+
 def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
 
@@ -101,6 +109,12 @@ def test_collaboration_covers_every_canonical_formal_preflight_test() -> None:
     assert formal_tests
     assert formal_tests <= collaboration_tests, sorted(formal_tests - collaboration_tests)
     assert "tests/test_qualification_overlay_v337.py" in formal_tests
+
+
+def test_collaboration_preflight_matches_canonical_python_runtime() -> None:
+    formal = (WORKFLOWS / "cace-formal-v336-theorem-metadata.yml").read_text(encoding="utf-8")
+    collaboration = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    assert _python_runtime_pin(collaboration) == _python_runtime_pin(formal)
 
 
 def test_collaboration_trigger_uses_future_proof_protected_surfaces() -> None:
