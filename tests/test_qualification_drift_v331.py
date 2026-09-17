@@ -81,6 +81,9 @@ def test_sensitive_path_classifier_is_conservative_but_allows_provenance_only_up
     assert is_qualification_sensitive("cace_studio/core/formal_gate.py")
     assert is_qualification_sensitive("cace_studio/modules/formal_v330.py")
     assert is_qualification_sensitive(".github/workflows/cace-formal-v330.yml")
+    assert is_qualification_sensitive(
+        ".github/workflows/cace-formal-v336-theorem-metadata.yml"
+    )
     assert is_qualification_sensitive("scripts/verify_continuum_qualification_bundle.py")
     assert is_qualification_sensitive("tests/test_independent_qualification_verifier_v338.py")
     assert classify_qualification_sensitive(
