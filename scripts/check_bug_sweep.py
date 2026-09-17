@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -17,6 +18,7 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 PATTERN_REGISTRY = ROOT / "quality" / "bug_patterns.json"
+BUG_CLASS_REGISTRY = ROOT / "quality" / "bug_classes.json"
 ACTIVE_CONTRACT_GLOBS = (
     "cace_studio/**/*.py",
     "cace_studio/data/*.json",
@@ -42,6 +44,24 @@ def _location(text: str, offset: int) -> tuple[int, int]:
     prior = text.rfind("\n", 0, offset)
     column = offset + 1 if prior < 0 else offset - prior
     return line, column
+
+
+def _is_hex(value: object, length: int) -> bool:
+    return isinstance(value, str) and len(value) == length and all(
+        c in "0123456789abcdef" for c in value.lower()
+    )
+
+
+def _canonical_bug_class_digest(item: dict) -> str:
+    payload = {key: value for key, value in item.items() if key != "fingerprint_sha256"}
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def _check_python_syntax(errors: list[str], summary: dict[str, int]) -> None:
@@ -135,6 +155,122 @@ def _check_pattern_registry(errors: list[str], summary: dict[str, int]) -> None:
                 )
     summary["bug_patterns_checked"] = len(seen)
     summary["bug_pattern_file_checks"] = files_checked
+
+
+def _check_bug_class_ref(
+    *,
+    class_id: str,
+    kind: str,
+    raw_ref: object,
+    errors: list[str],
+) -> None:
+    if not isinstance(raw_ref, dict):
+        errors.append(f"bug-class-registry:{class_id}:{kind}: reference must be an object")
+        return
+    rel = raw_ref.get("path")
+    needle = raw_ref.get("contains")
+    if not isinstance(rel, str) or not rel or not isinstance(needle, str) or not needle:
+        errors.append(
+            f"bug-class-registry:{class_id}:{kind}: reference requires non-empty path and contains"
+        )
+        return
+    path = ROOT / rel
+    try:
+        path.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        errors.append(f"bug-class-registry:{class_id}:{kind}: path escapes repository: {rel!r}")
+        return
+    if not path.is_file():
+        errors.append(f"bug-class-registry:{class_id}:{kind}: missing guard/reproducer file {rel!r}")
+        return
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception as exc:
+        errors.append(
+            f"bug-class-registry:{class_id}:{kind}: cannot read {rel!r}: {type(exc).__name__}: {exc}"
+        )
+        return
+    if needle not in text:
+        errors.append(
+            f"bug-class-registry:{class_id}:{kind}: {rel!r} no longer contains required hook {needle!r}"
+        )
+
+
+def _check_bug_class_registry(errors: list[str], summary: dict[str, int]) -> None:
+    try:
+        raw = json.loads(BUG_CLASS_REGISTRY.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"bug-class-registry: cannot load: {type(exc).__name__}: {exc}")
+        return
+    if raw.get("schema_version") != 1:
+        errors.append("bug-class-registry: schema_version must be 1")
+        return
+    classes = raw.get("classes")
+    if not isinstance(classes, list):
+        errors.append("bug-class-registry: classes must be an array")
+        return
+
+    seen: set[str] = set()
+    guarded = 0
+    refs_checked = 0
+    for item in classes:
+        if not isinstance(item, dict):
+            errors.append("bug-class-registry: every class must be an object")
+            continue
+        class_id = str(item.get("id", "")).strip()
+        if not class_id:
+            errors.append("bug-class-registry: class id must be non-empty")
+            continue
+        if class_id in seen:
+            errors.append(f"bug-class-registry: duplicate id {class_id!r}")
+            continue
+        seen.add(class_id)
+
+        if item.get("status") != "GUARDED":
+            errors.append(f"bug-class-registry:{class_id}: status must be GUARDED before CI can pass")
+        else:
+            guarded += 1
+        for field in ("description", "root_cause", "closure_rule"):
+            if not isinstance(item.get(field), str) or not str(item[field]).strip():
+                errors.append(f"bug-class-registry:{class_id}: {field} must be non-empty")
+
+        observed = item.get("first_observed")
+        if not isinstance(observed, dict):
+            errors.append(f"bug-class-registry:{class_id}: first_observed must be an object")
+        else:
+            if not isinstance(observed.get("workflow_run_id"), int) or observed["workflow_run_id"] <= 0:
+                errors.append(f"bug-class-registry:{class_id}: workflow_run_id must be positive")
+            if not _is_hex(observed.get("head_sha"), 40):
+                errors.append(f"bug-class-registry:{class_id}: head_sha must be 40-hex")
+            if not isinstance(observed.get("signature"), str) or not observed["signature"].strip():
+                errors.append(f"bug-class-registry:{class_id}: failure signature must be non-empty")
+
+        expected = item.get("fingerprint_sha256")
+        actual = _canonical_bug_class_digest(item)
+        if not _is_hex(expected, 64):
+            errors.append(f"bug-class-registry:{class_id}: fingerprint_sha256 must be 64-hex")
+        elif expected.lower() != actual:
+            errors.append(
+                f"bug-class-registry:{class_id}: fingerprint mismatch {expected.lower()} != {actual}"
+            )
+
+        for kind in ("reproducer_refs", "guard_refs"):
+            refs = item.get(kind)
+            if not isinstance(refs, list) or not refs:
+                errors.append(f"bug-class-registry:{class_id}: {kind} must be a non-empty array")
+                continue
+            for ref in refs:
+                refs_checked += 1
+                _check_bug_class_ref(
+                    class_id=class_id,
+                    kind=kind,
+                    raw_ref=ref,
+                    errors=errors,
+                )
+
+    summary["bug_classes_checked"] = len(seen)
+    summary["bug_classes_guarded"] = guarded
+    summary["bug_class_refs_checked"] = refs_checked
 
 
 def _check_canonical_contract_links(errors: list[str], summary: dict[str, int]) -> None:
@@ -236,6 +372,7 @@ def run_sweep() -> dict:
         ("python-syntax", _check_python_syntax),
         ("json-parse", _check_json_parse),
         ("bug-pattern-registry", _check_pattern_registry),
+        ("bug-class-registry", _check_bug_class_registry),
         ("canonical-contract-links", _check_canonical_contract_links),
     )
     completed: list[str] = []
@@ -246,7 +383,7 @@ def run_sweep() -> dict:
             errors.append(f"{name}: unexpected {type(exc).__name__}: {exc}")
         completed.append(name)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "PASS" if not errors else "FAIL",
         "checks_completed": completed,
         "summary": summary,
