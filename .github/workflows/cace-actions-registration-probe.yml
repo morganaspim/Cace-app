@@ -10,13 +10,15 @@ permissions:
 
 jobs:
   registration-probe:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 2
     steps:
-      - name: Confirm workflow registration
+      - name: Confirm workflow registration and runner execution
         shell: bash
         run: |
           set -euo pipefail
           printf 'event=%s\n' "$GITHUB_EVENT_NAME"
           printf 'sha=%s\n' "$GITHUB_SHA"
           printf 'ref=%s\n' "$GITHUB_REF"
+          printf 'runner=%s\n' "$RUNNER_NAME"
+          printf 'arch=%s\n' "$RUNNER_ARCH"
