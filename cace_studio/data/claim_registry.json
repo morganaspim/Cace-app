@@ -23,7 +23,9 @@
     {
       "claim_id": "cace.v330.continuum-proof-strengthening",
       "evidence_ceiling": "formally-verified",
-      "module_ids": [],
+      "module_ids": [
+        "formal330.qualified_theorem_endpoint"
+      ],
       "nonclaims": [
         "Does not by itself prove all Python/C++ program behavior.",
         "The H1 distributional-graph converse is representation-level and does not by itself construct unconditional H(div) graph density or every concrete PDE trace/core hypothesis.",
@@ -31,10 +33,10 @@
       ],
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "qualification": {
-        "attested_commit": "0bcfa06b74570ed2e0dd6ae47e574cf456d3d93e",
+        "attested_commit": "a37da5517eccc1d42199da0ba5670346b1a8d625",
         "current_head_qualified": true,
-        "proof_artifact_sha256": "8333aa744fcd0a42d9a8f0658ce552f6d4d6dc7d963adabf6347fe8f8c1f4b7d",
-        "reason": "Canonical exact-head qualification run 35236197180 passed at 0bcfa06b74570ed2e0dd6ae47e574cf456d3d93e; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
+        "proof_artifact_sha256": "d7c982290b0fd76b60e8d6ad2eb21f4b4bc8f296872c59467fb97f274309e9b7",
+        "reason": "Canonical exact-head qualification run 35240517509 passed at a37da5517eccc1d42199da0ba5670346b1a8d625; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
         "status": "PASS"
       },
       "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",

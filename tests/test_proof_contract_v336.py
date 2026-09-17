@@ -1,18 +1,31 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import importlib.util
+from pathlib import Path
 
 import pytest
 
+from cace_studio.core.module import ExecutionContext
 from cace_studio.core.proof_contract import (
     ExecutableBindingError,
     ProofContract,
     ProofContractRegistry,
     executable_source_bundle_sha256,
 )
+from cace_studio.core.types import EvidenceKind
+from cace_studio.core.verification import VerificationState
+from cace_studio.modules.formal_v330 import (
+    DEFAULT_THEOREM,
+    FormalV330QualifiedTheoremEndpoint,
+    MODULE_ID,
+)
 
 
-EXPECTED_CONTINUUM_V3_HASH = "d6b415fdacb809702154fe254f8202df07120247d16a5b1878ecfc1ac07b37c7"
+EXPECTED_CONTINUUM_V3_HASH = "cb95144e31577b9b151b0e1d332e821f0674a5679f26f63ea2e9aacf57105f09"
+EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
+ROOT = Path(__file__).parents[1]
+SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
 
 
 def _contract_mapping() -> dict:
@@ -38,6 +51,14 @@ def _contract_mapping() -> dict:
     }
 
 
+def _source_binding_verifier():
+    spec = importlib.util.spec_from_file_location("source_binding_verifier_v340", SOURCE_BINDING_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
@@ -52,13 +73,88 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "Lean.Environment" in contract.theorem_dependency_metadata_note
     assert "lean-environment-theorem-metadata" in contract.required_checks
     assert "independent-source-bound-verification" in contract.required_checks
+    assert "executable-source-binding" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
-    assert contract.executable_bindings == ()
+    assert any("executable binding certifies theorem-endpoint membership" in item for item in contract.nonclaims)
+    assert len(contract.executable_bindings) == 1
+    binding = contract.executable_binding_for_module(MODULE_ID)
+    assert binding is not None
+    assert binding.source_files == ("cace_studio/modules/formal_v330.py",)
+    assert binding.source_bundle_sha256 == EXPECTED_FORMAL330_BUNDLE
+    assert binding.current_source_bundle_sha256(ROOT) == EXPECTED_FORMAL330_BUNDLE
     assert contract.contract_sha256 == EXPECTED_CONTINUUM_V3_HASH
+
+
+def test_formal330_bridge_emits_formal_candidate_only_for_canonical_endpoint():
+    module = FormalV330QualifiedTheoremEndpoint()
+    ctx = ExecutionContext(run_id="unit", seed=0)
+
+    params = module.resolved_params({})
+    assert params["theorem_name"] == DEFAULT_THEOREM
+    outputs = module.execute({}, params, ctx)
+    record = module.verify({}, params, outputs, ctx)[0]
+    assert record.kind is EvidenceKind.FORMAL
+    assert record.state is VerificationState.PASS
+    assert outputs["result"]["endpoint_member"] is True
+    assert "does not establish that runtime PDE data satisfy" in record.notes[0]
+
+    bad_params = module.resolved_params({"theorem_name": "CACEFormal.Continuum.not_a_theorem"})
+    bad_outputs = module.execute({}, bad_params, ctx)
+    bad_record = module.verify({}, bad_params, bad_outputs, ctx)[0]
+    assert bad_outputs["result"]["endpoint_member"] is False
+    assert bad_record.state is VerificationState.FAIL
+
+
+def test_independent_verifier_rehashes_executable_bindings_and_detects_drift(tmp_path):
+    verifier = _source_binding_verifier()
+    runtime = tmp_path / "runtime.py"
+    runtime.write_text("VALUE = 1\n", encoding="utf-8")
+    digest = verifier.executable_source_bundle_sha256(tmp_path, ("runtime.py",))
+    contract = {
+        "required_checks": ["executable-source-binding"],
+        "executable_bindings": [
+            {
+                "module_id": "unit.module",
+                "source_files": ["runtime.py"],
+                "source_bundle_sha256": digest,
+            }
+        ],
+    }
+    report = verifier.verify_executable_bindings(contract, repo_root=tmp_path)
+    assert report == [
+        {
+            "module_id": "unit.module",
+            "source_files": ["runtime.py"],
+            "source_bundle_sha256": digest,
+        }
+    ]
+
+    runtime.write_text("VALUE = 2\n", encoding="utf-8")
+    with pytest.raises(verifier.SourceBindingVerificationError, match="executable source bundle"):
+        verifier.verify_executable_bindings(contract, repo_root=tmp_path)
+
+
+def test_independent_verifier_rejects_binding_without_required_check(tmp_path):
+    verifier = _source_binding_verifier()
+    runtime = tmp_path / "runtime.py"
+    runtime.write_text("VALUE = 1\n", encoding="utf-8")
+    digest = verifier.executable_source_bundle_sha256(tmp_path, ("runtime.py",))
+    contract = {
+        "required_checks": ["lean-build"],
+        "executable_bindings": [
+            {
+                "module_id": "unit.module",
+                "source_files": ["runtime.py"],
+                "source_bundle_sha256": digest,
+            }
+        ],
+    }
+    with pytest.raises(verifier.SourceBindingVerificationError, match="without executable-source-binding"):
+        verifier.verify_executable_bindings(contract, repo_root=tmp_path)
 
 
 def test_contract_hash_changes_when_scope_changes():
