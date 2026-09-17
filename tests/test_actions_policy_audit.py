@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from scripts.audit_cace_actions_policy import audit
@@ -28,6 +32,35 @@ def _kinds(report: dict) -> set[str]:
 
 def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
+
+
+def test_current_qualification_provenance_is_enrolled_and_drift_clean() -> None:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "scripts/check_qualification_drift.py",
+            "--repo-root",
+            str(ROOT),
+            "--head",
+            "HEAD",
+        ],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONPATH": str(ROOT)},
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
+    payload = json.loads(proc.stdout)
+    assert payload["status"] == "PASS"
+    assert payload["qualified_claims_checked"] == 1
+    assert len(payload["results"]) == 1
+    result = payload["results"][0]
+    assert result["claim_id"] == "cace.v330.continuum-proof-strengthening"
+    assert result["attested_commit"] == "c01abdeca099d3905e5e22505958f7fbad11164e"
+    assert result["passed"] is True
+    assert result["sensitive_paths"] == []
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:

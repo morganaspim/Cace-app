@@ -22,26 +22,32 @@
       "workflow_run_id": 34806285322
     },
     {
-      "blockers": [
-        "Current-head pinned Lean build satisfying proof contract v3 has not been accepted.",
-        "Kernel axiom audit for every v3 endpoint has not been accepted.",
-        "Lean.Environment theorem statement/dependency metadata bound to the exact commit and v3 contract hash has not been accepted.",
-        "Content-addressed proof artifact SHA-256 has not been recorded."
+      "blockers": [],
+      "checks": [
+        "clean-tree",
+        "claim-governance-tests",
+        "pinned-lean-toolchain",
+        "pinned-mathlib-commit",
+        "scoped-mathlib-cache",
+        "unfinished-token-guard",
+        "lean-build",
+        "kernel-axiom-audit",
+        "lean-environment-theorem-metadata",
+        "content-addressed-attestation"
       ],
-      "checks": [],
       "claim_ids": [
         "cace.v330.continuum-proof-strengthening"
       ],
-      "commit": null,
-      "current_head_qualified": false,
-      "proof_artifact_sha256": null,
+      "commit": "c01abdeca099d3905e5e22505958f7fbad11164e",
+      "current_head_qualified": true,
+      "proof_artifact_sha256": "e82d5c581fc4ba8864e818364889170decfbc523626c66f3c1a01b94cdc123c3",
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "proof_contract_sha256": "753c6bc1024c87368ec35080d6decedbcb5d228fb2fc626929ed528335ce89c0",
-      "qualification_run_id": null,
-      "qualification_system": null,
+      "qualification_run_id": "35215905496",
+      "qualification_system": "github-actions",
       "release": "3.23.0-dev..3.37.0-dev",
-      "status": "NOT_RUN",
-      "workflow_run_id": null
+      "status": "PASS",
+      "workflow_run_id": 35215905496
     }
   ],
   "policy": "Current-head FORMAL PASS requires a successful pinned proof build, kernel axiom audit, exact commit binding, exact proof-contract id/hash binding, Lean.Environment theorem-metadata binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",
