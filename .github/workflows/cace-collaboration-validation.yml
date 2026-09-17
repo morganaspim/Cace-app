@@ -2,30 +2,42 @@ name: CACE Collaboration Coordination Validation
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'collaboration/**'
+      - 'scripts/verify_collaboration_records.py'
+      - 'scripts/validate_collaboration_lifecycle.py'
+      - 'scripts/cace_actions_serialization_guard.py'
+      - 'tests/test_collaboration_records.py'
+      - 'tests/test_collaboration_lifecycle.py'
+      - 'tests/test_actions_serialization_guard.py'
+      - '.github/workflows/cace-collaboration-validation.yml'
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: cace-collaboration-validation
+  group: cace-global-runner-lane
   cancel-in-progress: false
 
 jobs:
   validate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Establish exact head
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-          printf 'exact_head=%s\n' "${GITHUB_SHA}"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "$expected"
+          printf 'exact_head=%s\n' "$expected"
 
       - name: Enforce repository-wide CACE Actions serialization
         env:
@@ -55,27 +67,16 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import hashlib, json, pathlib, subprocess
-          files = sorted([
-              pathlib.Path('collaboration/PROTOCOL.md'),
-              pathlib.Path('collaboration/schema/cace-collaboration-record.schema.json'),
-              pathlib.Path('collaboration/DISCOVERY_LEDGER.json'),
-              pathlib.Path('scripts/verify_collaboration_records.py'),
-              pathlib.Path('scripts/validate_collaboration_lifecycle.py'),
-              pathlib.Path('scripts/cace_actions_serialization_guard.py'),
-          ])
-          summary = {
-              'schema': 'cace-collaboration-validation-v1',
-              'evidence_class': 'ENGINEERING_VERIFIED',
-              'proof_implication': 'none',
-              'head_sha': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
-              'qualified_baseline': 'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8',
-              'sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
-          }
-          pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
-          print(json.dumps(summary, indent=2, sort_keys=True))
+          files = sorted(map(pathlib.Path, [
+            'collaboration/PROTOCOL.md','collaboration/schema/cace-collaboration-record.schema.json',
+            'collaboration/DISCOVERY_LEDGER.json','scripts/verify_collaboration_records.py',
+            'scripts/validate_collaboration_lifecycle.py','scripts/cace_actions_serialization_guard.py']))
+          summary={'schema':'cace-collaboration-validation-v1','evidence_class':'ENGINEERING_VERIFIED','proof_implication':'none','head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'qualified_baseline':'ce2487e2a7b85c095e0926b11c97fc1c4eba5de8','sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
+          pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
           PY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cace-collaboration-validation
           path: collaboration-validation-summary.json
