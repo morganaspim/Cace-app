@@ -8,7 +8,10 @@ on:
       - 'quality/**'
       - 'cace_studio/core/proof_contract.py'
       - 'cace_studio/core/formal_gate.py'
+      - 'cace_studio/core/qualification_drift.py'
+      - 'cace_studio/data/proof_contracts.json'
       - 'schema/proof-contracts.schema.json'
+      - 'scripts/build_continuum_attestation.py'
       - 'scripts/verify_collaboration_records.py'
       - 'scripts/validate_collaboration_lifecycle.py'
       - 'scripts/cace_actions_serialization_guard.py'
@@ -16,16 +19,19 @@ on:
       - 'scripts/check_bug_sweep.py'
       - 'scripts/finalize_qualification_diagnostics.py'
       - 'scripts/verify_v330_qualification_bundle.py'
+      - 'scripts/verify_v330_qualification_source_binding.py'
       - 'tests/test_collaboration_records.py'
       - 'tests/test_collaboration_lifecycle.py'
       - 'tests/test_actions_serialization_guard.py'
       - 'tests/test_actions_policy_audit.py'
       - 'tests/test_proof_contract_v336.py'
       - 'tests/test_claim_registry_v331.py'
+      - 'tests/test_qualification_drift_v331.py'
       - 'tests/test_qualification_overlay_v337.py'
       - 'tests/test_qualification_diagnostics_v337.py'
       - 'tests/test_bug_class_registry_v337.py'
       - 'tests/test_qualification_bundle_verifier_v338.py'
+      - 'tests/test_qualification_source_binding_v339.py'
       - '.github/workflows/cace-collaboration-validation.yml'
       - '.github/workflows/cace-formal-v336-theorem-metadata.yml'
       - '.github/workflows/cace-python-regression.yml'
@@ -90,9 +96,11 @@ jobs:
             tests/test_actions_policy_audit.py \
             tests/test_proof_contract_v336.py \
             tests/test_claim_registry_v331.py \
+            tests/test_qualification_drift_v331.py \
             tests/test_qualification_diagnostics_v337.py \
             tests/test_bug_class_registry_v337.py \
-            tests/test_qualification_bundle_verifier_v338.py
+            tests/test_qualification_bundle_verifier_v338.py \
+            tests/test_qualification_source_binding_v339.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
@@ -135,7 +143,10 @@ jobs:
             'quality/bug_classes.json',
             'cace_studio/core/proof_contract.py',
             'cace_studio/core/formal_gate.py',
+            'cace_studio/core/qualification_drift.py',
+            'cace_studio/data/proof_contracts.json',
             'schema/proof-contracts.schema.json',
+            'scripts/build_continuum_attestation.py',
             'scripts/verify_collaboration_records.py',
             'scripts/validate_collaboration_lifecycle.py',
             'scripts/cace_actions_serialization_guard.py',
@@ -143,13 +154,16 @@ jobs:
             'scripts/check_bug_sweep.py',
             'scripts/finalize_qualification_diagnostics.py',
             'scripts/verify_v330_qualification_bundle.py',
+            'scripts/verify_v330_qualification_source_binding.py',
             'tests/test_actions_policy_audit.py',
             'tests/test_proof_contract_v336.py',
             'tests/test_claim_registry_v331.py',
+            'tests/test_qualification_drift_v331.py',
             'tests/test_qualification_overlay_v337.py',
             'tests/test_qualification_diagnostics_v337.py',
             'tests/test_bug_class_registry_v337.py',
             'tests/test_qualification_bundle_verifier_v338.py',
+            'tests/test_qualification_source_binding_v339.py',
             '.github/workflows/cace-collaboration-validation.yml',
             '.github/workflows/cace-formal-v336-theorem-metadata.yml',
             '.github/workflows/cace-python-regression.yml',
@@ -165,7 +179,7 @@ jobs:
           if qualification.get('proof_artifact_sha256') != ledger.get('proof_artifact_sha256'):
             raise SystemExit('claim registry/proof ledger proof artifact mismatch')
           summary={
-            'schema':'cace-collaboration-validation-v5',
+            'schema':'cace-collaboration-validation-v6',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
