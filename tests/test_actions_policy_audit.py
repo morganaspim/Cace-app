@@ -29,6 +29,10 @@ def _kinds(report: dict) -> set[str]:
     return {item["kind"] for item in report["violations"]}
 
 
+def _pytest_paths(text: str) -> set[str]:
+    return set(re.findall(r"tests/[A-Za-z0-9_./-]+\.py", text))
+
+
 def test_repository_actions_policy_is_clean() -> None:
     assert audit(WORKFLOWS)["violations"] == []
 
@@ -74,11 +78,29 @@ def test_collaboration_gate_enrolls_both_qualification_verifiers() -> None:
     assert "tests/test_qualification_bundle_verifier_v338.py" in text
     assert "tests/test_qualification_source_binding_v339.py" in text
     run_block = text.split(
-        "- name: Run collaboration, proof-linkage, bug-flush, and qualification-verifier unit tests",
+        "- name: Run collaboration plus canonical formal-preflight tests",
         1,
     )[1]
     assert "tests/test_qualification_bundle_verifier_v338.py" in run_block
     assert "tests/test_qualification_source_binding_v339.py" in run_block
+
+
+def test_collaboration_covers_every_canonical_formal_preflight_test() -> None:
+    formal = (WORKFLOWS / "cace-formal-v336-theorem-metadata.yml").read_text(encoding="utf-8")
+    collaboration = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    formal_block = formal.split(
+        "- name: Run truth architecture, proof-governance, attestation, and research tests",
+        1,
+    )[1].split("\n      - name:", 1)[0]
+    collaboration_block = collaboration.split(
+        "- name: Run collaboration plus canonical formal-preflight tests",
+        1,
+    )[1].split("\n      - name:", 1)[0]
+    formal_tests = _pytest_paths(formal_block)
+    collaboration_tests = _pytest_paths(collaboration_block)
+    assert formal_tests
+    assert formal_tests <= collaboration_tests, sorted(formal_tests - collaboration_tests)
+    assert "tests/test_qualification_overlay_v337.py" in formal_tests
 
 
 def test_collaboration_trigger_uses_future_proof_protected_surfaces() -> None:
