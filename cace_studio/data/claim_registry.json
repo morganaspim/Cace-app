@@ -23,7 +23,9 @@
     {
       "claim_id": "cace.v330.continuum-proof-strengthening",
       "evidence_ceiling": "formally-verified",
-      "module_ids": [],
+      "module_ids": [
+        "formal330.qualified_theorem_endpoint"
+      ],
       "nonclaims": [
         "Does not by itself prove all Python/C++ program behavior.",
         "The H1 distributional-graph converse is representation-level and does not by itself construct unconditional H(div) graph density or every concrete PDE trace/core hypothesis.",
