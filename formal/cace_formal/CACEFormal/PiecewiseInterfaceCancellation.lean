@@ -48,6 +48,59 @@ theorem weighted_paired_interfaces_sum_zero
   intro F _
   exact hCancel F φ
 
+
+/--
+If a scalar trace is single-valued on an interior face and the two oriented
+normal coefficients are opposite, then the interface term cancels against an
+arbitrary test trace.  No polynomial assumption on the test trace is used.
+-/
+theorem arbitrary_test_trace_cancel_of_scalar_trace_and_opposite_normal
+    {Face Test : Type*}
+    (scalarTrace testTrace leftNormal rightNormal : Face → Test → ℝ)
+    (hNormal : ∀ F φ, leftNormal F φ + rightNormal F φ = 0) :
+    ∀ F φ,
+      scalarTrace F φ * testTrace F φ * leftNormal F φ +
+        scalarTrace F φ * testTrace F φ * rightNormal F φ = 0 := by
+  intro F φ
+  rw [← mul_add]
+  rw [hNormal F φ, mul_zero]
+
+/--
+Equivalent factorization used for the P1 side: if the two cell traces agree,
+a common arbitrary test trace may be factored before applying the oriented
+normal cancellation.
+-/
+theorem arbitrary_test_trace_cancel_of_matching_p1_traces
+    {Face Test : Type*}
+    (leftTrace rightTrace testTrace leftNormal rightNormal : Face → Test → ℝ)
+    (hTrace : ∀ F φ, leftTrace F φ = rightTrace F φ)
+    (hNormal : ∀ F φ, leftNormal F φ + rightNormal F φ = 0) :
+    ∀ F φ,
+      leftTrace F φ * testTrace F φ * leftNormal F φ +
+        rightTrace F φ * testTrace F φ * rightNormal F φ = 0 := by
+  intro F φ
+  rw [hTrace F φ]
+  exact arbitrary_test_trace_cancel_of_scalar_trace_and_opposite_normal
+    rightTrace testTrace leftNormal rightNormal hNormal F φ
+
+/--
+Finite assembly of the arbitrary-test-trace cancellation theorem.
+-/
+theorem arbitrary_test_trace_interface_sum_zero
+    {Face Test : Type*} [Fintype Face]
+    (leftTrace rightTrace testTrace leftNormal rightNormal : Face → Test → ℝ)
+    (hTrace : ∀ F φ, leftTrace F φ = rightTrace F φ)
+    (hNormal : ∀ F φ, leftNormal F φ + rightNormal F φ = 0) :
+    ∀ φ,
+      (∑ F,
+        (leftTrace F φ * testTrace F φ * leftNormal F φ +
+          rightTrace F φ * testTrace F φ * rightNormal F φ)) = 0 := by
+  intro φ
+  apply Finset.sum_eq_zero
+  intro F _
+  exact arbitrary_test_trace_cancel_of_matching_p1_traces
+    leftTrace rightTrace testTrace leftNormal rightNormal hTrace hNormal F φ
+
 theorem exact_interface_certificate_sum_zero
     {mesh : MeshCertificate}
     (triangle : Fin mesh.triangleCount → Triangle2)
