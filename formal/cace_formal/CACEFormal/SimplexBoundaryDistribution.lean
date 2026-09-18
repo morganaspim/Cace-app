@@ -5,7 +5,7 @@ import CACEFormal.PDEDomainBridge
 namespace CACEFormal
 
 open Set MeasureTheory
-open scoped LineDeriv SchwartzMap
+open scoped BigOperators LineDeriv SchwartzMap
 
 namespace Continuum
 
@@ -53,6 +53,52 @@ theorem simplex_scalar_cellwise_distributional_ibp {d : Nat}
     (h : SimplexScalarBoundaryData cell interior) (i : Fin d) :
     ∂_{simplexBasisVector i} cell = interior i - h.boundary i :=
   h.cellIBP i
+
+
+/--
+Finite assembly of exact cellwise simplex integration-by-parts identities.
+The total boundary distribution remains explicit; no interface cancellation
+or boundary-condition assumption is hidden in this theorem.
+-/
+theorem simplex_cellwise_distributional_ibp_sum
+    {Cell : Type*} [Fintype Cell] {d : Nat}
+    (cell : Cell → SimplexScalarDistribution d)
+    (interior boundary : Cell → Fin d → SimplexScalarDistribution d)
+    (hCell : ∀ K i,
+      ∂_{simplexBasisVector i} (cell K) =
+        interior K i - boundary K i)
+    (i : Fin d) :
+    ∂_{simplexBasisVector i} (∑ K, cell K) =
+      (∑ K, interior K i) - ∑ K, boundary K i := by
+  calc
+    ∂_{simplexBasisVector i} (∑ K, cell K) =
+        ∑ K, ∂_{simplexBasisVector i} (cell K) := by
+      simpa using
+        (lineDerivOp_sum (simplexBasisVector i) cell Finset.univ)
+    _ = ∑ K, (interior K i - boundary K i) := by
+      apply Finset.sum_congr rfl
+      intro K _
+      exact hCell K i
+    _ = (∑ K, interior K i) - ∑ K, boundary K i := by
+      exact Finset.sum_sub_distrib
+
+/--
+If the assembled simplex boundary distribution cancels, the finite cellwise
+identities reduce to the global weak derivative identity.
+-/
+theorem simplex_cellwise_distributional_ibp_sum_of_boundary_cancel
+    {Cell : Type*} [Fintype Cell] {d : Nat}
+    (cell : Cell → SimplexScalarDistribution d)
+    (interior boundary : Cell → Fin d → SimplexScalarDistribution d)
+    (hCell : ∀ K i,
+      ∂_{simplexBasisVector i} (cell K) =
+        interior K i - boundary K i)
+    (hBoundary : ∀ i, (∑ K, boundary K i) = 0)
+    (i : Fin d) :
+    ∂_{simplexBasisVector i} (∑ K, cell K) =
+      ∑ K, interior K i := by
+  rw [simplex_cellwise_distributional_ibp_sum cell interior boundary hCell i,
+    hBoundary i, sub_zero]
 
 end
 
