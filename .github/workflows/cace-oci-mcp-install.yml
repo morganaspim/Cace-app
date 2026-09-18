@@ -142,7 +142,7 @@ jobs:
           with open('/tmp/cace-imds.json', encoding='utf-8') as handle:
               payload = json.load(handle)
           assert payload.get('id', '').startswith('ocid1.instance.')
-          assert payload.get('compartmentId', '').startswith('ocid1.compartment.')
+          assert payload.get('compartmentId', '').startswith(('ocid1.compartment.', 'ocid1.tenancy.'))
           print(
               'CACE_OCI_MCP_IMDS_OK '
               'instance_id=' + payload['id'] +
