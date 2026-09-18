@@ -15,69 +15,92 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-qualified-web:
-    name: deploy-qualified-web
+  deploy-browser-studio:
+    name: deploy-browser-studio
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     env:
-      CACE_QUALIFIED_SHA: 7091548766deef4301ac8d62d3445d95945662e7
+      CACE_APP_SHA: 12601a63ebce29e29efac282d99c16c5cf2797da
+      CACE_FORMAL_BASELINE_SHA: 7091548766deef4301ac8d62d3445d95945662e7
       CACE_PUBLIC_IP: 129.146.160.46
       UV_VERSION: 0.12.13
       PYTHON_VERSION: 3.13.15
 
     steps:
-      - name: Checkout exact qualified application source
+      - name: Checkout validated browser application source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ env.CACE_QUALIFIED_SHA }}
-          fetch-depth: 1
+          ref: ${{ env.CACE_APP_SHA }}
+          fetch-depth: 64
           clean: true
           persist-credentials: false
 
-      - name: Verify immutable deployment source and privilege boundary
+      - name: Verify application source and qualified baseline ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$CACE_QUALIFIED_SHA"
+          test "$(git rev-parse HEAD)" = "$CACE_APP_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
+          git merge-base --is-ancestor "$CACE_FORMAL_BASELINE_SHA" "$CACE_APP_SHA"
           test "$(uname -m)" = "aarch64"
           sudo -n true
-          echo "CACE_DEPLOY_SOURCE_OK sha=$CACE_QUALIFIED_SHA host=$(hostname) user=$(id -un)"
+          echo "CACE_DEPLOY_SOURCE_OK app_sha=$CACE_APP_SHA formal_baseline=$CACE_FORMAL_BASELINE_SHA host=$(hostname) user=$(id -un)"
 
-      - name: Install production runtime and deploy exact qualified tree
+      - name: Install isolated production runtime and validate browser source
         shell: bash
         run: |
           set -euo pipefail
 
           app_user="$(id -un)"
           app_group="$(id -gn)"
-          release="/opt/cace-web/releases/$CACE_QUALIFIED_SHA"
+          release="/opt/cace-web/releases/$CACE_APP_SHA"
           current="/opt/cace-web/current"
+          python_root="/opt/cace-web/python"
+          runtime_home="/opt/cace-web/runtime-home"
+          runtime_cache="/opt/cace-web/runtime-cache"
 
           sudo dnf -y install nginx curl tar policycoreutils
 
-          sudo mkdir -p /opt/cace-web/releases
+          sudo mkdir -p /opt/cace-web/releases "$python_root" "$runtime_home" "$runtime_cache"
           sudo rm -rf "$release"
           sudo mkdir -p "$release"
           sudo chown -R "$app_user:$app_group" /opt/cace-web
 
-          git archive --format=tar "$CACE_QUALIFIED_SHA" | tar -xf - -C "$release"
+          git archive --format=tar "$CACE_APP_SHA" | tar -xf - -C "$release"
           test -f "$release/api/index.py"
-          test -f "$release/pyproject.toml"
+          test -f "$release/web/index.html"
+          test -f "$release/web/studio.js"
+          test -f "$release/web/studio.css"
 
           curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" |
             env UV_INSTALL_DIR="$RUNNER_TEMP/cace-web-uv" sh
+          uv="$RUNNER_TEMP/cace-web-uv/uv"
 
-          "$RUNNER_TEMP/cace-web-uv/uv" python install "$PYTHON_VERSION"
-          "$RUNNER_TEMP/cace-web-uv/uv" venv --python "$PYTHON_VERSION" "$release/.venv"
-          "$RUNNER_TEMP/cace-web-uv/uv" pip install             --python "$release/.venv/bin/python"             "$release"             "uvicorn[standard]>=0.35,<1"
+          UV_PYTHON_INSTALL_DIR="$python_root" "$uv" python install "$PYTHON_VERSION"
+          python_bin="$(find "$python_root" -type f -path '*/bin/python3.13' -perm -u+x | head -n 1)"
+          test -n "$python_bin"
+          "$python_bin" --version
+
+          "$uv" venv --python "$python_bin" "$release/.venv"
+          "$uv" pip install             --python "$release/.venv/bin/python"             "$release"             "uvicorn[standard]>=0.35,<1"             "pytest>=8"
+
+          (
+            cd "$release"
+            "$release/.venv/bin/python" -m compileall -q api
+            "$release/.venv/bin/python" -m pytest -q tests/test_web_api.py
+            if command -v node >/dev/null 2>&1; then
+              node --check web/studio.js
+            else
+              echo "CACE_JS_CHECK_NOTE node executable not on shell PATH; browser JS will be smoke-checked through HTTP asset delivery."
+            fi
+          )
 
           ln -sfn "$release" "$current"
 
           sudo tee /etc/systemd/system/cace-web.service >/dev/null <<EOF
           [Unit]
-          Description=CACE Studio FastAPI production service
+          Description=CACE Studio browser/FastAPI production service
           After=network-online.target
           Wants=network-online.target
 
@@ -86,10 +109,13 @@ jobs:
           User=$app_user
           Group=$app_group
           WorkingDirectory=$current
+          Environment=HOME=$runtime_home
+          Environment=XDG_CACHE_HOME=$runtime_cache
           Environment=PYTHONUNBUFFERED=1
           Environment=PYTHONDONTWRITEBYTECODE=1
-          Environment=CACE_DEPLOYED_SHA=$CACE_QUALIFIED_SHA
-          ExecStart=$current/.venv/bin/uvicorn api.index:app --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips=127.0.0.1
+          Environment=CACE_DEPLOYED_SHA=$CACE_APP_SHA
+          Environment=CACE_FORMAL_BASELINE_SHA=$CACE_FORMAL_BASELINE_SHA
+          ExecStart=$current/.venv/bin/uvicorn api.index:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1
           Restart=on-failure
           RestartSec=3
           NoNewPrivileges=true
@@ -110,9 +136,7 @@ jobs:
               access_log /var/log/nginx/cace-web-access.log;
               error_log  /var/log/nginx/cace-web-error.log;
 
-              location = / {
-                  return 302 /docs;
-              }
+              client_max_body_size 8m;
 
               location / {
                   proxy_pass http://127.0.0.1:8000;
@@ -122,7 +146,7 @@ jobs:
                   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
                   proxy_set_header X-Forwarded-Proto \$scheme;
                   proxy_connect_timeout 5s;
-                  proxy_read_timeout 60s;
+                  proxy_read_timeout 3600s;
               }
           }
           EOF
@@ -141,30 +165,52 @@ jobs:
 
           sudo nginx -t
           sudo systemctl daemon-reload
-          sudo systemctl enable --now cace-web
-          sudo systemctl enable --now nginx
+          sudo systemctl enable cace-web nginx
           sudo systemctl restart cace-web
           sudo systemctl restart nginx
 
-      - name: Verify local production health and listener state
+      - name: Verify local browser, API health and listener state
         shell: bash
         run: |
           set -euo pipefail
 
-          for attempt in {1..20}; do
+          healthy=0
+          for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:8000/api/health >/tmp/cace-health.json; then
+              healthy=1
               break
             fi
             sleep 1
           done
+          test "$healthy" = 1
 
           grep -q '"status":"ok"' /tmp/cace-health.json
           curl -fsS -H "Host: $CACE_PUBLIC_IP" http://127.0.0.1/api/health >/tmp/cace-nginx-health.json
           grep -q '"status":"ok"' /tmp/cace-nginx-health.json
+          curl -fsS -H "Host: $CACE_PUBLIC_IP" http://127.0.0.1/ >/tmp/cace-browser.html
+          grep -q 'CACE Studio' /tmp/cace-browser.html
+          curl -fsS -H "Host: $CACE_PUBLIC_IP" http://127.0.0.1/assets/studio.js >/tmp/cace-studio.js
+          grep -q 'startRun' /tmp/cace-studio.js
 
           echo "CACE_DIRECT_HEALTH=$(cat /tmp/cace-health.json)"
           echo "CACE_NGINX_HEALTH=$(cat /tmp/cace-nginx-health.json)"
           echo "CACE_SERVICE_STATE=$(systemctl is-active cace-web)"
           echo "NGINX_SERVICE_STATE=$(systemctl is-active nginx)"
           ss -ltn | grep -E '(:80 |:8000 )'
-          echo "CACE_OCI_LOCAL_DEPLOY_PASS sha=$CACE_QUALIFIED_SHA"
+          echo "CACE_OCI_BROWSER_LOCAL_PASS app_sha=$CACE_APP_SHA formal_baseline=$CACE_FORMAL_BASELINE_SHA"
+
+      - name: Emit service diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          echo '--- cace-web systemd status ---'
+          sudo systemctl status cace-web --no-pager -l
+          echo '--- cace-web journal ---'
+          sudo journalctl -u cace-web -n 120 --no-pager
+          echo '--- nginx status ---'
+          sudo systemctl status nginx --no-pager -l
+          echo '--- nginx error log ---'
+          sudo tail -n 120 /var/log/nginx/cace-web-error.log
+          echo '--- listeners ---'
+          ss -ltnp
