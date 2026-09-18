@@ -9,6 +9,10 @@ The data comes from declarations already loaded into `Lean.Environment`; no theo
 edges are inferred from source text. Python qualification tooling canonicalizes and
 hashes these records and fails closed if the endpoint set differs from the proof
 contract.
+
+Record schema v2 also exports each theorem telescope binder from the elaborated Lean
+expression. Binder proposition/parameter classification therefore comes from Lean's
+kernel-facing `Meta.isProp`, not from theorem text or naming conventions.
 -/
 
 open Lean Meta
@@ -102,6 +106,36 @@ private partial def theoremClosure
 private def namesJson (names : List Name) : Json :=
   toJson (names.map Name.toString)
 
+private def binderInfoString (info : BinderInfo) : String :=
+  match info with
+  | .default => "explicit"
+  | .implicit => "implicit"
+  | .strictImplicit => "strict_implicit"
+  | .instImplicit => "instance_implicit"
+
+private def theoremBinders (type : Expr) : MetaM (List Json) := do
+  forallTelescope type fun xs _ => do
+    let mut records : List Json := []
+    for x in xs, index in *...xs.size do
+      let fvarId := x.fvarId!
+      let binderType ← fvarId.getType
+      let userName ← fvarId.getUserName
+      let binderInfo ← fvarId.getBinderInfo
+      let proposition ← isProp binderType
+      let typePP ← withOptions (fun options =>
+          options.setBool `pp.all true |>.setBool `pp.universes true) do
+        pure s!"{← ppExpr binderType}"
+      let record := Json.mkObj [
+        ("index", toJson index),
+        ("name", toJson userName.toString),
+        ("binder_info", toJson (binderInfoString binderInfo)),
+        ("type_pp_all", toJson typePP),
+        ("is_proposition", toJson proposition),
+        ("constants", namesJson (collectConstants binderType))
+      ]
+      records := record :: records
+    pure records.reverse
+
 private def theoremRecord (env : Environment) (name : Name) : MetaM Json := do
   let some info := env.find? name
     | throwError "continuum metadata exporter: missing declaration {name}"
@@ -112,14 +146,16 @@ private def theoremRecord (env : Environment) (name : Name) : MetaM Json := do
   let statement ← withOptions (fun options =>
       options.setBool `pp.all true |>.setBool `pp.universes true) do
     pure s!"{← ppExpr thm.type}"
+  let binders ← theoremBinders thm.type
   pure <| Json.mkObj [
-    ("schema", toJson "cace-lean-theorem-record-v1"),
+    ("schema", toJson "cace-lean-theorem-record-v2"),
     ("generator", toJson "CACEFormal.V330TheoremMetadata"),
     ("theorem", toJson name.toString),
     ("declaration_kind", toJson "theorem"),
     ("level_parameters", toJson (thm.levelParams.map Name.toString)),
     ("statement_pp_all", toJson statement),
     ("statement_constants", namesJson (collectConstants thm.type)),
+    ("binders", toJson binders),
     ("direct_cace_theorem_dependencies", namesJson direct),
     ("transitive_cace_theorem_dependencies", namesJson transitive)
   ]

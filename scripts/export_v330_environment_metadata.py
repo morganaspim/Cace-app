@@ -19,10 +19,11 @@ import sys
 from typing import Any, Iterable
 
 SENTINEL = "CACE_THEOREM_METADATA\t"
-RECORD_SCHEMA = "cace-lean-theorem-record-v1"
+RECORD_SCHEMA = "cace-lean-theorem-record-v2"
 ARTIFACT_SCHEMA = "cace-lean-theorem-metadata-v3"
 GENERATOR = "CACEFormal.V330TheoremMetadata"
 PROVENANCE = "Lean.Environment"
+_BINDER_INFO = {"explicit", "implicit", "strict_implicit", "instance_implicit"}
 _RECORD_KEYS = {
     "schema",
     "generator",
@@ -31,8 +32,17 @@ _RECORD_KEYS = {
     "level_parameters",
     "statement_pp_all",
     "statement_constants",
+    "binders",
     "direct_cace_theorem_dependencies",
     "transitive_cace_theorem_dependencies",
+}
+_BINDER_KEYS = {
+    "index",
+    "name",
+    "binder_info",
+    "type_pp_all",
+    "is_proposition",
+    "constants",
 }
 
 
@@ -89,6 +99,54 @@ def _string_list(value: Any, field: str) -> list[str]:
     if len(value) != len(set(value)):
         raise EnvironmentMetadataError(f"{field} must not contain duplicates")
     return sorted(value)
+
+
+def _binders(value: Any, theorem: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise EnvironmentMetadataError(f"{theorem}.binders must be an array")
+    normalized: list[dict[str, Any]] = []
+    for expected_index, raw in enumerate(value):
+        if not isinstance(raw, dict):
+            raise EnvironmentMetadataError(f"{theorem}.binders[{expected_index}] must be an object")
+        keys = set(raw)
+        if keys != _BINDER_KEYS:
+            raise EnvironmentMetadataError(
+                f"{theorem}.binders[{expected_index}] keys mismatch; "
+                f"missing={sorted(_BINDER_KEYS - keys)}, extra={sorted(keys - _BINDER_KEYS)}"
+            )
+        index = raw["index"]
+        if isinstance(index, bool) or not isinstance(index, int) or index != expected_index:
+            raise EnvironmentMetadataError(
+                f"{theorem}.binders[{expected_index}].index must equal {expected_index}"
+            )
+        name = _require_nonempty(raw["name"], f"{theorem}.binders[{expected_index}].name")
+        binder_info = raw["binder_info"]
+        if binder_info not in _BINDER_INFO:
+            raise EnvironmentMetadataError(
+                f"{theorem}.binders[{expected_index}].binder_info is unsupported: {binder_info!r}"
+            )
+        type_pp_all = _require_nonempty(
+            raw["type_pp_all"], f"{theorem}.binders[{expected_index}].type_pp_all"
+        )
+        is_proposition = raw["is_proposition"]
+        if not isinstance(is_proposition, bool):
+            raise EnvironmentMetadataError(
+                f"{theorem}.binders[{expected_index}].is_proposition must be boolean"
+            )
+        constants = _string_list(
+            raw["constants"], f"{theorem}.binders[{expected_index}].constants"
+        )
+        normalized.append(
+            {
+                "index": index,
+                "name": name,
+                "binder_info": binder_info,
+                "type_pp_all": type_pp_all,
+                "is_proposition": is_proposition,
+                "constants": constants,
+            }
+        )
+    return normalized
 
 
 def parse_records(raw_output: str) -> list[dict[str, Any]]:
@@ -154,6 +212,7 @@ def validate_records(
         statement_constants = _string_list(
             raw["statement_constants"], f"{theorem}.statement_constants"
         )
+        binders = _binders(raw["binders"], theorem)
         direct = _string_list(
             raw["direct_cace_theorem_dependencies"],
             f"{theorem}.direct_cace_theorem_dependencies",
@@ -181,6 +240,7 @@ def validate_records(
                 "statement_pp_all": statement,
                 "statement_sha256": statement_sha256,
                 "statement_constants": statement_constants,
+                "binders": binders,
                 "direct_cace_theorem_dependencies": direct,
                 "direct_cace_theorem_dependencies_sha256": direct_sha256,
                 "transitive_cace_theorem_dependencies": transitive,
