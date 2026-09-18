@@ -71,7 +71,9 @@ theorem geometricSimplexFacetInSpan_euclideanHausdorffMeasure_lt_top
         (μHE[d - 1] : Measure (geometricSimplexFacetSpan s i)) := by
     simpa only [geometricSimplexFacetSpan_finrank s i] using
       (EuclideanGeometry.measurePreserving_vaddConst p)
-  rw [← hpres.measure_preimage_equiv
+  rw [← hpres.measure_preimage_emb
+    (by simpa using
+      (IsometryEquiv.vaddConst p).toHomeomorph.measurableEmbedding)
     (geometricSimplexFacetInSpan s i).closedInterior]
   have hcompact :
       IsCompact ((IsometryEquiv.vaddConst p) ⁻¹'
