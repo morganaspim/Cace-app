@@ -159,6 +159,50 @@ noncomputable def simplexDivL2 {d m : Nat}
     Lp ℝ 2 (volume : Measure (SimplexPoint d)) :=
   (simplexSupportedDiv_memLp_two vertex q).toLp (simplexSupportedDiv vertex q)
 
+
+/-- Scalar L² representative of one constant P1 gradient coordinate on a simplex. -/
+noncomputable def simplexGradComponentL2 {d m : Nat}
+    (vertex : Fin m → SimplexPoint d) (u : AffineScalar d) (i : Fin d) :
+    Lp ℝ 2 (volume : Measure (SimplexPoint d)) := by
+  let f : SimplexPoint d → ℝ := fun _ => u.grad i
+  exact (continuous_indicator_simplex_memLp_two vertex f continuous_const).toLp
+    ((simplexSet vertex).indicator f)
+
+/-- One RT0 coordinate restricted to the simplex is a genuine scalar L² function. -/
+theorem simplexSupportedRT0Component_memLp_two {d m : Nat}
+    (vertex : Fin m → SimplexPoint d) (q : RT0AffineND d) (i : Fin d) :
+    MemLp ((simplexSet vertex).indicator (fun x => q.eval x i)) 2 volume := by
+  apply continuous_indicator_simplex_memLp_two vertex
+  fun_prop
+
+/-- Scalar L² representative of one RT0 field coordinate on a simplex. -/
+noncomputable def simplexRT0ComponentL2 {d m : Nat}
+    (vertex : Fin m → SimplexPoint d) (q : RT0AffineND d) (i : Fin d) :
+    Lp ℝ 2 (volume : Measure (SimplexPoint d)) :=
+  (simplexSupportedRT0Component_memLp_two vertex q i).toLp
+    ((simplexSet vertex).indicator (fun x => q.eval x i))
+
+/--
+All source coordinates required by the H¹/H(div) graph representation are now
+available as genuine scalar L² objects: P1 value, every P1 gradient component,
+every RT0 field component, and the RT0 divergence.  This theorem is an explicit
+packaging lemma for the subsequent distributional graph construction.
+-/
+theorem simplex_affine_source_coordinates_memLp_two {d m : Nat}
+    (vertex : Fin m → SimplexPoint d) (u : AffineScalar d) (q : RT0AffineND d) :
+    MemLp (simplexSupportedScalar vertex u) 2 volume ∧
+    (∀ i : Fin d,
+      MemLp ((simplexSet vertex).indicator (fun _ => u.grad i)) 2 volume) ∧
+    (∀ i : Fin d,
+      MemLp ((simplexSet vertex).indicator (fun x => q.eval x i)) 2 volume) ∧
+    MemLp (simplexSupportedDiv vertex q) 2 volume := by
+  refine ⟨simplexSupportedScalar_memLp_two vertex u, ?_, ?_,
+    simplexSupportedDiv_memLp_two vertex q⟩
+  · intro i
+    exact continuous_indicator_simplex_memLp_two vertex (fun _ => u.grad i) continuous_const
+  · intro i
+    exact simplexSupportedRT0Component_memLp_two vertex q i
+
 end
 
 end Continuum
