@@ -79,9 +79,8 @@ theorem simplex_cellwise_distributional_ibp_sum
       apply Finset.sum_congr rfl
       intro K _
       exact hCell K i
-    _ = ((∑ K, interior K i) : SimplexScalarDistribution d) -
-        ((∑ K, boundary K i) : SimplexScalarDistribution d) := by
-      exact Finset.sum_sub_distrib
+    _ = (∑ K, interior K i) - ∑ K, boundary K i := by
+      rw [Finset.sum_sub_distrib]
 
 /--
 If the assembled simplex boundary distribution cancels, the finite cellwise
