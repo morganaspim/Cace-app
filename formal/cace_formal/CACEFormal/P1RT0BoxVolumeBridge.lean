@@ -98,6 +98,62 @@ theorem box_crossTerm_eq_volumePairing_of_rt0_p1_representation
     RT0P1DerivedAssemblyCertificate.orthogonality cert
   rw [hInner, hpair, hvol]
 
+
+/--
+Data needed to place a supported finite P1/RT0 realization into the bounded-box
+closed graph spaces without conflating the finite certificate with the analytic
+embedding proof.
+
+The representative points themselves carry membership in the smooth-core
+closures through their types.  The two equalities are the exact analytic
+identification obligations left by the finite-element-to-L² passage.
+-/
+structure P1RT0BoxRepresentation {n : Nat} (a b : BoxPoint n)
+    {mesh : MeshCertificate}
+    (cert : RT0P1DerivedAssemblyCertificate mesh) where
+  hdivPoint : BoxHDivGraphClosedSpace a b
+  h1Point : BoxH1GraphClosedSpace a b
+  fieldGrad_eq_cellSum :
+    (∑ i : Fin (n + 1), inner ℝ (hdivPoint.1.1 i) (h1Point.1.2 i)) =
+      ∑ K : Fin mesh.triangleCount, cert.cellPairing K
+  divValue_eq_cellDivergenceSum :
+    inner ℝ hdivPoint.1.2 h1Point.1.1 =
+      -(∑ K : Fin mesh.triangleCount, cert.cellDivergence K)
+
+namespace P1RT0BoxRepresentation
+
+/-- A represented exact assembly certificate has zero bounded-box Green volume pairing. -/
+theorem volumePairing_eq_zero {n : Nat} (a b : BoxPoint n)
+    {mesh : MeshCertificate}
+    (cert : RT0P1DerivedAssemblyCertificate mesh)
+    (rep : P1RT0BoxRepresentation a b cert) :
+    (boxGraphBoundedGreenPairing a b).volumePairing rep.hdivPoint rep.h1Point = 0 :=
+  box_volumePairing_eq_zero_of_rt0_p1_representation
+    a b cert rep.hdivPoint rep.h1Point
+    rep.fieldGrad_eq_cellSum rep.divValue_eq_cellDivergenceSum
+
+/--
+Once the executable/formal error vectors are identified with the same exact
+cell-pairing sum, the represented box graph supplies the continuum cross-term
+equality required by the Prager–Synge interface.
+-/
+theorem crossTerm_eq_volumePairing {n : Nat} (a b : BoxPoint n)
+    {mesh : MeshCertificate}
+    (cert : RT0P1DerivedAssemblyCertificate mesh)
+    (rep : P1RT0BoxRepresentation a b cert)
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (eGrad eFlux : E)
+    (hInner :
+      inner ℝ eGrad eFlux =
+        ∑ K : Fin mesh.triangleCount, cert.cellPairing K) :
+    inner ℝ eGrad eFlux =
+      (boxGraphBoundedGreenPairing a b).volumePairing rep.hdivPoint rep.h1Point :=
+  box_crossTerm_eq_volumePairing_of_rt0_p1_representation
+    a b cert rep.hdivPoint rep.h1Point eGrad eFlux hInner
+    rep.fieldGrad_eq_cellSum rep.divValue_eq_cellDivergenceSum
+
+end P1RT0BoxRepresentation
+
 end
 
 end Continuum
