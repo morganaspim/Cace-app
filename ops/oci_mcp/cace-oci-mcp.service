@@ -1,0 +1,34 @@
+[Unit]
+Description=CACE OCI MCP control plane
+After=network-online.target cace-web.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cace-mcp
+Group=cace-mcp
+WorkingDirectory=/opt/cace-oci-mcp/current
+Environment=HOME=/var/lib/cace-oci-mcp
+Environment=XDG_CACHE_HOME=/var/lib/cace-oci-mcp/cache
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=CACE_OCI_MCP_HOST=127.0.0.1
+Environment=CACE_OCI_MCP_PORT=8765
+Environment=CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false
+Environment=CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false
+EnvironmentFile=-/etc/cace-oci-mcp.env
+ExecStart=/opt/cace-oci-mcp/venv/bin/python -m ops.oci_mcp.server
+Restart=on-failure
+RestartSec=3
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/cace-oci-mcp
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
