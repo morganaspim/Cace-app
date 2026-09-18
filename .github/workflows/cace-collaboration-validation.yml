@@ -2,23 +2,12 @@ name: CACE Collaboration Coordination Validation
 
 on:
   workflow_dispatch:
-    inputs:
-      lean_module:
-        description: 'Optional Lean module relative to formal/cace_formal; blank runs normal collaboration validation'
-        required: false
-        default: ''
-      compile_root:
-        description: 'Also compile CACEFormal.lean when lean_module is supplied'
-        required: false
-        type: boolean
-        default: true
   pull_request:
+    # Keep automatic PR validation inexpensive. Heavy formal proof validation
+    # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
     paths:
       - 'collaboration/**'
       - 'quality/**'
-      - 'formal/**'
-      - 'cace_studio/**'
-      - 'schema/**'
       - 'scripts/**'
       - 'ops/**'
       - 'tests/**'
@@ -107,85 +96,6 @@ jobs:
             tests/test_qualification_promotion_v339.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
-      - name: Exact-pin targeted Lean compile
-        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.lean_module != '') }}
-        shell: bash
-        env:
-          TARGET_RAW: ${{ inputs.lean_module }}
-          TARGET: CACEFormal/SimplexBoundaryDistribution.lean
-          CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
-          CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
-          CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
-          CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
-          CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
-          MATHLIB_NO_CACHE_ON_UPDATE: '1'
-          XDG_CACHE_HOME: ${{ runner.temp }}/cace-preflight-mathlib-cache
-        run: |
-          set -euo pipefail
-          echo "requested_target=$TARGET_RAW"
-          echo "fixed_preflight_target=$TARGET"
-          case "$TARGET" in CACEFormal/*.lean) ;; *) echo "invalid fixed Lean target: $TARGET" >&2; exit 2;; esac
-          test -f "formal/cace_formal/$TARGET"
-          module_name="${TARGET%.lean}"
-          module_name="${module_name//\//.}"
-          grep -Fqx "import $module_name" formal/cace_formal/CACEFormal.lean
-          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
-          export PATH="$ELAN_HOME/bin:$PATH"
-          test -x "$ELAN_HOME/bin/elan"
-          elan toolchain install "$CACE_TOOLCHAIN"
-          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
-          mkdir -p formal/cace_formal/.lake
-          rm -rf formal/cace_formal/.lake/packages
-          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
-          flock -s -w 900 9
-          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
-          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
-          flock -u 9
-          cd formal/cace_formal
-          lean --version
-
-          # Match the canonical qualification TLS trust boundary before invoking
-          # Mathlib's cache client. The runner must use an explicit verified CA
-          # bundle rather than inheriting an ambiguous OpenSSL store setup.
-          cace_ca_bundle=""
-          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem; do
-            if [[ -s "$candidate" ]]; then cace_ca_bundle="$candidate"; break; fi
-          done
-          test -n "$cace_ca_bundle"
-          export CURL_CA_BUNDLE="$cace_ca_bundle"
-          export SSL_CERT_FILE="$cace_ca_bundle"
-          echo "CACE_PREFLIGHT_TLS_CA_BUNDLE=$cace_ca_bundle"
-
-          # Fetch only the compiled Mathlib dependency closure needed by this
-          # exact target. This is acceleration evidence only; Lean still
-          # elaborates the CACE target from the exact checked-out source.
-          lake update
-          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-          lake build +Cache.Main
-          echo "CACE_MATHLIB_TARGETED_CACHE_GET target=$TARGET"
-          lake env lean --run .lake/packages/mathlib/Cache/Main.lean get "$TARGET" || true
-          find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete 2>/dev/null || true
-          echo "CACE_PREFLIGHT_PROJECT_BUILD target=CACEFormal"
-          lake build CACEFormal
-          target_olean=".lake/build/lib/lean/${TARGET%.lean}.olean"
-          test -f "$target_olean"
-          lake env lean "$TARGET"
-          printf 'CACE_PREFLIGHT_TARGET_OK target=%s exact_head=%s\n' "$TARGET" "$GITHUB_SHA"
-
-      - name: Exact-pin audited-root compile
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.lean_module != '' && inputs.compile_root }}
-        shell: bash
-        env:
-          CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
-        run: |
-          set -euo pipefail
-          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
-          export PATH="$ELAN_HOME/bin:$PATH"
-          cd formal/cace_formal
-          lake env lean CACEFormal.lean
-          printf 'CACE_PREFLIGHT_ROOT_OK exact_head=%s\n' "$GITHUB_SHA"
-
       - name: Verify canonical qualified baseline remains an ancestor
         shell: bash
         run: |
@@ -219,9 +129,8 @@ jobs:
           python - <<'PY'
           import hashlib, json, pathlib, subprocess
 
-          # Hash repository evidence only.  The Lean preflight restores a very
-          # large untracked .lake dependency/build tree under formal/, which is
-          # execution cache rather than source evidence and must not be swept into
+          # Hash repository evidence only. Runtime environments and caches are
+          # execution state rather than source evidence and must not be swept into
           # this engineering summary.
           source_prefixes = (
             'collaboration/',

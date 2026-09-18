@@ -117,20 +117,29 @@ def test_collaboration_preflight_matches_canonical_python_runtime() -> None:
     assert _python_runtime_pin(collaboration) == _python_runtime_pin(formal)
 
 
-def test_collaboration_trigger_uses_future_proof_protected_surfaces() -> None:
+def test_collaboration_trigger_is_lightweight_only() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
     for path in (
         "collaboration/**",
         "quality/**",
-        "formal/**",
-        "cace_studio/**",
-        "schema/**",
         "scripts/**",
+        "ops/**",
         "tests/**",
         "pyproject.toml",
         ".github/workflows/cace-*.yml",
     ):
         assert f"- '{path}'" in text
+    for heavy in ("formal/**", "cace_studio/**", "schema/**"):
+        assert f"- '{heavy}'" not in text
+
+
+def test_collaboration_workflow_contains_no_lean_execution() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    assert "Exact-pin targeted Lean compile" not in text
+    assert "Exact-pin audited-root compile" not in text
+    assert "lake build" not in text
+    assert "lake env lean" not in text
+    assert "elan toolchain" not in text
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
@@ -175,17 +184,25 @@ def test_collaboration_trigger_must_keep_scripts_surface(tmp_path: Path) -> None
     assert "collaboration-trigger-paths" in _kinds(audit(root))
 
 
-def test_collaboration_trigger_must_keep_formal_surface(tmp_path: Path) -> None:
+def test_collaboration_trigger_rejects_formal_surface(tmp_path: Path) -> None:
     root = _fixture(tmp_path)
     path = root / "cace-collaboration-validation.yml"
-    text = path.read_text().replace("      - 'formal/**'\n", "", 1)
+    text = path.read_text().replace(
+        "      - 'scripts/**'\n",
+        "      - 'scripts/**'\n      - 'formal/**'\n",
+        1,
+    )
     path.write_text(text)
     assert "collaboration-trigger-paths" in _kinds(audit(root))
 
 
-def test_collaboration_trigger_must_keep_cace_source_surface(tmp_path: Path) -> None:
+def test_collaboration_trigger_rejects_cace_source_surface(tmp_path: Path) -> None:
     root = _fixture(tmp_path)
     path = root / "cace-collaboration-validation.yml"
-    text = path.read_text().replace("      - 'cace_studio/**'\n", "", 1)
+    text = path.read_text().replace(
+        "      - 'scripts/**'\n",
+        "      - 'scripts/**'\n      - 'cace_studio/**'\n",
+        1,
+    )
     path.write_text(text)
     assert "collaboration-trigger-paths" in _kinds(audit(root))
