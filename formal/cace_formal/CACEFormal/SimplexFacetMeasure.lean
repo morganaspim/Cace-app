@@ -62,7 +62,7 @@ theorem geometricSimplexFacetInSpan_euclideanHausdorffMeasure_lt_top
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (i : Fin (d + 1)) :
     (μHE[d - 1] : Measure (geometricSimplexFacetSpan s i))
-        (geometricSimplexFacetInSpan s i).closedInterior < ∞ := by
+        (geometricSimplexFacetInSpan s i).closedInterior < ⊤ := by
   rw [← geometricSimplexFacetSpan_finrank s i]
   let p : geometricSimplexFacetSpan s i :=
     Classical.choice (geometricSimplexFacetSpan_nonempty s i)
@@ -90,7 +90,7 @@ theorem geometricSimplexFacet_euclideanHausdorffMeasure_lt_top
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (i : Fin (d + 1)) :
     (μHE[d - 1] : Measure (GeometricSimplexPoint d))
-        (geometricSimplexFacet s i) < ∞ := by
+        (geometricSimplexFacet s i) < ⊤ := by
   rw [← geometricSimplexFacetInSpan_image s i,
     AffineSubspace.euclideanHausdorffMeasure_coe_image]
   exact geometricSimplexFacetInSpan_euclideanHausdorffMeasure_lt_top s i
