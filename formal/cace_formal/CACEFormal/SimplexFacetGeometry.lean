@@ -81,20 +81,22 @@ def geometricSimplexFacetSpan {d : Nat} [NeZero d]
   affineSpan ℝ (Set.range (s.faceOpposite i).points)
 
 /--
-The affine span of an opposite facet has exactly the intrinsic dimension
-`d - 1`.  This is the dimension required for the facet surface measure.
+The affine span is nonempty because it contains every vertex of the opposite
+facet.  We register this explicitly so the affine-subspace subtype obtains its
+torsor structure under the pinned Mathlib version.
 -/
-theorem geometricSimplexFacetSpan_finrank {d : Nat} [NeZero d]
+instance geometricSimplexFacetSpan_nonempty {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (i : Fin (d + 1)) :
-    Module.finrank ℝ (geometricSimplexFacetSpan s i).direction = d - 1 := by
-  exact
-    (Affine.Simplex.fact_finrank_direction_affineSpan_eq
-      (s := s.faceOpposite i)).out
+    Nonempty (geometricSimplexFacetSpan s i) := by
+  refine ⟨⟨(s.faceOpposite i).points 0, ?_⟩⟩
+  change (s.faceOpposite i).points 0 ∈
+    affineSpan ℝ (Set.range (s.faceOpposite i).points)
+  exact mem_affineSpan ℝ (Set.mem_range_self 0)
 
 /--
 The opposite facet, regarded as a full-dimensional simplex inside its own
-affine span.  This is the correct ambient space for finite `(d - 1)`-surface
-measure; no ambient lower-dimensional finiteness claim is used.
+affine span.  This is the correct ambient space for later intrinsic surface
+measure arguments; no ambient lower-dimensional finiteness claim is used.
 -/
 noncomputable def geometricSimplexFacetInSpan {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (i : Fin (d + 1)) :
