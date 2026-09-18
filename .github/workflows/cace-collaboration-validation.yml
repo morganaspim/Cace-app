@@ -108,7 +108,7 @@ jobs:
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Exact-pin targeted Lean compile
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.lean_module != '' }}
+        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.lean_module != '') }}
         shell: bash
         env:
           TARGET_RAW: ${{ inputs.lean_module }}
