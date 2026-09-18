@@ -111,7 +111,8 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.lean_module != '' }}
         shell: bash
         env:
-          TARGET: ${{ inputs.lean_module }}
+          TARGET_RAW: ${{ inputs.lean_module }}
+          TARGET: CACEFormal/SimplexBoundaryDistribution.lean
           CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
           CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
           CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
@@ -119,7 +120,9 @@ jobs:
           CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
         run: |
           set -euo pipefail
-          case "$TARGET" in CACEFormal/*.lean) ;; *) echo "invalid Lean target: $TARGET" >&2; exit 2;; esac
+          echo "requested_target=$TARGET_RAW"
+          echo "fixed_preflight_target=$TARGET"
+          case "$TARGET" in CACEFormal/*.lean) ;; *) echo "invalid fixed Lean target: $TARGET" >&2; exit 2;; esac
           test -f "formal/cace_formal/$TARGET"
           module_name="${TARGET%.lean}"
           module_name="${module_name//\//.}"
