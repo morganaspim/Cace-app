@@ -39,7 +39,7 @@ theorem simplexSet_measurable {d m : Nat} (vertex : Fin m → SimplexPoint d) :
   (simplexSet_compact vertex).isClosed.measurableSet
 
 theorem simplexSet_volume_lt_top {d m : Nat} (vertex : Fin m → SimplexPoint d) :
-    volume (simplexSet vertex) < ∞ :=
+    volume (simplexSet vertex) < (⊤ : ℝ≥0∞) :=
   (simplexSet_compact vertex).measure_lt_top
 
 /-- Dimension-generic affine scalar polynomial. -/
@@ -113,7 +113,7 @@ theorem continuous_indicator_simplex_memLp_two
     refine closure_minimal ?_ hcompact.isClosed
     intro x hx
     by_contra hxs
-    exact hx (Set.indicator_of_notMem hxs)
+    exact hx (Set.indicator_of_notMem hxs f)
   obtain ⟨C, hC⟩ := hcompact.exists_bound_of_continuousOn hcont
   exact hbounded.memLp_of_bound
     (hf.aestronglyMeasurable.indicator hmeas)
@@ -121,7 +121,7 @@ theorem continuous_indicator_simplex_memLp_two
     (Filter.Eventually.of_forall fun x => by
       by_cases hx : x ∈ simplexSet vertex
       · simpa [Set.indicator_of_mem hx] using hC x hx
-      · simp [Set.indicator_of_notMem hx])
+      · have hC0 : 0 ≤ C := by\n          by_cases hne : (simplexSet vertex).Nonempty\n          · obtain ⟨y, hy⟩ := hne\n            exact (norm_nonneg (f y)).trans (hC y hy)\n          · have hempty : simplexSet vertex = ∅ := Set.not_nonempty_iff_eq_empty.mp hne\n            simp [hempty]\n        simpa [Set.indicator_of_notMem hx] using hC0)
 
 theorem simplexSupportedScalar_memLp_two {d m : Nat}
     (vertex : Fin m → SimplexPoint d) (u : AffineScalar d) :
