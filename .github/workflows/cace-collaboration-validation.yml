@@ -119,6 +119,7 @@ jobs:
           CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
           CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
           MATHLIB_NO_CACHE_ON_UPDATE: '1'
+          CACE_MATHLIB_OLEAN_SENTINEL: Mathlib.olean
         run: |
           set -euo pipefail
           echo "requested_target=$TARGET_RAW"
@@ -143,6 +144,23 @@ jobs:
           flock -u 9
           cd formal/cace_formal
           lean --version
+          mathlib_olean=".lake/packages/mathlib/.lake/build/lib/lean/$CACE_MATHLIB_OLEAN_SENTINEL"
+          if [[ ! -f "$mathlib_olean" ]]; then
+            echo "CACE_MATHLIB_COMPILED_CACHE_MISS sentinel=$mathlib_olean"
+            echo "Building pinned Mathlib root locally once; no network cache download."
+            lake build Mathlib
+            test -f "$mathlib_olean"
+            exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+            flock -x -w 900 9
+            mkdir -p "$CACE_PACKAGE_CACHE/mathlib/.lake/build"
+            cp -a --reflink=auto .lake/packages/mathlib/.lake/build/. "$CACE_PACKAGE_CACHE/mathlib/.lake/build/"
+            printf '%s\n' "$CACE_TOOLCHAIN" > "$CACE_PACKAGE_CACHE/mathlib/.lake/build/CACE_TOOLCHAIN"
+            printf '%s\n' "$CACE_MATHLIB_COMMIT" > "$CACE_PACKAGE_CACHE/mathlib/.lake/build/CACE_MATHLIB_COMMIT"
+            flock -u 9
+            echo "CACE_MATHLIB_COMPILED_CACHE_PROMOTED commit=$CACE_MATHLIB_COMMIT"
+          else
+            echo "CACE_MATHLIB_COMPILED_CACHE_HIT sentinel=$mathlib_olean"
+          fi
           lake env lean "$TARGET"
           printf 'CACE_PREFLIGHT_TARGET_OK target=%s exact_head=%s\n' "$TARGET" "$GITHUB_SHA"
 
