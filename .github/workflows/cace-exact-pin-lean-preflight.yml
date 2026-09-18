@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       module:
-        description: 'Lean module path relative to formal/cace_formal (for example CACEFormal/SimplexAffineL2.lean)'
+        description: 'Enter ONLY the Lean module path, e.g. CACEFormal/ReferenceSimplexFiber.lean'
         required: true
-        default: 'CACEFormal/SimplexAffineL2.lean'
+        default: 'CACEFormal/ReferenceSimplexFiber.lean'
       compile_root:
         description: 'Also compile CACEFormal.lean after the targeted module'
         required: true
@@ -58,9 +58,11 @@ jobs:
         id: target
         shell: bash
         env:
-          REQUESTED_MODULE: ${{ inputs.module }}
+          REQUESTED_MODULE_RAW: ${{ inputs.module }}
         run: |
           set -euo pipefail
+          REQUESTED_MODULE="$(printf '%s' "$REQUESTED_MODULE_RAW" | sed -E 's/^Module:[[:space:]]*//; s/[[:space:]]+compile_root:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+          echo "normalized_module=$REQUESTED_MODULE"
           case "$REQUESTED_MODULE" in
             CACEFormal/*.lean) ;;
             *) echo "Target must be a CACEFormal/*.lean path." >&2; exit 2 ;;
