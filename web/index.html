@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>CACE Studio — Browser Scientific Playground</title>
+  <link rel="stylesheet" href="/assets/studio.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <div class="brand-title">CACE Studio</div>
+          <div class="brand-subtitle">Verified computational research environment · browser workspace</div>
+        </div>
+      </div>
+      <div class="toolbar" aria-label="Experiment controls">
+        <button id="new-btn" title="New experiment (Ctrl+N)">New</button>
+        <button id="open-btn" title="Open .cace experiment (Ctrl+O)">Open</button>
+        <button id="save-btn" title="Save .cace experiment (Ctrl+S)">Save</button>
+        <span class="toolbar-sep"></span>
+        <button id="undo-btn" title="Undo (Ctrl+Z)">Undo</button>
+        <button id="redo-btn" title="Redo (Ctrl+Shift+Z)">Redo</button>
+        <button id="copy-btn" title="Copy selection (Ctrl+C)">Copy</button>
+        <button id="paste-btn" title="Paste (Ctrl+V)">Paste</button>
+        <span class="toolbar-sep"></span>
+        <button id="fit-btn" title="Fit graph (F)">Fit</button>
+        <button id="reset-view-btn" title="Reset view (Ctrl+0)">100%</button>
+      </div>
+      <div class="runbar">
+        <label class="compact-field">Seed <input id="seed-input" type="number" value="0" step="1"></label>
+        <label class="switch-label"><input id="gpu-toggle" type="checkbox"> GPU policy</label>
+        <button id="run-selected-btn" class="accent" title="Execute selected nodes and their upstream dependencies">Run Selected</button>
+        <button id="run-btn" class="accent strong" title="Execute and verify full graph (Ctrl+R)">Run Graph</button>
+        <button id="pause-btn" disabled>Pause</button>
+        <button id="resume-btn" disabled>Resume</button>
+        <button id="cancel-btn" disabled>Cancel</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="left-panel panel">
+        <section class="panel-section library-section">
+          <div class="section-title-row">
+            <h2>Module Library</h2>
+            <span id="module-count" class="badge">0</span>
+          </div>
+          <input id="module-search" class="search" type="search" placeholder="Search modules, categories, IDs…">
+          <div id="module-library" class="module-library" aria-label="Module library"></div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Arrange</h2>
+          <div class="button-grid">
+            <button id="align-left-btn">Align Left</button>
+            <button id="align-top-btn">Align Top</button>
+            <button id="align-column-btn">Vertical Column</button>
+            <button id="align-row-btn">Horizontal Row</button>
+            <button id="group-btn">Create Group</button>
+            <button id="ungroup-btn">Ungroup</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Workspace</h2>
+          <div id="workspace-stats" class="stats"></div>
+          <button id="recover-btn" class="wide">Recover Browser Autosave</button>
+        </section>
+      </aside>
+
+      <section id="canvas-shell" class="canvas-shell" tabindex="0" aria-label="Experiment graph canvas">
+        <div id="canvas-hint" class="canvas-hint">Drag a module here, or double-click one in the library.</div>
+        <div id="world" class="world">
+          <svg id="edge-layer" class="edge-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="group-layer" class="group-layer"></div>
+          <div id="node-layer" class="node-layer"></div>
+        </div>
+        <div id="selection-box" class="selection-box hidden"></div>
+        <canvas id="minimap" class="minimap" width="220" height="130" aria-label="Graph minimap"></canvas>
+        <div class="canvas-help">Drag nodes · click output then input to connect · Shift-click multi-select · Delete removes · Ctrl+wheel zoom · middle-drag pans</div>
+      </section>
+
+      <aside class="right-panel panel">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="properties">Properties</button>
+          <button class="tab" data-tab="proof">Proof / Capability</button>
+          <button class="tab" data-tab="verification">Run Evidence</button>
+          <button class="tab" data-tab="claims">Claims</button>
+        </div>
+
+        <section id="tab-properties" class="tab-panel active">
+          <div id="properties-panel" class="inspector-empty">Select a node to edit its parameters.</div>
+        </section>
+
+        <section id="tab-proof" class="tab-panel">
+          <div id="proof-panel" class="inspector-empty">Select a node to inspect declared capabilities.</div>
+        </section>
+
+        <section id="tab-verification" class="tab-panel">
+          <div id="verification-panel" class="inspector-empty">No run evidence yet.</div>
+        </section>
+
+        <section id="tab-claims" class="tab-panel">
+          <div id="claims-panel" class="inspector-empty">Loading canonical claim state…</div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="bottom-panel">
+      <div class="console-title-row">
+        <strong>Console</strong>
+        <span id="run-status" class="status-pill idle">IDLE</span>
+        <span id="source-status" class="source-status"></span>
+        <button id="clear-console-btn" class="link-button">Clear</button>
+      </div>
+      <pre id="console" class="console"></pre>
+    </footer>
+  </div>
+
+  <input id="file-input" type="file" accept=".cace,application/json" hidden>
+  <script src="/assets/studio.js" defer></script>
+</body>
+</html>
