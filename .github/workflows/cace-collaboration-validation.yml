@@ -166,6 +166,10 @@ jobs:
           echo "CACE_MATHLIB_TARGETED_CACHE_GET target=$TARGET"
           lake env lean --run .lake/packages/mathlib/Cache/Main.lean get "$TARGET" || true
           find "$XDG_CACHE_HOME" -mindepth 1 -depth -delete 2>/dev/null || true
+          echo "CACE_PREFLIGHT_PROJECT_BUILD target=CACEFormal"
+          lake build CACEFormal
+          target_olean=".lake/build/lib/lean/${TARGET%.lean}.olean"
+          test -f "$target_olean"
           lake env lean "$TARGET"
           printf 'CACE_PREFLIGHT_TARGET_OK target=%s exact_head=%s\n' "$TARGET" "$GITHUB_SHA"
 
