@@ -13,7 +13,6 @@ concurrency:
 
 jobs:
   materialize:
-    if: github.event.head_commit.message == 'bootstrap: stage CACE v4.00 architecture'
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 30
     steps:
@@ -30,18 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat \
-            .bootstrap/nov2_00 \
-            .bootstrap/nov2_01 \
-            .bootstrap/nov2_02 \
-            .bootstrap/tail4_00 \
-            .bootstrap/tail4_01 \
-            .bootstrap/tail4_02 \
-            .bootstrap/tail4_03 \
-            .bootstrap/t2a_00 \
-            .bootstrap/t2a_01 \
-            .bootstrap/t2b_00 \
-            .bootstrap/t2b_01 > "$RUNNER_TEMP/v400.b64"
+          cat             .bootstrap/nov2_00             .bootstrap/nov2_01             .bootstrap/nov2_02             .bootstrap/tail4_00             .bootstrap/tail4_01             .bootstrap/tail4_02             .bootstrap/tail4_03             .bootstrap/t2a_00             .bootstrap/t2a_01             .bootstrap/t2b_00             .bootstrap/t2b_01 > "$RUNNER_TEMP/v400.b64"
           base64 -d "$RUNNER_TEMP/v400.b64" > "$RUNNER_TEMP/v400.tar.gz"
           echo '5bc3d607a241ddb5745992f913a743516218bb08535f9038baeb2c04a752e3a1  '"$RUNNER_TEMP/v400.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/v400.tar.gz" -C .
@@ -59,15 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/cace-v400/bin/python" -m pytest -q \
-            tests/test_runtime_math_object_v400.py \
-            tests/test_runtime_heartbeat_v400.py \
-            tests/test_canvas_heartbeat_bridge_v400.py \
-            tests/test_runtime_sandbox_v400.py \
-            tests/test_runtime_entitlement_v400.py \
-            tests/test_monero_payments_v400.py \
-            tests/test_license_audit_v400.py \
-            tests/test_growth_controller_v400.py
+          "$RUNNER_TEMP/cace-v400/bin/python" -m pytest -q             tests/test_runtime_math_object_v400.py             tests/test_runtime_heartbeat_v400.py             tests/test_canvas_heartbeat_bridge_v400.py             tests/test_runtime_sandbox_v400.py             tests/test_runtime_entitlement_v400.py             tests/test_monero_payments_v400.py             tests/test_license_audit_v400.py             tests/test_growth_controller_v400.py
       - name: License policy and SBOM gate
         shell: bash
         run: |
