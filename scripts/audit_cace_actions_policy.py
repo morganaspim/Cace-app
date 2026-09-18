@@ -29,11 +29,14 @@ EXPECTED_ACTIVE = {
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
+    "cace-exact-pin-lean-preflight.yml",
 }
 EXPECTED_AUTOMATIC = {
     "cace-collaboration-validation.yml": {"pull_request"},
     "cace-formal-v336-theorem-metadata.yml": {"push"},
     "cace-python-regression.yml": {"push"},
+    # Manual-only exact-pin typecheck lane; never qualification evidence.
+    "cace-exact-pin-lean-preflight.yml": set(),
 }
 LOCKED_PUSH_SCOPE = {
     "cace-formal-v336-theorem-metadata.yml": {
