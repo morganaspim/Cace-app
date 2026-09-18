@@ -99,6 +99,54 @@ theorem box_crossTerm_eq_volumePairing_of_rt0_p1_representation
   rw [hInner, hpair, hvol]
 
 
+
+/--
+Interface-cancellation obligations for a piecewise affine P1/RT0 realization.
+
+These are intentionally stated at the finite mesh level.  P1 trace matching and
+oppositely oriented RT0 normal-trace matching are the hypotheses needed to
+remove internal distributional boundary terms when the cellwise integration by
+parts identities are assembled.
+-/
+structure P1RT0InterfaceCancellation {mesh : MeshCertificate}
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine) where
+  boundaryZero : ∀ b,
+    P1RT0Element.localFacePairing
+      (triangle (mesh.boundaryCell b))
+      (primal (mesh.boundaryCell b))
+      (flux (mesh.boundaryCell b))
+      (mesh.boundarySlot b) = 0
+  interiorZero : ∀ i,
+    P1RT0Element.localFacePairing
+        (triangle (mesh.interiorLeftCell i))
+        (primal (mesh.interiorLeftCell i))
+        (flux (mesh.interiorLeftCell i))
+        (mesh.interiorLeftSlot i) +
+      P1RT0Element.localFacePairing
+        (triangle (mesh.interiorRightCell i))
+        (primal (mesh.interiorRightCell i))
+        (flux (mesh.interiorRightCell i))
+        (mesh.interiorRightSlot i) = 0
+
+/--
+Cellwise equilibrium plus interface cancellation constructs the exact assembly
+certificate consumed by the bounded-box representation layer.  Thus no
+independent global Green identity is assumed at the source-to-formal boundary.
+-/
+noncomputable def P1RT0InterfaceCancellation.toDerivedCertificate
+    {mesh : MeshCertificate}
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hInterface : P1RT0InterfaceCancellation triangle primal flux) :
+    RT0P1DerivedAssemblyCertificate mesh :=
+  RT0P1DerivedAssemblyCertificate.ofExactElements
+    triangle primal flux hEquilibrium hInterface.boundaryZero hInterface.interiorZero
+
 /--
 Data needed to place a supported finite P1/RT0 realization into the bounded-box
 closed graph spaces without conflating the finite certificate with the analytic
