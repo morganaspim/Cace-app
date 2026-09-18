@@ -63,15 +63,14 @@ theorem geometricSimplexFacetInSpan_euclideanHausdorffMeasure_lt_top
     (s : GeometricSimplex d) (i : Fin (d + 1)) :
     (μHE[d - 1] : Measure (geometricSimplexFacetSpan s i))
         (geometricSimplexFacetInSpan s i).closedInterior < ⊤ := by
-  rw [← geometricSimplexFacetSpan_finrank s i]
   let p : geometricSimplexFacetSpan s i :=
     Classical.choice (geometricSimplexFacetSpan_nonempty s i)
   have hpres :
       MeasurePreserving (IsometryEquiv.vaddConst p)
         (volume : Measure (geometricSimplexFacetSpan s i).direction)
-        (μHE[Module.finrank ℝ (geometricSimplexFacetSpan s i).direction] :
-          Measure (geometricSimplexFacetSpan s i)) :=
-    EuclideanGeometry.measurePreserving_vaddConst p
+        (μHE[d - 1] : Measure (geometricSimplexFacetSpan s i)) := by
+    simpa only [geometricSimplexFacetSpan_finrank s i] using
+      (EuclideanGeometry.measurePreserving_vaddConst p)
   rw [← hpres.measure_preimage_equiv
     (geometricSimplexFacetInSpan s i).closedInterior]
   have hcompact :
