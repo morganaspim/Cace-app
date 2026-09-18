@@ -44,6 +44,7 @@ import CACEFormal.PiecewiseInterfaceCancellation
 import CACEFormal.PiecewiseDistributionalRepresentatives
 import CACEFormal.SimplexAffineL2
 import CACEFormal.SimplexBoundaryDistribution
+import CACEFormal.SimplexFacetGeometry
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
