@@ -80,7 +80,7 @@ theorem simplex_cellwise_distributional_ibp_sum
       intro K _
       exact hCell K i
     _ = (∑ K, interior K i) - ∑ K, boundary K i := by
-      exact Finset.sum_sub_distrib
+      rw [Finset.sum_sub_distrib]
 
 /--
 If the assembled simplex boundary distribution cancels, the finite cellwise
