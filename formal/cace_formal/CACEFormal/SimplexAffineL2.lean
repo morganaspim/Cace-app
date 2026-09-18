@@ -173,7 +173,7 @@ theorem simplexSupportedRT0Component_memLp_two {d m : Nat}
     (vertex : Fin m → SimplexPoint d) (q : RT0AffineND d) (i : Fin d) :
     MemLp ((simplexSet vertex).indicator (fun x => q.eval x i)) 2 volume := by
   apply continuous_indicator_simplex_memLp_two vertex
-  fun_prop
+  exact continuous_apply i q.continuous_eval
 
 /-- Scalar L² representative of one RT0 field coordinate on a simplex. -/
 noncomputable def simplexRT0ComponentL2 {d m : Nat}
