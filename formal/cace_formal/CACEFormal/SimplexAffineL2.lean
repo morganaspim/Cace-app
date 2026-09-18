@@ -107,23 +107,21 @@ theorem continuous_indicator_simplex_memLp_two
   have hmeas : MeasurableSet (simplexSet vertex) := simplexSet_measurable vertex
   have hcompact : IsCompact (simplexSet vertex) := simplexSet_compact vertex
   have hcont : ContinuousOn f (simplexSet vertex) := hf.continuousOn
-  have hint : IntegrableOn f (simplexSet vertex) volume :=
-    hcont.integrableOn_compact hcompact
-  have hmem1 : MemLp ((simplexSet vertex).indicator f) 1 volume := by
-    rw [memLp_one_iff_integrable]
-    exact integrable_indicator hmeas.meventuallyEq hint
   have hbounded : HasCompactSupport ((simplexSet vertex).indicator f) := by
-    refine hcompact.of_isClosed_subset ?_ ?_
-    · exact isClosed_closure
-    · exact closure_minimal (Function.support_indicator_subset _ _) hcompact.isClosed
+    rw [HasCompactSupport]
+    refine hcompact.of_isClosed_subset isClosed_closure ?_
+    refine closure_minimal ?_ hcompact.isClosed
+    intro x hx
+    by_contra hxs
+    exact hx (Set.indicator_of_notMem hxs)
   obtain ⟨C, hC⟩ := hcompact.exists_bound_of_continuousOn hcont
   exact hbounded.memLp_of_bound
     (hf.aestronglyMeasurable.indicator hmeas)
     C
     (Filter.Eventually.of_forall fun x => by
       by_cases hx : x ∈ simplexSet vertex
-      · simpa [simplexSupportedScalar, Set.indicator_of_mem hx] using hC x hx
-      · simp [Set.indicator_of_not_mem hx])
+      · simpa [Set.indicator_of_mem hx] using hC x hx
+      · simp [Set.indicator_of_notMem hx])
 
 theorem simplexSupportedScalar_memLp_two {d m : Nat}
     (vertex : Fin m → SimplexPoint d) (u : AffineScalar d) :
