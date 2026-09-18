@@ -56,6 +56,22 @@ def geometricSimplexFacet {d : Nat} [NeZero d]
     Set (GeometricSimplexPoint d) :=
   (s.faceOpposite i).closedInterior
 
+/-- The closed geometric simplex is its interior together with all opposite facets. -/
+theorem geometricSimplexCell_eq_interior_union_facets
+    {d : Nat} [NeZero d] (s : GeometricSimplex d) :
+    geometricSimplexCell s =
+      s.interior ∪ ⋃ i : Fin (d + 1), geometricSimplexFacet s i := by
+  simpa [geometricSimplexCell, geometricSimplexFacet] using
+    (Affine.Simplex.closedInterior_eq_interior_union s)
+
+/-- The geometric boundary of the closed simplex is exactly the union of its opposite facets. -/
+theorem geometricSimplexCell_sdiff_interior_eq_facets
+    {d : Nat} [NeZero d] (s : GeometricSimplex d) :
+    geometricSimplexCell s \ s.interior =
+      ⋃ i : Fin (d + 1), geometricSimplexFacet s i := by
+  simpa [geometricSimplexCell, geometricSimplexFacet] using
+    (Affine.Simplex.closedInterior_sdiff_interior s)
+
 /-- Every opposite facet lies in the closed simplex cell. -/
 theorem geometricSimplexFacet_subset_cell {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (i : Fin (d + 1)) :
