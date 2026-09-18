@@ -78,8 +78,14 @@ theorem inHDiv_of_piecewise_normal_interface_cancelled_graph
   have hx : x ∈ HDivDistributionalGraphSubmodule n := by
     rw [mem_HDivDistributionalGraphSubmodule_iff]
     exact hdiv
-  simpa [x, complexGraphFieldDistribution] using
+  have hgraph : InHDiv (complexGraphFieldDistribution x) :=
     inHDiv_of_mem_distributionalGraph n x hx
+  have hfield : complexGraphFieldDistribution x =
+      (fun i => complexL2ToDistribution n (q i)) := by
+    funext i
+    rfl
+  rw [hfield] at hgraph
+  exact hgraph
 
 /--
 The H(div) endpoint also connects to the existing canonical chosen L² graph
