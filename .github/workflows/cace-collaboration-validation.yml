@@ -118,6 +118,7 @@ jobs:
           CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
           CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
           CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+          MATHLIB_NO_CACHE_ON_UPDATE: '1'
         run: |
           set -euo pipefail
           echo "requested_target=$TARGET_RAW"
