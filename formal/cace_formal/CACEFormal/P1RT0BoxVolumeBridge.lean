@@ -1,0 +1,105 @@
+import CACEFormal.BoxGraphGreenPairing
+import CACEFormal.RT0P1DerivedAssembly
+
+namespace CACEFormal
+
+open scoped BigOperators
+
+namespace Continuum
+
+noncomputable section
+
+/-!
+# Exact finite-mesh to bounded-box Green-pairing interface
+
+This file isolates the remaining representation burden between the exact P1/RT0
+finite-element certificate and the bounded-box H¹/H(div) graph model.
+
+No claim is made here that arbitrary Python data inhabit the graph spaces.
+Instead, the two coordinate-identification hypotheses below state exactly what
+a concrete mesh-to-L² embedding must prove.  Once those hypotheses are supplied,
+the existing kernel-checked assembly theorems force the bounded-box volume
+pairing to vanish under the certificate's equilibrium/admissibility conditions.
+-/
+
+/--
+A complete exact RT0/P1 assembly certificate annihilates the bounded-box Green
+volume pairing once its finite element cell terms are identified with the two
+L² coordinate contributions of the closed graph points.
+
+The sign in `hDivValue` is intentional:
+`P1RT0Element.cellDivergence` stores `-∫ (div q) v`, whereas the graph
+pairing stores `+∫ (div q) v`.
+-/
+theorem box_volumePairing_eq_zero_of_rt0_p1_representation
+    {n : Nat} (a b : BoxPoint n)
+    {mesh : MeshCertificate}
+    (cert : RT0P1DerivedAssemblyCertificate mesh)
+    (q : BoxHDivGraphClosedSpace a b)
+    (v : BoxH1GraphClosedSpace a b)
+    (hFieldGrad :
+      (∑ i : Fin (n + 1), inner ℝ (q.1.1 i) (v.1.2 i)) =
+        ∑ K : Fin mesh.triangleCount, cert.cellPairing K)
+    (hDivValue :
+      inner ℝ q.1.2 v.1.1 =
+        -(∑ K : Fin mesh.triangleCount, cert.cellDivergence K)) :
+    (boxGraphBoundedGreenPairing a b).volumePairing q v = 0 := by
+  rw [show
+    (boxGraphBoundedGreenPairing a b).volumePairing q v =
+      (∑ i : Fin (n + 1), inner ℝ (q.1.1 i) (v.1.2 i)) +
+        inner ℝ q.1.2 v.1.1 by
+      exact closedBoxGraphGreenPairing_apply a b q v]
+  rw [hFieldGrad, hDivValue]
+  have hpair :
+      (∑ K : Fin mesh.triangleCount, cert.cellPairing K) = 0 :=
+    RT0P1DerivedAssemblyCertificate.orthogonality cert
+  have hdiv :
+      (∑ K : Fin mesh.triangleCount, cert.cellDivergence K) = 0 := by
+    apply Finset.sum_eq_zero
+    intro K _
+    exact cert.equilibrium K
+  rw [hpair, hdiv]
+  norm_num
+
+/--
+The same representation hypotheses provide the exact cross-term value required
+by the continuum Prager–Synge interface when the Hilbert error cross term is
+identified with the finite P1/RT0 cell-pairing sum.
+
+This theorem deliberately keeps `hInner` explicit: constructing the actual
+error vectors and proving that their Hilbert inner product is the assembled
+finite-element pairing is a separate source-to-formal obligation.
+-/
+theorem box_crossTerm_eq_volumePairing_of_rt0_p1_representation
+    {n : Nat} (a b : BoxPoint n)
+    {mesh : MeshCertificate}
+    (cert : RT0P1DerivedAssemblyCertificate mesh)
+    (q : BoxHDivGraphClosedSpace a b)
+    (v : BoxH1GraphClosedSpace a b)
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (eGrad eFlux : E)
+    (hInner :
+      inner ℝ eGrad eFlux =
+        ∑ K : Fin mesh.triangleCount, cert.cellPairing K)
+    (hFieldGrad :
+      (∑ i : Fin (n + 1), inner ℝ (q.1.1 i) (v.1.2 i)) =
+        ∑ K : Fin mesh.triangleCount, cert.cellPairing K)
+    (hDivValue :
+      inner ℝ q.1.2 v.1.1 =
+        -(∑ K : Fin mesh.triangleCount, cert.cellDivergence K)) :
+    inner ℝ eGrad eFlux =
+      (boxGraphBoundedGreenPairing a b).volumePairing q v := by
+  have hvol :
+      (boxGraphBoundedGreenPairing a b).volumePairing q v = 0 :=
+    box_volumePairing_eq_zero_of_rt0_p1_representation
+      a b cert q v hFieldGrad hDivValue
+  have hpair :
+      (∑ K : Fin mesh.triangleCount, cert.cellPairing K) = 0 :=
+    RT0P1DerivedAssemblyCertificate.orthogonality cert
+  rw [hInner, hpair, hvol]
+
+end
+
+end Continuum
+
+end CACEFormal
