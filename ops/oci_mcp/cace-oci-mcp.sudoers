@@ -1,0 +1,4 @@
+# Narrow local privilege boundary for the CACE OCI MCP service.
+# Deliberately permits only restarting cace-web; no shell, stop, enable,
+# daemon-reload, arbitrary unit, or other sudo command is allowed.
+cace-mcp ALL=(root) NOPASSWD: /usr/bin/systemctl restart cace-web
