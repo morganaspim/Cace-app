@@ -39,6 +39,7 @@ import CACEFormal.PDEDomainRealBridge
 import CACEFormal.BoxGraphTrace
 import CACEFormal.BoxGraphGreenPairing
 import CACEFormal.BoxClassicalAgreement
+import CACEFormal.P1RT0BoxVolumeBridge
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
