@@ -144,6 +144,19 @@ jobs:
           flock -u 9
           cd formal/cace_formal
           lean --version
+
+          # Match the canonical qualification TLS trust boundary before invoking
+          # Mathlib's cache client. The runner must use an explicit verified CA
+          # bundle rather than inheriting an ambiguous OpenSSL store setup.
+          cace_ca_bundle=""
+          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem; do
+            if [[ -s "$candidate" ]]; then cace_ca_bundle="$candidate"; break; fi
+          done
+          test -n "$cace_ca_bundle"
+          export CURL_CA_BUNDLE="$cace_ca_bundle"
+          export SSL_CERT_FILE="$cace_ca_bundle"
+          echo "CACE_PREFLIGHT_TLS_CA_BUNDLE=$cace_ca_bundle"
+
           # Fetch only the compiled Mathlib dependency closure needed by this
           # exact target. This is acceleration evidence only; Lean still
           # elaborates the CACE target from the exact checked-out source.
