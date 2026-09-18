@@ -1,0 +1,170 @@
+name: CACE OCI Production Deploy
+
+on:
+  push:
+    branches:
+      - deploy/cace-oci-production-locked
+    paths:
+      - .github/workflows/cace-oci-production-deploy.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+
+jobs:
+  deploy-qualified-web:
+    name: deploy-qualified-web
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 25
+
+    env:
+      CACE_QUALIFIED_SHA: 7091548766deef4301ac8d62d3445d95945662e7
+      CACE_PUBLIC_IP: 129.146.160.46
+      UV_VERSION: 0.12.13
+      PYTHON_VERSION: 3.13.15
+
+    steps:
+      - name: Checkout exact qualified application source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CACE_QUALIFIED_SHA }}
+          fetch-depth: 1
+          clean: true
+          persist-credentials: false
+
+      - name: Verify immutable deployment source and privilege boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CACE_QUALIFIED_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          test "$(uname -m)" = "aarch64"
+          sudo -n true
+          echo "CACE_DEPLOY_SOURCE_OK sha=$CACE_QUALIFIED_SHA host=$(hostname) user=$(id -un)"
+
+      - name: Install production runtime and deploy exact qualified tree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app_user="$(id -un)"
+          app_group="$(id -gn)"
+          release="/opt/cace-web/releases/$CACE_QUALIFIED_SHA"
+          current="/opt/cace-web/current"
+
+          sudo dnf -y install nginx curl tar policycoreutils
+
+          sudo mkdir -p /opt/cace-web/releases
+          sudo rm -rf "$release"
+          sudo mkdir -p "$release"
+          sudo chown -R "$app_user:$app_group" /opt/cace-web
+
+          git archive --format=tar "$CACE_QUALIFIED_SHA" | tar -xf - -C "$release"
+          test -f "$release/api/index.py"
+          test -f "$release/pyproject.toml"
+
+          curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" |
+            env UV_INSTALL_DIR="$RUNNER_TEMP/cace-web-uv" sh
+
+          "$RUNNER_TEMP/cace-web-uv/uv" python install "$PYTHON_VERSION"
+          "$RUNNER_TEMP/cace-web-uv/uv" venv --python "$PYTHON_VERSION" "$release/.venv"
+          "$RUNNER_TEMP/cace-web-uv/uv" pip install             --python "$release/.venv/bin/python"             "$release"             "uvicorn[standard]>=0.35,<1"
+
+          ln -sfn "$release" "$current"
+
+          sudo tee /etc/systemd/system/cace-web.service >/dev/null <<EOF
+          [Unit]
+          Description=CACE Studio FastAPI production service
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=$app_user
+          Group=$app_group
+          WorkingDirectory=$current
+          Environment=PYTHONUNBUFFERED=1
+          Environment=PYTHONDONTWRITEBYTECODE=1
+          Environment=CACE_DEPLOYED_SHA=$CACE_QUALIFIED_SHA
+          ExecStart=$current/.venv/bin/uvicorn api.index:app --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips=127.0.0.1
+          Restart=on-failure
+          RestartSec=3
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=full
+          ProtectHome=true
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          sudo tee /etc/nginx/conf.d/cace-web.conf >/dev/null <<EOF
+          server {
+              listen 80;
+              listen [::]:80;
+              server_name $CACE_PUBLIC_IP;
+
+              access_log /var/log/nginx/cace-web-access.log;
+              error_log  /var/log/nginx/cace-web-error.log;
+
+              location = / {
+                  return 302 /docs;
+              }
+
+              location / {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+                  proxy_connect_timeout 5s;
+                  proxy_read_timeout 60s;
+              }
+          }
+          EOF
+
+          if command -v getenforce >/dev/null 2>&1 && [[ "$(getenforce)" != "Disabled" ]]; then
+            sudo setsebool -P httpd_can_network_connect 1
+          fi
+
+          if systemctl is-active --quiet firewalld; then
+            sudo firewall-cmd --permanent --add-service=http
+            sudo firewall-cmd --permanent --add-service=https
+            sudo firewall-cmd --reload
+          else
+            echo "CACE_FIREWALLD_INACTIVE no host-firewall changes required"
+          fi
+
+          sudo nginx -t
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now cace-web
+          sudo systemctl enable --now nginx
+          sudo systemctl restart cace-web
+          sudo systemctl restart nginx
+
+      - name: Verify local production health and listener state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..20}; do
+            if curl -fsS http://127.0.0.1:8000/api/health >/tmp/cace-health.json; then
+              break
+            fi
+            sleep 1
+          done
+
+          grep -q '"status":"ok"' /tmp/cace-health.json
+          curl -fsS -H "Host: $CACE_PUBLIC_IP" http://127.0.0.1/api/health >/tmp/cace-nginx-health.json
+          grep -q '"status":"ok"' /tmp/cace-nginx-health.json
+
+          echo "CACE_DIRECT_HEALTH=$(cat /tmp/cace-health.json)"
+          echo "CACE_NGINX_HEALTH=$(cat /tmp/cace-nginx-health.json)"
+          echo "CACE_SERVICE_STATE=$(systemctl is-active cace-web)"
+          echo "NGINX_SERVICE_STATE=$(systemctl is-active nginx)"
+          ss -ltn | grep -E '(:80 |:8000 )'
+          echo "CACE_OCI_LOCAL_DEPLOY_PASS sha=$CACE_QUALIFIED_SHA"
