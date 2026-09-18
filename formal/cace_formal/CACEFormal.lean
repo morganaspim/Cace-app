@@ -45,6 +45,7 @@ import CACEFormal.PiecewiseDistributionalRepresentatives
 import CACEFormal.SimplexAffineL2
 import CACEFormal.SimplexBoundaryDistribution
 import CACEFormal.SimplexFacetGeometry
+import CACEFormal.SimplexFacetMeasure
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
