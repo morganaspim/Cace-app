@@ -42,6 +42,7 @@ import CACEFormal.BoxClassicalAgreement
 import CACEFormal.P1RT0BoxVolumeBridge
 import CACEFormal.PiecewiseInterfaceCancellation
 import CACEFormal.PiecewiseDistributionalRepresentatives
+import CACEFormal.SimplexAffineL2
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
