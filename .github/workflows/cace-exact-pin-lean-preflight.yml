@@ -1,0 +1,149 @@
+name: CACE Exact-Pin Lean Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'Lean module path relative to formal/cace_formal (for example CACEFormal/SimplexAffineL2.lean)'
+        required: true
+        default: 'CACEFormal/SimplexAffineL2.lean'
+      compile_root:
+        description: 'Also compile CACEFormal.lean after the targeted module'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+# Same serialization lane as canonical qualification. Preflight may never overlap
+# canonical proof work and never cancels an in-flight run.
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+
+jobs:
+  exact-pin-lean-preflight:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 45
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+
+    steps:
+      - name: Checkout exact event commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          clean: true
+          persist-credentials: false
+
+      - name: Establish exact head and serialize CACE Actions
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID"
+          printf 'exact_head=%s\n' "$GITHUB_SHA"
+
+      - name: Validate requested target and audited-root reachability
+        id: target
+        shell: bash
+        env:
+          REQUESTED_MODULE: ${{ inputs.module }}
+        run: |
+          set -euo pipefail
+          case "$REQUESTED_MODULE" in
+            CACEFormal/*.lean) ;;
+            *) echo "Target must be a CACEFormal/*.lean path." >&2; exit 2 ;;
+          esac
+          test -f "formal/cace_formal/$REQUESTED_MODULE"
+          module_name="${REQUESTED_MODULE%.lean}"
+          module_name="${module_name//\//.}"
+          if ! grep -Fqx "import $module_name" formal/cace_formal/CACEFormal.lean; then
+            echo "Requested module is not directly imported by audited CACEFormal.lean root: $module_name" >&2
+            exit 3
+          fi
+          printf 'module=%s\n' "$REQUESTED_MODULE" >> "$GITHUB_OUTPUT"
+          printf 'module_name=%s\n' "$module_name" >> "$GITHUB_OUTPUT"
+
+      - name: Restore pinned Lean and exact Mathlib package tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          test -x "$ELAN_HOME/bin/elan"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          mkdir -p formal/cace_formal/.lake
+          rm -rf formal/cace_formal/.lake/packages
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
+          flock -u 9
+          cd formal/cace_formal
+          lean --version
+          lake --version
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+      - name: Compile requested Lean module
+        shell: bash
+        env:
+          TARGET: ${{ steps.target.outputs.module }}
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          start="$(date +%s)"
+          lake env lean "$TARGET"
+          stop="$(date +%s)"
+          printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
+
+      - name: Compile audited root
+        if: ${{ inputs.compile_root }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          start="$(date +%s)"
+          lake env lean CACEFormal.lean
+          stop="$(date +%s)"
+          printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+
+      - name: Emit non-qualification summary
+        if: always()
+        shell: bash
+        run: |
+          cat > cace-exact-pin-preflight-summary.txt <<EOF
+          evidence_class=engineering/formal-preflight
+          qualification=false
+          exact_head=$GITHUB_SHA
+          lean_toolchain=$CACE_TOOLCHAIN
+          mathlib_commit=$CACE_MATHLIB_COMMIT
+          target=${{ inputs.module }}
+          compile_root=${{ inputs.compile_root }}
+          note=This preflight catches Lean elaboration/typechecking/import failures. It never replaces canonical exact-current-head qualification, theorem metadata, kernel axiom audit, or attestation.
+          EOF
+          cat cace-exact-pin-preflight-summary.txt
+
+      - name: Upload preflight summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-exact-pin-lean-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: cace-exact-pin-preflight-summary.txt
+          retention-days: 14
