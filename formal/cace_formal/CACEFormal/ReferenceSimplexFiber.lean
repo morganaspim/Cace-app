@@ -92,8 +92,8 @@ theorem referenceSimplexFiberUpper_nonneg_of_mem
     {d : Nat} (i : Fin d) {x : EuclideanDomain d}
     (hx : x ∈ euclideanReferenceSimplex d) :
     0 ≤ referenceSimplexFiberUpper i x := by
-  exact (mem_euclideanReferenceSimplex_iff_fiber i x).mp hx |>.2.2.trans'
-    ((mem_euclideanReferenceSimplex_iff_fiber i x).mp hx).2.1
+  have hi := (mem_euclideanReferenceSimplex_iff_fiber i x).mp hx
+  exact hi.2.1.trans hi.2.2
 
 end
 
