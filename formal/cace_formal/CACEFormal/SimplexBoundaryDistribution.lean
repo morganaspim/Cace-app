@@ -1,5 +1,4 @@
 import Mathlib
-import CACEFormal.SimplexAffineL2
 import CACEFormal.PDEDomainBridge
 
 namespace CACEFormal
@@ -15,22 +14,25 @@ noncomputable section
 # Simplex boundary distributions
 
 This layer fixes the distributional sign convention before the geometric
-integration-by-parts proof. Mathlib defines the directional derivative of a
-tempered distribution by precomposition with the negative directional
-derivative of the Schwartz test function.
+integration-by-parts proof.  It intentionally uses the canonical
+`EuclideanDomain d` / `ScalarDistribution d` ambient from the Sobolev and
+H¹/H(div) graph machinery, so the later simplex-to-graph bridge does not cross
+an unproved change of norm or measure space.
 
-The boundary term is explicit. Mesh cancellation is a later theorem.
+Mathlib defines the directional derivative of a tempered distribution by
+precomposition with the negative directional derivative of the Schwartz test
+function.  The boundary term is explicit. Mesh cancellation is a later theorem.
 -/
 
-abbrev SimplexScalarDistribution (d : Nat) := 𝓢'(SimplexPoint d, ℂ)
+abbrev SimplexScalarDistribution (d : Nat) := ScalarDistribution d
 
-/-- Coordinate vector in the ambient finite-dimensional simplex space. -/
-def simplexBasisVector {d : Nat} (i : Fin d) : SimplexPoint d :=
-  fun j => if j = i then 1 else 0
+/-- Coordinate vector in the canonical Euclidean Sobolev ambient. -/
+def simplexBasisVector {d : Nat} (i : Fin d) : EuclideanDomain d :=
+  basisVector i
 
 /-- Mathlib sign convention: (partial_i T)(phi) = - T(partial_i phi). -/
 theorem simplex_distributional_partial_apply {d : Nat}
-    (i : Fin d) (T : SimplexScalarDistribution d) (φ : 𝓢(SimplexPoint d, ℂ)) :
+    (i : Fin d) (T : SimplexScalarDistribution d) (φ : 𝓢(EuclideanDomain d, ℂ)) :
     (∂_{simplexBasisVector i} T) φ =
       - T (∂_{simplexBasisVector i} φ) := by
   rw [TemperedDistribution.lineDerivOp_apply_apply]
