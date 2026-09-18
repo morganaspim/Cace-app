@@ -94,6 +94,18 @@ instance geometricSimplexFacetSpan_nonempty {d : Nat} [NeZero d]
   exact mem_affineSpan ℝ (Set.mem_range_self 0)
 
 /--
+The affine span of an opposite facet has exactly the intrinsic dimension
+`d - 1`.  Under pinned Mathlib v4.32.1 this is proved by rewriting the
+direction of an affine span as a vector span and applying affine independence
+of the opposite simplex vertices.
+-/
+theorem geometricSimplexFacetSpan_finrank {d : Nat} [NeZero d]
+    (s : GeometricSimplex d) (i : Fin (d + 1)) :
+    Module.finrank ℝ (geometricSimplexFacetSpan s i).direction = d - 1 := by
+  rw [geometricSimplexFacetSpan, direction_affineSpan]
+  exact (s.faceOpposite i).independent.finrank_vectorSpan (by simp)
+
+/--
 The opposite facet, regarded as a full-dimensional simplex inside its own
 affine span.  This is the correct ambient space for later intrinsic surface
 measure arguments; no ambient lower-dimensional finiteness claim is used.
