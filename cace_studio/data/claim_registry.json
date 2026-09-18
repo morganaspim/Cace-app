@@ -33,10 +33,10 @@
       ],
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "qualification": {
-        "attested_commit": "a37da5517eccc1d42199da0ba5670346b1a8d625",
+        "attested_commit": "7091548766deef4301ac8d62d3445d95945662e7",
         "current_head_qualified": true,
-        "proof_artifact_sha256": "d7c982290b0fd76b60e8d6ad2eb21f4b4bc8f296872c59467fb97f274309e9b7",
-        "reason": "Canonical exact-head qualification run 35240517509 passed at a37da5517eccc1d42199da0ba5670346b1a8d625; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
+        "proof_artifact_sha256": "3bce4e317ca9428b1d80482399d7cd444e6f3d0e4ba21fb9fb30902a12f0694a",
+        "reason": "Canonical exact-head qualification run 35280458500 passed at 7091548766deef4301ac8d62d3445d95945662e7; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
         "status": "PASS"
       },
       "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",

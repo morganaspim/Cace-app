@@ -49,6 +49,7 @@ private def endpoints : List Name := [
   ``CACEFormal.Continuum.BoundedGreenPairing.normalTrace_bound,
   ``CACEFormal.Continuum.normalTrace_unique_of_dense_agreement,
   ``CACEFormal.Continuum.weakGreen_of_denseSmoothCore,
+  ``CACEFormal.Continuum.hasZeroBoundaryTrace_zero,
   ``CACEFormal.Continuum.volumePairing_eq_zero_of_zeroBoundaryTrace,
   ``CACEFormal.Continuum.zeroBoundaryOrthogonality,
   ``CACEFormal.Continuum.zeroBoundaryOrthogonality_of_mem,

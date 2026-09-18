@@ -22,10 +22,13 @@ from cace_studio.modules.formal_v330 import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "cb95144e31577b9b151b0e1d332e821f0674a5679f26f63ea2e9aacf57105f09"
+EXPECTED_CONTINUUM_V3_HASH = "d1d34295f6c9821af0330435af781e4f28c263076259b0b0075e4c9580ee8e8d"
 EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
+EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE = "b4b8fd30eba2c99cc911486e866e80c16efda76316dce69a7ace853bf95b027c"
 ROOT = Path(__file__).parents[1]
 SOURCE_BINDING_SCRIPT = ROOT / "scripts" / "verify_v330_qualification_source_binding.py"
+AXIOM_AUDIT_SCRIPT = ROOT / "scripts" / "audit_v330_axioms.py"
+THEOREM_METADATA_SOURCE = ROOT / "formal" / "cace_formal" / "CACEFormal" / "V330TheoremMetadata.lean"
 
 
 def _contract_mapping() -> dict:
@@ -59,12 +62,59 @@ def _source_binding_verifier():
     return module
 
 
-def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpoints():
+def _axiom_audit_module():
+    spec = importlib.util.spec_from_file_location("axiom_audit_v330", AXIOM_AUDIT_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_v330_axiom_audit_uses_contract_canonical_environment_theorem_names():
+    audit = _axiom_audit_module()
+    contract = ProofContractRegistry.load_default().for_claim(
+        "cace.v330.continuum-proof-strengthening"
+    )
+    assert contract is not None
+
+    raw = "\n".join(
+        f"{audit.METADATA_SENTINEL}{audit.json.dumps({'theorem': theorem}, sort_keys=True)}"
+        for theorem in contract.endpoint_theorems
+    )
+    assert audit.validate_environment_metadata_theorems(
+        raw, contract.endpoint_theorems
+    ) == set(contract.endpoint_theorems)
+
+    mismatched = list(contract.endpoint_theorems)
+    mismatched[0] = mismatched[0].rsplit(".", 1)[-1]
+    bad_raw = "\n".join(
+        f"{audit.METADATA_SENTINEL}{audit.json.dumps({'theorem': theorem}, sort_keys=True)}"
+        for theorem in mismatched
+    )
+    with pytest.raises(ValueError, match="theorem set differs from proof contract"):
+        audit.validate_environment_metadata_theorems(bad_raw, contract.endpoint_theorems)
+
+
+def test_v330_environment_metadata_exporter_exactly_matches_proof_contract_endpoints():
+    contract = ProofContractRegistry.load_default().for_claim(
+        "cace.v330.continuum-proof-strengthening"
+    )
+    assert contract is not None
+    source = THEOREM_METADATA_SOURCE.read_text(encoding="utf-8")
+    exported = tuple(
+        line.strip()[2:].removesuffix(",")
+        for line in source.splitlines()
+        if line.strip().startswith("``CACEFormal.")
+    )
+    assert exported == contract.endpoint_theorems
+
+
+def test_default_continuum_contract_v3_is_single_source_for_all_38_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
     assert contract is not None
     assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
-    assert len(contract.endpoint_theorems) == 37
+    assert len(contract.endpoint_theorems) == 38
     assert len(contract.audited_source_files) == 12
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
     assert contract.dependency_pins["lean_toolchain"] == "leanprover/lean4:v4.32.1"
@@ -75,17 +125,33 @@ def test_default_continuum_contract_v3_is_single_source_for_all_37_audited_endpo
     assert "independent-source-bound-verification" in contract.required_checks
     assert "executable-source-binding" in contract.required_checks
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.hasZeroBoundaryTrace_zero" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
     assert "CACEFormal/WeakGreenFunctional.lean" in contract.audited_source_files
     assert "CACEFormal/H1GraphConverse.lean" in contract.audited_source_files
     assert any("executable binding certifies theorem-endpoint membership" in item for item in contract.nonclaims)
-    assert len(contract.executable_bindings) == 1
+    assert any("hasZeroBoundaryTrace_zero endpoint discharges only" in item for item in contract.nonclaims)
+    assert len(contract.executable_bindings) == 3
+
     binding = contract.executable_binding_for_module(MODULE_ID)
     assert binding is not None
     assert binding.source_files == ("cace_studio/modules/formal_v330.py",)
     assert binding.source_bundle_sha256 == EXPECTED_FORMAL330_BUNDLE
     assert binding.current_source_bundle_sha256(ROOT) == EXPECTED_FORMAL330_BUNDLE
+
+    for bridge_module_id in (
+        "formal_bridge.resolve_prager_synge_zero_trace",
+        "formal_bridge.zero_boundary_trace_zero",
+    ):
+        bridge_binding = contract.executable_binding_for_module(bridge_module_id)
+        assert bridge_binding is not None
+        assert bridge_binding.source_files == (
+            "cace_studio/modules/formal_hypothesis_bridges.py",
+        )
+        assert bridge_binding.source_bundle_sha256 == EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE
+        assert bridge_binding.current_source_bundle_sha256(ROOT) == EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE
+
     assert contract.contract_sha256 == EXPECTED_CONTINUUM_V3_HASH
 
 

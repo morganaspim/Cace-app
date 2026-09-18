@@ -40,16 +40,16 @@
       "claim_ids": [
         "cace.v330.continuum-proof-strengthening"
       ],
-      "commit": "a37da5517eccc1d42199da0ba5670346b1a8d625",
+      "commit": "7091548766deef4301ac8d62d3445d95945662e7",
       "current_head_qualified": true,
-      "proof_artifact_sha256": "d7c982290b0fd76b60e8d6ad2eb21f4b4bc8f296872c59467fb97f274309e9b7",
+      "proof_artifact_sha256": "3bce4e317ca9428b1d80482399d7cd444e6f3d0e4ba21fb9fb30902a12f0694a",
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
-      "proof_contract_sha256": "cb95144e31577b9b151b0e1d332e821f0674a5679f26f63ea2e9aacf57105f09",
-      "qualification_run_id": "35240517509",
+      "proof_contract_sha256": "d1d34295f6c9821af0330435af781e4f28c263076259b0b0075e4c9580ee8e8d",
+      "qualification_run_id": "35280458500",
       "qualification_system": "github-actions",
       "release": "3.23.0-dev..3.37.0-dev",
       "status": "PASS",
-      "workflow_run_id": 35240517509
+      "workflow_run_id": 35280458500
     }
   ],
   "policy": "Current-head FORMAL PASS requires a successful pinned proof build, kernel axiom audit, exact commit binding, exact proof-contract id/hash binding, Lean.Environment theorem-metadata binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",

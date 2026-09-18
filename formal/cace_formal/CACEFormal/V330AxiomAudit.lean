@@ -57,6 +57,7 @@ core, zero-trace witness, cross-term identity, or unconditional regularizer need
 #print axioms CACEFormal.Continuum.BoundedGreenPairing.normalTrace_bound
 #print axioms CACEFormal.Continuum.normalTrace_unique_of_dense_agreement
 #print axioms CACEFormal.Continuum.weakGreen_of_denseSmoothCore
+#print axioms CACEFormal.Continuum.hasZeroBoundaryTrace_zero
 #print axioms CACEFormal.Continuum.volumePairing_eq_zero_of_zeroBoundaryTrace
 #print axioms CACEFormal.Continuum.zeroBoundaryOrthogonality
 #print axioms CACEFormal.Continuum.zeroBoundaryOrthogonality_of_mem
