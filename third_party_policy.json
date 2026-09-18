@@ -1,0 +1,37 @@
+{
+  "schema": "cace-third-party-policy-v1",
+  "default_unknown_action": "BLOCK",
+  "components": {
+    "numpy": {"license": "BSD-3-Clause AND BSD-2-Clause AND 0BSD", "status": "APPROVED_WITH_NOTICES", "role": "python-runtime"},
+    "fastapi": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "python-runtime"},
+    "PySide6": {"license": "LGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Qt-Commercial", "status": "APPROVED_WITH_OBLIGATIONS", "role": "desktop-gui", "obligation": "For proprietary distribution use a compliant LGPL dynamic-linking/relink path or a Qt commercial license; preserve Qt notices."},
+    "matplotlib": {"license": "LicenseRef-Matplotlib", "status": "APPROVED_WITH_NOTICES", "role": "desktop-gui"},
+    "cryptography": {"license": "Apache-2.0 OR BSD-3-Clause", "status": "APPROVED_WITH_NOTICES", "role": "attestation"},
+    "pytest": {"license": "MIT", "status": "DEV_ONLY", "role": "test"},
+    "hypothesis": {"license": "MPL-2.0", "status": "DEV_ONLY", "role": "test"},
+    "blake3": {"license": "CC0-1.0 OR Apache-2.0", "status": "APPROVED_WITH_NOTICES", "role": "runtime-hashing"},
+
+    "react": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "react-dom": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "lucide-react": {"license": "ISC", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "motion": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "qrcode": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "clsx": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "tailwind-merge": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-runtime"},
+    "tailwindcss": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-build"},
+    "@tailwindcss/vite": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-build"},
+    "@vitejs/plugin-react": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-build"},
+    "typescript": {"license": "Apache-2.0", "status": "APPROVED_WITH_NOTICES", "role": "web-build"},
+    "vite": {"license": "MIT", "status": "APPROVED_WITH_NOTICES", "role": "web-build"},
+    "@types/qrcode": {"license": "MIT", "status": "DEV_ONLY", "role": "web-types"},
+    "@types/react": {"license": "MIT", "status": "DEV_ONLY", "role": "web-types"},
+    "@types/react-dom": {"license": "MIT", "status": "DEV_ONLY", "role": "web-types"},
+
+    "Lean4": {"license": "Apache-2.0", "status": "EXTERNAL_TOOL_WITH_NOTICES", "role": "formal-toolchain"},
+    "Mathlib4": {"license": "Apache-2.0", "status": "EXTERNAL_TOOL_WITH_NOTICES", "role": "formal-library"},
+    "LaTeX": {"license": "LPPL-1.3c", "status": "EXTERNAL_TOOL_WITH_NOTICES", "role": "document-toolchain"},
+    "TeX-Live": {"license": "LicenseRef-TeXLive-Aggregate", "status": "EXTERNAL_TOOL_WITH_NOTICES", "role": "document-toolchain", "obligation": "If redistributed, preserve the individual package licenses and notices in the TeX Live aggregate."},
+    "Monero": {"license": "BSD-3-Clause", "status": "EXTERNAL_TOOL_WITH_NOTICES", "role": "payment-wallet-rpc"},
+    "CUDA": {"license": "LicenseRef-NVIDIA-CUDA-EULA", "status": "EXTERNAL_TOOL_REVIEW_REQUIRED", "role": "optional-gpu", "obligation": "Redistribute only NVIDIA-designated redistributable components under the applicable CUDA terms."}
+  }
+}

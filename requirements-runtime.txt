@@ -1,0 +1,4 @@
+# Optional runtime acceleration / paper-spec hashing backend.
+# The core package remains installable without this file so changing runtime extras
+# does not silently invalidate the qualified Lean proof boundary.
+blake3>=1.0,<2
