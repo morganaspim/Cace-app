@@ -69,9 +69,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cmake -S cpp -B "$RUNNER_TEMP/build-runtime-v400" -DCMAKE_BUILD_TYPE=Release
-          cmake --build "$RUNNER_TEMP/build-runtime-v400" -j2
-          ctest --test-dir "$RUNNER_TEMP/build-runtime-v400" --output-on-failure
+          "$RUNNER_TEMP/cace-v400/bin/python" -m pip install 'cmake>=3.30,<4'
+          CMAKE="$RUNNER_TEMP/cace-v400/bin/cmake"
+          CTEST="$RUNNER_TEMP/cace-v400/bin/ctest"
+          "$CMAKE" -S cpp -B "$RUNNER_TEMP/build-runtime-v400" -DCMAKE_BUILD_TYPE=Release
+          "$CMAKE" --build "$RUNNER_TEMP/build-runtime-v400" -j2
+          "$CTEST" --test-dir "$RUNNER_TEMP/build-runtime-v400" --output-on-failure
       - name: Reject formal proof changes
         shell: bash
         run: |
