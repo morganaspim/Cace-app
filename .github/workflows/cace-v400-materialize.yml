@@ -88,7 +88,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .bootstrap web/vendor .github/workflows/cace-v400-materialize.yml web/node_modules web/dist runtime-v400.spdx.json runtime-v400.cyclonedx.json
+          rm -rf .bootstrap web/vendor .github/workflows/cace-v400-materialize.yml .github/workflows/cace-runtime-v400.yml web/node_modules web/dist runtime-v400.spdx.json runtime-v400.cyclonedx.json
           git add -A
           if git diff --cached --name-only | grep -E '^formal/' ; then
             echo 'refusing to commit formal proof changes' >&2
