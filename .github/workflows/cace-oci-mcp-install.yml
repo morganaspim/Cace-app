@@ -89,19 +89,24 @@ jobs:
 
           ln -sfn "$release" "$root/current"
 
-          sudo install -o root -g root -m 0644             "$release/ops/oci_mcp/cace-oci-mcp.service"             /etc/systemd/system/cace-oci-mcp.service
-          sudo install -o root -g root -m 0440             "$release/ops/oci_mcp/cace-oci-mcp.sudoers"             /etc/sudoers.d/cace-oci-mcp
+          sudo install -o root -g root -m 0644 \
+            "$release/ops/oci_mcp/cace-oci-mcp.service" \
+            /etc/systemd/system/cace-oci-mcp.service
+          sudo install -o root -g root -m 0440 \
+            "$release/ops/oci_mcp/cace-oci-mcp.sudoers" \
+            /etc/sudoers.d/cace-oci-mcp
           sudo visudo -cf /etc/sudoers.d/cace-oci-mcp
 
           if [[ ! -f /etc/cace-oci-mcp.env ]]; then
-            sudo tee /etc/cace-oci-mcp.env >/dev/null <<'EOF'
-          CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false
-          CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false
-          EOF
+            printf '%s\n' \
+              'CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false' \
+              'CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false' |
+              sudo tee /etc/cace-oci-mcp.env >/dev/null
             sudo chmod 0600 /etc/cace-oci-mcp.env
           fi
 
-          sudo install -d -o cace-mcp -g cace-mcp -m 0700 /var/lib/cace-oci-mcp /var/lib/cace-oci-mcp/cache
+          sudo install -d -o cace-mcp -g cace-mcp -m 0700 \
+            /var/lib/cace-oci-mcp /var/lib/cace-oci-mcp/cache
           sudo chown -R root:root "$release"
           sudo chmod -R go-w "$release"
 
@@ -113,65 +118,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           ready=0
           for attempt in {1..30}; do
-            if sudo systemctl is-active --quiet cace-oci-mcp && ss -ltn | grep -q '127.0.0.1:8765'; then
+            if sudo systemctl is-active --quiet cace-oci-mcp &&
+               ss -ltn | grep -q '127.0.0.1:8765'; then
               ready=1
               break
             fi
             sleep 1
           done
           test "$ready" = 1
-          sudo grep -q '^CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false
-          curl -fsS             -H 'Authorization: Bearer Oracle'             http://169.254.169.254/opc/v2/instance/ >/tmp/cace-imds.json
+
+          sudo grep -q '^CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false$' /etc/cace-oci-mcp.env
+          sudo grep -q '^CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false$' /etc/cace-oci-mcp.env
+
+          curl -fsS \
+            -H 'Authorization: Bearer Oracle' \
+            http://169.254.169.254/opc/v2/instance/ >/tmp/cace-imds.json
+
           python - <<'PY'
           import json
-          p=json.load(open('/tmp/cace-imds.json'))
-          assert p.get('id','').startswith('ocid1.instance.')
-          assert p.get('compartmentId','').startswith('ocid1.compartment.')
-          print('CACE_OCI_MCP_IMDS_OK instance_id='+p['id']+' compartment_id='+p['compartmentId'])
-          PY
-
-          echo "CACE_OCI_MCP_SERVICE_PASS source_sha=$CACE_MCP_SHA endpoint=http://127.0.0.1:8765/mcp writes=disabled"
-
-      - name: Emit MCP diagnostics on failure
-        if: failure()
-        shell: bash
-        run: |
-          set +e
-          sudo systemctl status cace-oci-mcp --no-pager -l
-          sudo journalctl -u cace-oci-mcp -n 160 --no-pager
-          ss -ltnp
- /etc/cace-oci-mcp.env
-          sudo grep -q '^CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false
-          curl -fsS             -H 'Authorization: Bearer Oracle'             http://169.254.169.254/opc/v2/instance/ >/tmp/cace-imds.json
-          python - <<'PY'
-          import json
-          p=json.load(open('/tmp/cace-imds.json'))
-          assert p.get('id','').startswith('ocid1.instance.')
-          assert p.get('compartmentId','').startswith('ocid1.compartment.')
-          print('CACE_OCI_MCP_IMDS_OK instance_id='+p['id']+' compartment_id='+p['compartmentId'])
-          PY
-
-          echo "CACE_OCI_MCP_SERVICE_PASS source_sha=$CACE_MCP_SHA endpoint=http://127.0.0.1:8765/mcp writes=disabled"
-
-      - name: Emit MCP diagnostics on failure
-        if: failure()
-        shell: bash
-        run: |
-          set +e
-          sudo systemctl status cace-oci-mcp --no-pager -l
-          sudo journalctl -u cace-oci-mcp -n 160 --no-pager
-          ss -ltnp
- /etc/cace-oci-mcp.env
-
-          curl -fsS             -H 'Authorization: Bearer Oracle'             http://169.254.169.254/opc/v2/instance/ >/tmp/cace-imds.json
-          python - <<'PY'
-          import json
-          p=json.load(open('/tmp/cace-imds.json'))
-          assert p.get('id','').startswith('ocid1.instance.')
-          assert p.get('compartmentId','').startswith('ocid1.compartment.')
-          print('CACE_OCI_MCP_IMDS_OK instance_id='+p['id']+' compartment_id='+p['compartmentId'])
+          with open('/tmp/cace-imds.json', encoding='utf-8') as handle:
+              payload = json.load(handle)
+          assert payload.get('id', '').startswith('ocid1.instance.')
+          assert payload.get('compartmentId', '').startswith('ocid1.compartment.')
+          print(
+              'CACE_OCI_MCP_IMDS_OK '
+              'instance_id=' + payload['id'] +
+              ' compartment_id=' + payload['compartmentId']
+          )
           PY
 
           echo "CACE_OCI_MCP_SERVICE_PASS source_sha=$CACE_MCP_SHA endpoint=http://127.0.0.1:8765/mcp writes=disabled"
