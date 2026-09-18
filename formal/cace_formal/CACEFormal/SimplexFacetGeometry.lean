@@ -74,6 +74,41 @@ theorem geometricSimplexFacet_measurable {d : Nat} [NeZero d]
     MeasurableSet (geometricSimplexFacet s i) :=
   (geometricSimplexFacet_compact s i).isClosed.measurableSet
 
+/-- The affine span carrying one opposite facet. -/
+def geometricSimplexFacetSpan {d : Nat} [NeZero d]
+    (s : GeometricSimplex d) (i : Fin (d + 1)) :
+    AffineSubspace ℝ (GeometricSimplexPoint d) :=
+  affineSpan ℝ (Set.range (s.faceOpposite i).points)
+
+/--
+The affine span of an opposite facet has exactly the intrinsic dimension
+`d - 1`.  This is the dimension required for the facet surface measure.
+-/
+theorem geometricSimplexFacetSpan_finrank {d : Nat} [NeZero d]
+    (s : GeometricSimplex d) (i : Fin (d + 1)) :
+    Module.finrank ℝ (geometricSimplexFacetSpan s i).direction = d - 1 := by
+  exact
+    (Affine.Simplex.fact_finrank_direction_affineSpan_eq
+      (s := s.faceOpposite i)).out
+
+/--
+The opposite facet, regarded as a full-dimensional simplex inside its own
+affine span.  This is the correct ambient space for finite `(d - 1)`-surface
+measure; no ambient lower-dimensional finiteness claim is used.
+-/
+noncomputable def geometricSimplexFacetInSpan {d : Nat} [NeZero d]
+    (s : GeometricSimplex d) (i : Fin (d + 1)) :
+    Affine.Simplex ℝ (geometricSimplexFacetSpan s i) (d - 1) :=
+  (s.faceOpposite i).restrict (geometricSimplexFacetSpan s i) le_rfl
+
+/--
+The intrinsic closed facet is compact in its own affine span.
+-/
+theorem geometricSimplexFacetInSpan_compact {d : Nat} [NeZero d]
+    (s : GeometricSimplex d) (i : Fin (d + 1)) :
+    IsCompact (geometricSimplexFacetInSpan s i).closedInterior := by
+  exact (geometricSimplexFacetInSpan s i).isCompact_closedInterior
+
 /--
 Raw outward normal direction: from the omitted vertex toward its orthogonal
 projection on the opposite facet.  Normalization is intentionally deferred.
