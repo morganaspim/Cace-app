@@ -106,6 +106,20 @@ theorem geometricSimplexFacetSpan_finrank {d : Nat} [NeZero d]
   exact (s.faceOpposite i).independent.finrank_vectorSpan (by simp)
 
 /--
+The direction of the opposite facet's affine span has dimension exactly
+`d - 1`.  This uses the pinned Mathlib v4.32.1 affine-independence theorem
+rather than a newer convenience lemma.
+-/
+theorem geometricSimplexFacetSpan_finrank {d : Nat} [NeZero d]
+    (s : GeometricSimplex d) (i : Fin (d + 1)) :
+    Module.finrank ℝ (geometricSimplexFacetSpan s i).direction = d - 1 := by
+  change
+    Module.finrank ℝ
+      (affineSpan ℝ (Set.range (s.faceOpposite i).points)).direction = d - 1
+  rw [AffineSubspace.direction_affineSpan]
+  exact (s.faceOpposite i).independent.finrank_vectorSpan (by simp)
+
+/--
 The opposite facet, regarded as a full-dimensional simplex inside its own
 affine span.  This is the correct ambient space for later intrinsic surface
 measure arguments; no ambient lower-dimensional finiteness claim is used.
