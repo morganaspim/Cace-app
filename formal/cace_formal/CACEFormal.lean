@@ -49,6 +49,7 @@ import CACEFormal.SimplexFacetGeometry
 import CACEFormal.SimplexFacetMeasure
 import CACEFormal.SimplexFacetCurrent
 import CACEFormal.SimplexCellDistributionBridge
+import CACEFormal.ReferenceSimplexFiber
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
