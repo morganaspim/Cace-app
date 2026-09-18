@@ -47,6 +47,7 @@ import CACEFormal.SimplexEuclideanL2
 import CACEFormal.SimplexBoundaryDistribution
 import CACEFormal.SimplexFacetGeometry
 import CACEFormal.SimplexFacetMeasure
+import CACEFormal.SimplexFacetCurrent
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
