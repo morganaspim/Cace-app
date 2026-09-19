@@ -744,7 +744,9 @@
         "AlphaFold-compatible imports preserve source/license/attribution metadata.",
         "AlphaFold 3 weights are not bundled without separate terms review.",
         "Fold search is deterministic under a fixed seed and reports energy trace plus limitations.",
-        "No UI/report language claims a proven global thermodynamic minimum or clinical validity."
+        "No UI/report language claims a proven global thermodynamic minimum or clinical validity.",
+        "CACE can resolve a user-supplied UniProt accession through the current public AlphaFold DB prediction API, follow only allowlisted HTTPS AlphaFold structure URLs, and preserve CC-BY-4.0 attribution plus content hashes.",
+        "The Protein Playground provides a one-click AlphaFold DB → Canvas + Fetch path; after selected-node execution, the typed structure is discoverable by the existing residue/source-node heartbeat Play adapter."
       ]
     },
     {

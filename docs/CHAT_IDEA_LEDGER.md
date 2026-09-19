@@ -96,6 +96,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I070 | math coin | A fixed 500B-supply, no-mining Math Coin acts as a scarce external compute-right for the Conway heartbeat economic city: most supply is locked in a time vault, discrete tranches unlock only every 10 years, compute consumption burns MATH after measured settlement, and AI agents may trade through a bounded broker against real crypto without direct wallet-key authority. | G058 |
 
+| I071 | alphafold db api | Resolve a UniProt accession through the current public AlphaFold DB prediction API, use its version-current PDB URL instead of guessed filenames, preserve CC-BY-4.0 attribution/hashes, place the API source on the canvas, auto-run it, and expose the returned typed protein structure to Protein Playground heartbeat Play. | G051 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

@@ -355,3 +355,39 @@ Architecture:
 Research document:
 
 `docs/MATH_COIN_HEARTBEAT_ECONOMY.md`
+
+
+### AlphaFold DB API import + heartbeat path
+
+Added 2026-09-19.
+
+Current public API contract used by CACE:
+
+`GET https://alphafold.com/api/prediction/{UniProt-accession}`
+
+CACE consumes the post-2026 metadata field names such as `modelEntityId`, `sequence`, `sequenceStart`, and `sequenceEnd`, while retaining old field names only as a defensive backwards-compatibility fallback. The API-supplied `pdbUrl` is used rather than constructing/version-guessing a file name.
+
+Security/provenance:
+
+- accession is canonicalized/validated;
+- metadata and PDB downloads are byte-size bounded;
+- metadata/PDB URLs must remain HTTPS on approved AlphaFold domains;
+- PDB content receives a SHA-256 provenance hash;
+- source entry, API URL, model entity/version metadata, CC-BY-4.0 license, and AlphaFold DB attribution are retained;
+- import verification proves retrieval/schema/hash/license/attribution integrity only, not correctness of the predicted fold.
+
+Implementation:
+
+- PR #48 exact API implementation head: `a23a153f984f5dbb3b6827bef84e95a50c8fcaf4`;
+- module ID: `protein.alphafold_api_import`;
+- API client: `cace_studio/integrations/alphafold_db.py`;
+- typed outputs: `protein_sequence` + `protein_structure`.
+
+GUI/heartbeat:
+
+- PR #50 adds **AlphaFold DB → Canvas + Fetch** to Protein Playground;
+- it creates the API import node, selects it, and starts Selected + Upstream execution;
+- after completion, Protein Playground discovers the returned `protein_structure`;
+- **Play Selected Protein with Local AI** applies residue-level + source-node heartbeats without mutating the imported structure.
+
+The two PRs remain separated by responsibility: #48 owns scientific/API objects; #50 owns heartbeat/AI/GUI control integration.
