@@ -17,7 +17,7 @@ namespace Affine2
 
 /-- Contravariant Piola transform of a vector for the linear part of `F`.
 The caller supplies nonzero determinant when proving identities that divide by it. -/
-def piolaVector (F : Affine2) (q : Point2) : Point2 :=
+noncomputable def piolaVector (F : Affine2) (q : Point2) : Point2 :=
   ⟨(F.a * q.x + F.b * q.y) / F.linearDet,
    (F.c * q.x + F.d * q.y) / F.linearDet⟩
 
