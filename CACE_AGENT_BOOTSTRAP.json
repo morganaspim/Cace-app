@@ -38,7 +38,9 @@
     "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
     "CACE_PUBLIC_SERVICE_POLICY.json",
     "CACE_TELEMETRY_PRIVACY_POLICY.json",
-    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md",
+    "CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json",
+    "docs/LOCAL_HYBRID_AI_BUILD_SEQUENCE.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
@@ -60,7 +62,8 @@
     "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json",
     "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json",
     "public_service_access": "CACE_PUBLIC_SERVICE_POLICY.json",
-    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json"
+    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "local_hybrid_ai_build": "CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -409,5 +412,18 @@
     "analytics": "privacy-controlled aggregate/pseudonymous product/sales usage",
     "contribution": "actual proof/research artifacts explicit opt-in only",
     "contract": "cace_studio/telemetry_contract.py"
+  },
+  "local_hybrid_ai": {
+    "build_order": [
+      "Build Lite",
+      "builder + bug sweep",
+      "sandbox",
+      "local hybrid AI",
+      "reasoning curriculum",
+      "canvas heartbeat integration"
+    ],
+    "security": "AI starts local/offline and capability-denied; sandbox authority is host-owned",
+    "reasoning": "typed operator plans + external tools/checkers + small specialists + paired intervention/invariance evaluation",
+    "ip": "public availability is not legal clearance; use independent general ideas or verified compatible licenses/provenance"
   }
 }

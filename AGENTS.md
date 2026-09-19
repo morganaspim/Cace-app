@@ -417,3 +417,43 @@ contribution/IP terms.
 
 Authority: `CACE_TELEMETRY_PRIVACY_POLICY.json`.
 Executable allowlist: `cace_studio/telemetry_contract.py`.
+
+
+## Ordered local hybrid AI construction
+
+The local CACE AI must be built only after its lower-level controls exist.
+
+Required order:
+
+1. CACE Build Lite;
+2. code-builder/helper-tool/bug-sweep layer;
+3. hardened sandbox/private runtime;
+4. local hybrid deep AI;
+5. reasoning curriculum/specialization;
+6. canvas/heartbeat integration.
+
+Do **not** build an unrestricted AI first and promise to sandbox it later.
+
+The local AI must be a bounded hybrid system: compact local language model +
+typed operator planner + mathematical/scientific tool router + local provenance-
+aware retrieval + specialist models + independent checker + curriculum teacher +
+heartbeat scheduler + optional one-way observers.
+
+Network, shell, self-modification, runtime package installation, proof/evidence
+write authority, wallet keys and secrets are OFF/forbidden by default.
+
+Public-method/IP rule:
+
+- independently implement general ideas;
+- public web availability is not assumed to mean patent-free, copyright-free or
+  attribution-free;
+- preserve notices whenever an actual license requires attribution;
+- if zero-attribution components are desired, prefer internally authored,
+  public-domain or explicitly zero-attribution-compatible materials;
+- Sophontic public material may inspire general paired-perturbation evaluation,
+  compact-specialist reasoning and geometric-representation research only;
+- do not copy/reverse-engineer unreleased/proprietary Sophontic recipes,
+  architecture, weights, datasets or claimed internal-geometry training methods.
+
+Machine authority: `CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json`.
+Design: `docs/LOCAL_HYBRID_AI_BUILD_SEQUENCE.md`.

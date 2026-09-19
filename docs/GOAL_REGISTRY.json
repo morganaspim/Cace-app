@@ -985,6 +985,24 @@
         "Actual proof/theorem/research artifact contribution is off by default and requires separate explicit opt-in plus IP/contribution terms.",
         "Telemetry can never promote scientific evidence or formal proof status."
       ]
+    },
+    {
+      "id": "G067",
+      "category": "local_ai_architecture",
+      "priority": 67,
+      "intent_status": "required",
+      "title": "Ordered sandbox-first local hybrid deep AI",
+      "summary": "Require CACE coding agents to build Build Lite and builder/bug-sweep tooling first, then the hardened sandbox, and only then construct a local hybrid deep AI using independently implemented general/public methods, typed CACE tools and external verification.",
+      "acceptance": [
+        "The build order is enforced/documented as Build Lite -> builder/bug-sweep -> sandbox -> local hybrid AI -> curriculum -> canvas/heartbeat integration.",
+        "The local AI cannot be introduced before network/filesystem/resource/proof/evidence/wallet/secret capability boundaries exist.",
+        "The hybrid architecture separates language generation, typed operator planning, CACE tool routing, provenance-aware retrieval, specialist models, checker layer, curriculum teacher and heartbeat scheduling.",
+        "AI confidence and generated text have no authority over PASS/FAIL/NOT_RUN/formal qualification.",
+        "Paired load-bearing perturbation and irrelevant-perturbation invariance tests are required without reliance on hidden chain-of-thought.",
+        "External methodologies/components have recorded provenance/license classification; public availability alone is not treated as patent/copyright/attribution clearance.",
+        "Sophontic public material is limited to general public concepts as inspiration; proprietary/unreleased internal methods, weights, code, datasets and branding are not copied.",
+        "If zero-attribution components are required, builders use internally authored or explicitly compatible public-domain/zero-attribution materials rather than removing required notices."
+      ]
     }
   ]
 }

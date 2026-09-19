@@ -4,6 +4,19 @@ Status: research/engineering design. Not proof evidence, not a claim of human-li
 
 Date: 2026-09-19
 
+## 0. Build-order gate
+
+This curriculum is not allowed to become the first AI subsystem constructed.
+
+Required dependency order:
+
+`Build Lite -> builder/bug-sweep tooling -> hardened sandbox -> local hybrid AI -> this curriculum -> canvas/heartbeat integration`
+
+The sandbox and capability policy are host-owned prerequisites. A training or
+reasoning model may not relax them.
+
+See `CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json`.
+
 ## Objective
 
 Train and evaluate the local CACE AI so that success depends on **learning reusable operations and structural relationships**, not memorizing answer surfaces.
@@ -35,6 +48,21 @@ Do not copy:
 CACE should implement its own task generators, loss functions, data schemas, operator library, model architecture, and evaluation code from first principles and permissively licensed/public-domain building blocks.
 
 Before commercial deployment, a separate license/provenance review and, where appropriate, patent freedom-to-operate review should be performed. This document itself does not provide legal clearance.
+
+### Public Sophontic boundary
+
+Public Sophontic materials describe general themes including paired canonical /
+load-bearing perturbation evaluation, compact specialist reasoning, and geometric
+representations. CACE may use those public ideas as research inspiration while
+independently designing its own data, objectives, architecture and code.
+
+Do not treat Sophontic's public website as permission to copy any unpublished or
+claimed proprietary internal-geometry training method, architecture, weights,
+datasets, or other nonpublic implementation.
+
+CACE should continue to use its own terminology, including **Paired Intervention
+Consistency**, and should preserve attribution/license notices whenever any
+actual reused third-party material requires them.
 
 ## 1. Core learning unit: operation, not answer
 

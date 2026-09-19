@@ -562,3 +562,46 @@ Executable allowlist:
 - `cace_studio/telemetry_contract.py`
 
 The public production domain remains deployment-defined until an owned domain is actually deployed; builders must not invent one.
+
+
+## Sandbox-first local hybrid AI build order
+
+Added 2026-09-19 on separate branch `design/local-hybrid-ai-sandbox`.
+
+Durable goal:
+
+- G067 — ordered sandbox-first local hybrid deep AI.
+
+Hard sequence:
+
+1. Build Lite;
+2. builder/helper-tool/bug-sweep layer;
+3. hardened private sandbox/runtime;
+4. local hybrid deep AI;
+5. reasoning curriculum/specialization;
+6. canvas + heartbeat integration.
+
+Hybrid components:
+
+- compact local language model;
+- typed operator planner;
+- CACE math/science tool router;
+- local provenance-aware retrieval;
+- bounded specialist models;
+- independent executable checker;
+- curriculum teacher;
+- heartbeat scheduler;
+- optional one-way activation observers.
+
+Public-method/IP rule:
+
+- CACE independently implements general ideas;
+- public availability is not assumed to mean patent-free/copyright-free/no-attribution;
+- required license notices are preserved;
+- public Sophontic paired-perturbation / compact-specialist / geometric-representation ideas may inspire independent evaluation/research only;
+- no copying/reverse-engineering proprietary or unreleased Sophontic training recipes, internal-geometry methods, architecture, code, weights, datasets or branding.
+
+Authorities:
+
+- `CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json`
+- `docs/LOCAL_HYBRID_AI_BUILD_SEQUENCE.md`

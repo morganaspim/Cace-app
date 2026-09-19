@@ -110,6 +110,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I078 | public signup privacy-preserving feedback loop | Operate one stable public CACE signup URL for eligible users, block CN/KP at the trusted edge per product policy, give each user a durable tenant instance, and collect strict allowlisted operational/heartbeat/proof-status metadata plus privacy-controlled aggregate usage analytics for product/sales improvement; actual proof/research content is a separate explicit opt-in. | G065 |
 
+| I080 | sandbox-first local hybrid AI | Force the build sequence Build Lite -> builder/bug-sweep -> hardened sandbox -> local hybrid deep AI -> reasoning curriculum -> canvas/heartbeat. The hybrid AI uses compact local neural models, typed operator planning, CACE math/science tools, provenance-aware retrieval, specialists and independent checkers; public paired-perturbation/geometric-specialist ideas may inspire independent work, but proprietary/unreleased external methods are not copied and public availability is never treated as automatic IP/license clearance. | G067 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

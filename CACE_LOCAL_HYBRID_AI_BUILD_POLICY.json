@@ -1,0 +1,211 @@
+{
+  "schema": "cace.local-hybrid-ai-build.v1",
+  "role": "ordered construction, sandbox, provenance and reasoning policy for the local CACE hybrid AI",
+  "invariant": "The local AI is built only after CACE Build Lite, code-builder/bug-sweep tooling, and the hardened sandbox/runtime boundary are complete enough to constrain it.",
+  "required_build_order": [
+    {
+      "phase": 0,
+      "id": "build_lite",
+      "name": "CACE Build Lite",
+      "exit_criteria": [
+        "deterministic changed-path/dependency/critical-path planning works",
+        "exact-content cache policy is enforced",
+        "proof-sensitive cache hits remain restore-only",
+        "builder can consume compact JSON plans"
+      ]
+    },
+    {
+      "phase": 1,
+      "id": "builder_tooling",
+      "name": "Code-builder + helper-tool + bug-sweep layer",
+      "exit_criteria": [
+        "AGENTS/code-builder bootstrap is authoritative",
+        "unknown features use ranked implementation alternatives rather than silent omission",
+        "custom helper tools are typed, least-privilege and regression-tested",
+        "root-cause + sibling sweep + permanent guard workflow is available"
+      ]
+    },
+    {
+      "phase": 2,
+      "id": "sandbox_runtime",
+      "name": "Hardened self-sandboxing local/private runtime",
+      "exit_criteria": [
+        "browser sees only web gateway",
+        "AI process has no direct proof/evidence/wallet authority",
+        "network is default-deny and capability-gated",
+        "filesystem is scoped/read-only where practical",
+        "resource limits and kill controls are enforced",
+        "model/observer workers run under separate least-privilege identities",
+        "secrets remain outside model context"
+      ]
+    },
+    {
+      "phase": 3,
+      "id": "local_hybrid_ai",
+      "name": "Local hybrid deep AI",
+      "exit_criteria": [
+        "model can run fully local/offline by default",
+        "neural generation is mediated by deterministic typed tools",
+        "operator/mathematical planner and checker are separate from free-form generation",
+        "retrieval/memory is local and provenance-aware",
+        "AI output has zero evidence/proof authority",
+        "paired intervention and invariance evaluations pass defined thresholds"
+      ]
+    },
+    {
+      "phase": 4,
+      "id": "reasoning_curriculum",
+      "name": "Reasoning curriculum and specialization",
+      "exit_criteria": [
+        "procedural operator curriculum exists",
+        "load-bearing perturbation pairs are evaluated",
+        "irrelevant perturbations preserve answers",
+        "unseen compositions and relabel/coordinate transforms are tested",
+        "specialists can be trained/evaluated without weakening sandbox controls"
+      ]
+    },
+    {
+      "phase": 5,
+      "id": "canvas_integration",
+      "name": "Canvas + heartbeat + user controls",
+      "exit_criteria": [
+        "AI context is typed and node-addressed",
+        "heartbeat/attention cannot promote verification state",
+        "user can disable AI",
+        "high-capability/network permissions remain separate opt-ins"
+      ]
+    }
+  ],
+  "hybrid_architecture": {
+    "principle": "Use multiple small, inspectable reasoning components rather than granting one opaque model broad authority.",
+    "components": [
+      {
+        "id": "local_language_model",
+        "role": "natural-language interpretation, summarization and proposal generation",
+        "authority": "advisory only"
+      },
+      {
+        "id": "typed_operator_planner",
+        "role": "select/compose explicit operations over typed CACE objects",
+        "authority": "may propose executable plans; cannot mark evidence"
+      },
+      {
+        "id": "mathematical_tool_router",
+        "role": "route tasks to exact/symbolic/numeric/geometry/graph modules",
+        "authority": "tool invocation only through capability policy"
+      },
+      {
+        "id": "local_retrieval_memory",
+        "role": "retrieve local project/user-approved knowledge with provenance",
+        "authority": "read scoped data only"
+      },
+      {
+        "id": "specialist_models",
+        "role": "small domain-specific neural models for bounded tasks",
+        "authority": "advisory/predictive according to module evidence class"
+      },
+      {
+        "id": "external_checker_layer",
+        "role": "independently verify executable invariants, tests, simulations and formal claims",
+        "authority": "checker result remains distinct from AI confidence"
+      },
+      {
+        "id": "curriculum_teacher",
+        "role": "choose next training/evaluation tasks based on measured weaknesses",
+        "authority": "no security/evidence authority"
+      },
+      {
+        "id": "heartbeat_scheduler",
+        "role": "route attention and spare compute using non-evidentiary activity state",
+        "authority": "scheduling only"
+      },
+      {
+        "id": "one_way_observers",
+        "role": "optional host-owned hidden-layer observation for instrumentable local models",
+        "authority": "observation only; no feedback/control channel"
+      }
+    ]
+  },
+  "public_methodology_rule": {
+    "principle": "Use only independently implemented general ideas and components with verified rights/provenance. Public availability alone is not legal clearance.",
+    "specifically_allowed_as_inspiration": [
+      "paired canonical/perturbed evaluation where a load-bearing change should change the answer",
+      "irrelevant-perturbation invariance tests",
+      "compact specialist models for bounded domains",
+      "modular/hybrid neural-symbolic architectures",
+      "typed operator programs",
+      "procedural curriculum generation",
+      "contrastive/self-supervised representation learning using independently designed objectives",
+      "equivariance/invariance tests",
+      "local retrieval with provenance",
+      "external executable verification",
+      "multi-agent or ensemble disagreement checks with bounded roles"
+    ],
+    "sophontic_boundary": {
+      "public_inspiration_only": [
+        "publicly described paired perturbation/flip-style evaluation concept",
+        "publicly described compact-specialist/reasoning-at-small-scale thesis",
+        "generic idea of geometric representations for reasoning evaluation/research"
+      ],
+      "do_not_copy_or_reverse_engineer": [
+        "unreleased training recipes",
+        "claimed proprietary internal-geometry training methods",
+        "nonpublic model architecture",
+        "private datasets",
+        "private weights",
+        "confidential benchmarks",
+        "branding/trade dress as CACE technology"
+      ],
+      "naming_rule": "CACE uses its own names such as Paired Intervention Consistency; do not market a Sophontic-branded method as CACE."
+    },
+    "provenance_gate": [
+      "record source/idea provenance category",
+      "classify as general idea, internally derived method, public-domain/CC0, or permissively licensed implementation",
+      "preserve attribution/license notices whenever the actual license requires them",
+      "do not assume public web publication means patent-free, copyright-free, or attribution-free",
+      "for commercially important copied implementations or unusually specific methods, require separate IP/license/patent review before shipping"
+    ],
+    "zero_attribution_preference": "If the product specifically requires no attribution obligation for a component, prefer internally authored implementations or materials whose license/provenance explicitly permits that use; do not strip required notices."
+  },
+  "sandbox": {
+    "default_network": "off",
+    "default_shell": "off",
+    "default_filesystem": "read-only model/runtime plus explicit scoped writable workspace",
+    "default_self_modification": "off",
+    "default_worker_spawn": "off unless host scheduler authorizes a bounded worker",
+    "evidence_write": "forbidden",
+    "proof_write": "forbidden",
+    "wallet_key_access": "forbidden",
+    "secret_access": "forbidden",
+    "package_install": "forbidden at runtime",
+    "model_weight_update": "only in explicit training sandbox with signed/versioned output promoted by host review",
+    "quotas": [
+      "CPU",
+      "GPU",
+      "RAM",
+      "disk",
+      "processes",
+      "open files",
+      "wall clock",
+      "token/context",
+      "training steps"
+    ]
+  },
+  "evaluation": {
+    "required": [
+      "canonical correctness",
+      "load-bearing perturbation correctness",
+      "irrelevant perturbation invariance",
+      "symbol relabel transfer",
+      "coordinate transform transfer",
+      "operator-program executability",
+      "unseen composition holdout",
+      "distractor robustness",
+      "confidence calibration",
+      "external checker closure"
+    ],
+    "no_hidden_cot_requirement": true,
+    "rule": "Evaluate externally observable behavior and checkable intermediate objects; never require disclosure of hidden chain-of-thought."
+  },
+  "production_rule": "No networked/economic/high-capability AI mode may be enabled merely because the local hybrid model exists. Those remain independent user/admin capability gates."
+}

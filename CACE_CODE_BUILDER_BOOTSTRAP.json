@@ -25,7 +25,10 @@
     "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
     "CACE_PUBLIC_SERVICE_POLICY.json",
     "CACE_TELEMETRY_PRIVACY_POLICY.json",
-    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md",
+    "CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json",
+    "docs/LOCAL_HYBRID_AI_BUILD_SEQUENCE.md",
+    "docs/LOCAL_AI_REASONING_CURRICULUM.md"
   ],
   "build_optimizer": {
     "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
@@ -62,7 +65,11 @@
     "enforce the configured CN/KP country-access policy at the trusted edge plus signup/session/local-agent registration without treating GeoIP as perfect location proof",
     "all hosted instances emit only allowlisted essential health/heartbeat/proof-status metadata; raw proof/scientific/AI/protein/customer content is forbidden from essential telemetry",
     "product analytics for product/sales improvement obeys privacy notice/consent-or-legal-basis/minimization/opt-out requirements",
-    "actual proof/research artifact contribution is a separate explicit opt-in and never silently uploads customer intellectual property"
+    "actual proof/research artifact contribution is a separate explicit opt-in and never silently uploads customer intellectual property",
+    "build the local hybrid AI only after Build Lite, builder/bug-sweep tooling, and the hardened sandbox/runtime are validated",
+    "local AI remains network/shell/self-modification/package-install/proof-write/evidence-write/wallet-key/secret denied by default",
+    "hybrid AI should route critical math/science work to typed CACE tools and independent checkers rather than hiding the computation inside model text",
+    "external AI methodologies/components require provenance/license review; public availability alone is not treated as patent/copyright/attribution clearance"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -183,5 +190,29 @@
       "proof_research_contribution: explicit opt-in only"
     ],
     "evidence_rule": "telemetry cannot create or modify proof/evidence truth"
+  },
+  "local_hybrid_ai": {
+    "source": "CACE_LOCAL_HYBRID_AI_BUILD_POLICY.json",
+    "required_order": [
+      "Build Lite",
+      "code-builder/helper-tool/bug-sweep layer",
+      "hardened sandbox/private runtime",
+      "local hybrid deep AI",
+      "reasoning curriculum/specialization",
+      "canvas/heartbeat integration"
+    ],
+    "architecture": [
+      "compact local language model",
+      "typed operator planner",
+      "math/science tool router",
+      "local provenance-aware retrieval",
+      "bounded specialist models",
+      "independent checker layer",
+      "curriculum teacher",
+      "heartbeat scheduler",
+      "optional one-way observers"
+    ],
+    "public_method_rule": "independently implement only general/publicly described concepts or properly licensed/public-domain components; do not copy proprietary/unreleased methods; preserve attribution when required",
+    "sophontic_boundary": "public paired perturbation, compact-specialist and geometric-representation ideas may inspire independent CACE work; no proprietary internal-geometry recipe/weights/architecture copying"
   }
 }
