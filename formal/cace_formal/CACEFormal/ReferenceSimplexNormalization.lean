@@ -108,8 +108,8 @@ theorem normalizer_map_p1
       _ = 0 := hzero
   ext <;>
     dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
-    ring_nf <;>
-    field_simp [hT, hden, hden_nf, hden_div]
+    ring_nf
+  exact div_self hden_div
 
 /-- The third vertex maps exactly to (0,1). -/
 theorem normalizer_map_p2
