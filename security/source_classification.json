@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "classification_id": "cace.source-classification.v1",
+  "default_class": "CACE_CONFIDENTIAL",
+  "classes": {
+    "PUBLIC": {
+      "customer_distribution": true,
+      "description": "Safe for public/customer distribution."
+    },
+    "CUSTOMER_DELIVERABLE": {
+      "customer_distribution": "contract_or_release_policy",
+      "description": "May be distributed only on an approved customer/release surface."
+    },
+    "CACE_CONFIDENTIAL": {
+      "customer_distribution": false,
+      "description": "Internal operational or implementation material."
+    },
+    "CACE_TRADE_SECRET": {
+      "customer_distribution": false,
+      "description": "Crown-jewel proprietary implementation/theorem material; release prohibited absent explicit executive/security/legal exception."
+    }
+  },
+  "rules": [
+    {
+      "path": "formal/**",
+      "class": "CACE_TRADE_SECRET",
+      "reason": "proprietary formal theorem/proof source"
+    },
+    {
+      "path": "docs/proofs/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal proof roadmap and qualification planning"
+    },
+    {
+      "path": "quality/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal bug/failure pattern intelligence"
+    },
+    {
+      "path": "ops/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal infrastructure and operational tooling"
+    },
+    {
+      "path": "ci/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal qualification/build orchestration"
+    },
+    {
+      "path": ".github/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal repository/CI orchestration"
+    },
+    {
+      "path": "scripts/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal verification/build/release tooling unless explicitly exported"
+    },
+    {
+      "path": "tests/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal tests may expose implementation details and negative cases"
+    },
+    {
+      "path": "security/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "internal security policies/scanners; customer security summary may be separately generated"
+    },
+    {
+      "path": "web/**",
+      "class": "CUSTOMER_DELIVERABLE",
+      "reason": "browser-facing application assets subject to production bundle secrecy gate"
+    },
+    {
+      "path": "cace_studio/**",
+      "class": "CACE_CONFIDENTIAL",
+      "reason": "current Python implementation is inspectable and requires explicit release allowlist/native migration for protected modules"
+    },
+    {
+      "path": "README.md",
+      "class": "PUBLIC",
+      "reason": "repository/project overview"
+    },
+    {
+      "path": "LICENSE",
+      "class": "PUBLIC",
+      "reason": "license terms when present"
+    }
+  ],
+  "hard_rules": [
+    "No CACE_TRADE_SECRET path may enter an ordinary customer application artifact.",
+    "CACE_CONFIDENTIAL paths require an explicit allowlist exception before customer distribution.",
+    "Customer delivery manifests record any exception and the approving policy version.",
+    "Classification is a release-control label, not a mathematical evidence class."
+  ]
+}
