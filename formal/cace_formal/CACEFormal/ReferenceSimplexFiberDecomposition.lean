@@ -96,9 +96,9 @@ theorem referenceSimplexFiberBasePoint_idem
     {d : Nat} (i : Fin d) (x : EuclideanDomain d) :
     referenceSimplexFiberBasePoint i (referenceSimplexFiberBasePoint i x) =
       referenceSimplexFiberBasePoint i x := by
-  unfold referenceSimplexFiberBasePoint
-  rw [referenceSimplexFiberPoint_original]
-  exact referenceSimplexFiberPoint_proj_same i x 0
+  simpa [referenceSimplexFiberBasePoint] using
+    (referenceSimplexFiberPoint_original i
+      (referenceSimplexFiberPoint i x 0))
 
 /--
 Every point is reconstructed exactly from its zero-coordinate base point and
@@ -109,13 +109,11 @@ theorem referenceSimplexFiber_reconstruct
     referenceSimplexFiberPoint i
         (referenceSimplexFiberBasePoint i x)
         (EuclideanSpace.proj i x) = x := by
-  apply EuclideanSpace.equiv.injective
-  funext j
+  ext j
   by_cases hji : j = i
   · subst j
     simp
-  · rw [EuclideanSpace.coe_proj,
-      referenceSimplexFiberPoint_proj_ne i j
+  · rw [referenceSimplexFiberPoint_proj_ne i j
         (referenceSimplexFiberBasePoint i x)
         (EuclideanSpace.proj i x) hji,
       referenceSimplexFiberBasePoint_proj_ne i j x hji]
@@ -147,7 +145,7 @@ nonselected coordinates generates precisely the simplex fiber interval.
 -/
 theorem referenceSimplexFiber_from_base_mem_iff
     {d : Nat} (i : Fin d) (y : EuclideanDomain d)
-    (hyi : EuclideanSpace.proj i y = 0)
+    (_hyi : EuclideanSpace.proj i y = 0)
     (hother :
       ∀ j ∈ Finset.univ.erase i, 0 ≤ EuclideanSpace.proj j y)
     (t : ℝ) :
