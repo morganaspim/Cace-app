@@ -66,11 +66,10 @@
     "CACEFormal.HDivGraphAnnihilator",
     "CACEFormal.OrthogonalClosure",
     "CACEFormal.HDivDensityReduction",
-    "CACEFormal.ZeroBoundaryClosure"
-  ],
-  "quarantined_root_imports": [
+    "CACEFormal.ZeroBoundaryClosure",
     "CACEFormal.BoxZeroBoundaryCore"
   ],
+  "quarantined_root_imports": [],
   "policy": {
     "root_imports_are_exact_allowlist": true,
     "quarantined_modules_may_not_enter_root": true,

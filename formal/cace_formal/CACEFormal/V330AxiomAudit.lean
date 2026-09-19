@@ -12,6 +12,7 @@ import CACEFormal.ContinuumOrthogonality
 import CACEFormal.ContinuumPragerSynge
 import CACEFormal.BoxPragerSyngeEquilibrated
 import CACEFormal.ZeroBoundaryClosure
+import CACEFormal.BoxZeroBoundaryCore
 
 /-!
 # Continuum kernel-assumption audit
@@ -76,3 +77,10 @@ core, zero-trace witness, cross-term identity, or unconditional regularizer need
 #print axioms CACEFormal.Continuum.hasZeroBoundaryTrace_of_mem_topologicalClosure
 #print axioms CACEFormal.Continuum.boxHasZeroBoundaryTrace_of_mem_coreClosure
 #print axioms CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure
+#print axioms CACEFormal.Continuum.mem_BoxBoundaryVanishingSmoothScalar_iff
+#print axioms CACEFormal.Continuum.scalarTimesVector_upperFace_eq_zero_of_boundaryVanishes
+#print axioms CACEFormal.Continuum.scalarTimesVector_lowerFace_eq_zero_of_boundaryVanishes
+#print axioms CACEFormal.Continuum.upperFaceFlux_scalarTimesVector_eq_zero_of_boundaryVanishes
+#print axioms CACEFormal.Continuum.lowerFaceFlux_scalarTimesVector_eq_zero_of_boundaryVanishes
+#print axioms CACEFormal.Continuum.smoothBoxNormalTrace_scalarTimesVector_eq_zero_of_boundaryVanishes
+#print axioms CACEFormal.Continuum.smoothNormalFluxPairing_eq_zero_of_boundaryVanishes
