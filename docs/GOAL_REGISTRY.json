@@ -381,6 +381,21 @@
         "Aperiodic/substitution and fractal views remain visualization/research features unless separate mathematical claims are proved.",
         "Novel view renderers report numerical stability and performance limits."
       ]
+    },
+    {
+      "id": "G029",
+      "category": "visualization",
+      "priority": 29,
+      "intent_status": "required",
+      "title": "Interactive 2D/3D visualization toggle",
+      "summary": "Provide a GUI button that switches compatible views between 2D and interactive 3D without changing the underlying mathematics or evidence.",
+      "acceptance": [
+        "Users can orbit left/right/up/down by pointer or touch drag.",
+        "Zoom, pan, reset/home, fit-to-object, and standard camera presets are available.",
+        "Keyboard/button alternatives exist for rotation so dragging is not required.",
+        "Camera/view state is presentation metadata and excluded from the semantic experiment fingerprint.",
+        "Display-only 3D embeddings are labeled VISUALIZATION ONLY; computational geometry changes require explicit typed semantic modules."
+      ]
     }
   ]
 }
