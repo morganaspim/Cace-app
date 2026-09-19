@@ -8,7 +8,14 @@ import re
 from pathlib import Path
 
 DECL = r"(?:noncomputable\s+def|theorem|lemma|def|abbrev|structure|inductive|class)"
-GLUED_DECL_RE = re.compile(rf"[A-Za-z0-9_'](?={DECL}\b)")
+# Plain `def` appears legitimately inside identifiers such as `inner_def`.
+# The corruption we want to catch is a declaration opener glued to a previous
+# token, especially the exact seam class observed in generated patches:
+# `...Densitynoncomputable def ...`.
+GLUED_DECL_RE = re.compile(
+    r"[A-Za-z0-9_'](?=noncomputable\s+def\b)"
+    r"|[A-Za-z0-9_'](?=(?:theorem|lemma|abbrev|structure|inductive|class)\s+[A-Za-z_])"
+)
 DUP_DECL_RE = re.compile(
     rf"\b(?P<kind>{DECL})\s+(?P<name>[A-Za-z_][A-Za-z0-9_'.]*)"
     rf".*?\b(?P=kind)\s+(?P=name)\b"
