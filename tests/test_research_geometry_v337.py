@@ -90,6 +90,25 @@ def test_curved_shear_has_explicit_inverse_and_unit_jacobian():
     assert all(record.passed for record in module.verify({}, params, output, ctx))
 
 
+def test_curved_shear_animation_payload_reuses_computed_boundary():
+    module = CurvedShearCell2D()
+    params = module.resolved_params(
+        {"shear": 0.4, "curvature": 0.2, "samples_per_edge": 12}
+    )
+    ctx = ExecutionContext(run_id="shear-animation", seed=0)
+    output = module.execute({}, params, ctx)
+    payload = module.animation_payload(params, output)
+
+    assert payload is not None
+    assert payload["kind"] == "transform2d"
+    assert payload["closed"] is True
+    np.testing.assert_array_equal(payload["target"], output["boundary"])
+    source = np.asarray(payload["source"], dtype=float)
+    assert source.shape == np.asarray(output["boundary"]).shape
+    assert source.shape == (48, 2)
+    assert payload["evidence_role"].startswith("presentation only")
+
+
 def test_geometry_resource_and_parameter_limits_fail_closed():
     adaptive = AdaptiveProductDimension()
     with pytest.raises(ValidationError):
