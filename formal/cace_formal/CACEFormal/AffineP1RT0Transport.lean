@@ -67,12 +67,16 @@ theorem piola_vectorEdgeFlux_map
   rw [hnx, hny]
   exact hp
 
-/-- Physical RT0 coefficients obtained by contravariant Piola transport of a
-reference RT0 field through an affine map. -/
+/-- Target-domain RT0 coefficients obtained by contravariant Piola transport
+of a source RT0 field through an affine map `F : source → target`. -/
 noncomputable def piolaRT0 (F : Affine2) (q : RT0Affine) : RT0Affine where
   cx := (F.a * q.cx + F.b * q.cy - q.radial * F.tx) / F.linearDet
   cy := (F.c * q.cx + F.d * q.cy - q.radial * F.ty) / F.linearDet
   radial := q.radial / F.linearDet
+
+/-- Direction-explicit alias for `piolaRT0`: source coefficients are
+transported forward to the target domain. -/
+noncomputable abbrev transportRT0SourceToTarget := piolaRT0
 
 /-- Pointwise evaluation of transported RT0 data agrees exactly with the
 contravariant Piola transform at the mapped point. -/
@@ -90,6 +94,14 @@ theorem evalRT0Point_piolaRT0_map
     field_simp [hdet] <;>
     ring
 
+/-- Direction-explicit transport contract: evaluating the transported target
+RT0 field at `F(p)` equals the Piola image of the source value at `p`. -/
+theorem transportRT0SourceToTarget_spec
+    (F : Affine2) (q : RT0Affine) (p : Point2) (hdet : F.linearDet ≠ 0) :
+    evalRT0Point (transportRT0SourceToTarget F q) (F.mapPoint p) =
+      F.piolaVector (evalRT0Point q p) :=
+  evalRT0Point_piolaRT0_map F q p hdet
+
 /-- Therefore RT0 normal flux is exactly invariant under affine Piola
 transport when the oriented edge itself is mapped by the same affine map. -/
 theorem edgeFlux_piolaRT0_map
@@ -102,12 +114,18 @@ theorem edgeFlux_piolaRT0_map
   rw [evalRT0Point_piolaRT0_map F q p hdet]
   exact piola_vectorEdgeFlux_map F (evalRT0Point q p) a b hdet
 
-/-- Pull an affine P1 scalar polynomial from reference coordinates to physical
-coordinates.  The gradient is transformed by inverse transpose. -/
+/-- Transport a source affine P1 scalar polynomial to the target coordinates
+of `F : source → target`.  The target field is `v ∘ F⁻¹`, so its gradient
+is transformed by inverse transpose.  The historical name `pullP1` is kept
+for API compatibility. -/
 noncomputable def pullP1 (F : Affine2) (v : P1Affine) : P1Affine :=
   let gx := (F.d * v.gx - F.c * v.gy) / F.linearDet
   let gy := (-F.b * v.gx + F.a * v.gy) / F.linearDet
   ⟨v.c - gx * F.tx - gy * F.ty, gx, gy⟩
+
+/-- Direction-explicit alias for `pullP1`: a source scalar field is represented
+on the target domain. -/
+noncomputable abbrev transportP1SourceToTarget := pullP1
 
 /-- The physical P1 polynomial evaluates to the reference polynomial at mapped
 points. -/
@@ -127,6 +145,13 @@ theorem pullP1_eval_map
   dsimp [pullP1, Affine2.mapPoint, Affine2.linearDet, P1Affine.eval]
   field_simp [hdet, hdet_comm]
   ring
+
+/-- Direction-explicit transport contract: the target representation evaluated
+at the mapped point equals the original source field at the source point. -/
+theorem transportP1SourceToTarget_spec
+    (F : Affine2) (v : P1Affine) (p : Point2) (hdet : F.linearDet ≠ 0) :
+    (transportP1SourceToTarget F v).eval (F.mapPoint p) = v.eval p :=
+  pullP1_eval_map F v p hdet
 
 /-- Endpoint data entering the exact P1/RT0 edge pairing are simultaneously
 preserved by scalar pullback and Piola flux transport. -/
