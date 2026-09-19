@@ -176,6 +176,17 @@ Key rules:
 - zero-contact local AI has no network/cloud credentials/direct shell;
 - critical evidence is stored outside GitHub as well.
 
+## 6.1 Offline core, collaboration, and licensing
+
+CACE's scientific worker is a zero-egress sandbox. Collaboration and licensing are separate network brokers with fixed capability protocols.
+
+- Collaboration: invite-only shared canvas, viewer/editor roles, encrypted typed operations, no code/plugin/file injection.
+- Licensing: day/week/month/year passes, Monero QR, external payment verification, signed offline license token.
+- Payment/commercial state never alters mathematical evidence.
+- Local app entitlement and project-funded remote compute are separate resources.
+
+See `docs/OFFLINE_COLLABORATION_AND_LICENSING.md`.
+
 ## 7. Provider-independent evidence retention
 
 GitHub logs are not the source of truth.
