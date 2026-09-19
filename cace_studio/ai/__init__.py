@@ -5,6 +5,8 @@ verification and formal-evidence trusted computing base.
 """
 from .provider import AIProvider, LocalAIError, ProviderHealth
 from .local import create_local_provider, detect_local_providers
+from .corpus import build_local_fragments, build_local_index
+from .hybrid import GrowthEngine, GrowResult, ResearchFragment, SparseResearchIndex
 
 __all__ = [
     "AIProvider",
@@ -12,4 +14,10 @@ __all__ = [
     "ProviderHealth",
     "create_local_provider",
     "detect_local_providers",
+    "build_local_fragments",
+    "build_local_index",
+    "GrowthEngine",
+    "GrowResult",
+    "ResearchFragment",
+    "SparseResearchIndex",
 ]
