@@ -2,6 +2,8 @@ import CACEFormal.AffineGeometry
 import CACEFormal.ExteriorPowerTransport
 import CACEFormal.Piola
 import CACEFormal.DualBladePiola
+import CACEFormal.AffineP1RT0Transport
+import CACEFormal.ReferenceSimplexNormalization
 import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.WeightedEnergy
@@ -38,6 +40,11 @@ example (F : Affine2) (q t : Point2) (hdet : F.linearDet ≠ 0) :
 #check Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer
 #check Continuum.realHDivSmoothGraphClosure_eq_distributionalPreimage_of_regularizer
 #check Continuum.realDistributionalPreimage_le_HDivSmoothGraphClosure_of_regularizer
+
+#check AffineP1RT0Transport.piolaRT0
+#check AffineP1RT0Transport.pullP1
+#check ReferenceSimplexNormalization.normalizer
+#check ReferenceSimplexNormalization.cellPairing_to_reference
 
 #check SPDEnergyOperator.energySq
 #check SPDEnergyOperator.weighted_hypercircle
