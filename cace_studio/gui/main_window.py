@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 try:
     from PySide6.QtCore import QPointF, QTimer, Qt
     from PySide6.QtGui import QAction, QKeySequence
     from PySide6.QtWidgets import (
         QDockWidget,
         QFileDialog,
+        QDialog,
         QFormLayout,
         QGraphicsScene,
         QLabel,
@@ -27,9 +30,11 @@ from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.report import save_run_report
 from cace_studio.core.serialization import load_experiment, save_experiment
+from cace_studio.ai.experiment_proposal import propose_experiment_graph
 from cace_studio.ai.research_ideas import ResearchIdeaStore
 from .ai_assistant import LocalAIAssistantWidget
 from .ai_settings_dialog import LocalAISettingsDialog
+from .experiment_proposal_dialog import ExperimentProposalDialog
 from .node_canvas import CanvasView, ModuleLibrary
 from .research_ideas import ResearchIdeasWidget
 from .transform_preview import CoordinateTransformPreview
@@ -303,13 +308,105 @@ class MainWindow(QMainWindow):
         return tuple(result)
 
     def _make_research_ideas(self):
-        self.research_ideas = ResearchIdeasWidget(self.research_idea_store, self)
+        self.research_ideas = ResearchIdeasWidget(
+            self.research_idea_store,
+            self,
+            build_callback=self._build_research_idea_on_canvas,
+        )
         self.research_ideas_dock = self._dock(
             "Research Ideas",
             self.research_ideas,
             Qt.BottomDockWidgetArea,
         )
         self.research_ideas_dock.setVisible(False)
+
+    def _build_research_idea_on_canvas(self, idea) -> None:
+        proposal = propose_experiment_graph(
+            self.registry,
+            idea.associated_modules,
+            title=idea.title,
+            max_modules=8,
+        )
+        if proposal.is_empty:
+            skipped = ", ".join(proposal.skipped_modules) or "none"
+            self.console.append(
+                "Research Idea graph proposal is empty. "
+                f"Associated modules may be missing or unknown; skipped={skipped}."
+            )
+            return
+
+        dialog = ExperimentProposalDialog(proposal, self)
+        if dialog.exec() != QDialog.Accepted:
+            self.console.append(
+                f"Cancelled canvas build for Research Idea: {idea.title}"
+            )
+            return
+
+        self._apply_experiment_proposal(proposal, idea_title=idea.title)
+
+    def _apply_experiment_proposal(self, proposal, *, idea_title: str) -> None:
+        self._sync_positions()
+        self.history.record(self.experiment)
+        updated = ExperimentHistory.snapshot(self.experiment)
+
+        existing_rect = self.scene.itemsBoundingRect()
+        origin_x = 40.0 if existing_rect.isNull() else existing_rect.right() + 100.0
+        origin_y = 40.0 if existing_rect.isNull() else existing_rect.top()
+
+        node_ids = {node.id for node in updated.nodes}
+        mapping = {}
+        for proposed in proposal.nodes:
+            node_id = f"n_{uuid4().hex[:8]}"
+            while node_id in node_ids:
+                node_id = f"n_{uuid4().hex[:8]}"
+            node_ids.add(node_id)
+            mapping[proposed.proposal_id] = node_id
+            updated.nodes.append(
+                Node(
+                    node_id,
+                    proposed.module_id,
+                    {},
+                    (
+                        origin_x + proposed.position[0],
+                        origin_y + proposed.position[1],
+                    ),
+                )
+            )
+
+        for edge in proposal.edges:
+            updated.edges.append(
+                Edge(
+                    mapping[edge.source_node],
+                    edge.source_port,
+                    mapping[edge.target_node],
+                    edge.target_port,
+                )
+            )
+
+        try:
+            self._restore_experiment(
+                updated,
+                log_message=(
+                    f"Built Research Idea on canvas: {idea_title} "
+                    f"({len(proposal.nodes)} node(s), {len(proposal.edges)} compatible edge(s), "
+                    f"{len(proposal.unresolved_required_inputs)} unresolved required input(s))."
+                ),
+            )
+        except Exception:
+            # Restore the pre-build snapshot if an unexpected canvas restore
+            # failure occurs; the proposal should be all-or-nothing.
+            previous = self.history.undo(self.experiment)
+            if previous is not None:
+                self._restore_experiment(
+                    previous,
+                    log_message="Research Idea canvas build rolled back after restore failure.",
+                )
+            self._sync_history_actions()
+            raise
+
+        self._sync_history_actions()
+        self._autosave_tick()
+        self.canvas.fit_all()
 
     def _show_research_ideas(self) -> None:
         self.research_ideas.refresh()
