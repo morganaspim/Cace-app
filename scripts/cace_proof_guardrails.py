@@ -8,9 +8,9 @@ Commands:
       or policy/configuration is malformed.
 
   impacted --base-ref REF
-      Print changed CACEFormal modules plus every audited-root reverse
-      dependent, in dependency-first order.  This is used for cheap targeted
-      compilation before the full root build.
+      Print changed CACEFormal modules, explicitly quarantined changed modules,
+      plus every audited-root reverse dependent, in dependency-first order.
+      This is used for cheap targeted compilation before the full root build.
 
   classify-target --module MODULE --compile-root {true,false}
       Classify a requested target as audited-root or quarantined-standalone.
@@ -19,8 +19,9 @@ Commands:
 
   plan-hash ...
       Emit a content-addressed SHA-256 that binds the Lean/Mathlib pins,
-      target, compile-root flag, guardrail policy, and every Lean source file
-      in the audited root's recursive CACEFormal import closure.
+      target, compile-root flag, guardrail policy, every Lean source file in
+      the requested target's recursive CACEFormal import closure, every
+      impacted compiled source, and the audited root closure.
 """
 from __future__ import annotations
 
@@ -338,7 +339,16 @@ def impacted_modules(config: dict, base_ref: str) -> list[str]:
                     stack.append(dependent)
 
     quarantined = set(config.get("quarantined_root_imports", ()))
-    impacted -= quarantined
+    changed_quarantined = changed_modules & quarantined
+    for module in sorted(changed_quarantined):
+        classify_target(
+            config,
+            module,
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+    impacted |= changed_quarantined
     return dependency_first_order(impacted, graph)
 
 
@@ -352,6 +362,18 @@ def proof_plan(config: dict, args: argparse.Namespace) -> dict:
     graph = cace_module_graph(module_root)
     imports = parse_imports(audited_root)
     closure = root_closure(imports, graph)
+
+    if not args.target.startswith("CACEFormal/") or not args.target.endswith(".lean"):
+        raise GuardrailError(f"invalid CACEFormal target path for proof plan: {args.target}")
+    target_module = args.target[:-5].replace("/", ".")
+    if target_module not in graph:
+        raise GuardrailError(f"proof-plan target module is absent from source graph: {target_module}")
+    target_closure = root_closure((target_module,), graph)
+    missing_target = missing_internal_modules(target_closure, graph)
+    if missing_target:
+        raise GuardrailError(
+            f"proof-plan target closure has missing CACEFormal modules: {missing_target}"
+        )
 
     source_records = [
         {
@@ -371,6 +393,19 @@ def proof_plan(config: dict, args: argparse.Namespace) -> dict:
             }
         )
 
+    target_source_records = []
+    for module in sorted(target_closure):
+        path = module_to_path(module_root, module)
+        if not path.is_file():
+            raise GuardrailError(f"target-closure source missing: {module}")
+        target_source_records.append(
+            {
+                "module": module,
+                "path": str(path.relative_to(ROOT)),
+                "sha256": source_digest(path),
+            }
+        )
+
     impacted: list[str] = []
     if args.impacted_file:
         impacted = [
@@ -378,6 +413,21 @@ def proof_plan(config: dict, args: argparse.Namespace) -> dict:
             for line in Path(args.impacted_file).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+
+    impacted_source_records = []
+    for module in impacted:
+        if module not in graph:
+            raise GuardrailError(f"impacted proof module is absent from source graph: {module}")
+        path = module_to_path(module_root, module)
+        if not path.is_file():
+            raise GuardrailError(f"impacted proof source missing: {module}")
+        impacted_source_records.append(
+            {
+                "module": module,
+                "path": str(path.relative_to(ROOT)),
+                "sha256": source_digest(path),
+            }
+        )
 
     payload = {
         "schema_version": 1,
@@ -394,7 +444,9 @@ def proof_plan(config: dict, args: argparse.Namespace) -> dict:
             for relative in sorted(config.get("guardrail_sources", ()))
         ],
         "canary_module": config["canary_module"],
+        "target_sources": target_source_records,
         "impacted_modules": impacted,
+        "impacted_sources": impacted_source_records,
         "root_sources": source_records,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
