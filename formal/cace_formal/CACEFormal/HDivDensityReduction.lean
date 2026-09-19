@@ -172,7 +172,7 @@ noncomputable def schwartzConj (n : Nat) :
 @[simp]
 theorem schwartzConj_apply (n : Nat)
     (φ : ComplexSmoothScalar n) (y : EuclideanDomain n) :
-    schwartzConj n φ y = Complex.conj (φ y) := by
+    schwartzConj n φ y = Complex.conjCLE (φ y) := by
   rfl
 
 /-- Real-linear conjugation commutes with real directional derivatives. -/
@@ -183,8 +183,8 @@ theorem lineDeriv_schwartzConj
   ext y
   simp only [SchwartzMap.lineDerivOp_apply_eq_fderiv, schwartzConj_apply]
   change
-    fderiv ℝ (Complex.conj ∘ φ) y v =
-      Complex.conj (fderiv ℝ φ y v)
+    fderiv ℝ ((Complex.conjCLE : ℂ → ℂ) ∘ φ) y v =
+      Complex.conjCLE (fderiv ℝ φ y v)
   rw [fderiv_comp y Complex.conjCLE.differentiableAt φ.differentiableAt]
   simp
 
@@ -196,14 +196,14 @@ theorem inner_schwartzConjL2_eq_distribution_apply
       complexL2ToDistribution n u φ := by
   change
     ⟪(schwartzConj n φ).toLp 2
-        (volume : Measure (EuclideanDomain n)), u⟫_ℂ =
+        (MeasureTheory.volume : MeasureTheory.Measure (EuclideanDomain n)), u⟫_ℂ =
       MeasureTheory.Lp.toTemperedDistribution u φ
   rw [MeasureTheory.L2.inner_def,
     MeasureTheory.Lp.toTemperedDistribution_apply]
   apply integral_congr_ae
   filter_upwards
       [(schwartzConj n φ).coeFn_toLp 2
-        (volume : Measure (EuclideanDomain n))] with y hy
+        (MeasureTheory.volume : MeasureTheory.Measure (EuclideanDomain n))] with y hy
   rw [hy]
   simp [schwartzConj_apply, RCLike.inner_apply, smul_eq_mul, mul_comm]
 
