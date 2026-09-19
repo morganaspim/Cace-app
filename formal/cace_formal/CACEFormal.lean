@@ -29,6 +29,7 @@ import CACEFormal.ConcreteMeshCertificate
 import CACEFormal.MeshCertificate
 import CACEFormal.MeshElementGeometry
 import CACEFormal.P1RT0Element
+import CACEFormal.PhysicalP1RT0Element
 import CACEFormal.MeshFaceAssembly
 import CACEFormal.RT0P1Assembly
 import CACEFormal.RT0P1DerivedAssembly
