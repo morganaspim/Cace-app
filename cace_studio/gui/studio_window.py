@@ -17,6 +17,10 @@ from cace_studio.core.graph_edit import (
     paste_graph_fragment,
 )
 from cace_studio.ai.heartbeat_context import build_heartbeat_context_packet
+from cace_studio.ai.protein_play import (
+    ProteinHeartbeatPlayEngine,
+    discover_protein_outputs,
+)
 from cace_studio.core.compute_economy import ComputeCreditEconomy, sample_host_headroom
 from cace_studio.core.graph import Node
 from cace_studio.core.heartbeat import AIHeartbeatUpdate, CanvasHeartbeatEngine
@@ -33,6 +37,7 @@ from .main_window import MainWindow
 from .minimap import MiniMapView
 from .proof_explorer import ProofExplorerWidget
 from .open_problems import OpenProblemsWidget
+from .protein_playground import ProteinPlaygroundWidget
 
 
 class StudioMainWindow(MainWindow):
@@ -93,11 +98,84 @@ class StudioMainWindow(MainWindow):
             self.open_problems,
             Qt.LeftDockWidgetArea,
         )
+        self._protein_play_engines = {}
+        self.protein_playground = ProteinPlaygroundWidget(
+            self._protein_sources,
+            self._play_protein,
+            self,
+        )
+        self.protein_playground_dock = self._dock(
+            "Protein Playground",
+            self.protein_playground,
+            Qt.RightDockWidgetArea,
+        )
         self._economy_timer = QTimer(self)
         self._economy_timer.setInterval(2_000)
         self._economy_timer.timeout.connect(self._economy_tick)
         self._economy_timer.start()
         self._economy_tick()
+
+    def _protein_sources(self):
+        return discover_protein_outputs(self.last_result)
+
+    def _play_protein(self, node_id: str):
+        sources = dict(self._protein_sources())
+        view = sources.get(node_id)
+        if view is None:
+            raise ValueError(
+                "protein output is not present in the currently attached run"
+            )
+        cached = self._protein_play_engines.get(node_id)
+        if cached is None or cached.view.semantic_sha256 != view.semantic_sha256:
+            cached = ProteinHeartbeatPlayEngine(view, seed=0)
+            self._protein_play_engines[node_id] = cached
+        step = cached.step()
+
+        previous = self._canvas_heartbeat.frame
+        verification = (
+            dict(self.last_result.verification)
+            if self.last_result is not None
+            else {}
+        )
+        frame = self._canvas_heartbeat.advance(
+            self.experiment,
+            semantic_hashes=self._semantic_hashes(),
+            verification=verification,
+            inputs_ready_nodes=tuple(node.id for node in self.experiment.nodes),
+            ai_updates=(
+                AIHeartbeatUpdate(
+                    node_id,
+                    0.8,
+                    "user requested Protein Play",
+                ),
+            ),
+        )
+        self.canvas.apply_heartbeat_frame(frame)
+        canvas_packet = build_heartbeat_context_packet(
+            self.experiment,
+            frame,
+            previous,
+            max_nodes=64,
+        )
+        wallet = self._compute_economy.wallets.get(node_id)
+        credits = wallet.credits if wallet is not None else 0.0
+        context = "\n\n".join(
+            (
+                step.context,
+                "SOURCE CANVAS HEARTBEAT",
+                canvas_packet.to_prompt_text(),
+                (
+                    f"Internal research compute credits for the source node: {credits:.2f}. "
+                    "Autonomous follow-up experiments should use bounded compute bids."
+                ),
+            )
+        )
+        accepted = self.assistant.ask_context(context, label="protein-play")
+        self.console.append(
+            f"Protein Play: node {node_id}; residue and canvas heartbeat attention updated. "
+            "The source structure was not mutated and AI output is non-evidentiary."
+        )
+        return accepted, step
 
     def _semantic_hashes(self) -> dict[str, str]:
         hashes = {}
@@ -573,6 +651,8 @@ class StudioMainWindow(MainWindow):
                 return
 
             self.last_result = result
+            if hasattr(self, "protein_playground"):
+                self.protein_playground.refresh_sources()
             if not result.completed:
                 status = f"INCOMPLETE ({result.interruption_reason or 'interrupted'})"
             else:
@@ -697,6 +777,10 @@ class StudioMainWindow(MainWindow):
         super().new_file()
         self._graph_clipboard = None
         self._paste_generation = 0
+        if hasattr(self, "_protein_play_engines"):
+            self._protein_play_engines.clear()
+        if hasattr(self, "protein_playground"):
+            self.protein_playground.refresh_sources()
         self._group_overlays.sync(self.experiment.groups)
         self.minimap.schedule_refresh()
         self._refresh_proof_explorer()

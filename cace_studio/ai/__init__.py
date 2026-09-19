@@ -17,6 +17,13 @@ from .latent_observer import (
     MultiObserverBroker,
     ReplicatedObservation,
 )
+from .protein_play import (
+    ProteinHeartbeatPlayEngine,
+    ProteinPlayStep,
+    ProteinPlayView,
+    adapt_protein_structure,
+    discover_protein_outputs,
+)
 
 __all__ = [
     "AIProvider",
@@ -32,4 +39,9 @@ __all__ = [
     "MatrixObserverArchive",
     "MultiObserverBroker",
     "ReplicatedObservation",
+    "ProteinHeartbeatPlayEngine",
+    "ProteinPlayStep",
+    "ProteinPlayView",
+    "adapt_protein_structure",
+    "discover_protein_outputs",
 ]
