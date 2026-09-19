@@ -53,6 +53,7 @@ class PlannerConfig:
     prior_weight: float = 0.25
     proof_weight: float = 0.30
     diversity_weight: float = 0.15
+    relevance_weight: float = 0.35
 
 
 class CombinationPlanner:
@@ -70,10 +71,20 @@ class CombinationPlanner:
 
     @staticmethod
     def ranker_input_dim(sketch_dim: int) -> int:
-        return 2 * int(sketch_dim) + CombinationPlanner.META_DIM
+        return 4 * int(sketch_dim) + CombinationPlanner.META_DIM
 
-    def _group(self, members: Sequence[CandidateAtom]) -> GroupCandidate:
+    def _group(
+        self,
+        members: Sequence[CandidateAtom],
+        context_sketch: np.ndarray,
+    ) -> GroupCandidate:
         member_feature = combine_sketches([member.sketch for member in members])
+        sketch_dim = int(np.asarray(members[0].sketch).size)
+        context = np.asarray(context_sketch, dtype=np.float64)
+        if context.shape != (sketch_dim,):
+            raise ValueError("context sketch must match atom sketch dimension")
+        member_mean = member_feature[:sketch_dim]
+        relevance_interaction = member_mean * context
         total_cost = float(sum(member.static_cost for member in members))
         prior = float(sum(member.prior for member in members) / len(members))
         proof = float(sum(member.proof_strength for member in members) / len(members))
@@ -81,14 +92,18 @@ class CombinationPlanner:
             [math.log1p(len(members)), math.log1p(total_cost), prior, proof],
             dtype=np.float64,
         )
-        feature = np.concatenate((member_feature, metadata))
+        feature = np.concatenate(
+            (member_feature, context, relevance_interaction, metadata)
+        )
         if feature.shape != (self.ranker.config.input_dim,):
             raise ValueError(
                 f"ranker expects {self.ranker.config.input_dim} features, planner produced {feature.size}"
             )
         neural = float(self.ranker.predict(feature))
+        relevance = max(0.0, cosine_similarity(member_mean, context))
         score = (
             neural
+            + self.config.relevance_weight * relevance
             + self.config.prior_weight * prior
             + self.config.proof_weight * proof
             - self.config.cost_weight * math.log1p(total_cost)
@@ -130,7 +145,11 @@ class CombinationPlanner:
         return selected
 
     def search(
-        self, atoms: Sequence[CandidateAtom], *, top_k: int = 10
+        self,
+        atoms: Sequence[CandidateAtom],
+        *,
+        context_sketch: np.ndarray | None = None,
+        top_k: int = 10,
     ) -> list[GroupCandidate]:
         if top_k <= 0 or not atoms:
             return []
@@ -141,10 +160,17 @@ class CombinationPlanner:
             raise ValueError("ranker input dimension does not match atom sketch dimension")
         if any(np.asarray(atom.sketch).size != sketch_dim for atom in ordered):
             raise ValueError("all atom sketches must use the same dimension")
+        context = (
+            np.zeros(sketch_dim, dtype=np.float64)
+            if context_sketch is None
+            else np.asarray(context_sketch, dtype=np.float64)
+        )
+        if context.shape != (sketch_dim,) or not np.all(np.isfinite(context)):
+            raise ValueError("context sketch must be a finite vector matching atom dimension")
 
         index_by_id = {atom.atom_id: index for index, atom in enumerate(ordered)}
         beam = self._diverse_top(
-            [self._group([atom]) for atom in ordered],
+            [self._group([atom], context) for atom in ordered],
             self.config.beam_width,
         )
 
@@ -158,7 +184,7 @@ class CombinationPlanner:
                 last_index = max(index_by_id[item] for item in group.member_ids)
                 members = [ordered[index_by_id[item]] for item in group.member_ids]
                 for next_index in range(last_index + 1, len(ordered)):
-                    candidate = self._group(members + [ordered[next_index]])
+                    candidate = self._group(members + [ordered[next_index]], context)
                     expanded[candidate.member_ids] = candidate
             if not expanded:
                 break
