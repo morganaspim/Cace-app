@@ -119,3 +119,11 @@ class AIProvider(ABC):
     @abstractmethod
     def chat(self, messages: Sequence[Mapping[str, str]], *, temperature: float = 0.2) -> str:
         raise NotImplementedError
+
+    def embeddings(self, texts: Sequence[str]) -> tuple[tuple[float, ...], ...]:
+        """Optional local embedding interface.
+
+        Providers may override this. The default fails explicitly so callers
+        can fall back to the deterministic sparse/latent path.
+        """
+        raise LocalAIError(f"{self.display_name} does not expose local embeddings")

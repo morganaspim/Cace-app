@@ -6,6 +6,7 @@ try:
     from PySide6.QtWidgets import (
         QDockWidget,
         QFileDialog,
+        QDialog,
         QFormLayout,
         QGraphicsScene,
         QLabel,
@@ -27,9 +28,18 @@ from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.report import save_run_report
 from cace_studio.core.serialization import load_experiment, save_experiment
+from cace_studio.ai.experiment_proposal import (
+    materialize_experiment_proposal,
+    propose_experiment_strategies,
+)
+from cace_studio.ai.preferences import AIResearchPreferences
+from cace_studio.ai.research_ideas import ResearchIdeaStore
 from .ai_assistant import LocalAIAssistantWidget
 from .ai_settings_dialog import LocalAISettingsDialog
+from .experiment_proposal_dialog import ExperimentProposalDialog
 from .node_canvas import CanvasView, ModuleLibrary
+from .research_ideas import ResearchIdeasWidget
+from .transform_preview import CoordinateTransformPreview
 
 
 class MainWindow(QMainWindow):
@@ -41,6 +51,8 @@ class MainWindow(QMainWindow):
         self.history = ExperimentHistory(limit=100)
         self.last_result = None
         self.selected_node_id = None
+        self.research_idea_store = ResearchIdeaStore()
+        self.ai_research_preferences = AIResearchPreferences.load()
         self.setWindowTitle(f"CACE Studio — Verified Research Environment {__version__}")
         self.resize(1380, 860)
         self.scene = QGraphicsScene(self)
@@ -61,6 +73,8 @@ class MainWindow(QMainWindow):
         self._make_verification()
         self._make_console()
         self._make_controls()
+        self._make_transform_preview()
+        self._make_research_ideas()
         self._make_assistant()
         self._sync_controls()
         self.autosave_timer = QTimer(self)
@@ -107,6 +121,9 @@ class MainWindow(QMainWindow):
 
         ai_menu = self.menuBar().addMenu("AI")
         self._action(ai_menu, "Configure Local AI", self._configure_ai)
+
+        research_menu = self.menuBar().addMenu("Research")
+        self._action(research_menu, "Open Research Ideas", self._show_research_ideas)
         self._sync_history_actions()
 
     def _make_library(self):
@@ -169,12 +186,284 @@ class MainWindow(QMainWindow):
         layout.addStretch()
         self._dock("Controls", widget, Qt.LeftDockWidgetArea)
 
+    def _assistant_context(self) -> str:
+        lines = [
+            f"Experiment: {self.experiment.name}",
+            f"Nodes: {len(self.experiment.nodes)}",
+            f"Edges: {len(self.experiment.edges)}",
+        ]
+        for node in self.experiment.nodes[:40]:
+            marker = " [SELECTED]" if node.id == self.selected_node_id else ""
+            params = repr(node.params)
+            if len(params) > 800:
+                params = params[:797] + "..."
+            lines.append(
+                f"- node {node.id}{marker}: module={node.module_id}; params={params}"
+            )
+        if len(self.experiment.nodes) > 40:
+            lines.append(f"- ... {len(self.experiment.nodes) - 40} more node(s) omitted")
+
+        for edge in self.experiment.edges[:60]:
+            lines.append(
+                f"- edge {edge.source_node}.{edge.source_port} -> "
+                f"{edge.target_node}.{edge.target_port}"
+            )
+        if len(self.experiment.edges) > 60:
+            lines.append(f"- ... {len(self.experiment.edges) - 60} more edge(s) omitted")
+
+        ideas = self.research_idea_store.list()[:10]
+        if ideas:
+            lines.append("Local Research Ideas notebook (planning only; not proof status):")
+            for idea in ideas:
+                hypothesis = idea.hypotheses[0] if idea.hypotheses else "no hypothesis recorded"
+                if len(hypothesis) > 240:
+                    hypothesis = hypothesis[:237] + "..."
+                lines.append(
+                    f"- [{idea.status}] {idea.title}; hypothesis={hypothesis}; "
+                    f"modules={', '.join(idea.associated_modules) or 'none'}"
+                )
+        else:
+            lines.append("Local Research Ideas notebook: empty")
+
+        if self.last_result is None:
+            lines.append("Current attached run evidence: none")
+        else:
+            completed = getattr(self.last_result, "completed", True)
+            lines.append(
+                "Current attached run: "
+                f"id={getattr(self.last_result, 'run_id', 'unknown')}; "
+                f"completed={completed}; "
+                f"all_verifiers_passed={getattr(self.last_result, 'all_verifiers_passed', False)}"
+            )
+        lines.append(
+            "This is a read-only convenience snapshot. It is not proof or verification evidence."
+        )
+        return "\n".join(lines)
+
+    def _make_transform_preview(self):
+        self.transform_preview = CoordinateTransformPreview(self)
+        self.transform_preview_dock = self._dock(
+            "Transform Preview",
+            self.transform_preview,
+            Qt.RightDockWidgetArea,
+        )
+
+    def _assistant_animation(self, kind, payload):
+        try:
+            if kind == "grow":
+                labels = tuple(getattr(payload, "walk", ()) or ())
+                self.transform_preview.animate_ai_walk(labels, title="Grow working")
+            elif kind == "working":
+                text = str(payload or "AI working")
+                labels = [part for part in text.split() if part][:12]
+                self.transform_preview.animate_ai_walk(labels, title="Local AI working")
+        except Exception as exc:
+            self.console.append(
+                f"Animation preview skipped: {type(exc).__name__}: {exc}"
+            )
+
+    def _show_animation_for_node(self, node_id: str) -> bool:
+        if self.last_result is None or node_id not in self.last_result.outputs:
+            return False
+        node = next((item for item in self.experiment.nodes if item.id == node_id), None)
+        if node is None:
+            return False
+        try:
+            module = self.registry.create(node.module_id)
+            animation_payload = getattr(module, "animation_payload", None)
+            if not callable(animation_payload):
+                return False
+            params = module.resolved_params(node.params)
+            payload = animation_payload(
+                params,
+                self.last_result.outputs[node_id],
+            )
+        except Exception as exc:
+            self.console.append(
+                f"Animation payload skipped for {node_id}: {type(exc).__name__}: {exc}"
+            )
+            return False
+        if not payload:
+            return False
+        if payload.get("kind") != "transform2d":
+            return False
+        try:
+            self.transform_preview.animate_transform(
+                payload["source"],
+                payload["target"],
+                title=str(payload.get("title") or module.metadata.name),
+                closed=bool(payload.get("closed", False)),
+                duration_ms=int(payload.get("duration_ms", 900)),
+            )
+        except Exception as exc:
+            self.console.append(
+                f"Animation preview skipped for {node_id}: {type(exc).__name__}: {exc}"
+            )
+            return False
+        return True
+
+    def _current_module_ids(self) -> tuple[str, ...]:
+        seen = set()
+        result = []
+        for node in self.experiment.nodes:
+            module_id = str(node.module_id).strip()
+            if not module_id or module_id in seen:
+                continue
+            seen.add(module_id)
+            result.append(module_id)
+        return tuple(result)
+
+    def _make_research_ideas(self):
+        self.research_ideas = ResearchIdeasWidget(
+            self.research_idea_store,
+            self,
+            build_callback=self._build_research_idea_on_canvas,
+        )
+        self.research_ideas_dock = self._dock(
+            "Research Ideas",
+            self.research_ideas,
+            Qt.BottomDockWidgetArea,
+        )
+        self.research_ideas_dock.setVisible(False)
+
+    def _build_research_idea_on_canvas(self, idea) -> None:
+        idea_context = "\n".join(
+            [
+                idea.title,
+                idea.notes,
+                *idea.hypotheses,
+                idea.proposed_experiment,
+            ]
+        )
+        proposals = propose_experiment_strategies(
+            self.registry,
+            idea.associated_modules,
+            title=idea.title,
+            description=idea.proposed_experiment,
+            idea_context=idea_context,
+            max_modules=8,
+        )
+        if all(proposal.is_empty for proposal in proposals.values()):
+            skipped = sorted(
+                {
+                    module_id
+                    for proposal in proposals.values()
+                    for module_id in proposal.skipped_modules
+                }
+            )
+            self.console.append(
+                "Research Idea graph proposals are empty. "
+                "Associated modules may be missing or unknown; "
+                f"skipped={', '.join(skipped) or 'none'}."
+            )
+            return
+
+        dialog = ExperimentProposalDialog(
+            proposals,
+            self,
+            initial_strategy="balanced",
+            registry=self.registry,
+            gpu_enabled=self.settings.gpu_enabled,
+        )
+        if dialog.exec() != QDialog.Accepted:
+            self.console.append(
+                f"Cancelled canvas build for Research Idea: {idea.title}"
+            )
+            return
+
+        proposal = dialog.selected_proposal
+        try:
+            self._apply_experiment_proposal(proposal, idea_title=idea.title)
+        except Exception as exc:
+            self.console.append(
+                f"Research Idea canvas build failed safely: {type(exc).__name__}: {exc}"
+            )
+            return
+        self.console.append(
+            f"Built {proposal.strategy.title()} strategy. "
+            f"Research Idea status remains '{idea.status}'. "
+            "Building a graph does not auto-promote research maturity."
+        )
+
+    def _apply_experiment_proposal(self, proposal, *, idea_title: str) -> None:
+        self._sync_positions()
+        prebuild = ExperimentHistory.snapshot(self.experiment)
+        previous_result = self.last_result
+        previous_verification_text = self.verification.toPlainText()
+
+        existing_rect = self.scene.itemsBoundingRect()
+        origin = (
+            40.0 if existing_rect.isNull() else existing_rect.right() + 100.0,
+            40.0 if existing_rect.isNull() else existing_rect.top(),
+        )
+        updated, _mapping = materialize_experiment_proposal(
+            self.experiment,
+            proposal,
+            origin=origin,
+        )
+
+        try:
+            self._restore_experiment(
+                updated,
+                log_message=(
+                    f"Built Research Idea on canvas: {idea_title} "
+                    f"({len(proposal.nodes)} node(s), {len(proposal.edges)} compatible edge(s), "
+                    f"{len(proposal.unresolved_required_inputs)} unresolved required input(s))."
+                ),
+            )
+        except Exception:
+            # Failure is atomic from the user's graph/history perspective:
+            # restore the pre-build graph and attached run display without
+            # creating an undo or redo entry for the failed proposal.
+            self._restore_experiment(prebuild)
+            self.last_result = previous_result
+            self.verification.setPlainText(previous_verification_text)
+            self._sync_history_actions()
+            raise
+
+        # Only a successfully installed proposal becomes one undoable edit.
+        self.history.record(prebuild)
+        self._sync_history_actions()
+        self._autosave_tick()
+        self.canvas.fit_all()
+
+    def _show_research_ideas(self) -> None:
+        self.research_ideas.refresh()
+        self.research_ideas_dock.setVisible(True)
+        self.research_ideas_dock.raise_()
+
+    def _research_idea_kept(self, idea, created: bool) -> None:
+        self.research_ideas.select_idea(idea.idea_id)
+        self.research_ideas_dock.setVisible(True)
+        self.console.append(
+            (
+                "Created Research Idea from Grow Keep: "
+                if created
+                else "Opened existing Research Idea for kept Grow candidate: "
+            )
+            + idea.title
+        )
+
     def _make_assistant(self):
-        self.assistant = LocalAIAssistantWidget(self.settings, self._configure_ai, self)
+        self.assistant = LocalAIAssistantWidget(
+            self.settings,
+            self._configure_ai,
+            parent=self,
+            context_provider=self._assistant_context,
+            activity_callback=self._assistant_animation,
+            research_idea_store=self.research_idea_store,
+            research_idea_callback=self._research_idea_kept,
+            module_context_provider=self._current_module_ids,
+            research_preferences=self.ai_research_preferences,
+        )
         self.assistant_dock = self._dock("Local AI Assistant", self.assistant, Qt.RightDockWidgetArea)
 
     def _configure_ai(self):
-        dialog = LocalAISettingsDialog(self.settings, self)
+        dialog = LocalAISettingsDialog(
+            self.settings,
+            self,
+            research_preferences=self.ai_research_preferences,
+        )
         dialog.exec()
         self._sync_controls()
 
@@ -324,6 +613,7 @@ class MainWindow(QMainWindow):
             "Important: capabilities are not run evidence. See Run Verification after execution."
         )
         self._show_node_verification(item.node_id)
+        self._show_animation_for_node(item.node_id)
 
     def _show_node_verification(self, node_id):
         if not self.last_result or node_id not in self.last_result.verification:
@@ -424,8 +714,14 @@ class MainWindow(QMainWindow):
                     f"  {certificate.node_id}: device={certificate.actual_device}/{certificate.backend}, "
                     f"evidence={certificate.evidence or ('none',)}, output={output}"
                 )
+            animated = False
             if self.selected_node_id:
                 self._show_node_verification(self.selected_node_id)
+                animated = self._show_animation_for_node(self.selected_node_id)
+            if not animated:
+                for node in self.experiment.nodes:
+                    if self._show_animation_for_node(node.id):
+                        break
         except Exception as exc:
             self.console.append(f"Run failed: {type(exc).__name__}: {exc}")
 

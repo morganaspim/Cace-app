@@ -335,6 +335,29 @@ class CurvedShearCell2D(Module):
             "inverse_max_residual": residual,
         }
 
+    def animation_payload(self, params, outputs):
+        samples = int(params["samples_per_edge"])
+        t = np.linspace(0.0, 1.0, samples)
+        boundary_unit = np.concatenate(
+            [
+                np.column_stack((t, np.zeros_like(t))),
+                np.column_stack((np.ones_like(t), t)),
+                np.column_stack((t[::-1], np.ones_like(t))),
+                np.column_stack((np.zeros_like(t), t[::-1])),
+            ],
+            axis=0,
+        )
+        boundary = np.asarray(outputs["boundary"], dtype=float)
+        return {
+            "kind": "transform2d",
+            "title": "Curved Shear Cell 2D",
+            "source": boundary_unit,
+            "target": boundary,
+            "closed": True,
+            "duration_ms": 1100,
+            "evidence_role": "presentation only; verification uses the original module outputs",
+        }
+
     def verify(self, inputs, params, outputs, ctx):
         residual = float(outputs["inverse_max_residual"])
         finite = bool(np.all(np.isfinite(np.asarray(outputs["boundary"], dtype=float))))

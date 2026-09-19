@@ -47,6 +47,38 @@ def test_openai_compatible_model_discovery_and_chat(monkeypatch) -> None:
     assert provider.chat([{"role": "user", "content": "question"}]) == "local reply"
 
 
+
+
+def test_ollama_embeddings(monkeypatch) -> None:
+    def fake_request(url, *, method="GET", payload=None, timeout=5.0):
+        if url.endswith("/api/embed"):
+            assert method == "POST"
+            assert payload == {"model": "embed-model", "input": ["a", "b"]}
+            return {"embeddings": [[1.0, 0.0], [0.0, 1.0]]}
+        raise AssertionError(url)
+
+    monkeypatch.setattr(local, "_request_json", fake_request)
+    provider = local.create_local_provider("ollama", model="embed-model")
+    assert provider.embeddings(["a", "b"]) == ((1.0, 0.0), (0.0, 1.0))
+
+
+def test_openai_compatible_embeddings(monkeypatch) -> None:
+    def fake_request(url, *, method="GET", payload=None, timeout=5.0):
+        if url.endswith("/embeddings"):
+            assert method == "POST"
+            return {
+                "data": [
+                    {"index": 1, "embedding": [0.0, 1.0]},
+                    {"index": 0, "embedding": [1.0, 0.0]},
+                ]
+            }
+        raise AssertionError(url)
+
+    monkeypatch.setattr(local, "_request_json", fake_request)
+    provider = local.create_local_provider("lm-studio", model="embed-model")
+    assert provider.embeddings(["a", "b"]) == ((1.0, 0.0), (0.0, 1.0))
+
+
 def test_local_provider_failures_are_explicit(monkeypatch) -> None:
     with pytest.raises(LocalAIError, match="unknown local AI provider"):
         local.create_local_provider("not-a-provider")
@@ -106,3 +138,12 @@ def test_studio_settings_ignore_unknown_fields_and_invalid_mode(tmp_path) -> Non
     settings = StudioSettings.load(path)
     assert settings.assistant_mode == "researcher"
     assert not hasattr(settings, "future_field")
+
+
+
+def test_public_ai_package_exports_research_preferences() -> None:
+    from cace_studio.ai import AI_RESEARCH_MODES, AIResearchPreferences
+
+    preferences = AIResearchPreferences()
+    assert "general" in AI_RESEARCH_MODES
+    assert preferences.effective_mode("researcher") == "researcher"
