@@ -548,7 +548,7 @@ This creates engineering evidence only. A standalone pass does not imply root co
 axiom audit, or exact-head qualification.
 
 
-## F-028 — positive-Laplacian multiplier scalar/API drift
+## F-029 — positive-Laplacian multiplier scalar/API drift
 
 **Fingerprint:** the standalone positive-Laplacian dependency reached Lean and exposed several
 independent failures at once: theorem composition parsed as the nonexistent constant
