@@ -177,6 +177,37 @@ The GUI should expose:
 
 Novel tiled/fractal coordinate systems are encouraged as research features, but each renderer should define its mapping to/from canonical coordinates, ambiguity/non-invertibility behavior, numerical stability, and performance limits. Visual novelty alone must never be described as new mathematics or as proof.
 
+### 5.5 Interactive 3D visualization mode
+
+The GUI should provide an obvious **2D / 3D** view control for compatible scientific and coordinate visualizations.
+
+3D mode is a presentation layer unless a semantic 3D transform module is explicitly inserted into the experiment graph.
+
+Required interaction:
+
+- click/touch and drag to orbit the view left/right and up/down;
+- mouse wheel / pinch to zoom;
+- pan control;
+- reset/home camera button;
+- fit-to-object / fit-to-data;
+- optional axis-lock and top/front/side/isometric presets;
+- visible orientation axes or orientation gizmo;
+- keyboard/button alternatives for rotate left/right/up/down so 3D inspection does not require dragging;
+- touch-friendly interaction on supported devices;
+- preserve the selected coordinate/tile visualization while entering or leaving 3D when a compatible 3D embedding exists.
+
+The renderer should preserve a canonical camera/view-state object separate from scientific state. Camera rotation, zoom, pan, perspective/orthographic choice, lighting, and view presets must not change theorem hypotheses, numerical inputs, certificates, verification state, or the semantic experiment fingerprint.
+
+Coordinate and tiling views may optionally define a 3D embedding or extrusion, for example:
+
+- Cartesian XY grid -> XYZ grid or extruded surface;
+- triangular/hexagonal tilings -> planar 3D sheet, height field, or layered lattice;
+- hierarchical/fractal tilings -> nested or stacked 3D visualization;
+- proof/evidence dependency graphs -> optional spatial graph view;
+- meshes, fields, surfaces, vector fields, and PDE data -> native 3D scientific rendering where appropriate.
+
+A 3D embedding used only for display must be clearly labeled **VISUALIZATION ONLY**. If geometry is altered for computation, the alteration must be represented as an explicit typed semantic operation and dependent evidence must be recomputed.
+
 ## 6. Shared semantics across desktop, web, CLI, and agents
 
 Desktop Studio, web UI, headless CLI, tests, and external agents must consume the **same core graph/module/evidence contracts**. No UI is allowed to invent a parallel scientific truth model.
@@ -482,6 +513,7 @@ A build should not be called a complete working CACE webapp until a user can, fr
 - see progress and cancellation state;
 - inspect real results and visualizations;
 - switch among supported coordinate/tile views without changing the underlying experiment evidence;
+- toggle compatible visualizations between 2D and interactive 3D and rotate/orbit them by drag or accessible controls;
 - inspect PASS/FAIL/NOT_RUN/stale evidence;
 - see assumptions/nonclaims;
 - inspect proof/certificate provenance when present;
