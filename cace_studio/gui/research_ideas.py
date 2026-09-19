@@ -86,11 +86,14 @@ class ResearchIdeasWidget(QWidget):
 
         self.save_button = QPushButton("Save Idea")
         self.save_button.clicked.connect(self.save_current)
+        self.advance_button = QPushButton("Advance Status →")
+        self.advance_button.clicked.connect(self.advance_current)
         self.delete_button = QPushButton("Delete Idea")
         self.delete_button.clicked.connect(self.delete_current)
 
         actions = QHBoxLayout()
         actions.addWidget(self.save_button)
+        actions.addWidget(self.advance_button)
         actions.addWidget(self.delete_button)
         actions.addStretch()
 
@@ -195,6 +198,7 @@ class ResearchIdeasWidget(QWidget):
             else:
                 self.source.setText("Manual idea.")
             self.save_button.setEnabled(True)
+            self.advance_button.setEnabled(idea.status != "Proof Candidate")
             self.delete_button.setEnabled(True)
         finally:
             self._loading = False
@@ -208,6 +212,7 @@ class ResearchIdeasWidget(QWidget):
         self.modules.clear()
         self.source.setText("No idea selected.")
         self.save_button.setEnabled(False)
+        self.advance_button.setEnabled(False)
         self.delete_button.setEnabled(False)
 
     def new_idea(self) -> None:
@@ -231,6 +236,16 @@ class ResearchIdeasWidget(QWidget):
             )
         except (KeyError, ValueError) as exc:
             QMessageBox.warning(self, "Could not save research idea", str(exc))
+            return
+        self.refresh(select_id=idea.idea_id)
+
+    def advance_current(self) -> None:
+        if not self.current_idea_id:
+            return
+        try:
+            idea = self.store.advance_status(self.current_idea_id)
+        except KeyError as exc:
+            QMessageBox.warning(self, "Could not advance research idea", str(exc))
             return
         self.refresh(select_id=idea.idea_id)
 
