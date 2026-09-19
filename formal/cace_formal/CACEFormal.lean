@@ -53,6 +53,7 @@ import CACEFormal.ReferenceSimplexFiber
 import CACEFormal.ReferenceSimplexFiberCalculus
 import CACEFormal.ReferenceSimplexFiberDecomposition
 import CACEFormal.ReferenceSimplexFiberMeasure
+import CACEFormal.ReferenceSimplexFiberDomain
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure
 import CACEFormal.GraphRegularizationCriterion
