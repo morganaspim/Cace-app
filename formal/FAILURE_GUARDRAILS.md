@@ -159,3 +159,23 @@ This incident was caught before a runner dispatch; it is nevertheless recorded b
 - proof-plan generation still fails separately if a root-closure source file is absent.
 
 **Regression guard:** `tests/test_cace_proof_guardrails.py::test_missing_recursive_internal_module_is_rejected_by_graph_check`.
+
+
+## F-011 — status chatter contaminated machine-readable guardrail output
+
+**Fingerprint:** the guardrail `validate` routine printed a human status line to stdout while the
+`impacted` and `plan-hash` commands redirected stdout into machine-readable files.  The impacted
+list gained a fake 53rd entry and the proof-plan JSON became non-JSON, causing parsing to fail before
+Lean/cache work.
+
+**Root cause:** human diagnostics and machine payloads shared stdout.
+
+**Permanent prevention:**
+- `validate(config, emit=False)` is used by machine-output subcommands;
+- `impacted` stdout is reserved exclusively for `CACEFormal.*` module names;
+- `plan-hash` stdout is reserved exclusively for one JSON document;
+- exact-pin workflow rejects non-module or duplicate impacted-list records before compilation;
+- unit tests require silent validation and JSON-serializable proof-plan payloads.
+
+**Regression guard:** `tests/test_cace_proof_guardrails.py`,
+`scripts/check_cace_workflow_guardrails.py`, and impacted-list validation in the exact-pin workflow.
