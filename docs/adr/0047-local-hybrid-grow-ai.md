@@ -329,3 +329,55 @@ skipped modules update to match the selected strategy.
 Only the strategy selected when **Approve & Build** is pressed is materialized.
 Cancel leaves the experiment unchanged. Approval remains one undoable,
 autosaved edit and does not auto-advance Research Idea status.
+
+
+## Compare proposal strategy results
+
+The multi-strategy proposal preview can run a non-destructive **Compare Ready
+Strategies** evaluation before the user builds anything on the canvas.
+
+Comparison semantics:
+
+- Minimal, Balanced, and Exploratory are materialized into separate temporary
+  `Experiment` objects;
+- the user's current canvas experiment is never used as the comparison target
+  and is not mutated;
+- every runnable temporary experiment receives the same explicit seed;
+- the current GPU policy is reused consistently across strategies;
+- proposal-local ids (`p1`, `p2`, …) are translated only inside each
+  temporary experiment;
+- unresolved required inputs make a strategy **not runnable** unless explicit
+  comparison inputs provide every missing required port;
+- no missing input value, type conversion, or unit conversion is guessed.
+
+The results dialog reports each strategy independently:
+
+- runnable / not runnable;
+- completed / interrupted;
+- node and edge counts;
+- unresolved required input count;
+- one local wall-clock runtime sample;
+- verifier PASS / FAIL / NOT-RUN counts;
+- the existing `all_verifiers_passed` property without reinterpretation;
+- compact per-node output summaries and SHA-256 output fingerprints;
+- temporary experiment semantic/full SHA-256 fingerprints;
+- modules unique relative to the common strategy core; and
+- a descriptive structural novelty fraction.
+
+Runtime is explicitly labeled as one local wall-clock sample, not a benchmark
+verdict. Structural novelty is descriptive, not evidence that a strategy is
+scientifically better.
+
+The comparison object intentionally has no `winner`, `best_strategy`, or
+automatic recommendation field. The user can select a row only to return that
+strategy to the proposal preview for further inspection. **Approve & Build**
+remains a separate explicit action.
+
+Comparison work runs on a GUI worker thread. Failure returns an error message
+to the preview and leaves the canvas unchanged.
+
+The current UI compares execution-ready proposals using their graph-generated
+inputs and one shared seed. The comparison engine also supports explicit
+per-strategy inputs keyed by proposal-local node ids for future workflows; such
+inputs can make an otherwise partial proposal runnable only when every missing
+required port is supplied.
