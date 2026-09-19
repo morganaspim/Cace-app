@@ -4,6 +4,7 @@ try:
     from PySide6.QtCore import QPointF, QTimer, Qt
     from PySide6.QtGui import QAction, QKeySequence
     from PySide6.QtWidgets import (
+        QCheckBox,
         QDockWidget,
         QFileDialog,
         QFormLayout,
@@ -156,6 +157,19 @@ class MainWindow(QMainWindow):
         self.ai_button.clicked.connect(self._toggle_ai)
         self.ai_configure_button = QPushButton("Configure Local AI")
         self.ai_configure_button.clicked.connect(self._configure_ai)
+        self.high_capability_checkbox = QCheckBox(
+            "Allow superintelligence-class AI (experimental)"
+        )
+        self.high_capability_checkbox.setToolTip(
+            "Default OFF. This gates declared provider capability tiers; it does not "
+            "prove whether a model is or is not superintelligent. Network, shell, "
+            "self-modification, evidence authority, and compute limits remain separate."
+        )
+        self.high_capability_checkbox.toggled.connect(self._toggle_high_capability_ai)
+        self.observer_status = QLabel()
+        self.observer_status.setWordWrap(True)
+        self.economy_status = QLabel("Heartbeat economy: initializing…")
+        self.economy_status.setWordWrap(True)
         self.gpu_status = QLabel()
         self.gpu_button = QPushButton()
         self.gpu_button.clicked.connect(self._toggle_gpu)
@@ -163,6 +177,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.ai_status)
         layout.addWidget(self.ai_button)
         layout.addWidget(self.ai_configure_button)
+        layout.addWidget(self.high_capability_checkbox)
+        layout.addWidget(self.observer_status)
+        layout.addWidget(self.economy_status)
         layout.addSpacing(12)
         layout.addWidget(self.gpu_status)
         layout.addWidget(self.gpu_button)
@@ -188,6 +205,17 @@ class MainWindow(QMainWindow):
             else "AI assistant disabled. Execution and verification remain available."
         )
 
+    def _toggle_high_capability_ai(self, checked: bool):
+        self.settings.allow_superintelligence_class_ai = bool(checked)
+        self.settings.save()
+        self._sync_controls()
+        self.console.append(
+            "Superintelligence-class provider admission ENABLED. "
+            "Other sandbox/network/self-modification/evidence/resource controls remain enforced."
+            if checked
+            else "Superintelligence-class provider admission BLOCKED."
+        )
+
     def _toggle_gpu(self):
         self.settings.gpu_enabled = not self.settings.gpu_enabled
         self.settings.save()
@@ -197,6 +225,16 @@ class MainWindow(QMainWindow):
     def _sync_controls(self):
         self.ai_status.setText("AI: ENABLED" if self.settings.ai_enabled else "AI: DISABLED")
         self.ai_button.setText("Turn AI Off" if self.settings.ai_enabled else "Turn AI On")
+        self.high_capability_checkbox.blockSignals(True)
+        self.high_capability_checkbox.setChecked(
+            bool(self.settings.allow_superintelligence_class_ai)
+        )
+        self.high_capability_checkbox.blockSignals(False)
+        self.observer_status.setText(
+            f"Deep-layer observer replicas: {self.settings.latent_observer_replicas}. "
+            "Available only for instrumented local engines that expose activations; "
+            "ordinary text-only local HTTP providers report observer unavailable."
+        )
         available = DeviceManager.gpu_available()
         self.gpu_status.setText(
             f"GPU policy: {'ON' if self.settings.gpu_enabled else 'OFF'} | "

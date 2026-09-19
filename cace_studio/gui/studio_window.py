@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QThreadPool, Qt
+from hashlib import sha256
+import json
+from uuid import uuid4
+
+from PySide6.QtCore import QPointF, QThreadPool, QTimer, Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QFormLayout, QInputDialog
 
@@ -12,6 +16,10 @@ from cace_studio.core.graph_edit import (
     copy_graph_fragment,
     paste_graph_fragment,
 )
+from cace_studio.ai.heartbeat_context import build_heartbeat_context_packet
+from cace_studio.core.compute_economy import ComputeCreditEconomy, sample_host_headroom
+from cace_studio.core.graph import Node
+from cace_studio.core.heartbeat import AIHeartbeatUpdate, CanvasHeartbeatEngine
 from cace_studio.core.graph_groups import (
     create_group,
     group_node_ids,
@@ -24,6 +32,7 @@ from .group_overlay import GroupOverlayManager
 from .main_window import MainWindow
 from .minimap import MiniMapView
 from .proof_explorer import ProofExplorerWidget
+from .open_problems import OpenProblemsWidget
 
 
 class StudioMainWindow(MainWindow):
@@ -68,7 +77,130 @@ class StudioMainWindow(MainWindow):
             Qt.RightDockWidgetArea,
         )
         self.proof_explorer.show_all_claims()
+        self._install_research_controls()
         self._sync_execution_actions()
+
+    def _install_research_controls(self) -> None:
+        self._canvas_heartbeat = CanvasHeartbeatEngine()
+        self._compute_economy = ComputeCreditEconomy()
+        self.open_problems = OpenProblemsWidget(
+            self._import_open_problem,
+            self._play_open_problem,
+            self,
+        )
+        self.open_problems_dock = self._dock(
+            "Open Problems",
+            self.open_problems,
+            Qt.LeftDockWidgetArea,
+        )
+        self._economy_timer = QTimer(self)
+        self._economy_timer.setInterval(2_000)
+        self._economy_timer.timeout.connect(self._economy_tick)
+        self._economy_timer.start()
+        self._economy_tick()
+
+    def _semantic_hashes(self) -> dict[str, str]:
+        hashes = {}
+        for node in self.experiment.nodes:
+            payload = json.dumps(
+                {"module_id": node.module_id, "params": node.params},
+                sort_keys=True,
+                separators=(",", ":"),
+                default=repr,
+            )
+            hashes[node.id] = sha256(payload.encode("utf-8")).hexdigest()
+        return hashes
+
+    def _economy_tick(self) -> None:
+        tick = self._compute_economy.tick(
+            (node.id for node in self.experiment.nodes),
+            sample_host_headroom(),
+        )
+        self.canvas.apply_compute_wallets(tick.wallet_credits)
+        self.economy_status.setText(
+            f"Heartbeat economy: treasury={tick.treasury:.2f} internal credits; "
+            f"last mint={tick.minted:.2f}. Credits are non-monetary and non-evidentiary."
+        )
+
+    def _import_open_problem(self, problem) -> str:
+        for node in self.experiment.nodes:
+            if (
+                node.module_id == "research.open_problem"
+                and node.params.get("problem_id") == problem.problem_id
+            ):
+                return node.id
+        self._record_history()
+        node_id = f"problem_{uuid4().hex[:8]}"
+        position = (60.0 + 30.0 * (len(self.experiment.nodes) % 8), 60.0)
+        item = self.canvas.add_module(
+            "research.open_problem",
+            QPointF(*position),
+            notify=False,
+            node_id=node_id,
+        )
+        self.experiment.nodes.append(
+            Node(
+                id=node_id,
+                module_id="research.open_problem",
+                params=problem.to_module_params(),
+                position=position,
+            )
+        )
+        self._invalidate_run_evidence("open problem imported")
+        self._autosave_tick()
+        self.minimap.schedule_refresh()
+        self.scene.clearSelection()
+        item.setSelected(True)
+        self._selected(item)
+        return node_id
+
+    def _play_open_problem(self, problem) -> bool:
+        node_id = self._import_open_problem(problem)
+        previous = self._canvas_heartbeat.frame
+        verification = (
+            dict(self.last_result.verification)
+            if self.last_result is not None
+            else {}
+        )
+        frame = self._canvas_heartbeat.advance(
+            self.experiment,
+            semantic_hashes=self._semantic_hashes(),
+            verification=verification,
+            inputs_ready_nodes=tuple(node.id for node in self.experiment.nodes),
+            ai_updates=(
+                AIHeartbeatUpdate(
+                    node_id,
+                    0.8,
+                    f"user requested Play for {problem.problem_id}",
+                ),
+            ),
+        )
+        self.canvas.apply_heartbeat_frame(frame)
+        packet = build_heartbeat_context_packet(
+            self.experiment,
+            frame,
+            previous,
+            max_nodes=64,
+        )
+        wallet = self._compute_economy.wallets.get(node_id)
+        credits = wallet.credits if wallet is not None else 0.0
+        context = "\n\n".join(
+            (
+                problem.ai_context(),
+                packet.to_prompt_text(),
+                (
+                    f"Internal research compute credits for this node: {credits:.2f}. "
+                    "User-triggered Play is allowed independently; autonomous follow-up "
+                    "experiments should bid against the spare-compute economy."
+                ),
+            )
+        )
+        accepted = self.assistant.ask_context(context, label="open-problem-play")
+        self.console.append(
+            f"Open Problem Play: {problem.title}; heartbeat attention raised on {node_id}. "
+            "This is research navigation only and cannot mark the problem solved."
+        )
+        return accepted
 
     def _menu_named(self, title: str):
         target = title.replace("&", "")

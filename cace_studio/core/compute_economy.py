@@ -32,12 +32,12 @@ def sample_host_headroom() -> ResourceHeadroom:
     try:
         load1 = float(os.getloadavg()[0])
     except (AttributeError, OSError):
-        return ResourceHeadroom(0.0, 0.0, 1.0, "CPU load unavailable; no research credits minted")
+        return ResourceHeadroom(0.0, 0.0, 0.0, "CPU load unavailable; no research credits minted")
     cpu_idle = max(0.0, min(1.0, 1.0 - load1 / cpu_count))
     return ResourceHeadroom(
         cpu_idle_fraction=cpu_idle,
         gpu_idle_fraction=0.0,
-        memory_free_fraction=1.0,
+        memory_free_fraction=0.0,
         measurement_note="1-minute host load estimate; GPU headroom unmeasured",
     )
 

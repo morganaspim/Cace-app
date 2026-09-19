@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QListWidget,
 )
 
+from cace_studio.core.heartbeat import HeartbeatFrame
 from cace_studio.core.types import port_connection_error
 
 MIME_MODULE = "application/x-cace-module"
@@ -77,7 +78,8 @@ class NodeItem(QGraphicsRectItem):
     W = 180
 
     def __init__(self, node_id, module, on_selected=None, on_moved=None):
-        height = max(82, 44 + 20 * max(len(module.inputs), len(module.outputs), 1))
+        port_rows = max(len(module.inputs), len(module.outputs), 1)
+        height = max(118, 78 + 20 * port_rows)
         super().__init__(0, 0, self.W, height)
         self.node_id = node_id
         self.module = module
@@ -111,6 +113,26 @@ class NodeItem(QGraphicsRectItem):
             text = port_spec.name + (f" [{port_spec.unit}]" if port_spec.unit else "")
             label = QGraphicsSimpleTextItem(text, self)
             label.setPos(self.W - 10 - label.boundingRect().width(), y - 8)
+        self.heartbeat_label = QGraphicsSimpleTextItem("HB: dormant", self)
+        self.heartbeat_label.setPos(10, height - 38)
+        self.economy_label = QGraphicsSimpleTextItem("Compute credits: 0.00", self)
+        self.economy_label.setPos(10, height - 20)
+
+    def set_heartbeat_state(self, state, *, research_interest: float = 0.0) -> None:
+        state_text = getattr(state, "value", str(state))
+        suffix = (
+            f" · AI {float(research_interest):.2f}"
+            if float(research_interest) > 0.0
+            else ""
+        )
+        self.heartbeat_label.setText(f"HB: {state_text}{suffix}")
+        self.setToolTip(
+            "Canvas heartbeat and compute credits are orchestration metadata only; "
+            "they cannot create verification evidence."
+        )
+
+    def set_compute_credits(self, credits: float) -> None:
+        self.economy_label.setText(f"Compute credits: {max(0.0, float(credits)):.2f}")
 
     def mousePressEvent(self, event):
         self._drag_start_pos = QPointF(self.pos())
@@ -244,6 +266,26 @@ class CanvasView(QGraphicsView):
         source = self.pending_output
         self.pending_output = None
         self.connect_ports(source, port)
+
+    def apply_heartbeat_frame(self, frame: HeartbeatFrame) -> None:
+        by_id = frame.by_id()
+        for item in self.scene().items():
+            if not isinstance(item, NodeItem):
+                continue
+            heartbeat = by_id.get(item.node_id)
+            if heartbeat is None:
+                item.set_heartbeat_state("dormant")
+            else:
+                item.set_heartbeat_state(
+                    heartbeat.state,
+                    research_interest=heartbeat.research_interest,
+                )
+
+    def apply_compute_wallets(self, wallet_credits) -> None:
+        credits = dict(wallet_credits or {})
+        for item in self.scene().items():
+            if isinstance(item, NodeItem):
+                item.set_compute_credits(float(credits.get(item.node_id, 0.0)))
 
     def clear_graph(self) -> None:
         self.pending_output = None
