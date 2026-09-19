@@ -56,8 +56,6 @@ import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.H1DomainBridge
 import CACEFormal.DistributionalGraphRepresentatives
 import CACEFormal.H1BesselRieszReduction
-import CACEFormal.PositiveLaplacianAnnihilator
-import CACEFormal.HDivGraphAnnihilator
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
