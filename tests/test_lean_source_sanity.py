@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
 
 from scripts.check_lean_source_sanity import scan_text
+
+
+ROOT = Path(__file__).parents[1]
+SCRIPT = ROOT / "scripts" / "check_lean_source_sanity.py"
 
 
 def _kinds(text: str) -> set[str]:
@@ -67,3 +73,64 @@ theorem ok2 (p : Nat × Nat) : True := by
   trivial
 """
     assert scan_text(Path("Fixture.lean"), text) == []
+
+
+def test_cli_self_test_passes() -> None:
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--self-test"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert '"status": "PASS"' in proc.stdout
+
+
+def test_cli_require_sentinel_accepts_file_inside_scan(tmp_path: Path) -> None:
+    root = tmp_path / "formal"
+    root.mkdir()
+    sentinel = root / "Sentinel.lean"
+    sentinel.write_text("theorem ok : True := by trivial\n", encoding="utf-8")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--require-sentinel",
+            str(sentinel),
+            str(root),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_cli_require_sentinel_rejects_file_outside_scan(tmp_path: Path) -> None:
+    scanned = tmp_path / "scanned"
+    outside = tmp_path / "outside"
+    scanned.mkdir()
+    outside.mkdir()
+    (scanned / "Inside.lean").write_text(
+        "theorem inside : True := by trivial\n",
+        encoding="utf-8",
+    )
+    sentinel = outside / "Sentinel.lean"
+    sentinel.write_text("theorem outside : True := by trivial\n", encoding="utf-8")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--require-sentinel",
+            str(sentinel),
+            str(scanned),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "missing-required-sentinel" in proc.stdout

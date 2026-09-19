@@ -40,3 +40,24 @@ def test_other_cace_run_still_blocks_when_current_excluded():
     runs = [run(4, "CACE validation", "in_progress"), run(5, "CACE formal", "queued")]
     found = mod.blockers(runs, current_run_id=4)
     assert [item["id"] for item in found] == [5]
+
+
+def test_explicitly_ignored_cheap_workflow_does_not_block():
+    runs = [
+        run(6, "CACE Lean Source Sanity", "in_progress"),
+        run(7, "CACE canonical qualification", "queued"),
+    ]
+    found = mod.blockers(
+        runs,
+        ignored_workflow_names={"CACE Lean Source Sanity"},
+    )
+    assert [item["id"] for item in found] == [7]
+
+
+def test_ignore_name_is_exact_and_does_not_broaden_cace_lane():
+    runs = [run(8, "CACE Lean Source Sanity extended", "queued")]
+    found = mod.blockers(
+        runs,
+        ignored_workflow_names={"CACE Lean Source Sanity"},
+    )
+    assert [item["id"] for item in found] == [8]
