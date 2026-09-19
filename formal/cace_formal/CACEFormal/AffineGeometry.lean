@@ -215,13 +215,13 @@ theorem mapPoint_scaleXY (sx sy : ℝ) (p : Point2) :
 theorem mapPoint_shearX (k : ℝ) (p : Point2) :
     (shearX k).mapPoint p = Point2.shearX k p := by
   rcases p with ⟨x, y⟩
-  simp [shearX, mapPoint, Point2.shearX]
+  simp [shearX, mapPoint, Point2.shearX, add_comm]
 
 /-- The affine y-shear constructor is exactly the existing primitive. -/
 theorem mapPoint_shearY (k : ℝ) (p : Point2) :
     (shearY k).mapPoint p = Point2.shearY k p := by
   rcases p with ⟨x, y⟩
-  simp [shearY, mapPoint, Point2.shearY]
+  simp [shearY, mapPoint, Point2.shearY, add_comm]
 
 /-- The affine quarter-turn constructor is exactly the existing primitive. -/
 theorem mapPoint_rotateQuarter (p : Point2) :
