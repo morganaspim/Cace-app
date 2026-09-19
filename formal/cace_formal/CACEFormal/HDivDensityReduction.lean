@@ -5,6 +5,7 @@ import Mathlib.Analysis.InnerProductSpace.ProdL2
 namespace CACEFormal
 
 open Set
+open scoped InnerProductSpace
 
 namespace Continuum
 
@@ -48,7 +49,6 @@ noncomputable def hdivGraphHilbertEquiv (n : Nat) :
       (ContinuousLinearEquiv.refl ℂ (ComplexL2 n)))
 
 
-@[simp]
 theorem hdivGraphHilbertEquiv_apply (n : Nat)
     (x : HDivComplexGraphHilbert n) :
     hdivGraphHilbertEquiv n x =
