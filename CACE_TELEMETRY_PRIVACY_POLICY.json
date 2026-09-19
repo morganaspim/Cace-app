@@ -1,0 +1,116 @@
+{
+  "schema": "cace.telemetry-privacy.v1",
+  "role": "privacy-preserving product improvement, sales analytics and proof/heartbeat telemetry policy",
+  "invariant": "Telemetry never changes scientific truth, proof qualification, account entitlements, wallet balances, or research results.",
+  "lanes": [
+    {
+      "id": "essential_operations",
+      "default": "on",
+      "required_for_hosted_service": true,
+      "purpose": "reliability, security, abuse prevention, capacity planning and service health",
+      "allowed": [
+        "release/version identity",
+        "service health and uptime",
+        "request/job latency buckets",
+        "error/crash codes and bounded stack fingerprints",
+        "resource utilization buckets",
+        "queue depth and retry counts",
+        "proof qualification outcome/status metadata without theorem/proof content",
+        "security/audit events required to protect the service"
+      ],
+      "forbidden": [
+        "scientific input payloads",
+        "experiment equations/content",
+        "proof source/theorem text",
+        "AI prompts/responses",
+        "protein coordinates/sequences",
+        "wallet private material",
+        "customer files"
+      ]
+    },
+    {
+      "id": "product_analytics",
+      "default": "off_until_clear_consent_or_approved_legal_basis",
+      "purpose": "improve product, understand feature adoption and inform internal sales/customer-success strategy",
+      "allowed": [
+        "feature/category usage counters",
+        "module-category usage counters",
+        "experiment graph size buckets",
+        "session/activity duration buckets",
+        "heartbeat activity aggregates",
+        "compute class and latency buckets",
+        "trial-to-paid conversion events",
+        "country/region-level aggregate only when lawfully collected",
+        "anonymous/pseudonymous cohort statistics"
+      ],
+      "forbidden": [
+        "raw experiment content",
+        "proof text",
+        "AI prompt text",
+        "precise geolocation",
+        "raw local filenames/paths",
+        "private customer identifiers in analyst dashboards"
+      ],
+      "user_controls": [
+        "clear signup/privacy notice",
+        "separate analytics preference when required",
+        "withdraw/opt-out mechanism",
+        "honor legally required privacy signals such as GPC where applicable"
+      ]
+    },
+    {
+      "id": "proof_research_contribution",
+      "default": "off",
+      "purpose": "voluntary contribution of reusable proof/research artifacts to improve CACE",
+      "requires": "separate explicit project/account opt-in plus contribution terms/IP permission",
+      "allowed_when_opted_in": [
+        "selected formal statements/proof artifacts",
+        "selected anonymized proof failure traces",
+        "selected benchmark inputs/outputs",
+        "user-approved research examples"
+      ],
+      "protections": [
+        "preview before upload where practical",
+        "project-level disable",
+        "license/IP declaration",
+        "redaction/sensitive-data scan",
+        "content-addressed contribution receipt",
+        "ability to stop future contribution"
+      ]
+    }
+  ],
+  "heartbeat_reporting": {
+    "all_hosted_instances_send_essential_heartbeat": true,
+    "essential_payload": [
+      "instance online/offline",
+      "release/version",
+      "health status",
+      "resource bucket",
+      "job/queue activity counts",
+      "proof-status counters only",
+      "feature heartbeat counts only"
+    ],
+    "never_in_essential_heartbeat": [
+      "scientific payload",
+      "proof/theorem text",
+      "AI prompt/response",
+      "protein content",
+      "wallet keys",
+      "precise location"
+    ]
+  },
+  "sales_use": {
+    "allowed": "aggregate/pseudonymous product-usage trends may inform internal sales, customer success, capacity and feature prioritization under the applicable privacy basis",
+    "prohibited": "do not silently sell/share raw user scientific content or proof artifacts as advertising/marketing data",
+    "dashboards": "prefer aggregate cohorts and tenant-safe pseudonyms; restrict analyst access"
+  },
+  "privacy_engineering": {
+    "data_minimization": true,
+    "purpose_limitation": true,
+    "retention": "documented per telemetry lane; shortest practical period",
+    "access_control": "least privilege",
+    "encryption_in_transit_and_at_rest": true,
+    "deletion_export": "support applicable user privacy rights for personal telemetry",
+    "regional_policy": "consent/notice/opt-out behavior configurable by jurisdiction"
+  }
+}

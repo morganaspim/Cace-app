@@ -535,3 +535,30 @@ Authorities:
 
 - `CACE_MULTI_TENANT_POLICY.json`
 - `docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`
+
+
+## Public signup + privacy-preserving feedback loop
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G065 — stable public signup/recovery service, requested CN/KP access block, and privacy-preserving improvement telemetry.
+
+Policies:
+
+- `CACE_PUBLIC_SERVICE_POLICY.json`
+- `CACE_TELEMETRY_PRIVACY_POLICY.json`
+- `docs/PUBLIC_SERVICE_AND_TELEMETRY.md`
+
+Hosted feedback lanes:
+
+1. essential operations — always-on minimal health/heartbeat/resource/job/error and proof-status-count metadata;
+2. product analytics — aggregate/pseudonymous usage under applicable privacy notice/consent/legal basis, used for product/customer-success/internal sales insights;
+3. proof/research contribution — actual proof/theorem/research artifacts off by default and explicit opt-in only.
+
+Executable allowlist:
+
+- `cace_studio/telemetry_contract.py`
+
+The public production domain remains deployment-defined until an owned domain is actually deployed; builders must not invent one.

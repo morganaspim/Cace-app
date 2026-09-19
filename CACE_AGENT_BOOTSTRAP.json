@@ -35,7 +35,10 @@
     "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
     "docs/help/README.md",
     "CACE_MULTI_TENANT_POLICY.json",
-    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md"
+    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
+    "CACE_PUBLIC_SERVICE_POLICY.json",
+    "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
@@ -55,7 +58,9 @@
     "deployment_boundary": "CACE_DEPLOYMENT_BOUNDARY.json",
     "trial_account_policy": "CACE_TRIAL_ACCOUNT_POLICY.json",
     "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json",
-    "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json"
+    "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json",
+    "public_service_access": "CACE_PUBLIC_SERVICE_POLICY.json",
+    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -389,5 +394,20 @@
     "local_agent_rule": "user-network agents connect outbound through authenticated pairing/broker transport",
     "fairness": "tenant quotas, separate interactive/batch queues, backpressure and starvation-resistant scheduling",
     "isolation": "cross-tenant access denied by default"
+  },
+  "public_service": {
+    "target": "one stable public HTTPS signup/recovery URL",
+    "tenant_result": "eligible signup restores/provisions one durable logical tenant instance",
+    "blocked_country_codes": [
+      "CN",
+      "KP"
+    ],
+    "location_note": "edge country signals are access-control signals, not perfect proof of physical location"
+  },
+  "telemetry": {
+    "essential": "allowlisted service health/heartbeat/resource/job/error/proof-status counts; no scientific/proof/AI/protein content",
+    "analytics": "privacy-controlled aggregate/pseudonymous product/sales usage",
+    "contribution": "actual proof/research artifacts explicit opt-in only",
+    "contract": "cace_studio/telemetry_contract.py"
   }
 }

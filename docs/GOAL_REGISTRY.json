@@ -966,6 +966,25 @@
         "Enterprise/higher-risk workloads may move to dedicated namespace/microVM/VM isolation without changing scientific semantics.",
         "Load balancing and worker replacement never alter evidence/proof semantics."
       ]
+    },
+    {
+      "id": "G065",
+      "category": "public_service_telemetry",
+      "priority": 65,
+      "intent_status": "required",
+      "title": "Public global signup with country policy and privacy-preserving improvement telemetry",
+      "summary": "Expose one stable public HTTPS CACE signup/recovery service for eligible users, provision each user's durable tenant instance, enforce the requested CN/KP country-access policy, and feed privacy-minimized heartbeat/product/proof-status telemetry back into reliability, product and sales improvement while actual proof/research artifacts remain explicit opt-in.",
+      "acceptance": [
+        "Production has one stable owned HTTPS URL for signup, recovery and browser access.",
+        "Eligible signup provisions or restores exactly one durable logical tenant instance under the multi-tenant policy.",
+        "Trusted edge/signup/session/local-agent registration enforce the configured CN and KP country block while documenting that GeoIP is not perfect location proof.",
+        "Country blocking does not replace sanctions, export-control, end-user or end-use screening.",
+        "All hosted instances emit essential health/heartbeat metadata using a strict allowlist that excludes raw scientific inputs, theorem/proof text, AI conversations, protein content, filenames, precise location and wallet secrets.",
+        "Essential proof feedback is status/count metadata only.",
+        "Product analytics used for improvement/internal sales is aggregate or pseudonymous and subject to applicable notice/consent/legal-basis/opt-out/retention controls.",
+        "Actual proof/theorem/research artifact contribution is off by default and requires separate explicit opt-in plus IP/contribution terms.",
+        "Telemetry can never promote scientific evidence or formal proof status."
+      ]
     }
   ]
 }

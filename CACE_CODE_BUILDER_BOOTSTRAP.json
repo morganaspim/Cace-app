@@ -22,7 +22,10 @@
     "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
     "docs/help/README.md",
     "CACE_MULTI_TENANT_POLICY.json",
-    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md"
+    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
+    "CACE_PUBLIC_SERVICE_POLICY.json",
+    "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
   ],
   "build_optimizer": {
     "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
@@ -54,7 +57,12 @@
     "support many concurrent users through tenant-aware stateless gateways, durable tenant instances, isolated execution sandboxes and fair load-balanced scheduling",
     "do not maintain a different source-code clone per user; all tenants run a reviewed immutable CACE release while their state remains tenant-scoped",
     "local CACE/AI instances on user networks connect outbound to the gateway/broker and do not require inbound firewall/router exposure",
-    "cross-tenant data/job/cache/wallet/protein/evidence access is denied by default and requires explicit collaboration/economy capability"
+    "cross-tenant data/job/cache/wallet/protein/evidence access is denied by default and requires explicit collaboration/economy capability",
+    "provide one stable public HTTPS signup/recovery URL that provisions/restores each eligible user's durable logical tenant instance",
+    "enforce the configured CN/KP country-access policy at the trusted edge plus signup/session/local-agent registration without treating GeoIP as perfect location proof",
+    "all hosted instances emit only allowlisted essential health/heartbeat/proof-status metadata; raw proof/scientific/AI/protein/customer content is forbidden from essential telemetry",
+    "product analytics for product/sales improvement obeys privacy notice/consent-or-legal-basis/minimization/opt-out requirements",
+    "actual proof/research artifact contribution is a separate explicit opt-in and never silently uploads customer intellectual property"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -155,5 +163,25 @@
     "scaling": "horizontal gateway/API replicas, tenant-aware durable queue, warm/ephemeral workers, fair resource scheduling, suspend/resume",
     "local_network": "outbound authenticated local-agent connection through directional pairing; no inbound customer network port required",
     "isolation": "tenant_id required at every request/job/storage/cache capability boundary; deny cross-tenant access by default"
+  },
+  "public_service": {
+    "source": "CACE_PUBLIC_SERVICE_POLICY.json",
+    "url": "deployment-defined owned HTTPS domain",
+    "signup": "public for eligible users; creates/restores durable tenant instance",
+    "blocked_country_codes": [
+      "CN",
+      "KP"
+    ],
+    "compliance": "country policy is separate from sanctions/export/end-user screening"
+  },
+  "telemetry": {
+    "source": "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "contract": "cace_studio/telemetry_contract.py",
+    "lanes": [
+      "essential_operations: hosted health/heartbeat/proof-status metadata only",
+      "product_analytics: privacy-controlled aggregate/pseudonymous usage for product and internal sales insight",
+      "proof_research_contribution: explicit opt-in only"
+    ],
+    "evidence_rule": "telemetry cannot create or modify proof/evidence truth"
   }
 }

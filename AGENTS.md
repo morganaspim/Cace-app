@@ -13,6 +13,8 @@ Read these in order before changing scientific or verification behavior:
 5. `CACE_TRIAL_ACCOUNT_POLICY.json` — one-person/one-trial and non-destructive expiry policy.
 6. `CACE_PUBLIC_HELP_POLICY.json` — customer-help completeness and proprietary-leakage boundary.
 7. `CACE_MULTI_TENANT_POLICY.json` — multi-user tenancy, isolation, persistence and load-balancing policy.
+8. `CACE_PUBLIC_SERVICE_POLICY.json` — global public signup/access and country policy.
+9. `CACE_TELEMETRY_PRIVACY_POLICY.json` — essential heartbeat, product analytics and proof-contribution privacy boundaries.
 3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
@@ -372,3 +374,46 @@ explicitly capability-authorized.
 
 Machine-readable authority: `CACE_MULTI_TENANT_POLICY.json`.
 Design: `docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`.
+
+
+## Public signup and improvement telemetry
+
+Production CACE should expose one stable HTTPS webapp URL where eligible users
+can sign up/recover an account and receive their own durable logical CACE
+instance. The actual production domain is deployment configuration; do not
+invent or hard-code an unowned domain.
+
+Requested country policy:
+
+- default allow;
+- deny CN;
+- deny KP.
+
+Enforce this at the trusted edge/gateway and again on signup/session/local-agent
+broker registration. Country geolocation is a policy/risk signal, not perfect
+proof of physical location, and it never replaces sanctions/export/end-user
+compliance.
+
+Machine authority: `CACE_PUBLIC_SERVICE_POLICY.json`.
+
+### Telemetry lanes
+
+All hosted instances may emit **essential operational heartbeat** needed for
+service reliability, security and capacity planning. Essential telemetry is
+strictly allowlisted and may include version, health, queue/resource buckets,
+job/error counts, feature heartbeat counts and proof-status **counts only**.
+
+Essential telemetry must never include raw scientific inputs, equations,
+theorem/proof text, AI prompts/responses, protein content, local filenames,
+precise location or wallet secrets.
+
+Product analytics used to improve CACE or inform internal sales/customer-success
+strategy use a separate privacy lane with the required notice/consent/legal
+basis, minimization, retention and opt-out/withdrawal controls.
+
+Actual proof/theorem/research artifact contribution is a third lane and is
+**off by default**. It requires separate explicit project/account opt-in and
+contribution/IP terms.
+
+Authority: `CACE_TELEMETRY_PRIVACY_POLICY.json`.
+Executable allowlist: `cace_studio/telemetry_contract.py`.

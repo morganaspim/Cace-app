@@ -718,3 +718,29 @@ normal cross-tenant path.
 
 See `CACE_MULTI_TENANT_POLICY.json` and
 `docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`.
+
+
+## Public signup and privacy-preserving product feedback
+
+Production CACE should expose one stable owned HTTPS URL for eligible account
+signup/recovery and browser access. Signup provisions/restores the user's durable
+logical tenant instance under the multi-tenant architecture.
+
+Requested country-access policy blocks CN and KP at the trusted edge and repeats
+that decision on signup/session/local-agent broker registration. This is a
+product/access policy and does not replace sanctions/export/end-user compliance.
+
+Every hosted instance can feed back strict allowlisted operational heartbeat
+metadata, including health/resource/job/error metrics and formal-proof status
+counts. Essential telemetry never contains raw scientific payloads, equations,
+proof/theorem text, AI conversations, protein content, precise location,
+filenames or wallet secrets.
+
+Privacy-controlled aggregate/pseudonymous product analytics may inform feature
+prioritization, capacity, customer success and internal sales strategy. Actual
+proof/research content is contributed only through a separate explicit opt-in
+with IP/contribution terms.
+
+See `CACE_PUBLIC_SERVICE_POLICY.json`,
+`CACE_TELEMETRY_PRIVACY_POLICY.json`, and
+`docs/PUBLIC_SERVICE_AND_TELEMETRY.md`.

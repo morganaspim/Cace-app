@@ -108,6 +108,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I077 | multi-tenant persistent CACE instances | Scale CACE to many users using stateless load-balanced gateways, one durable logical instance per account, tenant-scoped persistent state and isolated elastic sandboxes. Local CACE/AI on customer networks connects outbound through the pairing broker; warm/suspend/resume workers preserve an always-available experience without per-user source clones. | G064 |
 
+| I078 | public signup privacy-preserving feedback loop | Operate one stable public CACE signup URL for eligible users, block CN/KP at the trusted edge per product policy, give each user a durable tenant instance, and collect strict allowlisted operational/heartbeat/proof-status metadata plus privacy-controlled aggregate usage analytics for product/sales improvement; actual proof/research content is a separate explicit opt-in. | G065 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
