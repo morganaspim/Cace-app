@@ -169,8 +169,53 @@ class MainWindow(QMainWindow):
         layout.addStretch()
         self._dock("Controls", widget, Qt.LeftDockWidgetArea)
 
+    def _assistant_context(self) -> str:
+        lines = [
+            f"Experiment: {self.experiment.name}",
+            f"Nodes: {len(self.experiment.nodes)}",
+            f"Edges: {len(self.experiment.edges)}",
+        ]
+        for node in self.experiment.nodes[:40]:
+            marker = " [SELECTED]" if node.id == self.selected_node_id else ""
+            params = repr(node.params)
+            if len(params) > 800:
+                params = params[:797] + "..."
+            lines.append(
+                f"- node {node.id}{marker}: module={node.module_id}; params={params}"
+            )
+        if len(self.experiment.nodes) > 40:
+            lines.append(f"- ... {len(self.experiment.nodes) - 40} more node(s) omitted")
+
+        for edge in self.experiment.edges[:60]:
+            lines.append(
+                f"- edge {edge.source_node}.{edge.source_port} -> "
+                f"{edge.target_node}.{edge.target_port}"
+            )
+        if len(self.experiment.edges) > 60:
+            lines.append(f"- ... {len(self.experiment.edges) - 60} more edge(s) omitted")
+
+        if self.last_result is None:
+            lines.append("Current attached run evidence: none")
+        else:
+            completed = getattr(self.last_result, "completed", True)
+            lines.append(
+                "Current attached run: "
+                f"id={getattr(self.last_result, 'run_id', 'unknown')}; "
+                f"completed={completed}; "
+                f"all_verifiers_passed={getattr(self.last_result, 'all_verifiers_passed', False)}"
+            )
+        lines.append(
+            "This is a read-only convenience snapshot. It is not proof or verification evidence."
+        )
+        return "\n".join(lines)
+
     def _make_assistant(self):
-        self.assistant = LocalAIAssistantWidget(self.settings, self._configure_ai, self)
+        self.assistant = LocalAIAssistantWidget(
+            self.settings,
+            self._configure_ai,
+            parent=self,
+            context_provider=self._assistant_context,
+        )
         self.assistant_dock = self._dock("Local AI Assistant", self.assistant, Qt.RightDockWidgetArea)
 
     def _configure_ai(self):
