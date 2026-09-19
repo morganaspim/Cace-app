@@ -173,3 +173,49 @@ different content.
 
 The panel is a research-preference surface only. Card feedback cannot write
 experiments, claims, proof ledgers, certificates, or verification results.
+
+
+## Research Ideas notebook
+
+A **Keep** action promotes a Grow discovery only into a local planning artifact
+called `ResearchIdea`. This is deliberately different from promoting a
+scientific claim or formal theorem.
+
+Each Research Idea contains editable:
+
+- title;
+- notes;
+- hypotheses;
+- proposed experiment;
+- associated CACE module ids;
+- local source provenance; and
+- workflow status.
+
+The workflow statuses are:
+
+`Idea → Testable → Experimented → Promising → Proof Candidate`
+
+These labels describe research maturity only. In particular, **Proof Candidate**
+means "worth attempting to formalize"; it does not write or imply
+`ProofStatus.FORMAL`, Lean compilation, kernel audit, qualification, claim
+registry state, certificate state, or verification PASS.
+
+The notebook is stored atomically in
+`~/.cace/research_ideas.json` by default, with an environment override for
+testing/deployment. The source query is represented by SHA-256 rather than
+stored in plaintext. A stable unchanged Grow candidate maps idempotently to one
+Research Idea so repeatedly keeping the same discovery does not create duplicate
+notebook spam.
+
+The Research Ideas dock supports manual idea creation, editing, deletion,
+filtering by status, direct status selection, and one-click lifecycle
+advancement. The user can also move an idea backward when new evidence weakens
+it.
+
+When Keep creates or finds an idea, CACE opens that idea in the notebook.
+Associated module ids are seeded from the modules currently present in the
+experiment graph and remain editable.
+
+A compact read-only notebook summary may be supplied to the local assistant so
+it can help plan follow-up work. The assistant is explicitly told that notebook
+status is planning context, not proof or verification evidence.
