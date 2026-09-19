@@ -244,3 +244,39 @@ This does not make dependent errors magically visible through a broken prerequis
 - source regression rejects `by` as an identifier inside `rcases ... with ⟨...⟩` patterns in the affected exterior-transport source.
 
 **Regression guard:** `test_no_reserved_by_identifier_in_rcases_patterns`.
+
+
+## F-016 — equivalent determinant denominators were not syntactically aligned
+
+**Fingerprint:** `field_simp [hdet]` left inverse factors such as
+`(ad * aa - ac * ab)⁻¹` even though the available hypothesis was
+`aa * ad - ab * ac ≠ 0`.
+
+**Root cause:** the denominators are mathematically equal by commutativity but were not
+syntactically identical after simplification, so the nonzero hypothesis was not reused.
+
+**Permanent prevention:**
+- prove an explicit commuted-denominator nonzero lemma before `field_simp`;
+- prefer deriving composite identities from already-proved functorial laws rather than
+  fully expanding determinants;
+- `DualBladePiola.piola_comp` now factors through `piolaVector_eq_grade1_div`,
+  `grade1_comp`, and `Affine2.linearDet_comp`.
+
+**Regression guard:** `CACEFormal.GuardrailCanaries` directly checks
+`pullP1_eval_map` and `piola_comp`.
+
+## F-017 — cleanup tactic executed after the goal was already closed
+
+**Fingerprint:** Lean reported `No goals to be solved` after a separate `ring` line
+following `field_simp [hdet]`.
+
+**Root cause:** `field_simp` had already discharged the equality, leaving the next
+standalone tactic with no goals.
+
+**Permanent prevention:**
+- remove redundant post-`field_simp` tactics when the simplifier closes the goal;
+- for genuinely generated subgoals, use a combinator form such as `field_simp [...] <;> ring`
+so the follow-up tactic is applied only to remaining goals.
+
+**Regression guard:** early compile canaries pin `cellPairing_map` and
+`cellDivergence_map`.
