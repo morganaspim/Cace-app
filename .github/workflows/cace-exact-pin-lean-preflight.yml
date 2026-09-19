@@ -94,6 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/cace_proof_guardrails.py validate
+          python3 scripts/check_cace_workflow_guardrails.py
 
           base_ref="origin/$DEFAULT_BRANCH"
           git rev-parse --verify "$base_ref^{commit}" >/dev/null
