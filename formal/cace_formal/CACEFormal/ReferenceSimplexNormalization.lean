@@ -24,28 +24,122 @@ def referenceTriangle : Triangle2 :=
     referenceTriangle.det = 1 := by
   norm_num [referenceTriangle, Triangle2.det]
 
-/-- Explicit affine inverse of the edge matrix of T, translated so p0
-maps to the origin. It is meaningful as a geometric inverse when T.det ≠ 0;
-the definition itself remains total over ℝ. -/
+/-- First edge vector of an ordered triangle. -/
+def edge01 (T : Triangle2) : Point2 :=
+  ⟨T.p1.x - T.p0.x, T.p1.y - T.p0.y⟩
+
+/-- Second edge vector of an ordered triangle. -/
+def edge02 (T : Triangle2) : Point2 :=
+  ⟨T.p2.x - T.p0.x, T.p2.y - T.p0.y⟩
+
+/-- Exact oriented determinant of two edge-column vectors. -/
+def edgeDet (e1 e2 : Point2) : ℝ :=
+  e1.x * e2.y - e1.y * e2.x
+
+@[simp] theorem edgeDet_edges (T : Triangle2) :
+    edgeDet (edge01 T) (edge02 T) = T.det := by
+  rfl
+
+/-- Translation that moves the first vertex of a triangle to the origin. -/
+def recenterMap (T : Triangle2) : Affine2 :=
+  Affine2.translation ⟨-T.p0.x, -T.p0.y⟩
+
+@[simp] theorem recenterMap_p0 (T : Triangle2) :
+    (recenterMap T).mapPoint T.p0 = ⟨0, 0⟩ := by
+  rcases T with ⟨⟨x0, y0⟩, p1, p2⟩
+  ext <;>
+    dsimp [recenterMap, Affine2.translation, Affine2.mapPoint] <;>
+    ring
+
+@[simp] theorem recenterMap_p1 (T : Triangle2) :
+    (recenterMap T).mapPoint T.p1 = edge01 T := by
+  rcases T with ⟨⟨x0, y0⟩, ⟨x1, y1⟩, p2⟩
+  ext <;>
+    dsimp [recenterMap, edge01, Affine2.translation, Affine2.mapPoint] <;>
+    ring
+
+@[simp] theorem recenterMap_p2 (T : Triangle2) :
+    (recenterMap T).mapPoint T.p2 = edge02 T := by
+  rcases T with ⟨⟨x0, y0⟩, p1, ⟨x2, y2⟩⟩
+  ext <;>
+    dsimp [recenterMap, edge02, Affine2.translation, Affine2.mapPoint] <;>
+    ring
+
+/-- Exact inverse of the 2×2 matrix whose columns are `e1` and `e2`.
+The definition is total over ℝ; the inverse laws below require a nonzero
+edge determinant. -/
+noncomputable def inverseEdgeLinear (e1 e2 : Point2) : Affine2 :=
+  let Δ := edgeDet e1 e2
+  ⟨e2.y / Δ, -e2.x / Δ, -e1.y / Δ, e1.x / Δ, 0, 0⟩
+
+/-- The inverse-edge linear map sends the first matrix column to the first
+reference basis vector. -/
+theorem inverseEdgeLinear_map_e1
+    (e1 e2 : Point2) (hΔ : edgeDet e1 e2 ≠ 0) :
+    (inverseEdgeLinear e1 e2).mapPoint e1 = ⟨1, 0⟩ := by
+  rcases e1 with ⟨x1, y1⟩
+  rcases e2 with ⟨x2, y2⟩
+  change x1 * y2 - y1 * x2 ≠ 0 at hΔ
+  ext <;>
+    dsimp [inverseEdgeLinear, edgeDet, Affine2.mapPoint] <;>
+    field_simp [hΔ] <;>
+    ring
+
+/-- The inverse-edge linear map sends the second matrix column to the second
+reference basis vector. -/
+theorem inverseEdgeLinear_map_e2
+    (e1 e2 : Point2) (hΔ : edgeDet e1 e2 ≠ 0) :
+    (inverseEdgeLinear e1 e2).mapPoint e2 = ⟨0, 1⟩ := by
+  rcases e1 with ⟨x1, y1⟩
+  rcases e2 with ⟨x2, y2⟩
+  change x1 * y2 - y1 * x2 ≠ 0 at hΔ
+  ext <;>
+    dsimp [inverseEdgeLinear, edgeDet, Affine2.mapPoint] <;>
+    field_simp [hΔ] <;>
+    ring
+
+@[simp] theorem inverseEdgeLinear_map_zero (e1 e2 : Point2) :
+    (inverseEdgeLinear e1 e2).mapPoint ⟨0, 0⟩ = ⟨0, 0⟩ := by
+  ext <;>
+    simp [inverseEdgeLinear, Affine2.mapPoint]
+
+/-- The determinant of the inverse-edge matrix is the reciprocal edge
+matrix determinant. -/
+theorem inverseEdgeLinear_linearDet
+    (e1 e2 : Point2) (hΔ : edgeDet e1 e2 ≠ 0) :
+    (inverseEdgeLinear e1 e2).linearDet = 1 / edgeDet e1 e2 := by
+  rcases e1 with ⟨x1, y1⟩
+  rcases e2 with ⟨x2, y2⟩
+  change x1 * y2 - y1 * x2 ≠ 0 at hΔ
+  dsimp [inverseEdgeLinear, edgeDet, Affine2.linearDet]
+  field_simp [hΔ] <;>
+    ring
+
+/-- Canonical normalizer: recenter at `p0`, then invert the exact two-edge
+column matrix.  This decomposition keeps the determinant as one named object
+instead of repeatedly expanding equivalent denominator polynomials. -/
 noncomputable def normalizer (T : Triangle2) : Affine2 :=
-  let Δ := T.det
-  let aa := (T.p2.y - T.p0.y) / Δ
-  let ab := -(T.p2.x - T.p0.x) / Δ
-  let ac := -(T.p1.y - T.p0.y) / Δ
-  let ad := (T.p1.x - T.p0.x) / Δ
-  ⟨aa, ab, ac, ad,
-    -(aa * T.p0.x + ab * T.p0.y),
-    -(ac * T.p0.x + ad * T.p0.y)⟩
+  Affine2.comp
+    (inverseEdgeLinear (edge01 T) (edge02 T))
+    (recenterMap T)
 
 /-- The linear determinant of the normalizer is exactly the reciprocal triangle
 determinant. -/
 theorem normalizer_linearDet
     (T : Triangle2) (hT : T.det ≠ 0) :
     (normalizer T).linearDet = 1 / T.det := by
-  rcases T with ⟨⟨x0, y0⟩, ⟨x1, y1⟩, ⟨x2, y2⟩⟩
-  change ((x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)) ≠ 0 at hT
-  dsimp [normalizer, Affine2.linearDet, Triangle2.det]
-  field_simp [hT]
+  have hΔ : edgeDet (edge01 T) (edge02 T) ≠ 0 := by
+    simpa using hT
+  calc
+    (normalizer T).linearDet =
+        (inverseEdgeLinear (edge01 T) (edge02 T)).linearDet *
+          (recenterMap T).linearDet := by
+            simp [normalizer]
+    _ = (1 / edgeDet (edge01 T) (edge02 T)) * 1 := by
+          rw [inverseEdgeLinear_linearDet _ _ hΔ]
+          simp [recenterMap]
+    _ = 1 / T.det := by
+          simp
 
 /-- Nondegenerate triangles produce nonsingular normalizers. -/
 theorem normalizer_linearDet_ne_zero
@@ -64,64 +158,27 @@ theorem normalizer_linearDet_pos
 
 /-- The first vertex maps exactly to the origin. -/
 theorem normalizer_map_p0
-    (T : Triangle2) (hT : T.det ≠ 0) :
+    (T : Triangle2) (_hT : T.det ≠ 0) :
     (normalizer T).mapPoint T.p0 = ⟨0, 0⟩ := by
-  rcases T with ⟨⟨x0, y0⟩, ⟨x1, y1⟩, ⟨x2, y2⟩⟩
-  change ((x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)) ≠ 0 at hT
-  ext <;>
-    dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
-    field_simp [hT] <;>
-    ring
+  simp [normalizer]
 
 /-- The second vertex maps exactly to (1,0). -/
 theorem normalizer_map_p1
     (T : Triangle2) (hT : T.det ≠ 0) :
     (normalizer T).mapPoint T.p1 = ⟨1, 0⟩ := by
-  rcases T with ⟨⟨x0, y0⟩, ⟨x1, y1⟩, ⟨x2, y2⟩⟩
-  change ((x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)) ≠ 0 at hT
-  have hden :
-      y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 ≠ 0 := by
-    intro hzero
-    apply hT
-    calc
-      (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0) =
-          y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 := by
-            ring
-      _ = 0 := hzero
-  have hden_nf :
-      y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1 ≠ 0 := by
-    intro hzero
-    apply hden
-    calc
-      y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 =
-          y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1 := by
-            ring
-      _ = 0 := hzero
-  have hden_div :
-      y2 * (x1 - x0) - x1 * y0 + y0 * x2 + x0 * y1 - x2 * y1 ≠ 0 := by
-    intro hzero
-    apply hden_nf
-    calc
-      y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1 =
-          y2 * (x1 - x0) - x1 * y0 + y0 * x2 + x0 * y1 - x2 * y1 := by
-            ring
-      _ = 0 := hzero
-  ext <;>
-    dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
-    ring_nf <;>
-    field_simp [hden_div] <;>
-    ring
+  have hΔ : edgeDet (edge01 T) (edge02 T) ≠ 0 := by
+    simpa using hT
+  simpa [normalizer] using
+    inverseEdgeLinear_map_e1 (edge01 T) (edge02 T) hΔ
 
 /-- The third vertex maps exactly to (0,1). -/
 theorem normalizer_map_p2
     (T : Triangle2) (hT : T.det ≠ 0) :
     (normalizer T).mapPoint T.p2 = ⟨0, 1⟩ := by
-  rcases T with ⟨⟨x0, y0⟩, ⟨x1, y1⟩, ⟨x2, y2⟩⟩
-  change ((x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)) ≠ 0 at hT
-  ext <;>
-    dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
-    field_simp [hT] <;>
-    ring
+  have hΔ : edgeDet (edge01 T) (edge02 T) ≠ 0 := by
+    simpa using hT
+  simpa [normalizer] using
+    inverseEdgeLinear_map_e2 (edge01 T) (edge02 T) hΔ
 
 /-- The whole triangle is mapped exactly to the canonical reference simplex. -/
 theorem normalizer_map_triangle
