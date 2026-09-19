@@ -94,6 +94,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I068 | high-capability AI gate | Add a default-OFF GUI gate for future superintelligence-class providers. OFF blocks that declared capability tier; ON merely permits admission while separate sandbox/network/self-modification/evidence/resource controls still apply. | G056 |
 | I069 | latent matrix observers | For instrumentable local/open neural models, export copies of hidden-layer matrices through a one-way host broker to multiple immutable observer containers; model inference receives no feedback/control channel from observers. | G057 |
 
+| I070 | math coin | A fixed 500B-supply, no-mining Math Coin acts as a scarce external compute-right for the Conway heartbeat economic city: most supply is locked in a time vault, discrete tranches unlock only every 10 years, compute consumption burns MATH after measured settlement, and AI agents may trade through a bounded broker against real crypto without direct wallet-key authority. | G058 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

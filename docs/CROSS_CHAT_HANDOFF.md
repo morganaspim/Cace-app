@@ -296,7 +296,7 @@ Durable goal:
 V1 policy:
 
 - seed catalog: Clay Millennium Prize Problems;
-- current snapshot verified 2026-09-19: six open/unsolved, Poincaré solved;
+- current snapshot verified 2026-09-19: five listed open, Navier–Stokes active-review after Clay's apparent-settlement announcement, and Poincaré solved;
 - catalog is offline-first and stores source URLs as provenance metadata;
 - imported problems are typed research objects, never verification evidence;
 - Play may generate hypotheses/decompositions/experiments/proof obligations but cannot mark an open problem solved.
@@ -322,3 +322,36 @@ Design invariants:
 - enabling the gate does not automatically grant Internet, shell, self-modification, evidence mutation, or unbounded compute;
 - hidden-layer observers only apply to engines that expose activations;
 - layer/step matrices flow one-way into at least two host-controlled observer replicas with no feedback channel to inference.
+
+
+## Math Coin heartbeat economic city
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G058 — fixed-supply Math Coin burn-to-compute economy layered above the internal non-monetary heartbeat credits.
+
+Core economics:
+
+- maximum/genesis supply: exactly 500,000,000,000 MATH;
+- no mining, staking reward, or block-reward issuance;
+- most genesis supply remains in a time-locked vault;
+- circulating-supply expansion can occur only through explicit all-at-once vault tranches at 10-year boundaries;
+- exact tranche sizes remain explicit constitutional parameters and cannot be changed by the AI;
+- AI/user compute demand reserves MATH first and burns the reserved amount only after host-measured computation settles;
+- failed/cancelled computation must not create a valid burn receipt.
+
+Architecture:
+
+- CACE internal compute credits remain fast, non-monetary scheduler credits;
+- MATH is a separate scarce external compute-right/market layer;
+- the Conway heartbeat "economic city" may contain AI agents, compute providers, markets, wallets, resource districts, and trade/compute flows;
+- agents can propose/trade MATH against real crypto only through a narrow broker; agents never receive raw private keys;
+- per-agent budgets, asset allowlists, exposure limits, kill switches, deterministic audit records, and rate limits are mandatory;
+- because compute-purchase MATH is burned, provider compensation is a separate settlement leg rather than pretending the burned token can also be delivered to the provider;
+- economic/market state never changes proof/evidence truth.
+
+Research document:
+
+`docs/MATH_COIN_HEARTBEAT_ECONOMY.md`

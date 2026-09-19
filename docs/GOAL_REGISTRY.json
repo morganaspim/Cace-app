@@ -836,6 +836,26 @@
         "Full hidden-layer capture is optional and resource-bounded; compact sketches/hashes are supported when full capture is too costly.",
         "Feature is only advertised for inference engines that actually expose layer activations."
       ]
+    },
+    {
+      "id": "G058",
+      "category": "compute_economy_crypto",
+      "priority": 58,
+      "intent_status": "research",
+      "title": "Math Coin burn-to-compute heartbeat economy",
+      "summary": "Research a fixed-supply Math Coin compute-right token for the Conway heartbeat economic city: 500 billion genesis supply, no mining or block rewards, most supply locked in a long-horizon vault, discrete decade release tranches, and irrevocable burn when metered computation is successfully consumed.",
+      "acceptance": [
+        "Genesis maximum supply is exactly 500,000,000,000 MATH and ordinary runtime operation cannot mint above that cap.",
+        "There is no proof-of-work/proof-of-stake mining reward or per-block token issuance; new circulating supply comes only from a precommitted vault-release schedule.",
+        "More than half of genesis supply begins in a time-locked vault and releases occur only as discrete all-at-once tranches at 10-year boundaries; tranche quantities are explicit constitutional parameters rather than AI-controlled values.",
+        "Compute purchase uses reserve/escrow first and burns MATH only after host-measured compute consumption settles; failed/cancelled work cannot fabricate a burn receipt.",
+        "Burn receipts bind task identity, measured compute units, price rule, payer wallet/capability, provider, exact token amount, transaction identity, and immutable audit hash.",
+        "Internal CACE compute credits remain non-monetary scheduler state and are never silently interchangeable with MATH.",
+        "AI agents never receive raw wallet private keys; real-crypto/MATH trading passes through a separately permissioned broker with per-agent budgets, allowlists, exposure limits, audit logs, and human-configurable shutdown.",
+        "Compute providers can be compensated through a separate settlement leg even though the buyer's MATH compute-right is burned.",
+        "The Conway heartbeat economic-city visualization cannot promote scientific evidence, theorem status, or verification state.",
+        "Any production exchange against real cryptocurrency requires a separate security, market-integrity, accounting, and jurisdiction-specific compliance review."
+      ]
     }
   ]
 }
