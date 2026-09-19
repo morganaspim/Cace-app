@@ -30,7 +30,9 @@ class TinyResidualRanker:
         self.b1 = np.zeros(config.hidden_dim, dtype=np.float64)
         self.w2 = rng.normal(0.0, s2, (config.hidden_dim, config.hidden_dim))
         self.b2 = np.zeros(config.hidden_dim, dtype=np.float64)
-        self.w3 = rng.normal(0.0, s2, config.hidden_dim)
+        # Start neutral: before any CACE feedback the neural term contributes
+        # exactly 0.5 rather than injecting arbitrary random ranking noise.
+        self.w3 = np.zeros(config.hidden_dim, dtype=np.float64)
         self.b3 = 0.0
 
     @staticmethod
