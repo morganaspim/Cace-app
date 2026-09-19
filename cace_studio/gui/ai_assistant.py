@@ -76,10 +76,11 @@ class _ChatWorker(QRunnable):
 class LocalAIAssistantWidget(QWidget):
     """Optional local assistant panel with no verification privileges."""
 
-    def __init__(self, settings, configure_callback, parent=None) -> None:
+    def __init__(self, settings, configure_callback, parent=None, context_provider=None) -> None:
         super().__init__(parent)
         self.settings = settings
         self.configure_callback = configure_callback
+        self.context_provider = context_provider
         self.history: list[dict[str, str]] = []
         self.pool = QThreadPool.globalInstance()
         self._growth_engine = None
@@ -147,6 +148,15 @@ class LocalAIAssistantWidget(QWidget):
             + guidance
         )
 
+    def _live_context(self) -> str:
+        if self.context_provider is None:
+            return ""
+        try:
+            text = str(self.context_provider() or "")
+        except Exception as exc:
+            return f"Live experiment context unavailable: {type(exc).__name__}: {exc}"
+        return text[:6000]
+
     def set_generally_useful(self) -> None:
         self.settings.assistant_mode = "general"
         self.settings.save()
@@ -165,9 +175,11 @@ class LocalAIAssistantWidget(QWidget):
             )
         self.grow_button.setEnabled(False)
         self.status.setText("Grow is exploring the local CACE corpus…")
+        live_context = self._live_context()
+        growth_query = query if not live_context else query + "\n\nCURRENT CACE EXPERIMENT:\n" + live_context
         worker = _GrowWorker(
             self._growth_engine,
-            query,
+            growth_query,
             self._growth_cycle,
             float(self.settings.ai_growth_chaos),
             int(self.settings.ai_growth_budget),
@@ -234,6 +246,18 @@ class LocalAIAssistantWidget(QWidget):
         self.transcript.append(f"[you] {text}")
         self.history.append({"role": "user", "content": text})
         messages = [{"role": "system", "content": self._system_message()}]
+        live_context = self._live_context()
+        if live_context:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "READ-ONLY CURRENT EXPERIMENT CONTEXT. "
+                        "Do not claim this is verification evidence and do not assume permission to mutate it.\n"
+                        + live_context
+                    ),
+                }
+            )
         if self._growth_context:
             messages.append({"role": "system", "content": self._growth_context})
         messages += self.history[-20:]
