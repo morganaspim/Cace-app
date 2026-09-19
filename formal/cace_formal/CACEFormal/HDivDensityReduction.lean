@@ -161,6 +161,87 @@ theorem inner_singleCoordinateSchwartzGraph_eq_zero_of_mem_orthogonal
   rw [hfirst] at hzero
   exact hzero
 
+/-- Pointwise complex conjugation preserves Schwartz class.  We deliberately
+view conjugation as an ℝ-linear continuous map, since it is not ℂ-linear. -/
+noncomputable def schwartzConj (n : Nat) :
+    ComplexSmoothScalar n →L[ℝ] ComplexSmoothScalar n :=
+  SchwartzMap.postcompCLM
+    (E := EuclideanDomain n)
+    (Complex.conjCLE : ℂ →L[ℝ] ℂ)
+
+@[simp]
+theorem schwartzConj_apply (n : Nat)
+    (φ : ComplexSmoothScalar n) (y : EuclideanDomain n) :
+    schwartzConj n φ y = Complex.conj (φ y) := by
+  rfl
+
+/-- Real-linear conjugation commutes with real directional derivatives. -/
+theorem lineDeriv_schwartzConj
+    (n : Nat) (v : EuclideanDomain n) (φ : ComplexSmoothScalar n) :
+    ∂_{v} (schwartzConj n φ) =
+      schwartzConj n (∂_{v} φ) := by
+  ext y
+  simp only [SchwartzMap.lineDerivOp_apply_eq_fderiv, schwartzConj_apply]
+  change
+    fderiv ℝ (Complex.conj ∘ φ) y v =
+      Complex.conj (fderiv ℝ φ y v)
+  rw [fderiv_comp y Complex.conjCLE.differentiableAt φ.differentiableAt]
+  simp
+
+/-- L² inner product against the conjugated Schwartz embedding is exactly
+evaluation of the associated tempered distribution on the original Schwartz test. -/
+theorem inner_schwartzConjL2_eq_distribution_apply
+    (n : Nat) (φ : ComplexSmoothScalar n) (u : ComplexL2 n) :
+    ⟪schwartzComplexL2 n (schwartzConj n φ), u⟫_ℂ =
+      complexL2ToDistribution n u φ := by
+  change
+    ⟪(schwartzConj n φ).toLp 2
+        (volume : Measure (EuclideanDomain n)), u⟫_ℂ =
+      MeasureTheory.Lp.toTemperedDistribution u φ
+  rw [MeasureTheory.L2.inner_def,
+    MeasureTheory.Lp.toTemperedDistribution_apply]
+  apply integral_congr_ae
+  filter_upwards
+      [(schwartzConj n φ).coeFn_toLp 2
+        (volume : Measure (EuclideanDomain n))] with y hy
+  rw [hy]
+  simp [schwartzConj_apply, RCLike.inner_apply, smul_eq_mul, mul_comm]
+
+/-- Orthogonality to the Schwartz H(div) graph core forces the divergence
+coordinate to have each field coordinate as its weak derivative. -/
+theorem weakPartial_divSlot_eq_fieldSlot_of_mem_orthogonal
+    (n : Nat) (x : HDivComplexGraphHilbert n)
+    (hx : x ∈ (ComplexHDivSmoothGraphCoreHilbert n)ᗮ)
+    (i : Fin n) :
+    weakPartial i
+        (complexL2ToDistribution n (hdivGraphHilbertEquiv n x).2) =
+      complexL2ToDistribution n ((hdivGraphHilbertEquiv n x).1 i) := by
+  ext φ
+  have hzero :=
+    inner_singleCoordinateSchwartzGraph_eq_zero_of_mem_orthogonal
+      n x hx i (schwartzConj n φ)
+  rw [lineDeriv_schwartzConj] at hzero
+  rw [inner_schwartzConjL2_eq_distribution_apply,
+    inner_schwartzConjL2_eq_distribution_apply] at hzero
+  change
+    (∂_{basisVector i}
+      (complexL2ToDistribution n (hdivGraphHilbertEquiv n x).2)) φ =
+      complexL2ToDistribution n ((hdivGraphHilbertEquiv n x).1 i) φ
+  rw [TemperedDistribution.lineDerivOp_apply_apply]
+  simpa using (eq_neg_of_add_eq_zero_left hzero).symm
+
+/-- The orthogonality criterion needed by the density reduction is automatic:
+the reversed H(div) coordinates satisfy the distributional H¹ graph relation. -/
+theorem reversedHDivGraph_mem_H1_of_mem_orthogonal
+    (n : Nat) (x : HDivComplexGraphHilbert n)
+    (hx : x ∈ (ComplexHDivSmoothGraphCoreHilbert n)ᗮ) :
+    reversedHDivGraph (hdivGraphHilbertEquiv n x) ∈
+      H1DistributionalGraphSubmodule n := by
+  rw [mem_H1DistributionalGraphSubmodule_iff]
+  intro i
+  simpa [reversedHDivGraph] using
+    weakPartial_divSlot_eq_fieldSlot_of_mem_orthogonal n x hx i
+
 /-- Exact remaining analytic criterion for unconditional whole-space H(div)
 graph density. Orthogonality is stated only in the legitimate L²-product
 Hilbert structure. -/
