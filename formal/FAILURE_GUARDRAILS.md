@@ -283,25 +283,22 @@ so the follow-up tactic is applied only to remaining goals.
 
 ## F-018 — ring normalization changed determinant monomial order after the nonzero bridge
 
-**Fingerprint:** after `ring_nf`, Lean rewrote the reference-simplex determinant to a
-canonical denominator such as
-`y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1`,
-while the previously proved nonzero bridge used an algebraically equal but differently
-ordered polynomial. `field_simp` therefore left inverse factors and the proof stalled.
+**Fingerprint:** repeated reference-simplex runs failed because algebraically equal
+determinants were rewritten into different expanded/factored denominator spellings.
 
-**Root cause:** proving a nonzero fact for one expanded polynomial is not enough when a
-later normalization tactic canonicalizes commutative monomials into a different syntactic
-form.
+**Root cause:** `normalizer_map_p1` reopened raw coordinate division and depended on
+syntactic alignment between tactic-normalized denominators and separately proved
+nonzero hypotheses.
 
 **Permanent prevention:**
-- after choosing `ring_nf`, prove nonzero bridges for every canonical denominator
-  shape that Lean emits at the proof seam, including both the fully expanded
-  `hden_nf` form and the partially factored `hden_div` form;
-- use `field_simp [hden_div]` only after normalization, so denominator clearing is
-  driven by the exact nonzero expression Lean emits at this seam;
-- use `ring` only on the resulting denominator-free polynomial goal.
+- the normalizer is factored into `recenterMap` followed by `inverseEdgeLinear`;
+- `edgeDet` is one named determinant object shared by both inverse-column theorems;
+- `inverseEdgeLinear_map_e1`, `inverseEdgeLinear_map_e2`, and
+  `inverseEdgeLinear_linearDet` discharge the 2×2 inverse algebra once;
+- `normalizer_map_p1` and `normalizer_map_p2` delegate to those lemmas and no
+  longer contain raw `field_simp`, `ring_nf`, or ad-hoc denominator bridges.
 
-**Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires
-`hden_nf` and `hden_div` to be established before `ring_nf`, followed in
-order by `field_simp [hden_div]` and `ring` in `normalizer_map_p1`.
-
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires the
+inverse-edge theorem surface, requires `normalizer_map_p1` to delegate to
+`inverseEdgeLinear_map_e1`, and rejects reintroduction of the old raw denominator
+tactic seam.
