@@ -137,6 +137,51 @@ noncomputable def euclideanSimplexDivL2 {d m : Nat}
       vertex f continuous_const).toLp
     ((euclideanSimplexSet vertex).indicator f)
 
+/-- The P1 simplex L² value coordinate agrees a.e. with its defining indicator function. -/
+theorem euclideanSimplexScalarL2_coeFn_ae
+    {d m : Nat} (vertex : Fin m → EuclideanDomain d) (u : AffineScalar d) :
+    (euclideanSimplexScalarL2 vertex u : EuclideanDomain d → ℝ) =ᵐ[volume]
+      (euclideanSimplexSet vertex).indicator (euclideanAffineScalarEval u) := by
+  simpa [euclideanSimplexScalarL2] using
+    (continuous_indicator_euclideanSimplex_memLp_two
+      vertex (euclideanAffineScalarEval u)
+      (euclideanAffineScalarEval_continuous u)).coeFn_toLp
+
+/-- The P1 simplex gradient L² coordinate agrees a.e. with its defining constant indicator. -/
+theorem euclideanSimplexGradL2_coeFn_ae
+    {d m : Nat} (vertex : Fin m → EuclideanDomain d)
+    (u : AffineScalar d) (i : Fin d) :
+    (euclideanSimplexGradL2 vertex u i : EuclideanDomain d → ℝ) =ᵐ[volume]
+      (euclideanSimplexSet vertex).indicator (fun _ => u.grad i) := by
+  let f : EuclideanDomain d → ℝ := fun _ => u.grad i
+  simpa [euclideanSimplexGradL2, f] using
+    (continuous_indicator_euclideanSimplex_memLp_two
+      vertex f continuous_const).coeFn_toLp
+
+/-- The RT0 simplex component L² coordinate agrees a.e. with its defining indicator function. -/
+theorem euclideanSimplexRT0ComponentL2_coeFn_ae
+    {d m : Nat} (vertex : Fin m → EuclideanDomain d)
+    (q : RT0AffineND d) (i : Fin d) :
+    (euclideanSimplexRT0ComponentL2 vertex q i :
+      EuclideanDomain d → ℝ) =ᵐ[volume]
+      (euclideanSimplexSet vertex).indicator
+        (euclideanRT0ComponentEval q i) := by
+  simpa [euclideanSimplexRT0ComponentL2] using
+    (continuous_indicator_euclideanSimplex_memLp_two
+      vertex (euclideanRT0ComponentEval q i)
+      (euclideanRT0ComponentEval_continuous q i)).coeFn_toLp
+
+/-- The RT0 simplex divergence L² coordinate agrees a.e. with its defining constant indicator. -/
+theorem euclideanSimplexDivL2_coeFn_ae
+    {d m : Nat} (vertex : Fin m → EuclideanDomain d)
+    (q : RT0AffineND d) :
+    (euclideanSimplexDivL2 vertex q : EuclideanDomain d → ℝ) =ᵐ[volume]
+      (euclideanSimplexSet vertex).indicator (fun _ => q.divergence) := by
+  let f : EuclideanDomain d → ℝ := fun _ => q.divergence
+  simpa [euclideanSimplexDivL2, f] using
+    (continuous_indicator_euclideanSimplex_memLp_two
+      vertex f continuous_const).coeFn_toLp
+
 /--
 One cell's P1 source coordinates packaged only as ambient H¹ graph data.
 Membership in the closed/distributional H¹ graph is intentionally not asserted.
