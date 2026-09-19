@@ -22,11 +22,33 @@ structure Point2 where
   x : ℝ
   y : ℝ
 
+namespace Point2
+
+/-- Coordinate extensionality for the exact 2D point structure. -/
+@[ext] theorem ext {p q : Point2}
+    (hx : p.x = q.x) (hy : p.y = q.y) : p = q := by
+  cases p
+  cases q
+  simp_all
+
+end Point2
+
 /-- An ordered triangle. The determinant may be signed; mesh certificates add positivity. -/
 structure Triangle2 where
   p0 : Point2
   p1 : Point2
   p2 : Point2
+
+namespace Triangle2
+
+/-- Vertexwise extensionality for ordered triangles. -/
+@[ext] theorem ext {T U : Triangle2}
+    (h0 : T.p0 = U.p0) (h1 : T.p1 = U.p1) (h2 : T.p2 = U.p2) : T = U := by
+  cases T
+  cases U
+  simp_all
+
+end Triangle2
 
 /-- An affine P1 scalar polynomial `c + gx*x + gy*y`. -/
 structure P1Affine where
