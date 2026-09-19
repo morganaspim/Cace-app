@@ -718,6 +718,62 @@
         "Canvas overlay visualizes heartbeat activity separately from scientific evidence.",
         "Heartbeat delta can be included in local-AI context packets without requiring full-canvas rereads."
       ]
+    },
+    {
+      "id": "G050",
+      "category": "molecular_science",
+      "priority": 50,
+      "intent_status": "planned",
+      "title": "Typed atoms, molecules, and safe home-lab chemistry",
+      "summary": "Add typed atom/bond/molecule objects and a fail-closed Safe Home Lab mode limited to low-risk educational household chemistry.",
+      "acceptance": [
+        "Atoms, bonds, and molecules have typed serializable scientific-object schemas.",
+        "Safe Home Lab uses an explicit low-risk whitelist and rejects unsupported hazardous procedures.",
+        "Chemistry canvas objects can connect through typed ports without conflating visualization with evidence.",
+        "Outputs retain provenance, limitations, and evidence class."
+      ]
+    },
+    {
+      "id": "G051",
+      "category": "protein_science",
+      "priority": 51,
+      "intent_status": "planned",
+      "title": "License-safe protein structure import and low-cost fold search",
+      "summary": "Support supplied protein sequences and imported AlphaFold-compatible structures, plus a deterministic low-cost coarse folding/energy search labeled as lowest energy found rather than proven global minimum.",
+      "acceptance": [
+        "AlphaFold-compatible imports preserve source/license/attribution metadata.",
+        "AlphaFold 3 weights are not bundled without separate terms review.",
+        "Fold search is deterministic under a fixed seed and reports energy trace plus limitations.",
+        "No UI/report language claims a proven global thermodynamic minimum or clinical validity."
+      ]
+    },
+    {
+      "id": "G052",
+      "category": "materials_research",
+      "priority": 52,
+      "intent_status": "research",
+      "title": "Mathematical materials candidate screening",
+      "summary": "Generate and rank material hypotheses from composition/structure descriptors and explicit property targets while distinguishing heuristic, surrogate, physics-based, database, and measured evidence.",
+      "acceptance": [
+        "Candidate scoring is reproducible and mathematically inspectable.",
+        "Each predicted property carries source/model/uncertainty metadata.",
+        "Material search is computational screening only and does not silently emit synthesis instructions.",
+        "Candidates can become Research Ideas and Proposed Experiments."
+      ]
+    },
+    {
+      "id": "G053",
+      "category": "physics_visualization",
+      "priority": 53,
+      "intent_status": "research",
+      "title": "Typed draggable particle, field, and theoretical physics objects",
+      "summary": "Add draggable physics objects for Standard Model entities and explicitly theoretical constructs such as strings/worldsheets with correct evidence labeling.",
+      "acceptance": [
+        "Established and theoretical objects are technically distinguishable.",
+        "Quark renderers preserve a confinement caveat.",
+        "Theoretical string/brane objects cannot be presented as experimentally established particles.",
+        "Objects interoperate with transform/geometry modules through typed ports."
+      ]
     }
   ]
 }

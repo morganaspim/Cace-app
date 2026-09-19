@@ -81,6 +81,12 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I059 | operator memory | Maintain a learned operator library with preconditions, invariants, inverses, commutation/composition rules, costs, failure domains and linked CACE checkers rather than an answer notebook. | G048 |
 | I060 | canvas heartbeat | Connect canvas items and the local AI through a deterministic Conway-inspired cellular heartbeat/state field for readiness, activity, waiting, stale, verification, failure and research attention; heartbeat can guide attention but never verification. | G049 |
 
+
+| I061 | molecular science | Add typed atoms, bonds and molecules as draggable scientific objects, with geometry/provenance/evidence metadata and safe household chemistry experiment support. | G050 |
+| I062 | protein folding | Import AlphaFold-compatible predictions with attribution and run deterministic low-cost coarse folding/refinement, reporting only the lowest energy found rather than claiming a proven global minimum. | G051 |
+| I063 | materials discovery | Search/generate material hypotheses using composition, symmetry and mathematical descriptors with explicit uncertainty and evidence provenance; connect promising candidates to Research Ideas. | G052 |
+| I064 | physics canvas | Add draggable Standard Model particles, fields and clearly theoretical string/brane/worldsheet objects, with established-vs-theoretical classification and quark-confinement caveats. | G053 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

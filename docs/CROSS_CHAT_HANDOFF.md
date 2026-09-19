@@ -228,3 +228,28 @@ Core intent:
 - external executable operator-plan checks rather than hidden chain-of-thought dependence;
 - geometric/relational structure, invariants and sparse operator programs rather than brute-force all-pairs association;
 - deterministic canvas heartbeat states that guide AI attention but can never promote verification.
+
+
+## Molecular / protein / materials / physics expansion
+
+Added 2026-09-19.
+
+Design document:
+
+`docs/MOLECULAR_PROTEIN_MATERIALS_PHYSICS.md`
+
+New durable goals:
+
+- G050 — typed atoms/molecules + safe home-lab chemistry;
+- G051 — AlphaFold-compatible import + low-cost protein fold search;
+- G052 — mathematical materials screening;
+- G053 — draggable physics objects.
+
+Key nonclaims:
+
+- AlphaFold predicts structures; it is not treated as a novel-sequence generator.
+- CACE fold search reports the lowest energy **found**, never a proven global protein-energy minimum.
+- AlphaFold 3 weights are not bundled without separate terms review.
+- material candidates are hypotheses/screening results, not experimentally discovered materials;
+- Safe Home Lab is whitelist-only and fails closed for hazardous chemistry;
+- string/brane objects are theoretical visualization objects, not experimentally established particles.
