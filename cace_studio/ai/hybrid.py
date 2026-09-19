@@ -372,7 +372,7 @@ class GrowthEngine:
         groups: list[ConceptGroup] = []
         for size in range(2, min(max_group_size, 4, len(pool)) + 1):
             for combo in combinations(pool, size):
-                ids = tuple(item.fragment.fragment_id for item in combo)
+                ids = tuple(sorted(item.fragment.fragment_id for item in combo))
                 rel = sum(item.score / best_score for item in combo) / size
                 kinds = {item.fragment.kind for item in combo}
                 diversity = len(kinds) / size
