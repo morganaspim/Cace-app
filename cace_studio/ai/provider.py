@@ -6,6 +6,8 @@ import ipaddress
 from typing import Mapping, Sequence
 from urllib.parse import unquote, urlsplit, urlunsplit
 
+from .capability_gate import AICapabilityManifest, CapabilityTier
+
 
 class LocalAIError(RuntimeError):
     """Raised when an optional local-AI provider cannot complete a request."""
@@ -107,6 +109,16 @@ class AIProvider(ABC):
         self.endpoint = validate_local_endpoint(endpoint)
         self.model = model
         self.timeout = timeout
+
+    def capability_manifest(self) -> AICapabilityManifest:
+        """Declared provider capabilities used by CACE admission policy."""
+        return AICapabilityManifest(
+            provider_id=self.provider_id,
+            model_id=self.model,
+            tier=CapabilityTier.BOUNDED,
+            requested_compute_credits=0.0,
+            hidden_layers_exposed=False,
+        )
 
     @abstractmethod
     def health(self) -> ProviderHealth:
