@@ -64,6 +64,60 @@ def mapTriangle (F : Affine2) (T : Triangle2) : Triangle2 :=
 def identity : Affine2 :=
   ⟨1, 0, 0, 1, 0, 0⟩
 
+/-- Compose two affine maps. `inner` runs first and `outer` runs second. -/
+def comp (outer inner : Affine2) : Affine2 :=
+  ⟨outer.a * inner.a + outer.b * inner.c,
+   outer.a * inner.b + outer.b * inner.d,
+   outer.c * inner.a + outer.d * inner.c,
+   outer.c * inner.b + outer.d * inner.d,
+   outer.a * inner.tx + outer.b * inner.ty + outer.tx,
+   outer.c * inner.tx + outer.d * inner.ty + outer.ty⟩
+
+/-- Fused affine composition acts exactly like sequential point mapping. -/
+@[simp] theorem mapPoint_comp (outer inner : Affine2) (p : Point2) :
+    (comp outer inner).mapPoint p = outer.mapPoint (inner.mapPoint p) := by
+  rcases outer with ⟨oa, ob, oc, od, otx, oty⟩
+  rcases inner with ⟨ia, ib, ic, id, itx, ity⟩
+  rcases p with ⟨x, y⟩
+  ext <;> dsimp [comp, mapPoint] <;> ring
+
+/-- Linear determinants multiply under affine fusion. -/
+@[simp] theorem linearDet_comp (outer inner : Affine2) :
+    (comp outer inner).linearDet = outer.linearDet * inner.linearDet := by
+  rcases outer with ⟨oa, ob, oc, od, otx, oty⟩
+  rcases inner with ⟨ia, ib, ic, id, itx, ity⟩
+  dsimp [comp, linearDet]
+  ring
+
+/-- Fused affine composition acts exactly like sequential triangle mapping. -/
+@[simp] theorem mapTriangle_comp (outer inner : Affine2) (T : Triangle2) :
+    (comp outer inner).mapTriangle T =
+      outer.mapTriangle (inner.mapTriangle T) := by
+  rcases T with ⟨p0, p1, p2⟩
+  simp [mapTriangle]
+
+/-- Fuse an arbitrary left-to-right affine chain into one affine map. -/
+def chain : List Affine2 → Affine2
+  | [] => identity
+  | F :: Fs => comp (chain Fs) F
+
+@[simp] theorem chain_nil : chain [] = identity := rfl
+
+@[simp] theorem mapPoint_chain_cons (F : Affine2) (Fs : List Affine2) (p : Point2) :
+    (chain (F :: Fs)).mapPoint p =
+      (chain Fs).mapPoint (F.mapPoint p) := by
+  simp [chain]
+
+/-- The fused chain determinant is exactly the product of all stage
+determinants. -/
+theorem linearDet_chain (Fs : List Affine2) :
+    (chain Fs).linearDet = (Fs.map linearDet).prod := by
+  induction Fs with
+  | nil =>
+      simp [chain]
+  | cons F Fs ih =>
+      simp [chain, ih, mul_comm]
+
 /-- Pure translation. -/
 def translation (v : Point2) : Affine2 :=
   ⟨1, 0, 0, 1, v.x, v.y⟩
