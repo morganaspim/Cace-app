@@ -1,5 +1,6 @@
 import CACEFormal.PDEDomainRealBridge
 import CACEFormal.RegularizationClosure
+import CACEFormal.OrthogonalClosure
 
 namespace CACEFormal
 
