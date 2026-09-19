@@ -14,6 +14,8 @@
     "docs/CONSTITUTION.md",
     "docs/CLAIMS.md",
     "docs/ROADMAP.md",
+    "docs/MASTER_BUILD_SPEC.md",
+    "docs/GOAL_REGISTRY.json",
     "docs/AI_QUICKSTART.md"
   ],
   "canonical_truth_sources": {
@@ -78,7 +80,11 @@
     "formally-verified",
     "cross-verified"
   ],
-  "verification_states": ["PASS", "FAIL", "NOT_RUN"],
+  "verification_states": [
+    "PASS",
+    "FAIL",
+    "NOT_RUN"
+  ],
   "hard_rules_for_agents": [
     "Never convert NOT_RUN or absent verification into PASS.",
     "Never infer a continuum theorem from numerical tests.",
@@ -106,5 +112,16 @@
     "document": "docs/PROVENANCE_ATTESTATION.md",
     "design": "content addresses -> Merkle bundle -> signed attestations -> transparency ledger -> optional external timestamp/blockchain anchor",
     "mathematical_truth_source": "unchanged; provenance never substitutes for the appropriate mathematical/numerical verifier"
+  },
+  "implementation_intent": {
+    "master_build_spec": "docs/MASTER_BUILD_SPEC.md",
+    "goal_registry": "docs/GOAL_REGISTRY.json",
+    "note": "These describe intended product direction and acceptance criteria. They are not proof, qualification, or current-implementation evidence."
+  },
+  "goal_capture_protocol": {
+    "persist_meritorious_user_goals": true,
+    "classify_research_separately_from_verified_capability": true,
+    "preserve_truth_and_evidence_boundaries": true,
+    "avoid_qualification_sensitive_changes_for_goal_capture": true
   }
 }
