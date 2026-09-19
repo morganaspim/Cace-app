@@ -62,6 +62,8 @@ Mirror the two self-contained continuity documents under:
 
 This is the primary cross-chat fallback if GitHub is unavailable to a future chat.
 
+Operational mirror status (2026-09-19): the `/CACE CONTINUITY/` Library folder was created, but this session's generated-file upload bridge returned `container_session_unavailable`, so **do not assume the two current mirror files are present yet**. The exact current files remain in GitHub and in the generating chat as downloadable artifacts. A future CACE chat with a working Library write surface should retry the mirror and then update this status.
+
 ### 3. Existing historical Library corpus
 
 Useful recovery sources include:

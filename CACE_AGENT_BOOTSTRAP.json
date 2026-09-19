@@ -302,6 +302,14 @@
       "/CACE CONTINUITY/CACE_CHAT_IDEA_LEDGER.md"
     ],
     "live_state_rule": "Handoff status is a snapshot only. Re-query GitHub branch/PR/commit/Actions state before proof, deployment, or qualification actions.",
-    "evidence_rule": "Continuity records and chat memory never create proof or verification evidence."
+    "evidence_rule": "Continuity records and chat memory never create proof or verification evidence.",
+    "library_mirror_status": {
+      "as_of": "2026-09-19",
+      "folder": "/CACE CONTINUITY",
+      "folder_created": true,
+      "current_files_uploaded": false,
+      "last_error": "container_session_unavailable",
+      "retry_rule": "Future CACE chat with working Library write access should upload the current handoff and idea ledger, verify them by Library search/read, then update this status."
+    }
   }
 }
