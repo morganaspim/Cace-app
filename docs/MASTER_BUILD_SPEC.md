@@ -648,3 +648,42 @@ Production readiness additionally requires exact-commit regression/security/depl
 - require blockchain/cryptocurrency for provenance;
 - let web convenience bypass canonical scientific contracts;
 - let documentation commits disturb an in-flight exact-head proof qualification unnecessarily.
+
+
+## Full-featured just-works product contract
+
+CACE production is a complete mathematics/sciences playground, not a developer
+prototype. Startup should automatically preflight the supported host, initialize
+safe local state, start the hardened private service plane, expose only the web
+gateway, detect optional backends and degrade visibly without weakening
+scientific/evidence rules.
+
+See `docs/JUST_WORKS_SELF_SANDBOXING.md`.
+
+## Free trial and one-person account contract
+
+The free trial requires no credit card and is granted once per verified person
+identity anchor. The trial entitlement survives account recreation/deletion as
+required for anti-abuse; returning users recover/merge their account rather than
+receiving another trial.
+
+Expiry is strictly non-destructive. Users retain view/export/delete/recovery/help
+access to their own data while premium execution/network/economy capabilities
+may be disabled until licensing.
+
+See `CACE_TRIAL_ACCOUNT_POLICY.json` and
+`docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md`.
+
+## Customer-safe complete help contract
+
+Production help is generated from the live public module registry. Every
+registered module receives visible contract help plus at least two direct-use
+and two combined-module examples. Every customer-facing feature receives at
+least two examples.
+
+The help system explains typed connections, unit contracts, verification,
+evidence classes, provenance and formal-qualification boundaries without
+publishing proprietary CACE mathematics, algorithms, hidden defaults, theorem
+bodies, source internals or security secrets.
+
+See `CACE_PUBLIC_HELP_POLICY.json` and `docs/help/README.md`.

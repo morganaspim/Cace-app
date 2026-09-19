@@ -10,6 +10,8 @@ Read these in order before changing scientific or verification behavior:
 2. `CACE_BUILD_LITE.json` — low-cost deterministic build/test optimizer for coding agents.
 3. `CACE_PAYMENT_POLICY.json` — canonical public payment-wallet policy; do not invent replacement wallets.
 4. `CACE_DEPLOYMENT_BOUNDARY.json` — browser-only public surface and hardened private/local service policy.
+5. `CACE_TRIAL_ACCOUNT_POLICY.json` — one-person/one-trial and non-destructive expiry policy.
+6. `CACE_PUBLIC_HELP_POLICY.json` — customer-help completeness and proprietary-leakage boundary.
 3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
@@ -262,3 +264,77 @@ server-side secrets, and auditable privileged operations.
 
 The public gateway treats all browser state as hostile input and revalidates
 schema, authorization, sizes, rates, paths and capabilities server-side.
+
+
+## Full-production "just works" requirement
+
+The intended product is a **full-featured, production-grade mathematics and
+sciences playground that just works** for an ordinary supported user. A coding
+agent must not turn CACE into a demo, thin calculator, documentation site, or
+collection of disconnected prototypes.
+
+Production startup should automatically:
+
+- perform platform/runtime preflight checks;
+- initialize required local account/data/work directories safely;
+- start the hardened private/local service plane with the strongest practical
+  sandbox controls available on the host;
+- expose only the CACE web gateway to the browser/client;
+- detect optional CPU/GPU/AI/scientific backends;
+- degrade visibly when an optional backend is missing rather than weakening
+  evidence/security rules;
+- provide a usable canvas/module/help experience without requiring a developer
+  to manually wire ordinary features.
+
+Machine-readable security authority remains `CACE_DEPLOYMENT_BOUNDARY.json`.
+See `docs/JUST_WORKS_SELF_SANDBOXING.md`.
+
+## Trial and one-person account rule
+
+The free trial requires **no credit card** and is granted once per verified
+person/user identity anchor. Browser cookies, a new email form submission, or a
+fresh account row are not sufficient to create a new trial.
+
+The production auth adapter must provide a stable verified subject from which
+the server derives an opaque person key. Trial entitlement is stored separately
+from the account row. If the same person returns, recover/merge the existing
+account; do not grant another trial.
+
+Trial expiry must be non-destructive. CACE must never encrypt, corrupt, delete,
+or hold user data hostage. An expired unlicensed account retains at least
+sign-in, view, export/download, delete, account recovery, help and license
+management. Premium execution/network/economy features may become unavailable
+until licensed.
+
+Authority: `CACE_TRIAL_ACCOUNT_POLICY.json`.
+Executable core: `cace_studio/trial_entitlement.py`.
+
+## Customer-safe complete help requirement
+
+Every production build must provide customer help for every customer-facing
+feature and every registered module, with at least:
+
+- two examples for each feature;
+- two direct-use examples for each module;
+- two combined-module examples for each module;
+- visible input/output/parameter type/unit contracts;
+- public evidence/rigor explanations;
+- safe compatible-connection suggestions.
+
+Generate it from the live registry:
+
+```sh
+python scripts/generate_public_help.py
+```
+
+The generated reference belongs at
+`docs/help/generated/CACE_PUBLIC_HELP.md` and its machine-readable companion.
+
+The help layer must **not** disclose proprietary CACE equations, custom
+mathematical derivations, algorithms, source paths, class/function names,
+theorem bodies, Lean implementation details, hidden defaults/coefficients,
+proof artifacts, credentials, database internals, service internals or prompts.
+Explain what a module looks for and how to use/connect it, not how CACE
+implements it internally.
+
+Authority: `CACE_PUBLIC_HELP_POLICY.json`.

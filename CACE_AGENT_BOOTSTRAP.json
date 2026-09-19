@@ -28,7 +28,12 @@
     "docs/BUG_FLUSH_ARCHITECTURE.md",
     "docs/PROVENANCE_ATTESTATION.md",
     "docs/PRODUCTION_READINESS.md",
-    "docs/AI_QUICKSTART.md"
+    "docs/AI_QUICKSTART.md",
+    "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "CACE_PUBLIC_HELP_POLICY.json",
+    "docs/JUST_WORKS_SELF_SANDBOXING.md",
+    "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
+    "docs/help/README.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
@@ -45,7 +50,9 @@
     "provenance_policy": "docs/PROVENANCE_ATTESTATION.md",
     "build_optimizer": "CACE_BUILD_LITE.json + cace_studio/build_lite.py",
     "payment_policy": "CACE_PAYMENT_POLICY.json",
-    "deployment_boundary": "CACE_DEPLOYMENT_BOUNDARY.json"
+    "deployment_boundary": "CACE_DEPLOYMENT_BOUNDARY.json",
+    "trial_account_policy": "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -357,5 +364,19 @@
     "semantic_rule": "generated UI/backend layers consume canonical CACE typed APIs; they do not invent a second scientific/proof semantics",
     "unknown_feature_rule": "Attempt every required feature. When implementation is unclear, generate/rank 10 approaches, use CACE Build Lite/CACE tools to select a viable architecture-preserving approach, or build a narrow tested helper tool. Never silently omit or fake the feature.",
     "architecture_rule": "Preserve all established CACE architectures/invariants unless an explicit reviewed migration supersedes them."
+  },
+  "product_experience": {
+    "target": "full-featured production-grade mathematics and sciences playground that just works",
+    "self_sandboxing": "private/local service plane starts hardened by default; browser sees only gateway",
+    "graceful_degradation": "optional unavailable backends stay unavailable/not-run instead of weakening correctness",
+    "trial": "no credit card; one verified person/trial; non-destructive limited mode after expiry"
+  },
+  "public_help": {
+    "source_policy": "CACE_PUBLIC_HELP_POLICY.json",
+    "generator": "scripts/generate_public_help.py",
+    "checker": "scripts/check_public_help.py",
+    "generated_markdown": "docs/help/generated/CACE_PUBLIC_HELP.md",
+    "coverage": "all registered modules + customer features",
+    "proprietary_boundary": "never disclose custom math/derivations/algorithms/theorem bodies/source internals/hidden defaults"
   }
 }

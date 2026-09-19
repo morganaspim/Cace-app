@@ -473,3 +473,33 @@ Required architecture:
 - scientific/proof services have no general Internet egress;
 - hosted code builders may generate the public webapp but cannot replace the
   canonical hardened backend semantics.
+
+
+## Customer-safe help + just-works trial/product contract
+
+Added 2026-09-19.
+
+New durable goals:
+
+- G062 — complete customer-safe generated help for every registered module/feature;
+- G063 — full-featured just-works self-sandboxing production experience with one-person/no-card free trial.
+
+Public help:
+
+- machine policy: `CACE_PUBLIC_HELP_POLICY.json`;
+- generator: `scripts/generate_public_help.py`;
+- checker: `scripts/check_public_help.py`;
+- target file: `docs/help/generated/CACE_PUBLIC_HELP.md`;
+- every live module gets 2 direct + 2 combined examples;
+- no proprietary equations/derivations/algorithms/hidden defaults/theorem/source internals.
+
+Trial/product:
+
+- machine policy: `CACE_TRIAL_ACCOUNT_POLICY.json`;
+- executable entitlement core: `cace_studio/trial_entitlement.py`;
+- no credit card required;
+- one trial per stable verified person key, separate from account row;
+- duplicate account creation routes to recovery/merge;
+- expiry is non-destructive limited mode, never ransomware behavior;
+- view/export/delete/recovery/help remain available after expiry;
+- startup target is a full production maths/sciences playground that self-preflights and self-sandboxes behind the browser-only gateway.

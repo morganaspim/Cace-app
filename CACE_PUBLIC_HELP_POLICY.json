@@ -1,0 +1,68 @@
+{
+  "schema": "cace.public-help-policy.v1",
+  "role": "customer-facing help leakage boundary",
+  "purpose": "Allow complete user help while preventing proprietary implementation, custom mathematics, proof internals, secrets, and source architecture from being exposed.",
+  "allowed_module_fields": [
+    "display name",
+    "public category",
+    "maturity label",
+    "visible input names/types/units/required flags",
+    "visible output names/types/units/required flags",
+    "visible parameter names/types/units",
+    "declared evidence categories",
+    "customer-safe generated usage examples",
+    "customer-safe mechanically compatible connection suggestions"
+  ],
+  "forbidden_content": [
+    "parameter defaults unless separately marked public",
+    "raw module assumptions/limitations if they reveal proprietary method details",
+    "source file paths",
+    "Python class/function names",
+    "private repository layout beyond public help paths",
+    "theorem source or theorem bodies",
+    "Lean implementation details",
+    "custom CACE equations or proprietary mathematical derivations",
+    "algorithm/pseudocode implementation details",
+    "optimization heuristics or coefficients",
+    "proof artifact hashes or private qualification artifacts",
+    "database schemas/queries",
+    "wallet secrets or credentials",
+    "network/service credentials",
+    "internal prompts or chain-of-thought",
+    "security-sensitive implementation details"
+  ],
+  "public_rigor_topics": [
+    "typed input/output compatibility",
+    "exact unit-contract compatibility",
+    "parameter and input validation",
+    "explicit run-time verification state",
+    "evidence classes remain distinct",
+    "metadata does not equal executed evidence",
+    "formal claims require separate canonical qualification",
+    "provenance identifies results but does not prove mathematics",
+    "AI suggestions never create evidence",
+    "failed/not-run/stale states remain visible"
+  ],
+  "example_minimums": {
+    "feature_examples": 2,
+    "module_examples": 2,
+    "module_connection_examples": 2
+  },
+  "connection_rule": "Connection suggestions are based only on public port type/unit compatibility. Compatibility means the data contract can connect; it does not by itself establish that the scientific experiment is appropriate.",
+  "redaction_markers": [
+    "CACEFormal/",
+    "formal/cace_formal/",
+    "cace_studio/modules/",
+    "cace_studio/core/",
+    ".lean:",
+    "by exact",
+    "by simpa",
+    "sorry",
+    "lake build",
+    "kernel axiom",
+    "private key",
+    "mnemonic",
+    "seed phrase",
+    "wallet rpc password"
+  ]
+}

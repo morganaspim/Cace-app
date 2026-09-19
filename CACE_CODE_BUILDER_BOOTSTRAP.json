@@ -2,7 +2,7 @@
   "schema": "cace.code-builder-bootstrap.v1",
   "role": "machine-readable full-production-app instructions for GitHub-connected coding agents; navigation/policy only",
   "project": "CACE Studio",
-  "goal": "Build and improve the complete production CACE application from this repository while preserving canonical scientific/proof/security semantics.",
+  "goal": "Build and improve the complete full-featured production-grade CACE mathematics and sciences playground so it just works for ordinary supported users while preserving canonical scientific/proof/security semantics.",
   "source_of_truth": "the checked-out GitHub commit",
   "required_first_read": [
     "AGENTS.md",
@@ -15,7 +15,12 @@
     "docs/GOAL_REGISTRY.json",
     "docs/SECURITY_ARCHITECTURE.md",
     "docs/CLAIMS.md",
-    "docs/PRODUCTION_READINESS.md"
+    "docs/PRODUCTION_READINESS.md",
+    "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "CACE_PUBLIC_HELP_POLICY.json",
+    "docs/JUST_WORKS_SELF_SANDBOXING.md",
+    "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
+    "docs/help/README.md"
   ],
   "build_optimizer": {
     "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
@@ -38,7 +43,12 @@
     "when a missing capability is required, build a narrow tested helper tool rather than weakening an existing architecture",
     "apply the CACE bug-flush sibling sweep and permanent-regression-guard loop to every confirmed defect",
     "the webapp/gateway is the only client-visible surface; all privileged CACE services remain private/local behind typed server-side mediation",
-    "generated browser code must never connect directly to local AI/model servers, databases, wallet RPC, filesystem workers, scientific/native workers, network-pairing transport, or the Lean runner"
+    "generated browser code must never connect directly to local AI/model servers, databases, wallet RPC, filesystem workers, scientific/native workers, network-pairing transport, or the Lean runner",
+    "deliver a full-featured production-grade mathematics and sciences playground that just works rather than a demo or simplified substitute",
+    "startup self-checks and self-sandboxes the private/local service plane with safe defaults and visible graceful degradation",
+    "free trial requires no credit card and is granted once per verified person identity anchor; new/deleted accounts cannot reset the trial",
+    "post-trial limited mode is non-destructive and always preserves reasonable view/export/delete/recovery access to user-owned data",
+    "generate customer-safe help from the live registry so every registered module has at least two direct and two combined examples without exposing proprietary implementation or custom mathematics"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -110,5 +120,26 @@
     "client_rule": "Browser/client communicates only with the same-origin HTTPS/WSS web gateway.",
     "private_layer": "orchestrator, scientific runtime, AI broker, databases, pairing/economy/payment brokers, native workers, durable storage and proof runner",
     "builder_rule": "Base44/Gemini/generated frontend may implement presentation/gateway integration but must preserve the hardened private layer and canonical backend semantics."
+  },
+  "product_experience": {
+    "target": "full-featured production-grade mathematics and sciences playground that just works",
+    "self_sandboxing_policy": "CACE_DEPLOYMENT_BOUNDARY.json + docs/JUST_WORKS_SELF_SANDBOXING.md",
+    "startup_rule": "preflight, initialize safe local state, start hardened private services, expose only gateway, detect optional backends, degrade visibly"
+  },
+  "trial_account_policy": {
+    "source": "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "no_credit_card_required": true,
+    "one_verified_person_one_trial": true,
+    "duplicate_action": "account recovery/merge, not a new trial",
+    "account_deletion_resets_trial": false,
+    "expiry": "non-destructive limited mode; preserve view/export/delete/recovery/help/license management"
+  },
+  "public_help_policy": {
+    "source": "CACE_PUBLIC_HELP_POLICY.json",
+    "generator": "python scripts/generate_public_help.py",
+    "checker": "python scripts/check_public_help.py",
+    "module_coverage": "every live registered module",
+    "minimum_examples": "2 direct + 2 combined per module; 2 per feature",
+    "secrecy": "public behavior/contracts/evidence only; no proprietary equations, derivations, algorithms, hidden defaults, theorem bodies, source internals or credentials"
   }
 }

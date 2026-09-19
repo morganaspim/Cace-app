@@ -1,0 +1,36 @@
+{
+  "schema": "cace.public-feature-help-fragment.v1",
+  "features": [
+    {
+      "id": "free-trial-account-uniqueness",
+      "title": "Free Trial, Account Recovery, and One-Person Account Policy",
+      "status": "production architecture",
+      "what_you_see": "A no-credit-card free trial tied to your verified account identity, followed by a non-destructive limited mode if the trial ends without a license.",
+      "what_it_looks_for": [
+        "A verified account identity handled by the production authentication service",
+        "An existing trial/account record or a first-time trial claim"
+      ],
+      "rigor": "Account/trial/licensing state controls product capabilities only. It never changes scientific evidence, proof status, or stored experiment truth. Trial expiry never encrypts, corrupts, deletes, or holds user data hostage.",
+      "examples": [
+        "Create your first account, start the free trial without entering a credit card, run experiments during the trial, then continue to view/export/delete your own work if the trial later expires.",
+        "If you return with the same verified identity, recover or merge the existing account rather than opening a second trial account; the original trial clock is preserved."
+      ]
+    },
+    {
+      "id": "self-sandboxing-production",
+      "title": "Self-Sandboxing Production Runtime",
+      "status": "production architecture",
+      "what_you_see": "A webapp that starts the hardened CACE service layer with safe defaults and exposes only the web gateway to the client.",
+      "what_it_looks_for": [
+        "A supported production environment",
+        "Required local service permissions and writable data directories",
+        "Optional scientific/AI backends detected at startup"
+      ],
+      "rigor": "The browser remains untrusted presentation. Privileged science, AI, wallet, storage, network, and proof services stay behind the private service boundary and use least-privilege isolation. Missing optional backends degrade visibly instead of silently weakening verification.",
+      "examples": [
+        "Start CACE on a supported machine and let the startup self-check initialize local data, validate service boundaries, and open the webapp without manual scientific configuration.",
+        "Run CACE without an optional GPU or local-AI provider; the affected capability reports unavailable/limited while ordinary supported experiments and evidence rules continue to work."
+      ]
+    }
+  ]
+}

@@ -912,6 +912,40 @@
         "Production validation includes port/listener exposure tests, CSP/connect-src checks, direct-service negative tests, secret scans, auth/CSRF/rate/upload limits and sandbox hardening checks.",
         "Base44/Gemini/other code builders may generate the public webapp/gateway integration but must preserve the private canonical CACE service plane."
       ]
+    },
+    {
+      "id": "G062",
+      "category": "customer_experience",
+      "priority": 62,
+      "intent_status": "required",
+      "title": "Complete customer-safe help for every feature and registered module",
+      "summary": "Generate public help from the live registry with visible module contracts, rigor guidance, and at least two direct plus two combined examples per module while preventing proprietary CACE math/implementation leakage.",
+      "acceptance": [
+        "Every registered module appears in generated customer help.",
+        "Every module has at least two direct-use examples and two combined-module examples.",
+        "Every customer-facing feature has at least two examples.",
+        "Help explains public typed inputs/outputs/parameters/units/evidence and compatible connections without exposing internal module IDs/source paths/class names.",
+        "Help excludes proprietary equations, derivations, algorithms, hidden defaults/coefficients, theorem bodies, Lean implementation, proof artifacts, credentials and security-sensitive internals.",
+        "A leakage/coverage checker is part of the cheap/merge build frontier."
+      ]
+    },
+    {
+      "id": "G063",
+      "category": "product_account_experience",
+      "priority": 63,
+      "intent_status": "required",
+      "title": "Just-works self-sandboxing production app with one-person free trial",
+      "summary": "Build CACE as a full-featured production mathematics/sciences playground that self-preflights/sandboxes, requires no credit card for trial, grants one trial per verified person identity, and uses a transparent non-destructive limited mode after expiry.",
+      "acceptance": [
+        "Production startup preflights the host, initializes safe state, starts hardened private services and exposes only the web gateway.",
+        "Missing optional GPU/AI/network/formal backends degrade visibly rather than breaking unrelated features or weakening evidence.",
+        "Free trial requires no credit card.",
+        "Trial entitlement is server-side and tied to a stable verified person key separately from the account row.",
+        "Creating/deleting another account does not reset a person's trial; recovery/merge is used instead.",
+        "Trial expiry never encrypts/corrupts/deletes user files or blocks export/recovery.",
+        "Expired users retain sign-in, view, export/download, delete, account recovery, help and license-management rights.",
+        "Account/trial/license state never changes scientific proof/evidence."
+      ]
     }
   ]
 }
