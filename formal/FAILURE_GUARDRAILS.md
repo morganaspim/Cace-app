@@ -568,3 +568,21 @@ representations and relied on fragile theorem-dot parsing instead of the pinned 
 - reject reintroduction of plain `rw [map_smul]` in the low-Laplacian multiplier block.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
+
+
+## F-030 — H(div) zero-normalization mismatch
+
+**Fingerprint:** after the positive-Laplacian dependency compiled, the H(div) annihilator
+failed when `complexL2ToDistribution_injective` was applied directly to
+`complexL2ToDistribution n x.2 = 0`, while injectivity expected an equality against
+`complexL2ToDistribution n 0`.
+
+**Root cause:** Lean did not definitionally identify the literal zero in the distribution
+codomain with the image of zero under the continuous linear embedding at that application site.
+
+**Permanent prevention:**
+- introduce the L2 zero conclusion with an explicit injectivity application;
+- normalize the distributional equality with `simpa using hgDist` before invoking injectivity;
+- reject the fragile direct application `complexL2ToDistribution_injective n hgDist`.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
