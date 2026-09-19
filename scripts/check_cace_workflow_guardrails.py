@@ -41,6 +41,8 @@ REQUIRED_SNIPPETS = (
     "python3 scripts/cace_proof_guardrails.py impacted",
     "python3 scripts/cace_proof_guardrails.py plan-hash",
     "python3 scripts/check_cace_known_failure_regressions.py",
+    "CACE_QUARANTINED_STANDALONE_TARGET_OK",
+    "standalone quarantine compilation requires compile_root=false",
     'test "$COMPILE_ROOT" = "false"',
     "quarantined_root_imports",
     'target_class="quarantined-standalone"',
