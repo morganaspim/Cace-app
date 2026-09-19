@@ -1,6 +1,7 @@
 import Mathlib
 import CACEFormal.AffineP1RT0Transport
 import CACEFormal.RT0P1DerivedAssembly
+import CACEFormal.MeshElementGeometry
 
 namespace CACEFormal
 
@@ -91,6 +92,42 @@ noncomputable def derivedCertificate
         (flux (mesh.interiorRightCell i))
         (mesh.interiorRightSlot i) hdet]
       exact hInterior i)
+
+
+/-- Geometry-locked affine transport certificate.  The source triangle for every
+cell is derived from `MeshCertificate` itself; the transported geometry is then
+exactly `F.mapTriangle` of that certified source geometry. -/
+noncomputable def meshDerivedCertificate
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence
+        (MeshElementGeometry.realTriangle mesh K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (MeshElementGeometry.realTriangle mesh (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    RT0P1DerivedAssemblyCertificate mesh :=
+  derivedCertificate
+    F hdet
+    (MeshElementGeometry.realTriangle mesh)
+    primal flux
+    hEquilibrium hBoundary hInterior
 
 /-- The global exact cell pairing sum is unchanged by a common nonsingular
 affine map when P1 and RT0 data are transported by the certified pullback/Piola
