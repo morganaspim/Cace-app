@@ -12,6 +12,7 @@ try:
         QGraphicsLineItem,
         QGraphicsPathItem,
         QGraphicsScene,
+        QGraphicsSimpleTextItem,
         QGraphicsView,
         QLabel,
         QVBoxLayout,
@@ -83,10 +84,23 @@ class CoordinateTransformPreview(QWidget):
         self._draw_axes()
 
     def _draw_axes(self) -> None:
-        rect = self.scene.sceneRect()
+        rect = self.scene.sceneRect().adjusted(24, 18, -24, -18)
+        xmin, xmax, ymin, ymax = self._map_bounds
         pen = QPen(self.palette().mid().color())
-        self.scene.addLine(rect.left(), rect.center().y(), rect.right(), rect.center().y(), pen)
-        self.scene.addLine(rect.center().x(), rect.top(), rect.center().x(), rect.bottom(), pen)
+
+        if ymin <= 0.0 <= ymax:
+            origin_y = self._map_point((xmin, 0.0)).y()
+            self.scene.addLine(rect.left(), origin_y, rect.right(), origin_y, pen)
+            label = QGraphicsSimpleTextItem("x")
+            label.setPos(rect.right() - 12, origin_y + 3)
+            self.scene.addItem(label)
+
+        if xmin <= 0.0 <= xmax:
+            origin_x = self._map_point((0.0, ymin)).x()
+            self.scene.addLine(origin_x, rect.top(), origin_x, rect.bottom(), pen)
+            label = QGraphicsSimpleTextItem("y")
+            label.setPos(origin_x + 4, rect.top())
+            self.scene.addItem(label)
 
     def _set_bounds(
         self,
