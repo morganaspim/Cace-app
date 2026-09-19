@@ -126,6 +126,8 @@ class LocalAIAssistantWidget(QWidget):
         self.settings = settings
         self.configure_callback = configure_callback
         self.history: list[dict[str, str]] = []
+        self.last_plan_task = ""
+        self.last_suggestions = []
         self.pool = QThreadPool.globalInstance()
         self.hybrid = HybridLocalAI(
             registry,
@@ -164,11 +166,25 @@ class LocalAIAssistantWidget(QWidget):
         )
         self.general_button.toggled.connect(self._toggle_generally_useful)
 
+        self.useful_button = QPushButton("Top Suggestion Useful")
+        self.useful_button.setToolTip(
+            "Train the local ranker that the most recent top planner combination was useful."
+        )
+        self.useful_button.clicked.connect(lambda: self._record_top_feedback(1.0))
+
+        self.not_useful_button = QPushButton("Top Suggestion Not Useful")
+        self.not_useful_button.setToolTip(
+            "Train the local ranker that the most recent top planner combination was not useful."
+        )
+        self.not_useful_button.clicked.connect(lambda: self._record_top_feedback(0.0))
+
         configure = QPushButton("Configure")
         configure.clicked.connect(self.configure_callback)
 
         mode_row = QHBoxLayout()
         mode_row.addWidget(self.general_button)
+        mode_row.addWidget(self.useful_button)
+        mode_row.addWidget(self.not_useful_button)
         mode_row.addStretch()
 
         row = QHBoxLayout()
@@ -200,6 +216,8 @@ class LocalAIAssistantWidget(QWidget):
             self.send_button.setEnabled(False)
             self.plan_button.setEnabled(False)
             self.general_button.setEnabled(False)
+            self.useful_button.setEnabled(False)
+            self.not_useful_button.setEnabled(False)
             return
 
         model = self.settings.ai_model or "no model selected"
@@ -212,6 +230,9 @@ class LocalAIAssistantWidget(QWidget):
         self.general_button.setEnabled(True)
         self.plan_button.setEnabled(True)
         self.send_button.setEnabled(bool(self.settings.ai_model))
+        have_feedback_target = bool(self.last_suggestions)
+        self.useful_button.setEnabled(have_feedback_target)
+        self.not_useful_button.setEnabled(have_feedback_target)
 
     def _toggle_generally_useful(self, checked: bool) -> None:
         self.settings.ai_generally_useful = bool(checked)
@@ -221,6 +242,33 @@ class LocalAIAssistantWidget(QWidget):
             "[system] Planner switched to generally useful cross-workflow ranking."
             if checked
             else "[system] Planner switched to current-task-focused ranking."
+        )
+
+    def _record_top_feedback(self, target: float) -> None:
+        if not self.last_suggestions:
+            self.transcript.append("[system] No planner suggestion is available for feedback yet.")
+            return
+        suggestion = self.last_suggestions[0]
+        try:
+            loss = self.hybrid.record_feedback(
+                task_text=self.last_plan_task,
+                suggestion=suggestion,
+                target=float(target),
+                evidence_kind="experimental",
+                measured_cost=0.0,
+                metadata={
+                    "source": "manual-ui-feedback",
+                    "generally_useful": bool(self.settings.ai_generally_useful),
+                },
+            )
+        except Exception as exc:
+            self.transcript.append(
+                f"[system] Could not record local planner feedback: {type(exc).__name__}: {exc}"
+            )
+            return
+        label = "useful" if target >= 0.5 else "not useful"
+        self.transcript.append(
+            f"[learning] Recorded top combination as {label}; local ranker update loss={loss:.4f}."
         )
 
     def _system_message(self) -> str:
@@ -272,6 +320,7 @@ class LocalAIAssistantWidget(QWidget):
                 self.transcript.append("[system] Enter a task to run task-focused planning.")
                 return
 
+        self.last_plan_task = text
         self.plan_button.setEnabled(False)
         self.send_button.setEnabled(False)
         self.status.setText("Cheap local planner is ranking 1–9+ combinations…")
@@ -285,6 +334,7 @@ class LocalAIAssistantWidget(QWidget):
         self.pool.start(worker)
 
     def _plan_finished(self, suggestions) -> None:
+        self.last_suggestions = list(suggestions)
         label = "generally useful" if self.settings.ai_generally_useful else "task-focused"
         self.transcript.append(
             f"[planner:{label}]\n{self._format_suggestions(suggestions)}"
@@ -315,6 +365,7 @@ class LocalAIAssistantWidget(QWidget):
             self.transcript.append(f"[system] {exc}")
             return
 
+        self.last_plan_task = text
         self.prompt.clear()
         self.transcript.append(f"[you] {text}")
         self.history.append({"role": "user", "content": text})
@@ -339,6 +390,7 @@ class LocalAIAssistantWidget(QWidget):
     def _finished(self, payload) -> None:
         text = str(payload["answer"])
         suggestions = payload.get("suggestions", ())
+        self.last_suggestions = list(suggestions)
         self.history.append({"role": "assistant", "content": text})
         self.transcript.append(
             "[planner context]\n" + self._format_suggestions(suggestions)
