@@ -115,3 +115,28 @@ def test_canary_is_configured_but_not_promoted_into_audited_root():
         ROOT / config["module_root"],
         config["canary_module"],
     ).is_file()
+
+
+def test_validate_can_run_silently_for_machine_outputs(capsys):
+    guard = _guardrails()
+    config = guard.load_config()
+    guard.validate(config, emit=False)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_proof_plan_payload_is_json_serializable_without_status_prefix():
+    guard = _guardrails()
+    config = guard.load_config()
+    args = SimpleNamespace(
+        toolchain="leanprover/lean4:v4.32.1",
+        mathlib_commit="520045ab14e26149ee970e2e617ca04b09bde5d6",
+        target="CACEFormal/P1RT0Element.lean",
+        compile_root="true",
+        impacted_file=None,
+    )
+    import json
+    encoded = json.dumps(guard.proof_plan(config, args), sort_keys=True)
+    decoded = json.loads(encoded)
+    assert decoded["plan_sha256"]
