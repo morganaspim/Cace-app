@@ -46,6 +46,7 @@
     "CACEFormal.BoxGraphTrace",
     "CACEFormal.BoxGraphGreenPairing",
     "CACEFormal.BoxPragerSynge",
+    "CACEFormal.BoxPragerSyngeEquilibrated",
     "CACEFormal.BoxClassicalAgreement",
     "CACEFormal.SmoothBoxGreenAuto",
     "CACEFormal.RegularizationClosure",

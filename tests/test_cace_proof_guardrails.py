@@ -23,7 +23,7 @@ def test_current_audited_root_matches_guardrail_policy():
     guard.validate(config)
 
 
-def test_promoted_hdiv_modules_leave_quarantine_and_enter_audited_root():
+def test_promoted_formal_modules_leave_quarantine_and_enter_audited_root():
     guard = _guardrails()
     config = guard.load_config()
     root = ROOT / config["audited_root"]
@@ -34,6 +34,7 @@ def test_promoted_hdiv_modules_leave_quarantine_and_enter_audited_root():
         "CACEFormal.HDivGraphAnnihilator",
         "CACEFormal.OrthogonalClosure",
         "CACEFormal.HDivDensityReduction",
+        "CACEFormal.BoxPragerSyngeEquilibrated",
     }
     assert imports.isdisjoint(quarantined)
     assert promoted.isdisjoint(quarantined)
@@ -61,6 +62,7 @@ def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
     assert "CACEFormal.HDivGraphAnnihilator" in closure
     assert "CACEFormal.OrthogonalClosure" in closure
     assert "CACEFormal.HDivDensityReduction" in closure
+    assert "CACEFormal.BoxPragerSyngeEquilibrated" in closure
     assert closure.isdisjoint(set(config["quarantined_root_imports"]))
 
 
@@ -111,6 +113,44 @@ def test_plan_hash_is_deterministic_and_content_addressed():
     assert any(
         record.get("module") == "CACEFormal.ExteriorPowerTransport"
         for record in first["root_sources"]
+    )
+    assert any(
+        record.get("module") == "CACEFormal.P1RT0Element"
+        for record in first["target_sources"]
+    )
+
+
+def test_changed_quarantined_module_is_included_in_impacted_compile_plan():
+    guard = _guardrails()
+    config = dict(guard.load_config())
+    module_root = ROOT / config["module_root"]
+    target = config["canary_module"]
+    config["quarantined_root_imports"] = [target]
+    assert target not in set(config["allowed_root_imports"])
+    target_path = guard.module_to_path(module_root, target)
+    assert target_path.is_file()
+
+    guard.git_changed_paths = lambda _base_ref: [target_path]
+    impacted = guard.impacted_modules(config, "unused-base-ref")
+
+    assert target in impacted
+
+
+def test_nonroot_target_source_is_bound_into_proof_plan():
+    guard = _guardrails()
+    config = guard.load_config()
+    args = SimpleNamespace(
+        toolchain="leanprover/lean4:v4.32.1",
+        mathlib_commit="520045ab14e26149ee970e2e617ca04b09bde5d6",
+        target="CACEFormal/GuardrailCanaries.lean",
+        compile_root="false",
+        impacted_file=None,
+    )
+    plan = guard.proof_plan(config, args)
+
+    assert any(
+        record.get("module") == "CACEFormal.GuardrailCanaries"
+        for record in plan["target_sources"]
     )
 
 
@@ -237,7 +277,8 @@ def test_exact_pin_workflow_uses_behaviorally_tested_target_classifier():
         ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
     ).read_text(encoding="utf-8")
     assert "scripts/cace_proof_guardrails.py classify-target" in workflow
-    assert 'target_class="$(python3 scripts/cace_proof_guardrails.py classify-target' in workflow
+    assert '--module "$module_name"' in workflow
+    assert '--compile-root "$COMPILE_ROOT"' in workflow
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():

@@ -52,6 +52,7 @@ import CACEFormal.PDEDomainRealBridge
 import CACEFormal.BoxGraphTrace
 import CACEFormal.BoxGraphGreenPairing
 import CACEFormal.BoxPragerSynge
+import CACEFormal.BoxPragerSyngeEquilibrated
 import CACEFormal.BoxClassicalAgreement
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure

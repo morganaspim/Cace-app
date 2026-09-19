@@ -16,6 +16,7 @@ import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.WeightedEnergy
 import CACEFormal.BoxPragerSynge
+import CACEFormal.BoxPragerSyngeEquilibrated
 
 namespace CACEFormal
 
@@ -149,6 +150,7 @@ example (mesh : MeshCertificate) (K : Fin mesh.triangleCount)
 #check SPDEnergyOperator.energySq
 #check SPDEnergyOperator.weighted_hypercircle
 #check Continuum.boxGraphPragerSynge
+#check Continuum.boxGraphPragerSynge_of_divergence_zero
 #check Continuum.boxGraphWeightedHypercircle
 
 end CACEFormal
