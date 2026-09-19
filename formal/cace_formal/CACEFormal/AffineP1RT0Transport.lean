@@ -69,7 +69,7 @@ theorem piola_vectorEdgeFlux_map
 
 /-- Physical RT0 coefficients obtained by contravariant Piola transport of a
 reference RT0 field through an affine map. -/
-def piolaRT0 (F : Affine2) (q : RT0Affine) : RT0Affine where
+noncomputable def piolaRT0 (F : Affine2) (q : RT0Affine) : RT0Affine where
   cx := (F.a * q.cx + F.b * q.cy - q.radial * F.tx) / F.linearDet
   cy := (F.c * q.cx + F.d * q.cy - q.radial * F.ty) / F.linearDet
   radial := q.radial / F.linearDet
@@ -104,7 +104,7 @@ theorem edgeFlux_piolaRT0_map
 
 /-- Pull an affine P1 scalar polynomial from reference coordinates to physical
 coordinates.  The gradient is transformed by inverse transpose. -/
-def pullP1 (F : Affine2) (v : P1Affine) : P1Affine :=
+noncomputable def pullP1 (F : Affine2) (v : P1Affine) : P1Affine :=
   let gx := (F.d * v.gx - F.c * v.gy) / F.linearDet
   let gy := (-F.b * v.gx + F.a * v.gy) / F.linearDet
   ⟨v.c - gx * F.tx - gy * F.ty, gx, gy⟩
