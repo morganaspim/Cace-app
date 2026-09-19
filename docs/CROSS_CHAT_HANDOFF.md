@@ -253,3 +253,29 @@ Key nonclaims:
 - material candidates are hypotheses/screening results, not experimentally discovered materials;
 - Safe Home Lab is whitelist-only and fails closed for hazardous chemistry;
 - string/brane objects are theoretical visualization objects, not experimentally established particles.
+
+
+### Molecular/materials implementation frontier
+
+Draft PR #48: `Science: molecular, protein folding, materials, and physics canvas modules`
+
+Branch: `feature/molecular-materials-physics`
+
+Head: `65bc547548f15e1aa4bcf9e5c56a6397b8a11e1d`
+
+Current validation:
+- local isolated scientific behavior suite: 6/6 passed;
+- CACE Collaboration Coordination Validation run `35469238744`: SUCCESS at exact PR head;
+- no Lean/proof qualification job was triggered;
+- full repository Python/native regression has **not** yet been run for this feature branch.
+
+Implemented baseline:
+- typed Atom/Bond/Molecule objects;
+- direct Protein Sequence canvas source;
+- AlphaFold-compatible PDB C-alpha import with source/license/attribution/content hash;
+- deterministic low-cost C-alpha fold search with `global_minimum_claim=false`;
+- strict Safe Home Lab whitelist;
+- deterministic materials descriptor screening with no synthesis instructions;
+- established/theoretical physics canvas objects including quarks and string/worldsheet/brane research objects.
+
+Do not merge/describe this as production-ready solely from the narrow validation above. The next quality gate is a deliberate broader Python/native regression or an equivalent local full test run.
