@@ -6,11 +6,13 @@ on:
       - 'formal/**/*.lean'
       - 'scripts/check_lean_source_sanity.py'
       - 'scripts/cace_proof_guardrails.py'
+      - 'scripts/check_cace_workflow_guardrails.py'
       - 'formal/cace_formal/proof_guardrails.json'
       - 'formal/FAILURE_GUARDRAILS.md'
       - 'tests/test_lean_source_sanity.py'
       - 'tests/test_cace_proof_guardrails.py'
       - '.github/workflows/cace-lean-source-sanity.yml'
+      - '.github/workflows/cace-exact-pin-lean-preflight.yml'
 
 permissions:
   contents: read
@@ -28,6 +30,9 @@ jobs:
 
       - name: Validate permanent proof policy
         run: python3 scripts/cace_proof_guardrails.py validate
+
+      - name: Validate exact-pin workflow structure
+        run: python3 scripts/check_cace_workflow_guardrails.py
 
       - name: Reject malformed Lean source seams
         run: python3 scripts/check_lean_source_sanity.py formal/cace_formal
