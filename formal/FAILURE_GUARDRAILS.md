@@ -369,3 +369,26 @@ coordinates remained behind `Point.toReal`.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py`,
 `tests/test_cace_proof_guardrails.py`, and `CACEFormal.GuardrailCanaries`.
+
+
+## F-022 — shallow canonical checkout hid a valid attested ancestor
+
+**Fingerprint:** canonical qualification failed in the cheap drift-audit phase with
+`attested commit ... is not an ancestor of HEAD`, while the repository graph
+showed the attested commit was in fact an ancestor.
+
+**Root cause:** the canonical workflow checked out only 64 commits of history.
+The qualified ancestor was farther back, so `git merge-base --is-ancestor`
+operated on an incomplete local graph and failed closed for the wrong reason.
+
+**Permanent prevention:**
+- canonical qualification uses `actions/checkout` with `fetch-depth: 0`;
+- qualification inheritance checks always run against complete repository
+  ancestry, while later cache-reuse logic may still deliberately bound its own
+  ancestor search for performance;
+- exact-head checkout and clean-worktree checks remain unchanged.
+
+**Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_checkout_has_complete_ancestry`.
+
+This does not weaken qualification drift. It makes the existing fail-closed
+ancestry check operate on complete evidence instead of a shallow approximation.

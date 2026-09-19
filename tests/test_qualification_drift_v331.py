@@ -185,3 +185,16 @@ def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descenda
     )[0]
     assert rejected.passed is False
     assert rejected.sensitive_paths == ("cace_studio/core/executor.py",)
+
+
+
+def test_canonical_qualification_checkout_has_complete_ancestry():
+    workflow = (
+        __import__("pathlib").Path(__file__).parents[1]
+        / ".github"
+        / "workflows"
+        / "cace-formal-v336-theorem-metadata.yml"
+    ).read_text(encoding="utf-8")
+    assert "Checkout exact event commit with complete qualification ancestry" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "fetch-depth: 64" not in workflow

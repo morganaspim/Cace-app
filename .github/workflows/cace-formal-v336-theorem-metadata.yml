@@ -62,11 +62,13 @@ jobs:
           command -v flock
           command -v gzip
 
-      - name: Checkout exact event commit with bounded first-parent history
+      - name: Checkout exact event commit with complete qualification ancestry
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 64
+          # Qualification inheritance compares HEAD with the attested commit.
+          # A bounded shallow clone can falsely report a real ancestor as absent.
+          fetch-depth: 0
           clean: true
           persist-credentials: false
 
