@@ -54,16 +54,14 @@ noncomputable def referenceSimplexFiberPoint {d : Nat}
 theorem referenceSimplexFiberPoint_proj_same {d : Nat}
     (i : Fin d) (x : EuclideanDomain d) (t : ℝ) :
     EuclideanSpace.proj i (referenceSimplexFiberPoint i x t) = t := by
-  simp [referenceSimplexFiberPoint, basisVector, EuclideanSpace.coe_proj,
-    PiLp.single_apply]
+  simp [referenceSimplexFiberPoint, basisVector]
 
 /-- Every nonselected coordinate is unchanged along the coordinate fiber. -/
 theorem referenceSimplexFiberPoint_proj_ne {d : Nat}
     (i j : Fin d) (x : EuclideanDomain d) (t : ℝ) (hji : j ≠ i) :
     EuclideanSpace.proj j (referenceSimplexFiberPoint i x t) =
       EuclideanSpace.proj j x := by
-  simp [referenceSimplexFiberPoint, basisVector, EuclideanSpace.coe_proj,
-    PiLp.single_apply, hji]
+  simp [referenceSimplexFiberPoint, basisVector, hji]
 
 /-- The sum of the nonselected coordinates is invariant along the fiber. -/
 @[simp]
@@ -152,14 +150,23 @@ theorem referenceSimplexFiberPoint_mem_iff
   rw [mem_euclideanReferenceSimplex_iff_fiber i]
   constructor
   · intro h
-    simpa using h.2
+    refine ⟨?_, ?_⟩
+    · rw [← referenceSimplexFiberPoint_proj_same i x t]
+      exact h.2.1
+    · rw [← referenceSimplexFiberPoint_proj_same i x t]
+      exact h.2.2
   · intro ht
     refine ⟨?_, ?_⟩
     · intro j hj
       rw [referenceSimplexFiberPoint_proj_ne i j x t
         (Finset.mem_erase.mp hj).1]
       exact hother j hj
-    · simpa using ht
+    · refine ⟨?_, ?_⟩
+      · rw [referenceSimplexFiberPoint_proj_same]
+        exact ht.1
+      · rw [referenceSimplexFiberPoint_proj_same,
+          referenceSimplexFiberUpper_fiberPoint]
+        exact ht.2
 
 /-- A nonempty reference-simplex fiber necessarily has a nonnegative upper endpoint. -/
 theorem referenceSimplexFiberUpper_nonneg_of_mem
