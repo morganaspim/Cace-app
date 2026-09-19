@@ -279,3 +279,26 @@ Implemented baseline:
 - established/theoretical physics canvas objects including quarks and string/worldsheet/brane research objects.
 
 Do not merge/describe this as production-ready solely from the narrow validation above. The next quality gate is a deliberate broader Python/native regression or an equivalent local full test run.
+
+
+## Open Problems Toolkit
+
+Added 2026-09-19.
+
+Design:
+
+`docs/OPEN_PROBLEMS_TOOLKIT.md`
+
+Durable goal:
+
+- G054 — source-backed, date-stamped Open Problems Toolkit with canvas import + heartbeat/local-AI Play.
+
+V1 policy:
+
+- seed catalog: Clay Millennium Prize Problems;
+- current snapshot verified 2026-09-19: six open/unsolved, Poincaré solved;
+- catalog is offline-first and stores source URLs as provenance metadata;
+- imported problems are typed research objects, never verification evidence;
+- Play may generate hypotheses/decompositions/experiments/proof obligations but cannot mark an open problem solved.
+
+Protein clarification also preserved as I065: use attributable imported protein structures and heartbeat/AI Play; do not reproduce AlphaFold.

@@ -774,6 +774,22 @@
         "Theoretical string/brane objects cannot be presented as experimentally established particles.",
         "Objects interoperate with transform/geometry modules through typed ports."
       ]
+    },
+    {
+      "id": "G054",
+      "category": "research_navigation",
+      "priority": 54,
+      "intent_status": "planned",
+      "title": "Open Problems Toolkit with canvas import and AI Play",
+      "summary": "Provide a source-backed, date-stamped GUI catalog of important open scientific/mathematical problems that can be imported as typed canvas objects and explored with heartbeat-guided local AI without promoting AI/numerical output to proof.",
+      "acceptance": [
+        "Problem entries carry authority, source URL, status and last-verified date.",
+        "V1 ships a verified Millennium Prize snapshot and supports strict custom catalog JSON.",
+        "Users can search/filter, import a problem to the canvas, and press Play.",
+        "Play uses non-authoritative heartbeat/local-AI context and cannot create PASS/VERIFIED evidence.",
+        "Solved historical problems are visibly distinguished but can still be studied as methodological examples.",
+        "Scientific runtime remains offline-first; catalog URLs are metadata rather than implicit network fetches."
+      ]
     }
   ]
 }

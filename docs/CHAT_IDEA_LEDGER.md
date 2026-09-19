@@ -87,6 +87,9 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I063 | materials discovery | Search/generate material hypotheses using composition, symmetry and mathematical descriptors with explicit uncertainty and evidence provenance; connect promising candidates to Research Ideas. | G052 |
 | I064 | physics canvas | Add draggable Standard Model particles, fields and clearly theoretical string/brane/worldsheet objects, with established-vs-theoretical classification and quark-confinement caveats. | G053 |
 
+| I065 | protein playground | Keep AlphaFold as an external attributable protein-data source rather than reproducing its model; imported proteins become immutable CACE objects with residue heartbeats and a GUI Play button that routes bounded structural context to the local AI. | G051 |
+| I066 | open-problems toolkit | Curated, date-stamped open-problem catalogs (starting with the Millennium problems) can be searched in the GUI, imported as typed canvas objects, and explored with heartbeat-guided local AI while preserving source/status and never equating AI exploration with a solution. | G054 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
