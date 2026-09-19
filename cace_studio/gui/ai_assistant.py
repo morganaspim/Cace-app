@@ -21,6 +21,7 @@ from cace_studio.ai.corpus import build_local_index
 from cace_studio.ai.grow_candidates import GrowCandidate, build_grow_candidates
 from cace_studio.ai.growth_memory import PersistentGrowthMemory
 from cace_studio.ai.hybrid import GrowthEngine
+from cace_studio.ai.preferences import AIResearchPreferences
 from cace_studio.ai.research_ideas import ResearchIdeaStore, seed_from_grow_candidate
 
 
@@ -168,6 +169,7 @@ class LocalAIAssistantWidget(QWidget):
         research_idea_store=None,
         research_idea_callback=None,
         module_context_provider=None,
+        research_preferences=None,
     ) -> None:
         super().__init__(parent)
         self.settings = settings
@@ -177,6 +179,9 @@ class LocalAIAssistantWidget(QWidget):
         self.research_idea_store = research_idea_store or ResearchIdeaStore()
         self.research_idea_callback = research_idea_callback
         self.module_context_provider = module_context_provider
+        self.research_preferences = (
+            research_preferences or AIResearchPreferences.load()
+        )
         self.history: list[dict[str, str]] = []
         self.pool = QThreadPool.globalInstance()
         self._growth_memory = PersistentGrowthMemory()
@@ -267,18 +272,26 @@ class LocalAIAssistantWidget(QWidget):
             self.grow_button.setEnabled(True)
             return
         model = self.settings.ai_model or "no model selected"
+        mode = self.research_preferences.effective_mode(
+            self.settings.assistant_mode
+        )
         self.status.setText(
-            f"AI ON — {self.settings.ai_provider} / {model} / mode={self.settings.assistant_mode}. "
+            f"AI ON — {self.settings.ai_provider} / {model} / mode={mode}. "
             "Assistant text is not verification evidence."
         )
         self.send_button.setEnabled(bool(self.settings.ai_model))
         self.grow_button.setEnabled(True)
         self.general_button.setText(
-            "Generally Useful ✓" if self.settings.assistant_mode == "general" else "Generally Useful"
+            "Generally Useful ✓"
+            if mode == "general"
+            else "Generally Useful"
         )
 
     def _system_message(self) -> str:
-        guidance = _MODE_GUIDANCE.get(self.settings.assistant_mode, _MODE_GUIDANCE["researcher"])
+        mode = self.research_preferences.effective_mode(
+            self.settings.assistant_mode
+        )
+        guidance = _MODE_GUIDANCE.get(mode, _MODE_GUIDANCE["researcher"])
         return (
             "You are the optional local assistant inside CACE Studio. "
             "Never describe your own output as mathematical proof, formal verification, a certificate, or executed evidence. "
@@ -322,8 +335,8 @@ class LocalAIAssistantWidget(QWidget):
         return text[:6000]
 
     def set_generally_useful(self) -> None:
-        self.settings.assistant_mode = "general"
-        self.settings.save()
+        self.research_preferences.assistant_mode = "general"
+        self.research_preferences.save()
         self.transcript.append(
             "[system] Generally Useful mode enabled. The assistant will favor cheap routing and cross-domain usefulness."
         )
@@ -343,12 +356,12 @@ class LocalAIAssistantWidget(QWidget):
         live_context = self._live_context()
         growth_query = query if not live_context else query + "\n\nCURRENT CACE EXPERIMENT:\n" + live_context
         embedding_provider = None
-        if self.settings.ai_embedding_model:
+        if self.research_preferences.embedding_model:
             try:
                 embedding_provider = create_local_provider(
                     self.settings.ai_provider,
                     self.settings.ai_endpoint,
-                    self.settings.ai_embedding_model,
+                    self.research_preferences.embedding_model,
                     timeout=60.0,
                 )
             except LocalAIError as exc:
@@ -359,9 +372,9 @@ class LocalAIAssistantWidget(QWidget):
             self._growth_engine,
             growth_query,
             self._growth_cycle,
-            float(self.settings.ai_growth_chaos),
-            int(self.settings.ai_growth_budget),
-            int(self.settings.ai_growth_max_group_size),
+            float(self.research_preferences.growth_chaos),
+            int(self.research_preferences.growth_budget),
+            int(self.research_preferences.growth_max_group_size),
             embedding_provider,
             self._growth_memory,
         )

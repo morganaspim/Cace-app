@@ -19,7 +19,7 @@ except ImportError as exc:  # pragma: no cover - imported only by GUI builds
 
 from cace_studio.ai.local import KNOWN_LOCAL_PROVIDERS, create_local_provider, detect_local_providers
 from cace_studio.ai.provider import LocalAIError
-from cace_studio.core.settings import AI_MODES
+from cace_studio.ai.preferences import AI_RESEARCH_MODES, AIResearchPreferences
 
 
 class LocalAISettingsDialog(QDialog):
@@ -29,9 +29,10 @@ class LocalAISettingsDialog(QDialog):
     CACE verification records, certificates, or proof-ledger promotion.
     """
 
-    def __init__(self, settings, parent=None) -> None:
+    def __init__(self, settings, parent=None, research_preferences=None) -> None:
         super().__init__(parent)
         self.settings = settings
+        self.research_preferences = research_preferences or AIResearchPreferences.load()
         self.setWindowTitle("Configure Local AI")
         self.resize(560, 260)
 
@@ -48,7 +49,7 @@ class LocalAISettingsDialog(QDialog):
             self.model.addItem(settings.ai_model)
             self.model.setCurrentText(settings.ai_model)
 
-        self.embedding_model = QLineEdit(settings.ai_embedding_model)
+        self.embedding_model = QLineEdit(self.research_preferences.embedding_model)
         self.embedding_model.setPlaceholderText("Optional local embedding model")
         self.embedding_model.setToolTip(
             "Optional. If set, Grow reranks only its small sparse shortlist with local neural embeddings."
@@ -62,28 +63,30 @@ class LocalAISettingsDialog(QDialog):
             "general": "Generally Useful",
             "autonomous": "Autonomous",
         }
-        for mode in AI_MODES:
+        for mode in AI_RESEARCH_MODES:
             self.mode.addItem(mode_labels.get(mode, mode.title()), mode)
-        mode_index = self.mode.findData(settings.assistant_mode)
+        mode_index = self.mode.findData(
+            self.research_preferences.effective_mode(settings.assistant_mode)
+        )
         self.mode.setCurrentIndex(mode_index if mode_index >= 0 else self.mode.findData("researcher"))
 
         self.growth_chaos = QDoubleSpinBox()
         self.growth_chaos.setRange(0.0, 0.85)
         self.growth_chaos.setSingleStep(0.05)
         self.growth_chaos.setDecimals(2)
-        self.growth_chaos.setValue(float(settings.ai_growth_chaos))
+        self.growth_chaos.setValue(float(self.research_preferences.growth_chaos))
         self.growth_chaos.setToolTip(
             "Bounded exploration probability over local concepts. It never perturbs canonical data or proof evidence."
         )
 
         self.growth_budget = QSpinBox()
         self.growth_budget.setRange(1, 32)
-        self.growth_budget.setValue(int(settings.ai_growth_budget))
+        self.growth_budget.setValue(int(self.research_preferences.growth_budget))
         self.growth_budget.setToolTip("Maximum scored concept combinations retained per Grow cycle.")
 
         self.growth_group_size = QSpinBox()
         self.growth_group_size.setRange(2, 4)
-        self.growth_group_size.setValue(int(settings.ai_growth_max_group_size))
+        self.growth_group_size.setValue(int(self.research_preferences.growth_max_group_size))
         self.growth_group_size.setToolTip("Largest concept combination size. 2-4 keeps combinatorics cheap.")
 
         self.status = QLabel("AI is optional and never counts as verification evidence.")
@@ -185,10 +188,13 @@ class LocalAISettingsDialog(QDialog):
         self.settings.ai_provider = provider_id
         self.settings.ai_endpoint = provider.endpoint
         self.settings.ai_model = model
-        self.settings.ai_embedding_model = self.embedding_model.text().strip()
-        self.settings.assistant_mode = str(self.mode.currentData())
-        self.settings.ai_growth_chaos = float(self.growth_chaos.value())
-        self.settings.ai_growth_budget = int(self.growth_budget.value())
-        self.settings.ai_growth_max_group_size = int(self.growth_group_size.value())
         self.settings.save()
+        self.research_preferences.embedding_model = self.embedding_model.text().strip()
+        self.research_preferences.assistant_mode = str(self.mode.currentData())
+        self.research_preferences.growth_chaos = float(self.growth_chaos.value())
+        self.research_preferences.growth_budget = int(self.growth_budget.value())
+        self.research_preferences.growth_max_group_size = int(
+            self.growth_group_size.value()
+        )
+        self.research_preferences.save()
         super().accept()

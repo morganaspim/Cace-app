@@ -32,6 +32,7 @@ from cace_studio.ai.experiment_proposal import (
     materialize_experiment_proposal,
     propose_experiment_strategies,
 )
+from cace_studio.ai.preferences import AIResearchPreferences
 from cace_studio.ai.research_ideas import ResearchIdeaStore
 from .ai_assistant import LocalAIAssistantWidget
 from .ai_settings_dialog import LocalAISettingsDialog
@@ -51,6 +52,7 @@ class MainWindow(QMainWindow):
         self.last_result = None
         self.selected_node_id = None
         self.research_idea_store = ResearchIdeaStore()
+        self.ai_research_preferences = AIResearchPreferences.load()
         self.setWindowTitle(f"CACE Studio — Verified Research Environment {__version__}")
         self.resize(1380, 860)
         self.scene = QGraphicsScene(self)
@@ -268,8 +270,11 @@ class MainWindow(QMainWindow):
             return False
         try:
             module = self.registry.create(node.module_id)
+            animation_payload = getattr(module, "animation_payload", None)
+            if not callable(animation_payload):
+                return False
             params = module.resolved_params(node.params)
-            payload = module.animation_payload(
+            payload = animation_payload(
                 params,
                 self.last_result.outputs[node_id],
             )
@@ -449,11 +454,16 @@ class MainWindow(QMainWindow):
             research_idea_store=self.research_idea_store,
             research_idea_callback=self._research_idea_kept,
             module_context_provider=self._current_module_ids,
+            research_preferences=self.ai_research_preferences,
         )
         self.assistant_dock = self._dock("Local AI Assistant", self.assistant, Qt.RightDockWidgetArea)
 
     def _configure_ai(self):
-        dialog = LocalAISettingsDialog(self.settings, self)
+        dialog = LocalAISettingsDialog(
+            self.settings,
+            self,
+            research_preferences=self.ai_research_preferences,
+        )
         dialog.exec()
         self._sync_controls()
 

@@ -381,3 +381,20 @@ inputs and one shared seed. The comparison engine also supports explicit
 per-strategy inputs keyed by proposal-local node ids for future workflows; such
 inputs can make an otherwise partial proposal runnable only when every missing
 required port is supplied.
+
+
+## Qualification-neutral AI preference boundary
+
+Grow-specific preferences (Generally Useful mode, local embedding model, chaos,
+combination budget, and maximum group size) live in
+`cace_studio.ai.preferences.AIResearchPreferences`, persisted separately from
+`cace_studio.core.settings.StudioSettings`.
+
+This separation is intentional: changing experimental AI/UI preferences must
+not modify the formally qualified core settings surface or require a fresh
+formal attestation.
+
+Likewise, transform animation remains opt-in by duck typing at the GUI boundary.
+The qualified `cace_studio.core.module.Module` base class is unchanged; a
+research module may expose an `animation_payload` method, and the GUI calls it
+only when present. Animation remains evidence-neutral presentation state.

@@ -32,6 +32,8 @@ __all__ = [
     "AIProvider",
     "LocalAIError",
     "ProviderHealth",
+    "AI_RESEARCH_MODES",
+    "AIResearchPreferences",
     "create_local_provider",
     "detect_local_providers",
     "build_local_fragments",

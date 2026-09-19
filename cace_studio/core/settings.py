@@ -5,7 +5,7 @@ import os
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
-AI_MODES = ("hints", "teacher", "researcher", "general", "autonomous")
+AI_MODES = ("hints", "teacher", "researcher", "autonomous")
 
 
 def _default_settings_path() -> Path:
@@ -21,10 +21,6 @@ class StudioSettings:
     ai_provider: str = "ollama"
     ai_endpoint: str = "http://127.0.0.1:11434"
     ai_model: str = ""
-    ai_embedding_model: str = ""
-    ai_growth_chaos: float = 0.18
-    ai_growth_budget: int = 10
-    ai_growth_max_group_size: int = 4
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "StudioSettings":
@@ -42,18 +38,6 @@ class StudioSettings:
         settings = cls(**values)
         if settings.assistant_mode not in AI_MODES:
             settings.assistant_mode = "researcher"
-        try:
-            settings.ai_growth_chaos = min(0.85, max(0.0, float(settings.ai_growth_chaos)))
-        except (TypeError, ValueError):
-            settings.ai_growth_chaos = 0.18
-        try:
-            settings.ai_growth_budget = min(32, max(1, int(settings.ai_growth_budget)))
-        except (TypeError, ValueError):
-            settings.ai_growth_budget = 10
-        try:
-            settings.ai_growth_max_group_size = min(4, max(2, int(settings.ai_growth_max_group_size)))
-        except (TypeError, ValueError):
-            settings.ai_growth_max_group_size = 4
         return settings
 
     def save(self, path: str | Path | None = None) -> Path:

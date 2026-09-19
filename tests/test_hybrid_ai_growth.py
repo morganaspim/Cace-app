@@ -9,7 +9,8 @@ from cace_studio.ai.hybrid import (
     ResearchFragment,
     SparseResearchIndex,
 )
-from cace_studio.core.settings import StudioSettings
+from cace_studio.ai.preferences import AIResearchPreferences
+from cace_studio.core.settings import AI_MODES, StudioSettings
 
 
 def _fragments():
@@ -143,34 +144,45 @@ def test_context_is_explicitly_non_evidentiary():
     assert "formal/example.lean" in context
 
 
-def test_general_mode_and_growth_settings_round_trip(tmp_path, monkeypatch):
-    path = tmp_path / "settings.json"
-    monkeypatch.setenv("CACE_SETTINGS_PATH", str(path))
-    settings = StudioSettings()
-    settings.assistant_mode = "general"
-    settings.ai_growth_chaos = 0.42
-    settings.ai_growth_budget = 17
-    settings.ai_growth_max_group_size = 3
-    settings.save()
+def test_general_mode_and_growth_preferences_round_trip(tmp_path):
+    path = tmp_path / "ai-research-preferences.json"
+    preferences = AIResearchPreferences(
+        assistant_mode="general",
+        embedding_model="local-embed",
+        growth_chaos=0.42,
+        growth_budget=17,
+        growth_max_group_size=3,
+    )
+    preferences.save(path)
 
-    loaded = StudioSettings.load()
+    loaded = AIResearchPreferences.load(path)
     assert loaded.assistant_mode == "general"
-    assert loaded.ai_growth_chaos == 0.42
-    assert loaded.ai_growth_budget == 17
-    assert loaded.ai_growth_max_group_size == 3
+    assert loaded.embedding_model == "local-embed"
+    assert loaded.growth_chaos == 0.42
+    assert loaded.growth_budget == 17
+    assert loaded.growth_max_group_size == 3
 
 
-def test_growth_settings_are_clamped_on_load(tmp_path):
-    path = tmp_path / "settings.json"
+def test_growth_preferences_are_clamped_on_load(tmp_path):
+    path = tmp_path / "ai-research-preferences.json"
     path.write_text(
-        '{"assistant_mode":"general","ai_growth_chaos":99,'
-        '"ai_growth_budget":999,"ai_growth_max_group_size":12}',
+        '{"assistant_mode":"general","growth_chaos":99,'
+        '"growth_budget":999,"growth_max_group_size":12}',
         encoding="utf-8",
     )
-    settings = StudioSettings.load(path)
-    assert settings.ai_growth_chaos == 0.85
-    assert settings.ai_growth_budget == 32
-    assert settings.ai_growth_max_group_size == 4
+    preferences = AIResearchPreferences.load(path)
+    assert preferences.growth_chaos == 0.85
+    assert preferences.growth_budget == 32
+    assert preferences.growth_max_group_size == 4
+
+
+def test_research_preferences_do_not_expand_core_settings_surface():
+    settings = StudioSettings()
+    assert "general" not in AI_MODES
+    assert not hasattr(settings, "ai_embedding_model")
+    assert not hasattr(settings, "ai_growth_chaos")
+    assert not hasattr(settings, "ai_growth_budget")
+    assert not hasattr(settings, "ai_growth_max_group_size")
 
 
 def test_local_corpus_stays_inside_supplied_root(tmp_path):
