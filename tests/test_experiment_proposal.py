@@ -503,3 +503,17 @@ def test_selected_strategy_materialization_reflects_that_strategy_only():
     assert [node.module_id for node in exploratory_graph.nodes] == [
         node.module_id for node in exploratory.nodes
     ]
+
+
+def test_exploratory_does_not_bootstrap_from_text_without_valid_base():
+    proposals = propose_experiment_strategies(
+        _registry(),
+        ("missing.one", "missing.two"),
+        title="Rotor geometry",
+        idea_context="rotor geometry creative pattern",
+    )
+    assert all(proposal.is_empty for proposal in proposals.values())
+    assert all(
+        proposal.skipped_modules == ("missing.one", "missing.two")
+        for proposal in proposals.values()
+    )
