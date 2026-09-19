@@ -5,11 +5,13 @@ try:
         QComboBox,
         QDialog,
         QDialogButtonBox,
+        QDoubleSpinBox,
         QFormLayout,
         QHBoxLayout,
         QLabel,
         QLineEdit,
         QPushButton,
+        QSpinBox,
         QVBoxLayout,
     )
 except ImportError as exc:  # pragma: no cover - imported only by GUI builds
@@ -47,10 +49,36 @@ class LocalAISettingsDialog(QDialog):
             self.model.setCurrentText(settings.ai_model)
 
         self.mode = QComboBox()
+        mode_labels = {
+            "hints": "Hints",
+            "teacher": "Teacher",
+            "researcher": "Researcher",
+            "general": "Generally Useful",
+            "autonomous": "Autonomous",
+        }
         for mode in AI_MODES:
-            self.mode.addItem(mode.title(), mode)
+            self.mode.addItem(mode_labels.get(mode, mode.title()), mode)
         mode_index = self.mode.findData(settings.assistant_mode)
         self.mode.setCurrentIndex(mode_index if mode_index >= 0 else self.mode.findData("researcher"))
+
+        self.growth_chaos = QDoubleSpinBox()
+        self.growth_chaos.setRange(0.0, 0.85)
+        self.growth_chaos.setSingleStep(0.05)
+        self.growth_chaos.setDecimals(2)
+        self.growth_chaos.setValue(float(settings.ai_growth_chaos))
+        self.growth_chaos.setToolTip(
+            "Bounded exploration probability over local concepts. It never perturbs canonical data or proof evidence."
+        )
+
+        self.growth_budget = QSpinBox()
+        self.growth_budget.setRange(1, 32)
+        self.growth_budget.setValue(int(settings.ai_growth_budget))
+        self.growth_budget.setToolTip("Maximum scored concept combinations retained per Grow cycle.")
+
+        self.growth_group_size = QSpinBox()
+        self.growth_group_size.setRange(2, 4)
+        self.growth_group_size.setValue(int(settings.ai_growth_max_group_size))
+        self.growth_group_size.setToolTip("Largest concept combination size. 2-4 keeps combinatorics cheap.")
 
         self.status = QLabel("AI is optional and never counts as verification evidence.")
         self.status.setWordWrap(True)
@@ -69,6 +97,9 @@ class LocalAISettingsDialog(QDialog):
         form.addRow("Endpoint", self.endpoint)
         form.addRow("Model", self.model)
         form.addRow("Assistant mode", self.mode)
+        form.addRow("Grow chaos", self.growth_chaos)
+        form.addRow("Grow combination budget", self.growth_budget)
+        form.addRow("Grow max group size", self.growth_group_size)
 
         dialog_buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         dialog_buttons.accepted.connect(self.accept)
@@ -148,5 +179,8 @@ class LocalAISettingsDialog(QDialog):
         self.settings.ai_endpoint = provider.endpoint
         self.settings.ai_model = model
         self.settings.assistant_mode = str(self.mode.currentData())
+        self.settings.ai_growth_chaos = float(self.growth_chaos.value())
+        self.settings.ai_growth_budget = int(self.growth_budget.value())
+        self.settings.ai_growth_max_group_size = int(self.growth_group_size.value())
         self.settings.save()
         super().accept()
