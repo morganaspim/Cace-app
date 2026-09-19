@@ -36,6 +36,13 @@ RCASES_RESERVED = {
 RCASES_RE = re.compile(r"\brcases\b.*?\bwith\b.*?⟨(?P<body>[^⟩]*)⟩")
 TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
 
+NORMALIZATION_SOURCE = (
+    "formal/cace_formal/CACEFormal/ReferenceSimplexNormalization.lean"
+)
+NORMALIZER_P1_RE = re.compile(
+    r"theorem\s+normalizer_map_p1\b(?P<body>[\s\S]*?)(?=\n/-- The third vertex)"
+)
+
 
 def main() -> int:
     problems: list[str] = []
@@ -49,6 +56,39 @@ def main() -> int:
         for declaration in declarations:
             if declaration not in text:
                 problems.append(f"{relative}: missing required declaration '{declaration}'")
+
+    normalization_path = ROOT / NORMALIZATION_SOURCE
+    if not normalization_path.is_file():
+        problems.append(f"missing regression source: {NORMALIZATION_SOURCE}")
+    else:
+        normalization_text = normalization_path.read_text(encoding="utf-8")
+        p1_match = NORMALIZER_P1_RE.search(normalization_text)
+        if not p1_match:
+            problems.append(
+                f"{NORMALIZATION_SOURCE}: unable to locate normalizer_map_p1 regression block"
+            )
+        else:
+            p1_body = p1_match.group("body")
+            ring_nf_pos = p1_body.find("ring_nf")
+            field_simp_pos = p1_body.find("field_simp [hT, hden]")
+            if ring_nf_pos < 0 or field_simp_pos < 0 or ring_nf_pos > field_simp_pos:
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must normalize with "
+                    "ring_nf before clearing the proven denominator with "
+                    "field_simp [hT, hden]"
+                )
+
+        linear_start = normalization_text.find("theorem normalizer_linearDet")
+        linear_end = normalization_text.find(
+            "/-- Nondegenerate triangles produce nonsingular normalizers. -/"
+        )
+        if linear_start >= 0 and linear_end > linear_start:
+            linear_body = normalization_text[linear_start:linear_end]
+            if re.search(r"field_simp\s*\[hT\]\s*\n\s*ring\b", linear_body):
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: normalizer_linearDet contains the "
+                    "known closed-goal field_simp/ring tail"
+                )
 
     formal_root = ROOT / "formal" / "cace_formal" / "CACEFormal"
     for path in sorted(formal_root.rglob("*.lean")):
@@ -72,6 +112,7 @@ def main() -> int:
         "CACE_KNOWN_FAILURE_REGRESSIONS_OK",
         {
             "noncomputable_files": len(REQUIRED_NONCOMPUTABLE),
+            "normalization_tactic_order_guard": NORMALIZATION_SOURCE,
             "reserved_rcases_scan_root": str(formal_root.relative_to(ROOT)),
         },
     )
