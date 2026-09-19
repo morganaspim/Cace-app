@@ -21,6 +21,7 @@ class StudioSettings:
     ai_provider: str = "ollama"
     ai_endpoint: str = "http://127.0.0.1:11434"
     ai_model: str = ""
+    ai_generally_useful: bool = False
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "StudioSettings":
