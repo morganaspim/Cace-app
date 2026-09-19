@@ -48,6 +48,12 @@ class LocalAISettingsDialog(QDialog):
             self.model.addItem(settings.ai_model)
             self.model.setCurrentText(settings.ai_model)
 
+        self.embedding_model = QLineEdit(settings.ai_embedding_model)
+        self.embedding_model.setPlaceholderText("Optional local embedding model")
+        self.embedding_model.setToolTip(
+            "Optional. If set, Grow reranks only its small sparse shortlist with local neural embeddings."
+        )
+
         self.mode = QComboBox()
         mode_labels = {
             "hints": "Hints",
@@ -95,7 +101,8 @@ class LocalAISettingsDialog(QDialog):
         form = QFormLayout()
         form.addRow("Provider", self.provider)
         form.addRow("Endpoint", self.endpoint)
-        form.addRow("Model", self.model)
+        form.addRow("Chat model", self.model)
+        form.addRow("Embedding model", self.embedding_model)
         form.addRow("Assistant mode", self.mode)
         form.addRow("Grow chaos", self.growth_chaos)
         form.addRow("Grow combination budget", self.growth_budget)
@@ -178,6 +185,7 @@ class LocalAISettingsDialog(QDialog):
         self.settings.ai_provider = provider_id
         self.settings.ai_endpoint = provider.endpoint
         self.settings.ai_model = model
+        self.settings.ai_embedding_model = self.embedding_model.text().strip()
         self.settings.assistant_mode = str(self.mode.currentData())
         self.settings.ai_growth_chaos = float(self.growth_chaos.value())
         self.settings.ai_growth_budget = int(self.growth_budget.value())
