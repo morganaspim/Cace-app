@@ -464,6 +464,16 @@ Required properties:
 
 The target professional pricing band is initially approximately USD $12/day, $49/week, $149/month, and $999/year, subject to operating-cost, market, tax, and commercial validation. Pricing is product policy, not scientific source.
 
+## 13.3 Accounts and Enterprise proof commerce
+
+CACE supports Basic, Researcher, and Enterprise account tiers through a separate account/entitlement service. The proof runner is not an identity provider and must never receive user password material or general account/payment credentials.
+
+- Basic: one-time 24-hour introductory entitlement; lowest pass-pricing tier.
+- Researcher: one-time 48-hour introductory entitlement; middle pass-pricing tier.
+- Enterprise: commercial/business engineering/scientific use; highest pass-pricing tier.
+- Enterprise-only bespoke proof orders may produce customer-specific rigorous LaTeX/PDF packages after contract/payment/proof qualification gates.
+- CACE Background IP remains separated from customer Foreground deliverables; see `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`.
+
 ## 14. Security and production boundaries
 
 Production hardening should include:

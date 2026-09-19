@@ -201,5 +201,15 @@
       "v3.41D ranks 17-19",
       "v3.41E rank 20"
     ]
+  },
+  "account_commerce": {
+    "document": "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+    "tiers": [
+      "Basic",
+      "Researcher",
+      "Enterprise"
+    ],
+    "trust_boundary": "account/payment/mail services are separate from scientific/proof runners",
+    "enterprise_proofs": "customer-specific full-rigor PDF orders with contract, audit trail, provenance, and Background-IP exclusion"
   }
 }

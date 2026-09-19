@@ -14,6 +14,7 @@
     "docs/ARCHITECTURE.md",
     "docs/SECURITY_ARCHITECTURE.md",
     "docs/OFFLINE_COLLABORATION_AND_LICENSING.md",
+    "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
     "docs/CONSTITUTION.md",
     "docs/CLAIMS.md",
     "docs/BUG_FLUSH_ARCHITECTURE.md",
@@ -172,5 +173,40 @@
     "candidate_count": 50,
     "immediate_gap": "v3.40 proves closure inheritance for any certified zero-boundary core but does not construct a useful concrete box boundary-vanishing core",
     "execution_rule": "quarantine-first; standalone Exact-Pin before audited promotion; canonical qualification only after audited-root Exact-Pin"
+  },
+  "account_and_enterprise_proof_commerce": {
+    "document": "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+    "password_storage": "Argon2id salted/verioned; never plaintext; runner has no credential access",
+    "tiers": {
+      "Basic": {
+        "first_time_free_hours": 24,
+        "prices_usd": {
+          "day": 4.99,
+          "week": 14.99,
+          "month": 39,
+          "year": 199
+        }
+      },
+      "Researcher": {
+        "first_time_free_hours": 48,
+        "prices_usd": {
+          "day": 14.99,
+          "week": 49,
+          "month": 149,
+          "year": 999
+        }
+      },
+      "Enterprise": {
+        "commercial_use": true,
+        "prices_usd": {
+          "day": 99,
+          "week": 399,
+          "month": 1499,
+          "year": 9999
+        }
+      }
+    },
+    "enterprise_proof_delivery": "contract + payment + qualified proof -> reviewed LaTeX/PDF through separate document/mail services",
+    "ip_rule": "retain CACE Background IP; assign/license agreed customer-specific Foreground deliverables only to the extent legally transferable"
   }
 }
