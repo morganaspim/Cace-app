@@ -47,7 +47,8 @@ theorem isClosed_zeroBoundarySubmodule
     (G : BoundedGreenPairing V Q) :
     IsClosed (zeroBoundarySubmodule G : Set V) := by
   rw [zeroBoundarySubmodule_eq_iInf_ker G]
-  exact isClosed_iInter fun q => (G.normalTrace q).isClosed_ker
+  simp only [Submodule.coe_iInf]
+  exact isClosed_iInter fun q : Q => (G.normalTrace q).isClosed_ker
 
 /-- If every vector in a core submodule has zero functional boundary trace,
 then every graph-norm limit of that core has zero trace as well. -/
