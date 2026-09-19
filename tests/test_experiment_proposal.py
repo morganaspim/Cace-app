@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from cace_studio.ai.experiment_proposal import propose_experiment_graph
+from cace_studio.ai.experiment_proposal import (
+    materialize_experiment_proposal,
+    propose_experiment_graph,
+)
+from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.module import Module
 from cace_studio.core.types import (
     ModuleMetadata,
@@ -205,3 +209,79 @@ def test_proposal_generation_does_not_need_or_mutate_experiment_state():
     second = propose_experiment_graph(registry, ("test.source", "test.middle"))
     assert first == second
     assert tuple(registry.classes_by_id) == before
+
+
+def test_materialization_copies_experiment_and_translates_edges():
+    proposal = propose_experiment_graph(
+        _registry(),
+        ("test.source", "test.middle", "test.sink"),
+        title="materialize",
+        description="connect source to sink through middle",
+    )
+    original = Experiment(
+        name="existing",
+        nodes=[Node("existing", "test.source", {}, (10.0, 20.0))],
+        edges=[],
+    )
+    ids = iter(("new_a", "new_b", "new_c"))
+
+    updated, mapping = materialize_experiment_proposal(
+        original,
+        proposal,
+        origin=(1000.0, 2000.0),
+        id_factory=lambda: next(ids),
+    )
+
+    assert original.nodes == [Node("existing", "test.source", {}, (10.0, 20.0))]
+    assert original.edges == []
+    assert len(updated.nodes) == 4
+    assert mapping == {"p1": "new_a", "p2": "new_b", "p3": "new_c"}
+    assert updated.nodes[1].position == (1040.0, 2040.0)
+    assert updated.edges == [
+        Edge("new_a", "out", "new_b", "x"),
+        Edge("new_b", "out", "new_c", "x"),
+    ]
+    assert proposal.description == "connect source to sink through middle"
+
+
+def test_materialization_retries_colliding_node_ids():
+    proposal = propose_experiment_graph(_registry(), ("test.source",))
+    original = Experiment(nodes=[Node("taken", "test.source")])
+    ids = iter(("taken", "fresh"))
+
+    updated, mapping = materialize_experiment_proposal(
+        original,
+        proposal,
+        id_factory=lambda: next(ids),
+    )
+    assert mapping["p1"] == "fresh"
+    assert {node.id for node in updated.nodes} == {"taken", "fresh"}
+
+
+def test_materialization_rejects_empty_proposal():
+    proposal = propose_experiment_graph(_registry(), ("missing",))
+    try:
+        materialize_experiment_proposal(Experiment(), proposal)
+    except ValueError as exc:
+        assert "empty experiment proposal" in str(exc)
+    else:
+        raise AssertionError("empty proposal should fail")
+
+
+def test_materialization_does_not_change_research_or_verification_metadata():
+    proposal = propose_experiment_graph(_registry(), ("test.source",))
+    original = Experiment(
+        name="meta",
+        metadata={"verification_note": "existing only", "research": {"idea": "x"}},
+    )
+    updated, _ = materialize_experiment_proposal(
+        original,
+        proposal,
+        id_factory=lambda: "new_node",
+    )
+    assert original.metadata == {
+        "verification_note": "existing only",
+        "research": {"idea": "x"},
+    }
+    assert updated.metadata == original.metadata
+    assert updated.metadata is not original.metadata
