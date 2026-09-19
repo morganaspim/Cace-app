@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "role": "single-entry machine-readable CACE repository handoff; navigation and policy, not verification evidence",
+  "project": {
+    "name": "CACE Studio",
+    "target": "rigorous browser-accessible scientific/mathematical Studio with shared desktop/web/CLI/agent semantics",
+    "production_ready": false
+  },
+  "first_read": [
+    "docs/BUILD_AND_TRUST_GUIDE.md",
+    "docs/STATUS.md",
+    "docs/MASTER_BUILD_SPEC.md",
+    "docs/GOAL_REGISTRY.json",
+    "docs/ARCHITECTURE.md",
+    "docs/SECURITY_ARCHITECTURE.md",
+    "docs/CONSTITUTION.md",
+    "docs/CLAIMS.md",
+    "docs/BUG_FLUSH_ARCHITECTURE.md",
+    "docs/PROVENANCE_ATTESTATION.md",
+    "docs/PRODUCTION_READINESS.md",
+    "docs/AI_QUICKSTART.md"
+  ],
+  "authority": {
+    "current_source": "checked-out Git commit",
+    "product_goals": "docs/MASTER_BUILD_SPEC.md",
+    "machine_goals": "docs/GOAL_REGISTRY.json",
+    "current_status": "docs/STATUS.md",
+    "formal_claims": "cace_studio/data/claim_registry.json",
+    "proof_ledger": "cace_studio/data/proof_ledger.json",
+    "formal_source": "formal/cace_formal/",
+    "runtime": "cace_studio/core/",
+    "module_registry": "cace_studio/app.py",
+    "bug_policy": "docs/BUG_FLUSH_ARCHITECTURE.md",
+    "security_policy": "docs/SECURITY_ARCHITECTURE.md",
+    "provenance_policy": "docs/PROVENANCE_ATTESTATION.md"
+  },
+  "trust_model": {
+    "presentation": "untrusted; cannot create scientific evidence",
+    "web_api": "typed/validated orchestration boundary",
+    "scientific_runtime": "claim-specific executable evidence",
+    "formal_qualification": "highest mathematical evidence boundary",
+    "ai": "untrusted advisory; never verification evidence",
+    "plugins": "untrusted until explicitly governed/sandboxed",
+    "provenance": "identity/tamper evidence only"
+  },
+  "proof_pipeline": [
+    "exact source commit",
+    "proof guardrails/frozen plan",
+    "unfinished-token rejection",
+    "pinned Lean/Mathlib",
+    "target/reverse-dependent compile",
+    "audited root compile",
+    "Lean.Environment theorem metadata",
+    "kernel axiom audit",
+    "proof-contract endpoint equality",
+    "source/executable binding",
+    "content-addressed attestation",
+    "artifact verification",
+    "provenance promotion",
+    "qualification drift check"
+  ],
+  "new_theorem_module_flow": [
+    "quarantine",
+    "standalone Exact-Pin",
+    "audited promotion",
+    "audited-root Exact-Pin",
+    "canonical qualification",
+    "provenance overlay"
+  ],
+  "bug_flush_loop": [
+    "reproduce",
+    "classify defect family",
+    "fix root cause",
+    "sweep siblings/repository",
+    "add regression test",
+    "add permanent structural guard when possible",
+    "aggregate independent validation",
+    "preserve diagnostics",
+    "run qualification drift separately"
+  ],
+  "security_invariants": [
+    "no client-provided evidence promotion",
+    "no secrets in repository/frontend",
+    "proof runner isolated from untrusted web requests",
+    "AI has no evidence authority",
+    "zero-contact AI has no network/cloud credentials/direct shell",
+    "plugins denied capabilities by default in production target",
+    "typed validation at trust boundaries",
+    "least privilege",
+    "critical run evidence retained outside GitHub"
+  ],
+  "independent_log_retention": {
+    "local_runner": "/var/lib/cace-evidence/runs/<commit>/<run-id>/ (target architecture)",
+    "host_journal": "persistent system journal",
+    "primary_remote_mirror": "OCI Object Storage (target architecture)",
+    "optional_secondary_mirror": true,
+    "github_role": "additional convenience copy, never sole archive",
+    "content_addressed_manifest": true
+  },
+  "webapp_layers": [
+    "browser Studio",
+    "API/session layer",
+    "canonical Python graph/module/evidence core",
+    "C++ heavy kernels where justified",
+    "durable experiment/evidence storage",
+    "controlled long-job workers",
+    "isolated formal qualification runner"
+  ],
+  "webapp_required_surfaces": [
+    "module library",
+    "drag/drop and typed click-connect canvas",
+    "validated parameters",
+    "execution/progress/cancel controls",
+    "evidence/proof explorer",
+    "Research Idea notebook",
+    "Minimal/Balanced/Exploratory proposed experiment previews",
+    "coordinate/tiled visualization palette",
+    "interactive 2D/3D view",
+    "save/load/replay/export/print",
+    "optional local AI",
+    "explicit PASS/FAIL/NOT_RUN/stale states"
+  ],
+  "semantics_rule": {
+    "presentation_only_examples": [
+      "camera orientation",
+      "pan/zoom",
+      "coordinate grid style",
+      "visual tiling",
+      "lighting",
+      "UI layout"
+    ],
+    "semantic_change_rule": "Any transform that changes computation must be an explicit typed graph operation and invalidate/recompute dependent evidence."
+  },
+  "hard_rules": [
+    "Never weaken proof scope or negative tests merely to pass CI.",
+    "Never turn NOT_RUN/absent verification into PASS.",
+    "Never treat numerical evidence as continuum proof.",
+    "Never treat AI output as verification evidence.",
+    "Never treat provenance/signatures/log retention as mathematical proof.",
+    "Never claim production readiness from formal proof alone.",
+    "Preserve theorem hypotheses and unresolved obligations."
+  ],
+  "completion_checklist_source": "docs/MASTER_BUILD_SPEC.md#19-definition-of-done-for-the-working-webapp"
+}
