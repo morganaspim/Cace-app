@@ -214,6 +214,48 @@ theorem composeList_withinBudget {α : Type u} {Invariant : α → Prop}
   rw [composeList_staticCost]
   exact hbudget
 
+/-- If every selected stage has declared cost at least one, then the number
+of selected stages is bounded by the declared total cost.  This is a formal
+combinatorial pruning fact; it still makes no wall-clock runtime claim. -/
+theorem length_le_totalStaticCost_of_positive
+    {α : Type u} {Invariant : α → Prop}
+    (ts : List (CertifiedTransform α Invariant))
+    (hpositive : ∀ t ∈ ts, 1 ≤ t.staticCost) :
+    ts.length ≤ totalStaticCost ts := by
+  induction ts with
+  | nil =>
+      simp [totalStaticCost]
+  | cons t ts ih =>
+      have ht : 1 ≤ t.staticCost := hpositive t (by simp)
+      have htail : ∀ s ∈ ts, 1 ≤ s.staticCost := by
+        intro s hs
+        exact hpositive s (by simp [hs])
+      have hi := ih htail
+      have hadd := Nat.add_le_add ht hi
+      simpa [totalStaticCost, Nat.add_comm] using hadd
+
+/-- Under positive per-stage declared costs, any chain admitted by a budget has
+length at most that budget. -/
+theorem length_le_budget_of_positive
+    {α : Type u} {Invariant : α → Prop}
+    (ts : List (CertifiedTransform α Invariant)) (budget : Nat)
+    (hpositive : ∀ t ∈ ts, 1 ≤ t.staticCost)
+    (hbudget : totalStaticCost ts ≤ budget) :
+    ts.length ≤ budget :=
+  le_trans (length_le_totalStaticCost_of_positive ts hpositive) hbudget
+
+/-- A generic floor theorem for 5+, 6+, 7+, 8+, 9+, or any later group size:
+if a positively-costed certified chain has at least `n` stages and fits within
+a declared budget, then that budget is at least `n`. -/
+theorem groupSize_le_budget_of_positive
+    {α : Type u} {Invariant : α → Prop}
+    (n : Nat) (ts : List (CertifiedTransform α Invariant)) (budget : Nat)
+    (hsize : n ≤ ts.length)
+    (hpositive : ∀ t ∈ ts, 1 ≤ t.staticCost)
+    (hbudget : totalStaticCost ts ≤ budget) :
+    n ≤ budget :=
+  le_trans hsize (length_le_budget_of_positive ts budget hpositive hbudget)
+
 /--
 Run two independent certified transforms in parallel on a product state.
 This is the basic combinator for joining proof modules that do not share state.
