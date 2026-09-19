@@ -8,6 +8,9 @@
   },
   "first_read": [
     "docs/CHAT_IDEA_LEDGER.md",
+    "CACE_BUILD_LITE.json",
+    "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "docs/CACE_BUILD_LITE.md",
     "docs/CROSS_CHAT_HANDOFF.md",
     "docs/BUILD_AND_TRUST_GUIDE.md",
     "docs/STATUS.md",
@@ -37,7 +40,8 @@
     "module_registry": "cace_studio/app.py",
     "bug_policy": "docs/BUG_FLUSH_ARCHITECTURE.md",
     "security_policy": "docs/SECURITY_ARCHITECTURE.md",
-    "provenance_policy": "docs/PROVENANCE_ATTESTATION.md"
+    "provenance_policy": "docs/PROVENANCE_ATTESTATION.md",
+    "build_optimizer": "CACE_BUILD_LITE.json + cace_studio/build_lite.py"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -311,5 +315,32 @@
       "last_error": "container_session_unavailable",
       "retry_rule": "Future CACE chat with working Library write access should upload the current handoff and idea ledger, verify them by Library search/read, then update this status."
     }
+  },
+  "build_lite": {
+    "role": "low-cost deterministic build/test planning for human and AI code builders; never verification evidence",
+    "config": "CACE_BUILD_LITE.json",
+    "core": "cace_studio/build_lite.py",
+    "cli": "scripts/cace_build_lite.py",
+    "quick_command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
+    "merge_command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile merge --commands",
+    "proof_command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile proof --commands",
+    "math": [
+      "changed-path impact selection",
+      "dependency closure",
+      "DAG validation",
+      "critical-path analysis",
+      "reverse-dependency unlock leverage",
+      "exact-content cache fingerprints",
+      "resource-bounded deterministic parallel batching"
+    ],
+    "proof_rule": "proof-sensitive exact cache hits are restore-only and never skip qualification-sensitive work",
+    "execution_rule": "planner emits JSON/commands but does not execute or modify source by itself"
+  },
+  "code_builder_bootstrap": {
+    "document": "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "target": "complete production CACE application, not a mock/demo replacement",
+    "supported_agent_shape": "GitHub-connected code builders including Base44, Gemini AI Studio, Codex, and equivalent tools",
+    "source_of_truth": "GitHub repository",
+    "semantic_rule": "generated UI/backend layers consume canonical CACE typed APIs; they do not invent a second scientific/proof semantics"
   }
 }

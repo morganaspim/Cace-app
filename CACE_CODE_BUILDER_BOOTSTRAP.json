@@ -1,0 +1,56 @@
+{
+  "schema": "cace.code-builder-bootstrap.v1",
+  "role": "machine-readable full-production-app instructions for GitHub-connected coding agents; navigation/policy only",
+  "project": "CACE Studio",
+  "goal": "Build and improve the complete production CACE application from this repository while preserving canonical scientific/proof/security semantics.",
+  "source_of_truth": "the checked-out GitHub commit",
+  "required_first_read": [
+    "AGENTS.md",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "CACE_BUILD_LITE.json",
+    "docs/CROSS_CHAT_HANDOFF.md",
+    "docs/MASTER_BUILD_SPEC.md",
+    "docs/GOAL_REGISTRY.json",
+    "docs/SECURITY_ARCHITECTURE.md",
+    "docs/CLAIMS.md",
+    "docs/PRODUCTION_READINESS.md"
+  ],
+  "build_optimizer": {
+    "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
+    "purpose": "minimize redundant build/test work using deterministic DAG/critical-path/cache/resource mathematics",
+    "output": "JSON",
+    "authority": "coordination only; no scientific or proof authority"
+  },
+  "production_requirements": [
+    "retain canonical Python graph/module/evidence core",
+    "retain pinned Lean formal source and qualification architecture",
+    "browser/mobile/generated UI calls typed backend APIs instead of recreating scientific semantics",
+    "implement durable account/session/storage/network surfaces behind authenticated server boundaries",
+    "keep AI optional and outside verification authority",
+    "keep wallet/exchange private keys outside AI/model context",
+    "preserve PASS/FAIL/NOT_RUN/stale semantics",
+    "run appropriate regression/security/proof gates before production-ready claims"
+  ],
+  "hosted_builder_rules": [
+    "do not output only a prototype when repository requirements call for a full production app",
+    "do not remove or bypass tests/guardrails to simplify generation",
+    "do not weaken proof claims, negative tests, or evidence boundaries",
+    "do not put secrets in generated client code or repository files",
+    "write reviewed changes back to GitHub so another agent can continue",
+    "use CACE Build Lite before broad expensive builds"
+  ],
+  "vendor_adapters": {
+    "base44": {
+      "mode": "GitHub-connected full-stack builder",
+      "instruction": "Use the repository as authoritative source; map generated auth/data/functions/UI to CACE typed API and account contracts, then commit/sync reviewed changes back to GitHub."
+    },
+    "gemini_ai_studio": {
+      "mode": "GitHub-connected code builder",
+      "instruction": "Import/open the repository, preserve the canonical backend/formal boundaries, use Build Lite JSON to choose build/test frontier, and sync reviewed source changes back to GitHub."
+    },
+    "generic": {
+      "mode": "any GitHub-connected coding agent",
+      "instruction": "Read the required files and use the same production/security/proof contracts."
+    }
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "schema": "cace.build-lite.v1",
+  "version": "1.0.0",
+  "purpose": "Low-cost deterministic build/test planning for human and AI code builders. Never proof evidence.",
+  "profiles": {
+    "quick": "Fast edit-loop checks selected from changed paths.",
+    "merge": "Broader regression before merge.",
+    "proof": "Formal-source preflight planning; caches restore only and never create qualification."
+  },
+  "tasks": [
+    {
+      "id": "python_syntax",
+      "deps": [],
+      "triggers": [
+        "cace_studio/**/*.py",
+        "api/**/*.py",
+        "scripts/**/*.py",
+        "tests/**/*.py"
+      ],
+      "cache_inputs": [
+        "cace_studio/**/*.py",
+        "api/**/*.py",
+        "scripts/**/*.py"
+      ],
+      "command": "python -m compileall -q cace_studio api scripts",
+      "executor": "local",
+      "estimated_seconds": 4,
+      "cpu_units": 1,
+      "priority": 100,
+      "fail_fast": true,
+      "proof_sensitive": false,
+      "cache_policy": "skip_on_exact_hit",
+      "profiles": [
+        "quick",
+        "merge"
+      ]
+    },
+    {
+      "id": "web_api_smoke",
+      "deps": [
+        "python_syntax"
+      ],
+      "triggers": [
+        "api/**",
+        "web/**",
+        "tests/test_web_api.py"
+      ],
+      "cache_inputs": [
+        "api/**/*.py",
+        "web/**/*",
+        "tests/test_web_api.py"
+      ],
+      "command": "python -m pytest -q tests/test_web_api.py",
+      "executor": "local",
+      "estimated_seconds": 10,
+      "cpu_units": 1,
+      "priority": 30,
+      "fail_fast": true,
+      "proof_sensitive": false,
+      "cache_policy": "skip_on_exact_hit",
+      "profiles": [
+        "quick",
+        "merge"
+      ]
+    },
+    {
+      "id": "targeted_python_tests",
+      "deps": [
+        "python_syntax"
+      ],
+      "triggers": [
+        "cace_studio/**/*.py",
+        "tests/**/*.py"
+      ],
+      "cache_inputs": [
+        "cace_studio/**/*.py",
+        "tests/**/*.py",
+        "pyproject.toml"
+      ],
+      "command": "python -m pytest -q",
+      "executor": "local",
+      "estimated_seconds": 45,
+      "cpu_units": 2,
+      "priority": 20,
+      "fail_fast": false,
+      "proof_sensitive": false,
+      "cache_policy": "skip_on_exact_hit",
+      "profiles": [
+        "quick",
+        "merge"
+      ]
+    },
+    {
+      "id": "lean_source_sanity",
+      "deps": [],
+      "triggers": [
+        "formal/**/*.lean",
+        "formal/**/*.json",
+        "scripts/cace_proof_guardrails.py",
+        ".github/workflows/*lean*"
+      ],
+      "cache_inputs": [
+        "formal/**/*.lean",
+        "formal/**/*.json",
+        "scripts/cace_proof_guardrails.py",
+        ".github/workflows/*lean*"
+      ],
+      "command": "python scripts/check_lean_source_sanity.py --self-test",
+      "executor": "local",
+      "estimated_seconds": 8,
+      "cpu_units": 1,
+      "priority": 200,
+      "fail_fast": true,
+      "proof_sensitive": true,
+      "cache_policy": "restore_only",
+      "profiles": [
+        "quick",
+        "merge",
+        "proof"
+      ]
+    },
+    {
+      "id": "proof_contract_tests",
+      "deps": [
+        "lean_source_sanity"
+      ],
+      "triggers": [
+        "formal/**",
+        "cace_studio/data/proof_contracts.json",
+        "tests/test_cace_proof_guardrails.py",
+        "tests/test_proof_contract_v336.py"
+      ],
+      "cache_inputs": [
+        "formal/**",
+        "cace_studio/data/proof_contracts.json",
+        "tests/test_cace_proof_guardrails.py",
+        "tests/test_proof_contract_v336.py"
+      ],
+      "command": "python -m pytest -q tests/test_cace_proof_guardrails.py tests/test_proof_contract_v336.py",
+      "executor": "local",
+      "estimated_seconds": 15,
+      "cpu_units": 1,
+      "priority": 180,
+      "fail_fast": true,
+      "proof_sensitive": true,
+      "cache_policy": "restore_only",
+      "profiles": [
+        "quick",
+        "merge",
+        "proof"
+      ]
+    },
+    {
+      "id": "lean_exact_pin_impacted",
+      "deps": [
+        "proof_contract_tests"
+      ],
+      "triggers": [
+        "formal/**/*.lean"
+      ],
+      "cache_inputs": [
+        "formal/**/*.lean",
+        "formal/lean-toolchain",
+        "formal/cace_formal/lake-manifest.json"
+      ],
+      "command": "workflow:CACE Exact-Pin Lean Preflight (impacted modules; exact head)",
+      "executor": "github_actions",
+      "estimated_seconds": 180,
+      "cpu_units": 4,
+      "priority": 100,
+      "fail_fast": false,
+      "proof_sensitive": true,
+      "cache_policy": "restore_only",
+      "profiles": [
+        "proof"
+      ]
+    },
+    {
+      "id": "python_full_regression",
+      "deps": [
+        "targeted_python_tests",
+        "web_api_smoke"
+      ],
+      "triggers": [
+        "cace_studio/**",
+        "api/**",
+        "web/**",
+        "tests/**",
+        "pyproject.toml"
+      ],
+      "cache_inputs": [
+        "cace_studio/**",
+        "api/**",
+        "web/**",
+        "tests/**",
+        "pyproject.toml"
+      ],
+      "command": "workflow:CACE Python regression",
+      "executor": "github_actions",
+      "estimated_seconds": 120,
+      "cpu_units": 4,
+      "priority": 10,
+      "fail_fast": false,
+      "proof_sensitive": false,
+      "cache_policy": "none",
+      "profiles": [
+        "merge"
+      ]
+    }
+  ]
+}\n

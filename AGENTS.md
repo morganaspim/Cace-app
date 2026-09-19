@@ -7,7 +7,8 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 Read these in order before changing scientific or verification behavior:
 
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
-2. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
+2. `CACE_BUILD_LITE.json` — low-cost deterministic build/test optimizer for coding agents.
+3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
 5. `docs/STATUS.md` — current source/qualification state.
@@ -78,3 +79,53 @@ Future immutable provenance uses content addresses, deterministic Merkle bundles
 ## Repository-only reconstruction requirement
 
 A repository-reading agent must be able to reconstruct the intended webapp, proof/evidence architecture, security boundaries, bug-flush process, provenance/log-retention policy, deployment shape, and acceptance criteria without private chat history. If that is not possible from `CACE_AGENT_BOOTSTRAP.json` and the documents it references, improve repository discoverability before relying on conversational context.
+
+
+## Production code-builder mode
+
+This repository is intended to be usable by GitHub-connected coding agents and
+full-stack builders such as Base44, Gemini AI Studio, Codex, and equivalent tools.
+
+When acting as a code builder, **build the complete production CACE application**.
+Do not replace the application with a mock, static prototype, simplified
+calculator, disconnected front end, or second scientific semantics.
+
+Before broad build/test work:
+
+1. read `CACE_AGENT_BOOTSTRAP.json`, `CACE_CODE_BUILDER_BOOTSTRAP.json`,
+   `CACE_BUILD_LITE.json`, `docs/CROSS_CHAT_HANDOFF.md`, and the relevant source;
+2. make the smallest coherent change;
+3. run CACE Build Lite against the real changed paths:
+
+   ```sh
+   python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands
+   ```
+
+4. execute fail-fast/cheap batches first;
+5. fix failures before expanding the frontier;
+6. use the `merge` profile before merge-quality claims;
+7. use the `proof` profile for formal-source work, but never treat Build Lite
+   output or cache state as Lean qualification.
+
+Build Lite is intentionally small and inexpensive. It performs dependency-DAG,
+critical-path, exact-content-cache, and resource-bounded scheduling mathematics.
+It may optimize the builder's work plan, but it has no authority to change
+scientific truth, proof status, security policy, or user permissions.
+
+### Hosted-builder rules
+
+- GitHub source is authoritative unless an explicit approved connector writes an
+  exact reviewed change back to GitHub.
+- Preserve the canonical Python graph/module/evidence runtime; browser/mobile
+  presentation layers call it through typed APIs rather than reimplementing
+  scientific truth in JavaScript or generated backend logic.
+- Keep Lean/formal qualification isolated from untrusted application requests.
+- Never place repository secrets, signing keys, wallet private keys, exchange
+  credentials, or production database secrets into prompts, generated client
+  bundles, repository files, or model context.
+- Account/network/economic features are application state and never proof evidence.
+- If a hosted builder cannot faithfully implement a subsystem, leave the
+  canonical subsystem intact and surface the limitation rather than silently
+  replacing it with a weaker implementation.
+- Read `docs/MASTER_BUILD_SPEC.md` and `docs/GOAL_REGISTRY.json` before
+  declaring the production app complete.
