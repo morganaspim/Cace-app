@@ -5,6 +5,7 @@ try:
         QComboBox,
         QLabel,
         QPushButton,
+        QLineEdit,
         QTextEdit,
         QVBoxLayout,
         QWidget,
@@ -16,16 +17,32 @@ except ImportError as exc:
 class ProteinPlaygroundWidget(QWidget):
     """GUI bridge for read-only heartbeat analysis of protein run outputs."""
 
-    def __init__(self, sources_callback, play_callback, parent=None) -> None:
+    def __init__(
+        self,
+        sources_callback,
+        play_callback,
+        import_alphafold_callback=None,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.sources_callback = sources_callback
         self.play_callback = play_callback
+        self.import_alphafold_callback = import_alphafold_callback
         self.notice = QLabel(
             "Protein Play analyzes an existing CACE protein-structure output. "
             "It does not reproduce AlphaFold, mutate the source structure, or create "
             "verification/clinical evidence."
         )
         self.notice.setWordWrap(True)
+
+        self.accession = QLineEdit()
+        self.accession.setPlaceholderText("UniProt accession, e.g. P69905")
+        self.fetch_button = QPushButton("AlphaFold DB → Canvas + Fetch")
+        self.fetch_button.setToolTip(
+            "Creates the attributed AlphaFold DB API source node and executes it. "
+            "The API importer is networked only when explicitly run."
+        )
+        self.fetch_button.clicked.connect(self.fetch_alphafold)
 
         self.sources = QComboBox()
         self.sources.currentIndexChanged.connect(self._selection_changed)
@@ -41,11 +58,36 @@ class ProteinPlaygroundWidget(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.notice)
+        layout.addWidget(self.accession)
+        layout.addWidget(self.fetch_button)
         layout.addWidget(self.sources)
         layout.addWidget(self.refresh_button)
         layout.addWidget(self.play_button)
         layout.addWidget(self.details)
         self.refresh_sources()
+
+    def fetch_alphafold(self) -> None:
+        accession = self.accession.text().strip()
+        if not accession:
+            self.details.setPlainText("Enter a UniProt accession first.")
+            return
+        if self.import_alphafold_callback is None:
+            self.details.setPlainText(
+                "AlphaFold DB canvas importer is unavailable in this build."
+            )
+            return
+        try:
+            node_id = self.import_alphafold_callback(accession)
+        except Exception as exc:
+            self.details.setPlainText(
+                f"AlphaFold DB import failed to start: {type(exc).__name__}: {exc}"
+            )
+            return
+        self.details.setPlainText(
+            f"Created AlphaFold DB API node {node_id} for {accession}.\n"
+            "Selected + Upstream execution started. When retrieval finishes, "
+            "this panel refreshes automatically and heartbeat Play becomes available."
+        )
 
     def refresh_sources(self) -> None:
         current = self.sources.currentData()

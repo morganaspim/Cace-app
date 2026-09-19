@@ -102,6 +102,7 @@ class StudioMainWindow(MainWindow):
         self.protein_playground = ProteinPlaygroundWidget(
             self._protein_sources,
             self._play_protein,
+            self._import_alphafold_api,
             self,
         )
         self.protein_playground_dock = self._dock(
@@ -117,6 +118,56 @@ class StudioMainWindow(MainWindow):
 
     def _protein_sources(self):
         return discover_protein_outputs(self.last_result)
+
+    def _import_alphafold_api(self, accession: str) -> str:
+        accession = str(accession).strip()
+        allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-")
+        if not 2 <= len(accession) <= 64 or any(char not in allowed for char in accession):
+            raise ValueError("UniProt accession must be a simple canonical identifier")
+        if not self.registry.contains("protein.alphafold_api_import"):
+            raise RuntimeError(
+                "This build does not yet contain the molecular-science AlphaFold DB API "
+                "module. Integrate the molecular/materials science module branch first."
+            )
+        if self._execution_control is not None:
+            raise RuntimeError("wait for the active graph execution to finish before importing")
+
+        self._record_history()
+        node_id = f"alphafold_{uuid4().hex[:8]}"
+        position = (
+            80.0 + 35.0 * (len(self.experiment.nodes) % 8),
+            110.0 + 25.0 * (len(self.experiment.nodes) % 5),
+        )
+        item = self.canvas.add_module(
+            "protein.alphafold_api_import",
+            QPointF(*position),
+            notify=False,
+            node_id=node_id,
+        )
+        self.experiment.nodes.append(
+            Node(
+                id=node_id,
+                module_id="protein.alphafold_api_import",
+                params={
+                    "uniprot_accession": accession,
+                    "prediction_index": 0,
+                    "timeout_seconds": 15.0,
+                },
+                position=position,
+            )
+        )
+        self._invalidate_run_evidence("AlphaFold DB API protein source imported")
+        self._autosave_tick()
+        self.minimap.schedule_refresh()
+        self.scene.clearSelection()
+        item.setSelected(True)
+        self._selected(item)
+        self.console.append(
+            f"AlphaFold DB API import requested for {accession} as {node_id}. "
+            "Starting Selected + Upstream execution; retrieved data retain source/license attribution."
+        )
+        self.run_selected_upstream()
+        return node_id
 
     def _play_protein(self, node_id: str):
         sources = dict(self._protein_sources())
