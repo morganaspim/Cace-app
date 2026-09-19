@@ -76,7 +76,8 @@ noncomputable def piolaRT0 (F : Affine2) (q : RT0Affine) : RT0Affine where
 
 /-- Direction-explicit alias for `piolaRT0`: source coefficients are
 transported forward to the target domain. -/
-noncomputable abbrev transportRT0SourceToTarget := piolaRT0
+noncomputable def transportRT0SourceToTarget (F : Affine2) (q : RT0Affine) : RT0Affine :=
+  piolaRT0 F q
 
 /-- Pointwise evaluation of transported RT0 data agrees exactly with the
 contravariant Piola transform at the mapped point. -/
@@ -125,7 +126,8 @@ noncomputable def pullP1 (F : Affine2) (v : P1Affine) : P1Affine :=
 
 /-- Direction-explicit alias for `pullP1`: a source scalar field is represented
 on the target domain. -/
-noncomputable abbrev transportP1SourceToTarget := pullP1
+noncomputable def transportP1SourceToTarget (F : Affine2) (v : P1Affine) : P1Affine :=
+  pullP1 F v
 
 /-- The physical P1 polynomial evaluates to the reference polynomial at mapped
 points. -/
