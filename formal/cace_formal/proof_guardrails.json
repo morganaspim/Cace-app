@@ -69,5 +69,13 @@
     "compile_canary_before_impacted_modules": true,
     "compile_reverse_dependents_before_root": true,
     "plan_hash_binds_full_root_closure": true
-  }
+  },
+  "guardrail_sources": [
+    ".github/workflows/cace-exact-pin-lean-preflight.yml",
+    "scripts/cace_proof_guardrails.py",
+    "scripts/check_cace_workflow_guardrails.py",
+    "formal/cace_formal/proof_guardrails.json",
+    "formal/FAILURE_GUARDRAILS.md",
+    "formal/cace_formal/CACEFormal/GuardrailCanaries.lean"
+  ]
 }
