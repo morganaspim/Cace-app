@@ -21,6 +21,7 @@ class StudioSettings:
     ai_provider: str = "ollama"
     ai_endpoint: str = "http://127.0.0.1:11434"
     ai_model: str = ""
+    ai_embedding_model: str = ""
     ai_growth_chaos: float = 0.18
     ai_growth_budget: int = 10
     ai_growth_max_group_size: int = 4
