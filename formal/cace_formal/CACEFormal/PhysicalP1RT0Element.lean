@@ -56,7 +56,7 @@ theorem local_green_identity_of_pos
       cellDivergence_eq_oriented_of_pos T v q hT]
   exact P1RT0Element.local_green_identity T v q
 
-/-- Certified mesh elements automatically admit the physical interpretation of
+/-- Certified mesh elements automatically support the physical interpretation of
 the exact oriented cell pairing. -/
 theorem mesh_cellPairing_eq_oriented
     (mesh : MeshCertificate) (K : Fin mesh.triangleCount)
@@ -66,7 +66,7 @@ theorem mesh_cellPairing_eq_oriented
   cellPairing_eq_oriented_of_pos _ _ _
     (MeshElementGeometry.realTriangle_det_pos mesh K)
 
-/-- Certified mesh elements automatically admit the physical interpretation of
+/-- Certified mesh elements automatically support the physical interpretation of
 the exact oriented divergence term. -/
 theorem mesh_cellDivergence_eq_oriented
     (mesh : MeshCertificate) (K : Fin mesh.triangleCount)
