@@ -118,8 +118,14 @@ theorem pullP1_eval_map
   rcases v with ⟨vc, gx, gy⟩
   rcases p with ⟨x, y⟩
   change aa * ad - ab * ac ≠ 0 at hdet
+  have hdet_comm : ad * aa - ac * ab ≠ 0 := by
+    intro h
+    apply hdet
+    calc
+      aa * ad - ab * ac = ad * aa - ac * ab := by ring
+      _ = 0 := h
   dsimp [pullP1, Affine2.mapPoint, Affine2.linearDet, P1Affine.eval]
-  field_simp [hdet]
+  field_simp [hdet, hdet_comm]
   ring
 
 /-- Endpoint data entering the exact P1/RT0 edge pairing are simultaneously
@@ -179,7 +185,6 @@ theorem cellPairing_map
       dotGrad_piola_pull_map F v q T.p1 hdet,
       dotGrad_piola_pull_map F v q T.p2 hdet]
   field_simp [hdet]
-  ring
 
 /-- Exact cell divergence term is invariant under the same affine transport. -/
 theorem cellDivergence_map
@@ -194,7 +199,6 @@ theorem cellDivergence_map
       pullP1_eval_map F v T.p1 hdet,
       pullP1_eval_map F v T.p2 hdet]
   field_simp [hdet]
-  ring
 
 /-- The exact P1/RT0 edge pairing is invariant under affine scalar pullback and
 contravariant Piola transport. -/
