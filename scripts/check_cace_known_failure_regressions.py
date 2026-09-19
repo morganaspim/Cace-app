@@ -225,6 +225,50 @@ def main() -> int:
                     f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol reciprocal growth must not "
                     "delegate to fun_prop"
                 )
+            if "Complex.hasTemperateGrowth_ofReal.comp" in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: parenthesize "
+                    "Complex.hasTemperateGrowth_ofReal before composing the theorem"
+                )
+            if "(Complex.hasTemperateGrowth_ofReal).comp" not in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol complex lift must compose "
+                    "the pinned Complex.hasTemperateGrowth_ofReal theorem explicitly"
+                )
+
+        low_lap_start = positive_laplacian_text.find(
+            "theorem positiveLaplacianLow_laplacian"
+        )
+        low_lap_end = positive_laplacian_text.find(
+            "theorem laplacian_eq_self_imp_eq_zero"
+        )
+        if low_lap_start < 0 or low_lap_end <= low_lap_start:
+            problems.append(
+                f"{POSITIVE_LAPLACIAN_SOURCE}: unable to locate low-Laplacian multiplier block"
+            )
+        else:
+            low_lap_body = positive_laplacian_text[low_lap_start:low_lap_end]
+            if "ContinuousLinearMap.map_smul_of_tower" not in low_lap_body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-Laplacian proof must preserve "
+                    "the real-to-complex scalar tower explicitly"
+                )
+            if "Complex.coe_smul" not in low_lap_body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-Laplacian proof must normalize "
+                    "real scalar action through Complex.coe_smul"
+                )
+            if "rw [map_smul]" in low_lap_body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-Laplacian proof reintroduced the "
+                    "invalid plain map_smul scalar-tower seam"
+                )
+
+        if "Complex.ofReal ((2 * Real.pi) ^ 2)" not in positive_laplacian_text:
+            problems.append(
+                f"{POSITIVE_LAPLACIAN_SOURCE}: positive-frequency coefficient must use "
+                "one canonical Complex.ofReal ((2 * Real.pi) ^ 2) representation"
+            )
 
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
     if not source_sanity_path.is_file():
