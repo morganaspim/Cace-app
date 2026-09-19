@@ -187,6 +187,20 @@ CACE's scientific worker is a zero-egress sandbox. Collaboration and licensing a
 
 See `docs/OFFLINE_COLLABORATION_AND_LICENSING.md`.
 
+## 6.2 Source-secrecy gates
+
+Reverse-engineering resistance is a separate release gate.
+
+Required rule:
+
+`classify -> minimize what ships -> seal local protected core -> encrypt protected assets at rest -> minimize CPU/GPU plaintext -> scan final artifact -> sign/hash -> adversarial extraction test`
+
+Do not put crown-jewel algorithms in browser JavaScript or plain Python merely because the app is offline. Keep proprietary theorem source off customer machines where possible.
+
+The final customer artifact is checked with `scripts/check_release_secrecy.py` and `security/release_secrecy_policy.json`.
+
+See `docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md`.
+
 ## 7. Provider-independent evidence retention
 
 GitHub logs are not the source of truth.
