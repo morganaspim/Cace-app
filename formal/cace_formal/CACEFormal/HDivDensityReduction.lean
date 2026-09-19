@@ -150,7 +150,16 @@ theorem inner_singleCoordinateSchwartzGraph_eq_zero_of_mem_orthogonal
   have hzero :=
     inner_smoothHDivGraphPullback_eq_zero_of_mem_orthogonal n x hx q
   rw [hdivGraphHilbert_inner_eq] at hzero
-  simpa [q, smoothComplexHDivGraphMap, apply_ite] using hzero
+  simp [q, smoothComplexHDivGraphMap, apply_ite] at hzero
+  have hfirst :
+      (∑ j : Fin n,
+        ⟪if j = i then schwartzComplexL2 n φ else 0,
+          (hdivGraphHilbertEquiv n x).1 j⟫_ℂ) =
+        ⟪schwartzComplexL2 n φ,
+          (hdivGraphHilbertEquiv n x).1 i⟫_ℂ := by
+    rw [Finset.sum_eq_single i] <;> simp +contextual
+  rw [hfirst] at hzero
+  exact hzero
 
 /-- Exact remaining analytic criterion for unconditional whole-space H(div)
 graph density. Orthogonality is stated only in the legitimate L²-product
