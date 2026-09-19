@@ -50,7 +50,8 @@ theorem norm_simplexFacetOutwardUnitNormal {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1)) :
     ‖simplexFacetOutwardUnitNormal s facet‖ = 1 := by
   simpa [simplexFacetOutwardUnitNormal] using
-    (norm_smul_inv_norm (simplexFacetOutwardNormalRaw_ne_zero s facet))
+    (norm_smul_inv_norm (𝕜 := ℝ)
+      (simplexFacetOutwardNormalRaw_ne_zero s facet))
 
 /-- Normalization preserves orthogonality to the opposite-facet direction. -/
 theorem simplexFacetOutwardUnitNormal_mem_orthogonal
@@ -73,38 +74,18 @@ noncomputable def simplexFacetOutwardNormalComponent
 theorem euclideanAffineScalarEval_hasTemperateGrowth
     {d : Nat} (u : AffineScalar d) :
     Function.HasTemperateGrowth (euclideanAffineScalarEval u) := by
-  have hterm : ∀ i : Fin d,
-      Function.HasTemperateGrowth
-        (fun x : EuclideanDomain d =>
-          u.grad i * EuclideanSpace.proj i x) := by
-    intro i
-    exact Function.HasTemperateGrowth.fun_mul
-      (Function.HasTemperateGrowth.const (u.grad i))
-      (EuclideanSpace.proj i).hasTemperateGrowth
-  have hsum :
-      Function.HasTemperateGrowth
-        (fun x : EuclideanDomain d =>
-          ∑ i : Fin d, u.grad i * EuclideanSpace.proj i x) := by
-    simpa using
-      (Function.HasTemperateGrowth.sum
-        (s := Finset.univ)
-        (fun i _ => hterm i))
-  simpa [euclideanAffineScalarEval] using
-    Function.HasTemperateGrowth.fun_add
-      (Function.HasTemperateGrowth.const u.c) hsum
+  unfold euclideanAffineScalarEval
+  fun_prop
 
+/-- One affine RT0 coordinate also has temperate growth. -/
 /-- One affine RT0 coordinate also has temperate growth. -/
 theorem euclideanRT0ComponentEval_hasTemperateGrowth
     {d : Nat} (q : RT0AffineND d) (i : Fin d) :
     Function.HasTemperateGrowth (euclideanRT0ComponentEval q i) := by
-  simpa [euclideanRT0ComponentEval] using
-    Function.HasTemperateGrowth.fun_add
-      (Function.HasTemperateGrowth.const (q.c i))
-      (Function.HasTemperateGrowth.fun_mul
-        (Function.HasTemperateGrowth.const q.radial)
-        (EuclideanSpace.proj i).hasTemperateGrowth)
+  unfold euclideanRT0ComponentEval
+  fun_prop
 
-/-- Real P1 trace density `u n_i` on one oriented simplex facet. -/
+/-- Real P1 trace density/-- Real P1 trace density `u n_i` on one oriented simplex facet. -/
 noncomputable def simplexFacetP1BoundaryDensity
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
@@ -120,13 +101,10 @@ theorem simplexFacetP1BoundaryDensity_hasTemperateGrowth
     (u : AffineScalar d) (i : Fin d) :
     Function.HasTemperateGrowth
       (simplexFacetP1BoundaryDensity s facet u i) := by
-  simpa [simplexFacetP1BoundaryDensity] using
-    Function.HasTemperateGrowth.fun_mul
-      (euclideanAffineScalarEval_hasTemperateGrowth u)
-      (Function.HasTemperateGrowth.const
-        (simplexFacetOutwardNormalComponent s facet i))
+  unfold simplexFacetP1BoundaryDensity
+  fun_prop
 
-/-- Complexification of the P1 facet density for the tempered-distribution codomain. -/
+/-- Complexification of the P1 facet density/-- Complexification of the P1 facet density for the tempered-distribution codomain. -/
 noncomputable def simplexFacetP1BoundaryComplexDensity
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
@@ -140,11 +118,11 @@ theorem simplexFacetP1BoundaryComplexDensity_hasTemperateGrowth
     (u : AffineScalar d) (i : Fin d) :
     Function.HasTemperateGrowth
       (simplexFacetP1BoundaryComplexDensity s facet u i) := by
-  simpa [simplexFacetP1BoundaryComplexDensity, Function.comp_def] using
-    Function.Complex.hasTemperateGrowth_ofReal.comp
-      (simplexFacetP1BoundaryDensity_hasTemperateGrowth s facet u i)
+  unfold simplexFacetP1BoundaryComplexDensity
+  fun_prop
 
 /--
+Concrete tempered boundary distribution/--
 Concrete tempered boundary distribution for one P1 facet and one derivative
 coordinate.  Finiteness of the restricted facet Hausdorff measure supplies the
 measure's temperate-growth instance.
@@ -154,9 +132,9 @@ noncomputable def simplexFacetP1BoundaryDistribution
     (s : GeometricSimplex d) (facet : Fin (d + 1))
     (u : AffineScalar d) (i : Fin d) :
     SimplexScalarDistribution d :=
-  (simplexFacetP1BoundaryComplexDensity_hasTemperateGrowth s facet u i)
-    .toTemperedDistribution
-      (μ := geometricSimplexFacetSurfaceMeasure s facet)
+  Function.HasTemperateGrowth.toTemperedDistribution
+    (geometricSimplexFacetSurfaceMeasure s facet)
+    (simplexFacetP1BoundaryComplexDensity_hasTemperateGrowth s facet u i)
 
 @[simp]
 theorem simplexFacetP1BoundaryDistribution_apply
@@ -186,13 +164,10 @@ theorem simplexFacetRT0CoordinateBoundaryDensity_hasTemperateGrowth
     (q : RT0AffineND d) (i : Fin d) :
     Function.HasTemperateGrowth
       (simplexFacetRT0CoordinateBoundaryDensity s facet q i) := by
-  simpa [simplexFacetRT0CoordinateBoundaryDensity] using
-    Function.HasTemperateGrowth.fun_mul
-      (euclideanRT0ComponentEval_hasTemperateGrowth q i)
-      (Function.HasTemperateGrowth.const
-        (simplexFacetOutwardNormalComponent s facet i))
+  unfold simplexFacetRT0CoordinateBoundaryDensity
+  fun_prop
 
-noncomputable def simplexFacetRT0CoordinateBoundaryComplexDensity
+noncomputable def simplexFacetRT0CoordinateBoundaryComplexDensitynoncomputable def simplexFacetRT0CoordinateBoundaryComplexDensity
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
     (q : RT0AffineND d) (i : Fin d) :
@@ -206,20 +181,20 @@ theorem simplexFacetRT0CoordinateBoundaryComplexDensity_hasTemperateGrowth
     (q : RT0AffineND d) (i : Fin d) :
     Function.HasTemperateGrowth
       (simplexFacetRT0CoordinateBoundaryComplexDensity s facet q i) := by
-  simpa [simplexFacetRT0CoordinateBoundaryComplexDensity, Function.comp_def] using
-    Function.Complex.hasTemperateGrowth_ofReal.comp
-      (simplexFacetRT0CoordinateBoundaryDensity_hasTemperateGrowth
-        s facet q i)
+  unfold simplexFacetRT0CoordinateBoundaryComplexDensity
+  fun_prop
 
+/-- One coordinate contribution to the RT0 normal-flux boundary current. -/
 /-- One coordinate contribution to the RT0 normal-flux boundary current. -/
 noncomputable def simplexFacetRT0CoordinateBoundaryDistribution
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
     (q : RT0AffineND d) (i : Fin d) :
     SimplexScalarDistribution d :=
-  (simplexFacetRT0CoordinateBoundaryComplexDensity_hasTemperateGrowth
-      s facet q i).toTemperedDistribution
-        (μ := geometricSimplexFacetSurfaceMeasure s facet)
+  Function.HasTemperateGrowth.toTemperedDistribution
+    (geometricSimplexFacetSurfaceMeasure s facet)
+    (simplexFacetRT0CoordinateBoundaryComplexDensity_hasTemperateGrowth
+      s facet q i)
 
 @[simp]
 theorem simplexFacetRT0CoordinateBoundaryDistribution_apply
