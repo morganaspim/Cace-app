@@ -110,6 +110,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I078 | public signup privacy-preserving feedback loop | Operate one stable public CACE signup URL for eligible users, block CN/KP at the trusted edge per product policy, give each user a durable tenant instance, and collect strict allowlisted operational/heartbeat/proof-status metadata plus privacy-controlled aggregate usage analytics for product/sales improvement; actual proof/research content is a separate explicit opt-in. | G065 |
 
+| I084 | Base44 two-way GitHub sync boundary | Use Base44 as a two-way synced customer-facing web/product builder while GitHub remains canonical. Base44 gets a narrow direct-write zone, joint API/schema review zone, protected proof/science/security/wallet paths, schema-only database sync, CODEOWNERS, and a strict actor/branch-aware CI guard. | G071 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

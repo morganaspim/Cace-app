@@ -1,0 +1,22 @@
+# CACE protected ownership.
+# This file becomes enforceable when branch protection requires CODEOWNERS review.
+# Base44's normal write zone is web/** and base44/**; protected paths stay CACE-owned.
+
+/formal/                                      @morganaspim
+/cpp/                                         @morganaspim
+/cace_studio/core/                            @morganaspim
+/cace_studio/modules/                         @morganaspim
+/cace_studio/data/proof_contracts.json        @morganaspim
+/cace_studio/data/proof_ledger.json           @morganaspim
+/cace_studio/accounts.py                      @morganaspim
+/cace_studio/trial_entitlement.py             @morganaspim
+/cace_studio/ai/                              @morganaspim
+/.github/workflows/                           @morganaspim
+/scripts/                                     @morganaspim
+/CACE_*POLICY.json                            @morganaspim
+/CACE_AGENT_BOOTSTRAP.json                    @morganaspim
+/CACE_CODE_BUILDER_BOOTSTRAP.json             @morganaspim
+/CACE_BUILD_LITE.json                         @morganaspim
+/AGENTS.md                                    @morganaspim
+/LICENSE                                      @morganaspim
+/NOTICE                                       @morganaspim

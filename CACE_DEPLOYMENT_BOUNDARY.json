@@ -125,5 +125,26 @@
     "secret scan finds no wallet keys/database credentials/model-control secrets in frontend artifacts",
     "authorization/CSRF/rate-limit/input-size negative tests pass",
     "scientific/evidence semantics remain canonical behind the gateway"
-  ]
+  ],
+  "hosted_builder_boundary": {
+    "base44": {
+      "role": "customer-facing web/product builder and preview/deployment surface only",
+      "policy": "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+      "allowed": [
+        "build/preview approved browser UI",
+        "consume typed public gateway APIs",
+        "manage approved low-risk customer-facing read models/preferences",
+        "run Base44 Verification/Testing/Security checks"
+      ],
+      "forbidden": [
+        "direct scientific runtime authority",
+        "formal qualification/proof promotion",
+        "wallet key custody/signing",
+        "direct private database authority over proof/scientific/wallet state",
+        "direct local-AI model-control authority",
+        "secret transport through Git sync"
+      ]
+    },
+    "canonical_release": "exact reviewed GitHub commit plus the required CACE engineering/formal gates"
+  }
 }

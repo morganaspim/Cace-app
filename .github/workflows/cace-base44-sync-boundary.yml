@@ -1,0 +1,50 @@
+name: CACE Base44 Sync Boundary
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  base44-sync-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed paths and enforce Base44 boundary
+        env:
+          BASE44_GITHUB_ACTOR: ${{ vars.BASE44_GITHUB_ACTOR }}
+          HEAD_REF: ${{ github.head_ref }}
+          GITHUB_ACTOR_NAME: ${{ github.actor }}
+          BASE_REF: ${{ github.base_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${BASE_REF}" --depth=1
+          git diff --name-only "origin/${BASE_REF}...HEAD" > /tmp/cace_changed_paths.txt
+
+          strict=0
+          actor_lower="${GITHUB_ACTOR_NAME,,}"
+          if [[ "${actor_lower}" == *base44* ]]; then
+            strict=1
+          fi
+          if [[ -n "${BASE44_GITHUB_ACTOR}" && "${GITHUB_ACTOR_NAME}" == "${BASE44_GITHUB_ACTOR}" ]]; then
+            strict=1
+          fi
+          if [[ "${HEAD_REF}" == base44/* ]]; then
+            strict=1
+          fi
+
+          args=(--paths-file /tmp/cace_changed_paths.txt --json)
+          if [[ "${strict}" == "1" ]]; then
+            args+=(--base44)
+          fi
+          python scripts/check_base44_sync_contract.py "${args[@]}"
+
+      - name: Run Base44 sync policy regressions
+        run: python -m pytest -q tests/test_base44_sync_contract.py
