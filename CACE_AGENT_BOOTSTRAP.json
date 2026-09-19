@@ -13,6 +13,7 @@
     "docs/GOAL_REGISTRY.json",
     "docs/ARCHITECTURE.md",
     "docs/SECURITY_ARCHITECTURE.md",
+    "docs/OFFLINE_COLLABORATION_AND_LICENSING.md",
     "docs/CONSTITUTION.md",
     "docs/CLAIMS.md",
     "docs/BUG_FLUSH_ARCHITECTURE.md",
@@ -140,5 +141,29 @@
     "Never claim production readiness from formal proof alone.",
     "Preserve theorem hypotheses and unresolved obligations."
   ],
-  "completion_checklist_source": "docs/MASTER_BUILD_SPEC.md#19-definition-of-done-for-the-working-webapp"
+  "completion_checklist_source": "docs/MASTER_BUILD_SPEC.md#19-definition-of-done-for-the-working-webapp",
+  "network_security": {
+    "scientific_core": "zero general Internet egress",
+    "remote_imports": "forbidden for code/packages/plugins/Lean/arbitrary files",
+    "collaboration": "separate authenticated capability broker with fixed typed canvas-operation schema",
+    "licensing": "separate broker returns only signed quote/license capability data",
+    "documentation": "docs/OFFLINE_COLLABORATION_AND_LICENSING.md"
+  },
+  "commercial_model": {
+    "pass_durations": [
+      "1 day",
+      "1 week",
+      "1 month",
+      "1 year"
+    ],
+    "target_usd_prices": {
+      "day": 12,
+      "week": 49,
+      "month": 149,
+      "year": 999
+    },
+    "cryptocurrency": "Monero (XMR)",
+    "xmr_pricing_rule": "quote at purchase from USD policy; do not use long-lived hard-coded XMR economic price",
+    "evidence_rule": "payment/license state never creates or strengthens scientific evidence"
+  }
 }

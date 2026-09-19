@@ -143,6 +143,29 @@ Rules:
 - never equate signatures/hashes/log retention with mathematical correctness;
 - missing archival must be visible.
 
+## 2.1 Zero-egress scientific core and network brokers
+
+The scientific worker should have no general Internet egress.
+
+Network-enabled functionality is split into separate broker processes:
+
+- **Collaboration broker** — may connect only to configured collaboration relay endpoints and exchange a fixed, bounded canvas-operation protocol.
+- **Licensing broker** — may connect only to configured licensing/payment infrastructure and return signed license/quote state.
+
+Neither broker may:
+
+- load Python/JavaScript/Lean into the scientific worker;
+- install packages/plugins;
+- expose a shell;
+- write arbitrary scientific workspace files;
+- set trusted proof/evidence state.
+
+Use Unix-domain sockets or another narrow local IPC boundary where practical. The scientific core should not receive broker credentials.
+
+Browser policy should bundle application assets locally and use a restrictive CSP. The browser may connect to local CACE services, but should not fetch executable dependencies or scientific modules from third-party origins at runtime.
+
+See `docs/OFFLINE_COLLABORATION_AND_LICENSING.md`.
+
 ## 3. Protected assets
 
 Protect at least:

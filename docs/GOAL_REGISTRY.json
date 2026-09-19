@@ -427,6 +427,80 @@
         "AGENTS.md and AI_REPO_MAP.json route readers through canonical sources rather than historical notes.",
         "The repository distinguishes intended goals, current implementation state, and actually qualified evidence."
       ]
+    },
+    {
+      "id": "G032",
+      "category": "security",
+      "priority": 32,
+      "intent_status": "required",
+      "title": "Zero-egress scientific webapp core",
+      "summary": "Run the CACE scientific runtime without general Internet access or remote executable/content imports; all network functionality passes through narrow external capability brokers.",
+      "acceptance": [
+        "Scientific worker has no general outbound Internet route.",
+        "Frontend loads no third-party runtime scripts/modules/packages or scientific data.",
+        "Remote brokers cannot inject Python, JavaScript, Lean source, plugins, packages, archives, shell commands, or arbitrary files.",
+        "Only fixed-schema signed/authenticated broker messages cross the sandbox boundary.",
+        "Network policy is enforced at OS/process/container level, not only by UI convention."
+      ]
+    },
+    {
+      "id": "G033",
+      "category": "collaboration",
+      "priority": 33,
+      "intent_status": "required",
+      "title": "Invite-only network shared canvas",
+      "summary": "Allow users to invite viewer/editor collaborators into an encrypted shared CACE canvas without giving the scientific sandbox general network authority.",
+      "acceptance": [
+        "GUI provides Collaborate/Invite with link and/or QR invitation.",
+        "Typed canvas operations synchronize through a separate broker/relay.",
+        "Room capabilities are authenticated, revocable, role-scoped, replay-protected, size/rate limited, and end-to-end encrypted where practical.",
+        "Collaboration cannot install code/plugins or directly promote evidence.",
+        "Local work continues safely when network connectivity is lost."
+      ]
+    },
+    {
+      "id": "G034",
+      "category": "security",
+      "priority": 34,
+      "intent_status": "required",
+      "title": "Sandbox every local CACE instance",
+      "summary": "Run local scientific instances with OS-enforced isolation, least privilege, resource quotas, read-only runtime, separate workspace, and no credentials or arbitrary shell/network authority.",
+      "acceptance": [
+        "Instance uses an unprivileged identity and no-new-privileges policy.",
+        "Program/runtime is read-only and writable workspace is isolated.",
+        "CPU/RAM/process/disk/time limits are enforceable.",
+        "No cloud credentials, Docker socket, package-manager authority, or arbitrary shell are exposed.",
+        "Local AI receives an equal or stricter sandbox."
+      ]
+    },
+    {
+      "id": "G035",
+      "category": "licensing",
+      "priority": 35,
+      "intent_status": "required",
+      "title": "Day/week/month/year Monero research passes",
+      "summary": "When standard compute time is exhausted, show a Monero payment QR and allow 1-day, 1-week, 1-month, or 1-year signed research passes that support R&D and compute costs.",
+      "acceptance": [
+        "License expiry blocks new compute without deleting saved work or changing evidence truth.",
+        "Payment QR shows plan, duration, price, quoted XMR amount, address/subaddress, and activation status.",
+        "Production unlock requires a signed capability token from a payment verifier; localStorage or an arbitrary transaction hash cannot unlock.",
+        "Scientific sandbox contains only the license verification public key, never wallet spend keys or license-signing private keys.",
+        "USD policy price and XMR conversion are separated so cryptocurrency volatility does not silently change product economics."
+      ]
+    },
+    {
+      "id": "G036",
+      "category": "commercial",
+      "priority": 36,
+      "intent_status": "planned",
+      "title": "Professional scientific-software pricing policy",
+      "summary": "Price CACE in the same broad professional engineering/scientific software market while covering R&D and any project-funded compute/storage costs.",
+      "acceptance": [
+        "Initial target schedule is approximately $12/day, $49/week, $149/month, and $999/year, subject to launch validation.",
+        "Pricing lives in a signed/configurable policy rather than qualification-sensitive mathematical source.",
+        "Remote cloud/GPU/proof compute is capped, fair-use, queued, or metered separately from local application time.",
+        "Before launch, policy covers refunds, taxes/VAT, privacy, support, outages, license recovery, and applicable cryptocurrency-payment compliance."
+      ]
     }
   ]
 }
