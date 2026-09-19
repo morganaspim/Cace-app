@@ -358,6 +358,10 @@ class MainWindow(QMainWindow):
 
     def _apply_experiment_proposal(self, proposal, *, idea_title: str) -> None:
         self._sync_positions()
+        prebuild = ExperimentHistory.snapshot(self.experiment)
+        previous_result = self.last_result
+        previous_verification_text = self.verification.toPlainText()
+
         existing_rect = self.scene.itemsBoundingRect()
         origin = (
             40.0 if existing_rect.isNull() else existing_rect.right() + 100.0,
@@ -369,8 +373,6 @@ class MainWindow(QMainWindow):
             origin=origin,
         )
 
-        # One approved proposal is one undoable edit.
-        self.history.record(self.experiment)
         try:
             self._restore_experiment(
                 updated,
@@ -381,17 +383,17 @@ class MainWindow(QMainWindow):
                 ),
             )
         except Exception:
-            # Restore the pre-build snapshot if an unexpected canvas restore
-            # failure occurs; the proposal should be all-or-nothing.
-            previous = self.history.undo(self.experiment)
-            if previous is not None:
-                self._restore_experiment(
-                    previous,
-                    log_message="Research Idea canvas build rolled back after restore failure.",
-                )
+            # Failure is atomic from the user's graph/history perspective:
+            # restore the pre-build graph and attached run display without
+            # creating an undo or redo entry for the failed proposal.
+            self._restore_experiment(prebuild)
+            self.last_result = previous_result
+            self.verification.setPlainText(previous_verification_text)
             self._sync_history_actions()
             raise
 
+        # Only a successfully installed proposal becomes one undoable edit.
+        self.history.record(prebuild)
         self._sync_history_actions()
         self._autosave_tick()
         self.canvas.fit_all()
