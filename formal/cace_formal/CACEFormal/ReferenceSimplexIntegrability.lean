@@ -103,6 +103,48 @@ theorem complexEuclideanRT0ComponentEval_smul_schwartz_integrable
   rw [SchwartzMap.smulLeftCLM_apply hg] at h
   exact h
 
+/--
+The real affine P1 coefficient acting by real scalar multiplication on a complex
+Schwartz test function is integrable.  This is the exact scalar action used by
+the fiberwise integration-by-parts theorem.
+-/
+theorem euclideanAffineScalarEval_smul_schwartz_integrable
+    {d : Nat} (u : AffineScalar d)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable
+      (fun x =>
+        euclideanAffineScalarEval u x • φ x) := by
+  have hg := euclideanAffineScalarEval_hasTemperateGrowth u
+  have h :=
+    (SchwartzMap.smulLeftCLM ℂ
+      (euclideanAffineScalarEval u) φ).integrable volume
+  rw [SchwartzMap.smulLeftCLM_apply hg] at h
+  exact h
+
+/--
+The real RT0 coordinate acting by real scalar multiplication on a complex
+Schwartz test function is integrable.
+-/
+theorem euclideanRT0ComponentEval_smul_schwartz_integrable
+    {d : Nat} (q : RT0AffineND d) (i : Fin d)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable
+      (fun x =>
+        euclideanRT0ComponentEval q i x • φ x) := by
+  have hg := euclideanRT0ComponentEval_hasTemperateGrowth q i
+  have h :=
+    (SchwartzMap.smulLeftCLM ℂ
+      (euclideanRT0ComponentEval q i) φ).integrable volume
+  rw [SchwartzMap.smulLeftCLM_apply hg] at h
+  exact h
+
+/-- A constant real scalar times a complex Schwartz test is integrable. -/
+theorem realConst_smul_schwartz_integrable
+    {d : Nat} (c : ℝ)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable (fun x => c • φ x) := by
+  exact φ.integrable.const_smul c
+
 /-- The P1-Schwartz product remains integrable after restriction to the reference simplex. -/
 theorem referenceSimplex_complexAffine_smul_schwartz_integrable
     {d : Nat} (u : AffineScalar d)
@@ -126,6 +168,84 @@ theorem referenceSimplex_complexRT0_smul_schwartz_integrable
   exact
     (complexEuclideanRT0ComponentEval_smul_schwartz_integrable q i φ).indicator
       (euclideanReferenceSimplex_measurableSet d)
+
+/-- The exact real-scalar P1-Schwartz integrand is integrable on the reference simplex. -/
+theorem referenceSimplex_affine_smul_schwartz_integrable
+    {d : Nat} (u : AffineScalar d)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable
+      ((euclideanReferenceSimplex d).indicator
+        (fun x => euclideanAffineScalarEval u x • φ x)) := by
+  exact
+    (euclideanAffineScalarEval_smul_schwartz_integrable u φ).indicator
+      (euclideanReferenceSimplex_measurableSet d)
+
+/-- The exact real-scalar RT0-Schwartz integrand is integrable on the reference simplex. -/
+theorem referenceSimplex_RT0_smul_schwartz_integrable
+    {d : Nat} (q : RT0AffineND d) (i : Fin d)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable
+      ((euclideanReferenceSimplex d).indicator
+        (fun x => euclideanRT0ComponentEval q i x • φ x)) := by
+  exact
+    (euclideanRT0ComponentEval_smul_schwartz_integrable q i φ).indicator
+      (euclideanReferenceSimplex_measurableSet d)
+
+/-- A constant-gradient Schwartz integrand is integrable on the reference simplex. -/
+theorem referenceSimplex_realConst_smul_schwartz_integrable
+    {d : Nat} (c : ℝ)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable
+      ((euclideanReferenceSimplex d).indicator
+        (fun x => c • φ x)) := by
+  exact
+    (realConst_smul_schwartz_integrable c φ).indicator
+      (euclideanReferenceSimplex_measurableSet d)
+
+/-- Product-coordinate integrability for the exact real-scalar P1-Schwartz integrand. -/
+theorem referenceSimplex_affine_fiberCoordinates_integrable
+    {d : Nat} (u : AffineScalar d)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) (i : Fin d) :
+    Integrable
+      (fun q :
+        referenceSimplexCoordinateLine i ×
+          (referenceSimplexCoordinateLine i)ᗮ =>
+        (euclideanReferenceSimplex d).indicator
+          (fun x => euclideanAffineScalarEval u x • φ x)
+          ((q.1 : EuclideanDomain d) + (q.2 : EuclideanDomain d))) := by
+  exact
+    (referenceSimplex_affine_smul_schwartz_integrable u φ)
+      .coordinateLine_prod i
+
+/-- Product-coordinate integrability for one exact real-scalar RT0-Schwartz integrand. -/
+theorem referenceSimplex_RT0_fiberCoordinates_integrable
+    {d : Nat} (q : RT0AffineND d) (i : Fin d)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) :
+    Integrable
+      (fun p :
+        referenceSimplexCoordinateLine i ×
+          (referenceSimplexCoordinateLine i)ᗮ =>
+        (euclideanReferenceSimplex d).indicator
+          (fun x => euclideanRT0ComponentEval q i x • φ x)
+          ((p.1 : EuclideanDomain d) + (p.2 : EuclideanDomain d))) := by
+  exact
+    (referenceSimplex_RT0_smul_schwartz_integrable q i φ)
+      .coordinateLine_prod i
+
+/-- Product-coordinate integrability for a constant real scalar times a Schwartz test. -/
+theorem referenceSimplex_realConst_fiberCoordinates_integrable
+    {d : Nat} (c : ℝ)
+    (φ : 𝓢(EuclideanDomain d, ℂ)) (i : Fin d) :
+    Integrable
+      (fun p :
+        referenceSimplexCoordinateLine i ×
+          (referenceSimplexCoordinateLine i)ᗮ =>
+        (euclideanReferenceSimplex d).indicator
+          (fun x => c • φ x)
+          ((p.1 : EuclideanDomain d) + (p.2 : EuclideanDomain d))) := by
+  exact
+    (referenceSimplex_realConst_smul_schwartz_integrable c φ)
+      .coordinateLine_prod i
 
 /--
 The transformed integrability hypothesis required by reference-simplex Fubini
