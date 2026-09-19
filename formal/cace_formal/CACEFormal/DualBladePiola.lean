@@ -167,7 +167,7 @@ theorem linearDet_chain_ne_zero_of_forall
       exact mul_ne_zero (ih htail) hF
 
 /-- Sequential Piola execution for a primitive affine chain. -/
-def piolaSequence : List Affine2 → Point2 → Point2
+noncomputable def piolaSequence : List Affine2 → Point2 → Point2
   | [], q => q
   | F :: Fs, q => piolaSequence Fs (F.piolaVector q)
 
