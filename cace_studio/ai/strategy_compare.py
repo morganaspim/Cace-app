@@ -223,10 +223,15 @@ def compare_proposal_strategies(
             origin=(0.0, 0.0),
             id_factory=id_counter.__next__,
         )
-        strategy_inputs = {
-            str(node_id): dict(values)
-            for node_id, values in external_inputs.get(strategy, {}).items()
-        }
+        strategy_inputs = {}
+        for proposal_node_id, values in external_inputs.get(strategy, {}).items():
+            actual_node_id = mapping.get(str(proposal_node_id))
+            if actual_node_id is None:
+                raise ValueError(
+                    f"{strategy}: external inputs reference unknown proposal node "
+                    f"{proposal_node_id!r}"
+                )
+            strategy_inputs[actual_node_id] = dict(values)
 
         started = perf_counter()
         try:
