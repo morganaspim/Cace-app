@@ -49,12 +49,12 @@ class UnresolvedInput:
 class ExperimentGraphProposal:
     title: str
     description: str
-    strategy: ProposalStrategy
     nodes: tuple[ProposedNode, ...]
     edges: tuple[ProposedEdge, ...]
     unresolved_required_inputs: tuple[UnresolvedInput, ...]
     skipped_modules: tuple[str, ...]
     rationale: str
+    strategy: ProposalStrategy = "balanced"
 
     @property
     def is_empty(self) -> bool:
