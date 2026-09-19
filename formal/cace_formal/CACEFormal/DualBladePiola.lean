@@ -148,8 +148,7 @@ theorem piola_comp
   change ia * id - ib * ic ≠ 0 at hinner
   ext <;>
     dsimp [grade1, Affine2.linearDet] <;>
-    field_simp [houter, hinner] <;>
-    ring
+    field_simp [houter, hinner]
 
 /-- A chain of nonsingular affine stages has nonsingular fused linear part. -/
 theorem linearDet_chain_ne_zero_of_forall
