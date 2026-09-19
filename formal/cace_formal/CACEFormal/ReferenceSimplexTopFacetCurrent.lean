@@ -33,33 +33,12 @@ the positive upper-endpoint term produced by the one-dimensional
 integration-by-parts theorem.
 -/
 
-/-- The top endpoint map is a closed embedding. -/
-theorem referenceSimplexTopEndpoint_isClosedEmbedding
-    {d : Nat} [NeZero d] (i : Fin d) :
-    IsClosedEmbedding (referenceSimplexTopEndpoint i) := by
-  have hker :
-      LinearMap.ker (referenceSimplexTopLinearMap i) = ⊥ :=
-    LinearMap.ker_eq_bot.mpr (referenceSimplexTopLinearMap_injective i)
-  have hL :
-      IsClosedEmbedding (referenceSimplexTopLinearMap i) :=
-    LinearMap.isClosedEmbedding_of_injective hker
-  let τ : EuclideanDomain d ≃ᵢ EuclideanDomain d :=
-    IsometryEquiv.vaddConst (basisVector i)
-  have hcomp :
-      IsClosedEmbedding
-        (fun y : (referenceSimplexCoordinateLine i)ᗮ =>
-          τ (referenceSimplexTopLinearMap i y)) :=
-    τ.toHomeomorph.isClosedEmbedding.comp hL
-  convert hcomp using 1
-  funext y
-  rw [referenceSimplexTopEndpoint_eq]
-  simp [τ, add_comm]
-
 /-- The top endpoint map is a measurable embedding. -/
 theorem referenceSimplexTopEndpoint_measurableEmbedding
     {d : Nat} [NeZero d] (i : Fin d) :
     MeasurableEmbedding (referenceSimplexTopEndpoint i) :=
-  (referenceSimplexTopEndpoint_isClosedEmbedding i).measurableEmbedding
+  (referenceSimplexTopEndpoint_continuous i).measurableEmbedding
+    (referenceSimplexTopEndpoint_injective i)
 
 /--
 For P1, the existing CACE top-facet current equals the positive upper-endpoint
