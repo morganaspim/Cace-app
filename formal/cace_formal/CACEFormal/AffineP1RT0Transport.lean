@@ -221,6 +221,20 @@ theorem cellFacePairing_map
       edgePairing_map F v q p2 p0 hdet]
 
 
+/-- The exact local Green identity commutes with nonsingular affine
+transport.  This packages the affine geometry, P1 pullback, RT0 Piola map,
+cell pairing, divergence term, and face pairing into one transported theorem. -/
+theorem local_green_identity_map
+    (F : Affine2) (T : Triangle2) (v : P1Affine) (q : RT0Affine)
+    (hdet : F.linearDet ≠ 0) :
+    P1RT0Element.cellPairing (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) =
+      P1RT0Element.cellDivergence (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) +
+        P1RT0Element.cellFacePairing (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) := by
+  rw [cellPairing_map F T v q hdet,
+      cellDivergence_map F T v q hdet,
+      cellFacePairing_map F T v q hdet]
+  exact P1RT0Element.local_green_identity T v q
+
 /-- Every local face slot inherits the exact affine edge-pairing invariance. -/
 theorem localFacePairing_map
     (F : Affine2) (T : Triangle2) (v : P1Affine) (q : RT0Affine)
