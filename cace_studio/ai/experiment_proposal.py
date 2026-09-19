@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Callable, Iterable
+from dataclasses import dataclass, replace
+from itertools import combinations
+import re
+from typing import Callable, Iterable, Literal
 from uuid import uuid4
 
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.types import port_connection_error
+
+
+ProposalStrategy = Literal["minimal", "balanced", "exploratory"]
+PROPOSAL_STRATEGIES: tuple[ProposalStrategy, ...] = (
+    "minimal",
+    "balanced",
+    "exploratory",
+)
 
 
 @dataclass(frozen=True)
@@ -39,6 +49,7 @@ class UnresolvedInput:
 class ExperimentGraphProposal:
     title: str
     description: str
+    strategy: ProposalStrategy
     nodes: tuple[ProposedNode, ...]
     edges: tuple[ProposedEdge, ...]
     unresolved_required_inputs: tuple[UnresolvedInput, ...]
@@ -74,6 +85,7 @@ def propose_experiment_graph(
     *,
     title: str = "Proposed experiment",
     description: str = "",
+    strategy: ProposalStrategy = "balanced",
     max_modules: int = 8,
 ) -> ExperimentGraphProposal:
     """Build a deterministic, compatibility-checked graph proposal.
@@ -82,6 +94,8 @@ def propose_experiment_graph(
     generated graph is acyclic by construction. CACE's canonical port
     type/unit compatibility function is the sole connection rule.
     """
+    if strategy not in PROPOSAL_STRATEGIES:
+        raise ValueError(f"unknown proposal strategy: {strategy!r}")
     requested = _canonical_module_ids(module_ids, limit=max_modules)
     modules = []
     skipped = []
@@ -164,6 +178,7 @@ def propose_experiment_graph(
     return ExperimentGraphProposal(
         title=str(title).strip() or "Proposed experiment",
         description=str(description).strip()[:20_000],
+        strategy=strategy,
         nodes=tuple(nodes),
         edges=tuple(edges),
         unresolved_required_inputs=tuple(unresolved),
@@ -172,6 +187,238 @@ def propose_experiment_graph(
     )
 
 
+
+
+_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{1,}")
+
+
+def _tokens(text: str) -> set[str]:
+    return {token.lower() for token in _TOKEN_RE.findall(str(text))}
+
+
+def _proposal_quality(proposal: ExperimentGraphProposal) -> tuple[int, int, int, int]:
+    """Lexicographic quality: readiness, more edges, fewer unresolved, fewer nodes."""
+    return (
+        int(proposal.is_execution_ready),
+        len(proposal.edges),
+        -len(proposal.unresolved_required_inputs),
+        -len(proposal.nodes),
+    )
+
+
+def _minimal_module_ids(
+    registry,
+    requested: tuple[str, ...],
+    *,
+    title: str,
+    description: str,
+) -> tuple[str, ...]:
+    valid = tuple(module_id for module_id in requested if registry.contains(module_id))
+    if not valid:
+        return ()
+    best_ids = (valid[0],)
+    best_key = None
+    for size in range(1, min(3, len(valid)) + 1):
+        for subset in combinations(valid, size):
+            proposal = propose_experiment_graph(
+                registry,
+                subset,
+                title=title,
+                description=description,
+                strategy="minimal",
+                max_modules=size,
+            )
+            useful = int(bool(proposal.edges) or (size == 1 and proposal.is_execution_ready))
+            key = (
+                useful,
+                int(proposal.is_execution_ready),
+                len(proposal.edges),
+                -len(proposal.unresolved_required_inputs),
+                -size,
+                tuple(-valid.index(item) for item in subset),
+            )
+            if best_key is None or key > best_key:
+                best_key = key
+                best_ids = subset
+        # Once a connected/readiness-positive proposal exists at a smaller size,
+        # do not spend extra compute/modules merely for decoration.
+        if best_key is not None and best_key[0] and size >= 2:
+            break
+    return tuple(best_ids)
+
+
+def _compatible_input_count(placed_modules, candidate_module) -> int:
+    count = 0
+    for target_port in candidate_module.inputs:
+        if any(
+            port_connection_error(source_port, target_port) is None
+            for _, source_module in placed_modules
+            for source_port in source_module.outputs
+        ):
+            count += 1
+    return count
+
+
+def _balanced_module_ids(registry, requested: tuple[str, ...]) -> tuple[str, ...]:
+    remaining = [
+        (module_id, registry.create(module_id), index)
+        for index, module_id in enumerate(requested)
+        if registry.contains(module_id)
+    ]
+    if not remaining:
+        return ()
+
+    placed: list[tuple[str, object]] = []
+    ordered: list[str] = []
+    while remaining:
+        scored = []
+        for module_id, module, original_index in remaining:
+            required = sum(1 for port in module.inputs if port.required)
+            compatible = _compatible_input_count(placed, module)
+            source_bonus = 1 if not module.inputs else 0
+            scored.append(
+                (
+                    compatible,
+                    source_bonus,
+                    -required,
+                    -original_index,
+                    module_id,
+                    module,
+                )
+            )
+        scored.sort(key=lambda item: (-item[0], -item[1], -item[2], -item[3], item[4]))
+        _compatible, _source_bonus, _required, _index, module_id, module = scored[0]
+        ordered.append(module_id)
+        placed.append((module_id, module))
+        remaining = [item for item in remaining if item[0] != module_id]
+    return tuple(ordered)
+
+
+def _exploratory_extra_modules(
+    registry,
+    base_ids: tuple[str, ...],
+    *,
+    idea_text: str,
+    limit: int = 2,
+) -> tuple[str, ...]:
+    query_tokens = _tokens(idea_text)
+    base_categories = {
+        registry.create(module_id).metadata.category
+        for module_id in base_ids
+        if registry.contains(module_id)
+    }
+    candidates = []
+    for cls in registry.classes():
+        metadata = cls.metadata
+        module_id = metadata.module_id
+        if module_id in base_ids:
+            continue
+        text = " ".join(
+            (
+                module_id,
+                metadata.name,
+                metadata.category,
+                metadata.description,
+                " ".join(metadata.assumptions),
+            )
+        )
+        overlap = len(query_tokens & _tokens(text))
+        if overlap <= 0:
+            continue
+        category_novelty = 1 if metadata.category not in base_categories else 0
+        module = registry.create(module_id)
+        interface_value = len(module.inputs) + len(module.outputs)
+        candidates.append(
+            (
+                overlap,
+                category_novelty,
+                min(interface_value, 6),
+                module_id,
+            )
+        )
+    candidates.sort(key=lambda item: (-item[0], -item[1], -item[2], item[3]))
+    return tuple(item[3] for item in candidates[: max(0, int(limit))])
+
+
+def propose_experiment_strategies(
+    registry,
+    module_ids: Iterable[str],
+    *,
+    title: str = "Proposed experiment",
+    description: str = "",
+    idea_context: str = "",
+    max_modules: int = 8,
+) -> dict[ProposalStrategy, ExperimentGraphProposal]:
+    """Return three deterministic proposal policies for one Research Idea."""
+    requested = _canonical_module_ids(module_ids, limit=max_modules)
+
+    minimal_ids = _minimal_module_ids(
+        registry,
+        requested,
+        title=title,
+        description=description,
+    )
+    balanced_ids = _balanced_module_ids(registry, requested)
+    exploratory_extras = _exploratory_extra_modules(
+        registry,
+        balanced_ids,
+        idea_text=" ".join((title, description, idea_context)),
+        limit=2,
+    )
+    exploratory_ids = _canonical_module_ids(
+        (*balanced_ids, *exploratory_extras),
+        limit=max_modules,
+    )
+
+    proposals = {
+        "minimal": propose_experiment_graph(
+            registry,
+            minimal_ids,
+            title=title,
+            description=description,
+            strategy="minimal",
+            max_modules=max_modules,
+        ),
+        "balanced": propose_experiment_graph(
+            registry,
+            balanced_ids,
+            title=title,
+            description=description,
+            strategy="balanced",
+            max_modules=max_modules,
+        ),
+        "exploratory": propose_experiment_graph(
+            registry,
+            exploratory_ids,
+            title=title,
+            description=description,
+            strategy="exploratory",
+            max_modules=max_modules,
+        ),
+    }
+
+    strategy_rationales = {
+        "minimal": (
+            "Minimal strategy: smallest useful subset found within the first three-module "
+            "search depth, prioritizing low node count and few unresolved inputs."
+        ),
+        "balanced": (
+            "Balanced strategy: associated modules are greedily ordered to maximize compatible "
+            "upstream coverage while remaining bounded and deterministic."
+        ),
+        "exploratory": (
+            "Exploratory strategy: Balanced plus at most two locally registered modules selected "
+            "from Grow-seeded idea text by metadata overlap and category diversity; all edges still "
+            "require exact CACE type/unit compatibility."
+        ),
+    }
+    return {
+        strategy: replace(
+            proposal,
+            rationale=strategy_rationales[strategy] + " " + proposal.rationale,
+        )
+        for strategy, proposal in proposals.items()
+    }
 
 def materialize_experiment_proposal(
     experiment: Experiment,
