@@ -186,7 +186,8 @@ theorem lineDeriv_schwartzConj
     fderiv ℝ ((Complex.conjCLE : ℂ → ℂ) ∘ φ) y v =
       Complex.conjCLE (fderiv ℝ φ y v)
   rw [fderiv_comp y Complex.conjCLE.differentiableAt φ.differentiableAt]
-  simp
+  rw [Complex.conjCLE.fderiv]
+  rfl
 
 /-- L² inner product against the conjugated Schwartz embedding is exactly
 evaluation of the associated tempered distribution on the original Schwartz test. -/
@@ -200,7 +201,7 @@ theorem inner_schwartzConjL2_eq_distribution_apply
       MeasureTheory.Lp.toTemperedDistribution u φ
   rw [MeasureTheory.L2.inner_def,
     MeasureTheory.Lp.toTemperedDistribution_apply]
-  apply integral_congr_ae
+  apply MeasureTheory.integral_congr_ae
   filter_upwards
       [(schwartzConj n φ).coeFn_toLp 2
         (MeasureTheory.volume : MeasureTheory.Measure (EuclideanDomain n))] with y hy
