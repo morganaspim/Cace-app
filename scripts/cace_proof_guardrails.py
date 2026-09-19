@@ -98,6 +98,18 @@ def root_closure(
     return seen
 
 
+def missing_internal_modules(
+    closure: Iterable[str],
+    graph: dict[str, tuple[str, ...]],
+) -> list[str]:
+    """Return CACEFormal modules reached by imports but absent from the source graph."""
+    return sorted(
+        module
+        for module in closure
+        if module.startswith("CACEFormal.") and module not in graph
+    )
+
+
 def validate(config: dict) -> None:
     audited_root = ROOT / config["audited_root"]
     module_root = ROOT / config["module_root"]
@@ -150,11 +162,7 @@ def validate(config: dict) -> None:
 
     graph = cace_module_graph(module_root)
     closure = root_closure(actual, graph)
-    missing_internal = sorted(
-        module
-        for module in closure
-        if module.startswith("CACEFormal.") and module not in graph
-    )
+    missing_internal = missing_internal_modules(closure, graph)
     if missing_internal:
         raise GuardrailError(
             f"audited root closure has missing CACEFormal modules: {missing_internal}"
