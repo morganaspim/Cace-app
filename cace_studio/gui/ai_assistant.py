@@ -142,6 +142,13 @@ class LocalAIAssistantWidget(QWidget):
         for button in (self.keep_button, self.useful_button, self.reject_button):
             button.setEnabled(False)
 
+        self.clear_memory_button = QPushButton("Clear Grow Memory")
+        self.clear_memory_button.setToolTip(
+            "Erase all persistent Keep / Useful / Reject research preference events. "
+            "This does not touch experiments, claims, proofs, or verification evidence."
+        )
+        self.clear_memory_button.clicked.connect(self._clear_growth_memory)
+
         configure = QPushButton("Configure")
         configure.clicked.connect(self.configure_callback)
 
@@ -156,6 +163,7 @@ class LocalAIAssistantWidget(QWidget):
         feedback_row.addWidget(self.keep_button)
         feedback_row.addWidget(self.useful_button)
         feedback_row.addWidget(self.reject_button)
+        feedback_row.addWidget(self.clear_memory_button)
         feedback_row.addStretch()
 
         self.memory_status = QLabel()
@@ -338,6 +346,25 @@ class LocalAIAssistantWidget(QWidget):
         )
         for button in (self.keep_button, self.useful_button, self.reject_button):
             button.setEnabled(False)
+        self.refresh()
+
+    def _clear_growth_memory(self) -> None:
+        try:
+            self._growth_memory.clear()
+        except Exception as exc:
+            self.transcript.append(
+                f"[grow-memory] Could not clear memory: {type(exc).__name__}: {exc}"
+            )
+            return
+        if self._growth_engine is not None:
+            self._growth_engine.memory = self._growth_memory
+        self.transcript.append(
+            "[grow-memory] Persistent Grow memory cleared. "
+            "Experiments, proofs, claims, and verification evidence were untouched."
+        )
+        for button in (self.keep_button, self.useful_button, self.reject_button):
+            button.setEnabled(False)
+        self._last_grow_result = None
         self.refresh()
 
     def _grow_failed(self, error: str) -> None:
