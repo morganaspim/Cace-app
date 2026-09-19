@@ -562,3 +562,25 @@ Executable allowlist:
 - `cace_studio/telemetry_contract.py`
 
 The public production domain remains deployment-defined until an owned domain is actually deployed; builders must not invent one.
+
+
+## Multi-window semantic spatial routing
+
+Added 2026-09-19 on separate design branch `design/multi-window-spatial-routing` so it does not alter the active regression-repair head.
+
+Durable goal:
+
+- G066 — multi-window semantic routing with non-Cartesian scientific workspaces.
+
+Key architecture:
+
+- physical OS/browser windows remain rectangular;
+- CACE semantic workspaces may use hex, radial, hyperbolic, Voronoi, Hilbert/Morton, simplex, Gaussian/Eisenstein complex-lattice, fractal or 3D coordinates;
+- semantic layout projects into ordinary physical window bounds;
+- layout/pins/monitor state are presentation only and never alter scientific/proof/evidence hashes;
+- user pins override auto-routing;
+- semantic coordinates survive monitor topology changes and are remapped physically.
+
+Authority:
+- `CACE_MULTI_WINDOW_ROUTING_POLICY.json`
+- `docs/MULTI_WINDOW_SPATIAL_ROUTING.md`

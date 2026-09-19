@@ -110,6 +110,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I078 | public signup privacy-preserving feedback loop | Operate one stable public CACE signup URL for eligible users, block CN/KP at the trusted edge per product policy, give each user a durable tenant instance, and collect strict allowlisted operational/heartbeat/proof-status metadata plus privacy-controlled aggregate usage analytics for product/sales improvement; actual proof/research content is a separate explicit opt-in. | G065 |
 
+| I079 | semantic multi-window routing | Use a two-layer window system: rectangular OS/browser windows for physical screens, plus pluggable CACE semantic coordinates (hex, radial, hyperbolic, Voronoi, Hilbert/Morton, simplex, complex/Eisenstein, fractal, 3D) to decide where scientific views route. User pins and spatial memory dominate automatic routing; layout never changes proof/scientific semantics. | G066 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

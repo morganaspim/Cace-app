@@ -985,6 +985,23 @@
         "Actual proof/theorem/research artifact contribution is off by default and requires separate explicit opt-in plus IP/contribution terms.",
         "Telemetry can never promote scientific evidence or formal proof status."
       ]
+    },
+    {
+      "id": "G066",
+      "category": "multi_window_spatial_ui",
+      "priority": 66,
+      "intent_status": "planned",
+      "title": "Multi-window semantic routing with non-Cartesian scientific workspaces",
+      "summary": "Support multiple independent CACE windows and monitors using ordinary rectangular physical windows plus pluggable semantic coordinate systems such as hex, radial, hyperbolic, Voronoi, Hilbert, simplex, complex-lattice, fractal and 3D layouts.",
+      "acceptance": [
+        "Physical OS/browser windows remain ordinary rectangular screen regions; non-Cartesian coordinates are semantic layout only unless an explicit scientific transform module is present.",
+        "Every view/window has typed WindowIntent metadata including source experiment/node, role, evidence relation, heartbeat priority, pin state and workspace geometry.",
+        "User pins/locks always override automatic routing.",
+        "Router preserves spatial memory, contextual proximity, low overlap, evidence/result proximity and stable monitor assignment.",
+        "Multi-monitor remapping preserves semantic positions when monitor topology/resolution changes.",
+        "Layout state is persisted separately from scientific hashes, computation caches, evidence and proof state.",
+        "Production implementation ships Cartesian first, then hex and radial, followed by hyperbolic/Voronoi/Hilbert and experimental simplex/complex/fractal/3D plugins."
+      ]
     }
   ]
 }

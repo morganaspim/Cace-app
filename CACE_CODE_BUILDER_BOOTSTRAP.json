@@ -25,7 +25,9 @@
     "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
     "CACE_PUBLIC_SERVICE_POLICY.json",
     "CACE_TELEMETRY_PRIVACY_POLICY.json",
-    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md",
+    "CACE_MULTI_WINDOW_ROUTING_POLICY.json",
+    "docs/MULTI_WINDOW_SPATIAL_ROUTING.md"
   ],
   "build_optimizer": {
     "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
@@ -62,7 +64,10 @@
     "enforce the configured CN/KP country-access policy at the trusted edge plus signup/session/local-agent registration without treating GeoIP as perfect location proof",
     "all hosted instances emit only allowlisted essential health/heartbeat/proof-status metadata; raw proof/scientific/AI/protein/customer content is forbidden from essential telemetry",
     "product analytics for product/sales improvement obeys privacy notice/consent-or-legal-basis/minimization/opt-out requirements",
-    "actual proof/research artifact contribution is a separate explicit opt-in and never silently uploads customer intellectual property"
+    "actual proof/research artifact contribution is a separate explicit opt-in and never silently uploads customer intellectual property",
+    "support multiple independent windows and monitors with typed semantic routing",
+    "keep physical windows rectangular while allowing pluggable non-Cartesian semantic workspace coordinates",
+    "preserve user pins/spatial memory and keep layout state separate from scientific/proof/evidence state"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -183,5 +188,19 @@
       "proof_research_contribution: explicit opt-in only"
     ],
     "evidence_rule": "telemetry cannot create or modify proof/evidence truth"
+  },
+  "multi_window_routing": {
+    "source": "CACE_MULTI_WINDOW_ROUTING_POLICY.json",
+    "recommendation": "hybrid semantic atlas: rectangular physical windows + pluggable semantic geometry",
+    "initial_order": [
+      "Cartesian stable router",
+      "hex axial",
+      "radial/polar",
+      "hyperbolic",
+      "Voronoi",
+      "Hilbert/Morton",
+      "simplex/complex/fractal/3D"
+    ],
+    "invariant": "layout/coordinate visualization does not change science/proof unless explicit transform module exists"
   }
 }

@@ -1,0 +1,222 @@
+{
+  "schema": "cace.multi-window-routing.v1",
+  "role": "multi-window and multi-monitor semantic routing policy",
+  "invariant": "Physical OS/browser windows remain rectangular screen regions. Non-Cartesian coordinates are semantic workspace/layout coordinates only and never alter scientific truth, module math, evidence, or proof state unless an explicit scientific transform module is present.",
+  "routing_pipeline": [
+    "derive WindowIntent from source experiment/node/object and requested view role",
+    "apply explicit user pin/lock/monitor preference first",
+    "select semantic workspace and coordinate geometry",
+    "compute semantic anchor from dependency/role/heartbeat/evidence relationships",
+    "choose target monitor/workspace based on available area, focus, role and user preferences",
+    "project semantic anchor into rectangular screen/window bounds",
+    "resolve collisions/occlusion while minimizing movement from prior stable positions",
+    "animate transition without changing experiment semantics",
+    "persist layout state separately from scientific experiment semantics",
+    "restore deterministically when screen topology is compatible; gracefully remap otherwise"
+  ],
+  "window_intent_fields": [
+    "tenant_id",
+    "experiment_id",
+    "source_node_ids",
+    "view_role",
+    "data_type",
+    "dependency_depth",
+    "evidence_role",
+    "heartbeat_state",
+    "attention_priority",
+    "user_pinned",
+    "preferred_monitor",
+    "workspace_id",
+    "geometry_mode"
+  ],
+  "ranked_geometry_modes": [
+    {
+      "rank": 1,
+      "id": "hybrid_semantic_atlas",
+      "name": "Hybrid semantic atlas",
+      "use": "default",
+      "summary": "OS windows stay rectangular while CACE assigns semantic locations using a pluggable geometry per workspace.",
+      "best_for": [
+        "general multi-window CACE",
+        "multi-monitor",
+        "mixed sciences",
+        "switching geometries without moving scientific state"
+      ],
+      "caution": "Requires a clean projection layer and separation of visual layout from scientific semantics."
+    },
+    {
+      "rank": 2,
+      "id": "hex_axial",
+      "name": "Hexagonal axial/cube coordinates",
+      "use": "recommended scientific neighborhood layout",
+      "summary": "Place related modules/views on a six-neighbor lattice with lower directional bias than square grids.",
+      "best_for": [
+        "local dependency neighborhoods",
+        "cell/mesh views",
+        "module clusters",
+        "heartbeat spreading",
+        "nearby-tool routing"
+      ],
+      "caution": "Outer physical windows still project to rectangles; hex cells are semantic anchors."
+    },
+    {
+      "rank": 3,
+      "id": "radial_polar",
+      "name": "Radial / polar orbit layout",
+      "use": "focus and context",
+      "summary": "Put the active experiment/view at the center and arrange related inspectors, evidence, help, AI, and provenance on rings.",
+      "best_for": [
+        "single active experiment",
+        "proof/evidence orbit",
+        "inspectors",
+        "progress/error context"
+      ],
+      "caution": "Can become crowded when many items share the same radius."
+    },
+    {
+      "rank": 4,
+      "id": "hyperbolic_focus_context",
+      "name": "Hyperbolic / Poincare focus-context layout",
+      "use": "large hierarchies",
+      "summary": "Map deep dependency/research hierarchies into finite screen space while expanding the active focus.",
+      "best_for": [
+        "large proof trees",
+        "research idea hierarchies",
+        "module dependency trees",
+        "many open windows"
+      ],
+      "caution": "Users need orientation cues, smooth transitions, breadcrumbs and a stable home/focus anchor."
+    },
+    {
+      "rank": 5,
+      "id": "voronoi_power",
+      "name": "Voronoi / weighted power-cell layout",
+      "use": "adaptive dashboard",
+      "summary": "Allocate polygonal semantic regions according to priority, attention, compute load, heartbeat or user-defined importance.",
+      "best_for": [
+        "adaptive dashboards",
+        "many simultaneous experiments",
+        "resource/heartbeat city",
+        "attention routing"
+      ],
+      "caution": "Frequent weight changes can destroy spatial memory; use hysteresis and user pins."
+    },
+    {
+      "rank": 6,
+      "id": "hilbert_morton",
+      "name": "Hilbert/Morton locality-preserving address layout",
+      "use": "large-scale indexing",
+      "summary": "Map high-dimensional semantic addresses into a stable one-dimensional ordering that can be tiled over screens/workspaces.",
+      "best_for": [
+        "thousands of objects",
+        "persistent deterministic addressing",
+        "distributed/multi-monitor routing",
+        "cache/data locality views"
+      ],
+      "caution": "Excellent machine locality but less immediately intuitive to humans; expose breadcrumbs and region labels."
+    },
+    {
+      "rank": 7,
+      "id": "simplex_barycentric",
+      "name": "Simplex / barycentric layout",
+      "use": "mixtures and competing objectives",
+      "summary": "Position views according to relative weights among three or more scientific criteria.",
+      "best_for": [
+        "material tradeoffs",
+        "optimization fronts",
+        "mixture/composition studies",
+        "multi-model comparison"
+      ],
+      "caution": "Only meaningful when axes/vertices have a clear interpretation."
+    },
+    {
+      "rank": 8,
+      "id": "complex_lattice",
+      "name": "Gaussian/Eisenstein complex lattice",
+      "use": "novel coordinate visualization",
+      "summary": "Use complex-integer or omega-based lattices as semantic addressing and tiling systems.",
+      "best_for": [
+        "complex-basis visualization",
+        "hex/triangular tilings",
+        "periodic structures",
+        "novel coordinate research"
+      ],
+      "caution": "Must remain visualization/addressing unless an explicit scientific transform is inserted; provide a Cartesian projection/reference."
+    },
+    {
+      "rank": 9,
+      "id": "fractal_hierarchical",
+      "name": "Fractal / recursive address space",
+      "use": "nested workspaces",
+      "summary": "Represent experiment families as recursive tiles or addresses so zooming reveals finer windows/modules.",
+      "best_for": [
+        "nested experiments",
+        "Cantor/Hilbert research views",
+        "very large project organization",
+        "multi-scale science"
+      ],
+      "caution": "Navigation history, zoom breadcrumbs and stable parent/child identity are essential."
+    },
+    {
+      "rank": 10,
+      "id": "spherical_3d_shell",
+      "name": "Spherical / 3D shell layout",
+      "use": "optional 3D/XR mode",
+      "summary": "Place views around a central focus in 3D with orbit/rotation controls.",
+      "best_for": [
+        "3D scientific exploration",
+        "VR/XR",
+        "spatial demonstrations"
+      ],
+      "caution": "Not the default desktop layout; depth/occlusion and accessibility costs are high."
+    }
+  ],
+  "routing_objectives": [
+    "preserve user pins and explicit placements",
+    "preserve spatial memory by minimizing unnecessary movement",
+    "keep contextual windows near their source without covering it",
+    "minimize overlap and hidden windows",
+    "reduce important connector crossings",
+    "keep proof/evidence/provenance views close to the result they explain",
+    "keep active/focused work visually dominant",
+    "route low-priority/background windows toward peripheral regions",
+    "avoid monitor changes unless benefit exceeds movement cost",
+    "keep window location deterministic for the same semantic state when possible"
+  ],
+  "role_defaults": {
+    "canvas": "primary focus region",
+    "inspector": "adjacent to selected source",
+    "proof_evidence": "near source result or dedicated evidence monitor",
+    "provenance": "near proof/evidence but lower visual priority",
+    "help": "contextual peripheral window or user-selected monitor",
+    "local_ai": "contextual peripheral window; never proof/evidence authority",
+    "protein_3d": "large visualization region",
+    "open_problem": "research workspace region",
+    "heartbeat_economy": "dashboard/peripheral or dedicated monitor",
+    "logs_console": "lower-priority utility region",
+    "progress_error": "near source action but non-occluding"
+  },
+  "multi_monitor": {
+    "physical_model": "rectangular screens in ordinary OS/browser coordinate space",
+    "default_assignment": [
+      "primary monitor: active canvas/focus",
+      "secondary monitor: evidence/proof/inspectors when available",
+      "additional monitor: 3D visualization, research dashboard, heartbeat/economy, logs according to user preference"
+    ],
+    "screen_change_rule": "If a monitor disappears or resolution/DPI changes, preserve semantic coordinates and remap only the physical projection."
+  },
+  "persistence": {
+    "scientific_state_separate": true,
+    "saved_fields": [
+      "workspace geometry mode",
+      "semantic coordinates",
+      "window role",
+      "user pin/lock",
+      "monitor preference",
+      "physical bounds as a restore hint",
+      "focus/history/breadcrumb state"
+    ],
+    "rule": "Changing window geometry/layout never invalidates scientific caches or evidence."
+  },
+  "public_help_boundary": "Customer help may explain geometry choices and routing behavior but must not reveal proprietary optimization coefficients, custom CACE mathematical derivations, or internal scoring implementation."
+}

@@ -417,3 +417,17 @@ contribution/IP terms.
 
 Authority: `CACE_TELEMETRY_PRIVACY_POLICY.json`.
 Executable allowlist: `cace_studio/telemetry_contract.py`.
+
+
+## Multi-window semantic routing
+
+CACE must support multiple independent windows and monitors.
+
+Do not attempt to make the operating system use non-rectangular windows as the scientific coordinate model. Keep physical windows in ordinary rectangular screen space and route them from a separate semantic workspace coordinate system.
+
+Supported/planned semantic geometries include Cartesian, hex axial/cube, radial/polar, hyperbolic, Voronoi/power, Hilbert/Morton, simplex/barycentric, Gaussian/Eisenstein complex lattices, recursive/fractal addressing and optional 3D/spherical layouts.
+
+User pins override automatic routing. Preserve spatial memory and keep proof/evidence windows near the results they explain. Persist layout state separately from scientific hashes/evidence/proof.
+
+Authority: `CACE_MULTI_WINDOW_ROUTING_POLICY.json`.
+Design: `docs/MULTI_WINDOW_SPATIAL_ROUTING.md`.
