@@ -1,7 +1,6 @@
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Topology.Algebra.Module.Basic
 import Mathlib.Topology.Sequences
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
 
 namespace CACEFormal
 
@@ -85,48 +84,6 @@ theorem ker_le_topologicalClosure_of_regularizer
     (htendsto : ∀ x, x ∈ A.ker → Tendsto (fun k => R k x) atTop (nhds x)) :
     A.ker ≤ S.topologicalClosure := by
   rw [submodule_topologicalClosure_eq_ker_of_regularizer S A hS R hcore htendsto]
-
-/--
-Orthogonal-complement closure criterion.
-
-In a complete inner-product space, a core `S` is dense in a closed target
-submodule `T` as soon as:
-
-* `S ≤ T`; and
-* there is no nonzero vector of `T` orthogonal to every vector of `S`.
-
-This gives CACE a second route to hard graph-density results.  Instead of
-constructing an explicit regularizing sequence, an analytic proof may identify
-the relative orthogonal complement and show that it is trivial.
--/
-theorem submodule_topologicalClosure_eq_of_relativeOrthogonal_eq_bot
-    [InnerProductSpace 𝕜 E] [CompleteSpace E]
-    (S T : Submodule 𝕜 E)
-    (hST : S ≤ T)
-    (hT : IsClosed (T : Set E))
-    (horth : Sᗮ ⊓ T = ⊥) :
-    S.topologicalClosure = T := by
-  have hclosure : S.topologicalClosure ≤ T :=
-    Submodule.topologicalClosure_minimal S hST hT
-  have hdecomp :=
-    Submodule.sup_orthogonal_inf_of_hasOrthogonalProjection hclosure
-  simpa [horth] using hdecomp
-
-/-- Pointwise form of the relative-orthogonal criterion. -/
-theorem submodule_topologicalClosure_eq_of_relativeOrthogonal_pointwise
-    [InnerProductSpace 𝕜 E] [CompleteSpace E]
-    (S T : Submodule 𝕜 E)
-    (hST : S ≤ T)
-    (hT : IsClosed (T : Set E))
-    (hzero : ∀ x : E, x ∈ T → x ∈ Sᗮ → x = 0) :
-    S.topologicalClosure = T := by
-  apply submodule_topologicalClosure_eq_of_relativeOrthogonal_eq_bot
-    S T hST hT
-  apply le_antisymm
-  · intro x hx
-    have hx0 : x = 0 := hzero x hx.2 hx.1
-    simpa [hx0]
-  · exact bot_le
 
 /-- A core is dense in the whole ambient normed space when a regularizer lands in the core and
 converges pointwise to every ambient point. -/
