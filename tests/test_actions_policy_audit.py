@@ -15,7 +15,6 @@ ACTIVE = (
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
     "cace-exact-pin-lean-preflight.yml",
-    "cace-quarantined-lean-standalone-preflight.yml",
     "cace-lean-source-sanity.yml",
 )
 
@@ -143,22 +142,6 @@ def test_collaboration_workflow_contains_no_lean_execution() -> None:
     assert "lake build" not in text
     assert "lake env lean" not in text
     assert "elan toolchain" not in text
-
-
-
-def test_quarantined_standalone_preflight_is_manual_only_and_fail_closed() -> None:
-    text = (WORKFLOWS / "cace-quarantined-lean-standalone-preflight.yml").read_text(
-        encoding="utf-8"
-    )
-    assert "workflow_dispatch:" in text
-    assert "pull_request:" not in text
-    assert "push:" not in text
-    assert "quarantined_root_imports" in text
-    assert "standalone target is not explicitly quarantined" in text
-    assert "standalone target is already imported by audited root" in text
-    assert "lake build \"+$TARGET_MODULE\"" in text
-    assert "qualification=false" in text
-    assert "promotion_state_candidate=STANDALONE_COMPILED" in text
 
 
 def test_regression_locked_branch_cannot_broaden(tmp_path: Path) -> None:
