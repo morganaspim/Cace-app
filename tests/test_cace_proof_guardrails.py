@@ -23,22 +23,24 @@ def test_current_audited_root_matches_guardrail_policy():
     guard.validate(config)
 
 
-def test_quarantined_modules_are_not_audited_root_imports():
+def test_promoted_hdiv_modules_leave_quarantine_and_enter_audited_root():
     guard = _guardrails()
     config = guard.load_config()
     root = ROOT / config["audited_root"]
     imports = set(guard.parse_imports(root))
     quarantined = set(config["quarantined_root_imports"])
-    assert imports.isdisjoint(quarantined)
-    assert {
+    promoted = {
         "CACEFormal.PositiveLaplacianAnnihilator",
         "CACEFormal.HDivGraphAnnihilator",
         "CACEFormal.OrthogonalClosure",
         "CACEFormal.HDivDensityReduction",
-    } <= quarantined
+    }
+    assert imports.isdisjoint(quarantined)
+    assert promoted.isdisjoint(quarantined)
+    assert promoted <= imports
 
 
-def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules():
+def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
     guard = _guardrails()
     config = guard.load_config()
     module_root = ROOT / config["module_root"]
@@ -55,9 +57,11 @@ def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules()
     assert "CACEFormal.PhysicalP1RT0Element" in closure
     assert "CACEFormal.ExecutableRationalGeometry" in closure
     assert "CACEFormal.RuntimeApproximationContract" in closure
-    assert "CACEFormal.PositiveLaplacianAnnihilator" not in closure
-    assert "CACEFormal.HDivGraphAnnihilator" not in closure
-    assert "CACEFormal.HDivDensityReduction" not in closure
+    assert "CACEFormal.PositiveLaplacianAnnihilator" in closure
+    assert "CACEFormal.HDivGraphAnnihilator" in closure
+    assert "CACEFormal.OrthogonalClosure" in closure
+    assert "CACEFormal.HDivDensityReduction" in closure
+    assert closure.isdisjoint(set(config["quarantined_root_imports"]))
 
 
 def test_missing_recursive_internal_module_is_rejected_by_graph_check():

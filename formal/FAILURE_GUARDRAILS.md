@@ -538,14 +538,19 @@ failure ledger separately required standalone compilation before root promotion.
 - that non-root target must be explicitly listed in `quarantined_root_imports`;
 - quarantined standalone targets are forbidden from simultaneously appearing in the root allowlist;
 - `compile_root=true` still rejects any target that is not directly imported by the audited root;
-- the workflow and its canonical byte-for-byte template carry the same fail-closed logic.
+- the workflow and its canonical byte-for-byte template carry the same fail-closed logic;
+- promotion is a deliberate state transition: promoted modules must leave quarantine before
+  they may enter either the audited root or its recursive root closure;
+- the root-closure guard rejects any future state in which a quarantined dependency becomes
+  reachable through a promoted module.
 
 **Regression guard:** `scripts/check_cace_workflow_guardrails.py` requires the quarantine-only
-standalone branch, and `tests/test_cace_proof_guardrails.py` checks both the promotion boundary
-and the continued root exclusion of `CACEFormal.HDivDensityReduction`.
+standalone branch, while `scripts/cace_proof_guardrails.py` and
+`tests/test_cace_proof_guardrails.py` enforce both quarantine isolation and the explicit
+promotion transition.
 
-This creates engineering evidence only. A standalone pass does not imply root compilation,
-axiom audit, or exact-head qualification.
+Standalone compilation remains engineering evidence only. Root promotion additionally requires
+root compilation, kernel axiom audit, exact Lean-environment metadata, and exact-head qualification.
 
 
 ## F-029 — positive-Laplacian multiplier scalar/API drift

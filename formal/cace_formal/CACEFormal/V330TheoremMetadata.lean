@@ -36,6 +36,8 @@ private def endpoints : List Name := [
   ``CACEFormal.Continuum.inH1GraphRepresentative_mem,
   ``CACEFormal.Continuum.inHDivGraphRepresentative_mem,
   ``CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative,
+  ``CACEFormal.Continuum.reversedHDivGraph_mem_H1_of_mem_orthogonal,
+  ``CACEFormal.Continuum.complexSmoothGraphHilbertClosure_eq_distributional,
   ``CACEFormal.Continuum.besselRieszSymbol_norm_le,
   ``CACEFormal.Continuum.h1RieszSymbol_norm_le_one,
   ``CACEFormal.Continuum.h1RieszSymbol_hasTemperateGrowth,

@@ -162,6 +162,12 @@ def validate(config: dict, *, emit: bool = True) -> None:
 
     graph = cace_module_graph(module_root)
     closure = root_closure(actual, graph)
+    forbidden_closure = closure & quarantined
+    if forbidden_closure:
+        raise GuardrailError(
+            "quarantined modules reached by audited root closure: "
+            f"{sorted(forbidden_closure)}"
+        )
     missing_internal = missing_internal_modules(closure, graph)
     if missing_internal:
         raise GuardrailError(

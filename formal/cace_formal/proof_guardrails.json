@@ -60,14 +60,13 @@
     "CACEFormal.MeshElementGeometry",
     "CACEFormal.PhysicalP1RT0Element",
     "CACEFormal.ExecutableRationalGeometry",
-    "CACEFormal.RuntimeApproximationContract"
-  ],
-  "quarantined_root_imports": [
+    "CACEFormal.RuntimeApproximationContract",
     "CACEFormal.PositiveLaplacianAnnihilator",
     "CACEFormal.HDivGraphAnnihilator",
     "CACEFormal.OrthogonalClosure",
     "CACEFormal.HDivDensityReduction"
   ],
+  "quarantined_root_imports": [],
   "policy": {
     "root_imports_are_exact_allowlist": true,
     "quarantined_modules_may_not_enter_root": true,
