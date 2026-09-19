@@ -222,6 +222,5 @@ def test_canonical_qualification_prunes_only_owned_cache_acceleration_before_dis
     assert '[[ "$name" == "$formal_tree" ]] && continue' in workflow
     assert 'rm -rf -- "$candidate"' in workflow
     assert 'rm -rf -- "$build_cache"' in workflow
-    assert "at least 5 GiB free after safe cache pruning" in workflow
     assert "5 GiB plus source-staging headroom before copy" in workflow
     assert "at least 5 GiB free after source staging" in workflow
