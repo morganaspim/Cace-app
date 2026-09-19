@@ -13,6 +13,7 @@
     "docs/STATUS.md",
     "docs/ARCHITECTURE.md",
     "docs/SECURITY_ARCHITECTURE.md",
+    "docs/OFFLINE_COLLABORATION_AND_LICENSING.md",
     "docs/CONSTITUTION.md",
     "docs/CLAIMS.md",
     "docs/BUG_FLUSH_ARCHITECTURE.md",
@@ -169,5 +170,24 @@
     "durable diagnostics",
     "qualification-drift audit"
   ],
-  "repository_reconstruction_requirement": "A repository-only reader must be able to recover product goals, current status, proof rigor, security boundaries, bug-flush policy, provenance/log retention, deployment shape, and definition of done without private chat history."
+  "repository_reconstruction_requirement": "A repository-only reader must be able to recover product goals, current status, proof rigor, security boundaries, bug-flush policy, provenance/log retention, deployment shape, and definition of done without private chat history.",
+  "network_and_licensing": {
+    "document": "docs/OFFLINE_COLLABORATION_AND_LICENSING.md",
+    "scientific_core_network": "zero general Internet egress",
+    "collaboration": "separate invite-only broker; typed encrypted canvas operations only",
+    "licensing": "Monero QR + external payment verification + signed offline license token",
+    "pass_durations": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "target_usd_prices": {
+      "day": 12,
+      "week": 49,
+      "month": 149,
+      "year": 999
+    },
+    "hard_rule": "network brokers may not inject executable code/packages/plugins/Lean/arbitrary files or trusted evidence state"
+  }
 }
