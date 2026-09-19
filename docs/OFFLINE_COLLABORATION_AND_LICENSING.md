@@ -343,6 +343,13 @@ Recommended separation:
 
 This prevents one user from turning a low-cost monthly pass into unbounded cloud expense.
 
+
+## 8.1 Account tiers and enterprise proof commerce
+
+CACE account/login, first-time allowances, payment ledgers, tiered pass pricing, enterprise proof orders, customer-specific PDF delivery, and Background-IP/Foreground-IP separation are specified in `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`.
+
+Hard trust-boundary rule: the proof runner does **not** authenticate users, store password hashes, process customer email, or hold payment/database credentials. It receives only signed proof-job requests and emits signed result/artifact metadata.
+
 ## 9. R&D funding policy
 
 The licensing UI may state that fees support:
