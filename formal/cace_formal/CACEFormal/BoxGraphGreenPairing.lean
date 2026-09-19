@@ -70,6 +70,15 @@ noncomputable def closedBoxGraphGreenPairing {n : Nat} (a b : BoxPoint n) :
   (ContinuousLinearMap.precomp ℝ vIncl).comp
     ((ambientBoxGraphGreenPairing a b).comp qIncl)
 
+/-- Coordinate formula for the bounded-box Green pairing after restriction to the closed graph spaces. -/
+theorem closedBoxGraphGreenPairing_apply {n : Nat} (a b : BoxPoint n)
+    (q : BoxHDivGraphClosedSpace a b) (v : BoxH1GraphClosedSpace a b) :
+    closedBoxGraphGreenPairing a b q v =
+      (∑ i : Fin (n + 1), inner ℝ (q.1.1 i) (v.1.2 i)) +
+        inner ℝ q.1.2 v.1.1 := by
+  change ambientBoxGraphGreenPairing a b q.1 v.1 = _
+  exact ambientBoxGraphGreenPairing_apply a b q.1 v.1
+
 /-- Functional bounded-box normal trace on the graph closure. -/
 noncomputable def boxGraphNormalTrace {n : Nat} (a b : BoxPoint n) :
     BoxHDivGraphClosedSpace a b →L[ℝ] BoxH1GraphClosedSpace a b →L[ℝ] ℝ :=

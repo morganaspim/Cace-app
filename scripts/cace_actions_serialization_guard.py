@@ -9,13 +9,15 @@ import argparse
 import json
 import os
 import sys
+import time
+import urllib.error
+import urllib.parse
 import urllib.request
 
 ACTIVE = {"queued", "in_progress", "waiting", "pending", "requested"}
 
 
-def fetch_runs(repository: str, token: str) -> list[dict]:
-    url = f"https://api.github.com/repos/{repository}/actions/runs?per_page=100"
+def _request_json(url: str, token: str, *, attempts: int = 3) -> dict:
     request = urllib.request.Request(
         url,
         headers={
@@ -25,8 +27,34 @@ def fetch_runs(repository: str, token: str) -> list[dict]:
             "User-Agent": "cace-actions-serialization-guard",
         },
     )
-    with urllib.request.urlopen(request, timeout=20) as response:
-        return json.load(response).get("workflow_runs", [])
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return json.load(response)
+        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+            last_error = exc
+            if attempt + 1 < attempts:
+                time.sleep(1 << attempt)
+    assert last_error is not None
+    raise last_error
+
+
+def fetch_runs(repository: str, token: str) -> list[dict]:
+    """Fetch only active-status run sets, keeping responses small and fail-closed.
+
+    GitHub's unfiltered 100-run response can exceed a megabyte and has produced
+    truncated HTTP bodies on the self-hosted runner.  The serialization decision
+    only depends on ACTIVE statuses, so query each relevant status directly.
+    """
+    runs: dict[int, dict] = {}
+    base = f"https://api.github.com/repos/{repository}/actions/runs"
+    for status in sorted(ACTIVE):
+        query = urllib.parse.urlencode({"status": status, "per_page": 100})
+        payload = _request_json(f"{base}?{query}", token)
+        for run in payload.get("workflow_runs", []):
+            runs[int(run.get("id", 0))] = run
+    return list(runs.values())
 
 
 def blockers(runs: list[dict], *, current_run_id: int | None = None) -> list[dict]:
