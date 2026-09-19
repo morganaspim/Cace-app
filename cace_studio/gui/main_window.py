@@ -357,6 +357,8 @@ class MainWindow(QMainWindow):
             proposals,
             self,
             initial_strategy="balanced",
+            registry=self.registry,
+            gpu_enabled=self.settings.gpu_enabled,
         )
         if dialog.exec() != QDialog.Accepted:
             self.console.append(
