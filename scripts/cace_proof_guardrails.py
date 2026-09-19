@@ -110,7 +110,7 @@ def missing_internal_modules(
     )
 
 
-def validate(config: dict) -> None:
+def validate(config: dict, *, emit: bool = True) -> None:
     audited_root = ROOT / config["audited_root"]
     module_root = ROOT / config["module_root"]
     ledger = ROOT / config["failure_ledger"]
@@ -178,18 +178,19 @@ def validate(config: dict) -> None:
     if len(ids) != len(set(ids)) or not ids:
         raise GuardrailError("failure ledger IDs must be non-empty and unique")
 
-    print(
-        "CACE_PROOF_GUARDRAILS_OK",
-        json.dumps(
-            {
-                "root_import_count": len(actual),
-                "root_closure_count": len(closure),
-                "quarantined_count": len(quarantined),
-                "failure_ledger_entries": len(ids),
-            },
-            sort_keys=True,
-        ),
-    )
+    if emit:
+        print(
+            "CACE_PROOF_GUARDRAILS_OK",
+            json.dumps(
+                {
+                    "root_import_count": len(actual),
+                    "root_closure_count": len(closure),
+                    "quarantined_count": len(quarantined),
+                    "failure_ledger_entries": len(ids),
+                },
+                sort_keys=True,
+            ),
+        )
 
 
 def git_changed_paths(base_ref: str) -> list[Path]:
@@ -354,15 +355,15 @@ def main() -> int:
     try:
         config = load_config()
         if args.command == "validate":
-            validate(config)
+            validate(config, emit=True)
             return 0
         if args.command == "impacted":
-            validate(config)
+            validate(config, emit=False)
             for module in impacted_modules(config, args.base_ref):
                 print(module)
             return 0
         if args.command == "plan-hash":
-            validate(config)
+            validate(config, emit=False)
             print(json.dumps(proof_plan(config, args), sort_keys=True))
             return 0
     except GuardrailError as exc:
