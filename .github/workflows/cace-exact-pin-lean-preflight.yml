@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       module:
-        description: 'Enter ONLY the Lean module path, e.g. CACEFormal/ReferenceSimplexFiber.lean'
+        description: 'Lean module path. Default is a stable root import; compile_root=true checks the full audited root.'
         required: true
-        default: 'CACEFormal/ReferenceSimplexFiber.lean'
+        default: 'CACEFormal/P1RT0Element.lean'
       compile_root:
         description: 'Also compile CACEFormal.lean after the targeted module'
         required: true
