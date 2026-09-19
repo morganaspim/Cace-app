@@ -22,6 +22,8 @@ REQUIRED_NONCOMPUTABLE = {
     "formal/cace_formal/CACEFormal/AffineP1RT0Transport.lean": (
         "noncomputable def piolaRT0",
         "noncomputable def pullP1",
+        "noncomputable def transportRT0SourceToTarget",
+        "noncomputable def transportP1SourceToTarget",
     ),
     "formal/cace_formal/CACEFormal/ReferenceSimplexNormalization.lean": (
         "noncomputable def inverseEdgeLinear",
