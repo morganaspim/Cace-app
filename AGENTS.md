@@ -8,6 +8,7 @@ Read these in order before changing scientific or verification behavior:
 
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
 2. `CACE_BUILD_LITE.json` — low-cost deterministic build/test optimizer for coding agents.
+3. `CACE_PAYMENT_POLICY.json` — canonical public payment-wallet policy; do not invent replacement wallets.
 3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
@@ -129,3 +130,28 @@ scientific truth, proof status, security policy, or user permissions.
   replacing it with a weaker implementation.
 - Read `docs/MASTER_BUILD_SPEC.md` and `docs/GOAL_REGISTRY.json` before
   declaring the production app complete.
+
+
+### Canonical Monero wallet rule
+
+CACE already has an existing production Monero receive wallet from the earlier
+application/software assets. Coding agents **must not create or substitute a new
+Monero wallet/address**.
+
+Canonical public XMR receive address:
+
+`482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ`
+
+Machine-readable authority: `CACE_PAYMENT_POLICY.json`.
+
+Rules:
+
+- the address is public configuration, not a secret;
+- never place Monero spend keys, view keys, wallet RPC credentials, exchange
+  credentials, seeds, or mnemonics in source, prompts, browser code, logs, or
+  model context;
+- if production invoice/subaddress support is implemented, it must derive from
+  the same existing wallet custody rather than creating a replacement wallet;
+- the local AI Math Coin wallet/capability is a separate identity and must not
+  be confused with the canonical XMR receive wallet;
+- payment/wallet state never changes scientific proof or evidence.

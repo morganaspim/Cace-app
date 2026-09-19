@@ -8,6 +8,7 @@
     "AGENTS.md",
     "CACE_AGENT_BOOTSTRAP.json",
     "CACE_BUILD_LITE.json",
+    "CACE_PAYMENT_POLICY.json",
     "docs/CROSS_CHAT_HANDOFF.md",
     "docs/MASTER_BUILD_SPEC.md",
     "docs/GOAL_REGISTRY.json",
@@ -52,5 +53,12 @@
       "mode": "any GitHub-connected coding agent",
       "instruction": "Read the required files and use the same production/security/proof contracts."
     }
+  },
+  "payment_policy": {
+    "source": "CACE_PAYMENT_POLICY.json",
+    "canonical_monero_public_address": "482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ",
+    "instruction": "Use the existing canonical CACE Monero receive wallet. Do not generate, substitute, or silently migrate to a new Monero wallet/address.",
+    "secrets_rule": "Public receive address may be configured in source; private keys/seeds/view keys/wallet-RPC credentials/exchange credentials must remain outside repository/client/model context.",
+    "math_coin_rule": "The local-AI Math Coin wallet is separate from the Monero receive wallet."
   }
 }

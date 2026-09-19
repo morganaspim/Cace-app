@@ -595,3 +595,30 @@ Add negative tests proving:
 - artifact/PDF hash mismatch blocks delivery;
 - customer PDF cannot accidentally include files marked CACE Background IP;
 - a customer foreground assignment does not mutate ownership metadata for CACE Background IP.
+
+
+## Canonical Monero receive wallet
+
+CACE already has an existing Monero wallet selected in earlier application
+assets. Production builders must reuse that wallet and must not generate a
+replacement wallet merely because a new frontend/backend/payment integration is
+being generated.
+
+Canonical public XMR receive address:
+
+`482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ`
+
+The same value is machine-readable in `CACE_PAYMENT_POLICY.json`.
+
+Operational rules:
+
+- the public address may appear in server configuration and payment QR payloads;
+- Monero seed/spend key/view key/wallet-RPC credentials remain secret and must
+  never be committed, emitted to browser JavaScript, or exposed to AI context;
+- where unique invoice/subaddress handling is used, those invoice addresses must
+  be issued by the same existing wallet custody;
+- Base44, Gemini AI Studio, Codex, and other coding agents must not bootstrap a
+  new Monero wallet as part of deployment or account creation;
+- the account-scoped local-AI Math Coin wallet identity is separate from this
+  XMR receive wallet;
+- XMR payment/settlement state has no scientific evidence authority.

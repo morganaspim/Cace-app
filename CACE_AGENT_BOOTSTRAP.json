@@ -10,6 +10,7 @@
     "docs/CHAT_IDEA_LEDGER.md",
     "CACE_BUILD_LITE.json",
     "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "CACE_PAYMENT_POLICY.json",
     "docs/CACE_BUILD_LITE.md",
     "docs/CROSS_CHAT_HANDOFF.md",
     "docs/BUILD_AND_TRUST_GUIDE.md",
@@ -41,7 +42,8 @@
     "bug_policy": "docs/BUG_FLUSH_ARCHITECTURE.md",
     "security_policy": "docs/SECURITY_ARCHITECTURE.md",
     "provenance_policy": "docs/PROVENANCE_ATTESTATION.md",
-    "build_optimizer": "CACE_BUILD_LITE.json + cace_studio/build_lite.py"
+    "build_optimizer": "CACE_BUILD_LITE.json + cace_studio/build_lite.py",
+    "payment_policy": "CACE_PAYMENT_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -172,7 +174,10 @@
     },
     "cryptocurrency": "Monero (XMR)",
     "xmr_pricing_rule": "quote at purchase from USD policy; do not use long-lived hard-coded XMR economic price",
-    "evidence_rule": "payment/license state never creates or strengthens scientific evidence"
+    "evidence_rule": "payment/license state never creates or strengthens scientific evidence",
+    "canonical_monero_public_address": "482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ",
+    "canonical_monero_wallet_rule": "Reuse the existing CACE wallet; do not generate a replacement wallet. Invoice subaddresses, if used, must belong to the same wallet custody.",
+    "payment_policy": "CACE_PAYMENT_POLICY.json"
   },
   "current_theorem_roadmap": {
     "document": "docs/proofs/V341_TOP20_OF50_THEOREM_ROADMAP.md",
