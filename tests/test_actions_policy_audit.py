@@ -14,6 +14,8 @@ ACTIVE = (
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
+    "cace-exact-pin-lean-preflight.yml",
+    "cace-lean-source-sanity.yml",
 )
 
 
@@ -206,3 +208,15 @@ def test_collaboration_trigger_rejects_cace_source_surface(tmp_path: Path) -> No
     )
     path.write_text(text)
     assert "collaboration-trigger-paths" in _kinds(audit(root))
+
+
+def test_lean_source_sanity_trigger_cannot_broaden(tmp_path: Path) -> None:
+    root = _fixture(tmp_path)
+    path = root / "cace-lean-source-sanity.yml"
+    text = path.read_text(encoding="utf-8").replace(
+        "      - 'formal/**/*.lean'\n",
+        "      - 'formal/**/*.lean'\n      - '**'\n",
+        1,
+    )
+    path.write_text(text, encoding="utf-8")
+    assert "lean-sanity-trigger-paths" in _kinds(audit(root))

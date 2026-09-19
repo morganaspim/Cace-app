@@ -30,6 +30,7 @@ EXPECTED_ACTIVE = {
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
     "cace-exact-pin-lean-preflight.yml",
+    "cace-lean-source-sanity.yml",
 }
 EXPECTED_AUTOMATIC = {
     "cace-collaboration-validation.yml": {"pull_request"},
@@ -37,6 +38,7 @@ EXPECTED_AUTOMATIC = {
     "cace-python-regression.yml": {"push"},
     # Manual-only exact-pin typecheck lane; never qualification evidence.
     "cace-exact-pin-lean-preflight.yml": set(),
+    "cace-lean-source-sanity.yml": {"pull_request"},
 }
 LOCKED_PUSH_SCOPE = {
     "cace-formal-v336-theorem-metadata.yml": {
@@ -64,6 +66,12 @@ COLLAB_HEAVY_MANUAL_PATHS = {
     "formal/**",
     "cace_studio/**",
     "schema/**",
+}
+LEAN_SANITY_AUTOMATIC_PATHS = {
+    "formal/**/*.lean",
+    "scripts/check_lean_source_sanity.py",
+    "tests/test_lean_source_sanity.py",
+    ".github/workflows/cace-lean-source-sanity.yml",
 }
 REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}
 
@@ -284,6 +292,21 @@ def audit(root: Path) -> dict:
                         },
                     }
                 )
+        if filename == "cace-lean-source-sanity.yml":
+            observed_paths = set(
+                item["automatic_scope"].get("pull_request", {}).get("paths", [])
+            )
+            if observed_paths != LEAN_SANITY_AUTOMATIC_PATHS:
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "lean-sanity-trigger-paths",
+                        "detail": {
+                            "expected": sorted(LEAN_SANITY_AUTOMATIC_PATHS),
+                            "observed": sorted(observed_paths),
+                        },
+                    }
+                )
         if item["uses_self_hosted"]:
             if item["concurrency_group"] != GLOBAL_GROUP:
                 violations.append(
@@ -324,6 +347,7 @@ def audit(root: Path) -> dict:
         "required_self_hosted_labels": sorted(REQUIRED_SELF_HOSTED_LABELS),
         "collaboration_automatic_paths": sorted(COLLAB_AUTOMATIC_PATHS),
         "collaboration_heavy_manual_paths": sorted(COLLAB_HEAVY_MANUAL_PATHS),
+        "lean_sanity_automatic_paths": sorted(LEAN_SANITY_AUTOMATIC_PATHS),
         "expected_active": sorted(EXPECTED_ACTIVE),
         "expected_automatic": {
             key: sorted(value) for key, value in sorted(EXPECTED_AUTOMATIC.items())

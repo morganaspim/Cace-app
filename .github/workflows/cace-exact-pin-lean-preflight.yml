@@ -86,6 +86,19 @@ jobs:
           printf 'module=%s\n' "$REQUESTED_MODULE" >> "$GITHUB_OUTPUT"
           printf 'module_name=%s\n' "$module_name" >> "$GITHUB_OUTPUT"
 
+      - name: Reject malformed Lean source seams
+        shell: bash
+        env:
+          TARGET: ${{ steps.target.outputs.module }}
+          COMPILE_ROOT: ${{ inputs.compile_root }}
+        run: |
+          set -euo pipefail
+          if test "$COMPILE_ROOT" = "true"; then
+            python3 scripts/check_lean_source_sanity.py formal/cace_formal
+          else
+            python3 scripts/check_lean_source_sanity.py "formal/cace_formal/$TARGET"
+          fi
+
       - name: Restore pinned Lean and exact Mathlib package tree
         shell: bash
         run: |
