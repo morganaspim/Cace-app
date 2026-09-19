@@ -60,6 +60,7 @@ EXECUTABLE_RATIONAL_SOURCE = (
     "formal/cace_formal/CACEFormal/ExecutableRationalGeometry.lean"
 )
 SOURCE_SANITY_WORKFLOW = ".github/workflows/cace-lean-source-sanity.yml"
+POSITIVE_LAPLACIAN_SOURCE = "formal/cace_formal/CACEFormal/PositiveLaplacianAnnihilator.lean"
 RECENTER_TO_REAL_RE = re.compile(
     r"theorem\s+recenterMap_toReal\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_toReal)"
 )
@@ -194,6 +195,35 @@ def main() -> int:
                 problems.append(
                     f"{EXECUTABLE_RATIONAL_SOURCE}: recenterMap_toReal must explicitly "
                     "normalize Point.toReal before closing rational-to-real negation casts"
+                )
+
+    positive_laplacian_path = ROOT / POSITIVE_LAPLACIAN_SOURCE
+    if not positive_laplacian_path.is_file():
+        problems.append(f"missing regression source: {POSITIVE_LAPLACIAN_SOURCE}")
+    else:
+        positive_laplacian_text = positive_laplacian_path.read_text(encoding="utf-8")
+        start = positive_laplacian_text.find(
+            "theorem positiveLaplacianLowSymbol_hasTemperateGrowth"
+        )
+        end = positive_laplacian_text.find(
+            "theorem positiveLaplacianEnergySymbol_hasTemperateGrowth"
+        )
+        if start < 0 or end <= start:
+            problems.append(
+                f"{POSITIVE_LAPLACIAN_SOURCE}: unable to locate low-symbol growth theorem block"
+            )
+        else:
+            body = positive_laplacian_text[start:end]
+            if "hasTemperateGrowth_one_add_norm_sq_rpow" not in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: "
+                    "positiveLaplacianLowSymbol_hasTemperateGrowth must reuse Mathlib "
+                    "Bessel-potential temperate-growth theorem"
+                )
+            if "fun_prop" in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol reciprocal growth must not "
+                    "delegate to fun_prop"
                 )
 
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
