@@ -62,6 +62,21 @@ def main() -> int:
         problems.append(f"missing regression source: {NORMALIZATION_SOURCE}")
     else:
         normalization_text = normalization_path.read_text(encoding="utf-8")
+        required_normalization_symbols = (
+            "def edge01",
+            "def edge02",
+            "def edgeDet",
+            "noncomputable def inverseEdgeLinear",
+            "theorem inverseEdgeLinear_map_e1",
+            "theorem inverseEdgeLinear_map_e2",
+            "theorem inverseEdgeLinear_linearDet",
+        )
+        for symbol in required_normalization_symbols:
+            if symbol not in normalization_text:
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: missing structural normalization seam '{symbol}'"
+                )
+
         p1_match = NORMALIZER_P1_RE.search(normalization_text)
         if not p1_match:
             problems.append(
@@ -69,28 +84,17 @@ def main() -> int:
             )
         else:
             p1_body = p1_match.group("body")
-            nf_bridge_pos = p1_body.find("have hden_nf")
-            div_bridge_pos = p1_body.find("have hden_div")
-            ring_nf_pos = p1_body.find("ring_nf")
-            field_simp_pos = p1_body.find("field_simp [hden_div]")
-            ring_pos = p1_body.find("ring", field_simp_pos + 1) if field_simp_pos >= 0 else -1
-            if (
-                nf_bridge_pos < 0
-                or div_bridge_pos < 0
-                or ring_nf_pos < 0
-                or field_simp_pos < 0
-                or ring_pos < 0
-                or nf_bridge_pos > div_bridge_pos
-                or div_bridge_pos > ring_nf_pos
-                or ring_nf_pos > field_simp_pos
-                or field_simp_pos > ring_pos
-            ):
+            if "inverseEdgeLinear_map_e1" not in p1_body:
                 problems.append(
-                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must prove both "
-                    "canonical denominator bridges hden_nf and hden_div before "
-                    "ring_nf, clear the exact denominator with field_simp [hden_div], "
-                    "and finish only the polynomial remainder with ring"
+                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must delegate to "
+                    "inverseEdgeLinear_map_e1 instead of reopening denominator algebra"
                 )
+            for forbidden in ("have hden", "ring_nf", "field_simp"):
+                if forbidden in p1_body:
+                    problems.append(
+                        f"{NORMALIZATION_SOURCE}: normalizer_map_p1 reintroduced "
+                        f"fragile denominator tactic seam {forbidden!r}"
+                    )
 
         linear_start = normalization_text.find("theorem normalizer_linearDet")
         linear_end = normalization_text.find(
@@ -98,10 +102,15 @@ def main() -> int:
         )
         if linear_start >= 0 and linear_end > linear_start:
             linear_body = normalization_text[linear_start:linear_end]
-            if re.search(r"field_simp\s*\[hT\]\s*\n\s*ring\b", linear_body):
+            if "inverseEdgeLinear_linearDet" not in linear_body:
                 problems.append(
-                    f"{NORMALIZATION_SOURCE}: normalizer_linearDet contains the "
-                    "known closed-goal field_simp/ring tail"
+                    f"{NORMALIZATION_SOURCE}: normalizer_linearDet must reuse "
+                    "inverseEdgeLinear_linearDet"
+                )
+            if "field_simp" in linear_body:
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: normalizer_linearDet must not reopen "
+                    "raw denominator simplification after inverse-edge factoring"
                 )
 
     formal_root = ROOT / "formal" / "cace_formal" / "CACEFormal"
@@ -126,7 +135,7 @@ def main() -> int:
         "CACE_KNOWN_FAILURE_REGRESSIONS_OK",
         {
             "noncomputable_files": len(REQUIRED_NONCOMPUTABLE),
-            "normalization_tactic_order_guard": NORMALIZATION_SOURCE,
+            "normalization_structural_guard": NORMALIZATION_SOURCE,
             "reserved_rcases_scan_root": str(formal_root.relative_to(ROOT)),
         },
     )
