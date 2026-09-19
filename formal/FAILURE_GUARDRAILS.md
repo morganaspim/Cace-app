@@ -561,7 +561,7 @@ representations and relied on fragile theorem-dot parsing instead of the pinned 
 
 **Permanent prevention:**
 - compose the Bessel-potential growth proof with
-  `(Complex.hasTemperateGrowth_ofReal).comp` explicitly;
+  `(Function.Complex.hasTemperateGrowth_ofReal).comp` explicitly for the pinned Mathlib revision;
 - use one canonical coefficient `Complex.ofReal ((2 * Real.pi) ^ 2)`;
 - use `ContinuousLinearMap.map_smul_of_tower` across the real/complex module tower;
 - normalize the final real scalar action with `Complex.coe_smul`;
