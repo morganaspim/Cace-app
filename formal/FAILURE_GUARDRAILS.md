@@ -222,10 +222,16 @@ This does not make dependent errors magically visible through a broken prerequis
 **Root cause:** a proof-level real-valued definition using division was declared with plain `def`.
 
 **Permanent prevention:**
-- `Affine2.piolaVector` is explicitly `noncomputable def`;
-- the proof API canary imports and typechecks the Piola layer before impacted/root compilation.
+- `Affine2.piolaVector`, `DualBladePiola.piolaSequence`,
+  `AffineP1RT0Transport.piolaRT0`, `AffineP1RT0Transport.pullP1`, and
+  `ReferenceSimplexNormalization.normalizer` are explicitly `noncomputable def`;
+- reference-normalization certificate constructors that depend on the normalizer are also
+  explicitly noncomputable;
+- the dependency-free known-regression gate checks this declaration surface before Lean/cache work;
+- the proof API canary imports and typechecks the Piola, affine P1/RT0, and reference-normalization layers.
 
-**Regression guard:** `CACEFormal.GuardrailCanaries` imports and exercises Piola/dual-blade flux APIs.
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`,
+`tests/test_cace_proof_guardrails.py`, and `CACEFormal.GuardrailCanaries`.
 
 ## F-015 — Lean reserved keyword used as an `rcases` pattern identifier
 
