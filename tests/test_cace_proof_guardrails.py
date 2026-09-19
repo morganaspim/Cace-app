@@ -53,6 +53,23 @@ def test_v340_zero_boundary_closure_is_promoted_after_standalone_pass():
     assert "CACEFormal.ZeroBoundaryClosure" in imports
 
 
+
+
+def test_v341a_box_zero_boundary_core_is_quarantined_before_standalone_pass():
+    guard = _guardrails()
+    config = guard.load_config()
+    root = ROOT / config["audited_root"]
+    imports = set(guard.parse_imports(root))
+    quarantined = set(config["quarantined_root_imports"])
+
+    assert "CACEFormal.BoxZeroBoundaryCore" in quarantined
+    assert "CACEFormal.BoxZeroBoundaryCore" not in imports
+    assert guard.module_to_path(
+        ROOT / config["module_root"],
+        "CACEFormal.BoxZeroBoundaryCore",
+    ).is_file()
+
+
 def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
     guard = _guardrails()
     config = guard.load_config()
