@@ -50,3 +50,20 @@ theorem ok : True := by
   trivial
 """
     assert scan_text(Path("Fixture.lean"), text) == []
+
+
+def test_reserved_rcases_identifier_is_rejected() -> None:
+    assert "reserved-rcases-identifier" in _kinds(
+        "theorem bad (p : Nat × Nat) : True := by\n"
+        "  rcases p with ⟨x, by⟩\n"
+        "  trivial\n"
+    )
+
+
+def test_escaped_safe_coordinate_name_is_not_rejected() -> None:
+    text = """
+theorem ok2 (p : Nat × Nat) : True := by
+  rcases p with ⟨x, by_⟩
+  trivial
+"""
+    assert scan_text(Path("Fixture.lean"), text) == []
