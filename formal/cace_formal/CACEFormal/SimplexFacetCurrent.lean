@@ -78,14 +78,13 @@ theorem euclideanAffineScalarEval_hasTemperateGrowth
   fun_prop
 
 /-- One affine RT0 coordinate also has temperate growth. -/
-/-- One affine RT0 coordinate also has temperate growth. -/
 theorem euclideanRT0ComponentEval_hasTemperateGrowth
     {d : Nat} (q : RT0AffineND d) (i : Fin d) :
     Function.HasTemperateGrowth (euclideanRT0ComponentEval q i) := by
   unfold euclideanRT0ComponentEval
   fun_prop
 
-/-- Real P1 trace density/-- Real P1 trace density `u n_i` on one oriented simplex facet. -/
+/-- Real P1 trace density `u n_i` on one oriented simplex facet. -/
 noncomputable def simplexFacetP1BoundaryDensity
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
@@ -104,7 +103,7 @@ theorem simplexFacetP1BoundaryDensity_hasTemperateGrowth
   unfold simplexFacetP1BoundaryDensity
   fun_prop
 
-/-- Complexification of the P1 facet density/-- Complexification of the P1 facet density for the tempered-distribution codomain. -/
+/-- Complexification of the P1 facet density for the tempered-distribution codomain. -/
 noncomputable def simplexFacetP1BoundaryComplexDensity
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
@@ -122,7 +121,6 @@ theorem simplexFacetP1BoundaryComplexDensity_hasTemperateGrowth
   fun_prop
 
 /--
-Concrete tempered boundary distribution/--
 Concrete tempered boundary distribution for one P1 facet and one derivative
 coordinate.  Finiteness of the restricted facet Hausdorff measure supplies the
 measure's temperate-growth instance.
@@ -167,7 +165,7 @@ theorem simplexFacetRT0CoordinateBoundaryDensity_hasTemperateGrowth
   unfold simplexFacetRT0CoordinateBoundaryDensity
   fun_prop
 
-noncomputable def simplexFacetRT0CoordinateBoundaryComplexDensitynoncomputable def simplexFacetRT0CoordinateBoundaryComplexDensity
+noncomputable def simplexFacetRT0CoordinateBoundaryComplexDensity
     {d : Nat} [NeZero d]
     (s : GeometricSimplex d) (facet : Fin (d + 1))
     (q : RT0AffineND d) (i : Fin d) :
@@ -184,7 +182,6 @@ theorem simplexFacetRT0CoordinateBoundaryComplexDensity_hasTemperateGrowth
   unfold simplexFacetRT0CoordinateBoundaryComplexDensity
   fun_prop
 
-/-- One coordinate contribution to the RT0 normal-flux boundary current. -/
 /-- One coordinate contribution to the RT0 normal-flux boundary current. -/
 noncomputable def simplexFacetRT0CoordinateBoundaryDistribution
     {d : Nat} [NeZero d]
