@@ -21,6 +21,7 @@ from cace_studio.ai.corpus import build_local_index
 from cace_studio.ai.grow_candidates import GrowCandidate, build_grow_candidates
 from cace_studio.ai.growth_memory import PersistentGrowthMemory
 from cace_studio.ai.hybrid import GrowthEngine
+from cace_studio.ai.research_ideas import ResearchIdeaStore, seed_from_grow_candidate
 
 
 _MODE_GUIDANCE = {
@@ -164,12 +165,18 @@ class LocalAIAssistantWidget(QWidget):
         parent=None,
         context_provider=None,
         activity_callback=None,
+        research_idea_store=None,
+        research_idea_callback=None,
+        module_context_provider=None,
     ) -> None:
         super().__init__(parent)
         self.settings = settings
         self.configure_callback = configure_callback
         self.context_provider = context_provider
         self.activity_callback = activity_callback
+        self.research_idea_store = research_idea_store or ResearchIdeaStore()
+        self.research_idea_callback = research_idea_callback
+        self.module_context_provider = module_context_provider
         self.history: list[dict[str, str]] = []
         self.pool = QThreadPool.globalInstance()
         self._growth_memory = PersistentGrowthMemory()
@@ -287,6 +294,23 @@ class LocalAIAssistantWidget(QWidget):
             self.activity_callback(kind, payload)
         except Exception:
             pass
+
+    def _associated_modules(self) -> tuple[str, ...]:
+        if self.module_context_provider is None:
+            return ()
+        try:
+            values = self.module_context_provider() or ()
+        except Exception:
+            return ()
+        seen = set()
+        result = []
+        for value in values:
+            item = str(value).strip()
+            if not item or item in seen:
+                continue
+            seen.add(item)
+            result.append(item)
+        return tuple(result)
 
     def _live_context(self) -> str:
         if self.context_provider is None:
@@ -423,10 +447,45 @@ class LocalAIAssistantWidget(QWidget):
                 f"[grow-memory] Could not save feedback: {type(exc).__name__}: {exc}"
             )
             return
+        notebook_note = ""
+        if feedback == "keep":
+            try:
+                seed = seed_from_grow_candidate(
+                    candidate,
+                    source_query=self._last_grow_result.query,
+                    associated_modules=self._associated_modules(),
+                )
+                idea, created = self.research_idea_store.create_or_get_from_grow(
+                    candidate_id=seed["candidate_id"],
+                    target_ids=seed["target_ids"],
+                    title=seed["title"],
+                    notes=seed["notes"],
+                    hypotheses=seed["hypotheses"],
+                    proposed_experiment=seed["proposed_experiment"],
+                    associated_modules=seed["associated_modules"],
+                    source_query=seed["source_query"],
+                )
+            except Exception as exc:
+                notebook_note = (
+                    f" Notebook creation failed: {type(exc).__name__}: {exc}"
+                )
+            else:
+                notebook_note = (
+                    f" {'Created' if created else 'Opened existing'} Research Idea "
+                    f"{idea.idea_id[:10]}…"
+                )
+                if self.research_idea_callback is not None:
+                    try:
+                        self.research_idea_callback(idea, created)
+                    except Exception as exc:
+                        notebook_note += (
+                            f" Notebook UI callback failed: {type(exc).__name__}: {exc}"
+                        )
         card.mark_feedback(feedback)
         self.transcript.append(
             f"[grow-memory] {feedback.upper()} saved for {candidate.title}. "
             f"event={event.event_id[:12]}… Other discovery cards remain rateable."
+            + notebook_note
         )
         self.refresh()
 
