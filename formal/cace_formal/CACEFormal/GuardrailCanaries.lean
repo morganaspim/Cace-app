@@ -8,6 +8,10 @@ import CACEFormal.DualBladePiola
 import CACEFormal.AffineP1RT0Transport
 import CACEFormal.ReferenceSimplexNormalization
 import CACEFormal.AffineAssemblyTransport
+import CACEFormal.MeshElementGeometry
+import CACEFormal.PhysicalP1RT0Element
+import CACEFormal.ExecutableRationalGeometry
+import CACEFormal.RuntimeApproximationContract
 import CACEFormal.GraphRegularizationCriterion
 import CACEFormal.RealGraphRegularizationCriterion
 import CACEFormal.WeightedEnergy
@@ -70,6 +74,39 @@ example (T : Triangle2) (v : P1Affine) (q : RT0Affine) (hT : T.det ≠ 0) :
       (ReferenceSimplexNormalization.normalizer T) T v q hdet
   rw [ReferenceSimplexNormalization.normalizer_map_triangle T hT] at h
   exact h
+
+
+/-- Certified mesh geometry cannot drift from its stored rational Jacobian. -/
+example (mesh : MeshCertificate) (K : Fin mesh.triangleCount) :
+    0 < (MeshElementGeometry.realTriangle mesh K).det :=
+  MeshElementGeometry.realTriangle_det_pos mesh K
+
+/-- Positive certified mesh geometry licenses the ordinary physical-area
+interpretation of the exact oriented P1/RT0 formula. -/
+example (mesh : MeshCertificate) (K : Fin mesh.triangleCount)
+    (v : P1Affine) (q : RT0Affine) :
+    PhysicalP1RT0Element.cellPairing
+        (MeshElementGeometry.realTriangle mesh K) v q =
+      P1RT0Element.cellPairing
+        (MeshElementGeometry.realTriangle mesh K) v q :=
+  PhysicalP1RT0Element.mesh_cellPairing_eq_oriented mesh K v q
+
+#check ReferenceSimplexNormalization.inverseEdgeLinear_map_e1
+#check ReferenceSimplexNormalization.inverseEdgeLinear_map_e2
+#check ReferenceSimplexNormalization.inverseEdgeLinear_linearDet
+#check MeshElementGeometry.realTriangle_det
+#check MeshElementGeometry.realTriangle_det_pos
+#check RT0P1DerivedAssemblyCertificate.ofCertifiedMeshElements
+#check AffineAssemblyTransport.meshDerivedCertificate
+#check PhysicalP1RT0Element.local_green_identity_of_pos
+#check PhysicalP1RT0Element.mesh_local_green_identity
+#check AffineP1RT0Transport.transportP1SourceToTarget_spec
+#check AffineP1RT0Transport.transportRT0SourceToTarget_spec
+#check ExecutableRational.normalizer_toReal
+#check ExecutableRational.P1.transportSourceToTarget_toReal
+#check ExecutableRational.RT0.transportSourceToTarget_toReal
+#check RuntimeApproximation.CertifiedApproximation.exact_mem_interval
+#check RuntimeApproximation.CertifiedApproximation.decode_eq_exact_of_radius_zero
 
 #check Continuum.complexSmoothGraphClosure_eq_distributional_of_regularizer
 #check Continuum.distributional_le_complexSmoothGraphClosure_of_regularizer
