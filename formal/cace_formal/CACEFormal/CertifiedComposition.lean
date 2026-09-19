@@ -1,3 +1,4 @@
+import Mathlib.Data.List.Basic
 import Mathlib.Data.Nat.Basic
 
 namespace CACEFormal
@@ -7,10 +8,10 @@ universe u v
 /-!
 # Cheap certified transform composition
 
-This file is intentionally generic and algebraic.  It lets CACE combine two,
-three, four, or more proof-preserving transforms without reproving the invariant
-at every call site.  `staticCost` is declared metadata only; it is not a timing
-claim and must not be confused with measured runtime.
+This file is intentionally generic and algebraic. It lets CACE combine two,
+three, four, or arbitrarily many proof-preserving transforms without reproving
+the invariant at every call site. `staticCost` is declared metadata only; it is
+not a timing claim and must not be confused with measured runtime.
 -/
 
 /-- A state transform together with a proof that it preserves one invariant. -/
@@ -29,7 +30,7 @@ def identity {α : Type u} (Invariant : α → Prop) : CertifiedTransform α Inv
     intro x hx
     exact hx
 
-/-- Sequential composition.  `inner` runs first and `outer` runs second. -/
+/-- Sequential composition. `inner` runs first and `outer` runs second. -/
 def comp {α : Type u} {Invariant : α → Prop}
     (outer inner : CertifiedTransform α Invariant) : CertifiedTransform α Invariant where
   run := fun x => outer.run (inner.run x)
@@ -84,6 +85,48 @@ theorem compose4_preserves {α : Type u} {Invariant : α → Prop}
     (t1 t2 t3 t4 : CertifiedTransform α Invariant) (x : α) (hx : Invariant x) :
     Invariant ((compose4 t1 t2 t3 t4).run x) :=
   (compose4 t1 t2 t3 t4).preserves x hx
+
+/-- Compose an arbitrary list left-to-right. This is the scalable 4+ endpoint. -/
+def composeList {α : Type u} {Invariant : α → Prop} :
+    List (CertifiedTransform α Invariant) → CertifiedTransform α Invariant
+  | [] => identity Invariant
+  | t :: ts => comp (composeList ts) t
+
+/-- Sum of declared costs for a proposed transform list. -/
+def totalStaticCost {α : Type u} {Invariant : α → Prop}
+    (ts : List (CertifiedTransform α Invariant)) : Nat :=
+  (ts.map fun t => t.staticCost).sum
+
+@[simp] theorem composeList_nil {α : Type u} {Invariant : α → Prop} :
+    (composeList ([] : List (CertifiedTransform α Invariant))).staticCost = 0 := rfl
+
+@[simp] theorem composeList_cons_staticCost {α : Type u} {Invariant : α → Prop}
+    (t : CertifiedTransform α Invariant) (ts : List (CertifiedTransform α Invariant)) :
+    (composeList (t :: ts)).staticCost = t.staticCost + (composeList ts).staticCost := rfl
+
+/-- Arbitrary composition preserves the shared invariant by construction. -/
+theorem composeList_preserves {α : Type u} {Invariant : α → Prop}
+    (ts : List (CertifiedTransform α Invariant)) (x : α) (hx : Invariant x) :
+    Invariant ((composeList ts).run x) :=
+  (composeList ts).preserves x hx
+
+/-- The composed certificate carries exactly the sum of the declared costs. -/
+theorem composeList_staticCost {α : Type u} {Invariant : α → Prop}
+    (ts : List (CertifiedTransform α Invariant)) :
+    (composeList ts).staticCost = totalStaticCost ts := by
+  induction ts with
+  | nil => rfl
+  | cons t ts ih =>
+      simp [composeList, totalStaticCost, ih]
+
+/-- A planner may prune candidates using a budget without participating in the
+mathematical trust boundary: any selected certified list remains invariant-safe. -/
+theorem composeList_withinBudget {α : Type u} {Invariant : α → Prop}
+    (ts : List (CertifiedTransform α Invariant)) (budget : Nat)
+    (hbudget : totalStaticCost ts ≤ budget) :
+    (composeList ts).staticCost ≤ budget := by
+  rw [composeList_staticCost]
+  exact hbudget
 
 /--
 Run two independent certified transforms in parallel on a product state.
