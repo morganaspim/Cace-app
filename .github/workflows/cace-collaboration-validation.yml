@@ -3,12 +3,11 @@ name: CACE Collaboration Coordination Validation
 on:
   workflow_dispatch:
   pull_request:
+    # Keep automatic PR validation inexpensive. Heavy formal proof validation
+    # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
     paths:
       - 'collaboration/**'
       - 'quality/**'
-      - 'formal/**'
-      - 'cace_studio/**'
-      - 'schema/**'
       - 'scripts/**'
       - 'ops/**'
       - 'tests/**'
@@ -79,6 +78,7 @@ jobs:
             tests/test_collaboration_lifecycle.py \
             tests/test_actions_serialization_guard.py \
             tests/test_actions_policy_audit.py \
+            tests/test_lean_source_sanity.py \
             tests/test_oci_mcp_policy.py \
             tests/test_cli.py \
             tests/test_claim_registry_v331.py \
@@ -130,25 +130,35 @@ jobs:
           python - <<'PY'
           import hashlib, json, pathlib, subprocess
 
-          roots = [
-            pathlib.Path('collaboration'),
-            pathlib.Path('quality'),
-            pathlib.Path('formal'),
-            pathlib.Path('cace_studio'),
-            pathlib.Path('schema'),
-            pathlib.Path('scripts'),
-            pathlib.Path('tests'),
-          ]
+          # Hash repository evidence only. Runtime environments and caches are
+          # execution state rather than source evidence and must not be swept into
+          # this engineering summary.
+          source_prefixes = (
+            'collaboration/',
+            'quality/',
+            'formal/',
+            'cace_studio/',
+            'schema/',
+            'scripts/',
+            'ops/',
+            'tests/',
+          )
+          tracked = subprocess.check_output(['git', 'ls-files', '-z'])
           files = set()
-          for root in roots:
-            if root.is_dir():
-              files.update(path for path in root.rglob('*') if path.is_file())
-          pyproject = pathlib.Path('pyproject.toml')
-          if pyproject.is_file():
-            files.add(pyproject)
-          workflow_root = pathlib.Path('.github/workflows')
-          if workflow_root.is_dir():
-            files.update(path for path in workflow_root.glob('cace-*.yml') if path.is_file())
+          for raw in tracked.split(b'\\0'):
+            if not raw:
+              continue
+            rel = raw.decode('utf-8')
+            in_scope = (
+              rel == 'pyproject.toml'
+              or any(rel.startswith(prefix) for prefix in source_prefixes)
+              or (rel.startswith('.github/workflows/cace-') and rel.endswith('.yml'))
+            )
+            if in_scope:
+              path = pathlib.Path(rel)
+              if not path.is_file():
+                raise SystemExit(f'tracked validation source missing from checkout: {rel}')
+              files.add(path)
           files = sorted(files)
 
           claim_id='cace.v330.continuum-proof-strengthening'

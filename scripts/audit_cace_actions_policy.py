@@ -3,8 +3,8 @@
 
 This is engineering coordination only. It does not create proof evidence. The audit
 fails closed if the self-hosted workflows broaden their automatic triggers, lose the
-shared serialization group, or if collaboration validation stops covering one of the
-broad proof-sensitive repository surfaces.
+shared serialization group, or if collaboration validation expands beyond the explicit
+lightweight automatic surface. Heavy formal-proof paths are manual-dispatch only.
 """
 from __future__ import annotations
 
@@ -29,11 +29,16 @@ EXPECTED_ACTIVE = {
     "cace-collaboration-validation.yml",
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
+    "cace-exact-pin-lean-preflight.yml",
+    "cace-lean-source-sanity.yml",
 }
 EXPECTED_AUTOMATIC = {
     "cace-collaboration-validation.yml": {"pull_request"},
     "cace-formal-v336-theorem-metadata.yml": {"push"},
     "cace-python-regression.yml": {"push"},
+    # Manual-only exact-pin typecheck lane; never qualification evidence.
+    "cace-exact-pin-lean-preflight.yml": set(),
+    "cace-lean-source-sanity.yml": {"pull_request"},
 }
 LOCKED_PUSH_SCOPE = {
     "cace-formal-v336-theorem-metadata.yml": {
@@ -45,18 +50,28 @@ LOCKED_PUSH_SCOPE = {
         "paths": {".github/workflows/cace-python-regression.yml"},
     },
 }
-# Broad surfaces are deliberate. New proof/governance files placed under these
-# roots are automatically enrolled without updating a per-file allowlist.
-COLLAB_REQUIRED_PATHS = {
+# Automatic collaboration validation is intentionally narrow. Proof-source and
+# application-source changes are validated by explicit preflight/canonical lanes,
+# preventing ordinary proof iteration from consuming the self-hosted Lean runner.
+COLLAB_AUTOMATIC_PATHS = {
     "collaboration/**",
     "quality/**",
-    "formal/**",
-    "cace_studio/**",
-    "schema/**",
     "scripts/**",
+    "ops/**",
     "tests/**",
     "pyproject.toml",
     ".github/workflows/cace-*.yml",
+}
+COLLAB_HEAVY_MANUAL_PATHS = {
+    "formal/**",
+    "cace_studio/**",
+    "schema/**",
+}
+LEAN_SANITY_AUTOMATIC_PATHS = {
+    "formal/**/*.lean",
+    "scripts/check_lean_source_sanity.py",
+    "tests/test_lean_source_sanity.py",
+    ".github/workflows/cace-lean-source-sanity.yml",
 }
 REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}
 
@@ -265,13 +280,31 @@ def audit(root: Path) -> dict:
             observed_paths = set(
                 item["automatic_scope"].get("pull_request", {}).get("paths", [])
             )
-            missing_paths = sorted(COLLAB_REQUIRED_PATHS - observed_paths)
-            if missing_paths:
+            if observed_paths != COLLAB_AUTOMATIC_PATHS:
                 violations.append(
                     {
                         "file": filename,
                         "kind": "collaboration-trigger-paths",
-                        "detail": {"missing": missing_paths},
+                        "detail": {
+                            "expected": sorted(COLLAB_AUTOMATIC_PATHS),
+                            "observed": sorted(observed_paths),
+                            "heavy_manual_paths": sorted(COLLAB_HEAVY_MANUAL_PATHS),
+                        },
+                    }
+                )
+        if filename == "cace-lean-source-sanity.yml":
+            observed_paths = set(
+                item["automatic_scope"].get("pull_request", {}).get("paths", [])
+            )
+            if observed_paths != LEAN_SANITY_AUTOMATIC_PATHS:
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "lean-sanity-trigger-paths",
+                        "detail": {
+                            "expected": sorted(LEAN_SANITY_AUTOMATIC_PATHS),
+                            "observed": sorted(observed_paths),
+                        },
                     }
                 )
         if item["uses_self_hosted"]:
@@ -309,10 +342,12 @@ def audit(root: Path) -> dict:
             }
         )
     return {
-        "schema": "cace-actions-policy-audit-v5",
+        "schema": "cace-actions-policy-audit-v6",
         "global_group": GLOBAL_GROUP,
         "required_self_hosted_labels": sorted(REQUIRED_SELF_HOSTED_LABELS),
-        "collaboration_required_paths": sorted(COLLAB_REQUIRED_PATHS),
+        "collaboration_automatic_paths": sorted(COLLAB_AUTOMATIC_PATHS),
+        "collaboration_heavy_manual_paths": sorted(COLLAB_HEAVY_MANUAL_PATHS),
+        "lean_sanity_automatic_paths": sorted(LEAN_SANITY_AUTOMATIC_PATHS),
         "expected_active": sorted(EXPECTED_ACTIVE),
         "expected_automatic": {
             key: sorted(value) for key, value in sorted(EXPECTED_AUTOMATIC.items())
