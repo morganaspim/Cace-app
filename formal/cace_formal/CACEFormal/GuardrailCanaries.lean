@@ -43,6 +43,10 @@ example (F : Affine2) (q t : Point2) (hdet : F.linearDet ≠ 0) :
 
 #check AffineP1RT0Transport.piolaRT0
 #check AffineP1RT0Transport.pullP1
+#check AffineP1RT0Transport.pullP1_eval_map
+#check AffineP1RT0Transport.cellPairing_map
+#check AffineP1RT0Transport.cellDivergence_map
+#check DualBladePiola.piola_comp
 #check ReferenceSimplexNormalization.normalizer
 #check ReferenceSimplexNormalization.cellPairing_to_reference
 
