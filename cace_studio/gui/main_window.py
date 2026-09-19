@@ -344,7 +344,17 @@ class MainWindow(QMainWindow):
             )
             return
 
-        self._apply_experiment_proposal(proposal, idea_title=idea.title)
+        try:
+            self._apply_experiment_proposal(proposal, idea_title=idea.title)
+        except Exception as exc:
+            self.console.append(
+                f"Research Idea canvas build failed safely: {type(exc).__name__}: {exc}"
+            )
+            return
+        self.console.append(
+            f"Research Idea status remains '{idea.status}'. "
+            "Building a graph does not auto-promote research maturity."
+        )
 
     def _apply_experiment_proposal(self, proposal, *, idea_title: str) -> None:
         self._sync_positions()
