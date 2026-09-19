@@ -233,6 +233,25 @@ class PersistentGrowthMemory:
                     raw -= 0.05
         return self._bounded(raw, -0.35, 0.25)
 
+    def kept_fragment_ids(self, *, limit: int = 16) -> tuple[str, ...]:
+        """Return fragments from targets whose latest explicit feedback is Keep."""
+        latest: dict[str, GrowthFeedbackEvent] = {}
+        for event in self.events:
+            latest[event.target_key] = event
+        result: list[str] = []
+        seen: set[str] = set()
+        for event in reversed(tuple(latest.values())):
+            if event.feedback != "keep":
+                continue
+            for fragment_id in event.target_ids:
+                if fragment_id in seen:
+                    continue
+                seen.add(fragment_id)
+                result.append(fragment_id)
+                if len(result) >= max(1, int(limit)):
+                    return tuple(result)
+        return tuple(result)
+
     def summary(self) -> dict[str, int]:
         result = {"keep": 0, "useful": 0, "reject": 0, "total": len(self.events)}
         for event in self.events:
