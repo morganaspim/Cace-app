@@ -79,8 +79,8 @@ jobs:
           print(f'CACE_BATCH_TARGET_COUNT={data["target_count"]}')
           print(f'CACE_BATCH_TARGETS_SHA256={data["targets_sha256"]}')
           PY
-          echo "target_count=$(python3 -c 'import json; print(json.load(open("cace-batch-targets.json"))["target_count"])')" }} "$GITHUB_OUTPUT"
-          echo "targets_sha256=$(python3 -c 'import json; print(json.load(open("cace-batch-targets.json"))["targets_sha256"])')" }} "$GITHUB_OUTPUT"
+          echo "target_count=$(python3 -c 'import json; print(json.load(open("cace-batch-targets.json"))["target_count"])')" >> "$GITHUB_OUTPUT"
+          echo "targets_sha256=$(python3 -c 'import json; print(json.load(open("cace-batch-targets.json"))["targets_sha256"])')" >> "$GITHUB_OUTPUT"
 
       - name: Validate permanent proof guardrails and audited impact plan
         id: guardrails
@@ -106,7 +106,7 @@ jobs:
             echo "Impacted-module planner emitted duplicate modules." >&2
             exit 32
           fi
-          printf 'merge_base=%s\n' "$merge_base" }} "$GITHUB_OUTPUT"
+          printf 'merge_base=%s\n' "$merge_base" >> "$GITHUB_OUTPUT"
           cat cace-impacted-modules.txt
 
       - name: Reject malformed Lean source seams in every batch target
@@ -266,9 +266,9 @@ jobs:
             ) >"$log" 2>&1
             rc=$?
             cat "$log"
-            printf '%s\t%s\t%s\n' "$index" "$module" "$rc" }} cace-batch-compile-status.tsv
+            printf '%s\t%s\t%s\n' "$index" "$module" "$rc" >> cace-batch-compile-status.tsv
             if test "$rc" -ne 0; then
-              printf '%s\n' "$module" }} cace-batch-compile-failures.txt
+              printf '%s\n' "$module" >> cace-batch-compile-failures.txt
               overall=1
             fi
           done < cace-batch-target-modules.txt
