@@ -179,3 +179,21 @@ Lean/cache work.
 
 **Regression guard:** `tests/test_cace_proof_guardrails.py`,
 `scripts/check_cace_workflow_guardrails.py`, and impacted-list validation in the exact-pin workflow.
+
+
+## F-012 — JavaScript replacement token duplicated workflow content
+
+**Fingerprint:** an automated repository edit used JavaScript `String.replace(search, replacementString)`
+where the replacement text contained the shell-regex sequence `$'`.  JavaScript interprets `$'`
+inside replacement strings as “insert the suffix after the match”, duplicating/truncating the workflow.
+
+**Root cause:** using replacement-string semantics on shell/YAML text containing dollar-sign sequences.
+
+**Permanent prevention:**
+- safety-critical workflow is restored from a known-clean SHA;
+- canonical byte-for-byte template lives at `ci/cace-exact-pin-lean-preflight.canonical.yml`;
+- `check_cace_workflow_guardrails.py` rejects any byte difference between runnable workflow and canonical template;
+- future substantial workflow edits must update the canonical file first and copy it verbatim;
+- programmatic replacements in safety-critical text use callback/slicing semantics, never replacement-string semantics.
+
+**Regression guard:** canonical workflow equality check plus the existing 15-step unique-order checker.
