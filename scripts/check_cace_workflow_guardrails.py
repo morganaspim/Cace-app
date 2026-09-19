@@ -38,6 +38,8 @@ REQUIRED_SNIPPETS = (
     "python3 scripts/cace_proof_guardrails.py validate",
     "python3 scripts/cace_proof_guardrails.py impacted",
     "python3 scripts/cace_proof_guardrails.py plan-hash",
+    "Impacted-module planner emitted non-module output.",
+    "Impacted-module planner emitted duplicate modules.",
     "lake build +CACEFormal.GuardrailCanaries",
     'lake build "${targets[@]}"',
     'test "$actual" = "$EXPECTED_PLAN_SHA256"',
