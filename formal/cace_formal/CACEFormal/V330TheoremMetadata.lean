@@ -57,7 +57,13 @@ private def endpoints : List Name := [
   ``CACEFormal.Continuum.zeroBoundaryOrthogonality_of_mem,
   ``CACEFormal.Continuum.continuumPragerSynge_of_weakGreen,
   ``CACEFormal.Continuum.boxGradientFlux_inner_eq_green_of_divergence_zero,
-  ``CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero
+  ``CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero,
+  ``CACEFormal.Continuum.zeroBoundarySubmodule_eq_iInf_ker,
+  ``CACEFormal.Continuum.isClosed_zeroBoundarySubmodule,
+  ``CACEFormal.Continuum.topologicalClosure_le_zeroBoundarySubmodule,
+  ``CACEFormal.Continuum.hasZeroBoundaryTrace_of_mem_topologicalClosure,
+  ``CACEFormal.Continuum.boxHasZeroBoundaryTrace_of_mem_coreClosure,
+  ``CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure
 ]
 
 private def insertName (name : Name) (names : List Name) : List Name :=
