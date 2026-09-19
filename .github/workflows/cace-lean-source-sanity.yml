@@ -60,7 +60,8 @@ jobs:
           printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT" | tee -a "$evidence_dir/exact-head.txt"
           printf 'evidence_dir=%s\n' "$evidence_dir" | tee -a "$evidence_dir/exact-head.txt"
 
-          echo "CACE_SANITY_EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"\n          echo "CACE_SANITY_EXPECTED_SHA=$expected" >> "$GITHUB_ENV"
+          echo "CACE_SANITY_EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"
+          echo "CACE_SANITY_EXPECTED_SHA=$expected" >> "$GITHUB_ENV"
 
       - name: Run self-validating source sanity and cheap proof guards
         shell: bash
