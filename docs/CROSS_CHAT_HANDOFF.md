@@ -562,3 +562,29 @@ Executable allowlist:
 - `cace_studio/telemetry_contract.py`
 
 The public production domain remains deployment-defined until an owned domain is actually deployed; builders must not invent one.
+
+
+## Master idea roadmap + implementation timeline
+
+Added 2026-09-19 on planning branch `planning/master-ideas-roadmap-2026-09-19`.
+
+Authorities:
+
+- `CACE_MASTER_IDEA_ROADMAP.json`
+- `docs/CACE_MASTER_IDEA_ROADMAP_2026-09-19.md`
+- `docs/CHAT_IDEA_LEDGER.md`
+
+New durable IDs:
+
+- G066 / I079 — semantic multi-window/non-Cartesian routing;
+- G067 / I080 — sandbox-first local hybrid AI;
+- G068 / I081 — human-approved Math Coin spend/buy-more/master custody;
+- G069 / I082 — Basic rewards, Researcher LaTeX proof view, Enterprise/Government proof commerce;
+- G070 / I083 — master roadmap/implementation timeline.
+
+Current Rank-1 blocker discovered while building the roadmap:
+
+- PR #51 run `35474275230` failed after 934 passing tests because `tests/test_cace_proof_guardrails.py` uses `re.search` without importing `re`;
+- qualification-drift also correctly rejects the modified proof-sensitive `tests/test_zero_boundary_trace_bridge_v343.py`, so that change must be restored to the qualified identity or go through the proper requalification path rather than suppressing the drift guard.
+
+Roadmap order remains proof/security/dependency first, novelty/UI second.
