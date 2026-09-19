@@ -72,6 +72,7 @@ import CACEFormal.ReferenceSimplexTopFacetParameterization
 import CACEFormal.ReferenceSimplexTopFacetJacobian
 import CACEFormal.ReferenceSimplexTopFacetFluxFactor
 import CACEFormal.ReferenceSimplexTopFacetMeasure
+import CACEFormal.ReferenceSimplexTopFacetCurrent
 import CACEFormal.ReferenceSimplexFiberIBP
 import CACEFormal.ReferenceSimplexCoordinateGreen
 import CACEFormal.SmoothBoxGreenAuto
