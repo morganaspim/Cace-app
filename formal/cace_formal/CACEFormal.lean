@@ -63,6 +63,7 @@ import CACEFormal.ReferenceSimplexEndpointIBP
 import CACEFormal.ReferenceSimplexEndpointFubini
 import CACEFormal.ReferenceSimplexEndpointGeometry
 import CACEFormal.ReferenceSimplexGaussGreenEndpoint
+import CACEFormal.ReferenceSimplexDivergenceEndpoint
 import CACEFormal.ReferenceSimplexFiberIBP
 import CACEFormal.ReferenceSimplexCoordinateGreen
 import CACEFormal.SmoothBoxGreenAuto
