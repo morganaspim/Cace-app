@@ -219,3 +219,45 @@ experiment graph and remain editable.
 A compact read-only notebook summary may be supplied to the local assistant so
 it can help plan follow-up work. The assistant is explicitly told that notebook
 status is planning context, not proof or verification evidence.
+
+
+## Proposed Experiment → Build on Canvas
+
+A Research Idea can propose a small experiment graph from its editable
+`associated_modules` list.
+
+The workflow is explicitly two-phase:
+
+1. **Propose / preview**
+   - resolve at most eight unique associated module ids through the local module registry;
+   - skip and report unknown module ids;
+   - order nodes deterministically from the notebook list;
+   - connect only earlier outputs to later inputs;
+   - use CACE's canonical `port_connection_error` contract for exact
+     type/unit compatibility;
+   - report every unresolved required input;
+   - display the idea's Proposed Experiment text, nodes, compatible edges,
+     unresolved inputs, and skipped modules in a read-only preview dialog.
+
+2. **Explicit approval / build**
+   - Cancel performs no experiment mutation;
+   - Approve & Build materializes the proposal into a copied `Experiment`;
+   - proposal-local node ids are translated to fresh experiment node ids;
+   - the entire approved proposal is installed as one undoable edit;
+   - stale run evidence is detached through the existing graph-restore path;
+   - autosave runs after the approved build;
+   - an unexpected restore failure rolls the edit back to the pre-build
+     experiment snapshot.
+
+A proposal with unresolved required inputs is visibly labeled **Partial** and
+uses an **Approve Partial & Build** action. CACE does not invent values,
+implicit conversions, hidden adapters, or hidden execution dependencies to make
+a partial graph appear runnable.
+
+Building an experiment does **not** automatically advance the Research Idea
+status. The user remains responsible for deciding when an idea moves from Idea
+to Testable, Experimented, Promising, or Proof Candidate.
+
+The proposal engine and materializer are pure/testable layers outside the GUI.
+They do not import or mutate proof ledgers, claim registries, formal
+qualification state, certificates, or verification results.
