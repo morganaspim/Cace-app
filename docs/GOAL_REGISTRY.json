@@ -412,6 +412,21 @@
         "GitHub log or artifact disappearance does not destroy the only copy of critical run evidence.",
         "Missing or failed archival is reported explicitly and never changes mathematical proof status."
       ]
+    },
+    {
+      "id": "G031",
+      "category": "agent_readiness",
+      "priority": 31,
+      "intent_status": "required",
+      "title": "Repository-only build and trust reconstruction",
+      "summary": "A repository-reading developer or AI must be able to reconstruct the intended webapp, security boundaries, proof rigor, bug-flush architecture, provenance/log retention, deployment shape, and acceptance criteria without private chat history.",
+      "acceptance": [
+        "CACE_AGENT_BOOTSTRAP.json provides a single machine-readable entry point.",
+        "BUILD_AND_TRUST_GUIDE.md explains how product, proof, software, security, provenance, and AI assurance dimensions relate.",
+        "SECURITY_ARCHITECTURE.md defines trust zones and fail-closed boundaries.",
+        "AGENTS.md and AI_REPO_MAP.json route readers through canonical sources rather than historical notes.",
+        "The repository distinguishes intended goals, current implementation state, and actually qualified evidence."
+      ]
     }
   ]
 }
