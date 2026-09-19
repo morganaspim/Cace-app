@@ -18,8 +18,9 @@ parallel relation for scalar H1 graph data.  This module adds the missing struct
 ambient graph coordinates `(u, g)` satisfy `g_i = ∂_i u` as tempered distributions exactly when a
 continuous defect map vanishes.
 
-This is intentionally a graph-relation theorem.  It does not silently identify this relation with
-Mathlib's Bessel-potential `InH1` predicate; that equivalence remains a separate analytic theorem.
+This module introduces the graph relation itself.  The later modules
+`H1BesselRieszReduction` and `H1GraphConverse` now prove the previously separate
+identification with Mathlib's Bessel-potential `InH1` predicate.
 -/
 
 /-- Complex whole-space H1 graph coordinates `(u, g)` with an L2 value and L2 gradient slots. -/

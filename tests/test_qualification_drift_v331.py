@@ -185,3 +185,42 @@ def test_git_drift_audit_allows_provenance_commit_but_rejects_sensitive_descenda
     )[0]
     assert rejected.passed is False
     assert rejected.sensitive_paths == ("cace_studio/core/executor.py",)
+
+
+
+def test_canonical_qualification_checkout_has_complete_ancestry():
+    workflow = (
+        __import__("pathlib").Path(__file__).parents[1]
+        / ".github"
+        / "workflows"
+        / "cace-formal-v336-theorem-metadata.yml"
+    ).read_text(encoding="utf-8")
+    assert "Checkout exact event commit with bounded initial history" in workflow
+    assert "fetch-depth: 64" in workflow
+    assert "Ensure attested qualification ancestry is locally complete" in workflow
+    assert "git merge-base --is-ancestor" in workflow
+    assert "git fetch --no-tags --deepen=256 origin" in workflow
+    assert "git fetch --no-tags --unshallow origin" in workflow
+    assert "persist-credentials: true" in workflow
+
+
+
+def test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate():
+    workflow = (
+        __import__("pathlib").Path(__file__).parents[1]
+        / ".github"
+        / "workflows"
+        / "cace-formal-v336-theorem-metadata.yml"
+    ).read_text(encoding="utf-8")
+    assert "min_free_kb=$((5 * 1024 * 1024))" in workflow
+    assert "formal_source_kb=" in workflow
+    assert "prune_target_kb=$((min_free_kb + formal_source_kb))" in workflow
+    assert "canonical-qualification-prune.lock" in workflow
+    assert "sort -n | awk '{print $2}'" in workflow
+    assert '[[ "$name" =~ ^[0-9a-f]{40}$ ]]' in workflow
+    assert '-O "$candidate"' in workflow
+    assert '[[ "$name" == "$formal_tree" ]] && continue' in workflow
+    assert 'rm -rf -- "$candidate"' in workflow
+    assert 'rm -rf -- "$build_cache"' in workflow
+    assert "5 GiB plus source-staging headroom before copy" in workflow
+    assert "at least 5 GiB free after source staging" in workflow

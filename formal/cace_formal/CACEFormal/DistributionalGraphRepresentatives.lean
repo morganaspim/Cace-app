@@ -20,8 +20,9 @@ For H(div) this closes a useful representation-level loop: the distributional pr
 is equivalent to the existence of complex L2 graph data in the closed divergence relation whose
 field distribution is exactly `q`.
 
-For H1 we prove the forward direction from Bessel-potential `InH1` to the distributional gradient
-graph relation.  The converse identification remains a separate analytic theorem.
+For H1 this file constructs the forward Bessel-potential `InH1` to distributional-gradient
+graph representative.  The later `H1GraphConverse` module now closes the converse and packages the
+exact representation-level equivalence.
 -/
 
 /-- Choose an actual complex L2 representative of an order-zero Sobolev distribution. -/

@@ -1,0 +1,419 @@
+import Mathlib
+import CACEFormal.AffineP1RT0Transport
+import CACEFormal.RT0P1DerivedAssembly
+import CACEFormal.MeshElementGeometry
+
+namespace CACEFormal
+
+open scoped BigOperators
+
+/-!
+# Affine transport of exact derived RT0/P1 assembly
+
+This module is the next integration layer after `AffineP1RT0Transport`.
+
+A single non-singular affine map is applied to every exact triangle, P1 field,
+and RT0 field.  The element and face admissibility hypotheses are transported
+by already-proved algebraic invariance theorems, so the strengthened derived
+assembly certificate can be rebuilt without adding a new global Green axiom.
+
+This is a useful high-order combination point:
+
+1. affine geometry;
+2. Piola/cofactor flux;
+3. P1 pullback;
+4. exact P1/RT0 element Green algebra;
+5. mesh face ownership/assembly;
+6. derived assembly;
+7. discrete orthogonality;
+8. discrete Prager--Synge;
+9. hypercircle identity inherited by the endpoint theorem.
+-/
+
+namespace AffineAssemblyTransport
+
+open AffineP1RT0Transport
+
+/-- Transport a complete exact-element derived assembly certificate through one
+non-singular affine map.  Only the original physical admissibility hypotheses
+are required. -/
+noncomputable def derivedCertificate
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    RT0P1DerivedAssemblyCertificate mesh :=
+  RT0P1DerivedAssemblyCertificate.ofExactElements
+    (fun K => F.mapTriangle (triangle K))
+    (fun K => pullP1 F (primal K))
+    (fun K => piolaRT0 F (flux K))
+    (by
+      intro K
+      rw [cellDivergence_map F (triangle K) (primal K) (flux K) hdet]
+      exact hEquilibrium K)
+    (by
+      intro b
+      rw [localFacePairing_map F
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) hdet]
+      exact hBoundary b)
+    (by
+      intro i
+      rw [localFacePairing_map F
+        (triangle (mesh.interiorLeftCell i))
+        (primal (mesh.interiorLeftCell i))
+        (flux (mesh.interiorLeftCell i))
+        (mesh.interiorLeftSlot i) hdet]
+      rw [localFacePairing_map F
+        (triangle (mesh.interiorRightCell i))
+        (primal (mesh.interiorRightCell i))
+        (flux (mesh.interiorRightCell i))
+        (mesh.interiorRightSlot i) hdet]
+      exact hInterior i)
+
+
+/-- Geometry-locked affine transport certificate.  The source triangle for every
+cell is derived from `MeshCertificate` itself; the transported geometry is then
+exactly `F.mapTriangle` of that certified source geometry. -/
+noncomputable def meshDerivedCertificate
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence
+        (MeshElementGeometry.realTriangle mesh K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (MeshElementGeometry.realTriangle mesh (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    RT0P1DerivedAssemblyCertificate mesh :=
+  derivedCertificate
+    F hdet
+    (MeshElementGeometry.realTriangle mesh)
+    primal flux
+    hEquilibrium hBoundary hInterior
+
+/-- The global exact cell pairing sum is unchanged by a common nonsingular
+affine map when P1 and RT0 data are transported by the certified pullback/Piola
+rules. -/
+theorem cellPairing_sum_map
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine) :
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing
+        (F.mapTriangle (triangle K))
+        (pullP1 F (primal K))
+        (piolaRT0 F (flux K))) =
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing (triangle K) (primal K) (flux K)) := by
+  apply Finset.sum_congr rfl
+  intro K _hK
+  exact cellPairing_map F (triangle K) (primal K) (flux K) hdet
+
+/-- The transported exact data satisfy the full global Green assembly identity.
+This is the seven-layer bridge from affine local algebra into certified mesh ownership. -/
+theorem global_green_identity
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing
+        (F.mapTriangle (triangle K))
+        (pullP1 F (primal K))
+        (piolaRT0 F (flux K))) =
+      (∑ K : Fin mesh.triangleCount,
+        P1RT0Element.cellDivergence
+          (F.mapTriangle (triangle K))
+          (pullP1 F (primal K))
+          (piolaRT0 F (flux K))) +
+      (∑ i : Fin mesh.interiorEdgeCount,
+        (P1RT0Element.localFacePairing
+            (F.mapTriangle (triangle (mesh.interiorLeftCell i)))
+            (pullP1 F (primal (mesh.interiorLeftCell i)))
+            (piolaRT0 F (flux (mesh.interiorLeftCell i)))
+            (mesh.interiorLeftSlot i) +
+          P1RT0Element.localFacePairing
+            (F.mapTriangle (triangle (mesh.interiorRightCell i)))
+            (pullP1 F (primal (mesh.interiorRightCell i)))
+            (piolaRT0 F (flux (mesh.interiorRightCell i)))
+            (mesh.interiorRightSlot i))) +
+      (∑ b : Fin mesh.boundaryEdgeCount,
+        P1RT0Element.localFacePairing
+          (F.mapTriangle (triangle (mesh.boundaryCell b)))
+          (pullP1 F (primal (mesh.boundaryCell b)))
+          (piolaRT0 F (flux (mesh.boundaryCell b)))
+          (mesh.boundarySlot b)) := by
+  have h := RT0P1DerivedAssemblyCertificate.global_green_identity
+    (derivedCertificate F hdet triangle primal flux
+      hEquilibrium hBoundary hInterior)
+  simpa [derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using h
+
+/-- The entire transported exact assembly remains orthogonal. -/
+theorem orthogonality
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing
+        (F.mapTriangle (triangle K))
+        (pullP1 F (primal K))
+        (piolaRT0 F (flux K))) = 0 := by
+  have h := RT0P1DerivedAssemblyCertificate.orthogonality
+    (derivedCertificate F hdet triangle primal flux
+      hEquilibrium hBoundary hInterior)
+  simpa [derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using h
+
+/-- Nine-layer endpoint: an exact affine-transported P1/RT0 assembly feeds the
+existing discrete Prager--Synge theorem without adding an orthogonality axiom. -/
+theorem discrete_prager_synge
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0)
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (eGrad eFlux : E)
+    (hInner : inner ℝ eGrad eFlux =
+      ∑ K : Fin mesh.triangleCount,
+        P1RT0Element.cellPairing
+          (F.mapTriangle (triangle K))
+          (pullP1 F (primal K))
+          (piolaRT0 F (flux K))) :
+    ‖eGrad + eFlux‖ * ‖eGrad + eFlux‖ =
+      ‖eGrad‖ * ‖eGrad‖ + ‖eFlux‖ * ‖eFlux‖ := by
+  let cert := derivedCertificate F hdet triangle primal flux
+    hEquilibrium hBoundary hInterior
+  apply discrete_prager_synge_of_derived_rt0_p1_assembly cert eGrad eFlux
+  simpa [cert, derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using hInner
+
+
+/-- A second nine-layer endpoint stated against the original reference-cell
+pairing.  The affine transport disappears from the required inner-product
+bridge because the global exact pairing sum is invariant. -/
+theorem discrete_prager_synge_from_reference_pairing
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0)
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (eGrad eFlux : E)
+    (hInner : inner ℝ eGrad eFlux =
+      ∑ K : Fin mesh.triangleCount,
+        P1RT0Element.cellPairing (triangle K) (primal K) (flux K)) :
+    ‖eGrad + eFlux‖ * ‖eGrad + eFlux‖ =
+      ‖eGrad‖ * ‖eGrad‖ + ‖eFlux‖ * ‖eFlux‖ := by
+  apply discrete_prager_synge F hdet triangle primal flux
+    hEquilibrium hBoundary hInterior eGrad eFlux
+  calc
+    inner ℝ eGrad eFlux =
+        ∑ K : Fin mesh.triangleCount,
+          P1RT0Element.cellPairing (triangle K) (primal K) (flux K) := hInner
+    _ = ∑ K : Fin mesh.triangleCount,
+          P1RT0Element.cellPairing
+            (F.mapTriangle (triangle K))
+            (pullP1 F (primal K))
+            (piolaRT0 F (flux K)) :=
+      (cellPairing_sum_map F hdet triangle primal flux).symm
+
+
+/-- Geometry-locked orthogonality endpoint.  No independent triangle function is
+accepted: every source cell is exactly the real embedding of the certified mesh
+coordinates. -/
+theorem mesh_orthogonality
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence
+        (MeshElementGeometry.realTriangle mesh K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (MeshElementGeometry.realTriangle mesh (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing
+        (F.mapTriangle (MeshElementGeometry.realTriangle mesh K))
+        (pullP1 F (primal K))
+        (piolaRT0 F (flux K))) = 0 :=
+  orthogonality F hdet (MeshElementGeometry.realTriangle mesh)
+    primal flux hEquilibrium hBoundary hInterior
+
+/-- Geometry-locked Prager--Synge endpoint stated against the original
+certified-mesh cell pairing. -/
+theorem mesh_discrete_prager_synge_from_reference_pairing
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence
+        (MeshElementGeometry.realTriangle mesh K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (MeshElementGeometry.realTriangle mesh (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0)
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (eGrad eFlux : E)
+    (hInner : inner ℝ eGrad eFlux =
+      ∑ K : Fin mesh.triangleCount,
+        P1RT0Element.cellPairing
+          (MeshElementGeometry.realTriangle mesh K)
+          (primal K) (flux K)) :
+    ‖eGrad + eFlux‖ * ‖eGrad + eFlux‖ =
+      ‖eGrad‖ * ‖eGrad‖ + ‖eFlux‖ * ‖eFlux‖ :=
+  discrete_prager_synge_from_reference_pairing
+    F hdet
+    (MeshElementGeometry.realTriangle mesh)
+    primal flux hEquilibrium hBoundary hInterior
+    eGrad eFlux hInner
+
+end AffineAssemblyTransport
+
+end CACEFormal

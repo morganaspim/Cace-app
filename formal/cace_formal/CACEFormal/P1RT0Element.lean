@@ -22,11 +22,33 @@ structure Point2 where
   x : ℝ
   y : ℝ
 
+namespace Point2
+
+/-- Coordinate extensionality for the exact 2D point structure. -/
+@[ext] theorem ext {p q : Point2}
+    (hx : p.x = q.x) (hy : p.y = q.y) : p = q := by
+  cases p
+  cases q
+  simp_all
+
+end Point2
+
 /-- An ordered triangle. The determinant may be signed; mesh certificates add positivity. -/
 structure Triangle2 where
   p0 : Point2
   p1 : Point2
   p2 : Point2
+
+namespace Triangle2
+
+/-- Vertexwise extensionality for ordered triangles. -/
+@[ext] theorem ext {T U : Triangle2}
+    (h0 : T.p0 = U.p0) (h1 : T.p1 = U.p1) (h2 : T.p2 = U.p2) : T = U := by
+  cases T
+  cases U
+  simp_all
+
+end Triangle2
 
 /-- An affine P1 scalar polynomial `c + gx*x + gy*y`. -/
 structure P1Affine where
@@ -74,8 +96,10 @@ end Triangle2
 namespace P1RT0Element
 
 /--
-Exact triangle integral of `q · ∇v`: an affine function integrates as signed
-area times the average of its three vertex values.
+Exact oriented triangle functional for `q · ∇v`: an affine function integrates
+as signed area times the average of its three vertex values.  For ordinary
+unsigned physical integration, require positive orientation or use
+`PhysicalP1RT0Element`.
 -/
 def cellPairing (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
   T.det / 6 *
@@ -86,10 +110,12 @@ def cellDivergence (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
   -(T.det / 6 * q.divergence *
     (v.eval T.p0 + v.eval T.p1 + v.eval T.p2))
 
-/-- x-component of the outward normal multiplied by edge length for a CCW edge. -/
+/-- x-component of the oriented normal-measure vector.  It is the physical
+outward normal times edge length when the triangle boundary is counter-clockwise. -/
 def edgeNormalX (a b : Point2) : ℝ := b.y - a.y
 
-/-- y-component of the outward normal multiplied by edge length for a CCW edge. -/
+/-- y-component of the oriented normal-measure vector.  It is the physical
+outward normal times edge length when the triangle boundary is counter-clockwise. -/
 def edgeNormalY (a b : Point2) : ℝ := -(b.x - a.x)
 
 /-- RT0 normal-flux polynomial at an endpoint of an oriented edge. -/
@@ -129,8 +155,9 @@ theorem sum_localFacePairing (T : Triangle2) (v : P1Affine) (q : RT0Affine) :
   rfl
 
 /--
-Closed elementwise P1/RT0 Green identity, derived from the polynomial formulae.
-No Green identity is assumed as a certificate field in this theorem.
+Closed oriented elementwise P1/RT0 Green identity, derived from the polynomial
+formulae.  No Green identity is assumed as a certificate field in this theorem.
+For positively oriented elements this is the ordinary physical Green identity.
 -/
 theorem local_green_identity (T : Triangle2) (v : P1Affine) (q : RT0Affine) :
     cellPairing T v q = cellDivergence T v q + cellFacePairing T v q := by

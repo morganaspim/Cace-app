@@ -62,13 +62,18 @@ jobs:
           command -v flock
           command -v gzip
 
-      - name: Checkout exact event commit with bounded first-parent history
+      - name: Checkout exact event commit with bounded initial history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
+          # Keep the initial checkout small. The next step deepens only as much
+          # as qualification inheritance actually requires.
           fetch-depth: 64
           clean: true
-          persist-credentials: false
+          # The adaptive ancestry step performs read-only deepen/unshallow fetches.
+          # Keep the workflow's contents:read token available until checkout's
+          # post-step removes it.
+          persist-credentials: true
 
       - name: Establish exact-current-head boundary and status journal
         shell: bash
@@ -85,6 +90,65 @@ jobs:
           echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
           echo "CACE_STATUS_DIR=$status_dir" >> "$GITHUB_ENV"
           echo "exact_current_head=$actual"
+
+      - name: Ensure attested qualification ancestry is locally complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          attested_file="$RUNNER_TEMP/cace-qualified-attested-commits.txt"
+          python - "$attested_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          output = Path(sys.argv[1])
+          raw = json.loads(Path("cace_studio/data/claim_registry.json").read_text(encoding="utf-8"))
+          commits = sorted(
+              {
+                  str(claim.get("qualification", {}).get("attested_commit", "")).strip()
+                  for claim in raw.get("claims", [])
+                  if claim.get("qualification", {}).get("current_head_qualified") is True
+                  and claim.get("qualification", {}).get("attested_commit")
+              }
+          )
+          output.write_text("".join(f"{commit}\n" for commit in commits), encoding="utf-8")
+          PY
+
+          while IFS= read -r attested; do
+            [[ "$attested" =~ ^[0-9a-f]{40}$ ]] || {
+              echo "Invalid attested commit in canonical registry: $attested" >&2
+              exit 1
+            }
+
+            if git merge-base --is-ancestor "$attested" HEAD 2>/dev/null; then
+              echo "CACE_QUALIFICATION_ANCESTRY_PRESENT attested=$attested mode=initial"
+              continue
+            fi
+
+            if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+              git fetch --no-tags --deepen=256 origin "$GITHUB_SHA"
+            fi
+
+            if git merge-base --is-ancestor "$attested" HEAD 2>/dev/null; then
+              echo "CACE_QUALIFICATION_ANCESTRY_PRESENT attested=$attested mode=deepened"
+              continue
+            fi
+
+            if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+              # Rare fallback: correctness beats checkout size. This executes
+              # only when the qualified ancestor lies beyond the bounded deepen.
+              git fetch --no-tags --unshallow origin "$GITHUB_SHA" ||                 git fetch --no-tags --unshallow origin
+            fi
+
+            git merge-base --is-ancestor "$attested" HEAD || {
+              echo "Attested commit $attested is not an ancestor of $GITHUB_SHA." >&2
+              exit 1
+            }
+            echo "CACE_QUALIFICATION_ANCESTRY_PRESENT attested=$attested mode=unshallow-fallback"
+          done < "$attested_file"
+
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Set up pinned ARM64-capable Python
         shell: bash
@@ -124,14 +188,77 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cace_build_root="$(mktemp -d /var/tmp/cace-v337-qualification.XXXXXXXX)"
-          mkdir -p "$cace_build_root/formal" "$cace_build_root/cache" "$cace_build_root/output"
-          cp -a formal/cace_formal/. "$cace_build_root/formal/"
-          rm -rf "$cace_build_root/formal/.lake/build"
+          min_free_kb=$((5 * 1024 * 1024))
+          formal_source_kb="$(du -sk formal/cace_formal | awk '{print $1}')"
+          prune_target_kb=$((min_free_kb + formal_source_kb))
           formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
           toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
           build_cache_base="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT"
           build_cache="$build_cache_base/$formal_tree"
+
+          # Per-tree proof caches are acceleration only, never qualification
+          # evidence. Bound them before a new qualification so validated old
+          # trees cannot exhaust the runner. The pre-copy target includes the
+          # measured formal source size so staging cannot immediately consume
+          # the unchanged 5 GiB qualification reserve.
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < prune_target_kb )); then
+            mkdir -p "$build_cache_base"
+            exec 7>/var/lib/cace-cache/canonical-qualification-prune.lock
+            flock -w 900 7
+
+            # Interrupted cache promotions may leave owned staging directories.
+            find "$build_cache_base" -mindepth 2 -maxdepth 2 -type d \
+              -name 'build.staging.*' -user "$(id -un)" -print -exec rm -rf -- {} + || true
+            package_parent="$(dirname "$CACE_PACKAGE_CACHE")"
+            package_name="$(basename "$CACE_PACKAGE_CACHE")"
+            if [[ -d "$package_parent" ]]; then
+              find "$package_parent" -mindepth 1 -maxdepth 1 -type d \
+                -name "${package_name}.staging.*" -user "$(id -un)" -print -exec rm -rf -- {} + || true
+            fi
+
+            # Oldest-first deletion preserves the most useful recent ancestor
+            # caches for as long as the disk reserve allows. Every per-tree cache
+            # is acceleration only and may be rebuilt from pinned sources.
+            mapfile -t cache_dirs < <(
+              find "$build_cache_base" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+                | sort -n | awk '{print $2}'
+            )
+            for candidate in "${cache_dirs[@]}"; do
+              [[ -d "$candidate" && ! -L "$candidate" && -O "$candidate" ]] || continue
+              name="$(basename "$candidate")"
+              [[ "$name" =~ ^[0-9a-f]{40}$ ]] || continue
+              [[ "$name" == "$formal_tree" ]] && continue
+              rm -rf -- "$candidate"
+              available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+              if (( available_kb >= prune_target_kb )); then
+                break
+              fi
+            done
+
+            # If all ancestor caches are gone and the reserve is still short,
+            # the current-tree cache is also disposable acceleration. Remove it
+            # only as the final cache-pruning fallback; qualification will rebuild
+            # it from the exact pinned source/dependency state.
+            available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+            if (( available_kb < prune_target_kb )) && \
+               [[ -d "$build_cache" && ! -L "$build_cache" && -O "$build_cache" ]] && \
+               [[ "$(basename "$build_cache")" =~ ^[0-9a-f]{40}$ ]]; then
+              rm -rf -- "$build_cache"
+            fi
+            flock -u 7
+          fi
+
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < prune_target_kb )); then
+            echo "Formal qualification requires 5 GiB plus source-staging headroom before copy; found ${available_kb} KiB, target ${prune_target_kb} KiB." >&2
+            exit 1
+          fi
+
+          cace_build_root="$(mktemp -d /var/tmp/cace-v337-qualification.XXXXXXXX)"
+          mkdir -p "$cace_build_root/formal" "$cace_build_root/cache" "$cace_build_root/output"
+          cp -a formal/cace_formal/. "$cace_build_root/formal/"
+          rm -rf "$cace_build_root/formal/.lake/build"
           echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
           echo "CACE_OUTPUT_DIR=$cace_build_root/output" >> "$GITHUB_ENV"
@@ -143,9 +270,12 @@ jobs:
           echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
           printf '%s\n' "$formal_tree" > "$CACE_STATUS_DIR/formal_tree_sha.txt"
+
+          # Keep the original post-copy safety check too: source staging itself
+          # must not consume the qualification reserve.
           available_kb="$(df -Pk "$cace_build_root" | awk 'NR==2 {print $4}')"
-          if (( available_kb < 5 * 1024 * 1024 )); then
-            echo "Formal qualification requires at least 5 GiB free; found ${available_kb} KiB." >&2
+          if (( available_kb < min_free_kb )); then
+            echo "Formal qualification requires at least 5 GiB free after source staging; found ${available_kb} KiB." >&2
             exit 1
           fi
           df -h "$cace_build_root"

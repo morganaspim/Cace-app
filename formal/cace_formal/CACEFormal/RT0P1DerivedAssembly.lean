@@ -1,6 +1,7 @@
 import Mathlib
 import CACEFormal.Hypercircle
 import CACEFormal.MeshCertificate
+import CACEFormal.MeshElementGeometry
 import CACEFormal.MeshFaceAssembly
 import CACEFormal.P1RT0Element
 
@@ -133,6 +134,43 @@ noncomputable def ofExactElements {mesh : MeshCertificate}
   equilibrium := hEquilibrium
   boundaryAdmissible := hBoundary
   interiorCancellation := hInterior
+
+
+/-- Geometry-locked constructor: element triangles are derived directly from the
+exact coordinates and connectivity stored in `MeshCertificate`.  This is the
+preferred constructor for certified production paths because callers cannot
+supply a triangle geometry unrelated to the mesh certificate. -/
+noncomputable def ofCertifiedMeshElements {mesh : MeshCertificate}
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence
+        (MeshElementGeometry.realTriangle mesh K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (MeshElementGeometry.realTriangle mesh (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (MeshElementGeometry.realTriangle mesh (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    RT0P1DerivedAssemblyCertificate mesh :=
+  ofExactElements
+    (MeshElementGeometry.realTriangle mesh)
+    primal
+    flux
+    hEquilibrium
+    hBoundary
+    hInterior
 
 end RT0P1DerivedAssemblyCertificate
 

@@ -20,6 +20,10 @@ DUP_DECL_RE = re.compile(
     rf"\b(?P<kind>{DECL})\s+(?P<name>[A-Za-z_][A-Za-z0-9_'.]*)"
     rf".*?\b(?P=kind)\s+(?P=name)\b"
 )
+RCASES_PAT_RE = re.compile(r"\brcases\b.*?\bwith\b.*?⟨(?P<body>[^⟩]*)⟩")
+RCASES_RESERVED = {
+    "by", "fun", "match", "let", "where", "do", "if", "then", "else", "in", "end"
+}
 
 
 def _issue(path: Path, line: int, column: int, kind: str, detail: str) -> dict:
@@ -139,6 +143,19 @@ def scan_text(path: Path, text: str) -> list[dict]:
         if duplicate:
             issues.append(_issue(path, lineno, duplicate.start() + 1, "duplicated-declaration-fragment",
                 f"declaration {duplicate.group('kind')} {duplicate.group('name')} appears twice on one line"))
+        rcases_match = RCASES_PAT_RE.search(source_line)
+        if rcases_match:
+            body = rcases_match.group("body")
+            for token_match in re.finditer(r"[A-Za-z_][A-Za-z0-9_']*", body):
+                token = token_match.group(0)
+                if token in RCASES_RESERVED:
+                    issues.append(_issue(
+                        path,
+                        lineno,
+                        rcases_match.start("body") + token_match.start() + 1,
+                        "reserved-rcases-identifier",
+                        f"Lean reserved keyword {token!r} used as an rcases pattern identifier",
+                    ))
     return issues
 
 

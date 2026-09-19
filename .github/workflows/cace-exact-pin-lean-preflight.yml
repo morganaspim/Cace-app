@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       module:
-        description: 'Enter ONLY the Lean module path, e.g. CACEFormal/ReferenceSimplexFiber.lean'
+        description: 'Lean module path. Default is a stable root import; compile_root=true checks the full audited root.'
         required: true
-        default: 'CACEFormal/ReferenceSimplexFiber.lean'
+        default: 'CACEFormal/P1RT0Element.lean'
       compile_root:
         description: 'Also compile CACEFormal.lean after the targeted module'
         required: true
@@ -22,8 +22,6 @@ permissions:
   contents: read
   actions: read
 
-# Same serialization lane as canonical qualification. Preflight may never overlap
-# canonical proof work and never cancels an in-flight run.
 concurrency:
   group: cace-canonical-qualification-oci
   cancel-in-progress: false
@@ -48,7 +46,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
           clean: true
           persist-credentials: false
 
@@ -86,6 +84,54 @@ jobs:
           printf 'module=%s\n' "$REQUESTED_MODULE" >> "$GITHUB_OUTPUT"
           printf 'module_name=%s\n' "$module_name" >> "$GITHUB_OUTPUT"
 
+      - name: Validate permanent proof guardrails and freeze proof plan
+        id: guardrails
+        shell: bash
+        env:
+          TARGET: ${{ steps.target.outputs.module }}
+          COMPILE_ROOT: ${{ inputs.compile_root }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          python3 scripts/cace_proof_guardrails.py validate
+          python3 scripts/check_cace_workflow_guardrails.py
+          python3 scripts/check_cace_known_failure_regressions.py
+
+          base_ref="origin/$DEFAULT_BRANCH"
+          git rev-parse --verify "$base_ref^{commit}" >/dev/null
+          merge_base="$(git merge-base HEAD "$base_ref")"
+          test -n "$merge_base"
+          printf 'CACE_GUARDRAIL_MERGE_BASE=%s\n' "$merge_base"
+
+          python3 scripts/cace_proof_guardrails.py impacted \
+            --base-ref "$merge_base" > cace-impacted-modules.txt
+          if grep -vE '^(CACEFormal\.[A-Za-z0-9_.]+)?$' cace-impacted-modules.txt; then
+            echo "Impacted-module planner emitted non-module output." >&2
+            exit 31
+          fi
+          if test "$(sort cace-impacted-modules.txt | uniq -d | wc -l)" -ne 0; then
+            echo "Impacted-module planner emitted duplicate modules." >&2
+            exit 32
+          fi
+          impacted_count="$(grep -cve '^[[:space:]]*$' cace-impacted-modules.txt || true)"
+          printf 'CACE_IMPACTED_MODULE_COUNT=%s\n' "$impacted_count"
+          cat cace-impacted-modules.txt
+
+          python3 scripts/cace_proof_guardrails.py plan-hash \
+            --toolchain "$CACE_TOOLCHAIN" \
+            --mathlib-commit "$CACE_MATHLIB_COMMIT" \
+            --target "$TARGET" \
+            --compile-root "$COMPILE_ROOT" \
+            --impacted-file cace-impacted-modules.txt \
+            > cace-proof-plan.json
+
+          plan_sha256="$(python3 -c 'import json; print(json.load(open("cace-proof-plan.json"))["plan_sha256"])')"
+          test -n "$plan_sha256"
+          printf 'CACE_PROOF_PLAN_SHA256=%s\n' "$plan_sha256"
+          printf 'plan_sha256=%s\n' "$plan_sha256" >> "$GITHUB_OUTPUT"
+          printf 'merge_base=%s\n' "$merge_base" >> "$GITHUB_OUTPUT"
+          printf 'impacted_count=%s\n' "$impacted_count" >> "$GITHUB_OUTPUT"
+
       - name: Reject malformed Lean source seams
         shell: bash
         env:
@@ -121,10 +167,6 @@ jobs:
           lake --version
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
 
-          # A missing root manifest previously caused Lake to update Mathlib and
-          # invoke Mathlib's post-update cache downloader during every proof run.
-          # Cache the deterministic root manifest by toolchain + lakefile content
-          # and suppress Mathlib's network hook during ordinary preflight.
           mkdir -p "$CACE_MANIFEST_CACHE_DIR"
           manifest_key="$(
             {
@@ -171,10 +213,8 @@ jobs:
           export SSL_CERT_FILE="$ca_bundle"
           echo "CACE_MATHLIB_CA_BUNDLE=$ca_bundle"
 
-          # Network is allowed only in this explicit prewarm path.
           lake exe cache get
 
-          # Promote the fully warmed package tree only after cache retrieval succeeds.
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
           flock -x -w 900 9
           staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}"
@@ -200,7 +240,47 @@ jobs:
             exit 21
           fi
 
+      - name: Compile proof API canaries
+        id: canary_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          start="$(date +%s)"
+          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/cace-canary-build.log"
+          stop="$(date +%s)"
+          printf 'CACE_GUARDRAIL_CANARY_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+
+      - name: Compile changed modules and audited reverse dependents
+        id: impacted_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          mapfile -t modules < <(grep -ve '^[[:space:]]*$' cace-impacted-modules.txt || true)
+          if test "${#modules[@]}" -eq 0; then
+            echo "CACE_IMPACTED_COMPILE_SKIPPED no audited-root Lean modules changed relative to merge base"
+          else
+            targets=()
+            for module in "${modules[@]}"; do
+              targets+=("+$module")
+            done
+            cd formal/cace_formal
+            start="$(date +%s)"
+            lake build "${targets[@]}" 2>&1 | tee "$GITHUB_WORKSPACE/cace-impacted-build.log"
+            stop="$(date +%s)"
+            printf 'CACE_IMPACTED_COMPILE_OK modules=%s elapsed_seconds=%s exact_head=%s\n' \
+              "${#modules[@]}" "$((stop-start))" "$GITHUB_SHA"
+          fi
+
       - name: Compile requested Lean module
+        id: target_compile
+        continue-on-error: true
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
@@ -211,11 +291,37 @@ jobs:
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake build "+$TARGET_MODULE"
+          lake build "+$TARGET_MODULE" 2>&1 | tee "$GITHUB_WORKSPACE/cace-target-build.log"
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
 
+      - name: Reverify frozen proof plan before audited root
+        id: plan_recheck
+        continue-on-error: true
+        if: ${{ inputs.compile_root }}
+        shell: bash
+        env:
+          TARGET: ${{ steps.target.outputs.module }}
+          COMPILE_ROOT: ${{ inputs.compile_root }}
+          EXPECTED_PLAN_SHA256: ${{ steps.guardrails.outputs.plan_sha256 }}
+        run: |
+          set -euo pipefail
+          python3 scripts/cace_proof_guardrails.py plan-hash \
+            --toolchain "$CACE_TOOLCHAIN" \
+            --mathlib-commit "$CACE_MATHLIB_COMMIT" \
+            --target "$TARGET" \
+            --compile-root "$COMPILE_ROOT" \
+            --impacted-file cace-impacted-modules.txt \
+            > cace-proof-plan-recheck.json
+          actual="$(python3 -c 'import json; print(json.load(open("cace-proof-plan-recheck.json"))["plan_sha256"])')"
+          test "$actual" = "$EXPECTED_PLAN_SHA256"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          printf 'CACE_PROOF_PLAN_RECHECK_OK sha256=%s exact_head=%s\n' "$actual" "$GITHUB_SHA"
+
       - name: Compile audited root
+        id: root_compile
+        continue-on-error: true
         if: ${{ inputs.compile_root }}
         shell: bash
         run: |
@@ -224,9 +330,49 @@ jobs:
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake build CACEFormal
+          lake build CACEFormal 2>&1 | tee "$GITHUB_WORKSPACE/cace-root-build.log"
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+
+      - name: Aggregate diagnostic sweep failures
+        id: diagnostic_aggregate
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
+          IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
+          TARGET_OUTCOME: ${{ steps.target_compile.outcome }}
+          PLAN_RECHECK_OUTCOME: ${{ steps.plan_recheck.outcome }}
+          ROOT_OUTCOME: ${{ steps.root_compile.outcome }}
+        run: |
+          set -euo pipefail
+          : > cace-diagnostic-sweep.txt
+          : > cace-compile-failures.txt
+          failures=0
+          record() {
+            label="$1"
+            outcome="$2"
+            printf '%s=%s\n' "$label" "$outcome" >> cace-diagnostic-sweep.txt
+            case "$outcome" in
+              success|skipped) ;;
+              *)
+                printf '%s=%s\n' "$label" "$outcome" >> cace-compile-failures.txt
+                failures=$((failures + 1))
+                ;;
+            esac
+          }
+          record canary "$CANARY_OUTCOME"
+          record impacted "$IMPACTED_OUTCOME"
+          record target "$TARGET_OUTCOME"
+          record plan_recheck "$PLAN_RECHECK_OUTCOME"
+          record root "$ROOT_OUTCOME"
+          cat cace-diagnostic-sweep.txt
+          if test "$failures" -ne 0; then
+            echo "CACE_DIAGNOSTIC_SWEEP_FAILURES=$failures"
+            cat cace-compile-failures.txt
+            exit 40
+          fi
+          echo "CACE_DIAGNOSTIC_SWEEP_OK"
 
       - name: Emit non-qualification summary
         if: always()
@@ -241,15 +387,30 @@ jobs:
           target=${{ inputs.module }}
           compile_root=${{ inputs.compile_root }}
           prewarm_mathlib_cache=${{ inputs.prewarm_mathlib_cache }}
+          proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}
+          merge_base=${{ steps.guardrails.outputs.merge_base }}
+          impacted_module_count=${{ steps.guardrails.outputs.impacted_count }}
+          guardrail_policy=validate -> canary -> reverse-dependents -> plan-recheck -> audited-root
           cache_policy=ordinary proof runs are network-free; only explicit prewarm may download Mathlib artifacts
-          note=This preflight catches Lean elaboration/typechecking/import failures. It never replaces canonical exact-current-head qualification, theorem metadata, kernel axiom audit, or attestation.
+          note=This preflight catches policy drift, API canary failures, impacted-module failures, Lean elaboration/typechecking/import failures, and exact-plan drift. It never replaces canonical exact-current-head qualification, theorem metadata, kernel axiom audit, or attestation.
           EOF
           cat cace-exact-pin-preflight-summary.txt
 
-      - name: Upload preflight summary
+      - name: Upload preflight evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cace-exact-pin-lean-preflight-${{ github.run_id }}-${{ github.run_attempt }}
-          path: cace-exact-pin-preflight-summary.txt
+          path: |
+            cace-exact-pin-preflight-summary.txt
+            cace-proof-plan.json
+            cace-proof-plan-recheck.json
+            cace-impacted-modules.txt
+            cace-diagnostic-sweep.txt
+            cace-compile-failures.txt
+            cace-canary-build.log
+            cace-impacted-build.log
+            cace-target-build.log
+            cace-root-build.log
+          if-no-files-found: warn
           retention-days: 14
