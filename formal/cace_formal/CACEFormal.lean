@@ -67,6 +67,7 @@ import CACEFormal.ReferenceSimplexDivergenceEndpoint
 import CACEFormal.ReferenceSimplexCoordinateFacetMeasure
 import CACEFormal.ReferenceSimplexCoordinateFacetNormal
 import CACEFormal.ReferenceSimplexCoordinateFacetCurrent
+import CACEFormal.ReferenceSimplexTopFacetNormal
 import CACEFormal.ReferenceSimplexFiberIBP
 import CACEFormal.ReferenceSimplexCoordinateGreen
 import CACEFormal.SmoothBoxGreenAuto
