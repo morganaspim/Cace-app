@@ -7,6 +7,7 @@ on:
       - 'scripts/check_lean_source_sanity.py'
       - 'scripts/cace_proof_guardrails.py'
       - 'scripts/check_cace_workflow_guardrails.py'
+      - 'scripts/check_cace_known_failure_regressions.py'
       - 'formal/cace_formal/proof_guardrails.json'
       - 'formal/FAILURE_GUARDRAILS.md'
       - 'tests/test_lean_source_sanity.py'
@@ -34,6 +35,9 @@ jobs:
 
       - name: Validate exact-pin workflow structure
         run: python3 scripts/check_cace_workflow_guardrails.py
+
+      - name: Validate known proof failure regressions
+        run: python3 scripts/check_cace_known_failure_regressions.py
 
       - name: Reject malformed Lean source seams
         run: python3 scripts/check_lean_source_sanity.py formal/cace_formal
