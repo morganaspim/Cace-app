@@ -155,6 +155,19 @@ def _module_sets(
     return module_sets, common
 
 
+
+def _remaining_unresolved(
+    proposal: ExperimentGraphProposal,
+    supplied: Mapping[str, Mapping[str, Any]],
+) -> tuple:
+    remaining = []
+    for item in proposal.unresolved_required_inputs:
+        values = supplied.get(item.node_id, {})
+        if item.port_name not in values:
+            remaining.append(item)
+    return tuple(remaining)
+
+
 def compare_proposal_strategies(
     registry,
     proposals: Mapping[ProposalStrategy, ExperimentGraphProposal],
@@ -185,7 +198,9 @@ def compare_proposal_strategies(
             else 0.0
         )
 
-        runnable = proposal.is_execution_ready and not proposal.is_empty
+        supplied_inputs = external_inputs.get(strategy, {})
+        remaining_unresolved = _remaining_unresolved(proposal, supplied_inputs)
+        runnable = (not proposal.is_empty) and not remaining_unresolved
         if not runnable:
             summaries.append(
                 StrategyRunSummary(
@@ -193,12 +208,12 @@ def compare_proposal_strategies(
                     runnable=False,
                     run_attempted=False,
                     completed=False,
-                    error="unresolved required inputs" if proposal.unresolved_required_inputs else "empty proposal",
+                    error="unresolved required inputs" if remaining_unresolved else "empty proposal",
                     seed=seed,
                     runtime_seconds=None,
                     node_count=len(proposal.nodes),
                     edge_count=len(proposal.edges),
-                    unresolved_required_inputs=len(proposal.unresolved_required_inputs),
+                    unresolved_required_inputs=len(remaining_unresolved),
                     skipped_modules=proposal.skipped_modules,
                     completed_node_count=0,
                     verifier_pass=0,
@@ -224,7 +239,7 @@ def compare_proposal_strategies(
             id_factory=id_counter.__next__,
         )
         strategy_inputs = {}
-        for proposal_node_id, values in external_inputs.get(strategy, {}).items():
+        for proposal_node_id, values in supplied_inputs.items():
             actual_node_id = mapping.get(str(proposal_node_id))
             if actual_node_id is None:
                 raise ValueError(
