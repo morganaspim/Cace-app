@@ -396,6 +396,22 @@
         "Camera/view state is presentation metadata and excluded from the semantic experiment fingerprint.",
         "Display-only 3D embeddings are labeled VISUALIZATION ONLY; computational geometry changes require explicit typed semantic modules."
       ]
+    },
+    {
+      "id": "G030",
+      "category": "provenance_operations",
+      "priority": 30,
+      "intent_status": "required",
+      "title": "Provider-independent run-log retention",
+      "summary": "Preserve critical proof, CI, deployment, and scientific-run logs outside GitHub using content-addressed durable run bundles and an append-only evidence index.",
+      "acceptance": [
+        "Critical self-hosted runs write complete stdout/stderr, exit codes, manifests, and hashes to durable local storage.",
+        "Run bundles are mirrored to OCI Object Storage or another independent durable store.",
+        "A canonical manifest binds exact commit, toolchain/environment identity, result, artifacts, and per-file hashes.",
+        "An append-only evidence ledger records the manifest digest and storage locations.",
+        "GitHub log or artifact disappearance does not destroy the only copy of critical run evidence.",
+        "Missing or failed archival is reported explicitly and never changes mathematical proof status."
+      ]
     }
   ]
 }

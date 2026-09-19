@@ -407,6 +407,40 @@ Desired provenance chain:
 
 Provenance establishes identity, history, tamper evidence, and independent reproduction. It does **not** establish mathematical truth by itself.
 
+## 13.1 Independent run-log retention
+
+GitHub Actions logs are a convenience surface, not the sole evidence archive. CACE should preserve critical CI, proof, qualification, deployment, and scientific-run logs independently of GitHub.
+
+Preferred retention model:
+
+1. **Local runner evidence store** — self-hosted runners write a complete run bundle under a durable path such as `/var/lib/cace-evidence/runs/<commit>/<run-id>/`.
+2. **Persistent system journal** — runner services use persistent `systemd-journald` or equivalent host logging so process-level failures survive workflow/UI loss.
+3. **OCI Object Storage mirror** — completed bundles are copied to a versioned bucket with retention/lifecycle policy; object identity is content-addressed rather than depending on a GitHub URL.
+4. **Optional second mirror** — another machine, NAS, or independent object store may hold a second copy for disaster recovery.
+5. **GitHub artifact/log copy** — retained when available, but never treated as the only copy.
+
+Each run bundle should contain:
+
+- exact source commit and branch/ref;
+- workflow/job/run identity when an external orchestrator exists;
+- start/end timestamps;
+- command lines and step names;
+- stdout/stderr captured with exit codes;
+- environment/toolchain/dependency identities relevant to reproduction;
+- generated manifests and diagnostic summaries;
+- hashes of every stored file;
+- a canonical run-manifest SHA-256;
+- explicit PASS/FAIL/NOT_RUN state;
+- links/digests for proof or scientific artifacts produced by the run.
+
+The bundle should be deterministic where practical and verified after copy. An append-only local evidence ledger should record at least:
+
+`run identity -> exact commit -> manifest digest -> storage locations -> result -> timestamp`
+
+A missing remote copy must be visible as a provenance-storage failure, not silently converted into success or a mathematical failure.
+
+For critical qualification paths, stdout/stderr should be captured by the command itself (for example through a wrapper/tee layer) so evidence survives even if the CI provider fails to publish its own log stream.
+
 ## 14. Security and production boundaries
 
 Production hardening should include:
