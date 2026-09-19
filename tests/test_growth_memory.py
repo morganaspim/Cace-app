@@ -124,3 +124,26 @@ def test_clear_persists_empty_memory(tmp_path):
     reloaded = PersistentGrowthMemory(path)
     assert reloaded.events == []
     assert reloaded.summary()["total"] == 0
+
+
+def test_explicit_direction_change_resets_stale_bias(tmp_path):
+    memory = PersistentGrowthMemory(tmp_path / "growth-memory.json")
+    memory.record("useful", "fragment", ("a",))
+    memory.record("useful", "fragment", ("a",))
+    assert memory.fragment_bias("a") > 0
+
+    memory.record("reject", "fragment", ("a",))
+    assert memory.fragment_bias("a") < 0
+
+    memory.record("keep", "fragment", ("a",))
+    assert memory.fragment_bias("a") > 0
+
+
+def test_memory_restart_preserves_effective_bias(tmp_path):
+    path = tmp_path / "growth-memory.json"
+    memory = PersistentGrowthMemory(path)
+    memory.record("useful", "group", ("a", "b"))
+    before = memory.group_bias(("a", "b"))
+
+    reloaded = PersistentGrowthMemory(path)
+    assert reloaded.group_bias(("b", "a")) == before
