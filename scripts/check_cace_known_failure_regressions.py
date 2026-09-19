@@ -72,26 +72,24 @@ def main() -> int:
             nf_bridge_pos = p1_body.find("have hden_nf")
             div_bridge_pos = p1_body.find("have hden_div")
             ring_nf_pos = p1_body.find("ring_nf")
-            div_self_pos = p1_body.find("exact div_self hden_div")
+            field_simp_pos = p1_body.find("field_simp [hden_div]")
+            ring_pos = p1_body.find("ring", field_simp_pos + 1) if field_simp_pos >= 0 else -1
             if (
                 nf_bridge_pos < 0
                 or div_bridge_pos < 0
                 or ring_nf_pos < 0
-                or div_self_pos < 0
+                or field_simp_pos < 0
+                or ring_pos < 0
                 or nf_bridge_pos > div_bridge_pos
                 or div_bridge_pos > ring_nf_pos
-                or ring_nf_pos > div_self_pos
+                or ring_nf_pos > field_simp_pos
+                or field_simp_pos > ring_pos
             ):
                 problems.append(
                     f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must prove both "
                     "canonical denominator bridges hden_nf and hden_div before "
-                    "ring_nf and close the normalized quotient with "
-                    "exact div_self hden_div"
-                )
-            if "field_simp" in p1_body[p1_body.find("have hden_div"):]:
-                problems.append(
-                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must not re-enter "
-                    "field_simp after the canonical hden_div bridge"
+                    "ring_nf, clear the exact denominator with field_simp [hden_div], "
+                    "and finish only the polynomial remainder with ring"
                 )
 
         linear_start = normalization_text.find("theorem normalizer_linearDet")
