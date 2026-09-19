@@ -30,6 +30,7 @@ EXPECTED_STEPS = (
     "Compile requested Lean module",
     "Reverify frozen proof plan before audited root",
     "Compile audited root",
+    "Aggregate diagnostic sweep failures",
     "Emit non-qualification summary",
     "Upload preflight evidence",
 )
@@ -46,6 +47,12 @@ REQUIRED_SNIPPETS = (
     'test "$actual" = "$EXPECTED_PLAN_SHA256"',
     'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
     "proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}",
+    "continue-on-error: true",
+    "CACE_DIAGNOSTIC_SWEEP_FAILURES",
+    "cace-canary-build.log",
+    "cace-impacted-build.log",
+    "cace-target-build.log",
+    "cace-root-build.log",
 )
 
 
