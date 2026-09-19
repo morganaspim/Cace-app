@@ -449,3 +449,26 @@ was only modestly beyond the original shallow boundary.
 
 **Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_checkout_has_complete_ancestry`
 and `test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`.
+
+
+## F-024 — adaptive ancestry fetch lost checkout authentication
+
+**Fingerprint:** the qualification ancestry step failed with
+`fatal: could not read Username for 'https://github.com'` while attempting
+`git fetch --deepen`.
+
+**Root cause:** the initial exact-head checkout deliberately used
+`persist-credentials: false`, but the new adaptive ancestry design performs a
+second read-only fetch after checkout. The remote therefore had no usable
+authentication for that deepen operation.
+
+**Permanent prevention:**
+- canonical qualification keeps the workflow-scoped `contents: read` checkout
+  credential available for the ancestry deepen/unshallow step;
+- the token remains read-only and is removed by the checkout action's post-job
+  cleanup;
+- no write permission is added and exact-head/clean-worktree checks remain
+  unchanged.
+
+**Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_checkout_has_complete_ancestry`
+requires the adaptive fetch surface and `persist-credentials: true`.

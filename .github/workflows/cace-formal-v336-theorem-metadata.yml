@@ -70,7 +70,10 @@ jobs:
           # as qualification inheritance actually requires.
           fetch-depth: 64
           clean: true
-          persist-credentials: false
+          # The adaptive ancestry step performs read-only deepen/unshallow fetches.
+          # Keep the workflow's contents:read token available until checkout's
+          # post-step removes it.
+          persist-credentials: true
 
       - name: Establish exact-current-head boundary and status journal
         shell: bash

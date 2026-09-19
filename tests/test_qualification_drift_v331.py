@@ -201,6 +201,7 @@ def test_canonical_qualification_checkout_has_complete_ancestry():
     assert "git merge-base --is-ancestor" in workflow
     assert "git fetch --no-tags --deepen=256 origin" in workflow
     assert "git fetch --no-tags --unshallow origin" in workflow
+    assert "persist-credentials: true" in workflow
 
 
 
