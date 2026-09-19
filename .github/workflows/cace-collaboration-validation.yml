@@ -69,7 +69,9 @@ jobs:
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip install --disable-pip-version-check -e '.[test]'
           "$RUNNER_TEMP/cace-collaboration-tests/bin/python" -m pip freeze > collaboration-test-environment.txt
 
-      - name: Run collaboration, canonical preflight, and local AI research tests
+      # Contract-bound step name: tests/test_actions_policy_audit.py parses this
+      # exact marker to verify canonical preflight coverage. Do not rename it.
+      - name: Run collaboration plus canonical formal-preflight tests
         shell: bash
         run: |
           set -euo pipefail
