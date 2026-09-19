@@ -274,6 +274,7 @@
     "principle": "do not ship crown jewels; minimize sensitive local execution; harden what must ship; verify the final artifact",
     "encryption": "authenticated encryption at rest (AES-GCM with hardware acceleration or XChaCha20-Poly1305 as appropriate); keys never hard-coded",
     "gpu_rule": "numeric buffers and opaque operation IDs only; no theorem/proof/source/secrets in GPU memory",
-    "hard_limit": "customer-controlled CPU/GPU execution cannot be made impossible to reverse engineer"
+    "hard_limit": "customer-controlled CPU/GPU execution cannot be made impossible to reverse engineer",
+    "classification_manifest": "security/source_classification.json"
   }
 }
