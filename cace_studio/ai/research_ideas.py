@@ -61,6 +61,61 @@ def _source_key(candidate_id: str, target_ids: Iterable[str]) -> str:
     return sha256(material.encode("utf-8")).hexdigest()
 
 
+
+def seed_from_grow_candidate(
+    candidate,
+    *,
+    source_query: str = "",
+    associated_modules: Iterable[str] = (),
+) -> dict:
+    """Create an editable notebook seed from one user-kept Grow candidate."""
+    title = str(candidate.title).strip()
+    if ": " in title and title.split(": ", 1)[0].startswith(("Combination", "Source idea")):
+        title = title.split(": ", 1)[1]
+    title = title or "Grow Research Idea"
+
+    if str(candidate.target_kind) == "group":
+        hypothesis = (
+            "These concepts may share a useful invariant, lower-cost representation, "
+            "or experimentally detectable relationship."
+        )
+        experiment = (
+            "Build the smallest reproducible experiment that contains these concepts, "
+            "hold unrelated variables fixed, compare against a single-concept control, "
+            "and record both confirming and falsifying observations."
+        )
+    else:
+        hypothesis = (
+            "This source concept may contribute a reusable transform, pattern, "
+            "control, or computational shortcut to the current research question."
+        )
+        experiment = (
+            "Introduce this concept into a minimal baseline experiment, compare the "
+            "result against the baseline with fixed inputs/seeds, and record whether "
+            "the effect is reproducible and materially useful."
+        )
+
+    return {
+        "candidate_id": str(candidate.candidate_id),
+        "target_ids": tuple(candidate.target_ids),
+        "title": title,
+        "notes": (
+            str(candidate.detail)
+            + "\n\nGrow score: "
+            + f"{float(candidate.score):.4f}"
+            + (
+                f"; novelty: {float(candidate.novelty):.4f}"
+                if candidate.novelty is not None
+                else ""
+            )
+            + "."
+        ),
+        "hypotheses": (hypothesis,),
+        "proposed_experiment": experiment,
+        "associated_modules": _clean_list(associated_modules, limit=128),
+        "source_query": source_query,
+    }
+
 @dataclass(frozen=True)
 class ResearchIdea:
     idea_id: str
