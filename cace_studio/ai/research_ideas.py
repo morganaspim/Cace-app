@@ -374,6 +374,14 @@ class ResearchIdeaStore:
         self._write()
         return updated
 
+    def advance_status(self, idea_id: str) -> ResearchIdea:
+        idea = self.get(idea_id)
+        if idea is None:
+            raise KeyError(f"unknown research idea: {idea_id}")
+        index = IDEA_STATUSES.index(idea.status)
+        next_status = IDEA_STATUSES[min(index + 1, len(IDEA_STATUSES) - 1)]
+        return self.update(idea_id, status=next_status)
+
     def delete(self, idea_id: str) -> bool:
         before = len(self.ideas)
         self.ideas = [idea for idea in self.ideas if idea.idea_id != idea_id]
