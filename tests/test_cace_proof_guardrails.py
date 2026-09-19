@@ -140,3 +140,24 @@ def test_proof_plan_payload_is_json_serializable_without_status_prefix():
     encoded = json.dumps(guard.proof_plan(config, args), sort_keys=True)
     decoded = json.loads(encoded)
     assert decoded["plan_sha256"]
+
+
+def test_no_reserved_by_identifier_in_rcases_patterns():
+    import re
+    path = ROOT / "formal" / "cace_formal" / "CACEFormal" / "ExteriorPowerTransport.lean"
+    text = path.read_text(encoding="utf-8")
+    bad = re.findall(r"rcases[^\n]*with\s+⟨[^\n⟩]*\bby\b[^\n⟩]*⟩", text)
+    assert bad == []
+
+
+def test_exact_pin_workflow_collects_compile_failure_frontier():
+    workflow = (
+        ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
+    ).read_text(encoding="utf-8")
+    canonical = (
+        ROOT / "ci" / "cace-exact-pin-lean-preflight.canonical.yml"
+    ).read_text(encoding="utf-8")
+    assert workflow == canonical
+    assert workflow.count("continue-on-error: true") == 5
+    assert "Aggregate diagnostic sweep failures" in workflow
+    assert "CACE_DIAGNOSTIC_SWEEP_FAILURES" in workflow
