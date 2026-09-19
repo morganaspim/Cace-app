@@ -7,20 +7,22 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 Read these in order before changing scientific or verification behavior:
 
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
-2. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
-3. `docs/STATUS.md` — current source/qualification state.
-4. `docs/ARCHITECTURE.md` — subsystem boundaries and trusted-computing-base model.
-5. `docs/SECURITY_ARCHITECTURE.md` — trust zones, threats, isolation and secrets policy.
-6. `docs/CONSTITUTION.md` — non-negotiable project rules.
-7. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
-8. `docs/BUG_FLUSH_ARCHITECTURE.md` — permanent defect-class prevention loop.
-9. `docs/PROVENANCE_ATTESTATION.md` — content identity, independent logs and evidence preservation.
-10. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
-11. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
-12. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
-13. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
-14. `AI_REPO_MAP.json` — machine-readable navigation.
-15. The relevant release/proof-scope file for the feature being changed.
+2. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
+3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
+4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
+5. `docs/STATUS.md` — current source/qualification state.
+6. `docs/ARCHITECTURE.md` — subsystem boundaries and trusted-computing-base model.
+7. `docs/SECURITY_ARCHITECTURE.md` — trust zones, threats, isolation and secrets policy.
+8. `docs/CONSTITUTION.md` — non-negotiable project rules.
+9. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
+10. `docs/BUG_FLUSH_ARCHITECTURE.md` — permanent defect-class prevention loop.
+11. `docs/PROVENANCE_ATTESTATION.md` — content identity, independent logs and evidence preservation.
+12. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
+13. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
+14. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
+15. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
+16. `AI_REPO_MAP.json` — machine-readable navigation.
+17. The relevant release/proof-scope file for the feature being changed.
 
 Always inspect exact-commit Actions evidence before describing current source as formally qualified or production-ready. Historical reports, release notes and example outputs are snapshots, not inherited current-head evidence.
 
@@ -66,6 +68,8 @@ AI may inspect, explain, propose and edit, but AI output is never verification e
 When changing the repository for agent discoverability, generate or derive indexes from canonical source wherever practical; do not maintain conflicting duplicate source trees. `AI_REPO_MAP.json` is navigation, not a substitute for reading the canonical implementation and claim data.
 
 When the user states a new CACE goal with clear product, scientific, engineering, proof-rigor, or research merit, persist it in `docs/GOAL_REGISTRY.json` and update `docs/MASTER_BUILD_SPEC.md` when it changes architecture or long-term behavior. Label research ideas as research; documentation must never promote them to verified claims. Prefer a documentation-only branch while an exact-head formal qualification is in flight.
+
+For cross-chat continuity, every substantive CACE chat/agent session should also read `docs/CROSS_CHAT_HANDOFF.md`, deduplicate and append meritorious chat-derived ideas in `docs/CHAT_IDEA_LEDGER.md`, refresh the handoff when the live frontier materially changes, and mirror both files to the ChatGPT Library continuity folder when that surface is available. Handoff snapshots are navigation only: always re-query live GitHub/CI state before acting.
 
 ## Provenance
 

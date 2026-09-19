@@ -9,6 +9,8 @@
   },
   "start_here": [
     "CACE_AGENT_BOOTSTRAP.json",
+    "docs/CHAT_IDEA_LEDGER.md",
+    "docs/CROSS_CHAT_HANDOFF.md",
     "docs/BUILD_AND_TRUST_GUIDE.md",
     "docs/STATUS.md",
     "docs/ARCHITECTURE.md",
@@ -132,7 +134,12 @@
     "persist_meritorious_user_goals": true,
     "classify_research_separately_from_verified_capability": true,
     "preserve_truth_and_evidence_boundaries": true,
-    "avoid_qualification_sensitive_changes_for_goal_capture": true
+    "avoid_qualification_sensitive_changes_for_goal_capture": true,
+    "cross_chat_handoff": "docs/CROSS_CHAT_HANDOFF.md",
+    "chat_idea_ledger": "docs/CHAT_IDEA_LEDGER.md",
+    "refresh_each_substantive_cace_chat": true,
+    "mirror_to_chatgpt_library_when_available": true,
+    "live_state_must_be_requeried": true
   },
   "trust_architecture": {
     "unified_guide": "docs/BUILD_AND_TRUST_GUIDE.md",

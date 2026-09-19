@@ -3,6 +3,12 @@
 The development package version is 3.36.0.dev1. It is not a production release and does not imply that every v3.32-v3.36 subsystem is qualified. Module versions, mathematical claim status and historical roadmap milestones use separate numbering.
 
 Start with `AGENTS.md`, `AI_REPO_MAP.json`, `docs/STATUS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, `docs/CLAIMS.md` and `docs/PRODUCTION_READINESS.md`.
+## Cross-chat continuity
+
+Before continuing an existing CACE workstream, read `docs/CROSS_CHAT_HANDOFF.md` and `docs/CHAT_IDEA_LEDGER.md`. If GitHub is unavailable from the current chat but ChatGPT Library is available, retrieve the mirrored copies from `/CACE CONTINUITY/`.
+
+The handoff is navigation only. Always re-query the current branch/PR/Actions state before proof, qualification, deployment, or release actions. During each substantive CACE chat, preserve new meritorious ideas in the ledger/goal registry and refresh the handoff at a natural stopping point. Documentation and conversational continuity never create verification evidence.
+
 
 ## Setup
 

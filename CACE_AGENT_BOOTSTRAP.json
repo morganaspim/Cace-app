@@ -7,6 +7,8 @@
     "production_ready": false
   },
   "first_read": [
+    "docs/CHAT_IDEA_LEDGER.md",
+    "docs/CROSS_CHAT_HANDOFF.md",
     "docs/BUILD_AND_TRUST_GUIDE.md",
     "docs/STATUS.md",
     "docs/MASTER_BUILD_SPEC.md",
@@ -290,5 +292,16 @@
       "run final exact-head canonical qualification on the promoted head"
     ],
     "nonclaim": "Batched preflight is engineering/formal-preflight only and never qualification."
+  },
+  "cross_chat_continuity": {
+    "standing_directive": "Every substantive CACE chat retrieves the durable handoff and idea ledger, re-verifies live state, preserves new meritorious ideas, and refreshes/mirrors continuity before a natural stopping point.",
+    "repository_handoff": "docs/CROSS_CHAT_HANDOFF.md",
+    "repository_idea_ledger": "docs/CHAT_IDEA_LEDGER.md",
+    "chatgpt_library_mirrors": [
+      "/CACE CONTINUITY/CACE_CROSS_CHAT_HANDOFF.md",
+      "/CACE CONTINUITY/CACE_CHAT_IDEA_LEDGER.md"
+    ],
+    "live_state_rule": "Handoff status is a snapshot only. Re-query GitHub branch/PR/commit/Actions state before proof, deployment, or qualification actions.",
+    "evidence_rule": "Continuity records and chat memory never create proof or verification evidence."
   }
 }

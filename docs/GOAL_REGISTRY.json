@@ -12,7 +12,10 @@
     "persist_meritorious_user_goals": true,
     "preserve_evidence_boundaries": true,
     "never_promote_research_to_proof_by_documentation": true,
-    "prefer_docs_only_branch_during_in_flight_exact_head_qualification": true
+    "prefer_docs_only_branch_during_in_flight_exact_head_qualification": true,
+    "refresh_cross_chat_handoff_each_substantive_cace_chat": true,
+    "mirror_handoff_to_chatgpt_library_when_available": true,
+    "live_status_snapshots_must_be_reverified": true
   },
   "goals": [
     {
@@ -667,6 +670,21 @@
         "Passing a batched preflight does not promote modules or create qualification evidence.",
         "After a successful batch, promotion is atomic and final exact-head canonical qualification remains required.",
         "Agents should group user-required Actions dispatches whenever doing so does not weaken proof rigor."
+      ]
+    },
+    {
+      "id": "G047",
+      "category": "agent_readiness",
+      "priority": 47,
+      "intent_status": "required",
+      "title": "Cross-chat continuity and redundant idea handoff",
+      "summary": "Every substantive CACE chat should recover the durable handoff, preserve new meritorious ideas, refresh the live frontier, and mirror the continuity bundle outside GitHub so a new chat can continue without reconstructing private history.",
+      "acceptance": [
+        "Repository contains a self-contained cross-chat handoff and append-only chat-derived idea ledger.",
+        "ChatGPT Library mirrors exist under /CACE CONTINUITY/ when Library access is available.",
+        "New chats re-query live GitHub/CI state rather than trusting stale snapshot status.",
+        "Meritorious ideas are deduplicated into the idea ledger/goal registry without changing evidence status.",
+        "Continuity updates avoid qualification-sensitive source changes and never promote proof claims."
       ]
     }
   ]
