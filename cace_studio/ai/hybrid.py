@@ -236,6 +236,9 @@ class SparseResearchIndex:
         ranked.sort(key=lambda item: (-item.score, item.fragment.fragment_id))
         return tuple(ranked[: max(1, limit)])
 
+    def get_fragment(self, fragment_id: str) -> ResearchFragment | None:
+        return self._by_id.get(fragment_id)
+
     def similarity(self, left_id: str, right_id: str) -> float:
         return max(0.0, self._cosine(self._sketches[left_id], self._sketches[right_id]))
 
@@ -335,6 +338,28 @@ class GrowthEngine:
     def _seed(query: str, cycle: int) -> int:
         digest = sha256(f"{cycle}:{query}".encode("utf-8")).digest()
         return int.from_bytes(digest[:8], "big")
+
+    def _recall_kept_fragments(
+        self,
+        ranked: Sequence[RankedFragment],
+        *,
+        limit: int = 4,
+    ) -> tuple[RankedFragment, ...]:
+        if self.memory is None or not self.memory.events:
+            return tuple(ranked)
+        existing = {item.fragment.fragment_id for item in ranked}
+        recalled = []
+        scale = max((abs(item.score) for item in ranked), default=1.0) or 1.0
+        for fragment_id in self.memory.kept_fragment_ids(limit=max(1, int(limit))):
+            if fragment_id in existing:
+                continue
+            fragment = self.index.get_fragment(fragment_id)
+            if fragment is None:
+                continue
+            recalled.append(RankedFragment(fragment, 0.12 * scale))
+        combined = list(ranked) + recalled
+        combined.sort(key=lambda item: (-item.score, item.fragment.fragment_id))
+        return tuple(combined)
 
     def _apply_persistent_fragment_bias(
         self,
@@ -459,6 +484,7 @@ class GrowthEngine:
         chaos = min(0.85, max(0.0, float(chaos)))
         seed = self._seed(query, cycle)
         ranked = self.index.rank(query, limit=retrieval_limit)
+        ranked = self._recall_kept_fragments(ranked)
         neural_rerank_used = False
         neural_rerank_note = ""
         if embedding_provider is not None and ranked:
