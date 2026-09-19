@@ -441,6 +441,29 @@ A missing remote copy must be visible as a provenance-storage failure, not silen
 
 For critical qualification paths, stdout/stderr should be captured by the command itself (for example through a wrapper/tee layer) so evidence survives even if the CI provider fails to publish its own log stream.
 
+## 13.2 Zero-egress core, collaboration, and paid passes
+
+CACE's scientific runtime should be network-denied by default. Network collaboration and commercial licensing should be handled by separate capability-limited brokers; see `docs/OFFLINE_COLLABORATION_AND_LICENSING.md`.
+
+Required properties:
+
+- no general Internet egress from the scientific worker;
+- no runtime import of remote scripts, packages, modules, plugins, Lean source, or arbitrary files;
+- all frontend code/assets bundled in the signed release rather than loaded from third-party origins;
+- collaboration limited to authenticated, schema-versioned canvas operations and presence state;
+- collaboration cannot directly set evidence/proof PASS;
+- end-to-end encrypted collaboration where practical;
+- viewer/editor roles, revocation, replay protection, rate/size limits, deterministic conflict handling;
+- sandboxed local instances with unprivileged identity, read-only runtime, isolated workspace, resource quotas, no cloud credentials, and no arbitrary shell;
+- time-limited day/week/month/year research passes;
+- license expiry blocks new compute without deleting scientific work or changing evidence truth;
+- Monero QR payment may fund R&D and compute infrastructure;
+- payment verification produces a signed offline capability token; browser/localStorage state and arbitrary transaction hashes are never sufficient to unlock;
+- pricing policy is signed/configurable and XMR conversion is quoted outside the scientific sandbox;
+- local application entitlement and project-funded remote compute entitlement are distinct.
+
+The target professional pricing band is initially approximately USD $12/day, $49/week, $149/month, and $999/year, subject to operating-cost, market, tax, and commercial validation. Pricing is product policy, not scientific source.
+
 ## 14. Security and production boundaries
 
 Production hardening should include:
