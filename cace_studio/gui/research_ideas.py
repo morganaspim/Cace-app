@@ -40,7 +40,7 @@ class ResearchIdeasWidget(QWidget):
         self.filter_status.addItem("All statuses", "")
         for status in IDEA_STATUSES:
             self.filter_status.addItem(status, status)
-        self.filter_status.currentIndexChanged.connect(self.refresh)
+        self.filter_status.currentIndexChanged.connect(lambda _index: self.refresh())
 
         self.idea_list = QListWidget()
         self.idea_list.currentItemChanged.connect(self._selection_changed)
