@@ -5,7 +5,11 @@ on:
     paths:
       - 'formal/**/*.lean'
       - 'scripts/check_lean_source_sanity.py'
+      - 'scripts/cace_proof_guardrails.py'
+      - 'formal/cace_formal/proof_guardrails.json'
+      - 'formal/FAILURE_GUARDRAILS.md'
       - 'tests/test_lean_source_sanity.py'
+      - 'tests/test_cace_proof_guardrails.py'
       - '.github/workflows/cace-lean-source-sanity.yml'
 
 permissions:
@@ -21,6 +25,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Validate permanent proof policy
+        run: python3 scripts/cace_proof_guardrails.py validate
 
       - name: Reject malformed Lean source seams
         run: python3 scripts/check_lean_source_sanity.py formal/cace_formal
