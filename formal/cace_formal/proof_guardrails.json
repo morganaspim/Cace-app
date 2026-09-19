@@ -56,7 +56,11 @@
     "CACEFormal.H1BesselRieszReduction",
     "CACEFormal.Generated.DiscreteInstance",
     "CACEFormal.Generated.V323MeshCertificate",
-    "CACEFormal.Generated.V324AssemblyInstance"
+    "CACEFormal.Generated.V324AssemblyInstance",
+    "CACEFormal.MeshElementGeometry",
+    "CACEFormal.PhysicalP1RT0Element",
+    "CACEFormal.ExecutableRationalGeometry",
+    "CACEFormal.RuntimeApproximationContract"
   ],
   "quarantined_root_imports": [
     "CACEFormal.PositiveLaplacianAnnihilator",
