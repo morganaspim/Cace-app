@@ -253,6 +253,14 @@ def HDivHilbertOrthogonalReversedH1Criterion (n : Nat) : Prop :=
     reversedHDivGraph (hdivGraphHilbertEquiv n x) ∈
       H1DistributionalGraphSubmodule n
 
+
+/-- The former analytic criterion is now a theorem: orthogonality alone supplies
+the reversed H¹ graph relation. -/
+theorem hdivHilbertOrthogonalReversedH1Criterion
+    (n : Nat) : HDivHilbertOrthogonalReversedH1Criterion n := by
+  intro x _hxGraph hxOrth
+  exact reversedHDivGraph_mem_H1_of_mem_orthogonal n x hxOrth
+
 /-- The relative orthogonal complement is trivial under the analytic criterion. -/
 theorem complexHDivHilbert_relativeOrthogonal_eq_bot_of_reversedH1
     (n : Nat) (hcriterion : HDivHilbertOrthogonalReversedH1Criterion n) :
@@ -288,6 +296,17 @@ theorem complexSmoothGraphHilbertClosure_eq_distributional_of_orthogonal_reverse
     (ComplexHDivSmoothGraphCoreHilbert_le_distributional n)
     (isClosed_HDivDistributionalGraphSubmoduleHilbert n)
     (complexHDivHilbert_relativeOrthogonal_eq_bot_of_reversedH1 n hcriterion)
+
+
+/-- Unconditional whole-space H(div) graph density in the canonical L² Hilbert
+model.  The orthogonality-to-reversed-H¹ step is discharged above. -/
+theorem complexSmoothGraphHilbertClosure_eq_distributional
+    (n : Nat) :
+    (ComplexHDivSmoothGraphCoreHilbert n).topologicalClosure =
+      HDivDistributionalGraphSubmoduleHilbert n := by
+  exact
+    complexSmoothGraphHilbertClosure_eq_distributional_of_orthogonal_reversedH1
+      n (hdivHilbertOrthogonalReversedH1Criterion n)
 
 /-- Pointwise form, convenient for proving the analytic bridge from Schwartz tests. -/
 theorem complexSmoothGraphHilbertClosure_eq_distributional_of_orthogonal_pointwise
