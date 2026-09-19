@@ -96,9 +96,13 @@ theorem referenceSimplexFiberBasePoint_idem
     {d : Nat} (i : Fin d) (x : EuclideanDomain d) :
     referenceSimplexFiberBasePoint i (referenceSimplexFiberBasePoint i x) =
       referenceSimplexFiberBasePoint i x := by
-  simpa [referenceSimplexFiberBasePoint] using
-    (referenceSimplexFiberPoint_original i
-      (referenceSimplexFiberPoint i x 0))
+  ext j
+  by_cases hji : j = i
+  · subst j
+    simp
+  · rw [referenceSimplexFiberBasePoint_proj_ne i j
+        (referenceSimplexFiberBasePoint i x) hji,
+      referenceSimplexFiberBasePoint_proj_ne i j x hji]
 
 /--
 Every point is reconstructed exactly from its zero-coordinate base point and
@@ -123,7 +127,8 @@ theorem referenceSimplexFiberBasePoint_mem_of_mem
     {d : Nat} (i : Fin d) {x : EuclideanDomain d}
     (hx : x ∈ euclideanReferenceSimplex d) :
     referenceSimplexFiberBasePoint i x ∈ euclideanReferenceSimplex d := by
-  exact referenceSimplexFiberPoint_zero_mem_of_mem i hx
+  have hf := (mem_euclideanReferenceSimplex_iff_fiber i x).mp hx
+  exact referenceSimplexFiberPoint_zero_mem i x hf.1 (hf.2.1.trans hf.2.2)
 
 /--
 For a simplex point, its original selected coordinate lies in the exact
