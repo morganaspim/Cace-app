@@ -72,6 +72,22 @@ CACE can mechanically verify that signatures are distinct and bind to the same a
 
 The v3.31 claim registry/proof ledger is the immediate foundation. It already requires exact commit binding, content-addressed proof artifacts, workflow provenance and fail-closed promotion. The later provenance layer should generalize this into deterministic research bundles, signatures, Merkle inclusion proofs and an append-only transparency history without weakening existing promotion rules.
 
+## Operational run-log preservation
+
+Provider-hosted CI logs are not durable scientific provenance by themselves. Critical verification and qualification runs should produce a self-contained run bundle before depending on GitHub, Vercel, or another orchestration UI to retain logs.
+
+Recommended storage hierarchy:
+
+- durable local runner directory;
+- persistent host journal;
+- versioned OCI Object Storage mirror;
+- optional independent secondary mirror;
+- provider-native logs/artifacts as an additional copy.
+
+The run manifest should hash stdout/stderr, step exit codes, exact source commit, relevant environment/toolchain identities, and produced evidence artifacts. The resulting manifest digest may be enrolled into the CACE transparency/evidence ledger.
+
+This strengthens auditability and disaster recovery only. Log retention and hashing do not make a theorem or computation correct.
+
 ## Failure behavior
 
 Missing network connectivity, missing external anchor, unavailable remote verifier or an unverifiable signature must be reported explicitly. CACE must never convert those conditions into a mathematical failure if the underlying self-contained proof is valid, nor into a provenance PASS if the requested provenance check did not run.
