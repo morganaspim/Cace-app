@@ -100,10 +100,14 @@
     "Do not claim famous open problems are solved without genuinely complete proof and appropriate external review."
   ],
   "current_primary_gate": {
-    "branch": "implement/v331-truth-foundation",
-    "purpose": "v3.31 fail-closed truth foundation and v3.30 formal qualification",
-    "formal_workflow": ".github/workflows/cace-formal-v330.yml",
-    "regression_workflow": ".github/workflows/cace-python-regression.yml"
+    "status_source": "docs/STATUS.md",
+    "formal_truth_sources": [
+      "cace_studio/data/claim_registry.json",
+      "cace_studio/data/proof_ledger.json",
+      "formal/cace_formal/"
+    ],
+    "exact_evidence_rule": "Inspect exact-commit qualification artifacts/workflow evidence before naming a source state formally qualified.",
+    "note": "Do not rely on a hard-coded historical branch or workflow name in this navigation map."
   },
   "planned_agent_indexes": [
     "MODULE_CATALOG.json",
