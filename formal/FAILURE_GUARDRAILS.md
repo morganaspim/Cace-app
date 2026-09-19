@@ -392,3 +392,33 @@ operated on an incomplete local graph and failed closed for the wrong reason.
 
 This does not weaken qualification drift. It makes the existing fail-closed
 ancestry check operate on complete evidence instead of a shallow approximation.
+
+
+## F-023 — unbounded validated build-cache retention exhausted runner reserve
+
+**Fingerprint:** canonical qualification passed all cheap truth/governance tests,
+then stopped before Lean with `Formal qualification requires at least 5 GiB
+free` even though recent canonical runs had 9–11 GiB free.
+
+**Root cause:** exact-formal-tree build caches are intentionally persistent for
+resumability, but successful qualifications accumulated one validated build tree
+per formal tree with no retention bound. The 30 GiB OCI root volume eventually
+fell below the existing 5 GiB safety reserve.
+
+**Permanent prevention:**
+- the 5 GiB free-space requirement is unchanged;
+- only when the runner is below that reserve, canonical CI takes an exclusive
+  cache-prune lock;
+- interrupted owned staging directories are removed;
+- per-tree build caches are treated strictly as acceleration, never evidence;
+- the current formal-tree cache and two newest compatible ancestor caches are
+  preserved, while older owned 40-hex tree caches may be deleted until the
+  reserve is restored;
+- the workflow rechecks the same 5 GiB floor both before and after source
+  staging.
+
+**Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`.
+
+Deleting an old build cache cannot inherit or create qualification. Lake still
+rebuilds changed/reverse-dependent modules and canonical qualification still
+requires fresh exact-head theorem metadata, kernel axiom audit, and attestation.

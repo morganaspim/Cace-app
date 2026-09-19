@@ -126,14 +126,67 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cace_build_root="$(mktemp -d /var/tmp/cace-v337-qualification.XXXXXXXX)"
-          mkdir -p "$cace_build_root/formal" "$cace_build_root/cache" "$cace_build_root/output"
-          cp -a formal/cace_formal/. "$cace_build_root/formal/"
-          rm -rf "$cace_build_root/formal/.lake/build"
+          min_free_kb=$((5 * 1024 * 1024))
           formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
           toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
           build_cache_base="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT"
           build_cache="$build_cache_base/$formal_tree"
+
+          # Per-tree proof caches are acceleration only, never qualification
+          # evidence. Bound them before a new qualification so validated old
+          # trees cannot exhaust the runner. Preserve the current tree (if any)
+          # and the two newest compatible ancestor caches.
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < min_free_kb )); then
+            mkdir -p "$build_cache_base"
+            exec 7>/var/lib/cace-cache/canonical-qualification-prune.lock
+            flock -w 900 7
+
+            # Interrupted cache promotions may leave owned staging directories.
+            find "$build_cache_base" -mindepth 2 -maxdepth 2 -type d \
+              -name 'build.staging.*' -user "$(id -un)" -print -exec rm -rf -- {} + || true
+            package_parent="$(dirname "$CACE_PACKAGE_CACHE")"
+            package_name="$(basename "$CACE_PACKAGE_CACHE")"
+            if [[ -d "$package_parent" ]]; then
+              find "$package_parent" -mindepth 1 -maxdepth 1 -type d \
+                -name "${package_name}.staging.*" -user "$(id -un)" -print -exec rm -rf -- {} + || true
+            fi
+
+            mapfile -t cache_dirs < <(
+              find "$build_cache_base" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+                | sort -nr | awk '{print $2}'
+            )
+            kept_ancestors=0
+            for candidate in "${cache_dirs[@]}"; do
+              [[ -d "$candidate" && ! -L "$candidate" && -O "$candidate" ]] || continue
+              name="$(basename "$candidate")"
+              [[ "$name" =~ ^[0-9a-f]{40}$ ]] || continue
+              if [[ "$name" == "$formal_tree" ]]; then
+                continue
+              fi
+              if (( kept_ancestors < 2 )); then
+                kept_ancestors=$((kept_ancestors + 1))
+                continue
+              fi
+              rm -rf -- "$candidate"
+              available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+              if (( available_kb >= min_free_kb )); then
+                break
+              fi
+            done
+            flock -u 7
+          fi
+
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < min_free_kb )); then
+            echo "Formal qualification requires at least 5 GiB free after safe cache pruning; found ${available_kb} KiB." >&2
+            exit 1
+          fi
+
+          cace_build_root="$(mktemp -d /var/tmp/cace-v337-qualification.XXXXXXXX)"
+          mkdir -p "$cace_build_root/formal" "$cace_build_root/cache" "$cace_build_root/output"
+          cp -a formal/cace_formal/. "$cace_build_root/formal/"
+          rm -rf "$cace_build_root/formal/.lake/build"
           echo "CACE_BUILD_ROOT=$cace_build_root" >> "$GITHUB_ENV"
           echo "CACE_FORMAL_DIR=$cace_build_root/formal" >> "$GITHUB_ENV"
           echo "CACE_OUTPUT_DIR=$cace_build_root/output" >> "$GITHUB_ENV"
@@ -145,9 +198,12 @@ jobs:
           echo "ELAN_HOME=$CACE_PERSISTENT_ELAN_HOME" >> "$GITHUB_ENV"
           echo "XDG_CACHE_HOME=$cace_build_root/cache" >> "$GITHUB_ENV"
           printf '%s\n' "$formal_tree" > "$CACE_STATUS_DIR/formal_tree_sha.txt"
+
+          # Keep the original post-copy safety check too: source staging itself
+          # must not consume the qualification reserve.
           available_kb="$(df -Pk "$cace_build_root" | awk 'NR==2 {print $4}')"
-          if (( available_kb < 5 * 1024 * 1024 )); then
-            echo "Formal qualification requires at least 5 GiB free; found ${available_kb} KiB." >&2
+          if (( available_kb < min_free_kb )); then
+            echo "Formal qualification requires at least 5 GiB free after source staging; found ${available_kb} KiB." >&2
             exit 1
           fi
           df -h "$cace_build_root"
