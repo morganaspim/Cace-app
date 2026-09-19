@@ -58,6 +58,7 @@ import CACEFormal.ReferenceSimplexFubini
 import CACEFormal.ReferenceSimplexIntegrability
 import CACEFormal.ReferenceSimplexGeometry
 import CACEFormal.ReferenceSimplexCell
+import CACEFormal.ReferenceSimplexFacets
 import CACEFormal.ReferenceSimplexFiberIBP
 import CACEFormal.ReferenceSimplexCoordinateGreen
 import CACEFormal.SmoothBoxGreenAuto
