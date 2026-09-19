@@ -235,9 +235,7 @@ theorem positiveLaplacianLow_laplacian {n : Nat}
     simp [positiveLaplacianEnergySymbol, Pi.mul_apply]
   rw [henergy]
   rw [TemperedDistribution.fourierMultiplierCLM_smul hprod]
-  rw [← Complex.coe_smul ((2 * Real.pi) ^ 2)]
-  congr 1
-  norm_num [Complex.ofReal_mul, Complex.ofReal_pow]
+  simp [ContinuousLinearMap.smul_apply, Complex.coe_smul]
 
 /-- The distributional Laplacian has no nonzero tempered eigenvector with
 positive eigenvalue one. -/
