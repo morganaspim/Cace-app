@@ -155,3 +155,62 @@ Rules:
 - the local AI Math Coin wallet/capability is a separate identity and must not
   be confused with the canonical XMR receive wallet;
 - payment/wallet state never changes scientific proof or evidence.
+
+
+## Unknown-feature implementation protocol
+
+A coding agent must attempt every required production feature. It must not omit,
+stub, silently defer, or replace a requested feature merely because its first
+implementation approach is unclear.
+
+When the agent does not know how to implement a feature safely:
+
+1. preserve the current architecture and identify every subsystem/invariant the
+   feature touches;
+2. generate **10 materially different implementation approaches** by default
+   (fewer only when the design space is genuinely smaller);
+3. rank the approaches using this ordered rubric:
+   - architecture preservation / compatibility;
+   - correctness and evidence-boundary preservation;
+   - security / privacy / least privilege;
+   - implementation tractability;
+   - testability and bug-sweep coverage;
+   - reuse of existing CACE modules/tools;
+   - compute/build cost;
+   - maintainability and future extension;
+4. use CACE Build Lite and other applicable CACE mathematical/scientific tools
+   to analyze dependencies, critical paths, cache reuse, resource limits, and
+   invariants before selecting the implementation;
+5. choose the highest-ranked viable approach that does not weaken an existing
+   architecture;
+6. if the repository lacks a needed capability, build a narrowly scoped custom
+   helper/tool with a typed contract, deterministic behavior where practical,
+   explicit limits, unit/regression tests, and no extra authority;
+7. after every confirmed defect, run the normal CACE bug-flush loop:
+   reproduce -> classify defect family -> root-cause fix -> sibling/repository
+   sweep -> regression test -> permanent structural guard where possible;
+8. run Build Lite again and then the required merge/proof/security gates;
+9. if no approach is actually safe/complete, leave the feature visibly
+   incomplete with the ranked alternatives and blocking reason. Never fake a
+   working implementation.
+
+### Architecture preservation rule
+
+All established CACE architectures are cumulative constraints unless an explicit
+approved migration supersedes them. A builder may refactor an implementation,
+but it must preserve the behavior/contracts of:
+
+- scientific typed-object and graph semantics;
+- evidence/verification and proof qualification;
+- security/trust boundaries;
+- account/network/capability separation;
+- AI non-authority;
+- heartbeat/economy separation from proof truth;
+- provenance/log retention;
+- source-secrecy/commercial boundaries;
+- existing public APIs/schema compatibility or an explicit migration path;
+- user-requested feature goals recorded in the goal registry/idea ledger.
+
+Before a substantial refactor, record which architectures are affected and how
+each invariant is preserved. “Simpler to generate” is never sufficient reason to
+delete or weaken an architecture.

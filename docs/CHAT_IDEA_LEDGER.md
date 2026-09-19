@@ -98,6 +98,9 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I071 | alphafold db api | Resolve a UniProt accession through the current public AlphaFold DB prediction API, use its version-current PDB URL instead of guessed filenames, preserve CC-BY-4.0 attribution/hashes, place the API source on the canvas, auto-run it, and expose the returned typed protein structure to Protein Playground heartbeat Play. | G051 |
 
+| I072 | coding-agent completion fallback | A production coding agent must attempt every requested CACE feature; if it does not know how, generate and rank 10 implementation approaches, use CACE Build Lite/existing CACE math/tools to choose an architecture-preserving path, or build a narrow regression-tested helper tool with bug-sweep guardrails. Never silently drop a feature or replace an established architecture for convenience. | G059 |
+| I073 | directional AI economy pairing | Network stays off by default; enabling it issues separate short-lived receive/outgoing codes. A directed local-AI economy link consumes source-outgoing + target-receive codes and grants only narrow economy/heartbeat capabilities. Account profiles carry declared user type/location scope, optional protein-library consent, and a Math Coin AI-wallet identity separate from canonical XMR custody. | G060 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

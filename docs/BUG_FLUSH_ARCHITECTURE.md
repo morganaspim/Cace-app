@@ -57,3 +57,27 @@ After the baseline architecture is green:
 7. deterministic clean-room replay of regression evidence.
 
 Each layer is additive. None may weaken the canonical Lean/kernel qualification path.
+
+
+## Unknown implementation and tool-construction rule
+
+Bug prevention begins before code is written. When an agent does not know how
+to implement a required feature, it must not jump directly to an ad-hoc subsystem.
+
+Required pre-implementation sweep:
+
+1. enumerate affected architectures, contracts, schemas and invariants;
+2. generate/rank candidate implementation paths (10 by default);
+3. prefer reuse/extension of canonical CACE subsystems;
+4. run CACE Build Lite to expose changed-path impact, dependencies, critical
+   path and resource/caching opportunities;
+5. when a missing capability remains, create the smallest helper tool that
+   closes that exact gap;
+6. give the helper typed inputs/outputs, deterministic behavior where practical,
+   explicit resource/security limits, regression tests and a structural bug
+   guard if the failure class can be recognized mechanically;
+7. sweep for sibling instances before calling the implementation complete.
+
+A custom helper is not allowed to become a shadow proof engine, second
+scientific semantics, second account authority, or bypass around a security
+boundary.

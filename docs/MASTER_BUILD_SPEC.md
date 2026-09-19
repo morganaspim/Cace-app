@@ -554,6 +554,27 @@ Minimum discoverability package:
 
 Agents should leave useful handoffs in repository-visible structured documentation rather than relying on private chat history.
 
+### 16.1 Complete-feature coding-agent fallback
+
+Code builders are expected to implement the complete production feature set, not
+only the subset that is easy for a generative builder.
+
+For every required feature whose implementation is uncertain:
+
+- preserve the current architecture first;
+- generate and rank 10 candidate implementation approaches by architecture
+  preservation, correctness/evidence boundary, security, tractability,
+  testability/bug-sweep coverage, CACE reuse, cost, and maintainability;
+- use CACE Build Lite and existing CACE modules/tools to narrow the implementation;
+- build a narrowly scoped typed helper tool only when existing infrastructure is
+  insufficient;
+- add regression/adversarial tests and the CACE defect-family sibling sweep;
+- never mark a feature complete when only a placeholder/mock exists;
+- if no safe path exists, retain the ranked alternatives/blockers visibly.
+
+All established CACE architectures remain cumulative constraints unless a later
+explicit reviewed migration supersedes one.
+
 ## 17. Goal-capture protocol
 
 When the user proposes a new goal:

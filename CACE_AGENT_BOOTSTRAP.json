@@ -87,7 +87,10 @@
     "add permanent structural guard when possible",
     "aggregate independent validation",
     "preserve diagnostics",
-    "run qualification drift separately"
+    "run qualification drift separately",
+    "for unknown implementation features: rank candidate approaches before inventing a new architecture",
+    "preserve all affected architectural invariants through the fix/implementation",
+    "if a new helper tool is required, add typed contract + regression tests + permanent bug-sweep guard where practical"
   ],
   "security_invariants": [
     "no client-provided evidence promotion",
@@ -346,6 +349,8 @@
     "target": "complete production CACE application, not a mock/demo replacement",
     "supported_agent_shape": "GitHub-connected code builders including Base44, Gemini AI Studio, Codex, and equivalent tools",
     "source_of_truth": "GitHub repository",
-    "semantic_rule": "generated UI/backend layers consume canonical CACE typed APIs; they do not invent a second scientific/proof semantics"
+    "semantic_rule": "generated UI/backend layers consume canonical CACE typed APIs; they do not invent a second scientific/proof semantics",
+    "unknown_feature_rule": "Attempt every required feature. When implementation is unclear, generate/rank 10 approaches, use CACE Build Lite/CACE tools to select a viable architecture-preserving approach, or build a narrow tested helper tool. Never silently omit or fake the feature.",
+    "architecture_rule": "Preserve all established CACE architectures/invariants unless an explicit reviewed migration supersedes them."
   }
 }

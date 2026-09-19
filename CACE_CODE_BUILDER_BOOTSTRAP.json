@@ -30,7 +30,12 @@
     "keep AI optional and outside verification authority",
     "keep wallet/exchange private keys outside AI/model context",
     "preserve PASS/FAIL/NOT_RUN/stale semantics",
-    "run appropriate regression/security/proof gates before production-ready claims"
+    "run appropriate regression/security/proof gates before production-ready claims",
+    "attempt every required production feature; do not silently omit unknown/difficult features",
+    "preserve all established CACE architectures/invariants unless an explicit reviewed migration supersedes one",
+    "for an implementation the builder does not know, generate and rank 10 candidate approaches, then use CACE Build Lite/existing CACE tools to select the safest viable approach",
+    "when a missing capability is required, build a narrow tested helper tool rather than weakening an existing architecture",
+    "apply the CACE bug-flush sibling sweep and permanent-regression-guard loop to every confirmed defect"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -60,5 +65,40 @@
     "instruction": "Use the existing canonical CACE Monero receive wallet. Do not generate, substitute, or silently migrate to a new Monero wallet/address.",
     "secrets_rule": "Public receive address may be configured in source; private keys/seeds/view keys/wallet-RPC credentials/exchange credentials must remain outside repository/client/model context.",
     "math_coin_rule": "The local-AI Math Coin wallet is separate from the Monero receive wallet."
+  },
+  "unknown_feature_protocol": {
+    "default_candidate_count": 10,
+    "ranking_order": [
+      "architecture preservation and compatibility",
+      "correctness and evidence-boundary preservation",
+      "security/privacy/least privilege",
+      "implementation tractability",
+      "testability and bug-sweep coverage",
+      "reuse of existing CACE modules/tools",
+      "compute/build cost",
+      "maintainability and extensibility"
+    ],
+    "use_cace_first": [
+      "CACE Build Lite dependency and critical-path planning",
+      "existing typed modules and scientific/runtime contracts",
+      "existing proof/security/provenance/account/network architectures"
+    ],
+    "custom_tool_rule": "If no existing tool is sufficient, build the smallest typed deterministic helper with tests and least privilege; do not create a second competing architecture.",
+    "failure_rule": "If no safe viable approach exists, preserve all ranked approaches plus blockers and leave the feature visibly incomplete; never fake completion."
+  },
+  "architecture_preservation": {
+    "rule": "All established CACE architectures are cumulative constraints until explicitly superseded by an approved migration.",
+    "required_preservations": [
+      "typed scientific graph/object semantics",
+      "evidence and verification state semantics",
+      "Lean/formal qualification architecture",
+      "security/trust-zone boundaries",
+      "AI non-authority",
+      "account/network capability separation",
+      "heartbeat/economy separation from proof truth",
+      "provenance and independent log retention",
+      "commercial/source-secrecy boundaries",
+      "backwards-compatible public schemas or explicit migrations"
+    ]
   }
 }

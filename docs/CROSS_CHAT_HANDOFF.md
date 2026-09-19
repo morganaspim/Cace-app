@@ -391,3 +391,58 @@ GUI/heartbeat:
 - **Play Selected Protein with Local AI** applies residue-level + source-node heartbeats without mutating the imported structure.
 
 The two PRs remain separated by responsibility: #48 owns scientific/API objects; #50 owns heartbeat/AI/GUI control integration.
+
+
+## Code-builder completion and architecture-preservation policy
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G059 — complete-feature coding agents with ranked fallback and architecture preservation.
+
+Standing builder rule:
+
+- attempt every required production feature;
+- when implementation is not known, generate/rank 10 approaches;
+- rank architecture preservation and correctness/security before convenience;
+- use CACE Build Lite and existing CACE tools/contracts to select the path;
+- if a missing primitive is required, create the smallest typed/tested helper tool;
+- apply root-cause + sibling/repository bug sweep + regression + permanent guard;
+- preserve all existing scientific/proof/security/account/network/AI/economy/provenance/commercial architectures unless an explicit reviewed migration supersedes one;
+- never fake completion: keep ranked alternatives/blockers visible if no safe implementation is available.
+
+
+## Account + directional AI economy pairing
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G060 — default-off directional local-AI economy pairing plus opt-in account/profile scientific storage.
+
+Core implementation on PR #51 branch:
+
+- `cace_studio/accounts.py` — local profile/session/protein-library state;
+- `cace_studio/network_pairing.py` — one-time directional network pairing.
+
+Account contract:
+
+- user type: Basic / Researcher / Enterprise;
+- optional declared location with scope (none/country/region/city/custom);
+- explicit opt-in protein-object library;
+- local-AI Math Coin wallet identity/capability handle;
+- no Math Coin/Monero private keys in the account database.
+
+Network contract:
+
+- network disabled by default;
+- enabling creates separate receive and outgoing codes;
+- code plaintext is not persisted, only hashes;
+- codes expire and are single-use;
+- source outgoing + target receive creates one directed economy link;
+- reverse direction requires a second explicit pairing;
+- granted capabilities are economy market discovery, compute bid/offer, heartbeat resource summary, and settlement receipt metadata only;
+- pairing never grants shell/filesystem/proof/evidence/wallet-key/model-control authority.
+
+The canonical Monero receive wallet remains governed separately by `CACE_PAYMENT_POLICY.json`.

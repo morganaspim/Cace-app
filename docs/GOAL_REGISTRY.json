@@ -858,6 +858,42 @@
         "The Conway heartbeat economic-city visualization cannot promote scientific evidence, theorem status, or verification state.",
         "Any production exchange against real cryptocurrency requires a separate security, market-integrity, accounting, and jurisdiction-specific compliance review."
       ]
+    },
+    {
+      "id": "G059",
+      "category": "agent_engineering",
+      "priority": 59,
+      "intent_status": "required",
+      "title": "Complete-feature coding agents with ranked fallback and architecture preservation",
+      "summary": "Require GitHub-connected coding agents to attempt every production feature, preserve all established CACE architectures, and when implementation is unclear generate/rank candidate approaches, use CACE Build Lite/existing CACE tools, or create a narrow tested helper tool rather than omitting or weakening the feature.",
+      "acceptance": [
+        "Coding-agent instructions explicitly prohibit silently omitting, stubbing, or replacing required features merely because implementation is difficult or unfamiliar.",
+        "Unknown features default to 10 ranked implementation approaches scored first by architecture preservation, correctness/evidence boundaries, security, tractability, testability, reuse, cost, and maintainability.",
+        "Builders use CACE Build Lite and existing CACE modules/contracts before introducing a new subsystem.",
+        "Any custom helper tool is narrowly scoped, typed, least-privilege, deterministic where practical, and regression-tested.",
+        "Every confirmed defect uses the CACE bug-flush sequence including sibling/repository sweep and a permanent guard where practical.",
+        "All established scientific/proof/security/account/network/AI/economy/provenance/commercial architectures are preserved unless an explicit reviewed migration supersedes them.",
+        "If no safe implementation is viable, the feature remains visibly incomplete with ranked alternatives/blockers rather than being falsely marked complete."
+      ]
+    },
+    {
+      "id": "G060",
+      "category": "accounts_networking",
+      "priority": 60,
+      "intent_status": "planned",
+      "title": "Directional AI economy pairing and opt-in account scientific storage",
+      "summary": "Add default-off network pairing with separate one-time receive/outgoing codes for local-AI economy links, plus account records for user type, declared-location scope, optional local protein storage, and a local-AI Math Coin wallet identity that is separate from the canonical Monero receive wallet.",
+      "acceptance": [
+        "Networking is disabled by default and enabling an instance generates distinct high-entropy receive and outgoing pairing codes.",
+        "Pairing code plaintext is shown only at issuance/rotation, stored only as hashes, expires quickly, is single-use, and direction is enforced.",
+        "A directed economy link consumes the source instance outgoing code and target instance receive code; bidirectional linking requires a second explicit pairing.",
+        "Paired local-AI instances receive only narrow economy/heartbeat/settlement-metadata capabilities and never implicit shell/filesystem/proof/evidence/private-key/model-control authority.",
+        "Account creation records a user type and an optional declared location with explicit location scope; no automatic precise geolocation is required.",
+        "Protein-object persistence is an explicit account opt-in and preserves scientific provenance/license/attribution metadata.",
+        "Each account receives a local-AI Math Coin wallet identity/capability handle, but no wallet private key is stored in the profile database or exposed to AI context.",
+        "The Math Coin wallet identity is distinct from the existing canonical CACE Monero receive wallet in CACE_PAYMENT_POLICY.json.",
+        "Hosted builders may map authenticated Base44/Gemini/other subjects onto the same profile contracts without replacing canonical CACE scientific/evidence semantics."
+      ]
     }
   ]
 }
