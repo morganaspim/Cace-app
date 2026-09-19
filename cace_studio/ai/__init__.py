@@ -6,6 +6,14 @@ verification and formal-evidence trusted computing base.
 from .provider import AIProvider, LocalAIError, ProviderHealth
 from .local import create_local_provider, detect_local_providers
 from .corpus import build_local_fragments, build_local_index
+from .experiment_proposal import (
+    ExperimentGraphProposal,
+    ProposedEdge,
+    ProposedNode,
+    UnresolvedInput,
+    materialize_experiment_proposal,
+    propose_experiment_graph,
+)
 from .grow_candidates import GrowCandidate, build_grow_candidates
 from .growth_memory import GrowthFeedbackEvent, PersistentGrowthMemory
 from .research_ideas import IDEA_STATUSES, ResearchIdea, ResearchIdeaStore, seed_from_grow_candidate
@@ -19,6 +27,12 @@ __all__ = [
     "detect_local_providers",
     "build_local_fragments",
     "build_local_index",
+    "ExperimentGraphProposal",
+    "ProposedEdge",
+    "ProposedNode",
+    "UnresolvedInput",
+    "materialize_experiment_proposal",
+    "propose_experiment_graph",
     "GrowthEngine",
     "GrowResult",
     "ResearchFragment",
