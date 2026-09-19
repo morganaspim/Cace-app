@@ -237,7 +237,10 @@ def test_exact_pin_workflow_uses_behaviorally_tested_target_classifier():
         ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
     ).read_text(encoding="utf-8")
     assert "scripts/cace_proof_guardrails.py classify-target" in workflow
-    assert 'target_class="$(python3 scripts/cace_proof_guardrails.py classify-target' in workflow
+    assert re.search(
+        r'target_class="\\$\\(\\s*python3 scripts/cace_proof_guardrails\\.py classify-target\\b',
+        workflow,
+    )
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():

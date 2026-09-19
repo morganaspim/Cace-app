@@ -22,7 +22,7 @@ from cace_studio.modules.formal_hypothesis_bridges import (
 )
 
 CLAIM_ID = "cace.v330.continuum-proof-strengthening"
-EXPECTED_CONTRACT_SHA256 = "d1d34295f6c9821af0330435af781e4f28c263076259b0b0075e4c9580ee8e8d"
+EXPECTED_CONTRACT_SHA256 = "d01b54537ba49208666257277c16742eb99107be39f8e78b44cd74723182d977"
 
 
 def _endpoint(theorem_name: str) -> dict:
@@ -101,7 +101,7 @@ def _synthetic_pass_anchor() -> dict:
 def test_v343_contract_adds_exact_zero_trace_endpoint_and_changes_identity():
     contract = ProofContractRegistry.load_default().for_claim(CLAIM_ID)
     assert contract is not None
-    assert len(contract.endpoint_theorems) == 38
+    assert len(contract.endpoint_theorems) == 40
     assert ZERO_TRACE_THEOREM in contract.endpoint_theorems
     assert contract.contract_sha256 == EXPECTED_CONTRACT_SHA256
     assert any("hasZeroBoundaryTrace_zero endpoint discharges only" in item for item in contract.nonclaims)

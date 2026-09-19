@@ -65,3 +65,11 @@ def test_connection_language_does_not_claim_scientific_validity():
     )
     assert "type/unit" in joined
     assert "scientific" in joined
+
+
+def test_customer_help_can_explain_private_key_safety_without_leaking_a_key():
+    catalog = build_public_help_catalog()
+    rendered = render_markdown(catalog)
+    validate_public_help(catalog, rendered)
+    assert "private key" in rendered.casefold()
+    assert "-----begin private key-----" not in rendered.casefold()
