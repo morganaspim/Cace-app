@@ -14,6 +14,8 @@ import CACEFormal.AdmissibleSpaces
 import CACEFormal.DiscretePragerSynge
 import CACEFormal.DiscreteOrthogonality
 import CACEFormal.MeshCombinatorics
+import CACEFormal.CertifiedComposition
+import CACEFormal.GeometryTransforms
 import CACEFormal.TransformCombinatorics
 import CACEFormal.Piola
 import CACEFormal.DiscreteMeshAdmissibility
