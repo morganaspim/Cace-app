@@ -9,6 +9,7 @@ Read these in order before changing scientific or verification behavior:
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
 2. `CACE_BUILD_LITE.json` — low-cost deterministic build/test optimizer for coding agents.
 3. `CACE_PAYMENT_POLICY.json` — canonical public payment-wallet policy; do not invent replacement wallets.
+4. `CACE_DEPLOYMENT_BOUNDARY.json` — browser-only public surface and hardened private/local service policy.
 3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
@@ -214,3 +215,50 @@ but it must preserve the behavior/contracts of:
 Before a substantial refactor, record which architectures are affected and how
 each invariant is preserved. “Simpler to generate” is never sufficient reason to
 delete or weaken an architecture.
+
+
+## Browser-only public surface
+
+For a production CACE build, the **webapp/gateway is the only client-visible
+service**. The browser must never connect directly to scientific workers, local
+AI/model servers, databases, network-pairing transport, Math Coin/Monero wallet
+services, filesystem workers, native kernels, or the Lean qualification runner.
+
+Machine-readable authority: `CACE_DEPLOYMENT_BOUNDARY.json`.
+
+Required shape:
+
+```
+Browser / client
+       |
+    HTTPS/WSS
+       |
+ CACE Web Gateway        <-- only public application surface
+       |
+ typed private IPC
+       |
+ Hardened Local/Private Layer
+       +-- orchestrator
+       +-- scientific runtime + C++/GPU workers
+       +-- local-AI capability broker
+       +-- account/protein database
+       +-- directional AI-economy pairing broker
+       +-- Math Coin broker
+       +-- canonical Monero wallet broker
+       +-- durable evidence/provenance storage
+       +-- isolated Lean qualification runner
+```
+
+Hosted builders such as Base44 or Gemini AI Studio may generate the browser
+surface and gateway integration, but they must not move canonical computation,
+wallet custody, proof authority, secrets, or scientific verification into
+client-side/generated code merely for convenience.
+
+Protected services should bind only Unix-domain sockets, loopback, or a private
+service network; they must not listen on public interfaces. Use least-privilege
+service identities, default-deny firewall/egress policy, read-only roots where
+practical, no-new-privileges/capability dropping, bounded resources, typed IPC,
+server-side secrets, and auditable privileged operations.
+
+The public gateway treats all browser state as hostile input and revalidates
+schema, authorization, sizes, rates, paths and capabilities server-side.

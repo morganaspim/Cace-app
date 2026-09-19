@@ -36,6 +36,39 @@
       ]
     },
     {
+      "id": "deployment_boundary_policy",
+      "deps": [
+        "python_syntax"
+      ],
+      "triggers": [
+        "CACE_DEPLOYMENT_BOUNDARY.json",
+        "docs/SECURITY_ARCHITECTURE.md",
+        "docs/WEBAPP_HARDENED_LOCAL_LAYER.md",
+        "api/**",
+        "web/**",
+        "deploy/**",
+        "tests/test_deployment_boundary_policy.py",
+        "scripts/check_deployment_boundary.py"
+      ],
+      "cache_inputs": [
+        "CACE_DEPLOYMENT_BOUNDARY.json",
+        "scripts/check_deployment_boundary.py",
+        "tests/test_deployment_boundary_policy.py"
+      ],
+      "command": "python scripts/check_deployment_boundary.py && python -m pytest -q tests/test_deployment_boundary_policy.py",
+      "executor": "local",
+      "estimated_seconds": 4,
+      "cpu_units": 1,
+      "priority": 150,
+      "fail_fast": true,
+      "proof_sensitive": false,
+      "cache_policy": "skip_on_exact_hit",
+      "profiles": [
+        "quick",
+        "merge"
+      ]
+    },
+    {
       "id": "web_api_smoke",
       "deps": [
         "python_syntax"
@@ -179,7 +212,8 @@
       "id": "python_full_regression",
       "deps": [
         "targeted_python_tests",
-        "web_api_smoke"
+        "web_api_smoke",
+        "deployment_boundary_policy"
       ],
       "triggers": [
         "cace_studio/**",
@@ -208,4 +242,4 @@
       ]
     }
   ]
-}\n
+}

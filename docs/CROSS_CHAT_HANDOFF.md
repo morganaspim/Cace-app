@@ -446,3 +446,30 @@ Network contract:
 - pairing never grants shell/filesystem/proof/evidence/wallet-key/model-control authority.
 
 The canonical Monero receive wallet remains governed separately by `CACE_PAYMENT_POLICY.json`.
+
+
+## Browser-only webapp and hardened local service plane
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G061 — web gateway is the only client-visible CACE service.
+
+Machine-readable deployment policy:
+
+`CACE_DEPLOYMENT_BOUNDARY.json`
+
+Required architecture:
+
+- browser/client -> HTTPS/WSS web gateway only;
+- web gateway -> typed private orchestrator;
+- all scientific runtime, C++/GPU workers, local AI, account/protein storage,
+  network pairing, Math Coin/Monero brokers, durable storage and Lean
+  qualification stay private/local;
+- protected services bind only loopback/private network/Unix-domain sockets;
+- browser code contains no backend/wallet/database/proof secrets and never
+  talks directly to those services;
+- scientific/proof services have no general Internet egress;
+- hosted code builders may generate the public webapp but cannot replace the
+  canonical hardened backend semantics.

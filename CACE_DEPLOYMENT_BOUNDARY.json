@@ -1,0 +1,129 @@
+{
+  "schema": "cace.deployment-boundary.v1",
+  "role": "machine-readable production exposure policy; engineering/security policy only",
+  "invariant": "The browser/client sees only the CACE web gateway. All privileged computation, storage, AI, wallet, network-pairing, native and proof services are private/local and mediated server-side.",
+  "public_surface": {
+    "service_id": "web_gateway",
+    "internet_exposed": true,
+    "responsibilities": [
+      "TLS termination or operation behind a trusted TLS reverse proxy",
+      "serve bundled browser assets",
+      "same-origin authenticated HTTP/WebSocket endpoints",
+      "schema/size/rate validation before forwarding",
+      "CSRF/CORS/CSP/session enforcement",
+      "authorization and request correlation IDs"
+    ],
+    "forbidden": [
+      "scientific computation implementation",
+      "direct filesystem access",
+      "wallet private-key custody",
+      "proof qualification execution",
+      "direct model-control authority",
+      "arbitrary shell",
+      "direct database credentials in browser code"
+    ]
+  },
+  "browser_contract": {
+    "allowed_network_destinations": [
+      "web_gateway"
+    ],
+    "same_origin_api_only": true,
+    "direct_localhost_service_access": false,
+    "direct_private_service_access": false,
+    "executable_third_party_runtime_dependencies": false,
+    "secrets_in_client_bundle": false
+  },
+  "private_services": [
+    {
+      "service_id": "local_orchestrator",
+      "public_listener": false,
+      "preferred_transport": "unix_domain_socket_or_private_loopback",
+      "role": "typed graph/job/account/economy orchestration"
+    },
+    {
+      "service_id": "scientific_runtime",
+      "public_listener": false,
+      "preferred_transport": "unix_domain_socket_or_private_worker_queue",
+      "role": "canonical Python/C++ scientific execution and verification"
+    },
+    {
+      "service_id": "local_ai_broker",
+      "public_listener": false,
+      "preferred_transport": "unix_domain_socket_or_private_loopback",
+      "role": "capability-gated local AI mediation"
+    },
+    {
+      "service_id": "account_store",
+      "public_listener": false,
+      "preferred_transport": "local_database_or_private_database_network",
+      "role": "accounts/profiles/sessions/protein-library metadata"
+    },
+    {
+      "service_id": "network_pairing_broker",
+      "public_listener": false,
+      "preferred_transport": "unix_domain_socket_or_private_loopback",
+      "role": "directional AI-economy pairing and narrow transport"
+    },
+    {
+      "service_id": "math_coin_broker",
+      "public_listener": false,
+      "preferred_transport": "unix_domain_socket_or_private_loopback",
+      "role": "Math Coin capability/budget/burn-to-compute mediation"
+    },
+    {
+      "service_id": "monero_wallet_broker",
+      "public_listener": false,
+      "preferred_transport": "unix_domain_socket_or_private_loopback",
+      "role": "canonical existing Monero wallet RPC/custody mediation; never browser or AI key access"
+    },
+    {
+      "service_id": "durable_storage",
+      "public_listener": false,
+      "preferred_transport": "local_or_private_storage_network",
+      "role": "experiments/evidence/provenance/protein data"
+    },
+    {
+      "service_id": "native_worker",
+      "public_listener": false,
+      "preferred_transport": "private_worker_boundary",
+      "role": "bounded C++/GPU kernels"
+    },
+    {
+      "service_id": "formal_qualification_runner",
+      "public_listener": false,
+      "preferred_transport": "isolated_job_dispatch_only",
+      "role": "pinned exact-head Lean/kernel qualification"
+    }
+  ],
+  "local_hardening": {
+    "bind_policy": "protected services bind only loopback/private namespace/Unix-domain socket; never 0.0.0.0 or public interface",
+    "firewall": "default deny inbound to private services; only web gateway may accept client traffic",
+    "egress": "default deny for scientific/proof services; explicitly allowlisted broker egress only where required",
+    "identities": "separate least-privilege service identities for gateway, orchestration, scientific workers, AI brokers, wallet brokers, storage and proof runner",
+    "filesystem": "read-only runtime/package roots where practical; explicit writable workspace/storage paths only",
+    "process": "no-new-privileges; dropped Linux capabilities; seccomp/AppArmor/container/systemd sandboxing where available",
+    "resources": "CPU/memory/process/file/upload/job quotas and timeouts",
+    "secrets": "server-side secret injection only; no secrets in Git, browser bundles, logs or AI context",
+    "IPC": "typed versioned bounded messages with authentication/peer credentials where supported",
+    "audit": "append-only security/audit events for privileged mutations and broker actions",
+    "updates": "pinned/locked dependencies, signed/reviewed deployment artifacts, SBOM and vulnerability scanning where practical"
+  },
+  "server_mediation_rules": [
+    "browser never selects or opens arbitrary local paths",
+    "browser never submits PASS/VERIFIED/formal promotion as trusted state",
+    "browser never talks directly to Ollama/model servers, databases, wallet RPC, Lean runner, C++ workers or pairing transport",
+    "gateway/orchestrator revalidates all client data even if browser already validated it",
+    "privileged services receive only the minimum typed data/capability required for one operation",
+    "formal qualification cannot be triggered as an arbitrary shell command from a public request",
+    "wallet signing/custody remains outside AI/model context and client code"
+  ],
+  "production_acceptance": [
+    "external port scan exposes only intended web gateway ports",
+    "private-service bind scan shows no protected public listeners",
+    "browser CSP/connect-src permits only intended same-origin/gateway endpoints",
+    "negative tests prove browser-origin requests cannot reach protected service sockets directly",
+    "secret scan finds no wallet keys/database credentials/model-control secrets in frontend artifacts",
+    "authorization/CSRF/rate-limit/input-size negative tests pass",
+    "scientific/evidence semantics remain canonical behind the gateway"
+  ]
+}

@@ -9,6 +9,7 @@
     "CACE_AGENT_BOOTSTRAP.json",
     "CACE_BUILD_LITE.json",
     "CACE_PAYMENT_POLICY.json",
+    "CACE_DEPLOYMENT_BOUNDARY.json",
     "docs/CROSS_CHAT_HANDOFF.md",
     "docs/MASTER_BUILD_SPEC.md",
     "docs/GOAL_REGISTRY.json",
@@ -35,7 +36,9 @@
     "preserve all established CACE architectures/invariants unless an explicit reviewed migration supersedes one",
     "for an implementation the builder does not know, generate and rank 10 candidate approaches, then use CACE Build Lite/existing CACE tools to select the safest viable approach",
     "when a missing capability is required, build a narrow tested helper tool rather than weakening an existing architecture",
-    "apply the CACE bug-flush sibling sweep and permanent-regression-guard loop to every confirmed defect"
+    "apply the CACE bug-flush sibling sweep and permanent-regression-guard loop to every confirmed defect",
+    "the webapp/gateway is the only client-visible surface; all privileged CACE services remain private/local behind typed server-side mediation",
+    "generated browser code must never connect directly to local AI/model servers, databases, wallet RPC, filesystem workers, scientific/native workers, network-pairing transport, or the Lean runner"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -100,5 +103,12 @@
       "commercial/source-secrecy boundaries",
       "backwards-compatible public schemas or explicit migrations"
     ]
+  },
+  "deployment_boundary": {
+    "source": "CACE_DEPLOYMENT_BOUNDARY.json",
+    "public_surface": "web_gateway only",
+    "client_rule": "Browser/client communicates only with the same-origin HTTPS/WSS web gateway.",
+    "private_layer": "orchestrator, scientific runtime, AI broker, databases, pairing/economy/payment brokers, native workers, durable storage and proof runner",
+    "builder_rule": "Base44/Gemini/generated frontend may implement presentation/gateway integration but must preserve the hardened private layer and canonical backend semantics."
   }
 }

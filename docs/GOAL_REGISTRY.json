@@ -894,6 +894,24 @@
         "The Math Coin wallet identity is distinct from the existing canonical CACE Monero receive wallet in CACE_PAYMENT_POLICY.json.",
         "Hosted builders may map authenticated Base44/Gemini/other subjects onto the same profile contracts without replacing canonical CACE scientific/evidence semantics."
       ]
+    },
+    {
+      "id": "G061",
+      "category": "production_security",
+      "priority": 61,
+      "intent_status": "required",
+      "title": "Browser-only public webapp with hardened local/private CACE service plane",
+      "summary": "Expose only the CACE web gateway to clients while keeping scientific execution, local AI, storage, accounts, AI-network pairing, Math Coin/Monero brokerage, native workers and formal qualification behind a hardened non-public local/private service boundary.",
+      "acceptance": [
+        "The browser/client communicates only with the same-origin HTTPS/WSS web gateway; no protected CACE service is directly client-visible.",
+        "Scientific runtime, local AI/model servers, account/protein database, pairing/economy/payment brokers, filesystem/storage workers, native kernels and Lean qualification runner have no public listeners.",
+        "Protected services bind Unix-domain sockets, loopback, or private service networking with default-deny firewall rules and least-privilege identities.",
+        "Scientific/proof services have no general Internet egress; explicitly networked brokers use narrow allowlists.",
+        "Secrets and wallet/private credentials remain server-side and outside browser bundles and AI/model context.",
+        "Gateway revalidates schema, authorization, sizes, rates, paths and capabilities; client validation is never trusted.",
+        "Production validation includes port/listener exposure tests, CSP/connect-src checks, direct-service negative tests, secret scans, auth/CSRF/rate/upload limits and sandbox hardening checks.",
+        "Base44/Gemini/other code builders may generate the public webapp/gateway integration but must preserve the private canonical CACE service plane."
+      ]
     }
   ]
 }
