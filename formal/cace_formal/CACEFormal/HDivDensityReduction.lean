@@ -5,7 +5,7 @@ import Mathlib.Analysis.InnerProductSpace.ProdL2
 namespace CACEFormal
 
 open Set
-open scoped InnerProductSpace
+open scoped InnerProductSpace LineDeriv
 
 namespace Continuum
 
