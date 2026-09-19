@@ -457,15 +457,17 @@ Unless a later explicit user instruction supersedes this ordering, prefer:
 2. harden proof/sanity/CI guardrails without weakening formal scope;
 3. keep repository status and agent navigation current;
 4. complete browser parity for the scientific canvas;
-5. finish Research Idea / Proposed Experiment / Build on Canvas workflow;
-6. complete no-code local AI provider UX and zero-contact sandbox;
-7. complete save/load/replay/export/print and evidence inspection in the web UI;
-8. production API/job/storage architecture and Oracle deployment;
-9. plugin isolation/security hardening;
-10. certified FEM/PDE end-to-end;
-11. graded-geometry/combinatorial transform research;
-12. larger demo library and advanced research modules;
-13. production-release qualification.
+5. add the coordinate-system/tiling visualization palette with presentation-only semantics;
+6. finish Research Idea / Proposed Experiment / Build on Canvas workflow;
+7. complete no-code local AI provider UX and zero-contact sandbox;
+8. complete save/load/replay/export/print and evidence inspection in the web UI;
+9. production API/job/storage architecture and Oracle deployment;
+10. plugin isolation/security hardening;
+11. certified FEM/PDE end-to-end;
+12. graded-geometry/combinatorial transform research;
+13. tiled/complex-base/fractal coordinate research;
+14. larger demo library and advanced research modules;
+15. production-release qualification.
 
 ## 19. Definition of done for the working webapp
 
@@ -479,6 +481,7 @@ A build should not be called a complete working CACE webapp until a user can, fr
 - execute full or scoped runs;
 - see progress and cancellation state;
 - inspect real results and visualizations;
+- switch among supported coordinate/tile views without changing the underlying experiment evidence;
 - inspect PASS/FAIL/NOT_RUN/stale evidence;
 - see assumptions/nonclaims;
 - inspect proof/certificate provenance when present;
