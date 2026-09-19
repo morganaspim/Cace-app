@@ -92,6 +92,26 @@ noncomputable def derivedCertificate
         (mesh.interiorRightSlot i) hdet]
       exact hInterior i)
 
+/-- The global exact cell pairing sum is unchanged by a common nonsingular
+affine map when P1 and RT0 data are transported by the certified pullback/Piola
+rules. -/
+theorem cellPairing_sum_map
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine) :
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing
+        (F.mapTriangle (triangle K))
+        (pullP1 F (primal K))
+        (piolaRT0 F (flux K))) =
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing (triangle K) (primal K) (flux K)) := by
+  apply Finset.sum_congr rfl
+  intro K _hK
+  exact cellPairing_map F (triangle K) (primal K) (flux K) hdet
+
 /-- The entire transported exact assembly remains orthogonal. -/
 theorem orthogonality
     {mesh : MeshCertificate}
@@ -169,6 +189,55 @@ theorem discrete_prager_synge
     hEquilibrium hBoundary hInterior
   apply discrete_prager_synge_of_derived_rt0_p1_assembly cert eGrad eFlux
   simpa [cert, derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using hInner
+
+
+/-- A second nine-layer endpoint stated against the original reference-cell
+pairing.  The affine transport disappears from the required inner-product
+bridge because the global exact pairing sum is invariant. -/
+theorem discrete_prager_synge_from_reference_pairing
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0)
+    {E : Type*} [SeminormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (eGrad eFlux : E)
+    (hInner : inner ℝ eGrad eFlux =
+      ∑ K : Fin mesh.triangleCount,
+        P1RT0Element.cellPairing (triangle K) (primal K) (flux K)) :
+    ‖eGrad + eFlux‖ * ‖eGrad + eFlux‖ =
+      ‖eGrad‖ * ‖eGrad‖ + ‖eFlux‖ * ‖eFlux‖ := by
+  apply discrete_prager_synge F hdet triangle primal flux
+    hEquilibrium hBoundary hInterior eGrad eFlux
+  calc
+    inner ℝ eGrad eFlux =
+        ∑ K : Fin mesh.triangleCount,
+          P1RT0Element.cellPairing (triangle K) (primal K) (flux K) := hInner
+    _ = ∑ K : Fin mesh.triangleCount,
+          P1RT0Element.cellPairing
+            (F.mapTriangle (triangle K))
+            (pullP1 F (primal K))
+            (piolaRT0 F (flux K)) :=
+      (cellPairing_sum_map F hdet triangle primal flux).symm
 
 end AffineAssemblyTransport
 
