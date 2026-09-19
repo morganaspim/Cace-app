@@ -6,6 +6,7 @@ import CACEFormal.SimplexFacetCurrent
 namespace CACEFormal
 
 open Set MeasureTheory
+open EuclideanGeometry
 open scoped BigOperators MeasureTheory RealInnerProductSpace
 
 namespace Continuum
@@ -15,27 +16,54 @@ noncomputable section
 /-!
 # Top-facet currents of the reference simplex
 
-This module is a four-way proof composition:
+The top-facet surface measure is the scaled pushforward of orthogonal-base
+volume by the upper-endpoint map:
 
-* `ReferenceSimplexTopFacetParameterization` supplies the endpoint map;
-* `ReferenceSimplexTopFacetMeasure` supplies the surface-Jacobian measure scaling;
-* `ReferenceSimplexTopFacetFluxFactor` supplies `J_i n_i = 1`;
-* `SimplexFacetCurrent` supplies the existing oriented Hausdorff current.
+  dS = J_i • (T_i)_*(dy),
 
-Together they show that the geometric top-facet current is exactly the upper
-endpoint functional produced by fiber integration by parts.
+where `J_i = normDet(L_i)`.
+
+The matching outward-normal coordinate satisfies
+
+  J_i * n_i = 1.
+
+Therefore the two geometric factors cancel exactly inside the CACE facet
+current.  The existing Hausdorff facet-current distribution becomes precisely
+the positive upper-endpoint term produced by the one-dimensional
+integration-by-parts theorem.
 -/
+
+/-- The top endpoint map is a closed embedding. -/
+theorem referenceSimplexTopEndpoint_isClosedEmbedding
+    {d : Nat} [NeZero d] (i : Fin d) :
+    IsClosedEmbedding (referenceSimplexTopEndpoint i) := by
+  have hker :
+      LinearMap.ker (referenceSimplexTopLinearMap i) = ⊥ :=
+    LinearMap.ker_eq_bot.mpr (referenceSimplexTopLinearMap_injective i)
+  have hL :
+      IsClosedEmbedding (referenceSimplexTopLinearMap i) :=
+    LinearMap.isClosedEmbedding_of_injective hker
+  let τ : EuclideanDomain d ≃ᵢ EuclideanDomain d :=
+    IsometryEquiv.vaddConst (basisVector i)
+  have hcomp :
+      IsClosedEmbedding
+        (fun y : (referenceSimplexCoordinateLine i)ᗮ =>
+          τ (referenceSimplexTopLinearMap i y)) :=
+    τ.toHomeomorph.isClosedEmbedding.comp hL
+  convert hcomp using 1
+  funext y
+  rw [referenceSimplexTopEndpoint_eq]
+  simp [τ, add_comm]
 
 /-- The top endpoint map is a measurable embedding. -/
 theorem referenceSimplexTopEndpoint_measurableEmbedding
     {d : Nat} [NeZero d] (i : Fin d) :
     MeasurableEmbedding (referenceSimplexTopEndpoint i) :=
-  (referenceSimplexTopEndpoint_continuous i).measurableEmbedding
-    (referenceSimplexTopEndpoint_injective i)
+  (referenceSimplexTopEndpoint_isClosedEmbedding i).measurableEmbedding
 
 /--
-The selected P1 top-facet current is exactly the upper-endpoint integral over
-the admissible orthogonal base domain.
+For P1, the existing CACE top-facet current equals the positive upper-endpoint
+integral over the admissible orthogonal base domain.
 -/
 theorem referenceSimplex_topFacetP1BoundaryDistribution_apply
     {d : Nat} [NeZero d]
@@ -44,39 +72,50 @@ theorem referenceSimplex_topFacetP1BoundaryDistribution_apply
     simplexFacetP1BoundaryDistribution
         (referenceGeometricSimplex d) 0 u i φ =
       ∫ y : (referenceSimplexCoordinateLine i)ᗮ,
-        euclideanAffineScalarEval u
-            (referenceSimplexTopEndpoint i y) •
+        euclideanAffineScalarEval u (referenceSimplexTopEndpoint i y) •
           φ (referenceSimplexTopEndpoint i y)
         ∂(volume.restrict (referenceSimplexFiberBaseDomain i)) := by
   rw [simplexFacetP1BoundaryDistribution_apply]
   rw [← referenceSimplex_topFacetSurfaceMeasure_eq_scaled_map i]
-  rw [integral_smul_measure]
+  rw [MeasureTheory.integral_smul_measure]
   let J := (referenceSimplexTopLinearMap i).normDet
-  have hJnonneg : 0 ≤ J :=
-    (referenceSimplexTopLinearMap_normDet_pos i).le
-  have hJreal :
-      (ENNReal.ofReal J).toReal = J := by
-    simp [J, hJnonneg]
-  rw [hJreal]
-  have hemb :=
-    referenceSimplexTopEndpoint_measurableEmbedding i
-  rw [hemb.integral_map]
-  rw [← integral_smul]
+  have hJpos : 0 < J := by
+    simpa [J] using referenceSimplexTopLinearMap_normDet_pos i
+  have hJnonneg : 0 ≤ J := hJpos.le
+  simp only [ENNReal.toReal_ofReal hJnonneg]
+  have hT :=
+    referenceSimplexTopEndpoint_measurableEmbedding (d := d) i
+  rw [hT.integral_map]
+  rw [← MeasureTheory.integral_smul J]
   apply integral_congr_ae
   filter_upwards with y
+  let n :=
+    simplexFacetOutwardNormalComponent
+      (referenceGeometricSimplex d) 0 i
+  let a :=
+    euclideanAffineScalarEval u (referenceSimplexTopEndpoint i y)
+  let z := φ (referenceSimplexTopEndpoint i y)
+  have hflux : J * n = 1 := by
+    simpa [J, n] using referenceSimplex_topFacetFluxFactor_eq_one i
+  have hfluxC : (J : ℂ) * (n : ℂ) = 1 := by
+    exact_mod_cast hflux
   unfold simplexFacetP1BoundaryComplexDensity
     simplexFacetP1BoundaryDensity
-  have hflux :=
-    referenceSimplex_topFacetFluxFactor_eq_one i
-  simp only [Function.comp_apply]
-  simp [Algebra.smul_def, J] at hflux ⊢
-  ring_nf at hflux ⊢
-  rw [hflux]
-  ring
+  change
+    (J : ℂ) *
+        (z * Complex.ofReal (a * n)) =
+      Complex.ofReal a * z
+  rw [Complex.ofReal_mul]
+  calc
+    (J : ℂ) * (z * (Complex.ofReal a * Complex.ofReal n)) =
+        ((J : ℂ) * (n : ℂ)) * (Complex.ofReal a * z) := by
+      ring
+    _ = Complex.ofReal a * z := by
+      rw [hfluxC, one_mul]
 
 /--
-The selected RT0 coordinate top-facet current is exactly its upper-endpoint
-integral.
+For RT0 coordinate `i`, the existing CACE top-facet current equals the
+positive upper-endpoint integral.
 -/
 theorem referenceSimplex_topFacetRT0BoundaryDistribution_apply
     {d : Nat} [NeZero d]
@@ -85,35 +124,46 @@ theorem referenceSimplex_topFacetRT0BoundaryDistribution_apply
     simplexFacetRT0CoordinateBoundaryDistribution
         (referenceGeometricSimplex d) 0 q i φ =
       ∫ y : (referenceSimplexCoordinateLine i)ᗮ,
-        euclideanRT0ComponentEval q i
-            (referenceSimplexTopEndpoint i y) •
+        euclideanRT0ComponentEval q i (referenceSimplexTopEndpoint i y) •
           φ (referenceSimplexTopEndpoint i y)
         ∂(volume.restrict (referenceSimplexFiberBaseDomain i)) := by
   rw [simplexFacetRT0CoordinateBoundaryDistribution_apply]
   rw [← referenceSimplex_topFacetSurfaceMeasure_eq_scaled_map i]
-  rw [integral_smul_measure]
+  rw [MeasureTheory.integral_smul_measure]
   let J := (referenceSimplexTopLinearMap i).normDet
-  have hJnonneg : 0 ≤ J :=
-    (referenceSimplexTopLinearMap_normDet_pos i).le
-  have hJreal :
-      (ENNReal.ofReal J).toReal = J := by
-    simp [J, hJnonneg]
-  rw [hJreal]
-  have hemb :=
-    referenceSimplexTopEndpoint_measurableEmbedding i
-  rw [hemb.integral_map]
-  rw [← integral_smul]
+  have hJpos : 0 < J := by
+    simpa [J] using referenceSimplexTopLinearMap_normDet_pos i
+  have hJnonneg : 0 ≤ J := hJpos.le
+  simp only [ENNReal.toReal_ofReal hJnonneg]
+  have hT :=
+    referenceSimplexTopEndpoint_measurableEmbedding (d := d) i
+  rw [hT.integral_map]
+  rw [← MeasureTheory.integral_smul J]
   apply integral_congr_ae
   filter_upwards with y
+  let n :=
+    simplexFacetOutwardNormalComponent
+      (referenceGeometricSimplex d) 0 i
+  let a :=
+    euclideanRT0ComponentEval q i (referenceSimplexTopEndpoint i y)
+  let z := φ (referenceSimplexTopEndpoint i y)
+  have hflux : J * n = 1 := by
+    simpa [J, n] using referenceSimplex_topFacetFluxFactor_eq_one i
+  have hfluxC : (J : ℂ) * (n : ℂ) = 1 := by
+    exact_mod_cast hflux
   unfold simplexFacetRT0CoordinateBoundaryComplexDensity
     simplexFacetRT0CoordinateBoundaryDensity
-  have hflux :=
-    referenceSimplex_topFacetFluxFactor_eq_one i
-  simp only [Function.comp_apply]
-  simp [Algebra.smul_def, J] at hflux ⊢
-  ring_nf at hflux ⊢
-  rw [hflux]
-  ring
+  change
+    (J : ℂ) *
+        (z * Complex.ofReal (a * n)) =
+      Complex.ofReal a * z
+  rw [Complex.ofReal_mul]
+  calc
+    (J : ℂ) * (z * (Complex.ofReal a * Complex.ofReal n)) =
+        ((J : ℂ) * (n : ℂ)) * (Complex.ofReal a * z) := by
+      ring
+    _ = Complex.ofReal a * z := by
+      rw [hfluxC, one_mul]
 
 end
 
