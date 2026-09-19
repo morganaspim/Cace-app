@@ -104,3 +104,43 @@ separate license/provenance review at the exact version used.
   experiment graphs.
 - Graph mutation remains a user-reviewed UI action.
 - Formal qualification remains independent of AI state.
+
+
+## Persistent user-supervised growth memory
+
+Persistent Grow memory is explicit feedback, not automatic self-training.
+
+For the latest Grow candidate the user can choose:
+
+- **Keep** — retain the concept/group for gentle future resurfacing;
+- **Useful** — add a bounded positive ranking preference;
+- **Reject** — add a bounded negative preference without deleting canonical source.
+
+Only these explicit user actions write persistent feedback. Queries are stored
+only as SHA-256 digests; the memory file does not store the plaintext research
+question. Target ids identify local corpus fragments/groups.
+
+Feedback influence is capped. A later explicit feedback direction can override
+stale preference in the opposite direction. Kept concepts may be recalled into
+a small shortlist but do not outrank strongly relevant current-query results by
+recall alone.
+
+The memory file is local, atomic-replaced, permission-hardened where supported,
+and separate from experiments, claims, proof ledgers, certificates, and
+verification results. The UI provides **Clear Grow Memory** so the user can
+erase all persistent research-preference events without affecting scientific
+or formal state.
+
+## Animated coordinate preview
+
+CACE may animate transform results as an evidence-neutral presentation layer.
+
+Scientific modules can opt into `animation_payload()` and provide explicit
+source/target coordinate arrays. The GUI interpolates only the displayed
+points; it does not alter the module output consumed by verification. The
+coordinate preview anchors axes to true coordinate zero when visible.
+
+Local-AI activity can use the same preview surface with deterministic
+pseudo-coordinates for visual delight, but this mode is labeled as a decorative
+semantic-activity map and must never be presented as scientific geometry,
+embedding coordinates, or verification evidence.
