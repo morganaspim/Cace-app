@@ -138,3 +138,43 @@ No speed claim is accepted from architecture alone.  Benchmark separately:
 - proof-success@k;
 - LLM calls avoided;
 - wall-clock compute per accepted suggestion.
+
+
+## Implemented first slice
+
+The first implementation now includes:
+
+- `cace_studio.ai.math_features`: deterministic signed hash sketches, normalized Walsh-Hadamard
+  mixing, and O(k*d) all-pairs interaction summaries;
+- `cace_studio.ai.ranker`: neutral-initialized tiny residual NumPy ranker with online updates;
+- `cace_studio.ai.planner`: diversity/cost/proof-aware 1–9+ beam search;
+- `cace_studio.ai.memory`: local SQLite proof/experiment experience store;
+- `cace_studio.ai.hybrid`: registry-aware hybrid engine with task-focused and generally-useful
+  ranking policies;
+- existing loopback-only Ollama / LM Studio / llama.cpp / OpenAI-compatible provider firewall;
+- desktop UI **Generally Useful: ON/OFF** button;
+- desktop **Plan** button that works without an LLM;
+- desktop **Top Suggestion Useful / Not Useful** controls for immediate local learning.
+
+### Generally Useful mode
+
+This is a real ranking-policy switch, not only an LLM prompt change.
+
+Task-focused mode prioritizes:
+
+`task relevance + proof strength + learned task-local success - structural cost`.
+
+Generally-useful mode prioritizes:
+
+`cross-task learned success + proof strength + diversity - structural cost`
+
+and deliberately gives the immediate task relevance weight zero.  With no learned history yet, the
+neural output is initialized to a neutral 0.5 so random initial weights do not invent preferences.
+
+### Combinatorial cost control
+
+Before 2–9+ group search, an O(n*d) sketch gate keeps at most 64 promising module atoms.  Beam width
+is bounded (currently 40), so the system never enumerates the full combinatorial power set.
+
+The structural cost term is explicitly a planner heuristic based on module interface size.  It is
+not presented as measured wall-clock cost.
