@@ -12,6 +12,11 @@ on:
         required: true
         type: boolean
         default: true
+      prewarm_mathlib_cache:
+        description: 'Explicitly refresh the pinned Mathlib build cache before compiling (network allowed)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -33,6 +38,10 @@ jobs:
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
       CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
       CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_MANIFEST_CACHE_DIR: /var/lib/cace-cache/mathlib/manifests
+      LAKE_ARTIFACT_CACHE: 'true'
+      LAKE_CACHE_DIR: /var/lib/cace-cache/lake
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
 
     steps:
       - name: Checkout exact event commit
@@ -99,17 +108,97 @@ jobs:
           lake --version
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
 
+          # A missing root manifest previously caused Lake to update Mathlib and
+          # invoke Mathlib's post-update cache downloader during every proof run.
+          # Cache the deterministic root manifest by toolchain + lakefile content
+          # and suppress Mathlib's network hook during ordinary preflight.
+          mkdir -p "$CACE_MANIFEST_CACHE_DIR"
+          manifest_key="$(
+            {
+              printf '%s\n' "$CACE_TOOLCHAIN"
+              sha256sum lakefile.lean
+            } | sha256sum | awk '{print $1}'
+          )"
+          manifest_cache="$CACE_MANIFEST_CACHE_DIR/$manifest_key.json"
+          if test -s "$manifest_cache"; then
+            cp "$manifest_cache" lake-manifest.json
+            echo "CACE_MANIFEST_CACHE_HIT key=$manifest_key"
+          else
+            echo "CACE_MANIFEST_CACHE_MISS key=$manifest_key"
+            MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+            test -s lake-manifest.json
+            install -m 0644 lake-manifest.json "$manifest_cache.tmp-$GITHUB_RUN_ID"
+            mv "$manifest_cache.tmp-$GITHUB_RUN_ID" "$manifest_cache"
+          fi
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+      - name: Explicitly prewarm pinned Mathlib artifacts
+        if: ${{ inputs.prewarm_mathlib_cache }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+
+          cache_origin="https://lakecache.blob.core.windows.net/mathlib4-master"
+          ca_bundle=""
+          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem
+          do
+            if test -r "$candidate" && curl --cacert "$candidate" -sSI --max-time 15 "$cache_origin" >/dev/null; then
+              ca_bundle="$candidate"
+              break
+            fi
+          done
+          if test -z "$ca_bundle"; then
+            echo "No working system CA bundle found for the Mathlib cache origin." >&2
+            exit 20
+          fi
+          export CURL_CA_BUNDLE="$ca_bundle"
+          export SSL_CERT_FILE="$ca_bundle"
+          echo "CACE_MATHLIB_CA_BUNDLE=$ca_bundle"
+
+          # Network is allowed only in this explicit prewarm path.
+          lake exe cache get
+
+          # Promote the fully warmed package tree only after cache retrieval succeeds.
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -x -w 900 9
+          staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}"
+          backup="${CACE_PACKAGE_CACHE}.backup-${GITHUB_RUN_ID}"
+          rm -rf "$staging" "$backup"
+          cp -a --reflink=auto .lake/packages "$staging"
+          test "$(git -C "$staging/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          if test -d "$CACE_PACKAGE_CACHE"; then
+            mv "$CACE_PACKAGE_CACHE" "$backup"
+          fi
+          mv "$staging" "$CACE_PACKAGE_CACHE"
+          rm -rf "$backup"
+          flock -u 9
+
+      - name: Verify normal proof run is cache-local
+        if: ${{ ! inputs.prewarm_mathlib_cache }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find formal/cace_formal/.lake/packages/mathlib/.lake/build -type f -name '*.olean' -print -quit 2>/dev/null | grep -q .; then
+            echo "Pinned Mathlib package cache has no compiled .olean artifacts." >&2
+            echo "Run this workflow once with prewarm_mathlib_cache=true; ordinary proof runs intentionally refuse network downloads." >&2
+            exit 21
+          fi
+
       - name: Compile requested Lean module
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
+          TARGET_MODULE: ${{ steps.target.outputs.module_name }}
         run: |
           set -euo pipefail
           export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake env lean "$TARGET"
+          lake build "+$TARGET_MODULE"
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
 
@@ -122,7 +211,7 @@ jobs:
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake env lean CACEFormal.lean
+          lake build CACEFormal
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
 
@@ -138,6 +227,8 @@ jobs:
           mathlib_commit=$CACE_MATHLIB_COMMIT
           target=${{ inputs.module }}
           compile_root=${{ inputs.compile_root }}
+          prewarm_mathlib_cache=${{ inputs.prewarm_mathlib_cache }}
+          cache_policy=ordinary proof runs are network-free; only explicit prewarm may download Mathlib artifacts
           note=This preflight catches Lean elaboration/typechecking/import failures. It never replaces canonical exact-current-head qualification, theorem metadata, kernel axiom audit, or attestation.
           EOF
           cat cace-exact-pin-preflight-summary.txt
