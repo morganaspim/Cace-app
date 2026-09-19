@@ -11,9 +11,11 @@ Read these in order before changing scientific or verification behavior:
 3. `docs/CONSTITUTION.md` — non-negotiable project rules.
 4. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
 5. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
-6. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
-7. `AI_REPO_MAP.json` — machine-readable navigation.
-8. The relevant release/proof-scope file for the feature being changed.
+6. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
+7. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
+8. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
+9. `AI_REPO_MAP.json` — machine-readable navigation.
+10. The relevant release/proof-scope file for the feature being changed.
 
 Always inspect exact-commit Actions evidence before describing current source as formally qualified or production-ready. Historical reports, release notes and example outputs are snapshots, not inherited current-head evidence.
 
@@ -57,6 +59,8 @@ For releases, require the appropriate combination of full Python/native tests, p
 AI may inspect, explain, propose and edit, but AI output is never verification evidence. The project must remain usable with AI completely disabled. Future local-provider support should be no-code for users but remain outside the evidence trusted-computing base.
 
 When changing the repository for agent discoverability, generate or derive indexes from canonical source wherever practical; do not maintain conflicting duplicate source trees. `AI_REPO_MAP.json` is navigation, not a substitute for reading the canonical implementation and claim data.
+
+When the user states a new CACE goal with clear product, scientific, engineering, proof-rigor, or research merit, persist it in `docs/GOAL_REGISTRY.json` and update `docs/MASTER_BUILD_SPEC.md` when it changes architecture or long-term behavior. Label research ideas as research; documentation must never promote them to verified claims. Prefer a documentation-only branch while an exact-head formal qualification is in flight.
 
 ## Provenance
 
