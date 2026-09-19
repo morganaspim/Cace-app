@@ -14,6 +14,7 @@
     "docs/ARCHITECTURE.md",
     "docs/SECURITY_ARCHITECTURE.md",
     "docs/OFFLINE_COLLABORATION_AND_LICENSING.md",
+    "docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md",
     "docs/CONSTITUTION.md",
     "docs/CLAIMS.md",
     "docs/BUG_FLUSH_ARCHITECTURE.md",
@@ -228,5 +229,14 @@
     "basic_multithread_unlock_usd": 15,
     "basic_multithread_entitlement": "feature.cpu_multithread.basic.perpetual.v1",
     "hard_rule": "execution acceleration does not change theorem/evidence authority"
+  },
+  "source_secrecy": {
+    "document": "docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md",
+    "release_policy": "security/release_secrecy_policy.json",
+    "scanner": "scripts/check_release_secrecy.py",
+    "tests": "tests/test_release_secrecy.py",
+    "release_gate": "scan final staged customer artifact, not just source tree",
+    "gpu_cpu_boundary": "minimize plaintext/proprietary material; accelerators get declared numeric buffers only",
+    "classification_manifest": "security/source_classification.json"
   }
 }

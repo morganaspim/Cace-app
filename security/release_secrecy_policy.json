@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "policy_id": "cace.release-secrecy.v1",
+  "purpose": "Fail-closed checks for customer-facing release artifacts. This policy protects distribution boundaries; it does not claim local code is impossible to reverse engineer.",
+  "forbidden_paths": [
+    ".git/**",
+    ".github/**",
+    "ci/**",
+    "ops/**",
+    "tests/**",
+    "formal/**",
+    "quality/**",
+    "docs/proofs/**"
+  ],
+  "forbidden_suffixes": [
+    ".map",
+    ".pdb",
+    ".dSYM",
+    ".debug",
+    ".pyc",
+    ".pyo",
+    ".prof",
+    ".gcda",
+    ".gcno"
+  ],
+  "forbidden_basenames": [
+    ".env",
+    "id_rsa",
+    "id_ed25519",
+    "failure-ledger.json",
+    "private-key.pem",
+    "private_key.pem"
+  ],
+  "forbidden_text_markers": [
+    "CACE_TRADE_SECRET",
+    "BEGIN PRIVATE KEY",
+    "BEGIN OPENSSH PRIVATE KEY",
+    "/opt/actions-runner/_work/",
+    "/home/runner/work/",
+    "sourceMappingURL="
+  ],
+  "notes": [
+    "formal/** is prohibited from ordinary customer application artifacts; separately contracted proof deliverables require a different allowlisted export policy.",
+    "This initial policy does not ban all Python source because the current application packaging remains Python-based. Protected-core modules should receive explicit path bans as they migrate to native sealed packaging.",
+    "Customer releases should be built from an allowlist/staging directory rather than copying the repository wholesale."
+  ]
+}

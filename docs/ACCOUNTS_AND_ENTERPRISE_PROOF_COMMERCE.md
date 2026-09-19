@@ -512,6 +512,16 @@ The repository should preserve evidence that reasonable secrecy measures were ac
 
 A secrecy failure should trigger an incident review and remediation; CACE should not silently continue calling material confidential if it has intentionally been published without restriction.
 
+## 11.1 Customer-release source-secrecy gate
+
+Every Enterprise proof package and any customer software bundle must also pass the CACE source-secrecy gate.
+
+Customer deliverables must not contain private theorem source, reusable proof-search machinery, debug/source-map material, private CI/proof-runner scripts, or unapproved protected-core source.
+
+The final artifact is scanned, hashed, disclosure-reviewed, and bound to the delivery manifest before release.
+
+See `docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md`.
+
 ## 12. Enterprise proof pricing
 
 There is no universal maximum price for bespoke mathematical/formal verification. Price depends on scope, economic value, exclusivity, liability/risk allocation, turnaround, required domain experts, compute, and whether customer ownership/exclusivity is transferred.

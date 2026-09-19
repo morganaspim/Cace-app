@@ -166,6 +166,18 @@ Browser policy should bundle application assets locally and use a restrictive CS
 
 See `docs/OFFLINE_COLLABORATION_AND_LICENSING.md`.
 
+## 2.2 Source-secrecy / anti-reverse-engineering gate
+
+Customer-distributed artifacts are treated as hostile territory.
+
+CACE uses a separate source-secrecy assurance dimension with fail-closed release gates covering classification, dependency boundaries, browser bundle hygiene, protected native-core packaging, encrypted assets, CPU/GPU buffer minimization, final artifact scanning, runtime integrity, and adversarial release testing.
+
+The final customer artifact must be scanned by `scripts/check_release_secrecy.py` under `security/release_secrecy_policy.json`.
+
+The highest-value theorem/proof machinery should remain off customer hardware whenever local execution does not require it. Local compilation/stripping/obfuscation raises extraction cost but does not make customer-controlled execution impossible to inspect.
+
+See `docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md`.
+
 ## 3. Protected assets
 
 Protect at least:

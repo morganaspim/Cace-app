@@ -8,6 +8,7 @@ on:
     paths:
       - 'collaboration/**'
       - 'quality/**'
+      - 'security/**'
       - 'scripts/**'
       - 'ops/**'
       - 'tests/**'
@@ -88,6 +89,7 @@ jobs:
             tests/test_bug_class_registry_v337.py \
             tests/test_research_dynamics_v337.py \
             tests/test_research_geometry_v337.py \
+            tests/test_release_secrecy.py \
             tests/test_export_v330_environment_metadata.py \
             tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
@@ -136,6 +138,7 @@ jobs:
           source_prefixes = (
             'collaboration/',
             'quality/',
+            'security/',
             'formal/',
             'cace_studio/',
             'schema/',

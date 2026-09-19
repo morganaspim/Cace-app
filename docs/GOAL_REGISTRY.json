@@ -616,6 +616,40 @@
         "Every numerical run records requested/actual backend, thread count, CUDA/device identity where applicable, and fallback reason.",
         "Acceleration settings never promote proof status or bypass verification gates."
       ]
+    },
+    {
+      "id": "G044",
+      "category": "source_secrecy",
+      "priority": 44,
+      "intent_status": "required",
+      "title": "Fail-closed source-secrecy release gates",
+      "summary": "Protect proprietary CACE implementation through classification, client dependency boundaries, sealed native components, inexpensive authenticated encryption at rest, CPU/GPU data minimization, final-artifact scanning, and adversarial release testing.",
+      "acceptance": [
+        "Crown-jewel theorem/proof machinery remains off customer hardware whenever local execution does not require it.",
+        "Browser production bundles contain no proprietary scientific algorithm source, source maps, private theorem source, or remotely loaded executable code.",
+        "Protected local implementation migrates away from plain Python source toward a narrow compiled native ABI where secrecy justifies it.",
+        "Sensitive local assets use vetted authenticated encryption with keys kept out of binaries and unwrapped through OS-backed key storage where available.",
+        "GPU/CUDA interfaces receive only declared numeric buffers/opaque operation IDs and never theorem source, proof scripts, signing keys, or account secrets.",
+        "Final customer artifacts pass security/release_secrecy_policy.json through scripts/check_release_secrecy.py before publication.",
+        "Leakage defects trigger the same reproduce/root-cause/sweep/permanent-guard loop used by the bug-flush architecture.",
+        "Security documentation explicitly states that local execution on adversarial hardware cannot be made impossible to reverse engineer."
+      ]
+    },
+    {
+      "id": "G045",
+      "category": "runtime_security",
+      "priority": 45,
+      "intent_status": "required",
+      "title": "Minimal CPU/GPU plaintext exposure",
+      "summary": "Keep proprietary code/text out of accelerator data paths and minimize the lifetime/scope of decrypted protected assets without adding unnecessary encryption overhead to hot numerical loops.",
+      "acceptance": [
+        "CPU/GPU transfer schemas declare the exact allowed buffer types, shapes, classifications, and maximum sizes.",
+        "GPU memory never receives proprietary theorem/source text, proof scripts, signing keys, license secrets, or unrelated internal metadata.",
+        "Protected assets decrypt on demand and are not serialized to plaintext temporary files.",
+        "Native sensitive buffers are best-effort wiped after use where practical; Python strings are not treated as securely erasable.",
+        "Encryption is used at rest and at trust boundaries rather than indiscriminately encrypting ordinary hot-loop numerical buffers.",
+        "Release/adversarial tests inspect binary strings, symbols, browser bundles, GPU metadata, and normal accelerator buffers for accidental leakage."
+      ]
     }
   ]
 }
