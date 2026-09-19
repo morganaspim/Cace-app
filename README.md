@@ -15,10 +15,14 @@ The project deliberately separates software maturity from evidence strength. A n
 
 ## Start here
 
+- `CACE_AGENT_BOOTSTRAP.json` — single machine-readable repository handoff
+- `docs/BUILD_AND_TRUST_GUIDE.md` — unified build, rigor, security, bug-flush and provenance architecture
 - `docs/STATUS.md` — current implementation and qualification state
 - `docs/ARCHITECTURE.md` — system boundaries and trusted-computing-base model
+- `docs/SECURITY_ARCHITECTURE.md` — security trust zones, threat boundaries and isolation policy
 - `docs/CONSTITUTION.md` — non-negotiable scientific/software rules
 - `docs/CLAIMS.md` — canonical claim registry/proof-ledger policy
+- `docs/BUG_FLUSH_ARCHITECTURE.md` — defect-class prevention and permanent guardrail loop
 - `docs/ROADMAP.md` — v3.31 through v4.0 dependency-ordered roadmap
 - `docs/AI_QUICKSTART.md` — headless usage for tools and AI agents
 - `AGENTS.md` — repository instructions for coding/research agents
