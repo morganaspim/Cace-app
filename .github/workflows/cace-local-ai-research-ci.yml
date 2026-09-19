@@ -1,0 +1,95 @@
+name: CACE Local AI Research Workflow CI
+
+on:
+  pull_request:
+    paths:
+      - 'cace_studio/ai/**'
+      - 'cace_studio/gui/ai_assistant.py'
+      - 'cace_studio/gui/ai_settings_dialog.py'
+      - 'cace_studio/gui/experiment_proposal_dialog.py'
+      - 'cace_studio/gui/main_window.py'
+      - 'cace_studio/gui/research_ideas.py'
+      - 'cace_studio/gui/strategy_compare_dialog.py'
+      - 'cace_studio/gui/transform_preview.py'
+      - 'cace_studio/core/module.py'
+      - 'cace_studio/core/settings.py'
+      - 'cace_studio/modules/research_geometry.py'
+      - 'tests/test_local_ai.py'
+      - 'tests/test_hybrid_ai_growth.py'
+      - 'tests/test_growth_memory.py'
+      - 'tests/test_research_ideas.py'
+      - 'tests/test_experiment_proposal.py'
+      - 'tests/test_strategy_compare.py'
+      - 'tests/test_research_geometry_v337.py'
+      - '.github/workflows/cace-local-ai-research-ci.yml'
+      - 'pyproject.toml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cace-local-ai-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-ai-research:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: offscreen
+      CACE_AI_GROWTH_MEMORY_PATH: ${{ runner.temp }}/cace-growth-memory.json
+      CACE_RESEARCH_IDEAS_PATH: ${{ runner.temp }}/cace-research-ideas.json
+      CACE_SETTINGS_PATH: ${{ runner.temp }}/cace-settings.json
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Establish exact PR head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          python3 --version
+
+      - name: Create isolated Python environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/cace-local-ai-ci"
+          "$RUNNER_TEMP/cace-local-ai-ci/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/cace-local-ai-ci/bin/python" -m pip install -e '.[gui,test]'
+          echo "$RUNNER_TEMP/cace-local-ai-ci/bin" >> "$GITHUB_PATH"
+
+      - name: Compile AI and GUI source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q cace_studio/ai cace_studio/gui
+          python - <<'PY'
+          import cace_studio.ai
+          import cace_studio.gui.ai_assistant
+          import cace_studio.gui.experiment_proposal_dialog
+          import cace_studio.gui.research_ideas
+          import cace_studio.gui.strategy_compare_dialog
+          import cace_studio.gui.transform_preview
+          print("AI/GUI imports: OK")
+          PY
+
+      - name: Run targeted local AI and research workflow tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_local_ai.py \
+            tests/test_hybrid_ai_growth.py \
+            tests/test_growth_memory.py \
+            tests/test_research_ideas.py \
+            tests/test_experiment_proposal.py \
+            tests/test_strategy_compare.py \
+            tests/test_research_geometry_v337.py
