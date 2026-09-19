@@ -50,6 +50,10 @@ def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules()
     assert "CACEFormal.DualBladePiola" in closure
     assert "CACEFormal.AffineP1RT0Transport" in closure
     assert "CACEFormal.AffineAssemblyTransport" in closure
+    assert "CACEFormal.MeshElementGeometry" in closure
+    assert "CACEFormal.PhysicalP1RT0Element" in closure
+    assert "CACEFormal.ExecutableRationalGeometry" in closure
+    assert "CACEFormal.RuntimeApproximationContract" in closure
     assert "CACEFormal.PositiveLaplacianAnnihilator" not in closure
     assert "CACEFormal.HDivGraphAnnihilator" not in closure
 
@@ -181,6 +185,7 @@ def test_real_division_proof_defs_are_explicitly_noncomputable():
             "noncomputable def pullP1",
         ),
         ROOT / "formal" / "cace_formal" / "CACEFormal" / "ReferenceSimplexNormalization.lean": (
+            "noncomputable def inverseEdgeLinear",
             "noncomputable def normalizer",
             "noncomputable def certifiedNondegenerate",
             "noncomputable def certifiedPositive",
