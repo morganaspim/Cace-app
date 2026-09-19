@@ -77,6 +77,22 @@ def test_grow_changes_exploration_without_mutating_fragments():
     assert all(2 <= len(group.fragment_ids) <= 4 for group in high.groups)
 
 
+def test_growth_memory_tracks_and_resets_seen_candidates():
+    engine = GrowthEngine(SparseResearchIndex(_fragments()))
+    first = engine.grow("combine geometry experiment", cycle=0, chaos=0.4)
+    assert first.walk
+    assert engine.seen_fragments
+    assert engine.seen_groups
+    seen_before = dict(engine.seen_groups)
+
+    engine.grow("combine geometry experiment", cycle=1, chaos=0.4)
+    assert sum(engine.seen_groups.values()) > sum(seen_before.values())
+
+    engine.reset_growth_memory()
+    assert not engine.seen_fragments
+    assert not engine.seen_groups
+
+
 def test_context_is_explicitly_non_evidentiary():
     result = GrowthEngine(SparseResearchIndex(_fragments())).grow("proof geometry")
     context = result.context_text()
