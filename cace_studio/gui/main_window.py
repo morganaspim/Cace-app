@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from uuid import uuid4
-
 try:
     from PySide6.QtCore import QPointF, QTimer, Qt
     from PySide6.QtGui import QAction, QKeySequence
@@ -30,7 +28,10 @@ from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.report import save_run_report
 from cace_studio.core.serialization import load_experiment, save_experiment
-from cace_studio.ai.experiment_proposal import propose_experiment_graph
+from cace_studio.ai.experiment_proposal import (
+    materialize_experiment_proposal,
+    propose_experiment_graph,
+)
 from cace_studio.ai.research_ideas import ResearchIdeaStore
 from .ai_assistant import LocalAIAssistantWidget
 from .ai_settings_dialog import LocalAISettingsDialog
@@ -325,6 +326,7 @@ class MainWindow(QMainWindow):
             self.registry,
             idea.associated_modules,
             title=idea.title,
+            description=idea.proposed_experiment,
             max_modules=8,
         )
         if proposal.is_empty:
@@ -346,43 +348,19 @@ class MainWindow(QMainWindow):
 
     def _apply_experiment_proposal(self, proposal, *, idea_title: str) -> None:
         self._sync_positions()
-        self.history.record(self.experiment)
-        updated = ExperimentHistory.snapshot(self.experiment)
-
         existing_rect = self.scene.itemsBoundingRect()
-        origin_x = 40.0 if existing_rect.isNull() else existing_rect.right() + 100.0
-        origin_y = 40.0 if existing_rect.isNull() else existing_rect.top()
+        origin = (
+            40.0 if existing_rect.isNull() else existing_rect.right() + 100.0,
+            40.0 if existing_rect.isNull() else existing_rect.top(),
+        )
+        updated, _mapping = materialize_experiment_proposal(
+            self.experiment,
+            proposal,
+            origin=origin,
+        )
 
-        node_ids = {node.id for node in updated.nodes}
-        mapping = {}
-        for proposed in proposal.nodes:
-            node_id = f"n_{uuid4().hex[:8]}"
-            while node_id in node_ids:
-                node_id = f"n_{uuid4().hex[:8]}"
-            node_ids.add(node_id)
-            mapping[proposed.proposal_id] = node_id
-            updated.nodes.append(
-                Node(
-                    node_id,
-                    proposed.module_id,
-                    {},
-                    (
-                        origin_x + proposed.position[0],
-                        origin_y + proposed.position[1],
-                    ),
-                )
-            )
-
-        for edge in proposal.edges:
-            updated.edges.append(
-                Edge(
-                    mapping[edge.source_node],
-                    edge.source_port,
-                    mapping[edge.target_node],
-                    edge.target_port,
-                )
-            )
-
+        # One approved proposal is one undoable edit.
+        self.history.record(self.experiment)
         try:
             self._restore_experiment(
                 updated,
