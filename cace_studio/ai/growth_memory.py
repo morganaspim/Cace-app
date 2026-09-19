@@ -195,42 +195,75 @@ class PersistentGrowthMemory:
     def _bounded(raw: float, lower: float, upper: float) -> float:
         return min(upper, max(lower, raw))
 
+    @staticmethod
+    def _direction(feedback: FeedbackKind) -> int:
+        return -1 if feedback == "reject" else 1
+
+    def _target_bias(
+        self,
+        target_kind: TargetKind,
+        key: str,
+        *,
+        keep_weight: float,
+        useful_weight: float,
+        reject_weight: float,
+        lower: float,
+        upper: float,
+    ) -> float:
+        raw = 0.0
+        direction = 0
+        for event in self.events:
+            if event.target_kind != target_kind or event.target_key != key:
+                continue
+            event_direction = self._direction(event.feedback)
+            if direction and event_direction != direction:
+                # A clear change of mind resets stale evidence in the opposite direction.
+                raw = 0.0
+            direction = event_direction
+            if event.feedback == "keep":
+                raw += keep_weight
+            elif event.feedback == "useful":
+                raw += useful_weight
+            else:
+                raw -= reject_weight
+        return self._bounded(raw, lower, upper)
+
     def group_bias(self, target_ids: Iterable[str]) -> float:
         key = _target_key("group", target_ids)
-        raw = 0.0
-        for event in self.events:
-            if event.target_kind != "group" or event.target_key != key:
-                continue
-            if event.feedback == "keep":
-                raw += 0.08
-            elif event.feedback == "useful":
-                raw += 0.18
-            else:
-                raw -= 0.28
-        return self._bounded(raw, -0.60, 0.40)
+        return self._target_bias(
+            "group",
+            key,
+            keep_weight=0.08,
+            useful_weight=0.18,
+            reject_weight=0.28,
+            lower=-0.60,
+            upper=0.40,
+        )
 
     def fragment_bias(self, fragment_id: str) -> float:
         fragment_id = str(fragment_id).strip()
         if not fragment_id:
             return 0.0
         direct_key = _target_key("fragment", (fragment_id,))
-        raw = 0.0
-        for event in self.events:
-            if event.target_kind == "fragment" and event.target_key == direct_key:
-                if event.feedback == "keep":
-                    raw += 0.05
-                elif event.feedback == "useful":
-                    raw += 0.12
-                else:
-                    raw -= 0.20
-            elif event.target_kind == "group" and fragment_id in event.target_ids:
-                # Group feedback propagates only weakly to individual fragments.
-                if event.feedback == "keep":
-                    raw += 0.015
-                elif event.feedback == "useful":
-                    raw += 0.035
-                else:
-                    raw -= 0.05
+        raw = self._target_bias(
+            "fragment",
+            direct_key,
+            keep_weight=0.05,
+            useful_weight=0.12,
+            reject_weight=0.20,
+            lower=-0.35,
+            upper=0.25,
+        )
+        # Group feedback propagates weakly to member fragments, using each
+        # group's already-bounded effective preference.
+        seen_groups: set[str] = set()
+        for event in reversed(self.events):
+            if event.target_kind != "group" or fragment_id not in event.target_ids:
+                continue
+            if event.target_key in seen_groups:
+                continue
+            seen_groups.add(event.target_key)
+            raw += 0.18 * self.group_bias(event.target_ids)
         return self._bounded(raw, -0.35, 0.25)
 
     def kept_fragment_ids(self, *, limit: int = 16) -> tuple[str, ...]:
