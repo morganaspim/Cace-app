@@ -32,7 +32,7 @@ def euclideanReferenceSimplex (d : Nat) : Set (EuclideanDomain d) :=
 /-- Sum of all coordinates except the selected fiber coordinate. -/
 def referenceSimplexOtherCoordinateSum {d : Nat}
     (i : Fin d) (x : EuclideanDomain d) : ℝ :=
-  ∑ j in Finset.univ.erase i, EuclideanSpace.proj j x
+  ∑ j ∈ Finset.univ.erase i, EuclideanSpace.proj j x
 
 /-- Upper endpoint of the selected coordinate fiber. -/
 def referenceSimplexFiberUpper {d : Nat}
@@ -44,8 +44,9 @@ theorem referenceSimplex_coordinate_sum_split {d : Nat}
     (i : Fin d) (x : EuclideanDomain d) :
     referenceSimplexOtherCoordinateSum i x + EuclideanSpace.proj i x =
       ∑ j : Fin d, EuclideanSpace.proj j x := by
-  exact Finset.sum_erase_add Finset.univ
-    (fun j : Fin d => EuclideanSpace.proj j x) (Finset.mem_univ i)
+  simpa [referenceSimplexOtherCoordinateSum] using
+    (Finset.sum_erase_add Finset.univ
+      (fun j : Fin d => EuclideanSpace.proj j x) (Finset.mem_univ i))
 
 /--
 Exact coordinate-fiber characterization of the reference simplex.
@@ -71,19 +72,23 @@ theorem mem_euclideanReferenceSimplex_iff_fiber
               EuclideanSpace.proj i x ≤ 1 := by
         rw [referenceSimplex_coordinate_sum_split i x]
         exact hx.2
-      dsimp [referenceSimplexFiberUpper]
-      linarith
+      change EuclideanSpace.proj i x ≤
+        1 - referenceSimplexOtherCoordinateSum i x
+      exact (le_sub_iff_add_le').2 hsum
   · rintro ⟨hother, hi⟩
     refine ⟨?_, ?_⟩
     · intro j
       by_cases hji : j = i
       · simpa [hji] using hi.1
       · exact hother j (Finset.mem_erase.mpr ⟨hji, Finset.mem_univ j⟩)
-    · have hsum :
+    · have hi_upper :
+          EuclideanSpace.proj i x ≤
+            1 - referenceSimplexOtherCoordinateSum i x := by
+        simpa [referenceSimplexFiberUpper] using hi.2
+      have hsum :
           referenceSimplexOtherCoordinateSum i x +
-              EuclideanSpace.proj i x ≤ 1 := by
-        dsimp [referenceSimplexFiberUpper] at hi
-        linarith [hi.2]
+              EuclideanSpace.proj i x ≤ 1 :=
+        (le_sub_iff_add_le').1 hi_upper
       rw [← referenceSimplex_coordinate_sum_split i x]
       exact hsum
 
