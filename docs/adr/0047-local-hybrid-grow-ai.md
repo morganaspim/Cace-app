@@ -144,3 +144,32 @@ Local-AI activity can use the same preview surface with deterministic
 pseudo-coordinates for visual delight, but this mode is labeled as a decorative
 semantic-activity map and must never be presented as scientific geometry,
 embedding coordinates, or verification evidence.
+
+
+## Individually rateable Grow discovery cards
+
+Each completed Grow cycle exposes a small mixed shortlist of up to five
+discoveries for explicit user feedback.
+
+The shortlist deliberately mixes:
+
+- up to three high-scoring concept groups; and
+- individual retrieved source concepts for independent rating.
+
+Group and fragment score scales are not treated as directly calibrated against
+one another. Reserving slots for both prevents a numerically larger score from
+one candidate family from crowding out the other.
+
+Each card displays a human-readable title, source/rationale context, score, and
+novelty when available. Every card has its own **Keep / Useful / Reject**
+controls. Rating one card disables only that card for the current Grow cycle;
+the other cards remain independently rateable.
+
+Candidate target ids are derived from canonical local corpus fragment ids and
+sorted group membership. Unchanged local source therefore produces stable
+feedback targets across restarts. If a source file changes, its content digest
+changes intentionally, so stale feedback does not silently attach to materially
+different content.
+
+The panel is a research-preference surface only. Card feedback cannot write
+experiments, claims, proof ledgers, certificates, or verification results.
