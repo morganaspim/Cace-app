@@ -137,14 +137,17 @@ theorem piola_comp
     (hinner : inner.linearDet ≠ 0) :
     (Affine2.comp outer inner).piolaVector q =
       outer.piolaVector (inner.piolaVector q) := by
+  have hcomp : (Affine2.comp outer inner).linearDet ≠ 0 := by
+    rw [Affine2.linearDet_comp]
+    exact mul_ne_zero houter hinner
   rcases outer with ⟨oa, ob, oc, od, otx, oty⟩
   rcases inner with ⟨ia, ib, ic, id, itx, ity⟩
   rcases q with ⟨qx, qy⟩
   change oa * od - ob * oc ≠ 0 at houter
   change ia * id - ib * ic ≠ 0 at hinner
   ext <;>
-    dsimp [Affine2.comp, Affine2.piolaVector, Affine2.linearDet] <;>
-    field_simp [houter, hinner] <;>
+    dsimp [Affine2.comp, Affine2.piolaVector, Affine2.linearDet] at hcomp ⊢ <;>
+    field_simp [houter, hinner, hcomp] <;>
     ring
 
 /-- A chain of nonsingular affine stages has nonsingular fused linear part. -/
