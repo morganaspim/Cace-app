@@ -183,6 +183,8 @@ def test_real_division_proof_defs_are_explicitly_noncomputable():
         ROOT / "formal" / "cace_formal" / "CACEFormal" / "AffineP1RT0Transport.lean": (
             "noncomputable def piolaRT0",
             "noncomputable def pullP1",
+            "noncomputable def transportRT0SourceToTarget",
+            "noncomputable def transportP1SourceToTarget",
         ),
         ROOT / "formal" / "cace_formal" / "CACEFormal" / "ReferenceSimplexNormalization.lean": (
             "noncomputable def inverseEdgeLinear",
