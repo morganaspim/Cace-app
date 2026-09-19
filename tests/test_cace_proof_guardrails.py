@@ -35,10 +35,22 @@ def test_promoted_formal_modules_leave_quarantine_and_enter_audited_root():
         "CACEFormal.OrthogonalClosure",
         "CACEFormal.HDivDensityReduction",
         "CACEFormal.BoxPragerSyngeEquilibrated",
+        "CACEFormal.ZeroBoundaryClosure",
     }
     assert imports.isdisjoint(quarantined)
     assert promoted.isdisjoint(quarantined)
     assert promoted <= imports
+
+
+def test_v340_zero_boundary_closure_is_promoted_after_standalone_pass():
+    guard = _guardrails()
+    config = guard.load_config()
+    root = ROOT / config["audited_root"]
+    imports = set(guard.parse_imports(root))
+    quarantined = set(config["quarantined_root_imports"])
+
+    assert "CACEFormal.ZeroBoundaryClosure" not in quarantined
+    assert "CACEFormal.ZeroBoundaryClosure" in imports
 
 
 def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
@@ -63,6 +75,7 @@ def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
     assert "CACEFormal.OrthogonalClosure" in closure
     assert "CACEFormal.HDivDensityReduction" in closure
     assert "CACEFormal.BoxPragerSyngeEquilibrated" in closure
+    assert "CACEFormal.ZeroBoundaryClosure" in closure
     assert closure.isdisjoint(set(config["quarantined_root_imports"]))
 
 

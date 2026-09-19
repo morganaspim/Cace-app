@@ -22,7 +22,7 @@ from cace_studio.modules.formal_v330 import (
 )
 
 
-EXPECTED_CONTINUUM_V3_HASH = "8cbc5883d04d8e61b10a4f7e86373548c5748b21cb973d922f52c530d7abe379"
+EXPECTED_CONTINUUM_V3_HASH = "2c57ca63f25c044953613fb2256e002da7e75d9adb8343d048e26172411e623f"
 EXPECTED_FORMAL330_BUNDLE = "3515625ff1da523f0925c1f342670d84df6fd4d1ac73aa09aa7cae1374cafab0"
 EXPECTED_HYPOTHESIS_BRIDGE_BUNDLE = "b4b8fd30eba2c99cc911486e866e80c16efda76316dce69a7ace853bf95b027c"
 ROOT = Path(__file__).parents[1]
@@ -109,13 +109,13 @@ def test_v330_environment_metadata_exporter_exactly_matches_proof_contract_endpo
     assert exported == contract.endpoint_theorems
 
 
-def test_default_continuum_contract_v3_is_single_source_for_all_42_audited_endpoints():
+def test_default_continuum_contract_v3_is_single_source_for_all_48_audited_endpoints():
     registry = ProofContractRegistry.load_default()
     contract = registry.for_claim("cace.v330.continuum-proof-strengthening")
     assert contract is not None
     assert contract.contract_id == "cace.proof.v330.continuum-proof-strengthening.v3"
-    assert len(contract.endpoint_theorems) == 42
-    assert len(contract.audited_source_files) == 17
+    assert len(contract.endpoint_theorems) == 48
+    assert len(contract.audited_source_files) == 18
     assert contract.build_target == "CACEFormal.V330AxiomAudit"
     assert contract.dependency_pins["lean_toolchain"] == "leanprover/lean4:v4.32.1"
     assert contract.dependency_pins["mathlib_commit"] == "520045ab14e26149ee970e2e617ca04b09bde5d6"
@@ -127,6 +127,12 @@ def test_default_continuum_contract_v3_is_single_source_for_all_42_audited_endpo
     assert "CACEFormal.Continuum.continuumPragerSynge_of_weakGreen" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.boxGradientFlux_inner_eq_green_of_divergence_zero" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.zeroBoundarySubmodule_eq_iInf_ker" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.isClosed_zeroBoundarySubmodule" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.topologicalClosure_le_zeroBoundarySubmodule" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.hasZeroBoundaryTrace_of_mem_topologicalClosure" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.boxHasZeroBoundaryTrace_of_mem_coreClosure" in contract.endpoint_theorems
+    assert "CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.hasZeroBoundaryTrace_zero" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_of_mem_H1DistributionalGraphSubmodule" in contract.endpoint_theorems
     assert "CACEFormal.Continuum.inH1_iff_exists_distributionalGraphRepresentative" in contract.endpoint_theorems
@@ -139,8 +145,10 @@ def test_default_continuum_contract_v3_is_single_source_for_all_42_audited_endpo
     assert "CACEFormal/OrthogonalClosure.lean" in contract.audited_source_files
     assert "CACEFormal/HDivDensityReduction.lean" in contract.audited_source_files
     assert "CACEFormal/BoxPragerSyngeEquilibrated.lean" in contract.audited_source_files
+    assert "CACEFormal/ZeroBoundaryClosure.lean" in contract.audited_source_files
     assert any("executable binding certifies theorem-endpoint membership" in item for item in contract.nonclaims)
     assert any("hasZeroBoundaryTrace_zero endpoint discharges only" in item for item in contract.nonclaims)
+    assert any("zero-boundary closure endpoints can derive zero trace" in item for item in contract.nonclaims)
     assert len(contract.executable_bindings) == 3
 
     binding = contract.executable_binding_for_module(MODULE_ID)

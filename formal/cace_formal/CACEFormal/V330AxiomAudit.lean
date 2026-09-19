@@ -11,6 +11,7 @@ import CACEFormal.WeakGreenFunctional
 import CACEFormal.ContinuumOrthogonality
 import CACEFormal.ContinuumPragerSynge
 import CACEFormal.BoxPragerSyngeEquilibrated
+import CACEFormal.ZeroBoundaryClosure
 
 /-!
 # Continuum kernel-assumption audit
@@ -68,3 +69,10 @@ core, zero-trace witness, cross-term identity, or unconditional regularizer need
 #print axioms CACEFormal.Continuum.continuumPragerSynge_of_weakGreen
 #print axioms CACEFormal.Continuum.boxGradientFlux_inner_eq_green_of_divergence_zero
 #print axioms CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero
+
+#print axioms CACEFormal.Continuum.zeroBoundarySubmodule_eq_iInf_ker
+#print axioms CACEFormal.Continuum.isClosed_zeroBoundarySubmodule
+#print axioms CACEFormal.Continuum.topologicalClosure_le_zeroBoundarySubmodule
+#print axioms CACEFormal.Continuum.hasZeroBoundaryTrace_of_mem_topologicalClosure
+#print axioms CACEFormal.Continuum.boxHasZeroBoundaryTrace_of_mem_coreClosure
+#print axioms CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure

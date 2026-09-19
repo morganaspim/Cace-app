@@ -65,7 +65,8 @@
     "CACEFormal.PositiveLaplacianAnnihilator",
     "CACEFormal.HDivGraphAnnihilator",
     "CACEFormal.OrthogonalClosure",
-    "CACEFormal.HDivDensityReduction"
+    "CACEFormal.HDivDensityReduction",
+    "CACEFormal.ZeroBoundaryClosure"
   ],
   "quarantined_root_imports": [],
   "policy": {
