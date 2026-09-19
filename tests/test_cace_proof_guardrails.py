@@ -144,10 +144,15 @@ def test_proof_plan_payload_is_json_serializable_without_status_prefix():
 
 def test_no_reserved_by_identifier_in_rcases_patterns():
     import re
-    path = ROOT / "formal" / "cace_formal" / "CACEFormal" / "ExteriorPowerTransport.lean"
-    text = path.read_text(encoding="utf-8")
-    bad = re.findall(r"rcases[^\n]*with\s+⟨[^\n⟩]*\bby\b[^\n⟩]*⟩", text)
-    assert bad == []
+    paths = (
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "ExteriorPowerTransport.lean",
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "AffineP1RT0Transport.lean",
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "DualBladePiola.lean",
+    )
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        bad = re.findall(r"rcases[^\n]*with\s+⟨[^\n⟩]*\bby\b[^\n⟩]*⟩", text)
+        assert bad == [], f"{path.name}: {bad}"
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():
@@ -174,6 +179,11 @@ def test_real_division_proof_defs_are_explicitly_noncomputable():
         ROOT / "formal" / "cace_formal" / "CACEFormal" / "AffineP1RT0Transport.lean": (
             "noncomputable def piolaRT0",
             "noncomputable def pullP1",
+        ),
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "ReferenceSimplexNormalization.lean": (
+            "noncomputable def normalizer",
+            "noncomputable def certifiedNondegenerate",
+            "noncomputable def certifiedPositive",
         ),
     }
     for path, required in checks.items():
