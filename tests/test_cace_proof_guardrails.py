@@ -112,6 +112,43 @@ def test_plan_hash_is_deterministic_and_content_addressed():
         record.get("module") == "CACEFormal.ExteriorPowerTransport"
         for record in first["root_sources"]
     )
+    assert any(
+        record.get("module") == "CACEFormal.P1RT0Element"
+        for record in first["target_sources"]
+    )
+
+
+def test_changed_quarantined_module_is_included_in_impacted_compile_plan():
+    guard = _guardrails()
+    config = guard.load_config()
+    module_root = ROOT / config["module_root"]
+    target = "CACEFormal.BoxPragerSyngeEquilibrated"
+    assert target in set(config["quarantined_root_imports"])
+    target_path = guard.module_to_path(module_root, target)
+    assert target_path.is_file()
+
+    guard.git_changed_paths = lambda _base_ref: [target_path]
+    impacted = guard.impacted_modules(config, "unused-base-ref")
+
+    assert target in impacted
+
+
+def test_quarantined_target_source_is_bound_into_proof_plan():
+    guard = _guardrails()
+    config = guard.load_config()
+    args = SimpleNamespace(
+        toolchain="leanprover/lean4:v4.32.1",
+        mathlib_commit="520045ab14e26149ee970e2e617ca04b09bde5d6",
+        target="CACEFormal/BoxPragerSyngeEquilibrated.lean",
+        compile_root="false",
+        impacted_file=None,
+    )
+    plan = guard.proof_plan(config, args)
+
+    assert any(
+        record.get("module") == "CACEFormal.BoxPragerSyngeEquilibrated"
+        for record in plan["target_sources"]
+    )
 
 
 def test_canary_is_configured_but_not_promoted_into_audited_root():
