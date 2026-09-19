@@ -141,6 +141,61 @@ theorem edge_endpoint_data_map
     edgeFlux_piolaRT0_map F q a b b hdet⟩
 
 
+/-- Divergence of an affine RT0 field scales by the inverse affine
+Jacobian determinant under contravariant Piola transport. -/
+theorem divergence_piolaRT0 (F : Affine2) (q : RT0Affine) :
+    (piolaRT0 F q).divergence = q.divergence / F.linearDet := by
+  dsimp [piolaRT0, RT0Affine.divergence]
+  ring
+
+/-- The P1-gradient/RT0 pairing at a mapped point scales by the inverse
+Jacobian determinant. -/
+theorem dotGrad_piola_pull_map
+    (F : Affine2) (v : P1Affine) (q : RT0Affine) (p : Point2)
+    (hdet : F.linearDet ≠ 0) :
+    (piolaRT0 F q).dotGrad (pullP1 F v) (F.mapPoint p) =
+      q.dotGrad v p / F.linearDet := by
+  rcases F with ⟨aa, ab, ac, ad, tx, ty⟩
+  rcases v with ⟨vc, gx, gy⟩
+  rcases q with ⟨qx, qy, r⟩
+  rcases p with ⟨x, y⟩
+  change aa * ad - ab * ac ≠ 0 at hdet
+  dsimp [piolaRT0, pullP1, Affine2.mapPoint, Affine2.linearDet,
+    RT0Affine.dotGrad, RT0Affine.evalX, RT0Affine.evalY]
+  field_simp [hdet]
+  ring
+
+/-- Exact cell pairing is invariant under affine scalar pullback and
+contravariant Piola transport. -/
+theorem cellPairing_map
+    (F : Affine2) (T : Triangle2) (v : P1Affine) (q : RT0Affine)
+    (hdet : F.linearDet ≠ 0) :
+    P1RT0Element.cellPairing (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) =
+      P1RT0Element.cellPairing T v q := by
+  unfold P1RT0Element.cellPairing
+  rw [Affine2.det_mapTriangle]
+  simp only [Affine2.mapTriangle]
+  rw [dotGrad_piola_pull_map F v q T.p0 hdet,
+      dotGrad_piola_pull_map F v q T.p1 hdet,
+      dotGrad_piola_pull_map F v q T.p2 hdet]
+  field_simp [hdet]
+  ring
+
+/-- Exact cell divergence term is invariant under the same affine transport. -/
+theorem cellDivergence_map
+    (F : Affine2) (T : Triangle2) (v : P1Affine) (q : RT0Affine)
+    (hdet : F.linearDet ≠ 0) :
+    P1RT0Element.cellDivergence (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) =
+      P1RT0Element.cellDivergence T v q := by
+  unfold P1RT0Element.cellDivergence
+  rw [Affine2.det_mapTriangle, divergence_piolaRT0]
+  simp only [Affine2.mapTriangle]
+  rw [pullP1_eval_map F v T.p0 hdet,
+      pullP1_eval_map F v T.p1 hdet,
+      pullP1_eval_map F v T.p2 hdet]
+  field_simp [hdet]
+  ring
+
 /-- The exact P1/RT0 edge pairing is invariant under affine scalar pullback and
 contravariant Piola transport. -/
 theorem edgePairing_map
