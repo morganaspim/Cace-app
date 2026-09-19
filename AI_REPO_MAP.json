@@ -236,6 +236,7 @@
     "scanner": "scripts/check_release_secrecy.py",
     "tests": "tests/test_release_secrecy.py",
     "release_gate": "scan final staged customer artifact, not just source tree",
-    "gpu_cpu_boundary": "minimize plaintext/proprietary material; accelerators get declared numeric buffers only"
+    "gpu_cpu_boundary": "minimize plaintext/proprietary material; accelerators get declared numeric buffers only",
+    "classification_manifest": "security/source_classification.json"
   }
 }
