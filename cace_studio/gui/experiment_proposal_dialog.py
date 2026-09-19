@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 try:
-    from PySide6.QtCore import QRectF, Qt
+    from PySide6.QtCore import QRectF, QThreadPool, Qt
     from PySide6.QtGui import QPen
     from PySide6.QtWidgets import (
         QComboBox,
@@ -13,6 +13,7 @@ try:
         QHBoxLayout,
         QLabel,
         QPushButton,
+        QSpinBox,
         QTextEdit,
         QVBoxLayout,
     )
@@ -23,6 +24,10 @@ from cace_studio.ai.experiment_proposal import (
     PROPOSAL_STRATEGIES,
     ExperimentGraphProposal,
     ProposalStrategy,
+)
+from .strategy_compare_dialog import (
+    StrategyCompareWorker,
+    StrategyComparisonDialog,
 )
 
 
@@ -42,6 +47,8 @@ class ExperimentProposalDialog(QDialog):
         parent=None,
         *,
         initial_strategy: ProposalStrategy = "balanced",
+        registry=None,
+        gpu_enabled: bool = False,
     ) -> None:
         super().__init__(parent)
         self.proposals = {
@@ -54,6 +61,10 @@ class ExperimentProposalDialog(QDialog):
         if initial_strategy not in self.proposals:
             initial_strategy = next(iter(self.proposals))
         self._selected_strategy: ProposalStrategy = initial_strategy
+        self.registry = registry
+        self.gpu_enabled = bool(gpu_enabled)
+        self.pool = QThreadPool.globalInstance()
+        self._compare_worker = None
 
         self.setWindowTitle("Proposed Experiment — Choose Strategy Before Building")
         self.resize(980, 700)
@@ -68,6 +79,21 @@ class ExperimentProposalDialog(QDialog):
 
         self.comparison = QLabel()
         self.comparison.setWordWrap(True)
+
+        self.seed = QSpinBox()
+        self.seed.setRange(-2_147_483_648, 2_147_483_647)
+        self.seed.setValue(0)
+        self.seed.setToolTip(
+            "The same seed is supplied to every runnable strategy comparison."
+        )
+
+        self.compare_button = QPushButton("Compare Ready Strategies…")
+        self.compare_button.setEnabled(self.registry is not None)
+        self.compare_button.setToolTip(
+            "Run runnable proposals temporarily with the same seed. "
+            "This does not build them on the canvas."
+        )
+        self.compare_button.clicked.connect(self._compare_strategies)
 
         self.status = QLabel()
         self.status.setWordWrap(True)
@@ -99,7 +125,14 @@ class ExperimentProposalDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Choose a proposal strategy:"))
         layout.addWidget(self.strategy)
+        compare_row = QHBoxLayout()
+        compare_row.addWidget(QLabel("Comparison seed"))
+        compare_row.addWidget(self.seed)
+        compare_row.addWidget(self.compare_button)
+        compare_row.addStretch()
+
         layout.addWidget(self.comparison)
+        layout.addLayout(compare_row)
         layout.addWidget(self.status)
         layout.addWidget(trust)
         layout.addWidget(self.view)
@@ -115,6 +148,48 @@ class ExperimentProposalDialog(QDialog):
     @property
     def selected_proposal(self) -> ExperimentGraphProposal:
         return self.proposals[self._selected_strategy]
+
+
+    def _compare_strategies(self) -> None:
+        if self.registry is None:
+            self.status.setText("Strategy comparison is unavailable: no module registry was supplied.")
+            return
+        self.compare_button.setEnabled(False)
+        self.compare_button.setText("Comparing…")
+        self.status.setText(
+            "Running temporary strategy comparisons with one shared seed. "
+            "The canvas remains unchanged."
+        )
+        worker = StrategyCompareWorker(
+            self.registry,
+            self.proposals,
+            seed=int(self.seed.value()),
+            gpu_enabled=self.gpu_enabled,
+        )
+        self._compare_worker = worker
+        worker.signals.finished.connect(self._comparison_finished)
+        worker.signals.failed.connect(self._comparison_failed)
+        self.pool.start(worker)
+
+    def _comparison_finished(self, comparison) -> None:
+        self.compare_button.setEnabled(self.registry is not None)
+        self.compare_button.setText("Compare Ready Strategies…")
+        self._refresh_strategy()
+
+        dialog = StrategyComparisonDialog(comparison, self)
+        if dialog.exec() == QDialog.Accepted and dialog.inspect_strategy:
+            index = self.strategy.findData(dialog.inspect_strategy)
+            if index >= 0:
+                self.strategy.setCurrentIndex(index)
+        self._compare_worker = None
+
+    def _comparison_failed(self, error: str) -> None:
+        self.compare_button.setEnabled(self.registry is not None)
+        self.compare_button.setText("Compare Ready Strategies…")
+        self.status.setText(
+            "Strategy comparison failed safely without changing the canvas: " + error
+        )
+        self._compare_worker = None
 
     def _strategy_changed(self, _index: int = -1) -> None:
         strategy = str(self.strategy.currentData())
