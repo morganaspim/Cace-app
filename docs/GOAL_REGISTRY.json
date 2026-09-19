@@ -599,6 +599,23 @@
         "Every enterprise proof passes a pre-sale deliverability review and a final pre-delivery disclosure review.",
         "Evidence that secrecy measures were actually used is retained over time."
       ]
+    },
+    {
+      "id": "G043",
+      "category": "compute_entitlements",
+      "priority": 43,
+      "intent_status": "required",
+      "title": "Tiered GPU/CUDA and CPU multithread controls",
+      "summary": "Expose explicit execution-backend controls without changing mathematical semantics: GPU acceleration for all tiers, CPU multithreading included for Researcher/Enterprise, and a permanent $15 Basic multithread unlock.",
+      "acceptance": [
+        "Basic, Researcher, and Enterprise all have a GPU Acceleration ON/OFF control.",
+        "CUDA is exposed only when a compatible NVIDIA CUDA backend is detected; generic GPU support must not be mislabeled as CUDA.",
+        "Researcher and Enterprise include a Multithread CPU ON/OFF control.",
+        "Basic is single-threaded by default and can buy feature.cpu_multithread.basic.perpetual.v1 once for $15.",
+        "The Basic multithread purchase is a durable account entitlement and is recorded in the payment/audit ledger.",
+        "Every numerical run records requested/actual backend, thread count, CUDA/device identity where applicable, and fallback reason.",
+        "Acceleration settings never promote proof status or bypass verification gates."
+      ]
     }
   ]
 }

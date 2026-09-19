@@ -243,5 +243,27 @@
       "periodic access reviews and prompt offboarding",
       "mandatory customer-export disclosure review"
     ]
+  },
+  "compute_entitlements": {
+    "gpu": {
+      "Basic": true,
+      "Researcher": true,
+      "Enterprise": true
+    },
+    "cuda": "available toggle only when compatible NVIDIA CUDA backend is detected",
+    "cpu_multithreading": {
+      "Basic": {
+        "included": false,
+        "one_time_unlock_usd": 15,
+        "entitlement": "feature.cpu_multithread.basic.perpetual.v1"
+      },
+      "Researcher": {
+        "included": true
+      },
+      "Enterprise": {
+        "included": true
+      }
+    },
+    "provenance_rule": "record requested/actual backend, device/CUDA identity, thread count, and fallback; no effect on proof status"
   }
 }

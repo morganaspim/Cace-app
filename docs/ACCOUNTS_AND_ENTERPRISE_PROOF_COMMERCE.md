@@ -212,6 +212,64 @@ There is no automatic first-time Enterprise free allowance specified here. Enter
 
 All values above are launch targets rather than qualification-sensitive constants. Prices must live in a signed commercial policy and may be changed prospectively.
 
+## 4.1 Compute capability entitlements
+
+Compute acceleration is an account capability, separate from mathematical proof status.
+
+### GPU / CUDA controls — all account tiers
+
+Basic, Researcher, and Enterprise users receive an explicit **GPU Acceleration** ON/OFF control.
+
+Behavior:
+
+- OFF forces the supported CPU execution path.
+- ON permits CACE to use an available supported GPU backend.
+- A separate **CUDA** option is shown/enabled only when a compatible NVIDIA CUDA backend is actually detected.
+- On non-NVIDIA hardware, CACE may expose another supported GPU backend under the generic GPU control; it must never label a non-CUDA device as CUDA.
+- If GPU/CUDA was requested but unavailable, CACE must either fail explicitly or fall back according to the user's configured policy and record the fallback.
+- The GUI should show the detected device/backend before execution.
+
+GPU/CUDA availability is included for all three account tiers. It is not a paid Basic add-on.
+
+### CPU multithreading
+
+Researcher and Enterprise include the **Multithread CPU** ON/OFF control.
+
+Basic is single-threaded by default, but a Basic account may purchase a one-time permanent **Multithread Unlock** for **USD $15**.
+
+The Basic multithread unlock:
+
+- is a durable account-level feature entitlement, not a time pass;
+- survives expiration of an individual day/week/month/year pass;
+- becomes usable whenever the account has an otherwise valid Basic usage entitlement;
+- must be restored after login on another authorized local instance according to the licensing/device policy;
+- cannot be created by browser/localStorage state alone;
+- is recorded in the payment/entitlement audit trail.
+
+Suggested entitlement identifier:
+
+`feature.cpu_multithread.basic.perpetual.v1`
+
+Researcher and Enterprise do not need this add-on because multithreading is included with those tiers.
+
+### Provenance and rigor
+
+Acceleration controls do not change theorem truth or proof status.
+
+For numerical/scientific runs CACE should record:
+
+- requested execution mode;
+- actual CPU/GPU backend;
+- CUDA runtime/device identifier when used;
+- GPU model/device capability where available;
+- requested and actual CPU thread count;
+- deterministic/nondeterministic kernel mode;
+- fallback reason if the requested backend was unavailable.
+
+Execution-backend identity belongs in the run/evidence provenance because floating-point ordering or parallel execution can affect numerical results.
+
+Formal mathematical qualification remains governed by its own pinned proof pipeline; purchasing or enabling GPU/multithreading cannot promote evidence or bypass proof gates.
+
 ## 5. Free-trial accounting
 
 The free allowance is a real entitlement record, not a browser timer.
