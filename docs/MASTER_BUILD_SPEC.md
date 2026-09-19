@@ -1,0 +1,459 @@
+# CACE Master Build Specification
+
+Status: authoritative implementation-intent and acceptance-criteria document for CACE Studio. It is **not** proof evidence, qualification evidence, or a claim that every item is implemented. Current implementation/qualification state lives in `docs/STATUS.md`; mathematical claim truth lives in the claim registry, proof ledger, formal sources, and exact workflow artifacts.
+
+This document consolidates durable goals that have repeatedly survived design review across CACE development conversations. Future agents should update this document and `docs/GOAL_REGISTRY.json` when a new user goal has clear merit, while preserving the evidence rules below.
+
+## 1. Product mission
+
+CACE Studio is a rigorous scientific and mathematical workbench where a user can visually construct experiments from typed modules, execute them reproducibly, inspect assumptions and evidence, attach formal or certified results where justified, save/replay/export work, and optionally use local AI to propose or explain experiments.
+
+The target product is a **working browser-accessible web application** with the same scientific semantics as the desktop/headless core. A user should be able to open a URL on another computer and use the visual scientific playground without writing code.
+
+CACE must remain useful when AI is disabled, when GPU acceleration is unavailable, and when no external cloud service is reachable.
+
+## 2. Authority hierarchy
+
+When documents disagree, use this order:
+
+1. exact source at the checked-out commit;
+2. `cace_studio/data/claim_registry.json` and `cace_studio/data/proof_ledger.json` for promoted formal claims;
+3. exact qualification artifacts for the commit being discussed;
+4. `docs/CONSTITUTION.md`, `docs/CLAIMS.md`, `docs/ARCHITECTURE.md`;
+5. `docs/STATUS.md` for current development state;
+6. this file and `docs/GOAL_REGISTRY.json` for intended product direction;
+7. historical release notes, demos, and archived plans.
+
+Never use this specification to infer that an unfinished feature or theorem is complete.
+
+## 3. Non-negotiable truth and evidence rules
+
+CACE must keep the following evidence categories distinct:
+
+- formal/kernel-checked theorem evidence;
+- interval-certified evidence;
+- exact/symbolic certificates;
+- numerically verified evidence;
+- engineering verification;
+- empirical/benchmark evidence;
+- conditional results;
+- research/heuristic output;
+- unknown, stale, failed, or not-run states.
+
+A successful numerical run, GPU/CPU agreement, benchmark, hash, signature, AI answer, or provenance record is never silently promoted to mathematical proof.
+
+`FAIL`, `NOT_RUN`, stale evidence, skipped verification, absent verification, and unresolved hypotheses must remain visible.
+
+A theorem with hypotheses must retain those hypotheses everywhere: source, metadata, UI, reports, API output, examples, and documentation.
+
+## 4. Formal-proof architecture requirements
+
+Formal qualification remains fail-closed.
+
+Required properties:
+
+- pinned Lean toolchain and pinned Mathlib commit;
+- exact-current-head checkout and clean-tree check;
+- permanent proof guardrails and exact root-import allowlist;
+- quarantine-before-promotion for new formal modules;
+- explicit unfinished-token rejection;
+- proof-plan/source content addressing;
+- conservative reverse-dependent recompilation;
+- audited root compilation;
+- Lean.Environment theorem metadata generated from the loaded environment;
+- kernel axiom audit with a narrow explicit allowlist;
+- exact proof-contract endpoint equality;
+- source/contract/executable binding;
+- content-addressed exact-head attestation;
+- independent artifact-integrity verification;
+- qualification-drift detection after later commits;
+- caches used only as acceleration, never as inherited proof;
+- negative/fault-injection tests that may not be weakened to preserve desired status.
+
+The project should prefer one deliberate expensive qualification run at a time. Safe cached toolchains, dependency trees, and build artifacts should minimize repeated downloads and compilation while preserving fresh exact-head evidence.
+
+## 5. Target browser application
+
+The web application is not a thin demo. It should expose the useful CACE Studio workflow through the browser.
+
+### 5.1 Main workspace
+
+Required workspace capabilities:
+
+- searchable module library;
+- drag modules onto the canvas;
+- click-to-connect typed ports;
+- visible incompatible-connection feedback;
+- parameter/property forms with validation;
+- multi-select, move, delete, copy/paste;
+- undo/redo;
+- alignment and organization tools;
+- groups/subgraphs;
+- minimap;
+- zoom, pan, fit-to-selection, fit-all;
+- deterministic graph serialization;
+- autosave and crash/session recovery;
+- explicit stale-evidence invalidation after semantic edits;
+- selected-node plus upstream execution;
+- full-graph execution;
+- cooperative pause/resume/cancel;
+- run progress/heartbeats;
+- proof/evidence badges that reflect executed evidence only.
+
+### 5.2 Scientific inspection
+
+A user should be able to inspect:
+
+- module inputs/outputs and units;
+- assumptions and preconditions;
+- generated proof obligations;
+- current verification state;
+- certificates and evidence artifacts;
+- formal theorem dependencies;
+- provenance and exact source/commit binding;
+- numerical diagnostics and convergence information;
+- CPU/GPU backend actually used;
+- failure causes rather than generic red status.
+
+### 5.3 Visualization, reports, save/export/print
+
+The web app should support:
+
+- useful charts/plots tied to actual experiment data;
+- geometry/mesh visualization when relevant;
+- proof/evidence graph views;
+- readable canonical JSON;
+- save/load of versioned `.cace` experiments;
+- deterministic replay where possible;
+- export of reports, evidence bundles, and data;
+- print-friendly reports;
+- clear distinction between a visual demonstration and a verified scientific result.
+
+## 6. Shared semantics across desktop, web, CLI, and agents
+
+Desktop Studio, web UI, headless CLI, tests, and external agents must consume the **same core graph/module/evidence contracts**. No UI is allowed to invent a parallel scientific truth model.
+
+The browser may use a service API, but core semantics belong in the canonical Python/C++/Lean layers.
+
+Preferred shape:
+
+`browser UI -> API/session layer -> canonical Python orchestration -> C++ kernels where justified`
+
+with a parallel formal/evidence path:
+
+`formal sources -> pinned Lean -> theorem metadata/kernel audit -> proof contract -> attestation -> canonical claim gate`
+
+## 7. Research notebook and Grow workflow
+
+CACE should preserve useful discoveries instead of losing them in transient chat.
+
+A **Research Idea** object should support:
+
+- editable title;
+- notes;
+- hypotheses;
+- proposed experiment;
+- associated modules;
+- evidence links;
+- provenance/source;
+- status.
+
+Canonical progression:
+
+`Idea -> Testable -> Experimented -> Promising -> Proof Candidate`
+
+A Research Idea must never become a Proof Candidate merely because an AI says it is true; the status represents workflow maturity, not proof.
+
+### 7.1 Proposed Experiment -> Build on Canvas
+
+For a Research Idea, CACE should be able to propose a small module graph, show the graph before mutation, and add it to the scientific canvas only after user approval.
+
+Three proposal strategies are required:
+
+- **Minimal** — lowest reasonable compute and smallest graph;
+- **Balanced** — best-connected practical graph;
+- **Exploratory** — a slightly more creative Grow-influenced graph while keeping assumptions explicit.
+
+The preview should show modules, edges, parameters, assumptions, expected outputs, evidence class, compute estimate, and why each node is present.
+
+## 8. Optional local AI / GenAI architecture
+
+AI is a research assistant, not a verifier.
+
+### 8.1 User experience
+
+Users should be able to select and configure a supported local AI provider from the GUI with no coding. AI must have an obvious OFF state.
+
+Supported interaction goals include:
+
+- explain a module, theorem, certificate, or failure;
+- answer how to perform a scientific experiment;
+- explain rigor/evidence status;
+- suggest experiments;
+- propose small canvas graphs;
+- build demo drafts;
+- help interpret results;
+- suggest next tests or proof obligations;
+- maintain heartbeats/status during longer local tasks.
+
+Existing modes such as OFF / Hints / Teacher / Researcher / Autonomous should remain explicit policy modes, not hidden behavior.
+
+### 8.2 Local hybrid model goal
+
+A longer-term local AI may combine:
+
+- a local LLM for language/reasoning;
+- a computationally inexpensive neural component;
+- CACE-discovered mathematical transforms/features where they are demonstrated to improve cost or quality;
+- retrieval over local project/module/proof metadata.
+
+Efficiency gains discovered by CACE may improve the model, but only after measurable validation.
+
+### 8.3 Zero-contact sandbox
+
+The strongest local-autonomy mode should support a **zero-contact architecture**:
+
+- no Internet access from the model sandbox;
+- no cloud credentials;
+- no arbitrary host filesystem access;
+- no direct shell/network control;
+- capability-mediated access only to approved experiment/module APIs;
+- bounded resource limits;
+- explicit import/export boundary;
+- auditable action log;
+- human approval for consequential canvas/source mutations.
+
+This sandbox boundary should be designed so that even a highly capable local model cannot silently escape into network/cloud control.
+
+AI-generated statements never become evidence merely because they were generated inside the sandbox.
+
+## 9. Python, C++, GPU, and numerical architecture
+
+Python is the orchestration/research integration layer.
+
+C++20 is for expensive, justified kernels such as sparse algebra, FFT-like transforms, geometry/mesh operations, PDE kernels, interval kernels, and other performance-sensitive work. Use pybind11 or another explicit stable boundary.
+
+GPU use must be optional. Every GPU-capable run should report the actual backend and any fallback. CPU/GPU agreement may be cross-backend evidence but is not proof.
+
+Performance work should favor:
+
+- deterministic fingerprints;
+- content-addressed caches;
+- sparse representations;
+- streaming/chunked algorithms;
+- dependency-aware incremental recomputation;
+- safe parallelism only when scientific semantics remain deterministic or nondeterminism is explicitly recorded.
+
+## 10. Scientific module ecosystem
+
+CACE should grow through typed modules rather than one-off scripts.
+
+Every production-intended module should define:
+
+- stable identifier/version;
+- typed ports;
+- parameters and units;
+- assumptions;
+- execution function;
+- verifier/certificate contract where applicable;
+- evidence level;
+- limitations/nonclaims;
+- deterministic/reproducibility behavior;
+- tests;
+- example experiment.
+
+The plugin SDK should provide compatibility/version checks, trust metadata, transactional registration, and eventually stronger process isolation/capability permissions for untrusted third-party plugins.
+
+A long-term demo library should be searchable/loadable and should favor real reproducible examples over marketing placeholders. A useful target is roughly 100 curated demonstrations spanning multiple scientific/mathematical domains plus interdisciplinary examples.
+
+## 11. Certified FEM/PDE direction
+
+After proof and regression gates are secure, continue the certified PDE/FEM path:
+
+1. mesh/topology validation;
+2. finite-element spaces;
+3. sparse assembly;
+4. deterministic solvers;
+5. residual and equilibrated-flux estimators;
+6. explicit a-posteriori assumptions;
+7. interval/certified error bounds where justified;
+8. adaptive refinement;
+9. higher-order FEM;
+10. goal-oriented estimation;
+11. Proof Explorer links between numerical obligations and formal dependencies.
+
+The continuum proof chain must stay explicit. Do not claim arbitrary H1/H(div) or zero-boundary properties without the required analytic construction/hypotheses.
+
+## 12. Geometry, algebra, and low-cost transform research
+
+These are legitimate research directions, not established results unless separately proved/validated.
+
+### 12.1 Graded geometry
+
+Continue useful Clifford / projective geometric algebra / conformal geometric algebra / rotor / spinor / blade / k-cell foundations where they provide compact computation, coordinate transformations, geometry, mechanics, mesh operations, or visualization.
+
+### 12.2 Combinatorial-to-geometric transforms
+
+Investigate whether combinatorial groups/structures can be mapped into rotors, spinors, blades, cells, sparse graded objects, or related representations for lower-cost computation.
+
+Requirements before promotion:
+
+- precise mapping;
+- domain/codomain and invariants;
+- reversibility or information-loss statement;
+- complexity comparison;
+- numerical benchmarks;
+- formal or exact proof of algebraic identities where feasible;
+- explicit failure domains.
+
+Custom Lean libraries/modules may be created for reusable identities once a stable mathematical formulation exists.
+
+### 12.3 Serialization and collision-avoidance ideas
+
+Explore mathematically structured serialization/packet scheduling ideas, including Cantor-style indexing or pairing, only when they provide a measurable benefit such as deterministic non-collision IDs, scheduling, sharding, or compact reversible addressing. Do not use mathematical metaphors as substitutes for normal network correctness/security protocols.
+
+### 12.4 Growth/rotation random-process idea
+
+The proposed research idea of random data generation followed by exponential-style growth and rotation in another dimension (inspired by `e^(i*pi) = -1`) may be explored as a parameterized stochastic/dynamical transform.
+
+It must remain labeled research/heuristic until a precise state space, transform, invariant, purpose, and benchmark are specified.
+
+## 13. Provenance, reproducibility, and Evidence Ledger
+
+Experiments should be reproducible from versioned inputs, module contracts, source identity, dependency identity, and execution configuration.
+
+Desired provenance chain:
+
+`artifact -> content address -> deterministic evidence bundle / Merkle root -> signed verifier attestations -> append-only transparency/evidence ledger -> optional established external timestamp anchor`
+
+Provenance establishes identity, history, tamper evidence, and independent reproduction. It does **not** establish mathematical truth by itself.
+
+## 14. Security and production boundaries
+
+Production hardening should include:
+
+- least-privilege service accounts;
+- no secrets in repository/client bundles;
+- secure secret injection;
+- dependency locks/SBOM where practical;
+- CSP/CORS/auth/session hardening for the web app;
+- capability restrictions around plugins and AI;
+- input/schema validation;
+- upload/file-size limits;
+- resource quotas;
+- crash recovery;
+- rate limiting where appropriate;
+- audit logs for mutations and privileged actions;
+- fault injection/fuzzing for parsers and critical boundaries.
+
+Formal qualification infrastructure should remain isolated from untrusted web requests.
+
+## 15. Deployment target
+
+The finished product should be reachable from a stable URL and usable from ordinary browsers.
+
+A practical production shape is:
+
+- browser static/frontend assets;
+- FastAPI application API;
+- Uvicorn/Gunicorn-style managed process;
+- Nginx or equivalent reverse proxy;
+- HTTPS;
+- system service/restart policy;
+- health/readiness endpoints;
+- durable experiment/evidence storage;
+- optional background worker/queue for long scientific jobs;
+- dedicated isolated proof runner for formal qualification.
+
+Oracle Cloud is an accepted deployment target. Heavy Lean/C++/GPU qualification jobs should not be forced into serverless runtimes. A thin serverless surface may be used only where it does not distort the architecture.
+
+The final deployment must be testable from outside the cloud host, not merely from localhost.
+
+## 16. Agent and repository collaboration
+
+Any AI or developer connecting to the repository should be able to orient itself without chat history.
+
+Minimum discoverability package:
+
+- `AGENTS.md`;
+- `AI_REPO_MAP.json`;
+- `docs/STATUS.md`;
+- `docs/ARCHITECTURE.md`;
+- `docs/CONSTITUTION.md`;
+- `docs/CLAIMS.md`;
+- `docs/ROADMAP.md`;
+- this master build specification;
+- `docs/GOAL_REGISTRY.json`;
+- deterministic generated module/claim/proof/source indexes where available.
+
+Agents should leave useful handoffs in repository-visible structured documentation rather than relying on private chat history.
+
+## 17. Goal-capture protocol
+
+When the user proposes a new goal:
+
+1. classify it as product requirement, proof/rigor requirement, production requirement, research direction, experiment idea, or rejected/deferred idea;
+2. test it against the Constitution/evidence rules;
+3. keep it only if it has clear user value, scientific merit, engineering value, or research value;
+4. record it in `docs/GOAL_REGISTRY.json` with status and acceptance criteria;
+5. update this specification if it changes product architecture or long-term behavior;
+6. never silently elevate a research idea to a verified claim;
+7. never change qualification-sensitive proof source merely to document a goal;
+8. prefer a documentation-only branch/commit while an exact-head qualification is running.
+
+## 18. Dependency-ordered implementation priorities
+
+Unless a later explicit user instruction supersedes this ordering, prefer:
+
+1. preserve/finish exact-current-head proof qualification and provenance;
+2. harden proof/sanity/CI guardrails without weakening formal scope;
+3. keep repository status and agent navigation current;
+4. complete browser parity for the scientific canvas;
+5. finish Research Idea / Proposed Experiment / Build on Canvas workflow;
+6. complete no-code local AI provider UX and zero-contact sandbox;
+7. complete save/load/replay/export/print and evidence inspection in the web UI;
+8. production API/job/storage architecture and Oracle deployment;
+9. plugin isolation/security hardening;
+10. certified FEM/PDE end-to-end;
+11. graded-geometry/combinatorial transform research;
+12. larger demo library and advanced research modules;
+13. production-release qualification.
+
+## 19. Definition of done for the working webapp
+
+A build should not be called a complete working CACE webapp until a user can, from a browser:
+
+- open the Studio;
+- find modules;
+- drag/drop and connect a valid graph;
+- edit validated parameters;
+- save and reopen the experiment;
+- execute full or scoped runs;
+- see progress and cancellation state;
+- inspect real results and visualizations;
+- inspect PASS/FAIL/NOT_RUN/stale evidence;
+- see assumptions/nonclaims;
+- inspect proof/certificate provenance when present;
+- use Research Ideas and preview/build proposed graphs;
+- optionally configure a local AI provider without code;
+- completely disable AI;
+- export/print a reproducible report;
+- recover from refresh/restart without silently losing work;
+- use the app from another computer over HTTPS;
+- receive explicit errors when a scientific, verification, or infrastructure step fails.
+
+Production readiness additionally requires exact-commit regression/security/deployment evidence and the formal qualification appropriate to the claims being exposed.
+
+## 20. What CACE must never do
+
+- claim proof from simulation alone;
+- hide failed/skipped verification;
+- label an AI suggestion as evidence;
+- weaken a theorem or negative test to make CI green;
+- treat provenance/signatures as proof;
+- imply an open research problem is solved without a complete, reviewable proof;
+- require AI for core operation;
+- require GPU for correctness;
+- require blockchain/cryptocurrency for provenance;
+- let web convenience bypass canonical scientific contracts;
+- let documentation commits disturb an in-flight exact-head proof qualification unnecessarily.
