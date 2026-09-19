@@ -1,6 +1,5 @@
 import CACEFormal.PDEDomainBridge
 import CACEFormal.RegularizationClosure
-import CACEFormal.OrthogonalClosure
 
 namespace CACEFormal
 
@@ -27,41 +26,6 @@ automatic.  Consequently the only H(div)-specific obligations left for a concret
 This is designed for either of two serious analytic routes: Fourier/multiplier regularization or
 physical-space mollification plus a Schwartz cutoff with a divergence commutator estimate.
 -/
-
-/--
-Alternative H(div) density criterion by relative orthogonality.
-
-This route avoids assuming an explicit regularizer.  It is enough to prove that
-a distributional H(div) graph datum orthogonal to every Schwartz graph datum is
-zero.  The intended next proof derives a weak H1 relation for the divergence
-coordinate from that orthogonality, combines it with `div q = g`, and rules
-out nonzero L2 solutions of the resulting elliptic equation.
--/
-theorem complexSmoothGraphClosure_eq_distributional_of_relativeOrthogonal
-    (n : Nat)
-    (hzero : ∀ x : HDivComplexGraphAmbient n,
-      x ∈ HDivDistributionalGraphSubmodule n →
-      x ∈ (ComplexHDivSmoothGraphCore n)ᗮ →
-      x = 0) :
-    (ComplexHDivSmoothGraphCore n).topologicalClosure =
-      HDivDistributionalGraphSubmodule n := by
-  exact submodule_topologicalClosure_eq_of_relativeOrthogonal_pointwise
-    (ComplexHDivSmoothGraphCore n)
-    (HDivDistributionalGraphSubmodule n)
-    (ComplexHDivSmoothGraphCore_le_distributional n)
-    (isClosed_HDivDistributionalGraphSubmodule n)
-    hzero
-
-/-- Reverse inclusion obtained from the same orthogonal-annihilator criterion. -/
-theorem distributional_le_complexSmoothGraphClosure_of_relativeOrthogonal
-    (n : Nat)
-    (hzero : ∀ x : HDivComplexGraphAmbient n,
-      x ∈ HDivDistributionalGraphSubmodule n →
-      x ∈ (ComplexHDivSmoothGraphCore n)ᗮ →
-      x = 0) :
-    HDivDistributionalGraphSubmodule n ≤
-      (ComplexHDivSmoothGraphCore n).topologicalClosure := by
-  rw [complexSmoothGraphClosure_eq_distributional_of_relativeOrthogonal n hzero]
 
 /-- A convergent graph regularizer identifies the Schwartz graph closure with the closed
 distributional H(div) graph relation. -/
