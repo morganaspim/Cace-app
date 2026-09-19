@@ -262,3 +262,24 @@ Hard rules:
    - material score reproducibility;
    - theoretical physics labels;
    - typed object round trips.
+
+
+## 13. Baseline implementation status
+
+Branch: `feature/molecular-materials-physics`
+
+The first executable slice includes:
+
+- all 118 element symbols as typed Atom identities;
+- typed Bond and Molecule objects with deterministic formula/JSON rendering;
+- a `Protein Sequence` source node;
+- an AlphaFold-compatible C-alpha PDB importer preserving source, license, attribution, confidence, and content hash metadata;
+- a deterministic seeded C-alpha fold search with bond/clash/hydrophobic/compactness terms;
+- the hard output guard `global_minimum_claim=false`;
+- a strict low-risk Safe Home Lab whitelist;
+- deterministic descriptor-based materials candidate ranking with no synthesis instructions;
+- established-vs-theoretical physics canvas objects including all six quark flavors and string/worldsheet/brane research objects;
+- registry integration so the objects appear as normal CACE canvas modules;
+- regression tests for determinism, attribution, safety, evidence labeling, and nonclaims.
+
+This baseline does **not** bundle AlphaFold code, databases, or model weights.
