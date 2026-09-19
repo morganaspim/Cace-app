@@ -42,11 +42,22 @@ jobs:
     runs-on: [self-hosted, cace, oci, aarch64]
     steps:
       - name: Checkout exact PR head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
+      - name: Establish exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "$expected"
+          printf 'exact_head=%s\n' "$expected"
+
       - name: Refuse concurrent CACE runner work
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}" --ignore-workflow-name "CACE Collaboration Coordination Validation" --ignore-workflow-name "CACE Lean Source Sanity"
 
       - name: Classify changed paths and enforce Base44 boundary
