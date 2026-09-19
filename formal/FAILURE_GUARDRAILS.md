@@ -520,3 +520,29 @@ consume.
 **Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`
 requires the measured source-size headroom and preserves the unchanged post-copy
 5 GiB check.
+
+
+## F-028 — standalone quarantine lane required root promotion
+
+**Fingerprint:** an experimental H(div) density module was correctly kept out of the audited root,
+but the only exact-pin preflight rejected every target that was not already a direct audited-root
+import. This made the documented promotion sequence impossible: a quarantined module could not
+reach `STANDALONE_COMPILED` without first violating quarantine.
+
+**Root cause:** the preflight target validator encoded the root-qualified case only, while the
+failure ledger separately required standalone compilation before root promotion.
+
+**Permanent prevention:**
+- audited-root targets remain accepted exactly as before;
+- a non-root target is accepted only when `compile_root=false`;
+- that non-root target must be explicitly listed in `quarantined_root_imports`;
+- quarantined standalone targets are forbidden from simultaneously appearing in the root allowlist;
+- `compile_root=true` still rejects any target that is not directly imported by the audited root;
+- the workflow and its canonical byte-for-byte template carry the same fail-closed logic.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` requires the quarantine-only
+standalone branch, and `tests/test_cace_proof_guardrails.py` checks both the promotion boundary
+and the continued root exclusion of `CACEFormal.HDivDensityReduction`.
+
+This creates engineering evidence only. A standalone pass does not imply root compilation,
+axiom audit, or exact-head qualification.
