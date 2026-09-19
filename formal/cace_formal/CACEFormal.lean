@@ -49,6 +49,7 @@ import CACEFormal.SimplexFacetGeometry
 import CACEFormal.SimplexFacetMeasure
 import CACEFormal.SimplexFacetCurrent
 import CACEFormal.SimplexCellDistributionBridge
+import CACEFormal.SimplexDistributionEvaluation
 import CACEFormal.ReferenceSimplexFiber
 import CACEFormal.ReferenceSimplexFiberCalculus
 import CACEFormal.ReferenceSimplexFiberDecomposition
