@@ -46,6 +46,7 @@
     "CACEFormal.BoxGraphTrace",
     "CACEFormal.BoxGraphGreenPairing",
     "CACEFormal.BoxPragerSynge",
+    "CACEFormal.BoxPragerSyngeEquilibrated",
     "CACEFormal.BoxClassicalAgreement",
     "CACEFormal.SmoothBoxGreenAuto",
     "CACEFormal.RegularizationClosure",
@@ -66,9 +67,7 @@
     "CACEFormal.OrthogonalClosure",
     "CACEFormal.HDivDensityReduction"
   ],
-  "quarantined_root_imports": [
-    "CACEFormal.BoxPragerSyngeEquilibrated"
-  ],
+  "quarantined_root_imports": [],
   "policy": {
     "root_imports_are_exact_allowlist": true,
     "quarantined_modules_may_not_enter_root": true,
