@@ -20,6 +20,12 @@ from .experiment_proposal import (
 from .grow_candidates import GrowCandidate, build_grow_candidates
 from .growth_memory import GrowthFeedbackEvent, PersistentGrowthMemory
 from .research_ideas import IDEA_STATUSES, ResearchIdea, ResearchIdeaStore, seed_from_grow_candidate
+from .strategy_compare import (
+    OutputSummary,
+    StrategyComparison,
+    StrategyRunSummary,
+    compare_proposal_strategies,
+)
 from .hybrid import GrowthEngine, GrowResult, ResearchFragment, SparseResearchIndex
 
 __all__ = [
@@ -51,4 +57,8 @@ __all__ = [
     "ResearchIdea",
     "ResearchIdeaStore",
     "seed_from_grow_candidate",
+    "OutputSummary",
+    "StrategyComparison",
+    "StrategyRunSummary",
+    "compare_proposal_strategies",
 ]
