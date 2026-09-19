@@ -55,7 +55,8 @@
     "CACE_BUILD_LITE.json",
     "AGENTS.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    ".github/workflows/cace-*.yml"
   ],
   "generated_read_only_paths": [
     "docs/help/generated/**",

@@ -59,7 +59,9 @@ def validate_policy(policy: dict) -> None:
 
 
 def _matches(path: str, patterns: Iterable[str]) -> bool:
-    normalized = path.replace("\\", "/").lstrip("./")
+    normalized = path.replace("\\", "/")
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
     return any(
         fnmatch.fnmatchcase(normalized, pattern)
         or (
