@@ -116,7 +116,7 @@ class ExperimentProposalDialog(QDialog):
     def selected_proposal(self) -> ExperimentGraphProposal:
         return self.proposals[self._selected_strategy]
 
-    def _strategy_changed(self) -> None:
+    def _strategy_changed(self, _index: int = -1) -> None:
         strategy = str(self.strategy.currentData())
         if strategy in self.proposals:
             self._selected_strategy = strategy  # type: ignore[assignment]
