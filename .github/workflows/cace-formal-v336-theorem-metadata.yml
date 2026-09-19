@@ -214,28 +214,35 @@ jobs:
                 -name "${package_name}.staging.*" -user "$(id -un)" -print -exec rm -rf -- {} + || true
             fi
 
+            # Oldest-first deletion preserves the most useful recent ancestor
+            # caches for as long as the disk reserve allows. Every per-tree cache
+            # is acceleration only and may be rebuilt from pinned sources.
             mapfile -t cache_dirs < <(
               find "$build_cache_base" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
-                | sort -nr | awk '{print $2}'
+                | sort -n | awk '{print $2}'
             )
-            kept_ancestors=0
             for candidate in "${cache_dirs[@]}"; do
               [[ -d "$candidate" && ! -L "$candidate" && -O "$candidate" ]] || continue
               name="$(basename "$candidate")"
               [[ "$name" =~ ^[0-9a-f]{40}$ ]] || continue
-              if [[ "$name" == "$formal_tree" ]]; then
-                continue
-              fi
-              if (( kept_ancestors < 2 )); then
-                kept_ancestors=$((kept_ancestors + 1))
-                continue
-              fi
+              [[ "$name" == "$formal_tree" ]] && continue
               rm -rf -- "$candidate"
               available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
               if (( available_kb >= min_free_kb )); then
                 break
               fi
             done
+
+            # If all ancestor caches are gone and the reserve is still short,
+            # the current-tree cache is also disposable acceleration. Remove it
+            # only as the final cache-pruning fallback; qualification will rebuild
+            # it from the exact pinned source/dependency state.
+            available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+            if (( available_kb < min_free_kb )) && \
+               [[ -d "$build_cache" && ! -L "$build_cache" && -O "$build_cache" ]] && \
+               [[ "$(basename "$build_cache")" =~ ^[0-9a-f]{40}$ ]]; then
+              rm -rf -- "$build_cache"
+            fi
             flock -u 7
           fi
 

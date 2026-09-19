@@ -214,9 +214,11 @@ def test_canonical_qualification_prunes_only_owned_cache_acceleration_before_dis
     ).read_text(encoding="utf-8")
     assert "min_free_kb=$((5 * 1024 * 1024))" in workflow
     assert "canonical-qualification-prune.lock" in workflow
-    assert "kept_ancestors < 2" in workflow
+    assert "sort -n | awk '{print $2}'" in workflow
     assert '[[ "$name" =~ ^[0-9a-f]{40}$ ]]' in workflow
     assert '-O "$candidate"' in workflow
+    assert '[[ "$name" == "$formal_tree" ]] && continue' in workflow
     assert 'rm -rf -- "$candidate"' in workflow
+    assert 'rm -rf -- "$build_cache"' in workflow
     assert "at least 5 GiB free after safe cache pruning" in workflow
     assert "at least 5 GiB free after source staging" in workflow

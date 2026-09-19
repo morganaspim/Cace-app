@@ -428,7 +428,7 @@ rebuilds changed/reverse-dependent modules and canonical qualification still
 requires fresh exact-head theorem metadata, kernel axiom audit, and attestation.
 
 
-## F-023 — full-history ancestry repair consumed qualification disk reserve
+## F-024 — full-history ancestry repair consumed qualification disk reserve
 
 **Fingerprint:** after fixing shallow-history ancestry by unconditionally fetching
 the complete repository history, canonical qualification passed governance but
@@ -451,7 +451,7 @@ was only modestly beyond the original shallow boundary.
 and `test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`.
 
 
-## F-024 — adaptive ancestry fetch lost checkout authentication
+## F-025 — adaptive ancestry fetch lost checkout authentication
 
 **Fingerprint:** the qualification ancestry step failed with
 `fatal: could not read Username for 'https://github.com'` while attempting
@@ -472,3 +472,29 @@ authentication for that deepen operation.
 
 **Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_checkout_has_complete_ancestry`
 requires the adaptive fetch surface and `persist-credentials: true`.
+
+
+## F-026 — fixed ancestor-cache retention could still miss the disk reserve
+
+**Fingerprint:** canonical qualification passed ancestry and governance, then
+failed the unchanged 5 GiB reserve with 5,212,440 KiB free—about 30 MiB below
+the required 5,242,880 KiB—because the pruning policy always preserved two
+ancestor build caches.
+
+**Root cause:** retention was expressed as a fixed cache count rather than the
+actual safety invariant. A small runner-space deficit could therefore survive
+pruning even though additional retained caches were disposable acceleration.
+
+**Permanent prevention:**
+- the 5 GiB reserve remains unchanged;
+- owned 40-hex per-tree build caches are pruned oldest-first until the reserve
+  is actually satisfied, preserving newer caches only while space permits;
+- the current exact-tree cache is preserved during normal pruning, but may be
+  deleted as a final fallback if it is the only cache preventing the reserve;
+- pinned Lean/Mathlib dependency caches are not part of this pruning surface;
+- all deleted build caches are reproducible acceleration and never proof
+  evidence or qualification state.
+
+**Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`
+requires oldest-first reserve-driven pruning, current-tree protection during the
+normal pass, and the exact-tree final fallback.
