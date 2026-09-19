@@ -474,6 +474,18 @@ CACE supports Basic, Researcher, and Enterprise account tiers through a separate
 - Enterprise-only bespoke proof orders may produce customer-specific rigorous LaTeX/PDF packages after contract/payment/proof qualification gates.
 - CACE Background IP remains separated from customer Foreground deliverables; see `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`.
 
+## 13.4 Prove-before-purchase enterprise proof rule
+
+Enterprise bespoke proof commerce follows a strict **prove first, sell second** rule.
+
+After a customer receives a contingent quote, CACE must complete the requested proof work and the normal kernel/axiom/theorem-metadata/provenance/artifact-integrity qualification pipeline before the customer is asked to sign or pay for the final proof package.
+
+Only a result internally marked `PROOF_READY_FOR_SALE` may proceed to statement of work, IP schedule, customer signature, payment, document rendering, and delivery.
+
+The customer-facing proof package must pass a separate disclosure review so the agreed customer-specific derivation is rigorous while protected CACE Background IP remains undisclosed.
+
+CACE proprietary theorem infrastructure should be protected continuously using reasonable secrecy measures such as private repositories, disclosure classification, least-privilege access, MFA/passkeys, encryption, access/export logging, confidentiality obligations, periodic access review, and mandatory pre-delivery disclosure checks. See `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`.
+
 ## 14. Security and production boundaries
 
 Production hardening should include:

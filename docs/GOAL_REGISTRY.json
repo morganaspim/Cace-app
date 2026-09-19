@@ -540,12 +540,14 @@
       "priority": 39,
       "intent_status": "required",
       "title": "Enterprise full-rigor proof purchase workflow",
-      "summary": "Allow verified Enterprise users to purchase a customer-specific rigorous LaTeX/PDF proof package for a selected result without disclosing CACE proprietary Background IP.",
+      "summary": "Allow verified Enterprise users to request a customer-specific rigorous proof package, but require the requested result to pass the normal CACE qualification pipeline before the customer is asked to sign/pay.",
       "acceptance": [
         "Proof order freezes and hashes the relevant canvas, assumptions, requested result, and software/proof versions.",
-        "A quote and signed statement of work/contract precede bespoke proof delivery.",
-        "Formal proof work must pass the normal CACE rigor pipeline before delivery.",
-        "Customer-facing PDF includes the agreed full customer-specific derivation, limitations, and provenance while excluding unrelated proprietary base-theorem source.",
+        "Customer first receives a contingent quote; bespoke proof qualification then occurs before signature/payment.",
+        "The requested result must pass kernel, axiom, theorem-metadata, provenance/attestation, and artifact-integrity gates before status becomes PROOF_READY_FOR_SALE.",
+        "If proof-ready qualification fails, CACE revises scope/quote or declines the order rather than selling an unqualified result.",
+        "After proof-ready status, the exact qualified result is bound into the SOW/IP schedule, then signature/payment occurs.",
+        "Customer-facing PDF includes the agreed customer-specific derivation, limitations, and provenance while excluding protected CACE Background IP.",
         "PDF/manifests are hashed and delivery is audit logged."
       ]
     },
@@ -561,7 +563,8 @@
         "CACE proprietary base theorems, internal lemmas, proof strategies, reusable libraries, and tooling remain Background IP unless expressly sold separately.",
         "Customer-specific protectable deliverables can transfer after full payment according to the signed IP schedule.",
         "Marketing does not promise exclusive copyright or patent ownership in mathematical facts/formulas where statutory law does not provide such rights.",
-        "Confidentiality and trade-secret controls protect unrevealed CACE methods."
+        "Reasonable secrecy measures include private repositories, least-privilege access, MFA for privileged accounts, encryption, disclosure classification, audit logs, confidentiality agreements, and mandatory customer-export review.",
+        "Customer PDFs disclose no more reusable proprietary theorem machinery than the contract requires."
       ]
     },
     {
@@ -577,6 +580,24 @@
         "Proof runner has no Monero spend key or customer payment credentials.",
         "Mail/document services verify contract/payment/proof status before customer delivery.",
         "A PDF hash mismatch, unsigned result, or incomplete contract/payment gate blocks delivery."
+      ]
+    },
+    {
+      "id": "G042",
+      "category": "trade_secret_security",
+      "priority": 42,
+      "intent_status": "required",
+      "title": "Continuous reasonable-measures protection for proprietary theorem corpus",
+      "summary": "Protect CACE proprietary base theorems and reusable proof machinery with concrete technical, contractual, and operational secrecy controls so customer deliverables can be rigorous without exposing the underlying trade-secret corpus.",
+      "acceptance": [
+        "Proprietary theorem repositories remain private and are separated from customer/public interfaces.",
+        "Theorem files/modules carry disclosure classifications and customer export tools exclude trade-secret source by default.",
+        "Privileged access uses least privilege, MFA/passkeys, periodic access review, prompt offboarding, and temporary elevation where practical.",
+        "Sensitive repositories, backups, and proof artifacts are encrypted at rest and transferred only over authenticated encrypted channels.",
+        "Access/export of designated trade-secret material is audit logged and unusual bulk export patterns can be investigated.",
+        "Employees, contractors, reviewers, and relevant vendors are bound by appropriate confidentiality/IP obligations.",
+        "Every enterprise proof passes a pre-sale deliverability review and a final pre-delivery disclosure review.",
+        "Evidence that secrecy measures were actually used is retained over time."
       ]
     }
   ]

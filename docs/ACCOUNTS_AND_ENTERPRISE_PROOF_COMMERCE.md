@@ -249,7 +249,24 @@ A proof order should capture an immutable snapshot of:
 - proof-contract/version identifiers;
 - hashes of all customer-visible inputs.
 
-The customer receives a quote and statement of work before expensive bespoke proof work begins.
+The customer first receives a **contingent quote** based on the frozen request. CACE then performs the required internal proof/qualification work **before the customer is asked to sign or pay**.
+
+The commercial rule is: **prove first, sell second**.
+
+Before purchase, CACE must establish that the requested result can actually be delivered at the promised rigor. That pre-sale proof-ready gate includes, as applicable:
+
+- exact theorem/request scope frozen and hashed;
+- assumptions reviewed and made explicit;
+- formal proof work completed for the requested result;
+- Lean/kernel validation;
+- axiom audit;
+- exact theorem metadata;
+- source/contract binding;
+- qualification/provenance attestation;
+- artifact-integrity verification;
+- proprietary Background-IP disclosure review confirming that a customer-facing package can be produced without exposing protected internals.
+
+Only after this gate is green does the order move to statement of work, signature, and payment.
 
 ## 7. Proof package contents
 
@@ -270,21 +287,28 @@ The customer-facing package should **not reveal CACE proprietary background theo
 
 The PDF can cite internal CACE lemmas by opaque stable certificate identifiers and include sufficient independently reviewable customer-specific reasoning without disclosing proprietary source code or unrelated base-theorem internals.
 
-## 8. Delivery architecture
+## 8. Enterprise proof order and delivery architecture
 
 The proof runner should not directly send customer email.
 
-Preferred flow:
+Required order of operations:
 
-1. isolated runner finishes the proof job;
-2. runner signs/publishes artifact metadata to an internal queue/object store;
-3. account service verifies the result and contract/payment state;
-4. a separate document service renders the approved LaTeX/PDF;
-5. PDF and manifest are hashed and stored;
-6. an outbound mail service sends a download link or the permitted attachment;
-7. delivery event is written to the audit ledger.
+1. **Request + frozen scope** — Enterprise user selects the result; CACE freezes/hashes the canvas, inputs, assumptions, requested conclusion, and relevant software/proof versions.
+2. **Contingent quote** — customer receives an estimated commercial quote and scope description, clearly marked subject to proof-ready qualification.
+3. **Pre-sale proof-ready qualification** — CACE performs the necessary proof work and the normal kernel/axiom/metadata/provenance/integrity pipeline. The customer has not yet purchased the proof.
+4. **Internal deliverability review** — CACE verifies that the qualified result can be expressed in a customer-facing package without disclosing protected Background IP. Status becomes `PROOF_READY_FOR_SALE` only after this succeeds.
+5. **Statement of work + IP schedule** — the exact qualified result, deliverables, exclusions, ownership terms, price, support, and delivery format are written into the agreement.
+6. **Customer signature** — authorized customer signer accepts the agreement.
+7. **Payment / credit approval** — commercial entitlement to the proof package is created only after the payment/credit gate is satisfied.
+8. **Customer-document rendering** — a separate document service renders the approved LaTeX/PDF **from the already-qualified proof artifact**, not by re-solving the theorem after purchase.
+9. **Trade-secret disclosure review** — automated and human review verifies that the customer document contains the agreed customer-specific derivation but not proprietary Background-IP source, hidden theorem bodies, internal proof strategies, secrets, or unrelated reusable machinery.
+10. **Final artifact binding** — PDF, source excerpt if any, contract ID, qualified proof artifact, and manifest are hashed and cross-bound.
+11. **Delivery** — an outbound mail/delivery service sends the customer the permitted PDF/secure link.
+12. **Audit closeout** — delivery, recipient, hashes, contract, payment, qualification IDs, and disclosure-review result are written to the append-only audit trail.
 
-This keeps email/API credentials away from the proof runner and preserves zero-egress scientific/proof isolation.
+This sequence ensures the customer is not asked to purchase a bespoke proof package until CACE has already demonstrated that the requested rigorous result is available.
+
+It also keeps email/API credentials away from the proof runner and preserves zero-egress scientific/proof isolation.
 
 ## 9. Customer attribution and IP contract structure
 
@@ -350,19 +374,85 @@ Do not promise that a novel mathematical identity by itself becomes exclusive st
 
 ## 11. Protecting proprietary base theorems
 
-The base theorem system should be treated as confidential Background IP/trade-secret material where appropriate.
+The base theorem system should be treated as confidential CACE Background IP and, where the legal requirements are met, protected as trade-secret material.
 
-Controls:
+The project should continuously use concrete **reasonable secrecy measures**, not merely a confidentiality label.
 
-- keep full proprietary theorem source out of customer PDFs;
-- use stable opaque theorem/certificate identifiers;
-- reveal only the assumptions/consequences necessary for the purchased result;
-- restrict employees/contractors by confidentiality and invention-assignment agreements;
-- least-privilege access to theorem repositories;
-- log access/export;
-- avoid publishing secret theorem source in public artifacts;
-- separate public verification statements from private proof implementation;
-- apply reasonable trade-secret protection measures continuously.
+### Repository and source controls
+
+- keep proprietary theorem repositories private;
+- separate customer-visible/public theorem interfaces from private theorem implementations;
+- never put secret theorem bodies, proprietary proof strategies, or reusable internal lemmas into public GitHub Actions artifacts;
+- do not publish complete private theorem source in customer PDFs, public documentation, examples, logs, crash reports, telemetry, or support bundles;
+- use stable opaque theorem/certificate identifiers at customer-facing boundaries;
+- mark files/modules by disclosure class, for example `PUBLIC`, `CUSTOMER_DELIVERABLE`, `CACE_CONFIDENTIAL`, and `CACE_TRADE_SECRET`;
+- keep customer-export tooling incapable of traversing into trade-secret source directories by default.
+
+### Access controls
+
+- least-privilege role-based access to proprietary theorem repositories;
+- separate production, proof-runner, document-rendering, support, and customer-delivery identities;
+- no customer, collaboration relay, browser client, local AI, or plugin receives raw proprietary theorem-source access;
+- require MFA/passkeys for privileged human accounts;
+- remove access promptly when personnel or contractor roles end;
+- periodically review who can read/export private theorem material;
+- use just-in-time/temporary elevated access where practical.
+
+### Cryptographic and infrastructure controls
+
+- encrypt proprietary repositories, backups, object-store copies, and sensitive proof artifacts at rest;
+- use TLS/authenticated channels in transit;
+- keep signing/encryption secrets in managed secret storage/KMS/HSM-equivalent systems where practical;
+- keep proof runners isolated from public Internet ingress and from unrelated customer/account databases;
+- separate confidential proof artifacts from publicly downloadable CI artifacts;
+- maintain independently retained, content-addressed logs without putting theorem source into logs unnecessarily.
+
+### Personnel and contractual controls
+
+- confidentiality/NDA obligations for employees, contractors, reviewers, and vendors who may access proprietary theorem material;
+- invention-assignment/IP agreements appropriate to the role;
+- explicit return/destruction obligations on termination where appropriate;
+- vendor/data-processing agreements for any service that can access confidential proof artifacts;
+- customer agreements expressly state that no license to CACE Background IP is granted except as specifically listed.
+
+### Monitoring, audit, and export controls
+
+- append-only audit events for access to/export of designated trade-secret modules;
+- log repository clones/downloads and privileged artifact exports where technically practical;
+- alert on unusual bulk export/access patterns;
+- require an explicit disclosure-review gate before any Enterprise PDF/source bundle is released;
+- maintain a record of exactly which proprietary certificate identifiers were referenced in each customer deliverable;
+- watermark or uniquely identify confidential review copies where appropriate.
+
+### Customer-facing disclosure minimization
+
+The customer should receive enough rigorous material to evaluate and use the purchased **customer-specific result**, but CACE should disclose no more reusable internal machinery than the contract requires.
+
+A customer PDF may include:
+
+- the customer's exact assumptions;
+- the customer-specific theorem;
+- the customer-specific derivation/proof;
+- independently checkable consequences;
+- qualification/provenance identifiers;
+- opaque references to CACE Background certificates.
+
+It should exclude, unless separately licensed:
+
+- unrelated base theorem bodies;
+- reusable internal lemmas;
+- proprietary theorem-generation methods;
+- hidden proof-search strategies;
+- private source code;
+- internal training/research corpora;
+- secret system prompts/models/weights;
+- infrastructure credentials or operational details that create security risk.
+
+### Trade-secret continuity
+
+The repository should preserve evidence that reasonable secrecy measures were actually used over time: access policies, private-repository settings, disclosure reviews, confidentiality agreements, audit logs, incident handling, and periodic access reviews.
+
+A secrecy failure should trigger an incident review and remediation; CACE should not silently continue calling material confidential if it has intentionally been published without restriction.
 
 ## 12. Enterprise proof pricing
 
@@ -393,19 +483,31 @@ Public 2026 comparables useful for positioning:
 
 These anchors support a product model where ordinary CACE access is software-priced, while bespoke exclusive formal proof work is consulting/R&D-priced.
 
-## 14. Proof-order acceptance gates
+## 14. Proof-order gates
 
-Before a paid enterprise proof is marked delivered:
+### Pre-purchase proof-ready gate
 
-- contract signed;
-- payment/credit approval satisfied;
-- exact customer request frozen and hashed;
-- theorem assumptions explicitly recorded;
-- formal work passes the required CACE proof pipeline;
-- PDF matches the qualified artifact;
-- proprietary Background IP redaction/review passes;
-- customer-IP schedule matches the contract;
+Before CACE asks the customer to sign/pay for the bespoke proof package:
+
+- exact customer request is frozen and hashed;
+- theorem assumptions are explicit;
+- requested result has been proved to the required scope;
+- formal work passes the required kernel/axiom/metadata/provenance qualification pipeline;
+- artifact integrity passes;
+- result is internally classified `PROOF_READY_FOR_SALE`;
+- a disclosure review confirms that a rigorous customer package can be produced without exposing protected CACE Background IP.
+
+If this pre-purchase gate fails, the customer must not be sold the proof as a completed rigorous result. CACE may instead revise the scope/quote or decline the order.
+
+### Post-purchase delivery gate
+
+After contract/signature/payment:
+
+- customer-IP schedule matches the exact qualified result;
+- PDF is rendered from and cryptographically bound to the qualified artifact;
+- proprietary Background-IP redaction/disclosure review passes again on the final document;
 - final PDF and manifest are hashed;
+- permitted recipients are verified;
 - delivery is audit logged.
 
 Payment does not lower the proof standard and cannot cause an unqualified theorem to be labeled rigorous.

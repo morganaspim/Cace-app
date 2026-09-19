@@ -208,5 +208,40 @@
     },
     "enterprise_proof_delivery": "contract + payment + qualified proof -> reviewed LaTeX/PDF through separate document/mail services",
     "ip_rule": "retain CACE Background IP; assign/license agreed customer-specific Foreground deliverables only to the extent legally transferable"
+  },
+  "enterprise_proof_ordering": {
+    "commercial_rule": "prove first, sell second",
+    "sequence": [
+      "freeze/hash customer request",
+      "issue contingent quote",
+      "complete requested formal proof work",
+      "pass kernel/axiom/theorem-metadata/provenance/artifact-integrity qualification",
+      "pass internal customer-deliverability/background-IP disclosure review",
+      "mark PROOF_READY_FOR_SALE",
+      "generate exact SOW/IP schedule",
+      "customer signature",
+      "payment/credit approval",
+      "render customer PDF from already-qualified artifact",
+      "final trade-secret disclosure review",
+      "hash/bind final deliverables",
+      "deliver through separate mail/download service",
+      "append audit closeout"
+    ],
+    "hard_rule": "Do not sell a bespoke proof as a completed rigorous result before proof-ready qualification succeeds."
+  },
+  "trade_secret_protection": {
+    "document": "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+    "required_measures": [
+      "private theorem repositories",
+      "public/customer interface separated from private theorem implementations",
+      "disclosure classification",
+      "least privilege",
+      "MFA/passkeys for privileged accounts",
+      "encryption at rest and authenticated encrypted transport",
+      "access/export audit logs",
+      "confidentiality/IP obligations",
+      "periodic access reviews and prompt offboarding",
+      "mandatory customer-export disclosure review"
+    ]
   }
 }

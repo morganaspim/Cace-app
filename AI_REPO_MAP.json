@@ -211,5 +211,13 @@
     ],
     "trust_boundary": "account/payment/mail services are separate from scientific/proof runners",
     "enterprise_proofs": "customer-specific full-rigor PDF orders with contract, audit trail, provenance, and Background-IP exclusion"
+  },
+  "enterprise_proof_commerce": {
+    "document": "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+    "rule": "prove first, sell second",
+    "pre_purchase_gate": "requested result must already pass normal formal qualification and deliverability/background-IP review",
+    "purchase_after": "PROOF_READY_FOR_SALE",
+    "post_purchase": "contract/signature/payment -> render already-qualified PDF -> final disclosure review -> delivery/audit",
+    "trade_secret_goal": "Protect proprietary theorem corpus through continuous technical, contractual, and operational reasonable measures."
   }
 }
