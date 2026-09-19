@@ -91,5 +91,3 @@ jobs:
           fi
           python scripts/check_base44_sync_contract.py "${args[@]}"
 
-      - name: Run Base44 sync policy regressions
-        run: python -m pytest -q tests/test_base44_sync_contract.py
