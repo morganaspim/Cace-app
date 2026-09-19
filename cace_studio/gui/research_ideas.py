@@ -260,6 +260,15 @@ class ResearchIdeasWidget(QWidget):
         if idea is None:
             return
         self.refresh(select_id=idea.idea_id)
+        if not idea.associated_modules:
+            QMessageBox.information(
+                self,
+                "Add associated modules first",
+                "This Research Idea has no associated CACE module ids yet.\n\n"
+                "Add one or more module ids in Associated modules, save the idea, "
+                "then Build on Canvas will propose a compatibility-checked graph.",
+            )
+            return
         self.build_callback(idea)
 
     def advance_current(self) -> None:
