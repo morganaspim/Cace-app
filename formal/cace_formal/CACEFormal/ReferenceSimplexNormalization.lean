@@ -91,7 +91,8 @@ theorem normalizer_map_p1
   ext <;>
     dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
     ring_nf <;>
-    field_simp [hT, hden]
+    field_simp [hT, hden] <;>
+    ring
 
 /-- The third vertex maps exactly to (0,1). -/
 theorem normalizer_map_p2
