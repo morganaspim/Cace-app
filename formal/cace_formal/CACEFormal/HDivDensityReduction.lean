@@ -24,16 +24,28 @@ obligation is that a distributional H(div) datum orthogonal to every pulled-back
 Schwartz graph datum has reversed coordinates in the distributional H1 graph.
 -/
 
+/-- Canonical L² Hilbert wrapper for the finite vector component. -/
+abbrev HDivComplexVectorHilbert (n : Nat) :=
+  PiLp 2 (fun _ : Fin n => ComplexL2 n)
+
 /-- Canonical L²-product Hilbert wrapper for the complex H(div) graph coordinates. -/
 abbrev HDivComplexGraphHilbert (n : Nat) :=
-  WithLp 2 (HDivComplexGraphAmbient n)
+  WithLp 2 (HDivComplexVectorHilbert n × ComplexL2 n)
 
-/-- Canonical continuous linear equivalence from the L² graph wrapper to the
-existing graph-coordinate product. -/
+/-- The finite-vector L² wrapper is continuously linearly equivalent to the
+existing finite function-valued vector coordinates. -/
+noncomputable def hdivVectorHilbertEquiv (n : Nat) :
+    HDivComplexVectorHilbert n ≃L[ℂ] (Fin n → ComplexL2 n) :=
+  PiLp.continuousLinearEquiv 2 ℂ (fun _ : Fin n => ComplexL2 n)
+
+/-- Canonical continuous linear equivalence from the fully Hilbertized L² graph
+wrapper to the existing graph-coordinate product. -/
 noncomputable def hdivGraphHilbertEquiv (n : Nat) :
     HDivComplexGraphHilbert n ≃L[ℂ] HDivComplexGraphAmbient n :=
-  WithLp.prodContinuousLinearEquiv 2 ℂ
-    (Fin n → ComplexL2 n) (ComplexL2 n)
+  (WithLp.prodContinuousLinearEquiv 2 ℂ
+      (HDivComplexVectorHilbert n) (ComplexL2 n)).trans
+    ((hdivVectorHilbertEquiv n).prodCongr
+      (ContinuousLinearEquiv.refl ℂ (ComplexL2 n)))
 
 /-- Schwartz H(div) graph core pulled back to the Hilbert graph space. -/
 noncomputable def ComplexHDivSmoothGraphCoreHilbert (n : Nat) :
