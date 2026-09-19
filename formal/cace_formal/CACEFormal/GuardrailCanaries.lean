@@ -98,6 +98,8 @@ example (mesh : MeshCertificate) (K : Fin mesh.triangleCount)
 #check MeshElementGeometry.realTriangle_det_pos
 #check RT0P1DerivedAssemblyCertificate.ofCertifiedMeshElements
 #check AffineAssemblyTransport.meshDerivedCertificate
+#check AffineAssemblyTransport.mesh_orthogonality
+#check AffineAssemblyTransport.mesh_discrete_prager_synge_from_reference_pairing
 #check PhysicalP1RT0Element.local_green_identity_of_pos
 #check PhysicalP1RT0Element.mesh_local_green_identity
 #check AffineP1RT0Transport.transportP1SourceToTarget_spec
