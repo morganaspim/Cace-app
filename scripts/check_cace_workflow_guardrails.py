@@ -14,6 +14,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
+CANONICAL = ROOT / "ci" / "cace-exact-pin-lean-preflight.canonical.yml"
 
 EXPECTED_STEPS = (
     "Checkout exact event commit",
@@ -50,6 +51,11 @@ REQUIRED_SNIPPETS = (
 
 def main() -> int:
     text = WORKFLOW.read_text(encoding="utf-8")
+    canonical = CANONICAL.read_text(encoding="utf-8")
+    if text != canonical:
+        raise SystemExit(
+            "Rejected: runnable exact-pin workflow differs from canonical byte-for-byte template"
+        )
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 
