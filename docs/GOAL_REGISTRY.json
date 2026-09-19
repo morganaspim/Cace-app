@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "document_role": "implementation intent and acceptance criteria; not proof or qualification evidence",
+  "source_of_current_status": "docs/STATUS.md",
+  "source_of_formal_truth": [
+    "cace_studio/data/claim_registry.json",
+    "cace_studio/data/proof_ledger.json",
+    "formal/cace_formal/"
+  ],
+  "master_spec": "docs/MASTER_BUILD_SPEC.md",
+  "capture_policy": {
+    "persist_meritorious_user_goals": true,
+    "preserve_evidence_boundaries": true,
+    "never_promote_research_to_proof_by_documentation": true,
+    "prefer_docs_only_branch_during_in_flight_exact_head_qualification": true
+  },
+  "goals": [
+    {
+      "id": "G001",
+      "category": "proof_rigor",
+      "priority": 1,
+      "intent_status": "required",
+      "title": "Fail-closed exact-current-head formal qualification",
+      "summary": "Preserve pinned Lean/Mathlib, exact-head isolation, root guardrails, theorem metadata, kernel axiom audit, proof-contract equality, executable/source binding, attestation, and drift detection.",
+      "acceptance": [
+        "Qualification-sensitive source cannot inherit proof status without permitted drift validation.",
+        "Unfinished tokens and unexpected axioms fail closed.",
+        "Caches accelerate but never substitute for fresh exact-head evidence."
+      ]
+    },
+    {
+      "id": "G002",
+      "category": "ci_rigor",
+      "priority": 2,
+      "intent_status": "required",
+      "title": "Self-validating source and proof sanity checks",
+      "summary": "CI sanity tools must prove they scanned real inputs and distinguish checker/infrastructure failure from scientific/source failure.",
+      "acceptance": [
+        "Zero-file scans fail closed.",
+        "Expected sentinel source is confirmed.",
+        "Known-good and deliberately malformed fixtures are exercised.",
+        "Distinct failure modes are visible in logs."
+      ]
+    },
+    {
+      "id": "G003",
+      "category": "agent_readiness",
+      "priority": 3,
+      "intent_status": "required",
+      "title": "Repository-contained project memory",
+      "summary": "A new developer or AI connector must reconstruct goals, architecture, evidence rules, current status, and next priorities without private chat history.",
+      "acceptance": [
+        "AGENTS.md and AI_REPO_MAP.json lead to canonical docs.",
+        "Master build specification and machine-readable goal registry remain current.",
+        "Historical plans are clearly separated from current status."
+      ]
+    },
+    {
+      "id": "G004",
+      "category": "webapp",
+      "priority": 4,
+      "intent_status": "required",
+      "title": "Full browser scientific canvas",
+      "summary": "Expose the meaningful CACE Studio workflow through a browser, not merely a thin demo.",
+      "acceptance": [
+        "Drag/drop modules and typed click-to-connect ports work.",
+        "Parameter validation, selection, copy/paste, undo/redo, grouping, minimap, zoom, and stale-evidence invalidation are available.",
+        "Browser UI consumes canonical core semantics."
+      ]
+    },
+    {
+      "id": "G005",
+      "category": "webapp",
+      "priority": 5,
+      "intent_status": "required",
+      "title": "Browser execution and evidence inspection",
+      "summary": "Users can run full or selected-upstream graphs and inspect results, assumptions, verification, proof/certificate provenance, and failures.",
+      "acceptance": [
+        "Progress and cooperative pause/resume/cancel are visible.",
+        "PASS/FAIL/NOT_RUN/stale states are explicit.",
+        "Actual CPU/GPU backend and fallbacks are recorded."
+      ]
+    },
+    {
+      "id": "G006",
+      "category": "reproducibility",
+      "priority": 6,
+      "intent_status": "required",
+      "title": "Save, replay, export, and print",
+      "summary": "Versioned .cace experiments and evidence should survive sessions and produce reproducible, readable outputs.",
+      "acceptance": [
+        "Save/load round-trip preserves graph semantics.",
+        "Autosave/recovery is available.",
+        "Reports, canonical JSON, evidence bundles, data export, and print-friendly views exist."
+      ]
+    },
+    {
+      "id": "G007",
+      "category": "research_notebook",
+      "priority": 7,
+      "intent_status": "required",
+      "title": "Research Idea objects",
+      "summary": "Preserve Grow discoveries as editable research notebook objects instead of transient chat.",
+      "acceptance": [
+        "Fields include title, notes, hypotheses, proposed experiment, associated modules, evidence links, and provenance.",
+        "Workflow states are Idea -> Testable -> Experimented -> Promising -> Proof Candidate.",
+        "Workflow maturity never implies proof."
+      ]
+    },
+    {
+      "id": "G008",
+      "category": "research_notebook",
+      "priority": 8,
+      "intent_status": "required",
+      "title": "Proposed Experiment -> Build on Canvas",
+      "summary": "Generate a previewable experiment graph from a Research Idea and mutate the canvas only after approval.",
+      "acceptance": [
+        "Minimal, Balanced, and Exploratory strategies are supported.",
+        "Preview includes modules, edges, parameters, assumptions, expected outputs, evidence class, compute estimate, and rationale.",
+        "No graph mutation occurs before approval."
+      ]
+    },
+    {
+      "id": "G009",
+      "category": "ai",
+      "priority": 9,
+      "intent_status": "required",
+      "title": "No-code optional local AI",
+      "summary": "Users can configure local providers through the GUI while retaining a complete AI-OFF mode.",
+      "acceptance": [
+        "Provider discovery/configuration requires no coding.",
+        "AI can explain modules, experiments, rigor, and failures and suggest experiments.",
+        "AI output cannot create or promote evidence."
+      ]
+    },
+    {
+      "id": "G010",
+      "category": "ai_security",
+      "priority": 10,
+      "intent_status": "required",
+      "title": "Zero-contact local AI sandbox",
+      "summary": "High-autonomy local AI runs without network/cloud authority and only through bounded approved capabilities.",
+      "acceptance": [
+        "No Internet/cloud credentials/direct host shell access.",
+        "Resource limits and auditable action log exist.",
+        "Consequential source/canvas mutations can require human approval."
+      ]
+    },
+    {
+      "id": "G011",
+      "category": "ai_research",
+      "priority": 11,
+      "intent_status": "planned",
+      "title": "Hybrid local neural + LLM assistant",
+      "summary": "Explore a computationally efficient local AI combining an LLM, lightweight neural component, and validated CACE-derived features/transforms.",
+      "acceptance": [
+        "Any efficiency claim is benchmarked.",
+        "Model retrieval uses local project/module/proof metadata.",
+        "The model remains outside the trusted verification base."
+      ]
+    },
+    {
+      "id": "G012",
+      "category": "runtime",
+      "priority": 12,
+      "intent_status": "required",
+      "title": "Shared desktop/web/CLI/agent semantics",
+      "summary": "All interfaces consume the same graph, module, evidence, and claim contracts.",
+      "acceptance": [
+        "No UI maintains an independent scientific truth model.",
+        "Core semantics are testable headlessly.",
+        "API translations preserve typed assumptions and verification state."
+      ]
+    },
+    {
+      "id": "G013",
+      "category": "native_compute",
+      "priority": 13,
+      "intent_status": "required",
+      "title": "Python orchestration with justified C++20 kernels",
+      "summary": "Keep integration in Python and move expensive stable kernels to C++ behind explicit bindings.",
+      "acceptance": [
+        "Native kernels have independent tests.",
+        "Performance claims have benchmarks.",
+        "Native speed never changes evidence class."
+      ]
+    },
+    {
+      "id": "G014",
+      "category": "gpu",
+      "priority": 14,
+      "intent_status": "required",
+      "title": "Optional GPU with truthful provenance",
+      "summary": "GPU acceleration is optional and every run records actual backend/fallback.",
+      "acceptance": [
+        "CPU correctness path remains available.",
+        "Fallback is explicit.",
+        "CPU/GPU agreement is treated as backend evidence, not proof."
+      ]
+    },
+    {
+      "id": "G015",
+      "category": "plugins",
+      "priority": 15,
+      "intent_status": "planned",
+      "title": "Typed plugin/module SDK with isolation",
+      "summary": "Grow CACE via stable typed modules and progressively stronger isolation for third-party plugins.",
+      "acceptance": [
+        "Manifest compatibility and trust metadata are enforced.",
+        "Registration is transactional.",
+        "Production target includes capability permissions/process isolation."
+      ]
+    },
+    {
+      "id": "G016",
+      "category": "scientific_modules",
+      "priority": 16,
+      "intent_status": "planned",
+      "title": "Certified FEM/PDE end-to-end",
+      "summary": "Continue mesh, FE spaces, sparse assembly, estimators, certified bounds, adaptivity, higher-order FEM, and goal-oriented estimation after proof gates.",
+      "acceptance": [
+        "Assumptions for each theorem/estimator are explicit.",
+        "Numerical certificates link to proof obligations where available.",
+        "Conditional continuum results are never presented as unconditional."
+      ]
+    },
+    {
+      "id": "G017",
+      "category": "geometry_research",
+      "priority": 17,
+      "intent_status": "research",
+      "title": "Graded geometry and Clifford/PGA/CGA foundations",
+      "summary": "Investigate rotors, spinors, blades, k-cells, and sparse graded representations for useful geometry/science computation.",
+      "acceptance": [
+        "Mappings and invariants are explicit.",
+        "Complexity or numerical benefit is measured.",
+        "Reusable identities are formally/exactly checked where feasible."
+      ]
+    },
+    {
+      "id": "G018",
+      "category": "math_research",
+      "priority": 18,
+      "intent_status": "research",
+      "title": "Combinatorial-to-geometric low-cost transforms",
+      "summary": "Study mappings from combinatorial structures/groups into rotors, spinors, blades, cells, or related representations.",
+      "acceptance": [
+        "Domain/codomain, reversibility/information loss, and invariants are specified.",
+        "Benchmarks show a meaningful benefit before product promotion.",
+        "Failure domains remain documented."
+      ]
+    },
+    {
+      "id": "G019",
+      "category": "math_research",
+      "priority": 19,
+      "intent_status": "research",
+      "title": "Structured serialization and collision-avoidance research",
+      "summary": "Explore Cantor-style indexing/pairing or other mathematically structured addressing when it measurably improves deterministic IDs, scheduling, or sharding.",
+      "acceptance": [
+        "No mathematical metaphor replaces normal network correctness/security.",
+        "Reversibility/collision behavior is proved or exhaustively specified.",
+        "Benefit is benchmarked against conventional approaches."
+      ]
+    },
+    {
+      "id": "G020",
+      "category": "math_research",
+      "priority": 20,
+      "intent_status": "research",
+      "title": "Growth/rotation stochastic transform",
+      "summary": "Explore random generation followed by parameterized exponential-style growth and rotation inspired by e^(i*pi)=-1.",
+      "acceptance": [
+        "State space and transform are defined precisely.",
+        "Intended benefit and invariants are specified.",
+        "Remains heuristic until validated."
+      ]
+    },
+    {
+      "id": "G021",
+      "category": "provenance",
+      "priority": 21,
+      "intent_status": "planned",
+      "title": "Content-addressed Evidence Ledger",
+      "summary": "Use deterministic artifacts, Merkle identity, signed verifier attestations, append-only transparency records, and optional established external timestamp anchoring.",
+      "acceptance": [
+        "Provenance never creates mathematical proof.",
+        "Identity and verifier independence are explicit.",
+        "CACE remains fully usable without blockchain/cryptocurrency."
+      ]
+    },
+    {
+      "id": "G022",
+      "category": "deployment",
+      "priority": 22,
+      "intent_status": "required",
+      "title": "Production browser deployment",
+      "summary": "Host the complete browser-facing Studio behind a stable HTTPS URL, with Oracle Cloud as an accepted target.",
+      "acceptance": [
+        "FastAPI-compatible API and managed process are production-served behind a reverse proxy or equivalent.",
+        "Health/readiness and restart policy exist.",
+        "App is verified from outside the host."
+      ]
+    },
+    {
+      "id": "G023",
+      "category": "deployment",
+      "priority": 23,
+      "intent_status": "required",
+      "title": "Isolate heavy scientific/proof jobs from web requests",
+      "summary": "Long Lean/C++/GPU work uses controlled workers/runners rather than being forced into a serverless request lifecycle.",
+      "acceptance": [
+        "Formal qualification runner is isolated from untrusted request execution.",
+        "Long jobs expose status/heartbeats.",
+        "Thin serverless components, if used, do not become the scientific runtime."
+      ]
+    },
+    {
+      "id": "G024",
+      "category": "security",
+      "priority": 24,
+      "intent_status": "required",
+      "title": "Production security and fault tolerance",
+      "summary": "Harden secrets, sessions, plugins, AI capabilities, parsers, resource limits, recovery, and privileged mutations.",
+      "acceptance": [
+        "No secrets ship in client/repository bundles.",
+        "Inputs and uploads are bounded and validated.",
+        "Critical boundaries receive fuzz/fault-injection coverage."
+      ]
+    },
+    {
+      "id": "G025",
+      "category": "examples",
+      "priority": 25,
+      "intent_status": "planned",
+      "title": "Curated reproducible demo library",
+      "summary": "Build a searchable/loadable library of real examples across scientific/mathematical domains and interdisciplinary combinations.",
+      "acceptance": [
+        "Examples declare evidence/maturity.",
+        "Historical outputs are not confused with current qualification.",
+        "Target scale is approximately 100 high-value demonstrations."
+      ]
+    },
+    {
+      "id": "G026",
+      "category": "release",
+      "priority": 26,
+      "intent_status": "required",
+      "title": "Production definition of done",
+      "summary": "Do not call CACE production-ready until browser workflows, reproducibility, security, deployment, regression evidence, and exposed formal claims are appropriately qualified.",
+      "acceptance": [
+        "Cross-platform/package/web tests pass on the exact release candidate.",
+        "Claims are traceable to appropriate evidence.",
+        "AI/plugins remain optional and bounded."
+      ]
+    }
+  ]
+}
