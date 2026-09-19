@@ -30,9 +30,10 @@ class ResearchIdeasWidget(QWidget):
     proof qualification and never mutates formal/verification state.
     """
 
-    def __init__(self, store: ResearchIdeaStore, parent=None) -> None:
+    def __init__(self, store: ResearchIdeaStore, parent=None, build_callback=None) -> None:
         super().__init__(parent)
         self.store = store
+        self.build_callback = build_callback
         self.current_idea_id: str | None = None
         self._loading = False
 
@@ -88,12 +89,19 @@ class ResearchIdeasWidget(QWidget):
         self.save_button.clicked.connect(self.save_current)
         self.advance_button = QPushButton("Advance Status →")
         self.advance_button.clicked.connect(self.advance_current)
+        self.build_button = QPushButton("Build on Canvas…")
+        self.build_button.setToolTip(
+            "Preview a small graph from the associated modules. "
+            "The canvas changes only after explicit approval."
+        )
+        self.build_button.clicked.connect(self.build_current)
         self.delete_button = QPushButton("Delete Idea")
         self.delete_button.clicked.connect(self.delete_current)
 
         actions = QHBoxLayout()
         actions.addWidget(self.save_button)
         actions.addWidget(self.advance_button)
+        actions.addWidget(self.build_button)
         actions.addWidget(self.delete_button)
         actions.addStretch()
 
@@ -199,6 +207,7 @@ class ResearchIdeasWidget(QWidget):
                 self.source.setText("Manual idea.")
             self.save_button.setEnabled(True)
             self.advance_button.setEnabled(idea.status != "Proof Candidate")
+            self.build_button.setEnabled(self.build_callback is not None)
             self.delete_button.setEnabled(True)
         finally:
             self._loading = False
@@ -213,6 +222,7 @@ class ResearchIdeasWidget(QWidget):
         self.source.setText("No idea selected.")
         self.save_button.setEnabled(False)
         self.advance_button.setEnabled(False)
+        self.build_button.setEnabled(False)
         self.delete_button.setEnabled(False)
 
     def new_idea(self) -> None:
@@ -221,11 +231,11 @@ class ResearchIdeasWidget(QWidget):
         self.title.selectAll()
         self.title.setFocus()
 
-    def save_current(self) -> None:
+    def _persist_current(self):
         if not self.current_idea_id:
-            return
+            return None
         try:
-            idea = self.store.update(
+            return self.store.update(
                 self.current_idea_id,
                 title=self.title.text(),
                 status=str(self.status.currentData()),
@@ -236,8 +246,21 @@ class ResearchIdeasWidget(QWidget):
             )
         except (KeyError, ValueError) as exc:
             QMessageBox.warning(self, "Could not save research idea", str(exc))
+            return None
+
+    def save_current(self) -> None:
+        idea = self._persist_current()
+        if idea is not None:
+            self.refresh(select_id=idea.idea_id)
+
+    def build_current(self) -> None:
+        if self.build_callback is None:
+            return
+        idea = self._persist_current()
+        if idea is None:
             return
         self.refresh(select_id=idea.idea_id)
+        self.build_callback(idea)
 
     def advance_current(self) -> None:
         if not self.current_idea_id:
