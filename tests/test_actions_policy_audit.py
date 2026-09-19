@@ -220,3 +220,23 @@ def test_lean_source_sanity_trigger_cannot_broaden(tmp_path: Path) -> None:
     )
     path.write_text(text, encoding="utf-8")
     assert "lean-sanity-trigger-paths" in _kinds(audit(root))
+
+
+def test_lean_source_sanity_is_serialized_on_authorized_oci_runner() -> None:
+    text = (WORKFLOWS / "cace-lean-source-sanity.yml").read_text(encoding="utf-8")
+    assert "runs-on: [self-hosted, cace, oci, aarch64]" in text
+    assert "group: cace-canonical-qualification-oci" in text
+    assert "cancel-in-progress: false" in text
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in text
+    assert "CACE_SANITY_EVIDENCE_DIR" in text
+    assert "/var/lib/cace-cache/evidence" in text
+    assert "remote_mirror_status" in text
+    assert "NOT_CONFIGURED" in text
+
+
+def test_lean_source_sanity_requires_self_test_sentinel_and_nonempty_scan() -> None:
+    text = (WORKFLOWS / "cace-lean-source-sanity.yml").read_text(encoding="utf-8")
+    assert "check_lean_source_sanity.py --self-test" in text
+    assert "--require-sentinel formal/cace_formal/CACEFormal.lean" in text
+    assert "test -s \"$dir/lean-files.txt\"" in text
+    assert "cace-source-sanity-evidence-v1" in text
