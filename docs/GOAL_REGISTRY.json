@@ -858,6 +858,133 @@
         "The Conway heartbeat economic-city visualization cannot promote scientific evidence, theorem status, or verification state.",
         "Any production exchange against real cryptocurrency requires a separate security, market-integrity, accounting, and jurisdiction-specific compliance review."
       ]
+    },
+    {
+      "id": "G059",
+      "category": "agent_engineering",
+      "priority": 59,
+      "intent_status": "required",
+      "title": "Complete-feature coding agents with ranked fallback and architecture preservation",
+      "summary": "Require GitHub-connected coding agents to attempt every production feature, preserve all established CACE architectures, and when implementation is unclear generate/rank candidate approaches, use CACE Build Lite/existing CACE tools, or create a narrow tested helper tool rather than omitting or weakening the feature.",
+      "acceptance": [
+        "Coding-agent instructions explicitly prohibit silently omitting, stubbing, or replacing required features merely because implementation is difficult or unfamiliar.",
+        "Unknown features default to 10 ranked implementation approaches scored first by architecture preservation, correctness/evidence boundaries, security, tractability, testability, reuse, cost, and maintainability.",
+        "Builders use CACE Build Lite and existing CACE modules/contracts before introducing a new subsystem.",
+        "Any custom helper tool is narrowly scoped, typed, least-privilege, deterministic where practical, and regression-tested.",
+        "Every confirmed defect uses the CACE bug-flush sequence including sibling/repository sweep and a permanent guard where practical.",
+        "All established scientific/proof/security/account/network/AI/economy/provenance/commercial architectures are preserved unless an explicit reviewed migration supersedes them.",
+        "If no safe implementation is viable, the feature remains visibly incomplete with ranked alternatives/blockers rather than being falsely marked complete."
+      ]
+    },
+    {
+      "id": "G060",
+      "category": "accounts_networking",
+      "priority": 60,
+      "intent_status": "planned",
+      "title": "Directional AI economy pairing and opt-in account scientific storage",
+      "summary": "Add default-off network pairing with separate one-time receive/outgoing codes for local-AI economy links, plus account records for user type, declared-location scope, optional local protein storage, and a local-AI Math Coin wallet identity that is separate from the canonical Monero receive wallet.",
+      "acceptance": [
+        "Networking is disabled by default and enabling an instance generates distinct high-entropy receive and outgoing pairing codes.",
+        "Pairing code plaintext is shown only at issuance/rotation, stored only as hashes, expires quickly, is single-use, and direction is enforced.",
+        "A directed economy link consumes the source instance outgoing code and target instance receive code; bidirectional linking requires a second explicit pairing.",
+        "Paired local-AI instances receive only narrow economy/heartbeat/settlement-metadata capabilities and never implicit shell/filesystem/proof/evidence/private-key/model-control authority.",
+        "Account creation records a user type and an optional declared location with explicit location scope; no automatic precise geolocation is required.",
+        "Protein-object persistence is an explicit account opt-in and preserves scientific provenance/license/attribution metadata.",
+        "Each account receives a local-AI Math Coin wallet identity/capability handle, but no wallet private key is stored in the profile database or exposed to AI context.",
+        "The Math Coin wallet identity is distinct from the existing canonical CACE Monero receive wallet in CACE_PAYMENT_POLICY.json.",
+        "Hosted builders may map authenticated Base44/Gemini/other subjects onto the same profile contracts without replacing canonical CACE scientific/evidence semantics."
+      ]
+    },
+    {
+      "id": "G061",
+      "category": "production_security",
+      "priority": 61,
+      "intent_status": "required",
+      "title": "Browser-only public webapp with hardened local/private CACE service plane",
+      "summary": "Expose only the CACE web gateway to clients while keeping scientific execution, local AI, storage, accounts, AI-network pairing, Math Coin/Monero brokerage, native workers and formal qualification behind a hardened non-public local/private service boundary.",
+      "acceptance": [
+        "The browser/client communicates only with the same-origin HTTPS/WSS web gateway; no protected CACE service is directly client-visible.",
+        "Scientific runtime, local AI/model servers, account/protein database, pairing/economy/payment brokers, filesystem/storage workers, native kernels and Lean qualification runner have no public listeners.",
+        "Protected services bind Unix-domain sockets, loopback, or private service networking with default-deny firewall rules and least-privilege identities.",
+        "Scientific/proof services have no general Internet egress; explicitly networked brokers use narrow allowlists.",
+        "Secrets and wallet/private credentials remain server-side and outside browser bundles and AI/model context.",
+        "Gateway revalidates schema, authorization, sizes, rates, paths and capabilities; client validation is never trusted.",
+        "Production validation includes port/listener exposure tests, CSP/connect-src checks, direct-service negative tests, secret scans, auth/CSRF/rate/upload limits and sandbox hardening checks.",
+        "Base44/Gemini/other code builders may generate the public webapp/gateway integration but must preserve the private canonical CACE service plane."
+      ]
+    },
+    {
+      "id": "G062",
+      "category": "customer_experience",
+      "priority": 62,
+      "intent_status": "required",
+      "title": "Complete customer-safe help for every feature and registered module",
+      "summary": "Generate public help from the live registry with visible module contracts, rigor guidance, and at least two direct plus two combined examples per module while preventing proprietary CACE math/implementation leakage.",
+      "acceptance": [
+        "Every registered module appears in generated customer help.",
+        "Every module has at least two direct-use examples and two combined-module examples.",
+        "Every customer-facing feature has at least two examples.",
+        "Help explains public typed inputs/outputs/parameters/units/evidence and compatible connections without exposing internal module IDs/source paths/class names.",
+        "Help excludes proprietary equations, derivations, algorithms, hidden defaults/coefficients, theorem bodies, Lean implementation, proof artifacts, credentials and security-sensitive internals.",
+        "A leakage/coverage checker is part of the cheap/merge build frontier."
+      ]
+    },
+    {
+      "id": "G063",
+      "category": "product_account_experience",
+      "priority": 63,
+      "intent_status": "required",
+      "title": "Just-works self-sandboxing production app with one-person free trial",
+      "summary": "Build CACE as a full-featured production mathematics/sciences playground that self-preflights/sandboxes, requires no credit card for trial, grants one trial per verified person identity, and uses a transparent non-destructive limited mode after expiry.",
+      "acceptance": [
+        "Production startup preflights the host, initializes safe state, starts hardened private services and exposes only the web gateway.",
+        "Missing optional GPU/AI/network/formal backends degrade visibly rather than breaking unrelated features or weakening evidence.",
+        "Free trial requires no credit card.",
+        "Trial entitlement is server-side and tied to a stable verified person key separately from the account row.",
+        "Creating/deleting another account does not reset a person's trial; recovery/merge is used instead.",
+        "Trial expiry never encrypts/corrupts/deletes user files or blocks export/recovery.",
+        "Expired users retain sign-in, view, export/download, delete, account recovery, help and license-management rights.",
+        "Account/trial/license state never changes scientific proof/evidence."
+      ]
+    },
+    {
+      "id": "G064",
+      "category": "multi_tenant_scaling",
+      "priority": 64,
+      "intent_status": "required",
+      "title": "Multi-user persistent tenant instances with isolated load-balanced sandboxes",
+      "summary": "Support many concurrent CACE users through stateless load-balanced gateways, durable logical instances per account, tenant-scoped persistent data and isolated elastic execution sandboxes, including outbound-only local-network AI/CACE links.",
+      "acceptance": [
+        "Every authenticated user/account resolves to one durable logical CACE instance/tenant context.",
+        "All users execute the same reviewed immutable CACE release; no per-user source-code clone or drift is required.",
+        "Web/API gateways scale horizontally and authoritative state is external to any one gateway process.",
+        "Scientific/native/AI work runs in tenant/job-scoped sandboxes with CPU/RAM/GPU/network/filesystem limits.",
+        "Every tenant-owned database/object/cache/job record is server-bound to tenant identity and cross-tenant access is denied by default.",
+        "Persistent tenant state survives worker crash, restart, rescheduling, rolling upgrades and idle sandbox suspension.",
+        "Tenant-aware queues provide quotas, backpressure and starvation-resistant/fair scheduling.",
+        "Users' local CACE/AI instances connect outbound through authenticated pairing/broker transport without requiring inbound ports on their networks.",
+        "Enterprise/higher-risk workloads may move to dedicated namespace/microVM/VM isolation without changing scientific semantics.",
+        "Load balancing and worker replacement never alter evidence/proof semantics."
+      ]
+    },
+    {
+      "id": "G065",
+      "category": "public_service_telemetry",
+      "priority": 65,
+      "intent_status": "required",
+      "title": "Public global signup with country policy and privacy-preserving improvement telemetry",
+      "summary": "Expose one stable public HTTPS CACE signup/recovery service for eligible users, provision each user's durable tenant instance, enforce the requested CN/KP country-access policy, and feed privacy-minimized heartbeat/product/proof-status telemetry back into reliability, product and sales improvement while actual proof/research artifacts remain explicit opt-in.",
+      "acceptance": [
+        "Production has one stable owned HTTPS URL for signup, recovery and browser access.",
+        "Eligible signup provisions or restores exactly one durable logical tenant instance under the multi-tenant policy.",
+        "Trusted edge/signup/session/local-agent registration enforce the configured CN and KP country block while documenting that GeoIP is not perfect location proof.",
+        "Country blocking does not replace sanctions, export-control, end-user or end-use screening.",
+        "All hosted instances emit essential health/heartbeat metadata using a strict allowlist that excludes raw scientific inputs, theorem/proof text, AI conversations, protein content, filenames, precise location and wallet secrets.",
+        "Essential proof feedback is status/count metadata only.",
+        "Product analytics used for improvement/internal sales is aggregate or pseudonymous and subject to applicable notice/consent/legal-basis/opt-out/retention controls.",
+        "Actual proof/theorem/research artifact contribution is off by default and requires separate explicit opt-in plus IP/contribution terms.",
+        "Telemetry can never promote scientific evidence or formal proof status."
+      ]
     }
   ]
 }

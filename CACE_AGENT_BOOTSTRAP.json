@@ -8,6 +8,11 @@
   },
   "first_read": [
     "docs/CHAT_IDEA_LEDGER.md",
+    "CACE_BUILD_LITE.json",
+    "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "CACE_PAYMENT_POLICY.json",
+    "CACE_DEPLOYMENT_BOUNDARY.json",
+    "docs/CACE_BUILD_LITE.md",
     "docs/CROSS_CHAT_HANDOFF.md",
     "docs/BUILD_AND_TRUST_GUIDE.md",
     "docs/STATUS.md",
@@ -23,7 +28,17 @@
     "docs/BUG_FLUSH_ARCHITECTURE.md",
     "docs/PROVENANCE_ATTESTATION.md",
     "docs/PRODUCTION_READINESS.md",
-    "docs/AI_QUICKSTART.md"
+    "docs/AI_QUICKSTART.md",
+    "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "CACE_PUBLIC_HELP_POLICY.json",
+    "docs/JUST_WORKS_SELF_SANDBOXING.md",
+    "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
+    "docs/help/README.md",
+    "CACE_MULTI_TENANT_POLICY.json",
+    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
+    "CACE_PUBLIC_SERVICE_POLICY.json",
+    "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
@@ -37,7 +52,15 @@
     "module_registry": "cace_studio/app.py",
     "bug_policy": "docs/BUG_FLUSH_ARCHITECTURE.md",
     "security_policy": "docs/SECURITY_ARCHITECTURE.md",
-    "provenance_policy": "docs/PROVENANCE_ATTESTATION.md"
+    "provenance_policy": "docs/PROVENANCE_ATTESTATION.md",
+    "build_optimizer": "CACE_BUILD_LITE.json + cace_studio/build_lite.py",
+    "payment_policy": "CACE_PAYMENT_POLICY.json",
+    "deployment_boundary": "CACE_DEPLOYMENT_BOUNDARY.json",
+    "trial_account_policy": "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json",
+    "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json",
+    "public_service_access": "CACE_PUBLIC_SERVICE_POLICY.json",
+    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -81,7 +104,10 @@
     "add permanent structural guard when possible",
     "aggregate independent validation",
     "preserve diagnostics",
-    "run qualification drift separately"
+    "run qualification drift separately",
+    "for unknown implementation features: rank candidate approaches before inventing a new architecture",
+    "preserve all affected architectural invariants through the fix/implementation",
+    "if a new helper tool is required, add typed contract + regression tests + permanent bug-sweep guard where practical"
   ],
   "security_invariants": [
     "no client-provided evidence promotion",
@@ -92,7 +118,10 @@
     "plugins denied capabilities by default in production target",
     "typed validation at trust boundaries",
     "least privilege",
-    "critical run evidence retained outside GitHub"
+    "critical run evidence retained outside GitHub",
+    "web gateway is the only client-visible application service",
+    "browser cannot directly reach local AI/model server, databases, wallet RPC, scientific/native workers, pairing/economy brokers, filesystem workers, or Lean runner",
+    "protected local services bind only loopback/private namespace/Unix-domain sockets and are not public listeners"
   ],
   "independent_log_retention": {
     "local_runner": "/var/lib/cace-evidence/runs/<commit>/<run-id>/ (target architecture)",
@@ -103,12 +132,12 @@
     "content_addressed_manifest": true
   },
   "webapp_layers": [
-    "browser Studio",
-    "API/session layer",
+    "browser/webapp presentation (untrusted)",
+    "public HTTPS/WSS web gateway only",
+    "private/local typed orchestration layer",
     "canonical Python graph/module/evidence core",
-    "C++ heavy kernels where justified",
-    "durable experiment/evidence storage",
-    "controlled long-job workers",
+    "private C++/GPU workers where justified",
+    "private account/protein/network/economy/payment brokers and durable storage",
     "isolated formal qualification runner"
   ],
   "webapp_required_surfaces": [
@@ -168,7 +197,10 @@
     },
     "cryptocurrency": "Monero (XMR)",
     "xmr_pricing_rule": "quote at purchase from USD policy; do not use long-lived hard-coded XMR economic price",
-    "evidence_rule": "payment/license state never creates or strengthens scientific evidence"
+    "evidence_rule": "payment/license state never creates or strengthens scientific evidence",
+    "canonical_monero_public_address": "482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ",
+    "canonical_monero_wallet_rule": "Reuse the existing CACE wallet; do not generate a replacement wallet. Invoice subaddresses, if used, must belong to the same wallet custody.",
+    "payment_policy": "CACE_PAYMENT_POLICY.json"
   },
   "current_theorem_roadmap": {
     "document": "docs/proofs/V341_TOP20_OF50_THEOREM_ROADMAP.md",
@@ -311,5 +343,71 @@
       "last_error": "container_session_unavailable",
       "retry_rule": "Future CACE chat with working Library write access should upload the current handoff and idea ledger, verify them by Library search/read, then update this status."
     }
+  },
+  "build_lite": {
+    "role": "low-cost deterministic build/test planning for human and AI code builders; never verification evidence",
+    "config": "CACE_BUILD_LITE.json",
+    "core": "cace_studio/build_lite.py",
+    "cli": "scripts/cace_build_lite.py",
+    "quick_command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
+    "merge_command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile merge --commands",
+    "proof_command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile proof --commands",
+    "math": [
+      "changed-path impact selection",
+      "dependency closure",
+      "DAG validation",
+      "critical-path analysis",
+      "reverse-dependency unlock leverage",
+      "exact-content cache fingerprints",
+      "resource-bounded deterministic parallel batching"
+    ],
+    "proof_rule": "proof-sensitive exact cache hits are restore-only and never skip qualification-sensitive work",
+    "execution_rule": "planner emits JSON/commands but does not execute or modify source by itself"
+  },
+  "code_builder_bootstrap": {
+    "document": "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "target": "complete production CACE application, not a mock/demo replacement",
+    "supported_agent_shape": "GitHub-connected code builders including Base44, Gemini AI Studio, Codex, and equivalent tools",
+    "source_of_truth": "GitHub repository",
+    "semantic_rule": "generated UI/backend layers consume canonical CACE typed APIs; they do not invent a second scientific/proof semantics",
+    "unknown_feature_rule": "Attempt every required feature. When implementation is unclear, generate/rank 10 approaches, use CACE Build Lite/CACE tools to select a viable architecture-preserving approach, or build a narrow tested helper tool. Never silently omit or fake the feature.",
+    "architecture_rule": "Preserve all established CACE architectures/invariants unless an explicit reviewed migration supersedes them."
+  },
+  "product_experience": {
+    "target": "full-featured production-grade mathematics and sciences playground that just works",
+    "self_sandboxing": "private/local service plane starts hardened by default; browser sees only gateway",
+    "graceful_degradation": "optional unavailable backends stay unavailable/not-run instead of weakening correctness",
+    "trial": "no credit card; one verified person/trial; non-destructive limited mode after expiry"
+  },
+  "public_help": {
+    "source_policy": "CACE_PUBLIC_HELP_POLICY.json",
+    "generator": "scripts/generate_public_help.py",
+    "checker": "scripts/check_public_help.py",
+    "generated_markdown": "docs/help/generated/CACE_PUBLIC_HELP.md",
+    "coverage": "all registered modules + customer features",
+    "proprietary_boundary": "never disclose custom math/derivations/algorithms/theorem bodies/source internals/hidden defaults"
+  },
+  "multi_tenant": {
+    "recommendation": "shared stateless web/control plane with isolated tenant/job sandboxes and durable tenant state",
+    "instance_rule": "one logical CACE instance per account; shared immutable release code; never per-user source drift",
+    "availability": "logical instance remains available while compute may warm, suspend, resume or move",
+    "local_agent_rule": "user-network agents connect outbound through authenticated pairing/broker transport",
+    "fairness": "tenant quotas, separate interactive/batch queues, backpressure and starvation-resistant scheduling",
+    "isolation": "cross-tenant access denied by default"
+  },
+  "public_service": {
+    "target": "one stable public HTTPS signup/recovery URL",
+    "tenant_result": "eligible signup restores/provisions one durable logical tenant instance",
+    "blocked_country_codes": [
+      "CN",
+      "KP"
+    ],
+    "location_note": "edge country signals are access-control signals, not perfect proof of physical location"
+  },
+  "telemetry": {
+    "essential": "allowlisted service health/heartbeat/resource/job/error/proof-status counts; no scientific/proof/AI/protein content",
+    "analytics": "privacy-controlled aggregate/pseudonymous product/sales usage",
+    "contribution": "actual proof/research artifacts explicit opt-in only",
+    "contract": "cace_studio/telemetry_contract.py"
   }
 }

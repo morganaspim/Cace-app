@@ -10,6 +10,23 @@ Before continuing an existing CACE workstream, read `docs/CROSS_CHAT_HANDOFF.md`
 The handoff is navigation only. Always re-query the current branch/PR/Actions state before proof, qualification, deployment, or release actions. During each substantive CACE chat, preserve new meritorious ideas in the ledger/goal registry and refresh the handoff at a natural stopping point. Documentation and conversational continuity never create verification evidence.
 
 
+## CACE Build Lite
+
+Coding agents should use the low-cost deterministic build planner before broad
+test/build work:
+
+```sh
+python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands
+```
+
+For merge-quality planning use `--profile merge`; for formal-source work use
+`--profile proof`. Build Lite emits JSON containing impacted tasks, cache
+decisions, critical path, and resource-bounded parallel batches. It does not
+execute tasks or create proof evidence. Proof-sensitive cache hits are
+restore-only.
+
+See `docs/CACE_BUILD_LITE.md`.
+
 ## Setup
 
 Python 3.11+ and a C++20 compiler are required for the full regression suite. Python 3.13.15 is used by the current CI workflows.

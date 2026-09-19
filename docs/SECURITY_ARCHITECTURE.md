@@ -162,9 +162,49 @@ Neither broker may:
 
 Use Unix-domain sockets or another narrow local IPC boundary where practical. The scientific core should not receive broker credentials.
 
-Browser policy should bundle application assets locally and use a restrictive CSP. The browser may connect to local CACE services, but should not fetch executable dependencies or scientific modules from third-party origins at runtime.
+Browser policy should bundle application assets locally and use a restrictive CSP. The browser may connect only to the CACE web gateway/same-origin public surface. It must not connect directly to local scientific workers, AI/model servers, databases, wallet/payment services, network-pairing brokers, filesystem workers, native kernels, or the Lean runner. Application assets must be bundled and executable dependencies/scientific modules must not be fetched from third-party origins at runtime.
 
 See `docs/OFFLINE_COLLABORATION_AND_LICENSING.md`.
+
+## 2.3 Browser-only public surface and hardened local layer
+
+Production CACE has one client-visible application boundary:
+
+`Browser -> HTTPS/WSS Web Gateway`
+
+Everything else is a hardened private/local service layer.
+
+The gateway may serve bundled assets and expose authenticated same-origin typed
+endpoints, but it does not contain canonical scientific computation, proof
+qualification, wallet custody, arbitrary filesystem access, or raw model
+control.
+
+Private services include the orchestrator, scientific runtime, C++/GPU workers,
+local-AI broker, account/protein storage, directional network-pairing broker,
+Math Coin broker, Monero wallet broker, durable evidence/provenance storage and
+formal qualification runner.
+
+Required hardening:
+
+- private services bind only Unix-domain sockets, loopback or a private service
+  network and never public interfaces;
+- firewall/default-deny rules prevent client access to those services;
+- scientific/proof services have no general Internet egress;
+- broker egress is explicit and allowlisted;
+- each major service uses a least-privilege identity;
+- package/runtime roots are read-only where practical;
+- writable roots are explicitly scoped;
+- no-new-privileges, dropped capabilities and OS/container sandboxing are used
+  where supported;
+- typed IPC has size/version/authentication bounds;
+- CPU/memory/process/file/job quotas and timeouts are enforced;
+- secrets remain server-side and outside browser/model context;
+- privileged operations produce auditable records.
+
+A hosted/generated frontend may be replaced without changing the local scientific
+or proof semantics.
+
+Machine-readable policy: `CACE_DEPLOYMENT_BOUNDARY.json`.
 
 ## 2.2 Source-secrecy / anti-reverse-engineering gate
 
@@ -293,7 +333,7 @@ Preferred handling:
 
 Recommended production shape:
 
-`Browser -> HTTPS reverse proxy -> API -> job/runtime service -> durable storage`
+`Browser -> HTTPS/WSS Web Gateway (only public app surface) -> private local orchestrator -> private job/runtime/storage services`
 
 Formal qualification is separate:
 

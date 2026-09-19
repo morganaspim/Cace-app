@@ -1,0 +1,61 @@
+{
+  "schema": "cace.trial-account-policy.v1",
+  "role": "production account uniqueness and free-trial entitlement policy",
+  "product_goal": "One production account/trial entitlement per verified person-user, no credit card required for the free trial, and non-destructive post-trial limited mode.",
+  "identity": {
+    "production_requirement": "Authentication adapter must supply a stable verified person-subject or equivalent server-side identity anchor.",
+    "storage": "CACE stores only a server-derived opaque person key/hash; raw identity-provider secrets or identity documents are not stored in ordinary application tables.",
+    "one_account_rule": "One active production account is bound to one person key. If the same person returns, recover/merge the existing account instead of issuing a new trial account.",
+    "deletion_rule": "Deleting an account does not automatically erase the anti-abuse trial-entitlement record; retention/deletion must follow the published privacy policy and applicable law.",
+    "no_credit_card_required": true
+  },
+  "trial": {
+    "duration": "deployment-configured; not hard-coded by public help",
+    "starts": "first successful production account/trial claim for the person key",
+    "reset_by_new_account": false,
+    "reset_by_account_deletion": false,
+    "duplicate_person_claim": "reject and route to account recovery/merge",
+    "expiry_mode": "limited"
+  },
+  "expiry_behavior": {
+    "ransomware_like_behavior": false,
+    "encrypt_user_files": false,
+    "delete_user_files": false,
+    "corrupt_user_files": false,
+    "hold_export_hostage": false,
+    "lock_account_recovery": false,
+    "allowed_after_expiry": [
+      "sign in",
+      "view owned experiments/results",
+      "export/download owned data",
+      "delete owned data",
+      "account recovery/merge",
+      "view help/documentation",
+      "manage subscription/license"
+    ],
+    "premium_capabilities_may_be_disabled": [
+      "new scientific execution above free limits",
+      "networked local-AI economy links",
+      "premium local-AI orchestration",
+      "Math Coin/real-crypto market actions",
+      "premium compute",
+      "enterprise collaboration",
+      "other explicitly licensed premium features"
+    ]
+  },
+  "anti_abuse": {
+    "browser_only_checks_are_insufficient": true,
+    "server_side_enforcement": true,
+    "trial_ledger_separate_from_account_row": true,
+    "rate_limit_account_creation": true,
+    "verified_identity_anchor_required_for_production_trial": true,
+    "device_or_network_risk_signals": "optional secondary abuse signals only; never the sole person identity",
+    "account_recovery_preferred_over_new_account": true
+  },
+  "safety": {
+    "principle": "Trial enforcement must be transparent, reversible by valid licensing, and non-destructive.",
+    "user_data_rule": "Users retain a reasonable path to retrieve and delete their own data after trial expiry.",
+    "sandbox_rule": "The hardened private CACE layer remains sandboxed regardless of trial/license state.",
+    "evidence_rule": "Account/trial/payment/license state never changes scientific proof or verification truth."
+  }
+}

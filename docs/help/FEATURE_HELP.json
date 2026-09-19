@@ -1,0 +1,429 @@
+{
+  "schema": "cace.public-feature-help.v1",
+  "role": "customer-facing product help source; contains no proprietary implementation details",
+  "features": [
+    {
+      "id": "canvas",
+      "title": "Scientific Canvas",
+      "status": "production target",
+      "what_you_see": "A visual workspace where modules can be placed, moved, connected, grouped, and inspected.",
+      "what_it_looks_for": [
+        "A module to add",
+        "Valid typed connections between visible ports",
+        "User-selected parameters"
+      ],
+      "rigor": "Canvas layout is presentation only. Scientific meaning comes from the connected module contracts and executed verification, not from where a node is drawn.",
+      "examples": [
+        "Create a small experiment by adding a data/source module, a transformation module, and a result/check module; connect only ports that the UI accepts.",
+        "Duplicate an experiment, change one visible parameter, run both, and compare outputs and verification states without changing the module topology."
+      ]
+    },
+    {
+      "id": "module-library",
+      "title": "Module Library",
+      "status": "production target",
+      "what_you_see": "Searchable scientific, mathematical, verification, research, and utility modules.",
+      "what_it_looks_for": [
+        "A scientific task or data type",
+        "A module whose visible inputs/outputs match that task"
+      ],
+      "rigor": "Each module exposes a visible contract: accepted inputs, produced outputs, parameters, maturity, and evidence categories. Hidden implementation is not required to use the contract correctly.",
+      "examples": [
+        "Search for a module by category, inspect its visible inputs and outputs, then drag it onto the canvas.",
+        "Compare two modules that produce the same public output type and choose one based on maturity, assumptions, and verification needs."
+      ]
+    },
+    {
+      "id": "typed-connections",
+      "title": "Typed Connections",
+      "status": "implemented core",
+      "what_you_see": "Ports connect only when their public data types and declared unit contracts are compatible.",
+      "what_it_looks_for": [
+        "Matching visible output/input types",
+        "Matching declared units when units are present"
+      ],
+      "rigor": "Connections fail closed on incompatible public contracts. A successful connection means the data interface is compatible; it does not by itself prove that the chosen scientific workflow is meaningful.",
+      "examples": [
+        "Connect an output labeled as the same public type as a downstream input; the UI accepts the edge when the contract matches.",
+        "Try connecting ports with incompatible declared units; CACE rejects the edge instead of silently converting or guessing."
+      ]
+    },
+    {
+      "id": "parameters-units",
+      "title": "Parameters and Units",
+      "status": "implemented core",
+      "what_you_see": "Editable module parameters with visible type/default/unit metadata.",
+      "what_it_looks_for": [
+        "Values of the expected public type",
+        "Exact declared unit convention where applicable"
+      ],
+      "rigor": "Parameters are validated at execution boundaries. Declared unit contracts are exact and explicit rather than silently converted.",
+      "examples": [
+        "Run a module with its default visible parameters, then repeat with one parameter changed and compare the evidence panel.",
+        "Enter values using the module's declared unit convention; if a connected module declares a different unit contract, insert an explicit conversion module rather than relying on an implicit conversion."
+      ]
+    },
+    {
+      "id": "execution",
+      "title": "Experiment Execution",
+      "status": "implemented core",
+      "what_you_see": "Run controls, progress, outputs, and per-module results.",
+      "what_it_looks_for": [
+        "A valid experiment graph",
+        "All required inputs/parameters",
+        "Available compute resources"
+      ],
+      "rigor": "The runtime validates the graph before execution and keeps execution separate from verification. A run completing does not automatically mean the result is verified.",
+      "examples": [
+        "Run a three-module graph and inspect which nodes executed and what outputs were produced.",
+        "Intentionally leave a required input disconnected and observe that validation fails before scientific execution begins."
+      ]
+    },
+    {
+      "id": "verification",
+      "title": "Verification and Evidence",
+      "status": "implemented core",
+      "what_you_see": "PASS, FAIL, NOT_RUN/stale-style result states and evidence categories attached to executed checks.",
+      "what_it_looks_for": [
+        "An executed verifier",
+        "The verifier's explicit conditions and evidence type"
+      ],
+      "rigor": "Evidence categories are kept separate. Missing or skipped verification is never presented as success, and a numerical result is never silently promoted to formal proof.",
+      "examples": [
+        "Run an experiment whose checker passes and inspect the evidence type rather than relying only on the green status.",
+        "Disable or make an optional backend unavailable and confirm the result shows NOT_RUN/unavailable rather than PASS."
+      ]
+    },
+    {
+      "id": "proof-explorer",
+      "title": "Proof Explorer",
+      "status": "implemented core",
+      "what_you_see": "Read-only views of claim status, hypotheses, evidence ceiling, and whether current source is formally qualified.",
+      "what_it_looks_for": [
+        "A canonical claim",
+        "Current qualification state",
+        "Any unresolved assumptions/blockers"
+      ],
+      "rigor": "Formal status is controlled separately from ordinary module execution. Customer help describes scope and assumptions but does not expose theorem bodies or proprietary formalization details.",
+      "examples": [
+        "Open a formally supported result and inspect its visible assumptions and current qualification state before using it in a report.",
+        "Open a conditional claim and verify that the condition remains visible rather than being hidden by a successful numerical experiment."
+      ]
+    },
+    {
+      "id": "save-replay-export",
+      "title": "Save, Replay, and Export",
+      "status": "implemented/planned integration",
+      "what_you_see": "Experiment files, run reports, replay/fingerprint tools, and customer-safe exports.",
+      "what_it_looks_for": [
+        "A valid experiment",
+        "A completed or saved run",
+        "Chosen export format"
+      ],
+      "rigor": "Saved experiments preserve public semantic structure separately from presentation state. Provenance/fingerprints identify content but do not create mathematical truth.",
+      "examples": [
+        "Save an experiment, reopen it later, rerun it with the same seed/settings, and compare the replay report.",
+        "Export a customer-safe report showing module names, visible inputs/outputs, parameters, results, and evidence labels without source implementation details."
+      ]
+    },
+    {
+      "id": "visualization-2d-3d",
+      "title": "2D / 3D Visualization",
+      "status": "production target",
+      "what_you_see": "Switchable 2D and 3D views, pan/zoom, and rotatable scientific visualizations.",
+      "what_it_looks_for": [
+        "Renderable experiment/result data",
+        "A selected visualization mode"
+      ],
+      "rigor": "View transforms do not change scientific semantics unless the user explicitly adds a scientific transformation module.",
+      "examples": [
+        "Inspect the same result in 2D and 3D and confirm the underlying experiment/evidence state does not change.",
+        "Rotate a 3D view to inspect structure from another angle, then reset the camera without rerunning the experiment."
+      ]
+    },
+    {
+      "id": "coordinate-views",
+      "title": "Coordinate and Tiling Views",
+      "status": "production target",
+      "what_you_see": "Cartesian and alternative tiling/coordinate visualizations such as square, triangular, hexagonal, hierarchical, or other supported layouts.",
+      "what_it_looks_for": [
+        "Data that can be visualized spatially",
+        "A selected presentation coordinate/tiling"
+      ],
+      "rigor": "Coordinate/tiling presentation is visually informative but cannot alter proof/evidence unless represented by an explicit scientific transform in the graph.",
+      "examples": [
+        "View the same point/field data on Cartesian and hexagonal presentation grids and compare visual structure.",
+        "Use a hierarchical/fractal-style address view for navigation while keeping the experiment graph and verification state unchanged."
+      ]
+    },
+    {
+      "id": "research-ideas",
+      "title": "Research Ideas and Build on Canvas",
+      "status": "production target",
+      "what_you_see": "Editable research idea cards with hypotheses, proposed experiments, associated modules, evidence notes, and lifecycle status.",
+      "what_it_looks_for": [
+        "A question or hypothesis",
+        "Candidate modules",
+        "A proposed testable experiment"
+      ],
+      "rigor": "Idea status is research workflow metadata, not proof. Proposed graphs are previewed before being added to the scientific canvas.",
+      "examples": [
+        "Create an idea, associate two relevant modules, generate a Minimal proposal, preview it, and then add it to the canvas.",
+        "Compare Minimal, Balanced, and Exploratory proposed graphs for the same idea and choose one based on compute cost and testability."
+      ]
+    },
+    {
+      "id": "local-ai",
+      "title": "Local AI Assistant",
+      "status": "feature integration",
+      "what_you_see": "Optional local-model assistant for explanation, research suggestions, and experiment planning.",
+      "what_it_looks_for": [
+        "User-approved context",
+        "A configured local provider",
+        "Capability policy"
+      ],
+      "rigor": "AI output is advisory only and never becomes scientific evidence or formal proof. High-capability/network permissions are independently gated.",
+      "examples": [
+        "Ask the local AI to explain what a selected module expects and receive a customer-safe explanation without changing the experiment.",
+        "Ask for three experiment ideas, review them, and manually approve only the one you want to place on the canvas."
+      ]
+    },
+    {
+      "id": "heartbeat",
+      "title": "Conway Heartbeat",
+      "status": "feature integration",
+      "what_you_see": "Activity/attention state that connects canvas modules, AI attention, and resource/economy views.",
+      "what_it_looks_for": [
+        "Canvas nodes",
+        "Recent changes/verification/activity",
+        "Optional AI research-interest updates"
+      ],
+      "rigor": "Heartbeat state is orchestration metadata only. It cannot make a result verified or alter mathematical truth.",
+      "examples": [
+        "Run an experiment and observe heartbeat activity move through nodes that changed or executed.",
+        "Use Protein Play or Open Problem Play to raise research attention on selected objects while keeping their scientific evidence unchanged."
+      ]
+    },
+    {
+      "id": "compute-economy",
+      "title": "Spare-Compute Economy",
+      "status": "feature integration",
+      "what_you_see": "Internal non-monetary compute credits, resource headroom, task bids, and scheduling outcomes.",
+      "what_it_looks_for": [
+        "Measured spare resources",
+        "Bounded research tasks",
+        "Host-measured outcomes"
+      ],
+      "rigor": "The scheduler uses measurable resource/task information, while verification remains separate. AI self-reports cannot create rewards or evidence.",
+      "examples": [
+        "Let two research tasks bid for limited spare compute and inspect which one is scheduled first.",
+        "Compare two strategies over repeated host-measured runs and use the measured efficiency history for future scheduling."
+      ]
+    },
+    {
+      "id": "math-coin",
+      "title": "Math Coin Research Economy",
+      "status": "research/simulation target",
+      "what_you_see": "A simulated fixed-supply compute-right economy layered above internal scheduling credits.",
+      "what_it_looks_for": [
+        "A configured simulation ledger",
+        "Compute demand",
+        "Explicit user-enabled market/broker policies"
+      ],
+      "rigor": "Economic state is completely separate from scientific truth. Any production real-asset integration requires separate security/compliance review.",
+      "examples": [
+        "Simulate a compute purchase where a bounded amount of MATH is reserved and burned only after measured compute settlement.",
+        "Model a decade vault release event and observe market/resource effects without changing any scientific result or proof status."
+      ]
+    },
+    {
+      "id": "open-problems",
+      "title": "Open Problems Toolkit",
+      "status": "feature integration",
+      "what_you_see": "Source-backed cards for open scientific/mathematical problems that can be imported to the canvas and explored.",
+      "what_it_looks_for": [
+        "A catalog problem",
+        "Source/status metadata",
+        "A user-selected research question"
+      ],
+      "rigor": "Problem status is date-stamped research metadata. AI or numerical exploration cannot mark an open problem solved.",
+      "examples": [
+        "Import a sourced open problem card to the canvas and ask Local AI for decompositions, invariants, and computational tests.",
+        "Filter the catalog by field/status, choose a problem, and build a small exploratory graph without changing the problem's official status."
+      ]
+    },
+    {
+      "id": "protein-playground",
+      "title": "Protein Playground",
+      "status": "feature integration",
+      "what_you_see": "Imported protein structure outputs, residue-level inspection, provenance/confidence information, and heartbeat Play.",
+      "what_it_looks_for": [
+        "A typed protein structure output",
+        "Sequence/coordinate/provenance data",
+        "Optional confidence values"
+      ],
+      "rigor": "Protein Play is read-only research analysis. Imported predictions remain predictions and do not become experimental/clinical evidence.",
+      "examples": [
+        "Select an imported protein and run Play to highlight residues with interesting confidence/contact patterns for further inspection.",
+        "Compare two protein structures from separate runs while preserving each one's source, license, attribution, and evidence limitations."
+      ]
+    },
+    {
+      "id": "alphafold-import",
+      "title": "AlphaFold DB Import",
+      "status": "feature branch integration",
+      "what_you_see": "A UniProt accession field and attributed AlphaFold DB import into a typed protein object.",
+      "what_it_looks_for": [
+        "A valid UniProt accession",
+        "Network permission for the import broker",
+        "Available AlphaFold DB record"
+      ],
+      "rigor": "Retrieval preserves public source/license/attribution and content identity. CACE does not reproduce AlphaFold or claim the prediction is experimentally proven.",
+      "examples": [
+        "Enter a UniProt accession, import the available structure, inspect attribution, then open it in Protein Playground.",
+        "Import two proteins by accession and compare their visible structures/confidence while keeping source records separate."
+      ]
+    },
+    {
+      "id": "chemistry",
+      "title": "Atoms, Molecules, and Chemistry Experiments",
+      "status": "science-module integration target",
+      "what_you_see": "Typed atom/molecule objects and chemistry experiment modules suitable for safe computational/home-lab planning.",
+      "what_it_looks_for": [
+        "A molecule/atom object",
+        "Declared conditions/properties",
+        "A module appropriate to the intended experiment"
+      ],
+      "rigor": "CACE keeps computed/predicted properties distinct from measured observations and displays limitations/evidence type.",
+      "examples": [
+        "Create or import a simple molecule object, connect it to a property-analysis module, and inspect the evidence label on the result.",
+        "Build a comparison experiment for two candidate molecules using the same visible conditions and compare predicted properties without treating them as measured facts."
+      ]
+    },
+    {
+      "id": "materials",
+      "title": "Materials Search",
+      "status": "science-module integration target",
+      "what_you_see": "Search/generation workflows for candidate materials and predicted property screens.",
+      "what_it_looks_for": [
+        "A target property profile",
+        "Candidate composition/structure data",
+        "Available property-analysis modules"
+      ],
+      "rigor": "Generated candidates are hypotheses. Property predictions retain their evidence class and require separate experimental validation where appropriate.",
+      "examples": [
+        "Specify a target set of public properties, generate candidate materials, and rank them by the visible predicted outputs.",
+        "Take one candidate and pass it through two independent property-analysis modules, then compare their evidence/limitations before deciding whether to test it experimentally."
+      ]
+    },
+    {
+      "id": "physics-objects",
+      "title": "Physics Objects",
+      "status": "science-module integration target",
+      "what_you_see": "Draggable typed physics objects such as fields/particles/other supported conceptual objects and related experiment modules.",
+      "what_it_looks_for": [
+        "A compatible physics object",
+        "A transformation/analysis module",
+        "Explicit assumptions"
+      ],
+      "rigor": "The canvas object is a typed scientific representation. Visual presence alone does not imply a physical claim; executed modules and evidence determine result status.",
+      "examples": [
+        "Place two compatible physics objects on the canvas and connect them through an analysis module with matching typed ports.",
+        "Compare the same input object under two different public parameter settings and inspect which conclusions are numerical, symbolic, interval, or formal."
+      ]
+    },
+    {
+      "id": "accounts",
+      "title": "Accounts and Profiles",
+      "status": "core implementation branch",
+      "what_you_see": "Account/profile settings including user type, optional declared location scope, protein-library consent, and local-AI Math Coin wallet identity.",
+      "what_it_looks_for": [
+        "User-provided account information",
+        "Explicit consent choices"
+      ],
+      "rigor": "Profile/economic data never changes scientific evidence. Sensitive wallet material is not stored in ordinary profile fields.",
+      "examples": [
+        "Create a Researcher profile with region-level declared location and protein-library storage enabled.",
+        "Create a Basic profile without location disclosure or protein storage and use CACE normally with those features disabled."
+      ]
+    },
+    {
+      "id": "network-pairing",
+      "title": "Local AI Economy Pairing",
+      "status": "core implementation branch",
+      "what_you_see": "Network OFF/ON, distinct Receive and Outgoing connection codes, code-entry fields, and linked-instance status.",
+      "what_it_looks_for": [
+        "Explicit network enablement",
+        "A valid peer code for the intended direction",
+        "Allowed economy/heartbeat capabilities"
+      ],
+      "rigor": "Codes are directional, short-lived, and single-use. Pairing grants only narrow economy/heartbeat capabilities and not shell/filesystem/proof/wallet-key authority.",
+      "examples": [
+        "Enable networking on two instances, enter instance B's Receive code into A's outgoing connection field, and establish A→B only.",
+        "Create the reverse B→A relationship separately with a second explicit pairing rather than assuming bidirectional trust."
+      ]
+    },
+    {
+      "id": "protein-library",
+      "title": "Account Protein Library",
+      "status": "core implementation branch",
+      "what_you_see": "Optional saved protein objects associated with an account.",
+      "what_it_looks_for": [
+        "Protein-library consent enabled",
+        "A typed protein object with provenance"
+      ],
+      "rigor": "Storage preserves source/license/attribution metadata and is separate from verification/proof.",
+      "examples": [
+        "Enable protein storage, import an attributed protein, and save it to your account library for later experiments.",
+        "Keep storage disabled and verify that imported proteins remain session/experiment data rather than being persisted to the account library."
+      ]
+    },
+    {
+      "id": "payments",
+      "title": "Payments and Canonical Monero Receive Wallet",
+      "status": "production architecture",
+      "what_you_see": "Customer-facing payment/quote/invoice state where enabled; private wallet custody stays behind the server boundary.",
+      "what_it_looks_for": [
+        "A supported payment request",
+        "Server-side payment broker",
+        "Explicit user transaction"
+      ],
+      "rigor": "Payment state is commercial metadata and never scientific evidence. Browser/AI never receives wallet private keys.",
+      "examples": [
+        "Display a server-generated invoice/receive request using the configured canonical CACE wallet infrastructure.",
+        "Confirm a payment/licensing event changes commercial access state only, leaving all scientific verification states untouched."
+      ]
+    },
+    {
+      "id": "build-lite",
+      "title": "CACE Build Lite",
+      "status": "implemented branch",
+      "what_you_see": "A compact JSON build/test plan for coding agents and developers.",
+      "what_it_looks_for": [
+        "Changed repository paths",
+        "Build task dependencies",
+        "Cache fingerprints/resource limits"
+      ],
+      "rigor": "Build Lite uses deterministic dependency/critical-path/cache scheduling and has no scientific/proof authority.",
+      "examples": [
+        "Run Build Lite after changing web files and execute only the cheap impacted checks before a broader regression.",
+        "Run the proof profile after formal-source changes and observe that proof-sensitive cache hits remain restore-only rather than skipping qualification work."
+      ]
+    },
+    {
+      "id": "help-center",
+      "title": "Customer Help Center",
+      "status": "this feature",
+      "what_you_see": "Searchable feature/module help with safe examples, visible contracts, connection suggestions, and rigor explanations.",
+      "what_it_looks_for": [
+        "A feature/module name or category",
+        "The current public module registry"
+      ],
+      "rigor": "Help content is generated from a strict allowlist and leakage policy. It explains public behavior and rigor boundaries without exposing proprietary implementation or custom mathematics.",
+      "examples": [
+        "Open a module help page before using it and review its required inputs, outputs, parameters, evidence labels, and two sample experiments.",
+        "Search for a workflow goal, open two compatible module pages, and use the suggested connection examples as a starting point while still checking scientific appropriateness."
+      ]
+    }
+  ]
+}

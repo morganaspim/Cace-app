@@ -554,6 +554,27 @@ Minimum discoverability package:
 
 Agents should leave useful handoffs in repository-visible structured documentation rather than relying on private chat history.
 
+### 16.1 Complete-feature coding-agent fallback
+
+Code builders are expected to implement the complete production feature set, not
+only the subset that is easy for a generative builder.
+
+For every required feature whose implementation is uncertain:
+
+- preserve the current architecture first;
+- generate and rank 10 candidate implementation approaches by architecture
+  preservation, correctness/evidence boundary, security, tractability,
+  testability/bug-sweep coverage, CACE reuse, cost, and maintainability;
+- use CACE Build Lite and existing CACE modules/tools to narrow the implementation;
+- build a narrowly scoped typed helper tool only when existing infrastructure is
+  insufficient;
+- add regression/adversarial tests and the CACE defect-family sibling sweep;
+- never mark a feature complete when only a placeholder/mock exists;
+- if no safe path exists, retain the ranked alternatives/blockers visibly.
+
+All established CACE architectures remain cumulative constraints unless a later
+explicit reviewed migration supersedes one.
+
 ## 17. Goal-capture protocol
 
 When the user proposes a new goal:
@@ -627,3 +648,99 @@ Production readiness additionally requires exact-commit regression/security/depl
 - require blockchain/cryptocurrency for provenance;
 - let web convenience bypass canonical scientific contracts;
 - let documentation commits disturb an in-flight exact-head proof qualification unnecessarily.
+
+
+## Full-featured just-works product contract
+
+CACE production is a complete mathematics/sciences playground, not a developer
+prototype. Startup should automatically preflight the supported host, initialize
+safe local state, start the hardened private service plane, expose only the web
+gateway, detect optional backends and degrade visibly without weakening
+scientific/evidence rules.
+
+See `docs/JUST_WORKS_SELF_SANDBOXING.md`.
+
+## Free trial and one-person account contract
+
+The free trial requires no credit card and is granted once per verified person
+identity anchor. The trial entitlement survives account recreation/deletion as
+required for anti-abuse; returning users recover/merge their account rather than
+receiving another trial.
+
+Expiry is strictly non-destructive. Users retain view/export/delete/recovery/help
+access to their own data while premium execution/network/economy capabilities
+may be disabled until licensing.
+
+See `CACE_TRIAL_ACCOUNT_POLICY.json` and
+`docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md`.
+
+## Customer-safe complete help contract
+
+Production help is generated from the live public module registry. Every
+registered module receives visible contract help plus at least two direct-use
+and two combined-module examples. Every customer-facing feature receives at
+least two examples.
+
+The help system explains typed connections, unit contracts, verification,
+evidence classes, provenance and formal-qualification boundaries without
+publishing proprietary CACE mathematics, algorithms, hidden defaults, theorem
+bodies, source internals or security secrets.
+
+See `CACE_PUBLIC_HELP_POLICY.json` and `docs/help/README.md`.
+
+
+## Multi-user / multi-tenant production architecture
+
+Production CACE must support many concurrent accounts while preserving strong
+tenant isolation and the browser-only gateway/private-service boundary.
+
+Preferred topology:
+
+`load-balanced stateless gateways -> tenant control plane -> isolated tenant/job
+sandboxes -> tenant-scoped durable storage`
+
+Each account owns a durable logical CACE instance. The instance is state, identity
+and capability configuration—not a private copy of the repository. All tenants
+run a reviewed immutable release image so upgrades remain atomic and source does
+not drift between users.
+
+The platform should keep user-visible state continuously available while allowing
+CPU/GPU/AI workers to stay warm, scale out, suspend, resume or be replaced.
+Tenant-aware queues enforce quotas, backpressure and fairness.
+
+Users may link local CACE/AI instances from their own networks through outbound
+authenticated broker connections and the existing directional pairing model;
+production must not require customers to open inbound firewall/router ports.
+
+Cross-tenant database, storage, cache, job, protein, wallet and evidence access
+is denied by default. Explicit collaboration/economy capabilities are the only
+normal cross-tenant path.
+
+See `CACE_MULTI_TENANT_POLICY.json` and
+`docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`.
+
+
+## Public signup and privacy-preserving product feedback
+
+Production CACE should expose one stable owned HTTPS URL for eligible account
+signup/recovery and browser access. Signup provisions/restores the user's durable
+logical tenant instance under the multi-tenant architecture.
+
+Requested country-access policy blocks CN and KP at the trusted edge and repeats
+that decision on signup/session/local-agent broker registration. This is a
+product/access policy and does not replace sanctions/export/end-user compliance.
+
+Every hosted instance can feed back strict allowlisted operational heartbeat
+metadata, including health/resource/job/error metrics and formal-proof status
+counts. Essential telemetry never contains raw scientific payloads, equations,
+proof/theorem text, AI conversations, protein content, precise location,
+filenames or wallet secrets.
+
+Privacy-controlled aggregate/pseudonymous product analytics may inform feature
+prioritization, capacity, customer success and internal sales strategy. Actual
+proof/research content is contributed only through a separate explicit opt-in
+with IP/contribution terms.
+
+See `CACE_PUBLIC_SERVICE_POLICY.json`,
+`CACE_TELEMETRY_PRIVACY_POLICY.json`, and
+`docs/PUBLIC_SERVICE_AND_TELEMETRY.md`.

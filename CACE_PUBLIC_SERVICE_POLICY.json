@@ -1,0 +1,42 @@
+{
+  "schema": "cace.public-service-access.v1",
+  "role": "production public signup/access and country/compliance policy",
+  "canonical_public_url": "deployment-defined HTTPS URL; do not invent a placeholder domain in user-facing builds",
+  "public_access": {
+    "default": "allow",
+    "blocked_country_codes": [
+      "CN",
+      "KP"
+    ],
+    "enforcement_points": [
+      "CDN/edge or reverse proxy before application routing",
+      "signup/account creation",
+      "session renewal and high-risk privileged actions",
+      "local-agent broker registration"
+    ],
+    "country_signal": [
+      "edge GeoIP country",
+      "verified/account country where available",
+      "declared country as a secondary consistency signal only"
+    ],
+    "bypass_claim": "GeoIP/country blocking is a policy control, not a perfect proof of physical location; do not advertise it as impossible to bypass.",
+    "sanctions_and_export_controls": "Country block does not replace sanctions-list, end-user/end-use, EAR/export-classification, or other jurisdiction-specific compliance screening."
+  },
+  "signup": {
+    "enabled": true,
+    "one_verified_person_one_account_trial_policy": "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "creates_logical_tenant_instance": true,
+    "tenant_policy": "CACE_MULTI_TENANT_POLICY.json",
+    "browser_surface": "web_gateway only",
+    "client_never_receives_private_service_credentials": true
+  },
+  "blocked_response": {
+    "behavior": "deny signup, session creation, tenant provisioning, local-agent registration, and application execution",
+    "content": "show a neutral access-unavailable notice and support/compliance contact path; do not expose internal policy/risk signals"
+  },
+  "review": {
+    "country_policy_is_business_policy": true,
+    "compliance_review_required_before_production": true,
+    "policy_may_expand_for_legal_export_or_sanctions_requirements": true
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "schema": "cace.multi-tenant-runtime.v1",
+  "role": "production multi-user tenancy, isolation, persistence and load-balancing policy",
+  "recommendation": "hybrid_control_plane_isolated_tenant_sandboxes",
+  "invariant": "Many users may use CACE concurrently, but every request, job, artifact, AI link, wallet capability, protein object, experiment and sandbox belongs to exactly one tenant/account context unless an explicit cross-tenant collaboration capability authorizes otherwise.",
+  "ranked_architectures": [
+    {
+      "rank": 1,
+      "id": "hybrid_control_plane_isolated_tenant_sandboxes",
+      "name": "Shared stateless control plane + isolated per-tenant sandboxes",
+      "verdict": "preferred",
+      "strengths": [
+        "best balance of isolation, cost, scaling and operational simplicity",
+        "one signed CACE software image prevents per-user code drift",
+        "durable tenant state stays persistent while compute sandboxes can remain warm, scale out, suspend or resume",
+        "stateless gateways can load-balance horizontally",
+        "tenant-scoped queues support fair scheduling and backpressure"
+      ],
+      "tradeoffs": [
+        "requires strong tenant identity propagation and authorization at every private-service boundary",
+        "requires sandbox lifecycle management and durable storage separate from ephemeral workers"
+      ]
+    },
+    {
+      "rank": 2,
+      "id": "tenant_namespace_or_pod_set",
+      "name": "Per-tenant container namespace / pod set",
+      "verdict": "strong alternative",
+      "strengths": [
+        "clear resource and network isolation",
+        "straightforward autoscaling and rolling upgrades",
+        "good fit for larger Researcher/Enterprise tenants"
+      ],
+      "tradeoffs": [
+        "higher baseline overhead than shared warm-pool workers",
+        "cluster policy must prevent namespace escape and cross-tenant service discovery"
+      ]
+    },
+    {
+      "rank": 3,
+      "id": "tenant_microvm",
+      "name": "Per-tenant microVM sandbox with suspend/resume",
+      "verdict": "high-isolation tier",
+      "strengths": [
+        "strong kernel-level isolation",
+        "good fit for untrusted native/AI workloads and enterprise tenants",
+        "can preserve a durable logical instance while suspending idle compute"
+      ],
+      "tradeoffs": [
+        "higher memory/startup/operational cost",
+        "GPU passthrough and high-density scheduling are more complex"
+      ]
+    },
+    {
+      "rank": 4,
+      "id": "shared_worker_pool_hard_sandbox",
+      "name": "Shared worker pool with per-job tenant sandbox",
+      "verdict": "cost-optimized tier",
+      "strengths": [
+        "excellent compute density",
+        "good for short stateless scientific jobs",
+        "workers can autoscale rapidly"
+      ],
+      "tradeoffs": [
+        "larger shared-worker blast radius than dedicated tenant sandboxes",
+        "requires particularly strong filesystem/network/cgroup isolation and cleanup"
+      ]
+    },
+    {
+      "rank": 5,
+      "id": "full_vm_per_user",
+      "name": "Always-on full VM per user",
+      "verdict": "special enterprise option only",
+      "strengths": [
+        "simple mental model and strong isolation",
+        "dedicated predictable resources"
+      ],
+      "tradeoffs": [
+        "expensive at scale",
+        "slow provisioning and inefficient idle capacity",
+        "large patching/operations surface"
+      ]
+    }
+  ],
+  "logical_instance": {
+    "rule": "Each account owns a durable logical CACE instance_id. Do not clone the repository/source tree per user.",
+    "shared_code": "All tenants execute an immutable signed/versioned CACE image or release artifact.",
+    "tenant_state": [
+      "account/profile/entitlement",
+      "experiments and canvas state",
+      "result/evidence/provenance records",
+      "protein library opt-in data",
+      "local-AI instance links",
+      "Math Coin wallet identity/capabilities",
+      "feature flags and quotas",
+      "research ideas and user settings"
+    ],
+    "persistence": "Tenant state is durable and always addressable even when compute workers are stopped or rescheduled.",
+    "upgrade": "Upgrade tenants by moving instance manifests to a reviewed immutable release version; never edit per-user code copies."
+  },
+  "public_plane": {
+    "services": [
+      "global HTTPS/WSS web gateway",
+      "stateless API replicas",
+      "authenticated WebSocket/session edge"
+    ],
+    "load_balancing": [
+      "stateless HTTP requests may route to any healthy gateway",
+      "WebSocket connections may use connection affinity while authoritative state remains external",
+      "health/readiness checks remove unhealthy replicas",
+      "rate limits and quotas are tenant-aware"
+    ]
+  },
+  "control_plane": {
+    "services": [
+      "identity/account/entitlement service",
+      "tenant-instance registry",
+      "job scheduler/queue",
+      "sandbox lifecycle controller",
+      "tenant-aware routing service",
+      "audit/provenance event service",
+      "quota/fairness controller"
+    ],
+    "rule": "Control-plane services never execute arbitrary customer scientific code."
+  },
+  "private_execution_plane": {
+    "tenant_context_required": true,
+    "sandbox_identity": "Every worker receives a short-lived tenant_id + instance_id + job_id capability scoped to one operation.",
+    "isolation": [
+      "separate filesystem workspace or mount namespace",
+      "tenant-scoped object-store/database access",
+      "CPU/RAM/process/file/GPU quotas",
+      "private network namespace",
+      "default-deny egress except explicit brokers",
+      "no cross-tenant service discovery",
+      "ephemeral credentials",
+      "cleanup/snapshot validation before reuse"
+    ],
+    "worker_modes": [
+      "warm tenant sandbox for interactive low-latency work",
+      "ephemeral per-job sandbox for burst scientific workloads",
+      "microVM tier for higher-risk or enterprise isolation",
+      "isolated exact-head proof runner outside ordinary tenant workers"
+    ]
+  },
+  "tenant_data": {
+    "relational": "Every tenant-owned row has an authoritative tenant_id and server-enforced tenant filter/RLS-equivalent control.",
+    "object_storage": "Tenant-prefixed namespaces plus tenant-scoped authorization; no client-chosen arbitrary storage path.",
+    "encryption": "Encryption at rest with platform-managed keys; optional tenant-specific envelope keys for higher isolation tiers.",
+    "cache": "Cache keys include release identity + tenant visibility scope + semantic input identity; private tenant cache entries never leak cross-tenant data.",
+    "backups": "Tenant-aware backup/restore and account deletion/export procedures."
+  },
+  "local_network_linking": {
+    "rule": "A user's local CACE/AI instance initiates an outbound authenticated connection to the public gateway/broker; production does not require inbound ports opened on the user's home/office network.",
+    "pairing": "Existing directional receive/outgoing pairing-code policy binds the local instance to the correct tenant/account.",
+    "transport": "Long-lived mutually authenticated outbound session or equivalent brokered channel, with reconnect/resume and heartbeats.",
+    "routing": "The central broker routes only tenant-authorized economy/heartbeat messages; local private services are never exposed publicly.",
+    "offline_behavior": "Local instance remains usable offline for supported local work and reconciles allowed state after reconnect."
+  },
+  "always_up_semantics": {
+    "rule": "The user-facing CACE instance is logically always available even when dedicated compute is not continuously running.",
+    "durable_services": "Account, metadata, experiments, help, results, provenance and job state remain persistent.",
+    "compute_policy": "Interactive tenants may have a warm sandbox; idle compute may hibernate and resume automatically.",
+    "reconnect": "Gateway can reconnect a browser or local agent to the durable instance after worker replacement/restart.",
+    "high_availability": [
+      "multiple gateway/API replicas",
+      "replicated durable database/object storage",
+      "durable job queue",
+      "worker rescheduling",
+      "health probes and automatic restart",
+      "idempotent job dispatch and resumable long-running jobs where practical"
+    ]
+  },
+  "fairness_and_load": {
+    "scheduler": [
+      "per-tenant concurrency limits",
+      "weighted fair queueing or equivalent starvation-resistant scheduling",
+      "separate interactive and batch queues",
+      "backpressure instead of unbounded queue growth",
+      "resource-class aware placement for CPU/GPU/high-memory/proof jobs",
+      "priority cannot alter scientific verification truth"
+    ],
+    "abuse_controls": [
+      "tenant/account rate limits",
+      "trial/licensing entitlement checks",
+      "resource budgets",
+      "network egress limits",
+      "job cancellation/timeouts",
+      "per-tenant anomaly/audit signals"
+    ]
+  },
+  "cross_tenant_rules": {
+    "default": "deny",
+    "allowed_only_via": [
+      "explicit collaboration capability",
+      "explicit AI-economy pairing capability",
+      "public/shared dataset explicitly marked shareable"
+    ],
+    "forbidden": [
+      "implicit filesystem sharing",
+      "implicit cache sharing of private data",
+      "cross-tenant database reads",
+      "cross-tenant wallet authority",
+      "cross-tenant proof/evidence mutation"
+    ]
+  },
+  "production_acceptance": [
+    "concurrent-user load test proves horizontal gateway/API scaling",
+    "tenant-isolation negative tests prove one tenant cannot read/write another tenant's experiments, proteins, wallet capabilities or job state",
+    "sandbox escape and cross-tenant network tests fail closed",
+    "worker termination/replacement does not lose durable tenant state",
+    "idle sandbox suspend/resume preserves logical instance continuity",
+    "queue fairness test prevents one tenant from starving others",
+    "local-agent reconnect test requires no inbound port on user network",
+    "rolling release upgrade moves tenant instances without per-user source-code drift",
+    "backup/restore/export/delete operate on tenant scope",
+    "scientific/proof/evidence semantics remain identical under load balancing"
+  ]
+}

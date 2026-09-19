@@ -98,6 +98,18 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I071 | alphafold db api | Resolve a UniProt accession through the current public AlphaFold DB prediction API, use its version-current PDB URL instead of guessed filenames, preserve CC-BY-4.0 attribution/hashes, place the API source on the canvas, auto-run it, and expose the returned typed protein structure to Protein Playground heartbeat Play. | G051 |
 
+| I072 | coding-agent completion fallback | A production coding agent must attempt every requested CACE feature; if it does not know how, generate and rank 10 implementation approaches, use CACE Build Lite/existing CACE math/tools to choose an architecture-preserving path, or build a narrow regression-tested helper tool with bug-sweep guardrails. Never silently drop a feature or replace an established architecture for convenience. | G059 |
+| I073 | directional AI economy pairing | Network stays off by default; enabling it issues separate short-lived receive/outgoing codes. A directed local-AI economy link consumes source-outgoing + target-receive codes and grants only narrow economy/heartbeat capabilities. Account profiles carry declared user type/location scope, optional protein-library consent, and a Math Coin AI-wallet identity separate from canonical XMR custody. | G060 |
+
+| I074 | browser-only gateway | Make the webapp/gateway the only client-visible CACE surface. Everything privileged—scientific runtime, AI, databases, pairing/economy/payment brokers, filesystem/native workers and Lean qualification—runs in a hardened local/private service plane reached only through typed server-side mediation. | G061 |
+
+| I075 | customer-safe complete help | Generate a complete help/reference file from the live registry: every feature/module gets public inputs/outputs/parameter type/unit guidance, rigor/evidence explanations, at least two examples and two combined-module examples, while proprietary equations, algorithms, hidden defaults, theorem bodies and source internals remain secret. | G062 |
+| I076 | just-works one-person trial | Production CACE should be a full-featured maths/sciences playground that preflights and self-sandboxes automatically; the no-card free trial is one per verified person and survives account recreation, while expiry is transparent/non-destructive and preserves view/export/delete/recovery access. | G063 |
+
+| I077 | multi-tenant persistent CACE instances | Scale CACE to many users using stateless load-balanced gateways, one durable logical instance per account, tenant-scoped persistent state and isolated elastic sandboxes. Local CACE/AI on customer networks connects outbound through the pairing broker; warm/suspend/resume workers preserve an always-available experience without per-user source clones. | G064 |
+
+| I078 | public signup privacy-preserving feedback loop | Operate one stable public CACE signup URL for eligible users, block CN/KP at the trusted edge per product policy, give each user a durable tenant instance, and collect strict allowlisted operational/heartbeat/proof-status metadata plus privacy-controlled aggregate usage analytics for product/sales improvement; actual proof/research content is a separate explicit opt-in. | G065 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

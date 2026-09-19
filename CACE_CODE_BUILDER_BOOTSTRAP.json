@@ -1,0 +1,187 @@
+{
+  "schema": "cace.code-builder-bootstrap.v1",
+  "role": "machine-readable full-production-app instructions for GitHub-connected coding agents; navigation/policy only",
+  "project": "CACE Studio",
+  "goal": "Build and improve the complete full-featured production-grade CACE mathematics and sciences playground so it just works for ordinary supported users while preserving canonical scientific/proof/security semantics.",
+  "source_of_truth": "the checked-out GitHub commit",
+  "required_first_read": [
+    "AGENTS.md",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "CACE_BUILD_LITE.json",
+    "CACE_PAYMENT_POLICY.json",
+    "CACE_DEPLOYMENT_BOUNDARY.json",
+    "docs/CROSS_CHAT_HANDOFF.md",
+    "docs/MASTER_BUILD_SPEC.md",
+    "docs/GOAL_REGISTRY.json",
+    "docs/SECURITY_ARCHITECTURE.md",
+    "docs/CLAIMS.md",
+    "docs/PRODUCTION_READINESS.md",
+    "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "CACE_PUBLIC_HELP_POLICY.json",
+    "docs/JUST_WORKS_SELF_SANDBOXING.md",
+    "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
+    "docs/help/README.md",
+    "CACE_MULTI_TENANT_POLICY.json",
+    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
+    "CACE_PUBLIC_SERVICE_POLICY.json",
+    "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
+  ],
+  "build_optimizer": {
+    "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
+    "purpose": "minimize redundant build/test work using deterministic DAG/critical-path/cache/resource mathematics",
+    "output": "JSON",
+    "authority": "coordination only; no scientific or proof authority"
+  },
+  "production_requirements": [
+    "retain canonical Python graph/module/evidence core",
+    "retain pinned Lean formal source and qualification architecture",
+    "browser/mobile/generated UI calls typed backend APIs instead of recreating scientific semantics",
+    "implement durable account/session/storage/network surfaces behind authenticated server boundaries",
+    "keep AI optional and outside verification authority",
+    "keep wallet/exchange private keys outside AI/model context",
+    "preserve PASS/FAIL/NOT_RUN/stale semantics",
+    "run appropriate regression/security/proof gates before production-ready claims",
+    "attempt every required production feature; do not silently omit unknown/difficult features",
+    "preserve all established CACE architectures/invariants unless an explicit reviewed migration supersedes one",
+    "for an implementation the builder does not know, generate and rank 10 candidate approaches, then use CACE Build Lite/existing CACE tools to select the safest viable approach",
+    "when a missing capability is required, build a narrow tested helper tool rather than weakening an existing architecture",
+    "apply the CACE bug-flush sibling sweep and permanent-regression-guard loop to every confirmed defect",
+    "the webapp/gateway is the only client-visible surface; all privileged CACE services remain private/local behind typed server-side mediation",
+    "generated browser code must never connect directly to local AI/model servers, databases, wallet RPC, filesystem workers, scientific/native workers, network-pairing transport, or the Lean runner",
+    "deliver a full-featured production-grade mathematics and sciences playground that just works rather than a demo or simplified substitute",
+    "startup self-checks and self-sandboxes the private/local service plane with safe defaults and visible graceful degradation",
+    "free trial requires no credit card and is granted once per verified person identity anchor; new/deleted accounts cannot reset the trial",
+    "post-trial limited mode is non-destructive and always preserves reasonable view/export/delete/recovery access to user-owned data",
+    "generate customer-safe help from the live registry so every registered module has at least two direct and two combined examples without exposing proprietary implementation or custom mathematics",
+    "support many concurrent users through tenant-aware stateless gateways, durable tenant instances, isolated execution sandboxes and fair load-balanced scheduling",
+    "do not maintain a different source-code clone per user; all tenants run a reviewed immutable CACE release while their state remains tenant-scoped",
+    "local CACE/AI instances on user networks connect outbound to the gateway/broker and do not require inbound firewall/router exposure",
+    "cross-tenant data/job/cache/wallet/protein/evidence access is denied by default and requires explicit collaboration/economy capability",
+    "provide one stable public HTTPS signup/recovery URL that provisions/restores each eligible user's durable logical tenant instance",
+    "enforce the configured CN/KP country-access policy at the trusted edge plus signup/session/local-agent registration without treating GeoIP as perfect location proof",
+    "all hosted instances emit only allowlisted essential health/heartbeat/proof-status metadata; raw proof/scientific/AI/protein/customer content is forbidden from essential telemetry",
+    "product analytics for product/sales improvement obeys privacy notice/consent-or-legal-basis/minimization/opt-out requirements",
+    "actual proof/research artifact contribution is a separate explicit opt-in and never silently uploads customer intellectual property"
+  ],
+  "hosted_builder_rules": [
+    "do not output only a prototype when repository requirements call for a full production app",
+    "do not remove or bypass tests/guardrails to simplify generation",
+    "do not weaken proof claims, negative tests, or evidence boundaries",
+    "do not put secrets in generated client code or repository files",
+    "write reviewed changes back to GitHub so another agent can continue",
+    "use CACE Build Lite before broad expensive builds"
+  ],
+  "vendor_adapters": {
+    "base44": {
+      "mode": "GitHub-connected full-stack builder",
+      "instruction": "Use the repository as authoritative source; map generated auth/data/functions/UI to CACE typed API and account contracts, then commit/sync reviewed changes back to GitHub."
+    },
+    "gemini_ai_studio": {
+      "mode": "GitHub-connected code builder",
+      "instruction": "Import/open the repository, preserve the canonical backend/formal boundaries, use Build Lite JSON to choose build/test frontier, and sync reviewed source changes back to GitHub."
+    },
+    "generic": {
+      "mode": "any GitHub-connected coding agent",
+      "instruction": "Read the required files and use the same production/security/proof contracts."
+    }
+  },
+  "payment_policy": {
+    "source": "CACE_PAYMENT_POLICY.json",
+    "canonical_monero_public_address": "482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ",
+    "instruction": "Use the existing canonical CACE Monero receive wallet. Do not generate, substitute, or silently migrate to a new Monero wallet/address.",
+    "secrets_rule": "Public receive address may be configured in source; private keys/seeds/view keys/wallet-RPC credentials/exchange credentials must remain outside repository/client/model context.",
+    "math_coin_rule": "The local-AI Math Coin wallet is separate from the Monero receive wallet."
+  },
+  "unknown_feature_protocol": {
+    "default_candidate_count": 10,
+    "ranking_order": [
+      "architecture preservation and compatibility",
+      "correctness and evidence-boundary preservation",
+      "security/privacy/least privilege",
+      "implementation tractability",
+      "testability and bug-sweep coverage",
+      "reuse of existing CACE modules/tools",
+      "compute/build cost",
+      "maintainability and extensibility"
+    ],
+    "use_cace_first": [
+      "CACE Build Lite dependency and critical-path planning",
+      "existing typed modules and scientific/runtime contracts",
+      "existing proof/security/provenance/account/network architectures"
+    ],
+    "custom_tool_rule": "If no existing tool is sufficient, build the smallest typed deterministic helper with tests and least privilege; do not create a second competing architecture.",
+    "failure_rule": "If no safe viable approach exists, preserve all ranked approaches plus blockers and leave the feature visibly incomplete; never fake completion."
+  },
+  "architecture_preservation": {
+    "rule": "All established CACE architectures are cumulative constraints until explicitly superseded by an approved migration.",
+    "required_preservations": [
+      "typed scientific graph/object semantics",
+      "evidence and verification state semantics",
+      "Lean/formal qualification architecture",
+      "security/trust-zone boundaries",
+      "AI non-authority",
+      "account/network capability separation",
+      "heartbeat/economy separation from proof truth",
+      "provenance and independent log retention",
+      "commercial/source-secrecy boundaries",
+      "backwards-compatible public schemas or explicit migrations"
+    ]
+  },
+  "deployment_boundary": {
+    "source": "CACE_DEPLOYMENT_BOUNDARY.json",
+    "public_surface": "web_gateway only",
+    "client_rule": "Browser/client communicates only with the same-origin HTTPS/WSS web gateway.",
+    "private_layer": "orchestrator, scientific runtime, AI broker, databases, pairing/economy/payment brokers, native workers, durable storage and proof runner",
+    "builder_rule": "Base44/Gemini/generated frontend may implement presentation/gateway integration but must preserve the hardened private layer and canonical backend semantics."
+  },
+  "product_experience": {
+    "target": "full-featured production-grade mathematics and sciences playground that just works",
+    "self_sandboxing_policy": "CACE_DEPLOYMENT_BOUNDARY.json + docs/JUST_WORKS_SELF_SANDBOXING.md",
+    "startup_rule": "preflight, initialize safe local state, start hardened private services, expose only gateway, detect optional backends, degrade visibly"
+  },
+  "trial_account_policy": {
+    "source": "CACE_TRIAL_ACCOUNT_POLICY.json",
+    "no_credit_card_required": true,
+    "one_verified_person_one_trial": true,
+    "duplicate_action": "account recovery/merge, not a new trial",
+    "account_deletion_resets_trial": false,
+    "expiry": "non-destructive limited mode; preserve view/export/delete/recovery/help/license management"
+  },
+  "public_help_policy": {
+    "source": "CACE_PUBLIC_HELP_POLICY.json",
+    "generator": "python scripts/generate_public_help.py",
+    "checker": "python scripts/check_public_help.py",
+    "module_coverage": "every live registered module",
+    "minimum_examples": "2 direct + 2 combined per module; 2 per feature",
+    "secrecy": "public behavior/contracts/evidence only; no proprietary equations, derivations, algorithms, hidden defaults, theorem bodies, source internals or credentials"
+  },
+  "multi_tenant_runtime": {
+    "source": "CACE_MULTI_TENANT_POLICY.json",
+    "recommended_architecture": "shared stateless control plane + isolated per-tenant sandboxes + durable tenant state",
+    "instance_model": "one durable logical instance_id per account/user; immutable shared release image; no per-user source clone",
+    "scaling": "horizontal gateway/API replicas, tenant-aware durable queue, warm/ephemeral workers, fair resource scheduling, suspend/resume",
+    "local_network": "outbound authenticated local-agent connection through directional pairing; no inbound customer network port required",
+    "isolation": "tenant_id required at every request/job/storage/cache capability boundary; deny cross-tenant access by default"
+  },
+  "public_service": {
+    "source": "CACE_PUBLIC_SERVICE_POLICY.json",
+    "url": "deployment-defined owned HTTPS domain",
+    "signup": "public for eligible users; creates/restores durable tenant instance",
+    "blocked_country_codes": [
+      "CN",
+      "KP"
+    ],
+    "compliance": "country policy is separate from sanctions/export/end-user screening"
+  },
+  "telemetry": {
+    "source": "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "contract": "cace_studio/telemetry_contract.py",
+    "lanes": [
+      "essential_operations: hosted health/heartbeat/proof-status metadata only",
+      "product_analytics: privacy-controlled aggregate/pseudonymous usage for product and internal sales insight",
+      "proof_research_contribution: explicit opt-in only"
+    ],
+    "evidence_rule": "telemetry cannot create or modify proof/evidence truth"
+  }
+}

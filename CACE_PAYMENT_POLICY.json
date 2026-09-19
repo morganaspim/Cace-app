@@ -1,0 +1,20 @@
+{
+  "schema": "cace.payment-policy.v1",
+  "role": "canonical public payment configuration and coding-agent constraints; not a secret store",
+  "monero": {
+    "asset": "XMR",
+    "network": "mainnet",
+    "canonical_public_receive_address": "482ivJw4VqAaRvixSG84DgDum33SoBfnNiMxngMKn7etfKP1mwG2ZskTLVwRAhPmPDcb5iqLGkKdJbQ6DJmzqePPPxp3tmQ",
+    "source": "existing CACE application/software wallet recovered from prior project assets",
+    "create_replacement_wallet": false,
+    "builder_instruction": "Reuse this existing wallet/address. Do not create, generate, substitute, or silently migrate to another Monero wallet.",
+    "invoice_policy": "If unique invoice/subaddresses are implemented, obtain them from the same existing wallet custody; do not create a separate wallet.",
+    "private_material_policy": "Never store or expose mnemonic/seed, spend key, private view key, wallet-RPC credentials, or exchange credentials in Git, browser/client code, logs, prompts, or AI/model context.",
+    "public_address_is_secret": false
+  },
+  "math_coin": {
+    "relationship": "separate asset/identity",
+    "local_ai_wallet_rule": "An account's local-AI Math Coin wallet ID/capability is not a Monero wallet and does not replace the canonical XMR receive wallet."
+  },
+  "evidence_rule": "Payment, wallet, trading, licensing, and settlement state never creates or strengthens scientific proof/evidence."
+}

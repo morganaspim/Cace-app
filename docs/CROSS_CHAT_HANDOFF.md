@@ -391,3 +391,174 @@ GUI/heartbeat:
 - **Play Selected Protein with Local AI** applies residue-level + source-node heartbeats without mutating the imported structure.
 
 The two PRs remain separated by responsibility: #48 owns scientific/API objects; #50 owns heartbeat/AI/GUI control integration.
+
+
+## Code-builder completion and architecture-preservation policy
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G059 — complete-feature coding agents with ranked fallback and architecture preservation.
+
+Standing builder rule:
+
+- attempt every required production feature;
+- when implementation is not known, generate/rank 10 approaches;
+- rank architecture preservation and correctness/security before convenience;
+- use CACE Build Lite and existing CACE tools/contracts to select the path;
+- if a missing primitive is required, create the smallest typed/tested helper tool;
+- apply root-cause + sibling/repository bug sweep + regression + permanent guard;
+- preserve all existing scientific/proof/security/account/network/AI/economy/provenance/commercial architectures unless an explicit reviewed migration supersedes one;
+- never fake completion: keep ranked alternatives/blockers visible if no safe implementation is available.
+
+
+## Account + directional AI economy pairing
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G060 — default-off directional local-AI economy pairing plus opt-in account/profile scientific storage.
+
+Core implementation on PR #51 branch:
+
+- `cace_studio/accounts.py` — local profile/session/protein-library state;
+- `cace_studio/network_pairing.py` — one-time directional network pairing.
+
+Account contract:
+
+- user type: Basic / Researcher / Enterprise;
+- optional declared location with scope (none/country/region/city/custom);
+- explicit opt-in protein-object library;
+- local-AI Math Coin wallet identity/capability handle;
+- no Math Coin/Monero private keys in the account database.
+
+Network contract:
+
+- network disabled by default;
+- enabling creates separate receive and outgoing codes;
+- code plaintext is not persisted, only hashes;
+- codes expire and are single-use;
+- source outgoing + target receive creates one directed economy link;
+- reverse direction requires a second explicit pairing;
+- granted capabilities are economy market discovery, compute bid/offer, heartbeat resource summary, and settlement receipt metadata only;
+- pairing never grants shell/filesystem/proof/evidence/wallet-key/model-control authority.
+
+The canonical Monero receive wallet remains governed separately by `CACE_PAYMENT_POLICY.json`.
+
+
+## Browser-only webapp and hardened local service plane
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G061 — web gateway is the only client-visible CACE service.
+
+Machine-readable deployment policy:
+
+`CACE_DEPLOYMENT_BOUNDARY.json`
+
+Required architecture:
+
+- browser/client -> HTTPS/WSS web gateway only;
+- web gateway -> typed private orchestrator;
+- all scientific runtime, C++/GPU workers, local AI, account/protein storage,
+  network pairing, Math Coin/Monero brokers, durable storage and Lean
+  qualification stay private/local;
+- protected services bind only loopback/private network/Unix-domain sockets;
+- browser code contains no backend/wallet/database/proof secrets and never
+  talks directly to those services;
+- scientific/proof services have no general Internet egress;
+- hosted code builders may generate the public webapp but cannot replace the
+  canonical hardened backend semantics.
+
+
+## Customer-safe help + just-works trial/product contract
+
+Added 2026-09-19.
+
+New durable goals:
+
+- G062 — complete customer-safe generated help for every registered module/feature;
+- G063 — full-featured just-works self-sandboxing production experience with one-person/no-card free trial.
+
+Public help:
+
+- machine policy: `CACE_PUBLIC_HELP_POLICY.json`;
+- generator: `scripts/generate_public_help.py`;
+- checker: `scripts/check_public_help.py`;
+- target file: `docs/help/generated/CACE_PUBLIC_HELP.md`;
+- every live module gets 2 direct + 2 combined examples;
+- no proprietary equations/derivations/algorithms/hidden defaults/theorem/source internals.
+
+Trial/product:
+
+- machine policy: `CACE_TRIAL_ACCOUNT_POLICY.json`;
+- executable entitlement core: `cace_studio/trial_entitlement.py`;
+- no credit card required;
+- one trial per stable verified person key, separate from account row;
+- duplicate account creation routes to recovery/merge;
+- expiry is non-destructive limited mode, never ransomware behavior;
+- view/export/delete/recovery/help remain available after expiry;
+- startup target is a full production maths/sciences playground that self-preflights and self-sandboxes behind the browser-only gateway.
+
+
+## Multi-user persistent tenant runtime
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G064 — multi-user persistent tenant instances with isolated load-balanced sandboxes.
+
+Recommended Rank-1 architecture:
+
+- stateless load-balanced web/API gateways;
+- tenant-aware control plane;
+- one durable logical CACE instance per user/account;
+- shared immutable reviewed CACE release image, not source clones;
+- tenant-scoped persistent account/experiment/evidence/protein/AI/economy state;
+- isolated warm or ephemeral execution sandboxes;
+- durable tenant-aware queues with quotas/backpressure/fair scheduling;
+- worker replacement/suspend/resume without loss of logical instance continuity;
+- exact formal qualification isolated from ordinary tenant workers.
+
+Local-network rule:
+
+- user local CACE/AI initiates an outbound authenticated connection;
+- existing directional pairing codes bind it to the correct account/tenant;
+- no inbound home/lab/office network port is required.
+
+Authorities:
+
+- `CACE_MULTI_TENANT_POLICY.json`
+- `docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`
+
+
+## Public signup + privacy-preserving feedback loop
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G065 — stable public signup/recovery service, requested CN/KP access block, and privacy-preserving improvement telemetry.
+
+Policies:
+
+- `CACE_PUBLIC_SERVICE_POLICY.json`
+- `CACE_TELEMETRY_PRIVACY_POLICY.json`
+- `docs/PUBLIC_SERVICE_AND_TELEMETRY.md`
+
+Hosted feedback lanes:
+
+1. essential operations — always-on minimal health/heartbeat/resource/job/error and proof-status-count metadata;
+2. product analytics — aggregate/pseudonymous usage under applicable privacy notice/consent/legal basis, used for product/customer-success/internal sales insights;
+3. proof/research contribution — actual proof/theorem/research artifacts off by default and explicit opt-in only.
+
+Executable allowlist:
+
+- `cace_studio/telemetry_contract.py`
+
+The public production domain remains deployment-defined until an owned domain is actually deployed; builders must not invent one.

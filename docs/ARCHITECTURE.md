@@ -61,3 +61,35 @@ For every promoted claim, CACE should make the trusted boundary inspectable: the
 ## Change discipline
 
 Qualification-sensitive changes must trigger fresh formal qualification. Documentation, ordinary GUI presentation and canonical provenance-record acceptance may inherit an attestation only when the drift checker proves no qualification-sensitive source changed. New scientific capabilities should extend stable module/evidence contracts rather than create another version-specific wrapper unless a versioned boundary is genuinely required.
+
+
+### 10. Browser-only gateway and hardened local service plane
+
+The production browser is a presentation client, not a distributed CACE runtime.
+
+Only the web gateway is public. The canonical computation/service plane remains
+private/local:
+
+```
+browser
+  -> public web gateway
+     -> private orchestrator
+        -> canonical scientific runtime
+        -> native workers
+        -> local AI broker
+        -> account/protein store
+        -> network/economy/payment brokers
+        -> durable storage
+        -> isolated proof runner
+```
+
+The gateway owns HTTP/session/input policy. Private services own privileged
+capabilities. The browser never receives their credentials and never connects
+directly to them.
+
+This separation lets Base44, Gemini AI Studio, or another frontend builder
+replace/improve the public webapp without becoming the authority for CACE
+science, proof, wallets or host access.
+
+See `CACE_DEPLOYMENT_BOUNDARY.json` and
+`docs/WEBAPP_HARDENED_LOCAL_LAYER.md`.
