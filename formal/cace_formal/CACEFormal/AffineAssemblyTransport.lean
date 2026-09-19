@@ -112,6 +112,65 @@ theorem cellPairing_sum_map
   intro K _hK
   exact cellPairing_map F (triangle K) (primal K) (flux K) hdet
 
+/-- The transported exact data satisfy the full global Green assembly identity.
+This is the seven-layer bridge from affine local algebra into certified mesh ownership. -/
+theorem global_green_identity
+    {mesh : MeshCertificate}
+    (F : Affine2) (hdet : F.linearDet ≠ 0)
+    (triangle : Fin mesh.triangleCount → Triangle2)
+    (primal : Fin mesh.triangleCount → P1Affine)
+    (flux : Fin mesh.triangleCount → RT0Affine)
+    (hEquilibrium : ∀ K,
+      P1RT0Element.cellDivergence (triangle K) (primal K) (flux K) = 0)
+    (hBoundary : ∀ b,
+      P1RT0Element.localFacePairing
+        (triangle (mesh.boundaryCell b))
+        (primal (mesh.boundaryCell b))
+        (flux (mesh.boundaryCell b))
+        (mesh.boundarySlot b) = 0)
+    (hInterior : ∀ i,
+      P1RT0Element.localFacePairing
+          (triangle (mesh.interiorLeftCell i))
+          (primal (mesh.interiorLeftCell i))
+          (flux (mesh.interiorLeftCell i))
+          (mesh.interiorLeftSlot i) +
+        P1RT0Element.localFacePairing
+          (triangle (mesh.interiorRightCell i))
+          (primal (mesh.interiorRightCell i))
+          (flux (mesh.interiorRightCell i))
+          (mesh.interiorRightSlot i) = 0) :
+    (∑ K : Fin mesh.triangleCount,
+      P1RT0Element.cellPairing
+        (F.mapTriangle (triangle K))
+        (pullP1 F (primal K))
+        (piolaRT0 F (flux K))) =
+      (∑ K : Fin mesh.triangleCount,
+        P1RT0Element.cellDivergence
+          (F.mapTriangle (triangle K))
+          (pullP1 F (primal K))
+          (piolaRT0 F (flux K))) +
+      (∑ i : Fin mesh.interiorEdgeCount,
+        (P1RT0Element.localFacePairing
+            (F.mapTriangle (triangle (mesh.interiorLeftCell i)))
+            (pullP1 F (primal (mesh.interiorLeftCell i)))
+            (piolaRT0 F (flux (mesh.interiorLeftCell i)))
+            (mesh.interiorLeftSlot i) +
+          P1RT0Element.localFacePairing
+            (F.mapTriangle (triangle (mesh.interiorRightCell i)))
+            (pullP1 F (primal (mesh.interiorRightCell i)))
+            (piolaRT0 F (flux (mesh.interiorRightCell i)))
+            (mesh.interiorRightSlot i))) +
+      (∑ b : Fin mesh.boundaryEdgeCount,
+        P1RT0Element.localFacePairing
+          (F.mapTriangle (triangle (mesh.boundaryCell b)))
+          (pullP1 F (primal (mesh.boundaryCell b)))
+          (piolaRT0 F (flux (mesh.boundaryCell b)))
+          (mesh.boundarySlot b)) := by
+  have h := RT0P1DerivedAssemblyCertificate.global_green_identity
+    (derivedCertificate F hdet triangle primal flux
+      hEquilibrium hBoundary hInterior)
+  simpa [derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using h
+
 /-- The entire transported exact assembly remains orthogonal. -/
 theorem orthogonality
     {mesh : MeshCertificate}
