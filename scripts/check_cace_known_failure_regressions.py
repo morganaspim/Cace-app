@@ -24,6 +24,7 @@ REQUIRED_NONCOMPUTABLE = {
         "noncomputable def pullP1",
     ),
     "formal/cace_formal/CACEFormal/ReferenceSimplexNormalization.lean": (
+        "noncomputable def inverseEdgeLinear",
         "noncomputable def normalizer",
         "noncomputable def certifiedNondegenerate",
         "noncomputable def certifiedPositive",
