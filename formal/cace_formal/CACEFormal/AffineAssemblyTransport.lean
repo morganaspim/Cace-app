@@ -92,23 +92,6 @@ noncomputable def derivedCertificate
         (mesh.interiorRightSlot i) hdet]
       exact hInterior i)
 
-/-- The transported certificate stores exactly the transported exact cell
-pairing, with no independent replacement field. -/
-@[simp] theorem derivedCertificate_cellPairing
-    {mesh : MeshCertificate}
-    (F : Affine2) (hdet : F.linearDet ≠ 0)
-    (triangle : Fin mesh.triangleCount → Triangle2)
-    (primal : Fin mesh.triangleCount → P1Affine)
-    (flux : Fin mesh.triangleCount → RT0Affine)
-    (hEquilibrium hBoundary hInterior)
-    (K : Fin mesh.triangleCount) :
-    (derivedCertificate F hdet triangle primal flux
-      hEquilibrium hBoundary hInterior).cellPairing K =
-      P1RT0Element.cellPairing
-        (F.mapTriangle (triangle K))
-        (pullP1 F (primal K))
-        (piolaRT0 F (flux K)) := rfl
-
 /-- The entire transported exact assembly remains orthogonal. -/
 theorem orthogonality
     {mesh : MeshCertificate}
@@ -143,7 +126,7 @@ theorem orthogonality
   have h := RT0P1DerivedAssemblyCertificate.orthogonality
     (derivedCertificate F hdet triangle primal flux
       hEquilibrium hBoundary hInterior)
-  simpa using h
+  simpa [derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using h
 
 /-- Nine-layer endpoint: an exact affine-transported P1/RT0 assembly feeds the
 existing discrete Prager--Synge theorem without adding an orthogonality axiom. -/
@@ -185,7 +168,7 @@ theorem discrete_prager_synge
   let cert := derivedCertificate F hdet triangle primal flux
     hEquilibrium hBoundary hInterior
   apply discrete_prager_synge_of_derived_rt0_p1_assembly cert eGrad eFlux
-  simpa [cert] using hInner
+  simpa [cert, derivedCertificate, RT0P1DerivedAssemblyCertificate.ofExactElements] using hInner
 
 end AffineAssemblyTransport
 
