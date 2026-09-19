@@ -213,6 +213,8 @@ def test_canonical_qualification_prunes_only_owned_cache_acceleration_before_dis
         / "cace-formal-v336-theorem-metadata.yml"
     ).read_text(encoding="utf-8")
     assert "min_free_kb=$((5 * 1024 * 1024))" in workflow
+    assert "formal_source_kb=" in workflow
+    assert "prune_target_kb=$((min_free_kb + formal_source_kb))" in workflow
     assert "canonical-qualification-prune.lock" in workflow
     assert "sort -n | awk '{print $2}'" in workflow
     assert '[[ "$name" =~ ^[0-9a-f]{40}$ ]]' in workflow
@@ -221,4 +223,5 @@ def test_canonical_qualification_prunes_only_owned_cache_acceleration_before_dis
     assert 'rm -rf -- "$candidate"' in workflow
     assert 'rm -rf -- "$build_cache"' in workflow
     assert "at least 5 GiB free after safe cache pruning" in workflow
+    assert "5 GiB plus source-staging headroom before copy" in workflow
     assert "at least 5 GiB free after source staging" in workflow

@@ -189,6 +189,8 @@ jobs:
         run: |
           set -euo pipefail
           min_free_kb=$((5 * 1024 * 1024))
+          formal_source_kb="$(du -sk formal/cace_formal | awk '{print $1}')"
+          prune_target_kb=$((min_free_kb + formal_source_kb))
           formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"
           toolchain_key="$(printf '%s' "$CACE_TOOLCHAIN" | tr '/:' '__')"
           build_cache_base="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT"
@@ -196,10 +198,11 @@ jobs:
 
           # Per-tree proof caches are acceleration only, never qualification
           # evidence. Bound them before a new qualification so validated old
-          # trees cannot exhaust the runner. Preserve the current tree (if any)
-          # and the two newest compatible ancestor caches.
+          # trees cannot exhaust the runner. The pre-copy target includes the
+          # measured formal source size so staging cannot immediately consume
+          # the unchanged 5 GiB qualification reserve.
           available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
-          if (( available_kb < min_free_kb )); then
+          if (( available_kb < prune_target_kb )); then
             mkdir -p "$build_cache_base"
             exec 7>/var/lib/cace-cache/canonical-qualification-prune.lock
             flock -w 900 7
@@ -228,7 +231,7 @@ jobs:
               [[ "$name" == "$formal_tree" ]] && continue
               rm -rf -- "$candidate"
               available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
-              if (( available_kb >= min_free_kb )); then
+              if (( available_kb >= prune_target_kb )); then
                 break
               fi
             done
@@ -238,7 +241,7 @@ jobs:
             # only as the final cache-pruning fallback; qualification will rebuild
             # it from the exact pinned source/dependency state.
             available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
-            if (( available_kb < min_free_kb )) && \
+            if (( available_kb < prune_target_kb )) && \
                [[ -d "$build_cache" && ! -L "$build_cache" && -O "$build_cache" ]] && \
                [[ "$(basename "$build_cache")" =~ ^[0-9a-f]{40}$ ]]; then
               rm -rf -- "$build_cache"
@@ -247,8 +250,8 @@ jobs:
           fi
 
           available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
-          if (( available_kb < min_free_kb )); then
-            echo "Formal qualification requires at least 5 GiB free after safe cache pruning; found ${available_kb} KiB." >&2
+          if (( available_kb < prune_target_kb )); then
+            echo "Formal qualification requires 5 GiB plus source-staging headroom before copy; found ${available_kb} KiB, target ${prune_target_kb} KiB." >&2
             exit 1
           fi
 

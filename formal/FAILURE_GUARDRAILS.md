@@ -498,3 +498,25 @@ pruning even though additional retained caches were disposable acceleration.
 **Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`
 requires oldest-first reserve-driven pruning, current-tree protection during the
 normal pass, and the exact-tree final fallback.
+
+
+## F-027 — pruning to the exact reserve left no room for source staging
+
+**Fingerprint:** a run could satisfy the pre-copy 5 GiB disk check and then fail
+the identical post-copy reserve check after the formal source bundle was staged
+into the isolated qualification directory.
+
+**Root cause:** pruning targeted the final safety reserve itself rather than the
+reserve plus the deterministic bytes that the next source-staging step must
+consume.
+
+**Permanent prevention:**
+- the final qualification reserve remains exactly 5 GiB;
+- before cache pruning, CI measures `du -sk formal/cace_formal`;
+- the pre-copy pruning target is `5 GiB + measured formal-source size`;
+- the post-copy gate still independently requires the original 5 GiB floor;
+- only owned reproducible build caches participate in pruning.
+
+**Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`
+requires the measured source-size headroom and preserves the unchanged post-copy
+5 GiB check.
