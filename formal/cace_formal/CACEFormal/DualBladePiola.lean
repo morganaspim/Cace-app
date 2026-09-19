@@ -43,12 +43,12 @@ def dot (u v : Point2) : ℝ :=
 @[simp] theorem dualInv_dual (v : Point2) :
     dualInv (dual v) = v := by
   rcases v with ⟨x, y⟩
-  rfl
+  simp [dual, dualInv]
 
 @[simp] theorem dual_dualInv (v : Point2) :
     dual (dualInv v) = v := by
   rcases v with ⟨x, y⟩
-  rfl
+  simp [dual, dualInv]
 
 /-- The cofactor action is the grade-1 action conjugated by 2D duality. -/
 theorem cofactor_eq_dual_grade1_dualInv (F : Affine2) (n : Point2) :
