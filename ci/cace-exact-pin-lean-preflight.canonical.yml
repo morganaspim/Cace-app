@@ -240,6 +240,8 @@ jobs:
           fi
 
       - name: Compile proof API canaries
+        id: canary_compile
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -247,11 +249,13 @@ jobs:
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake build +CACEFormal.GuardrailCanaries
+          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/cace-canary-build.log"
           stop="$(date +%s)"
           printf 'CACE_GUARDRAIL_CANARY_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
 
       - name: Compile changed modules and audited reverse dependents
+        id: impacted_compile
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -267,13 +271,15 @@ jobs:
             done
             cd formal/cace_formal
             start="$(date +%s)"
-            lake build "${targets[@]}"
+            lake build "${targets[@]}" 2>&1 | tee "$GITHUB_WORKSPACE/cace-impacted-build.log"
             stop="$(date +%s)"
             printf 'CACE_IMPACTED_COMPILE_OK modules=%s elapsed_seconds=%s exact_head=%s\n' \
               "${#modules[@]}" "$((stop-start))" "$GITHUB_SHA"
           fi
 
       - name: Compile requested Lean module
+        id: target_compile
+        continue-on-error: true
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
@@ -284,11 +290,13 @@ jobs:
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake build "+$TARGET_MODULE"
+          lake build "+$TARGET_MODULE" 2>&1 | tee "$GITHUB_WORKSPACE/cace-target-build.log"
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
 
       - name: Reverify frozen proof plan before audited root
+        id: plan_recheck
+        continue-on-error: true
         if: ${{ inputs.compile_root }}
         shell: bash
         env:
@@ -311,6 +319,8 @@ jobs:
           printf 'CACE_PROOF_PLAN_RECHECK_OK sha256=%s exact_head=%s\n' "$actual" "$GITHUB_SHA"
 
       - name: Compile audited root
+        id: root_compile
+        continue-on-error: true
         if: ${{ inputs.compile_root }}
         shell: bash
         run: |
@@ -319,9 +329,49 @@ jobs:
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
           start="$(date +%s)"
-          lake build CACEFormal
+          lake build CACEFormal 2>&1 | tee "$GITHUB_WORKSPACE/cace-root-build.log"
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+
+      - name: Aggregate diagnostic sweep failures
+        id: diagnostic_aggregate
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
+          IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
+          TARGET_OUTCOME: ${{ steps.target_compile.outcome }}
+          PLAN_RECHECK_OUTCOME: ${{ steps.plan_recheck.outcome }}
+          ROOT_OUTCOME: ${{ steps.root_compile.outcome }}
+        run: |
+          set -euo pipefail
+          : > cace-diagnostic-sweep.txt
+          : > cace-compile-failures.txt
+          failures=0
+          record() {
+            label="$1"
+            outcome="$2"
+            printf '%s=%s\n' "$label" "$outcome" >> cace-diagnostic-sweep.txt
+            case "$outcome" in
+              success|skipped) ;;
+              *)
+                printf '%s=%s\n' "$label" "$outcome" >> cace-compile-failures.txt
+                failures=$((failures + 1))
+                ;;
+            esac
+          }
+          record canary "$CANARY_OUTCOME"
+          record impacted "$IMPACTED_OUTCOME"
+          record target "$TARGET_OUTCOME"
+          record plan_recheck "$PLAN_RECHECK_OUTCOME"
+          record root "$ROOT_OUTCOME"
+          cat cace-diagnostic-sweep.txt
+          if test "$failures" -ne 0; then
+            echo "CACE_DIAGNOSTIC_SWEEP_FAILURES=$failures"
+            cat cace-compile-failures.txt
+            exit 40
+          fi
+          echo "CACE_DIAGNOSTIC_SWEEP_OK"
 
       - name: Emit non-qualification summary
         if: always()
@@ -355,5 +405,11 @@ jobs:
             cace-proof-plan.json
             cace-proof-plan-recheck.json
             cace-impacted-modules.txt
+            cace-diagnostic-sweep.txt
+            cace-compile-failures.txt
+            cace-canary-build.log
+            cace-impacted-build.log
+            cace-target-build.log
+            cace-root-build.log
           if-no-files-found: warn
           retention-days: 14
