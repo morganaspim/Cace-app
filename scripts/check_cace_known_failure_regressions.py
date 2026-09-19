@@ -45,6 +45,13 @@ NORMALIZATION_SOURCE = (
 NORMALIZER_P1_RE = re.compile(
     r"theorem\s+normalizer_map_p1\b(?P<body>[\s\S]*?)(?=\n/-- The third vertex)"
 )
+INVERSE_EDGE_E1_RE = re.compile(
+    r"theorem\s+inverseEdgeLinear_map_e1\b(?P<body>[\s\S]*?)(?=\n/-- The inverse-edge linear map sends the second)"
+)
+INVERSE_EDGE_E2_RE = re.compile(
+    r"theorem\s+inverseEdgeLinear_map_e2\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_map_zero)"
+)
+MESH_ELEMENT_SOURCE = "formal/cace_formal/CACEFormal/MeshElementGeometry.lean"
 
 
 def main() -> int:
@@ -99,6 +106,23 @@ def main() -> int:
                         f"fragile denominator tactic seam {forbidden!r}"
                     )
 
+        for label, pattern in (
+            ("inverseEdgeLinear_map_e1", INVERSE_EDGE_E1_RE),
+            ("inverseEdgeLinear_map_e2", INVERSE_EDGE_E2_RE),
+        ):
+            match = pattern.search(normalization_text)
+            if not match:
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: unable to locate {label} regression block"
+                )
+                continue
+            body = match.group("body")
+            if "have hΔcomm" not in body or "field_simp [hΔ, hΔcomm]" not in body:
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: {label} must establish the canonical "
+                    "hΔcomm nonzero bridge before field_simp"
+                )
+
         linear_start = normalization_text.find("theorem normalizer_linearDet")
         linear_end = normalization_text.find(
             "/-- Nondegenerate triangles produce nonsingular normalizers. -/"
@@ -114,6 +138,33 @@ def main() -> int:
                 problems.append(
                     f"{NORMALIZATION_SOURCE}: normalizer_linearDet must not reopen "
                     "raw denominator simplification after inverse-edge factoring"
+                )
+
+    mesh_path = ROOT / MESH_ELEMENT_SOURCE
+    if not mesh_path.is_file():
+        problems.append(f"missing regression source: {MESH_ELEMENT_SOURCE}")
+    else:
+        mesh_text = mesh_path.read_text(encoding="utf-8")
+        det_start = mesh_text.find("theorem realTriangle_det")
+        det_end = mesh_text.find(
+            "/-- Every canonical element triangle produced from a mesh certificate"
+        )
+        if det_start < 0 or det_end <= det_start:
+            problems.append(
+                f"{MESH_ELEMENT_SOURCE}: unable to locate realTriangle_det regression block"
+            )
+        else:
+            det_body = mesh_text[det_start:det_end]
+            required = "simp only [realTriangle, realPoint, Triangle2.det]"
+            if required not in det_body or "exact_mod_cast" not in det_body:
+                problems.append(
+                    f"{MESH_ELEMENT_SOURCE}: realTriangle_det must simplify structure "
+                    "projections before exact_mod_cast"
+                )
+            if "unfold realTriangle realPoint Triangle2.det" in det_body:
+                problems.append(
+                    f"{MESH_ELEMENT_SOURCE}: realTriangle_det reintroduced the known "
+                    "raw-unfold mod_cast failure seam"
                 )
 
     formal_root = ROOT / "formal" / "cace_formal" / "CACEFormal"
