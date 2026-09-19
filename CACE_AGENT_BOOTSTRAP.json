@@ -165,5 +165,12 @@
     "cryptocurrency": "Monero (XMR)",
     "xmr_pricing_rule": "quote at purchase from USD policy; do not use long-lived hard-coded XMR economic price",
     "evidence_rule": "payment/license state never creates or strengthens scientific evidence"
+  },
+  "current_theorem_roadmap": {
+    "document": "docs/proofs/V341_TOP20_OF50_THEOREM_ROADMAP.md",
+    "selected_count": 20,
+    "candidate_count": 50,
+    "immediate_gap": "v3.40 proves closure inheritance for any certified zero-boundary core but does not construct a useful concrete box boundary-vanishing core",
+    "execution_rule": "quarantine-first; standalone Exact-Pin before audited promotion; canonical qualification only after audited-root Exact-Pin"
   }
 }
