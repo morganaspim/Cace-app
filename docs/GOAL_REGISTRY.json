@@ -494,12 +494,89 @@
       "priority": 36,
       "intent_status": "planned",
       "title": "Professional scientific-software pricing policy",
-      "summary": "Price CACE in the same broad professional engineering/scientific software market while covering R&D and any project-funded compute/storage costs.",
+      "summary": "Use tiered Basic, Researcher, and Enterprise pricing appropriate to intended use while keeping commercial policy separate from mathematical qualification.",
       "acceptance": [
-        "Initial target schedule is approximately $12/day, $49/week, $149/month, and $999/year, subject to launch validation.",
-        "Pricing lives in a signed/configurable policy rather than qualification-sensitive mathematical source.",
-        "Remote cloud/GPU/proof compute is capped, fair-use, queued, or metered separately from local application time.",
-        "Before launch, policy covers refunds, taxes/VAT, privacy, support, outages, license recovery, and applicable cryptocurrency-payment compliance."
+        "Basic is the lowest-price pass tier and grants a one-time 24-hour introductory entitlement.",
+        "Researcher is the middle-price pass tier and grants a one-time 48-hour introductory entitlement.",
+        "Enterprise is the highest-price tier and is required for commercial/business engineering or scientific use.",
+        "Initial target pricing is Basic $4.99/day, $14.99/week, $39/month, $199/year; Researcher $14.99/day, $49/week, $149/month, $999/year; Enterprise $99/day, $399/week, $1,499/month, $9,999/year per named seat.",
+        "Pricing lives in a signed/configurable commercial policy rather than qualification-sensitive mathematical source.",
+        "Remote cloud/GPU/proof compute is capped, fair-use, queued, or metered separately from local application time."
+      ]
+    },
+    {
+      "id": "G037",
+      "category": "identity",
+      "priority": 37,
+      "intent_status": "required",
+      "title": "Account login with hardened password storage",
+      "summary": "Provide durable user accounts without placing end-user authentication secrets on scientific or proof runners.",
+      "acceptance": [
+        "Passwords are never stored in plaintext or reversible form.",
+        "Password verifiers use Argon2id with unique salts and versioned/tunable parameters.",
+        "Credential submission uses authenticated encrypted transport.",
+        "Proof/scientific runners receive no plaintext passwords, password hashes, reset tokens, or general account-database credentials.",
+        "Email verification, password reset, session revocation, and audit events are supported."
+      ]
+    },
+    {
+      "id": "G038",
+      "category": "licensing",
+      "priority": 38,
+      "intent_status": "required",
+      "title": "Durable entitlement and payment ledger",
+      "summary": "Record free trials, Monero invoices/payment observations, granted passes, revocations, and delivery events in an auditable append-only commercial trail.",
+      "acceptance": [
+        "Basic first-time free allowance is recorded as one 24-hour entitlement.",
+        "Researcher first-time free allowance is recorded as one 48-hour entitlement.",
+        "Every paid entitlement references a durable invoice/payment event trail.",
+        "Browser/local client state alone cannot create or extend entitlements.",
+        "Scientific runtime receives only a signed entitlement token."
+      ]
+    },
+    {
+      "id": "G039",
+      "category": "enterprise",
+      "priority": 39,
+      "intent_status": "required",
+      "title": "Enterprise full-rigor proof purchase workflow",
+      "summary": "Allow verified Enterprise users to purchase a customer-specific rigorous LaTeX/PDF proof package for a selected result without disclosing CACE proprietary Background IP.",
+      "acceptance": [
+        "Proof order freezes and hashes the relevant canvas, assumptions, requested result, and software/proof versions.",
+        "A quote and signed statement of work/contract precede bespoke proof delivery.",
+        "Formal proof work must pass the normal CACE rigor pipeline before delivery.",
+        "Customer-facing PDF includes the agreed full customer-specific derivation, limitations, and provenance while excluding unrelated proprietary base-theorem source.",
+        "PDF/manifests are hashed and delivery is audit logged."
+      ]
+    },
+    {
+      "id": "G040",
+      "category": "enterprise",
+      "priority": 40,
+      "intent_status": "required",
+      "title": "Separate CACE Background IP from customer Foreground deliverables",
+      "summary": "Contracts retain CACE reusable/proprietary theorem infrastructure while assigning or licensing agreed customer-specific deliverables to the Enterprise customer to the extent legally transferable.",
+      "acceptance": [
+        "Contracts define Background IP, Foreground IP, customer data, generic improvements, and excluded reusable CACE technology.",
+        "CACE proprietary base theorems, internal lemmas, proof strategies, reusable libraries, and tooling remain Background IP unless expressly sold separately.",
+        "Customer-specific protectable deliverables can transfer after full payment according to the signed IP schedule.",
+        "Marketing does not promise exclusive copyright or patent ownership in mathematical facts/formulas where statutory law does not provide such rights.",
+        "Confidentiality and trade-secret controls protect unrevealed CACE methods."
+      ]
+    },
+    {
+      "id": "G041",
+      "category": "security",
+      "priority": 41,
+      "intent_status": "required",
+      "title": "Separate proof runner from account, contract, and email credentials",
+      "summary": "Proof runners publish signed artifacts/results through a narrow internal channel; account, payment, contract, database, and outbound-email functions run in separate services.",
+      "acceptance": [
+        "Proof runner cannot query user/password tables.",
+        "Proof runner has no outbound mail credential.",
+        "Proof runner has no Monero spend key or customer payment credentials.",
+        "Mail/document services verify contract/payment/proof status before customer delivery.",
+        "A PDF hash mismatch, unsigned result, or incomplete contract/payment gate blocks delivery."
       ]
     }
   ]
