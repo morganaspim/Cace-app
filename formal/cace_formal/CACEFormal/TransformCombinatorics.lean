@@ -188,6 +188,56 @@ theorem nonuple_preserves_orthogonality
       ((nonuple a b c d e f g h i).toFun y) = 0 :=
   (nonuple a b c d e f g h i).preserves_orthogonality hxy
 
+/-- Five certified geometry stages preserve the exact hypercircle identity. -/
+theorem quintuple_hypercircle
+    (a b c d e : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    ‖(quintuple a b c d e).toFun x + (quintuple a b c d e).toFun y‖ *
+        ‖(quintuple a b c d e).toFun x + (quintuple a b c d e).toFun y‖ =
+      ‖(quintuple a b c d e).toFun x‖ * ‖(quintuple a b c d e).toFun x‖ +
+        ‖(quintuple a b c d e).toFun y‖ * ‖(quintuple a b c d e).toFun y‖ :=
+  (quintuple a b c d e).hypercircle_after hxy
+
+/-- Six certified geometry stages preserve the exact hypercircle identity. -/
+theorem sextuple_hypercircle
+    (a b c d e f : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    ‖(sextuple a b c d e f).toFun x + (sextuple a b c d e f).toFun y‖ *
+        ‖(sextuple a b c d e f).toFun x + (sextuple a b c d e f).toFun y‖ =
+      ‖(sextuple a b c d e f).toFun x‖ * ‖(sextuple a b c d e f).toFun x‖ +
+        ‖(sextuple a b c d e f).toFun y‖ * ‖(sextuple a b c d e f).toFun y‖ :=
+  (sextuple a b c d e f).hypercircle_after hxy
+
+/-- Seven certified geometry stages preserve the exact hypercircle identity. -/
+theorem septuple_hypercircle
+    (a b c d e f g : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    ‖(septuple a b c d e f g).toFun x + (septuple a b c d e f g).toFun y‖ *
+        ‖(septuple a b c d e f g).toFun x + (septuple a b c d e f g).toFun y‖ =
+      ‖(septuple a b c d e f g).toFun x‖ * ‖(septuple a b c d e f g).toFun x‖ +
+        ‖(septuple a b c d e f g).toFun y‖ * ‖(septuple a b c d e f g).toFun y‖ :=
+  (septuple a b c d e f g).hypercircle_after hxy
+
+/-- Eight certified geometry stages preserve the exact hypercircle identity. -/
+theorem octuple_hypercircle
+    (a b c d e f g h : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    ‖(octuple a b c d e f g h).toFun x + (octuple a b c d e f g h).toFun y‖ *
+        ‖(octuple a b c d e f g h).toFun x + (octuple a b c d e f g h).toFun y‖ =
+      ‖(octuple a b c d e f g h).toFun x‖ * ‖(octuple a b c d e f g h).toFun x‖ +
+        ‖(octuple a b c d e f g h).toFun y‖ * ‖(octuple a b c d e f g h).toFun y‖ :=
+  (octuple a b c d e f g h).hypercircle_after hxy
+
+/-- Nine certified geometry stages preserve the exact hypercircle identity. -/
+theorem nonuple_hypercircle
+    (a b c d e f g h i : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    ‖(nonuple a b c d e f g h i).toFun x + (nonuple a b c d e f g h i).toFun y‖ *
+        ‖(nonuple a b c d e f g h i).toFun x + (nonuple a b c d e f g h i).toFun y‖ =
+      ‖(nonuple a b c d e f g h i).toFun x‖ * ‖(nonuple a b c d e f g h i).toFun x‖ +
+        ‖(nonuple a b c d e f g h i).toFun y‖ * ‖(nonuple a b c d e f g h i).toFun y‖ :=
+  (nonuple a b c d e f g h i).hypercircle_after hxy
+
 /-- Compose an arbitrary ranked transform list. -/
 def chain : List (CertifiedGeometryTransform E) → CertifiedGeometryTransform E
   | [] => identity
