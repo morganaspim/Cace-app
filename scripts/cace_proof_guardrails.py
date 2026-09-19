@@ -151,15 +151,19 @@ def validate(config: dict) -> None:
     graph = cace_module_graph(module_root)
     closure = root_closure(actual, graph)
     missing_internal = sorted(
-        dep
+        module
         for module in closure
-        for dep in graph.get(module, ())
-        if dep.startswith("CACEFormal.") and dep not in graph
+        if module.startswith("CACEFormal.") and module not in graph
     )
     if missing_internal:
         raise GuardrailError(
-            f"audited root closure has missing CACEFormal imports: {missing_internal}"
+            f"audited root closure has missing CACEFormal modules: {missing_internal}"
         )
+
+    for relative in config.get("guardrail_sources", ()):
+        path = ROOT / relative
+        if not path.is_file():
+            raise GuardrailError(f"missing guardrail source: {relative}")
 
     ledger_text = ledger.read_text(encoding="utf-8")
     ids = re.findall(r"^##\s+(F-\d{3})\b", ledger_text, flags=re.MULTILINE)
@@ -306,6 +310,13 @@ def proof_plan(config: dict, args: argparse.Namespace) -> dict:
         "target": args.target,
         "compile_root": args.compile_root.lower() == "true",
         "guardrail_config_sha256": source_digest(CONFIG_PATH),
+        "guardrail_sources": [
+            {
+                "path": relative,
+                "sha256": source_digest(ROOT / relative),
+            }
+            for relative in sorted(config.get("guardrail_sources", ()))
+        ],
         "canary_module": config["canary_module"],
         "impacted_modules": impacted,
         "root_sources": source_records,
