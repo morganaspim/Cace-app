@@ -88,11 +88,19 @@ theorem normalizer_map_p1
           y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 := by
             ring
       _ = 0 := hzero
+  have hden_nf :
+      y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1 ≠ 0 := by
+    intro hzero
+    apply hden
+    calc
+      y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 =
+          y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1 := by
+            ring
+      _ = 0 := hzero
   ext <;>
     dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
     ring_nf <;>
-    field_simp [hT, hden] <;>
-    ring
+    field_simp [hT, hden, hden_nf]
 
 /-- The third vertex maps exactly to (0,1). -/
 theorem normalizer_map_p2
