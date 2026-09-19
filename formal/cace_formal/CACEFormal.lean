@@ -76,6 +76,7 @@ import CACEFormal.ReferenceSimplexTopFacetMeasure
 import CACEFormal.ReferenceSimplexTopFacetCurrent
 import CACEFormal.ReferenceSimplexFacetCurrentClosure
 import CACEFormal.ReferenceSimplexCellIBP
+import CACEFormal.GeometricSimplexAffineTransport
 import CACEFormal.ReferenceSimplexFiberIBP
 import CACEFormal.ReferenceSimplexCoordinateGreen
 import CACEFormal.SmoothBoxGreenAuto
