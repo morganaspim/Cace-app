@@ -136,6 +136,22 @@ theorem inner_smoothHDivGraphPullback_eq_zero_of_mem_orthogonal
     ((ComplexHDivSmoothGraphCoreHilbert n).mem_orthogonal x).1 hx _
       (smoothComplexHDivGraphPullback_mem_core n q)
 
+/-- Specializing the smooth-core orthogonality relation to a Schwartz vector
+with one active coordinate isolates the weak derivative pairing in coordinate `i`. -/
+theorem inner_singleCoordinateSchwartzGraph_eq_zero_of_mem_orthogonal
+    (n : Nat) (x : HDivComplexGraphHilbert n)
+    (hx : x ∈ (ComplexHDivSmoothGraphCoreHilbert n)ᗮ)
+    (i : Fin n) (φ : ComplexSmoothScalar n) :
+    ⟪schwartzComplexL2 n φ, (hdivGraphHilbertEquiv n x).1 i⟫_ℂ +
+        ⟪schwartzComplexL2 n (∂_{basisVector i} φ),
+          (hdivGraphHilbertEquiv n x).2⟫_ℂ = 0 := by
+  classical
+  let q : ComplexSmoothVector n := fun j => if j = i then φ else 0
+  have hzero :=
+    inner_smoothHDivGraphPullback_eq_zero_of_mem_orthogonal n x hx q
+  rw [hdivGraphHilbert_inner_eq] at hzero
+  simpa [q, smoothComplexHDivGraphMap] using hzero
+
 /-- Exact remaining analytic criterion for unconditional whole-space H(div)
 graph density. Orthogonality is stated only in the legitimate L²-product
 Hilbert structure. -/
