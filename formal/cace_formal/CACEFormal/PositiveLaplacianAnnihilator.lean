@@ -34,6 +34,13 @@ noncomputable def laplacianFrequencySqSymbol {n : Nat} :
     EuclideanDomain n → ℂ :=
   fun x => Complex.ofReal (‖x‖ ^ 2)
 
+/-- Continuous linear frequency scaling `x ↦ (2π)x`.  Writing the resolvent
+through this map lets us reuse Mathlib's proved Bessel-potential temperate-growth
+theorem instead of asking automation to reason about a reciprocal. -/
+noncomputable def positiveLaplacianScale {n : Nat} :
+    EuclideanDomain n →L[ℝ] EuclideanDomain n :=
+  (2 * Real.pi) • ContinuousLinearMap.id ℝ (EuclideanDomain n)
+
 /-- Low-frequency inverse of `1 + (2π)²|ξ|²`. -/
 noncomputable def positiveLaplacianLowSymbol {n : Nat} :
     EuclideanDomain n → ℂ :=
@@ -54,13 +61,50 @@ theorem laplacianFrequencySqSymbol_hasTemperateGrowth {n : Nat} :
 
 theorem positiveLaplacianLowSymbol_hasTemperateGrowth {n : Nat} :
     (positiveLaplacianLowSymbol (n := n)).HasTemperateGrowth := by
-  unfold positiveLaplacianLowSymbol
-  fun_prop
+  have hbase :
+      (fun y : EuclideanDomain n => (1 + ‖y‖ ^ 2) ^ (-1 : ℝ)).HasTemperateGrowth :=
+    Function.hasTemperateGrowth_one_add_norm_sq_rpow
+      (EuclideanDomain n) (-1 : ℝ)
+  have hscaledReal :
+      (fun x : EuclideanDomain n =>
+        (1 + ‖positiveLaplacianScale (n := n) x‖ ^ 2) ^ (-1 : ℝ)).HasTemperateGrowth := by
+    simpa [Function.comp_def] using
+      hbase.comp (positiveLaplacianScale (n := n)).hasTemperateGrowth
+  have hscaledComplex :
+      (fun x : EuclideanDomain n =>
+        Complex.ofReal
+          ((1 + ‖positiveLaplacianScale (n := n) x‖ ^ 2) ^ (-1 : ℝ))).HasTemperateGrowth := by
+    simpa [Function.comp_def] using
+      Complex.hasTemperateGrowth_ofReal.comp hscaledReal
+  have hnorm (x : EuclideanDomain n) :
+      ‖positiveLaplacianScale (n := n) x‖ ^ 2 =
+        (2 * Real.pi) ^ 2 * ‖x‖ ^ 2 := by
+    simp [positiveLaplacianScale, norm_smul, Real.norm_eq_abs,
+      abs_of_pos (mul_pos (by norm_num) Real.pi_pos)]
+    ring
+  have hfun :
+      (fun x : EuclideanDomain n =>
+        Complex.ofReal
+          ((1 + ‖positiveLaplacianScale (n := n) x‖ ^ 2) ^ (-1 : ℝ))) =
+        positiveLaplacianLowSymbol (n := n) := by
+    funext x
+    unfold positiveLaplacianLowSymbol
+    rw [hnorm x]
+  rw [← hfun]
+  exact hscaledComplex
 
 theorem positiveLaplacianEnergySymbol_hasTemperateGrowth {n : Nat} :
     (positiveLaplacianEnergySymbol (n := n)).HasTemperateGrowth := by
-  unfold positiveLaplacianEnergySymbol
-  fun_prop
+  have hprod :
+      (laplacianFrequencySqSymbol (n := n) *
+        positiveLaplacianLowSymbol (n := n)).HasTemperateGrowth :=
+    (laplacianFrequencySqSymbol_hasTemperateGrowth (n := n)).mul
+      (positiveLaplacianLowSymbol_hasTemperateGrowth (n := n))
+  have hconst :
+      (fun _ : EuclideanDomain n => ((2 * (Real.pi : ℂ)) ^ 2)).HasTemperateGrowth :=
+    Function.HasTemperateGrowth.const _
+  have hscaled := hconst.smul hprod
+  simpa [positiveLaplacianEnergySymbol] using hscaled
 
 /-- Exact low/high partition of unity for the positive-Laplacian resolvent. -/
 theorem positiveLaplacianLow_add_energy {n : Nat}
