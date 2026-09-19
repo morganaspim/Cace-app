@@ -28,6 +28,11 @@ from cace_studio.core.types import (
     ProofStatus,
 )
 from cace_studio.core.verification import VerificationRecord, VerificationState
+from cace_studio.integrations.alphafold_db import (
+    AlphaFoldDBClient,
+    AlphaFoldDBError,
+    validate_accession,
+)
 
 
 _RESIDUE_3_TO_1 = {
@@ -648,6 +653,173 @@ class AlphaFoldPDBImportModule(Module):
         ]
 
 
+class AlphaFoldDBAPIImportModule(Module):
+    metadata = ModuleMetadata(
+        "protein.alphafold_api_import",
+        "AlphaFold DB API Protein",
+        "0.1.0",
+        "Protein Science",
+        "Fetch current AlphaFold DB prediction metadata and its API-supplied PDB file by UniProt accession, preserving CC-BY-4.0 attribution.",
+        Maturity.EXPERIMENTAL,
+        assumptions=(
+            "Network access is user-triggered by executing this module.",
+            "Only allowlisted HTTPS AlphaFold domains are accepted.",
+            "AlphaFold DB structures are predictions and are not experimental or clinical evidence.",
+            "The module imports AlphaFold DB data; it does not reproduce AlphaFold or bundle model weights.",
+        ),
+    )
+    outputs = (
+        PortSpec("sequence", "protein_sequence"),
+        PortSpec("structure", "protein_structure"),
+        PortSpec("metadata_json", "string"),
+        PortSpec("source_url", "string"),
+        PortSpec("license_id", "string"),
+        PortSpec("attribution", "string"),
+        PortSpec("global_metric_value", "number", required=False),
+    )
+    parameters = (
+        ParameterSpec(
+            "uniprot_accession",
+            "string",
+            "P69905",
+            description="UniProt accession resolved through the AlphaFold DB prediction API.",
+        ),
+        ParameterSpec(
+            "prediction_index",
+            "integer",
+            0,
+            description="Zero-based prediction record when the API returns multiple models.",
+        ),
+        ParameterSpec(
+            "timeout_seconds",
+            "number",
+            15.0,
+            description="Bounded network timeout for metadata/PDB retrieval.",
+            unit="s",
+        ),
+    )
+    proof_status = ProofStatus(
+        evidence={EvidenceKind.EXPERIMENTAL},
+        unit_tests=True,
+        documentation=True,
+        limitations=[
+            "Retrieval/schema/hash verification only; not evidence that a predicted fold is physically correct.",
+            "Requires explicit network access to the public AlphaFold DB service when executed.",
+            "C-alpha-only CACE import after download; full atomic structure remains available through the attributed source URL.",
+        ],
+    )
+
+    def validate(self, inputs, params):
+        super().validate(inputs, params)
+        p = self.resolved_params(params)
+        try:
+            validate_accession(str(p["uniprot_accession"]))
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+        index = int(p["prediction_index"])
+        if index < 0:
+            raise ValidationError("prediction_index must be non-negative")
+        timeout = float(p["timeout_seconds"])
+        if not math.isfinite(timeout) or not 0.5 <= timeout <= 120.0:
+            raise ValidationError("timeout_seconds must be finite in 0.5..120")
+
+    def execute(self, inputs, params, ctx):
+        accession = validate_accession(str(params["uniprot_accession"]))
+        try:
+            fetched = AlphaFoldDBClient(
+                timeout=float(params["timeout_seconds"])
+            ).fetch_pdb(
+                accession,
+                prediction_index=int(params["prediction_index"]),
+            )
+        except (AlphaFoldDBError, ValueError) as exc:
+            raise RuntimeError(f"AlphaFold DB import failed: {exc}") from exc
+
+        record = fetched.prediction
+        structure = parse_pdb_ca_structure(
+            fetched.pdb_text,
+            source=record.entry_url,
+            license_id=record.license_id,
+            attribution=record.attribution,
+        )
+
+        if record.sequence:
+            expected_sequence = record.sequence
+            if (
+                record.sequence_start is not None
+                and record.sequence_end is not None
+                and 1 <= record.sequence_start <= record.sequence_end <= len(record.sequence)
+            ):
+                expected_sequence = record.sequence[
+                    record.sequence_start - 1 : record.sequence_end
+                ]
+            if (
+                expected_sequence
+                and "X" not in structure.sequence.sequence
+                and structure.sequence.sequence != expected_sequence
+            ):
+                raise RuntimeError(
+                    "AlphaFold DB PDB sequence does not match the API metadata sequence"
+                )
+
+        metadata = fetched.to_metadata_dict()
+        return {
+            "sequence": structure.sequence,
+            "structure": structure,
+            "metadata_json": json.dumps(metadata, sort_keys=True, separators=(",", ":")),
+            "source_url": record.entry_url,
+            "license_id": record.license_id,
+            "attribution": record.attribution,
+            "global_metric_value": (
+                float(record.global_metric_value)
+                if record.global_metric_value is not None
+                else None
+            ),
+        }
+
+    def verify(self, inputs, params, outputs, ctx):
+        structure = outputs["structure"]
+        metadata = json.loads(str(outputs["metadata_json"]))
+        provenance = structure.provenance
+        hash_ok = (
+            provenance is not None
+            and provenance.content_sha256 == metadata.get("pdbSha256")
+        )
+        license_ok = (
+            provenance is not None
+            and provenance.license_id == "CC-BY-4.0"
+            and outputs.get("license_id") == "CC-BY-4.0"
+        )
+        attribution_ok = bool(outputs.get("attribution")) and bool(
+            provenance and provenance.attribution
+        )
+        shape_ok = (
+            isinstance(structure, ProteinStructure)
+            and len(structure.ca_coordinates) == len(structure.sequence.sequence)
+            and len(structure.ca_coordinates) > 0
+        )
+        ok = hash_ok and license_ok and attribution_ok and shape_ok
+        return [
+            VerificationRecord(
+                "alphafold-db-api-import-integrity",
+                EvidenceKind.EXPERIMENTAL,
+                "AlphaFold DB API import preserves typed residue geometry, PDB content hash, CC-BY-4.0 license metadata, and attribution",
+                VerificationState.PASS if ok else VerificationState.FAIL,
+                "allowlisted API retrieval plus local hash/schema/provenance checks",
+                {
+                    "residues": len(structure.ca_coordinates) if shape_ok else 0,
+                    "hash_matches": hash_ok,
+                    "license_preserved": license_ok,
+                    "attribution_preserved": attribution_ok,
+                },
+                notes=(
+                    "This verifies import integrity/provenance only, not structural correctness.",
+                    "Imported AlphaFold DB data remain predictions with confidence-dependent limitations.",
+                ),
+            )
+        ]
+
+
 class ProteinCoarseFoldSearch(Module):
     metadata = ModuleMetadata(
         "protein.coarse_fold_search",
@@ -924,6 +1096,7 @@ def register_molecular_materials(registry) -> None:
         MoleculeJSONModule,
         ProteinSequenceModule,
         AlphaFoldPDBImportModule,
+        AlphaFoldDBAPIImportModule,
         ProteinCoarseFoldSearch,
         SafeHomeLabExperimentModule,
         MaterialCandidateSearchModule,

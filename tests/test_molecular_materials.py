@@ -153,6 +153,7 @@ def test_registry_exposes_new_science_canvas_modules():
         "chemistry.safe_home_lab",
         "protein.sequence",
         "protein.alphafold_pdb_import",
+        "protein.alphafold_api_import",
         "protein.coarse_fold_search",
         "materials.descriptor_search",
         "physics.canvas_object",
