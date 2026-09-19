@@ -40,6 +40,7 @@ REQUIRED_SNIPPETS = (
     "python3 scripts/cace_proof_guardrails.py validate",
     "python3 scripts/cace_proof_guardrails.py impacted",
     "python3 scripts/cace_proof_guardrails.py plan-hash",
+    "python3 scripts/check_cace_known_failure_regressions.py",
     "Impacted-module planner emitted non-module output.",
     "Impacted-module planner emitted duplicate modules.",
     "lake build +CACEFormal.GuardrailCanaries",
