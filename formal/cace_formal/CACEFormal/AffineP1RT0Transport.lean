@@ -220,6 +220,18 @@ theorem cellFacePairing_map
       edgePairing_map F v q p1 p2 hdet,
       edgePairing_map F v q p2 p0 hdet]
 
+
+/-- Every local face slot inherits the exact affine edge-pairing invariance. -/
+theorem localFacePairing_map
+    (F : Affine2) (T : Triangle2) (v : P1Affine) (q : RT0Affine)
+    (s : Fin 3) (hdet : F.linearDet ≠ 0) :
+    P1RT0Element.localFacePairing
+        (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) s =
+      P1RT0Element.localFacePairing T v q s := by
+  fin_cases s <;>
+    simp [P1RT0Element.localFacePairing, Affine2.mapTriangle,
+      edgePairing_map, hdet]
+
 end AffineP1RT0Transport
 
 end CACEFormal
