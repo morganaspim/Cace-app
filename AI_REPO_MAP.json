@@ -219,5 +219,14 @@
     "purchase_after": "PROOF_READY_FOR_SALE",
     "post_purchase": "contract/signature/payment -> render already-qualified PDF -> final disclosure review -> delivery/audit",
     "trade_secret_goal": "Protect proprietary theorem corpus through continuous technical, contractual, and operational reasonable measures."
+  },
+  "compute_entitlements": {
+    "document": "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+    "all_tiers_gpu_toggle": true,
+    "cuda": "NVIDIA-compatible only",
+    "researcher_enterprise_multithread_included": true,
+    "basic_multithread_unlock_usd": 15,
+    "basic_multithread_entitlement": "feature.cpu_multithread.basic.perpetual.v1",
+    "hard_rule": "execution acceleration does not change theorem/evidence authority"
   }
 }
