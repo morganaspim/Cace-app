@@ -12,6 +12,11 @@ Commands:
       dependent, in dependency-first order.  This is used for cheap targeted
       compilation before the full root build.
 
+  classify-target --module MODULE --compile-root {true,false}
+      Classify a requested target as audited-root or quarantined-standalone.
+      Standalone targets fail closed if their recursive import closure reaches
+      the aggregate audited root.
+
   plan-hash ...
       Emit a content-addressed SHA-256 that binds the Lean/Mathlib pins,
       target, compile-root flag, guardrail policy, and every Lean source file
@@ -108,6 +113,62 @@ def missing_internal_modules(
         for module in closure
         if module.startswith("CACEFormal.") and module not in graph
     )
+
+
+def classify_target(
+    config: dict,
+    module: str,
+    *,
+    compile_root: bool,
+    graph: dict[str, tuple[str, ...]] | None = None,
+    root_imports: Iterable[str] | None = None,
+) -> str:
+    """Classify one preflight target and enforce the standalone trust boundary."""
+    module_root = ROOT / config["module_root"]
+    audited_root = ROOT / config["audited_root"]
+    graph = cace_module_graph(module_root) if graph is None else graph
+    imports = tuple(parse_imports(audited_root) if root_imports is None else root_imports)
+
+    if module not in graph:
+        raise GuardrailError(f"requested Lean module is absent from source graph: {module}")
+
+    if module in set(imports):
+        return "audited-root"
+
+    if compile_root:
+        raise GuardrailError(
+            "requested module is not directly imported by audited CACEFormal.lean root, "
+            "and standalone quarantine compilation requires compile_root=false: "
+            f"{module}"
+        )
+
+    quarantine = set(config.get("quarantined_root_imports", ()))
+    allowed = set(config.get("allowed_root_imports", ()))
+    if module not in quarantine:
+        raise GuardrailError(
+            f"requested non-root module is not explicitly quarantined: {module}"
+        )
+    if module in allowed:
+        raise GuardrailError(
+            f"quarantined standalone target is also root-allowed: {module}"
+        )
+
+    root_module = path_to_module(module_root, audited_root)
+    if root_module is None:
+        raise GuardrailError("cannot derive audited aggregate-root module name")
+    target_closure = root_closure((module,), graph)
+    if root_module in target_closure:
+        raise GuardrailError(
+            "quarantined standalone target reaches audited aggregate root through "
+            f"its recursive imports: target={module}, root={root_module}"
+        )
+
+    missing = missing_internal_modules(target_closure, graph)
+    if missing:
+        raise GuardrailError(
+            f"standalone target closure has missing CACEFormal modules: {missing}"
+        )
+    return "quarantined-standalone"
 
 
 def validate(config: dict, *, emit: bool = True) -> None:
@@ -347,6 +408,12 @@ def main() -> int:
 
     sub.add_parser("validate")
 
+    classify_parser = sub.add_parser("classify-target")
+    classify_parser.add_argument("--module", required=True)
+    classify_parser.add_argument(
+        "--compile-root", required=True, choices=("true", "false")
+    )
+
     impacted_parser = sub.add_parser("impacted")
     impacted_parser.add_argument("--base-ref", required=True)
 
@@ -362,6 +429,16 @@ def main() -> int:
         config = load_config()
         if args.command == "validate":
             validate(config, emit=True)
+            return 0
+        if args.command == "classify-target":
+            validate(config, emit=False)
+            print(
+                classify_target(
+                    config,
+                    args.module,
+                    compile_root=args.compile_root == "true",
+                )
+            )
             return 0
         if args.command == "impacted":
             validate(config, emit=False)

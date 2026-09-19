@@ -78,36 +78,11 @@ jobs:
           test -f "formal/cace_formal/$REQUESTED_MODULE"
           module_name="${REQUESTED_MODULE%.lean}"
           module_name="${module_name//\//.}"
-          target_class=""
-          if grep -Fqx "import $module_name" formal/cace_formal/CACEFormal.lean; then
-            target_class="audited-root"
-          elif test "$COMPILE_ROOT" = "false"; then
-            MODULE_NAME="$module_name" python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          module = os.environ["MODULE_NAME"]
-          config = json.loads(
-              Path("formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8")
-          )
-          quarantine = set(config.get("quarantined_root_imports", []))
-          allowed = set(config.get("allowed_root_imports", []))
-          if module not in quarantine:
-              raise SystemExit(
-                  f"Requested non-root module is not explicitly quarantined: {module}"
-              )
-          if module in allowed:
-              raise SystemExit(
-                  f"Quarantined standalone target is also root-allowed: {module}"
-              )
-          print(f"CACE_QUARANTINED_STANDALONE_TARGET_OK module={module}")
-          PY
-            target_class="quarantined-standalone"
-          else
-            echo "Requested module is not directly imported by audited CACEFormal.lean root, and standalone quarantine compilation requires compile_root=false: $module_name" >&2
-            exit 3
-          fi
+          target_class="$(
+            python3 scripts/cace_proof_guardrails.py classify-target \
+              --module "$module_name" \
+              --compile-root "$COMPILE_ROOT"
+          )"
           printf 'target_class=%s\n' "$target_class"
           printf 'module=%s\n' "$REQUESTED_MODULE" >> "$GITHUB_OUTPUT"
           printf 'module_name=%s\n' "$module_name" >> "$GITHUB_OUTPUT"

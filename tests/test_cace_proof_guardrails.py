@@ -166,16 +166,78 @@ def test_no_reserved_by_identifier_in_rcases_patterns():
 
 
 
-def test_exact_pin_workflow_supports_quarantined_standalone_without_root_promotion():
+def test_target_classification_behavior_enforces_standalone_boundary():
+    import pytest
+
+    guard = _guardrails()
+    config = dict(guard.load_config())
+    config["allowed_root_imports"] = ["CACEFormal.RootAllowed"]
+    config["quarantined_root_imports"] = [
+        "CACEFormal.Quarantined",
+        "CACEFormal.QuarantinedViaRoot",
+    ]
+    graph = {
+        "CACEFormal": ("CACEFormal.RootAllowed",),
+        "CACEFormal.RootAllowed": (),
+        "CACEFormal.Quarantined": ("CACEFormal.RootAllowed",),
+        "CACEFormal.QuarantinedViaRoot": ("CACEFormal",),
+        "CACEFormal.Unlisted": (),
+    }
+    root_imports = ("CACEFormal.RootAllowed",)
+
+    assert (
+        guard.classify_target(
+            config,
+            "CACEFormal.RootAllowed",
+            compile_root=True,
+            graph=graph,
+            root_imports=root_imports,
+        )
+        == "audited-root"
+    )
+    assert (
+        guard.classify_target(
+            config,
+            "CACEFormal.Quarantined",
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+        == "quarantined-standalone"
+    )
+
+    with pytest.raises(guard.GuardrailError, match="requires compile_root=false"):
+        guard.classify_target(
+            config,
+            "CACEFormal.Quarantined",
+            compile_root=True,
+            graph=graph,
+            root_imports=root_imports,
+        )
+    with pytest.raises(guard.GuardrailError, match="not explicitly quarantined"):
+        guard.classify_target(
+            config,
+            "CACEFormal.Unlisted",
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+    with pytest.raises(guard.GuardrailError, match="reaches audited aggregate root"):
+        guard.classify_target(
+            config,
+            "CACEFormal.QuarantinedViaRoot",
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+
+
+def test_exact_pin_workflow_uses_behaviorally_tested_target_classifier():
     workflow = (
         ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
     ).read_text(encoding="utf-8")
-    assert 'COMPILE_ROOT: ${{ inputs.compile_root }}' in workflow
-    assert 'test "$COMPILE_ROOT" = "false"' in workflow
-    assert "quarantined_root_imports" in workflow
-    assert 'target_class="quarantined-standalone"' in workflow
-    assert "Requested non-root module is not explicitly quarantined" in workflow
-    assert "standalone quarantine compilation requires compile_root=false" in workflow
+    assert "scripts/cace_proof_guardrails.py classify-target" in workflow
+    assert 'target_class="$(python3 scripts/cace_proof_guardrails.py classify-target' in workflow
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():
