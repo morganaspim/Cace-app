@@ -9,6 +9,8 @@ import random
 import re
 from typing import Iterable, Sequence
 
+from .growth_memory import PersistentGrowthMemory
+
 
 _TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]{1,}|[0-9]+(?:\.[0-9]+)?")
 
@@ -65,6 +67,8 @@ class GrowResult:
     next_steps: tuple[str, ...]
     neural_rerank_used: bool = False
     neural_rerank_note: str = ""
+    persistent_memory_used: bool = False
+    persistent_memory_note: str = ""
 
     def context_text(self, *, max_fragments: int = 8, max_chars: int = 9000) -> str:
         """Render bounded research context for a local model.
@@ -83,6 +87,13 @@ class GrowResult:
                 if self.neural_rerank_used
                 else "Neural rerank: OFF/FALLBACK — " + (
                     self.neural_rerank_note or "deterministic sparse ranking"
+                )
+            ),
+            (
+                "Persistent memory: ON — " + self.persistent_memory_note
+                if self.persistent_memory_used
+                else "Persistent memory: OFF/EMPTY — " + (
+                    self.persistent_memory_note or "no user-supervised feedback applied"
                 )
             ),
             "Semantic walk: " + " -> ".join(self.walk),
@@ -304,9 +315,15 @@ class GrowthEngine:
     weights.
     """
 
-    def __init__(self, index: SparseResearchIndex, router: ExpertRouter | None = None) -> None:
+    def __init__(
+        self,
+        index: SparseResearchIndex,
+        router: ExpertRouter | None = None,
+        memory: PersistentGrowthMemory | None = None,
+    ) -> None:
         self.index = index
         self.router = router or ExpertRouter()
+        self.memory = memory
         self.seen_groups: Counter[tuple[str, ...]] = Counter()
         self.seen_fragments: Counter[str] = Counter()
 
@@ -318,6 +335,25 @@ class GrowthEngine:
     def _seed(query: str, cycle: int) -> int:
         digest = sha256(f"{cycle}:{query}".encode("utf-8")).digest()
         return int.from_bytes(digest[:8], "big")
+
+    def _apply_persistent_fragment_bias(
+        self,
+        ranked: Sequence[RankedFragment],
+    ) -> tuple[RankedFragment, ...]:
+        if self.memory is None or not ranked or not self.memory.events:
+            return tuple(ranked)
+        scale = max(abs(item.score) for item in ranked) or 1.0
+        adjusted = []
+        for item in ranked:
+            bias = self.memory.fragment_bias(item.fragment.fragment_id)
+            adjusted.append(
+                RankedFragment(
+                    item.fragment,
+                    item.score + scale * bias,
+                )
+            )
+        adjusted.sort(key=lambda item: (-item.score, item.fragment.fragment_id))
+        return tuple(adjusted)
 
     def _walk(
         self,
@@ -384,12 +420,14 @@ class GrowthEngine:
                 novelty = 1.0 - redundancy
                 size_cost = 0.06 * (size - 2)
                 repeat_penalty = min(0.40, 0.08 * self.seen_groups[ids])
+                persistent_bias = self.memory.group_bias(ids) if self.memory is not None else 0.0
                 score = (
                     0.55 * rel
                     + 0.25 * diversity
                     + 0.20 * novelty
                     - size_cost
                     - repeat_penalty
+                    + persistent_bias
                 )
                 groups.append(
                     ConceptGroup(
@@ -431,6 +469,7 @@ class GrowthEngine:
             else:
                 neural_rerank_used = True
                 neural_rerank_note = f"reranked {len(ranked)} sparse candidates locally"
+        ranked = self._apply_persistent_fragment_bias(ranked)
         routes = self.router.route(query)
         walk = self._walk(ranked, seed=seed, steps=walk_steps, chaos=chaos)
         groups = self._groups(ranked, max_group_size=max_group_size, budget=group_budget)
@@ -445,6 +484,16 @@ class GrowthEngine:
         if any(route.expert_id == "experiment" for route in routes):
             next_steps.append("Use at least two fixed seeds plus a zero-chaos control to separate exploration effects from stable structure.")
         next_steps.append("Promote nothing automatically: user review is required before persistent research memory or graph mutation.")
+
+        memory_used = bool(self.memory is not None and self.memory.events)
+        memory_note = ""
+        if memory_used:
+            summary = self.memory.summary()
+            memory_note = (
+                f"{summary['total']} event(s): "
+                f"{summary['keep']} keep, {summary['useful']} useful, "
+                f"{summary['reject']} reject"
+            )
 
         for fragment_id in walk:
             self.seen_fragments[fragment_id] += 1
@@ -462,4 +511,6 @@ class GrowthEngine:
             next_steps=tuple(next_steps),
             neural_rerank_used=neural_rerank_used,
             neural_rerank_note=neural_rerank_note,
+            persistent_memory_used=memory_used,
+            persistent_memory_note=memory_note,
         )
