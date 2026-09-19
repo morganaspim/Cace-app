@@ -8,6 +8,7 @@ except ImportError as exc:  # pragma: no cover - GUI-only module
 
 from cace_studio.ai import LocalAIError, create_local_provider
 from cace_studio.ai.corpus import build_local_index
+from cace_studio.ai.growth_memory import PersistentGrowthMemory
 from cace_studio.ai.hybrid import GrowthEngine
 
 
@@ -40,6 +41,7 @@ class _GrowWorker(QRunnable):
         budget: int,
         max_group_size: int,
         embedding_provider=None,
+        memory=None,
     ) -> None:
         super().__init__()
         self.engine = engine
@@ -49,11 +51,12 @@ class _GrowWorker(QRunnable):
         self.budget = budget
         self.max_group_size = max_group_size
         self.embedding_provider = embedding_provider
+        self.memory = memory
         self.signals = _GrowSignals()
 
     def run(self) -> None:  # pragma: no cover - exercised through GUI integration
         try:
-            engine = self.engine or GrowthEngine(build_local_index())
+            engine = self.engine or GrowthEngine(build_local_index(), memory=self.memory)
             result = engine.grow(
                 self.query,
                 cycle=self.cycle,
@@ -94,9 +97,11 @@ class LocalAIAssistantWidget(QWidget):
         self.context_provider = context_provider
         self.history: list[dict[str, str]] = []
         self.pool = QThreadPool.globalInstance()
+        self._growth_memory = PersistentGrowthMemory()
         self._growth_engine = None
         self._growth_cycle = 0
         self._growth_context = ""
+        self._last_grow_result = None
 
         self.status = QLabel()
         self.status.setWordWrap(True)
@@ -117,6 +122,18 @@ class LocalAIAssistantWidget(QWidget):
         self.general_button = QPushButton("Generally Useful")
         self.general_button.setToolTip("Switch the assistant to broad low-cost routing mode.")
         self.general_button.clicked.connect(self.set_generally_useful)
+        self.keep_button = QPushButton("Keep")
+        self.keep_button.setToolTip("Remember this Grow candidate and gently resurface it in future searches.")
+        self.keep_button.clicked.connect(lambda: self._record_growth_feedback("keep"))
+        self.useful_button = QPushButton("Useful")
+        self.useful_button.setToolTip("Give this Grow candidate a bounded positive preference signal.")
+        self.useful_button.clicked.connect(lambda: self._record_growth_feedback("useful"))
+        self.reject_button = QPushButton("Reject")
+        self.reject_button.setToolTip("Down-rank this Grow candidate in future searches without deleting source.")
+        self.reject_button.clicked.connect(lambda: self._record_growth_feedback("reject"))
+        for button in (self.keep_button, self.useful_button, self.reject_button):
+            button.setEnabled(False)
+
         configure = QPushButton("Configure")
         configure.clicked.connect(self.configure_callback)
 
@@ -126,13 +143,32 @@ class LocalAIAssistantWidget(QWidget):
         row.addWidget(self.grow_button)
         row.addWidget(self.general_button)
         row.addWidget(configure)
+        feedback_row = QHBoxLayout()
+        feedback_row.addWidget(QLabel("Latest Grow:"))
+        feedback_row.addWidget(self.keep_button)
+        feedback_row.addWidget(self.useful_button)
+        feedback_row.addWidget(self.reject_button)
+        feedback_row.addStretch()
+
+        self.memory_status = QLabel()
+        self.memory_status.setWordWrap(True)
+
         layout = QVBoxLayout(self)
         layout.addWidget(self.status)
+        layout.addWidget(self.memory_status)
         layout.addWidget(self.transcript)
+        layout.addLayout(feedback_row)
         layout.addLayout(row)
         self.refresh()
 
     def refresh(self) -> None:
+        summary = self._growth_memory.summary()
+        self.memory_status.setText(
+            "Grow memory: "
+            f"{summary['total']} feedback event(s) — "
+            f"Keep {summary['keep']} / Useful {summary['useful']} / Reject {summary['reject']}. "
+            "User-supervised research preference only; never verification evidence."
+        )
         if not self.settings.ai_enabled:
             self.status.setText("AI is OFF. CACE execution and verification are unaffected.")
             self.send_button.setEnabled(False)
@@ -209,6 +245,7 @@ class LocalAIAssistantWidget(QWidget):
             int(self.settings.ai_growth_budget),
             int(self.settings.ai_growth_max_group_size),
             embedding_provider,
+            self._growth_memory,
         )
         worker.signals.finished.connect(self._grow_finished)
         worker.signals.failed.connect(self._grow_failed)
@@ -219,6 +256,7 @@ class LocalAIAssistantWidget(QWidget):
         self._growth_engine = engine
         self._growth_cycle += 1
         self._growth_context = result.context_text()
+        self._last_grow_result = result
         routes = ", ".join(route.expert_id for route in result.routes) or "general"
         top_sources = []
         for ranked in result.retrieved[:4]:
@@ -238,9 +276,50 @@ class LocalAIAssistantWidget(QWidget):
                 + " + ".join(best.fragment_ids)
                 + f" (score={best.score:.3f}, novelty={best.novelty:.3f})."
             )
+        target = self._feedback_target()
+        for button in (self.keep_button, self.useful_button, self.reject_button):
+            button.setEnabled(target is not None)
         self.transcript.append(
             "[grow] Context is ready for the next Ask. Nothing was promoted, trained, or written to verification state."
         )
+        self.refresh()
+
+    def _feedback_target(self):
+        result = self._last_grow_result
+        if result is None:
+            return None
+        if result.groups:
+            best = result.groups[0]
+            return ("group", best.fragment_ids, " + ".join(best.fragment_ids))
+        if result.retrieved:
+            fragment = result.retrieved[0].fragment
+            return ("fragment", (fragment.fragment_id,), fragment.source)
+        return None
+
+    def _record_growth_feedback(self, feedback: str) -> None:
+        target = self._feedback_target()
+        if target is None or self._last_grow_result is None:
+            self.transcript.append("[grow-memory] No Grow candidate is available for feedback.")
+            return
+        target_kind, target_ids, label = target
+        try:
+            event = self._growth_memory.record(
+                feedback,
+                target_kind,
+                target_ids,
+                query=self._last_grow_result.query,
+            )
+        except Exception as exc:
+            self.transcript.append(
+                f"[grow-memory] Could not save feedback: {type(exc).__name__}: {exc}"
+            )
+            return
+        self.transcript.append(
+            f"[grow-memory] {feedback.upper()} saved for {label}. "
+            f"event={event.event_id[:12]}… Future Grow cycles receive only bounded preference bias."
+        )
+        for button in (self.keep_button, self.useful_button, self.reject_button):
+            button.setEnabled(False)
         self.refresh()
 
     def _grow_failed(self, error: str) -> None:
