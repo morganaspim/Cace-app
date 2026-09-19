@@ -20,6 +20,8 @@ import CACEFormal.AffineGeometry
 import CACEFormal.ExteriorPowerTransport
 import CACEFormal.AffineP1RT0Transport
 import CACEFormal.ReferenceSimplexNormalization
+import CACEFormal.ExecutableRationalGeometry
+import CACEFormal.RuntimeApproximationContract
 import CACEFormal.AffineAssemblyTransport
 import CACEFormal.TransformCombinatorics
 import CACEFormal.Piola
