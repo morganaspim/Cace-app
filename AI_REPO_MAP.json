@@ -238,5 +238,16 @@
     "release_gate": "scan final staged customer artifact, not just source tree",
     "gpu_cpu_boundary": "minimize plaintext/proprietary material; accelerators get declared numeric buffers only",
     "classification_manifest": "security/source_classification.json"
+  },
+  "batched_proof_preflight": {
+    "workflow": ".github/workflows/cace-batch-exact-pin-lean-preflight.yml",
+    "target_validator": "scripts/cace_batch_proof_targets.py",
+    "tests": [
+      "tests/test_cace_batch_proof_targets.py",
+      "tests/test_actions_policy_audit.py"
+    ],
+    "purpose": "reduce user dispatches by compiling multiple quarantined theorem modules in one serialized exact-pin run",
+    "qualification": false,
+    "promotion_rule": "promote only after all intended targets pass; canonical exact-head qualification still required"
   }
 }
