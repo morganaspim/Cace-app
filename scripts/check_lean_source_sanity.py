@@ -171,11 +171,91 @@ def _lean_files(paths: list[Path]) -> list[Path]:
     return sorted(result)
 
 
+def _self_test() -> int:
+    fixtures = (
+        (
+            "valid-source",
+            Path("SelfTestValid.lean"),
+            "theorem ok : True := by\n  trivial\n",
+            None,
+        ),
+        (
+            "glued-declaration",
+            Path("SelfTestGlued.lean"),
+            "Barnoncomputable def baz : Nat := 1\n",
+            "glued-declaration-keyword",
+        ),
+        (
+            "unterminated-comment",
+            Path("SelfTestComment.lean"),
+            "/-- broken\ntheorem x : True := by trivial\n",
+            "unterminated-block-comment",
+        ),
+        (
+            "reserved-rcases",
+            Path("SelfTestRCases.lean"),
+            "theorem bad (p : Nat × Nat) : True := by\n"
+            "  rcases p with ⟨x, by⟩\n"
+            "  trivial\n",
+            "reserved-rcases-identifier",
+        ),
+    )
+    failures: list[dict] = []
+    for name, path, source, expected_kind in fixtures:
+        issues = scan_text(path, source)
+        kinds = {item["kind"] for item in issues}
+        if expected_kind is None:
+            if issues:
+                failures.append({"fixture": name, "unexpected_issues": issues})
+        elif expected_kind not in kinds:
+            failures.append({
+                "fixture": name,
+                "expected_kind": expected_kind,
+                "observed_kinds": sorted(kinds),
+            })
+
+    payload = {
+        "schema": "cace-lean-source-sanity-self-test-v1",
+        "status": "PASS" if not failures else "FAIL",
+        "fixture_count": len(fixtures),
+        "failures": failures,
+    }
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0 if not failures else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("paths", nargs="*", type=Path, default=[Path("formal/cace_formal")])
+    parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--require-sentinel", type=Path)
+    parser.add_argument("paths", nargs="*", type=Path)
     args = parser.parse_args()
-    files = _lean_files(args.paths)
+
+    if args.self_test:
+        if args.paths or args.require_sentinel is not None:
+            parser.error("--self-test cannot be combined with scan paths or --require-sentinel")
+        return _self_test()
+
+    paths = args.paths or [Path("formal/cace_formal")]
+    files = _lean_files(paths)
+
+    if args.require_sentinel is not None:
+        sentinel = args.require_sentinel
+        resolved_files = {path.resolve() for path in files}
+        if not sentinel.is_file() or sentinel.resolve() not in resolved_files:
+            print(json.dumps({
+                "schema": "cace-lean-source-sanity-v1",
+                "file_count": len(files),
+                "issues": [{
+                    "path": sentinel.as_posix(),
+                    "line": 0,
+                    "column": 0,
+                    "kind": "missing-required-sentinel",
+                    "detail": "required sentinel is absent from the requested Lean scan surface",
+                }],
+            }, indent=2, sort_keys=True))
+            return 2
+
     issues = [issue for path in files for issue in scan_text(path, path.read_text(encoding="utf-8"))]
     print(json.dumps({"schema": "cace-lean-source-sanity-v1", "file_count": len(files), "issues": issues},
                      indent=2, sort_keys=True))

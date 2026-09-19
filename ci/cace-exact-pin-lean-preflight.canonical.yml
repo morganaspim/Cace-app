@@ -84,6 +84,41 @@ jobs:
               --compile-root "$COMPILE_ROOT"
           )"
           printf 'target_class=%s\n' "$target_class"
+          case "$target_class" in
+            audited-root)
+              ;;
+            quarantined-standalone)
+              # Lock the standalone trust boundary in both the classifier and
+              # the executable workflow. This is intentionally redundant.
+              target_class="quarantined-standalone"
+              if test "$COMPILE_ROOT" != "false"; then
+                echo "standalone quarantine compilation requires compile_root=false" >&2
+                exit 3
+              fi
+              test "$COMPILE_ROOT" = "false"
+              TARGET_MODULE="$module_name" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          config = json.loads(
+              Path("formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8")
+          )
+          quarantined = set(config.get("quarantined_root_imports", ()))
+          target = os.environ["TARGET_MODULE"]
+          if target not in quarantined:
+              raise SystemExit(
+                  "quarantined standalone target is absent from quarantined_root_imports: "
+                  + target
+              )
+          print(f"CACE_QUARANTINED_STANDALONE_TARGET_OK target={target}")
+          PY
+              ;;
+            *)
+              echo "Unexpected target class: $target_class" >&2
+              exit 4
+              ;;
+          esac
           printf 'module=%s\n' "$REQUESTED_MODULE" >> "$GITHUB_OUTPUT"
           printf 'module_name=%s\n' "$module_name" >> "$GITHUB_OUTPUT"
           printf 'target_class=%s\n' "$target_class" >> "$GITHUB_OUTPUT"

@@ -15,6 +15,7 @@ ACTIVE = (
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
     "cace-exact-pin-lean-preflight.yml",
+    "cace-batch-exact-pin-lean-preflight.yml",
     "cace-lean-source-sanity.yml",
 )
 
@@ -229,3 +230,58 @@ def test_lean_source_sanity_trigger_cannot_broaden(tmp_path: Path) -> None:
     )
     path.write_text(text, encoding="utf-8")
     assert "lean-sanity-trigger-paths" in _kinds(audit(root))
+
+
+def test_batched_exact_pin_is_manual_only_and_serialized() -> None:
+    text = (WORKFLOWS / "cace-batch-exact-pin-lean-preflight.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "workflow_dispatch:" in text
+    for automatic in (
+        "pull_request:",
+        "pull_request_target:",
+        "schedule:",
+        "workflow_run:",
+        "repository_dispatch:",
+    ):
+        assert automatic not in text
+    assert "group: cace-canonical-qualification-oci" in text
+    assert "cancel-in-progress: false" in text
+    assert "runs-on: [self-hosted, cace, oci, aarch64]" in text
+    assert "cace_batch_proof_targets.py" in text
+    assert "quarantined-standalone" in (
+        ROOT / "scripts" / "cace_batch_proof_targets.py"
+    ).read_text(encoding="utf-8")
+    assert "qualification=false" in text
+    assert "lake build CACEFormal" not in text
+
+
+def test_batched_exact_pin_collects_all_target_failures() -> None:
+    text = (WORKFLOWS / "cace-batch-exact-pin-lean-preflight.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "cace-batch-compile-status.tsv" in text
+    assert "cace-batch-compile-failures.txt" in text
+    assert "CACE_BATCH_PREFLIGHT_FAILURES" in text
+    assert 'continue-on-error: true' in text
+    assert 'while IFS= read -r module' in text
+
+
+def test_lean_source_sanity_tracks_batched_preflight_surface() -> None:
+    text = (WORKFLOWS / "cace-lean-source-sanity.yml").read_text(encoding="utf-8")
+    assert ".github/workflows/cace-batch-exact-pin-lean-preflight.yml" in text
+    assert "scripts/cace_batch_proof_targets.py" in text
+    assert "tests/test_cace_batch_proof_targets.py" in text
+
+
+def test_collaboration_serialization_exempts_only_source_sanity() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(
+        encoding="utf-8"
+    )
+    expected = (
+        'run: python scripts/cace_actions_serialization_guard.py '
+        '--current-run-id "${GITHUB_RUN_ID}" '
+        '--ignore-workflow-name "CACE Lean Source Sanity"'
+    )
+    assert expected in text
+    assert text.count("--ignore-workflow-name") == 1

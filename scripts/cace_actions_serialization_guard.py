@@ -29,7 +29,12 @@ def fetch_runs(repository: str, token: str) -> list[dict]:
         return json.load(response).get("workflow_runs", [])
 
 
-def blockers(runs: list[dict], *, current_run_id: int | None = None) -> list[dict]:
+def blockers(
+    runs: list[dict],
+    *,
+    current_run_id: int | None = None,
+    ignored_workflow_names: frozenset[str] | set[str] = frozenset(),
+) -> list[dict]:
     found = []
     for run in runs:
         run_id = int(run.get("id", 0))
@@ -37,6 +42,8 @@ def blockers(runs: list[dict], *, current_run_id: int | None = None) -> list[dic
             continue
         name = str(run.get("name", ""))
         status = str(run.get("status", ""))
+        if name in ignored_workflow_names:
+            continue
         if status in ACTIVE and "cace" in name.lower():
             found.append({
                 "id": run_id,
@@ -53,11 +60,21 @@ def main() -> int:
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY"))
     parser.add_argument("--token", default=os.environ.get("GITHUB_TOKEN"))
     parser.add_argument("--current-run-id", type=int, default=int(os.environ["GITHUB_RUN_ID"]) if os.environ.get("GITHUB_RUN_ID") else None)
+    parser.add_argument(
+        "--ignore-workflow-name",
+        action="append",
+        default=[],
+        help="Exact workflow name to exclude from lane blockers; repeatable for explicitly nonexclusive cheap checks.",
+    )
     args = parser.parse_args()
     if not args.repository or not args.token:
         print("repository and token are required", file=sys.stderr)
         return 2
-    active = blockers(fetch_runs(args.repository, args.token), current_run_id=args.current_run_id)
+    active = blockers(
+        fetch_runs(args.repository, args.token),
+        current_run_id=args.current_run_id,
+        ignored_workflow_names=set(args.ignore_workflow_name),
+    )
     print(json.dumps({"schema": "cace-actions-serialization-v1", "repository": args.repository, "blockers": active}, indent=2, sort_keys=True))
     return 1 if active else 0
 

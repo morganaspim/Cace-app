@@ -650,6 +650,24 @@
         "Encryption is used at rest and at trust boundaries rather than indiscriminately encrypting ordinary hot-loop numerical buffers.",
         "Release/adversarial tests inspect binary strings, symbols, browser bundles, GPU metadata, and normal accelerator buffers for accidental leakage."
       ]
+    },
+    {
+      "id": "G046",
+      "category": "proof_operations",
+      "priority": 46,
+      "intent_status": "required",
+      "title": "Minimize user-triggered proof jobs through batched qualification",
+      "summary": "Accumulate compatible theorem work behind quarantine and cheap CI, then compile multiple quarantined Lean modules in one manual exact-pin batch rather than requiring one user dispatch per theorem sub-batch.",
+      "acceptance": [
+        "Heavy formal-proof workflows remain manual-only and serialized on cace-oci-a1.",
+        "A batched exact-pin workflow accepts multiple explicit quarantined CACEFormal/*.lean targets and validates every target as quarantined-standalone.",
+        "The batch compiles all requested targets and reports the complete failure frontier before exiting.",
+        "The batch emits exact-head, target-manifest, toolchain, Mathlib, per-target status, logs, and content-addressed evidence.",
+        "Cheap source-sanity/collaboration tests run automatically as theorem work accumulates.",
+        "Passing a batched preflight does not promote modules or create qualification evidence.",
+        "After a successful batch, promotion is atomic and final exact-head canonical qualification remains required.",
+        "Agents should group user-required Actions dispatches whenever doing so does not weaken proof rigor."
+      ]
     }
   ]
 }

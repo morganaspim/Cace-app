@@ -276,5 +276,19 @@
     "gpu_rule": "numeric buffers and opaque operation IDs only; no theorem/proof/source/secrets in GPU memory",
     "hard_limit": "customer-controlled CPU/GPU execution cannot be made impossible to reverse engineer",
     "classification_manifest": "security/source_classification.json"
+  },
+  "proof_job_minimization": {
+    "rule": "Group user-triggered Lean work when rigor is unchanged.",
+    "batch_workflow": ".github/workflows/cace-batch-exact-pin-lean-preflight.yml",
+    "target_validator": "scripts/cace_batch_proof_targets.py",
+    "development_flow": [
+      "write compatible theorem modules in quarantine",
+      "use automatic cheap source-sanity/collaboration checks",
+      "run one manual batched exact-pin compile for all ready quarantined modules",
+      "fix every failure and rerun the batch only when needed",
+      "atomically promote the passing set",
+      "run final exact-head canonical qualification on the promoted head"
+    ],
+    "nonclaim": "Batched preflight is engineering/formal-preflight only and never qualification."
   }
 }

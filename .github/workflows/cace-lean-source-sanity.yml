@@ -1,28 +1,37 @@
 name: CACE Lean Source Sanity
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'formal/**/*.lean'
       - 'scripts/check_lean_source_sanity.py'
       - 'scripts/cace_proof_guardrails.py'
+      - 'scripts/cace_batch_proof_targets.py'
       - 'scripts/check_cace_workflow_guardrails.py'
       - 'scripts/check_cace_known_failure_regressions.py'
       - 'formal/cace_formal/proof_guardrails.json'
       - 'formal/FAILURE_GUARDRAILS.md'
       - 'tests/test_lean_source_sanity.py'
       - 'tests/test_cace_proof_guardrails.py'
+      - 'tests/test_cace_batch_proof_targets.py'
       - '.github/workflows/cace-lean-source-sanity.yml'
       - '.github/workflows/cace-exact-pin-lean-preflight.yml'
+      - '.github/workflows/cace-batch-exact-pin-lean-preflight.yml'
       - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
 
 permissions:
   contents: read
 
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+
 jobs:
   source-sanity:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -30,14 +39,141 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Validate permanent proof policy
-        run: python3 scripts/cace_proof_guardrails.py validate
+      - name: Establish exact head and durable evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "$expected"
+          test -z "$(git status --porcelain)"
 
-      - name: Validate exact-pin workflow structure
-        run: python3 scripts/check_cace_workflow_guardrails.py
+          preferred="/var/lib/cace-cache/evidence"
+          fallback="$HOME/.cace/evidence"
+          if mkdir -p "$preferred" 2>/dev/null; then
+            root="$preferred"
+          else
+            mkdir -p "$fallback"
+            root="$fallback"
+          fi
 
-      - name: Validate known proof failure regressions
-        run: python3 scripts/check_cace_known_failure_regressions.py
+          evidence_dir="$root/source-sanity/$expected/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$evidence_dir"
+          printf 'exact_head=%s\n' "$expected" | tee "$evidence_dir/exact-head.txt"
+          printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID" | tee -a "$evidence_dir/exact-head.txt"
+          printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT" | tee -a "$evidence_dir/exact-head.txt"
+          printf 'evidence_dir=%s\n' "$evidence_dir" | tee -a "$evidence_dir/exact-head.txt"
 
-      - name: Reject malformed Lean source seams
-        run: python3 scripts/check_lean_source_sanity.py formal/cace_formal
+          echo "CACE_SANITY_EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"
+          echo "CACE_SANITY_EXPECTED_SHA=$expected" >> "$GITHUB_ENV"
+
+      - name: Run self-validating source sanity and cheap proof guards
+        shell: bash
+        run: |
+          set -uo pipefail
+          dir="$CACE_SANITY_EVIDENCE_DIR"
+          mkdir -p "$dir"
+          status_tsv="$dir/check-status.tsv"
+          : > "$status_tsv"
+          overall=0
+
+          run_check() {
+            name="$1"
+            shift
+            set +e
+            "$@" >"$dir/$name.log" 2>&1
+            rc=$?
+            set -e
+            printf '%s\t%s\n' "$name" "$rc" | tee -a "$status_tsv"
+            if [ "$rc" -ne 0 ]; then
+              overall=1
+            fi
+          }
+
+          set -e
+
+          run_check scanner-self-test             python3 scripts/check_lean_source_sanity.py --self-test
+
+          # Independent shell-level guard: prove the requested root is real and
+          # contains Lean source before trusting the Python scanner report.
+          set +e
+          {
+            test -d formal/cace_formal
+            test -f formal/cace_formal/CACEFormal.lean
+            find formal/cace_formal -type f -name '*.lean' -print | LC_ALL=C sort > "$dir/lean-files.txt"
+            test -s "$dir/lean-files.txt"
+            printf 'lean_file_count=%s\n' "$(wc -l < "$dir/lean-files.txt")"
+            printf 'sentinel=formal/cace_formal/CACEFormal.lean\n'
+          } >"$dir/scan-input-guard.log" 2>&1
+          guard_rc=$?
+          set -e
+          printf '%s\t%s\n' "scan-input-guard" "$guard_rc" | tee -a "$status_tsv"
+          if [ "$guard_rc" -ne 0 ]; then
+            overall=1
+          fi
+
+          run_check permanent-proof-policy             python3 scripts/cace_proof_guardrails.py validate
+
+          run_check exact-pin-workflow-structure             python3 scripts/check_cace_workflow_guardrails.py
+
+          run_check known-proof-failure-regressions             python3 scripts/check_cace_known_failure_regressions.py
+
+          run_check lean-source-scan             python3 scripts/check_lean_source_sanity.py               --require-sentinel formal/cace_formal/CACEFormal.lean               formal/cace_formal
+
+          export CACE_SANITY_OVERALL="$overall"
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["CACE_SANITY_EVIDENCE_DIR"])
+          status_rows = []
+          for line in (root / "check-status.tsv").read_text(encoding="utf-8").splitlines():
+              if not line.strip():
+                  continue
+              name, raw_code = line.split("\t", 1)
+              status_rows.append({"name": name, "exit_code": int(raw_code)})
+
+          files = []
+          for path in sorted(p for p in root.iterdir() if p.is_file()):
+              raw = path.read_bytes()
+              files.append(
+                  {
+                      "name": path.name,
+                      "size_bytes": len(raw),
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                  }
+              )
+
+          manifest = {
+              "schema": "cace-source-sanity-evidence-v1",
+              "repository": os.environ.get("GITHUB_REPOSITORY"),
+              "git_commit": os.environ["CACE_SANITY_EXPECTED_SHA"],
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "result": "PASS" if os.environ["CACE_SANITY_OVERALL"] == "0" else "FAIL",
+              "checks": status_rows,
+              "files": files,
+              "local_evidence_directory": str(root),
+              "remote_mirror_status": "NOT_CONFIGURED",
+              "note": "Local durable evidence is authoritative for diagnostic retention; GitHub artifact/logs are an additional convenience copy.",
+          }
+          payload = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+          (root / "manifest.json").write_text(payload, encoding="utf-8")
+          (root / "manifest.sha256").write_text(
+              hashlib.sha256(payload.encode("utf-8")).hexdigest() + "\n",
+              encoding="utf-8",
+          )
+          print(payload, end="")
+          PY
+
+          exit "$overall"
+
+      - name: Upload source-sanity evidence convenience copy
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-source-sanity-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CACE_SANITY_EVIDENCE_DIR }}
+          if-no-files-found: warn
+          retention-days: 30

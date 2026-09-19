@@ -30,6 +30,7 @@ EXPECTED_ACTIVE = {
     "cace-formal-v336-theorem-metadata.yml",
     "cace-python-regression.yml",
     "cace-exact-pin-lean-preflight.yml",
+    "cace-batch-exact-pin-lean-preflight.yml",
     "cace-lean-source-sanity.yml",
 }
 EXPECTED_AUTOMATIC = {
@@ -38,6 +39,7 @@ EXPECTED_AUTOMATIC = {
     "cace-python-regression.yml": {"push"},
     # Manual-only exact-pin typecheck lane; never qualification evidence.
     "cace-exact-pin-lean-preflight.yml": set(),
+    "cace-batch-exact-pin-lean-preflight.yml": set(),
     "cace-lean-source-sanity.yml": {"pull_request"},
 }
 LOCKED_PUSH_SCOPE = {
@@ -70,16 +72,19 @@ COLLAB_HEAVY_MANUAL_PATHS = {
 }
 LEAN_SANITY_AUTOMATIC_PATHS = {
     ".github/workflows/cace-exact-pin-lean-preflight.yml",
+    ".github/workflows/cace-batch-exact-pin-lean-preflight.yml",
     ".github/workflows/cace-lean-source-sanity.yml",
     "ci/cace-exact-pin-lean-preflight.canonical.yml",
     "formal/**/*.lean",
     "formal/FAILURE_GUARDRAILS.md",
     "formal/cace_formal/proof_guardrails.json",
     "scripts/cace_proof_guardrails.py",
+    "scripts/cace_batch_proof_targets.py",
     "scripts/check_cace_known_failure_regressions.py",
     "scripts/check_cace_workflow_guardrails.py",
     "scripts/check_lean_source_sanity.py",
     "tests/test_cace_proof_guardrails.py",
+    "tests/test_cace_batch_proof_targets.py",
     "tests/test_lean_source_sanity.py",
 }
 REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}

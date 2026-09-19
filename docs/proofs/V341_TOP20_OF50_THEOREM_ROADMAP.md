@@ -421,3 +421,19 @@ Even after the selected 20 succeed, CACE should still **not** claim without furt
 - arbitrary runtime finite-element fields satisfy the continuum hypotheses;
 - bounded-domain H(div) density has been proved;
 - mixed-boundary conditions are handled unless the later face-mask branch is actually implemented and qualified.
+
+# Minimized user-dispatch execution mode
+
+For this top-20 program, prefer a grouped interaction model:
+
+1. Develop later sub-batches in quarantine while automatic cheap gates run.
+2. Accumulate all ready quarantined modules.
+3. Use **one** `CACE Batched Exact-Pin Lean Preflight` manual run to compile the ready module set and collect the complete failure frontier.
+4. Fix all failures before requesting another batch run.
+5. Promote the passing theorem set atomically into root/audit/metadata/contract scope.
+6. Use the final canonical exact-head qualification as the expensive promotion gate rather than asking the user to dispatch one manual Lean job after every small theorem group.
+
+The batch workflow is preflight only. It does not weaken the exact-head, kernel-axiom, theorem-metadata, proof-contract, or provenance requirements.
+
+v3.41A ranks 1–8 already received their standalone exact-pin pass before this batching mode was introduced, so they do not need another standalone run.
+
