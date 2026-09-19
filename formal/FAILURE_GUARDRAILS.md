@@ -197,3 +197,44 @@ inside replacement strings as “insert the suffix after the match”, duplicati
 - programmatic replacements in safety-critical text use callback/slicing semantics, never replacement-string semantics.
 
 **Regression guard:** canonical workflow equality check plus the existing 15-step unique-order checker.
+
+
+## F-013 — fail-fast compile masked independent Lean failures
+
+**Fingerprint:** the API-canary step discovered multiple failures, but GitHub Actions skipped impacted-module, target, and root compilation after the canary step failed.
+
+**Root cause:** proof compilation stages used normal fail-fast job semantics.
+
+**Permanent prevention:**
+- canary, impacted-module, requested-target, plan-recheck, and audited-root diagnostic stages use `continue-on-error: true`;
+- each compile stage writes its own log artifact;
+- a final `Aggregate diagnostic sweep failures` step records every failed diagnostic stage and is the single compile-failure gate;
+- impacted modules are submitted together so Lake can expose all independent failures reachable from the same dependency frontier.
+
+**Regression guard:** workflow canonical template, `check_cace_workflow_guardrails.py`, and `test_exact_pin_workflow_collects_compile_failure_frontier`.
+
+This does not make dependent errors magically visible through a broken prerequisite. It exposes the entire independent failure frontier available from the current SHA, minimizing the number of user-dispatched runs.
+
+## F-014 — real-valued definition with division omitted `noncomputable`
+
+**Fingerprint:** `Affine2.piolaVector` failed because real division depends on Lean's noncomputable real inverse implementation.
+
+**Root cause:** a proof-level real-valued definition using division was declared with plain `def`.
+
+**Permanent prevention:**
+- `Affine2.piolaVector` is explicitly `noncomputable def`;
+- the proof API canary imports and typechecks the Piola layer before impacted/root compilation.
+
+**Regression guard:** `CACEFormal.GuardrailCanaries` imports and exercises Piola/dual-blade flux APIs.
+
+## F-015 — Lean reserved keyword used as an `rcases` pattern identifier
+
+**Fingerprint:** `rcases b with ⟨bx, by⟩` failed to parse because `by` is a Lean keyword.
+
+**Root cause:** generated/local coordinate naming accidentally selected a reserved token.
+
+**Permanent prevention:**
+- coordinate renamed to `by_`;
+- source regression rejects `by` as an identifier inside `rcases ... with ⟨...⟩` patterns in the affected exterior-transport source.
+
+**Regression guard:** `test_no_reserved_by_identifier_in_rcases_patterns`.
