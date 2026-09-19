@@ -35,7 +35,6 @@ structure Affine2 where
   d : ℝ
   tx : ℝ
   ty : ℝ
-deriving Repr
 
 namespace Affine2
 
@@ -135,7 +134,7 @@ theorem linearDet_chain (Fs : List Affine2) :
     (chain Fs).linearDet = (Fs.map linearDet).prod := by
   induction Fs with
   | nil =>
-      simp [chain]
+      norm_num [chain, identity, linearDet]
   | cons F Fs ih =>
       simp [chain, ih, mul_comm]
 
@@ -217,14 +216,12 @@ theorem mapPoint_shearX (k : ℝ) (p : Point2) :
     (shearX k).mapPoint p = Point2.shearX k p := by
   rcases p with ⟨x, y⟩
   simp [shearX, mapPoint, Point2.shearX]
-  ring
 
 /-- The affine y-shear constructor is exactly the existing primitive. -/
 theorem mapPoint_shearY (k : ℝ) (p : Point2) :
     (shearY k).mapPoint p = Point2.shearY k p := by
   rcases p with ⟨x, y⟩
   simp [shearY, mapPoint, Point2.shearY]
-  ring
 
 /-- The affine quarter-turn constructor is exactly the existing primitive. -/
 theorem mapPoint_rotateQuarter (p : Point2) :
