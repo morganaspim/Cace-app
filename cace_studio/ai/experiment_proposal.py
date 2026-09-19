@@ -220,9 +220,10 @@ def _minimal_module_ids(
     best_key = None
     for size in range(1, min(3, len(valid)) + 1):
         for subset in combinations(valid, size):
+            ordered_subset = _balanced_module_ids(registry, tuple(subset))
             proposal = propose_experiment_graph(
                 registry,
-                subset,
+                ordered_subset,
                 title=title,
                 description=description,
                 strategy="minimal",
@@ -239,7 +240,7 @@ def _minimal_module_ids(
             )
             if best_key is None or key > best_key:
                 best_key = key
-                best_ids = subset
+                best_ids = ordered_subset
         # Once a connected/readiness-positive proposal exists at a smaller size,
         # do not spend extra compute/modules merely for decoration.
         if best_key is not None and best_key[0] and size >= 2:
@@ -404,6 +405,9 @@ def propose_experiment_strategies(
 ) -> dict[ProposalStrategy, ExperimentGraphProposal]:
     """Return three deterministic proposal policies for one Research Idea."""
     requested = _canonical_module_ids(module_ids, limit=max_modules)
+    unknown_requested = tuple(
+        module_id for module_id in requested if not registry.contains(module_id)
+    )
 
     minimal_ids = _minimal_module_ids(
         registry,
@@ -471,6 +475,9 @@ def propose_experiment_strategies(
     return {
         strategy: replace(
             proposal,
+            skipped_modules=tuple(
+                dict.fromkeys((*proposal.skipped_modules, *unknown_requested))
+            ),
             rationale=strategy_rationales[strategy] + " " + proposal.rationale,
         )
         for strategy, proposal in proposals.items()
