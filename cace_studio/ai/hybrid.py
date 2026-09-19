@@ -63,6 +63,8 @@ class GrowResult:
     walk: tuple[str, ...]
     groups: tuple[ConceptGroup, ...]
     next_steps: tuple[str, ...]
+    neural_rerank_used: bool = False
+    neural_rerank_note: str = ""
 
     def context_text(self, *, max_fragments: int = 8, max_chars: int = 9000) -> str:
         """Render bounded research context for a local model.
@@ -76,6 +78,13 @@ class GrowResult:
             "It is never mathematical proof, verification evidence, or permission to mutate CACE records.",
             "",
             "Expert routes: " + ", ".join(route.expert_id for route in self.routes),
+            (
+                "Neural rerank: ON — " + self.neural_rerank_note
+                if self.neural_rerank_used
+                else "Neural rerank: OFF/FALLBACK — " + (
+                    self.neural_rerank_note or "deterministic sparse ranking"
+                )
+            ),
             "Semantic walk: " + " -> ".join(self.walk),
             "",
         ]
@@ -218,6 +227,46 @@ class SparseResearchIndex:
 
     def similarity(self, left_id: str, right_id: str) -> float:
         return max(0.0, self._cosine(self._sketches[left_id], self._sketches[right_id]))
+
+
+def _dense_cosine(left: Sequence[float], right: Sequence[float]) -> float:
+    if len(left) != len(right) or not left:
+        return 0.0
+    left_norm = math.sqrt(sum(value * value for value in left))
+    right_norm = math.sqrt(sum(value * value for value in right))
+    if left_norm == 0.0 or right_norm == 0.0:
+        return 0.0
+    return sum(a * b for a, b in zip(left, right)) / (left_norm * right_norm)
+
+
+def rerank_with_local_embeddings(
+    query: str,
+    ranked: Sequence[RankedFragment],
+    provider,
+    *,
+    semantic_weight: float = 0.35,
+    max_chars_per_fragment: int = 2400,
+) -> tuple[RankedFragment, ...]:
+    """Rerank an already-small shortlist with a local neural embedding model."""
+    if not ranked:
+        return ()
+    semantic_weight = min(0.75, max(0.0, float(semantic_weight)))
+    texts = [query] + [
+        item.fragment.text[:max_chars_per_fragment] for item in ranked
+    ]
+    vectors = provider.embeddings(texts)
+    if len(vectors) != len(texts):
+        raise ValueError("embedding provider returned the wrong number of vectors")
+    query_vector = vectors[0]
+    top_base = max(abs(item.score) for item in ranked) or 1.0
+    reranked = []
+    for item, vector in zip(ranked, vectors[1:]):
+        base = max(0.0, item.score / top_base)
+        semantic = max(0.0, _dense_cosine(query_vector, vector))
+        combined = (1.0 - semantic_weight) * base + semantic_weight * semantic
+        reranked.append(RankedFragment(item.fragment, combined))
+    reranked.sort(key=lambda item: (-item.score, item.fragment.fragment_id))
+    return tuple(reranked)
 
 
 class ExpertRouter:
@@ -367,10 +416,21 @@ class GrowthEngine:
         walk_steps: int = 6,
         group_budget: int = 10,
         max_group_size: int = 4,
+        embedding_provider=None,
     ) -> GrowResult:
         chaos = min(0.85, max(0.0, float(chaos)))
         seed = self._seed(query, cycle)
         ranked = self.index.rank(query, limit=retrieval_limit)
+        neural_rerank_used = False
+        neural_rerank_note = ""
+        if embedding_provider is not None and ranked:
+            try:
+                ranked = rerank_with_local_embeddings(query, ranked, embedding_provider)
+            except Exception as exc:
+                neural_rerank_note = f"fallback after {type(exc).__name__}: {exc}"
+            else:
+                neural_rerank_used = True
+                neural_rerank_note = f"reranked {len(ranked)} sparse candidates locally"
         routes = self.router.route(query)
         walk = self._walk(ranked, seed=seed, steps=walk_steps, chaos=chaos)
         groups = self._groups(ranked, max_group_size=max_group_size, budget=group_budget)
@@ -400,4 +460,6 @@ class GrowthEngine:
             walk=walk,
             groups=groups,
             next_steps=tuple(next_steps),
+            neural_rerank_used=neural_rerank_used,
+            neural_rerank_note=neural_rerank_note,
         )
