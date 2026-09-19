@@ -69,13 +69,28 @@ def main() -> int:
             )
         else:
             p1_body = p1_match.group("body")
+            bridge_pos = p1_body.find("have hden_nf")
             ring_nf_pos = p1_body.find("ring_nf")
-            field_simp_pos = p1_body.find("field_simp [hT, hden]")
-            if ring_nf_pos < 0 or field_simp_pos < 0 or ring_nf_pos > field_simp_pos:
+            field_simp_pos = p1_body.find("field_simp [hT, hden, hden_nf]")
+            if (
+                bridge_pos < 0
+                or ring_nf_pos < 0
+                or field_simp_pos < 0
+                or bridge_pos > ring_nf_pos
+                or ring_nf_pos > field_simp_pos
+            ):
                 problems.append(
-                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must normalize with "
-                    "ring_nf before clearing the proven denominator with "
-                    "field_simp [hT, hden]"
+                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 must prove the "
+                    "canonical hden_nf bridge before ring_nf and clear it with "
+                    "field_simp [hT, hden, hden_nf]"
+                )
+            if re.search(
+                r"field_simp\s*\[hT,\s*hden,\s*hden_nf\]\s*<;>\s*ring\b",
+                p1_body,
+            ):
+                problems.append(
+                    f"{NORMALIZATION_SOURCE}: normalizer_map_p1 contains the "
+                    "known post-field_simp ring tail"
                 )
 
         linear_start = normalization_text.find("theorem normalizer_linearDet")
