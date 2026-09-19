@@ -1,4 +1,4 @@
-/-
+/- 
 CACE Studio — CONFIDENTIAL AND PROPRIETARY
 Copyright © 2026 Emmanuel Spiro. All rights reserved.
 Owner: Emmanuel Spiro.
@@ -16,6 +16,7 @@ import CACEFormal.DiscreteOrthogonality
 import CACEFormal.MeshCombinatorics
 import CACEFormal.CertifiedComposition
 import CACEFormal.GeometryTransforms
+import CACEFormal.AffineGeometry
 import CACEFormal.TransformCombinatorics
 import CACEFormal.Piola
 import CACEFormal.DiscreteMeshAdmissibility
