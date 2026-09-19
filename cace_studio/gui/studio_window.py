@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from hashlib import sha256
+import json
+
 from PySide6.QtCore import QThreadPool, Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QFormLayout, QInputDialog
 
+from cace_studio.ai.heartbeat_context import build_heartbeat_context_packet
 from cace_studio.core.execution_control import ExecutionControl
+from cace_studio.core.heartbeat import AIHeartbeatUpdate, CanvasHeartbeatEngine
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph_edit import (
     GraphFragment,
@@ -24,6 +29,7 @@ from .group_overlay import GroupOverlayManager
 from .main_window import MainWindow
 from .minimap import MiniMapView
 from .proof_explorer import ProofExplorerWidget
+from .open_problems_toolkit import OpenProblemsToolkitWidget
 
 
 class StudioMainWindow(MainWindow):
@@ -39,6 +45,7 @@ class StudioMainWindow(MainWindow):
         super().__init__(registry, settings)
         self._graph_clipboard: GraphFragment | None = None
         self._paste_generation = 0
+        self._open_problem_heartbeat = CanvasHeartbeatEngine()
 
         self._execution_pool = QThreadPool.globalInstance()
         self._execution_control: ExecutionControl | None = None
@@ -68,6 +75,7 @@ class StudioMainWindow(MainWindow):
             Qt.RightDockWidgetArea,
         )
         self.proof_explorer.show_all_claims()
+        self._install_open_problems_toolkit()
         self._sync_execution_actions()
 
     def _menu_named(self, title: str):
@@ -157,6 +165,125 @@ class StudioMainWindow(MainWindow):
             run_menu,
             "Cancel Active Run",
             self.cancel_execution,
+        )
+
+    def _install_open_problems_toolkit(self) -> None:
+        self.open_problems_toolkit = OpenProblemsToolkitWidget(
+            self.import_open_problem,
+            self.play_open_problem,
+            self,
+        )
+        self.open_problems_dock = self._dock(
+            "Open Problems Toolkit",
+            self.open_problems_toolkit,
+            Qt.RightDockWidgetArea,
+        )
+        self.open_problems_dock.hide()
+        research_menu = self._menu_named("Research")
+        if research_menu is None:
+            research_menu = self.menuBar().addMenu("Research")
+        self._action(
+            research_menu,
+            "Open Problems Toolkit",
+            self.show_open_problems_toolkit,
+        )
+
+    def show_open_problems_toolkit(self) -> None:
+        self.open_problems_dock.show()
+        self.open_problems_dock.raise_()
+
+    def _open_problem_node(self, problem_id: str):
+        return next(
+            (
+                node
+                for node in self.experiment.nodes
+                if node.module_id == "research.open_problem"
+                and node.params.get("problem_id") == problem_id
+            ),
+            None,
+        )
+
+    def import_open_problem(self, problem):
+        existing = self._open_problem_node(problem.problem_id)
+        if existing is not None:
+            self._reselect_nodes((existing.id,))
+            self.console.append(
+                f"Open problem already on canvas: {problem.title} ({problem.problem_id})."
+            )
+            return existing.id
+
+        pos = self.canvas.mapToScene(self.canvas.viewport().rect().center())
+        item = self.canvas.add_module("research.open_problem", pos)
+        node = next(node for node in self.experiment.nodes if node.id == item.node_id)
+        node.params = problem.to_module_params()
+        item.setToolTip(
+            f"{problem.title}\nStatus: {problem.status}\n"
+            f"Authority: {problem.authority}\nLast verified: {problem.last_verified}"
+        )
+        self._autosave_tick()
+        self._reselect_nodes((node.id,))
+        self.console.append(
+            f"Imported {problem.title!r} to canvas as {node.id}. "
+            "This is a research object, not verification evidence."
+        )
+        return node.id
+
+    @staticmethod
+    def _heartbeat_semantic_hash(node) -> str:
+        payload = json.dumps(
+            {
+                "module_id": node.module_id,
+                "params": node.params,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=repr,
+        ).encode("utf-8")
+        return sha256(payload).hexdigest()
+
+    def play_open_problem(self, problem) -> None:
+        node_id = self.import_open_problem(problem)
+        previous = self._open_problem_heartbeat.frame
+        semantic_hashes = {
+            node.id: self._heartbeat_semantic_hash(node)
+            for node in self.experiment.nodes
+        }
+        verification = (
+            dict(self.last_result.verification)
+            if self.last_result is not None
+            else {}
+        )
+        frame = self._open_problem_heartbeat.advance(
+            self.experiment,
+            semantic_hashes=semantic_hashes,
+            verification=verification,
+            ai_updates=(
+                AIHeartbeatUpdate(
+                    node_id,
+                    interest_delta=0.9,
+                    note=f"Play open problem: {problem.problem_id}",
+                ),
+            ),
+        )
+        self.canvas.apply_heartbeat_frame(frame)
+        packet = build_heartbeat_context_packet(
+            self.experiment,
+            frame,
+            previous,
+            max_nodes=64,
+        )
+        context = problem.play_context() + "\n\n" + packet.to_prompt_text()
+        accepted = self.assistant.ask_context(
+            context,
+            label="open-problem-play",
+        )
+        self.console.append(
+            f"Play heartbeat applied to {problem.title!r}. "
+            + (
+                "Structured context sent to the configured local AI."
+                if accepted
+                else "Local AI is not configured/enabled; heartbeat exploration still ran locally."
+            )
         )
 
     def _sync_execution_actions(self) -> None:

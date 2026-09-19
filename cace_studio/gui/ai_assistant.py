@@ -125,6 +125,39 @@ class LocalAIAssistantWidget(QWidget):
         self.status.setText("Local AI is generating…")
         self.pool.start(worker)
 
+    def ask_context(self, text: str, *, label: str = "context") -> bool:
+        """Send structured non-authoritative CACE context to the local assistant."""
+        text = str(text).strip()
+        if not text:
+            return False
+        if not self.settings.ai_enabled:
+            self.transcript.append(f"[{label}] Local AI is disabled; context was not sent.")
+            return False
+        if not self.settings.ai_model:
+            self.transcript.append(f"[{label}] Choose a local model before sending context.")
+            return False
+        try:
+            provider = create_local_provider(
+                self.settings.ai_provider,
+                self.settings.ai_endpoint,
+                self.settings.ai_model,
+                timeout=60.0,
+            )
+        except LocalAIError as exc:
+            self.transcript.append(f"[{label}] {exc}")
+            return False
+
+        self.transcript.append(f"[{label}] structured CACE context submitted")
+        self.history.append({"role": "user", "content": text})
+        messages = [{"role": "system", "content": self._system_message()}] + self.history[-20:]
+        worker = _ChatWorker(provider, messages)
+        worker.signals.finished.connect(self._finished)
+        worker.signals.failed.connect(self._failed)
+        self.send_button.setEnabled(False)
+        self.status.setText(f"Local AI is analyzing {label} context…")
+        self.pool.start(worker)
+        return True
+
     def _finished(self, text: str) -> None:
         self.history.append({"role": "assistant", "content": text})
         self.transcript.append(f"[assistant] {text}")
