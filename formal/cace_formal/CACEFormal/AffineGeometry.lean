@@ -108,6 +108,27 @@ def chain : List Affine2 → Affine2
       (chain Fs).mapPoint (F.mapPoint p) := by
   simp [chain]
 
+/-- Batch splitting does not change the action of a fused affine chain. -/
+theorem mapPoint_chain_append
+    (left right : List Affine2) (p : Point2) :
+    (chain (left ++ right)).mapPoint p =
+      (chain right).mapPoint ((chain left).mapPoint p) := by
+  induction left generalizing p with
+  | nil =>
+      simp [chain, identity, mapPoint]
+  | cons F Fs ih =>
+      simp only [List.cons_append, mapPoint_chain_cons]
+      exact ih (F.mapPoint p)
+
+/-- The same batch-splitting law holds for whole triangles. -/
+theorem mapTriangle_chain_append
+    (left right : List Affine2) (T : Triangle2) :
+    (chain (left ++ right)).mapTriangle T =
+      (chain right).mapTriangle ((chain left).mapTriangle T) := by
+  rcases T with ⟨p0, p1, p2⟩
+  apply Triangle2.ext <;>
+    simp [mapTriangle, mapPoint_chain_append]
+
 /-- The fused chain determinant is exactly the product of all stage
 determinants. -/
 theorem linearDet_chain (Fs : List Affine2) :
