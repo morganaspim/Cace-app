@@ -27,7 +27,7 @@ def referenceTriangle : Triangle2 :=
 /-- Explicit affine inverse of the edge matrix of T, translated so p0
 maps to the origin. It is meaningful as a geometric inverse when T.det ≠ 0;
 the definition itself remains total over ℝ. -/
-def normalizer (T : Triangle2) : Affine2 :=
+noncomputable def normalizer (T : Triangle2) : Affine2 :=
   let Δ := T.det
   let aa := (T.p2.y - T.p0.y) / Δ
   let ab := -(T.p2.x - T.p0.x) / Δ
@@ -106,7 +106,7 @@ theorem normalizer_map_triangle
   · exact normalizer_map_p2 T hT
 
 /-- The normalizer itself is a certified nondegeneracy-preserving transform. -/
-def certifiedNondegenerate
+noncomputable def certifiedNondegenerate
     (T : Triangle2) (hT : T.det ≠ 0) :
     CertifiedTransform Triangle2 GeometryTransforms.Nondegenerate :=
   Affine2.certifiedNondegenerate (normalizer T)
@@ -114,7 +114,7 @@ def certifiedNondegenerate
 
 /-- For positive input orientation the normalizer is a certified
 orientation-preserving transform. -/
-def certifiedPositive
+noncomputable def certifiedPositive
     (T : Triangle2) (hT : 0 < T.det) :
     CertifiedTransform Triangle2 GeometryTransforms.PositiveOrientation :=
   Affine2.certifiedPositive (normalizer T)
