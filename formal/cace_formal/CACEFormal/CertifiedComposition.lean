@@ -86,7 +86,93 @@ theorem compose4_preserves {α : Type u} {Invariant : α → Prop}
     Invariant ((compose4 t1 t2 t3 t4).run x) :=
   (compose4 t1 t2 t3 t4).preserves x hx
 
-/-- Compose an arbitrary list left-to-right. This is the scalable 4+ endpoint. -/
+/-- Five transforms, evaluated left-to-right. -/
+def compose5 {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 : CertifiedTransform α Invariant) : CertifiedTransform α Invariant :=
+  comp t5 (compose4 t1 t2 t3 t4)
+
+/-- Six transforms, evaluated left-to-right. -/
+def compose6 {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 : CertifiedTransform α Invariant) : CertifiedTransform α Invariant :=
+  comp t6 (compose5 t1 t2 t3 t4 t5)
+
+/-- Seven transforms, evaluated left-to-right. -/
+def compose7 {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 : CertifiedTransform α Invariant) : CertifiedTransform α Invariant :=
+  comp t7 (compose6 t1 t2 t3 t4 t5 t6)
+
+/-- Eight transforms, evaluated left-to-right. -/
+def compose8 {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 t8 : CertifiedTransform α Invariant) : CertifiedTransform α Invariant :=
+  comp t8 (compose7 t1 t2 t3 t4 t5 t6 t7)
+
+/-- Nine transforms, evaluated left-to-right. -/
+def compose9 {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 t8 t9 : CertifiedTransform α Invariant) : CertifiedTransform α Invariant :=
+  comp t9 (compose8 t1 t2 t3 t4 t5 t6 t7 t8)
+
+/-- Any certified five-stage combination preserves the shared invariant. -/
+theorem compose5_preserves {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 : CertifiedTransform α Invariant) (x : α) (hx : Invariant x) :
+    Invariant ((compose5 t1 t2 t3 t4 t5).run x) :=
+  (compose5 t1 t2 t3 t4 t5).preserves x hx
+
+/-- Any certified six-stage combination preserves the shared invariant. -/
+theorem compose6_preserves {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 : CertifiedTransform α Invariant) (x : α) (hx : Invariant x) :
+    Invariant ((compose6 t1 t2 t3 t4 t5 t6).run x) :=
+  (compose6 t1 t2 t3 t4 t5 t6).preserves x hx
+
+/-- Any certified seven-stage combination preserves the shared invariant. -/
+theorem compose7_preserves {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 : CertifiedTransform α Invariant) (x : α) (hx : Invariant x) :
+    Invariant ((compose7 t1 t2 t3 t4 t5 t6 t7).run x) :=
+  (compose7 t1 t2 t3 t4 t5 t6 t7).preserves x hx
+
+/-- Any certified eight-stage combination preserves the shared invariant. -/
+theorem compose8_preserves {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 t8 : CertifiedTransform α Invariant) (x : α) (hx : Invariant x) :
+    Invariant ((compose8 t1 t2 t3 t4 t5 t6 t7 t8).run x) :=
+  (compose8 t1 t2 t3 t4 t5 t6 t7 t8).preserves x hx
+
+/-- Any certified nine-stage combination preserves the shared invariant. -/
+theorem compose9_preserves {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 t8 t9 : CertifiedTransform α Invariant) (x : α)
+    (hx : Invariant x) :
+    Invariant ((compose9 t1 t2 t3 t4 t5 t6 t7 t8 t9).run x) :=
+  (compose9 t1 t2 t3 t4 t5 t6 t7 t8 t9).preserves x hx
+
+@[simp] theorem compose5_staticCost {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 : CertifiedTransform α Invariant) :
+    (compose5 t1 t2 t3 t4 t5).staticCost =
+      ((((t1.staticCost + t2.staticCost) + t3.staticCost) + t4.staticCost) + t5.staticCost) := rfl
+
+@[simp] theorem compose6_staticCost {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 : CertifiedTransform α Invariant) :
+    (compose6 t1 t2 t3 t4 t5 t6).staticCost =
+      (((((t1.staticCost + t2.staticCost) + t3.staticCost) + t4.staticCost) +
+        t5.staticCost) + t6.staticCost) := rfl
+
+@[simp] theorem compose7_staticCost {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 : CertifiedTransform α Invariant) :
+    (compose7 t1 t2 t3 t4 t5 t6 t7).staticCost =
+      ((((((t1.staticCost + t2.staticCost) + t3.staticCost) + t4.staticCost) +
+        t5.staticCost) + t6.staticCost) + t7.staticCost) := rfl
+
+@[simp] theorem compose8_staticCost {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 t8 : CertifiedTransform α Invariant) :
+    (compose8 t1 t2 t3 t4 t5 t6 t7 t8).staticCost =
+      (((((((t1.staticCost + t2.staticCost) + t3.staticCost) + t4.staticCost) +
+        t5.staticCost) + t6.staticCost) + t7.staticCost) + t8.staticCost) := rfl
+
+@[simp] theorem compose9_staticCost {α : Type u} {Invariant : α → Prop}
+    (t1 t2 t3 t4 t5 t6 t7 t8 t9 : CertifiedTransform α Invariant) :
+    (compose9 t1 t2 t3 t4 t5 t6 t7 t8 t9).staticCost =
+      ((((((((t1.staticCost + t2.staticCost) + t3.staticCost) + t4.staticCost) +
+        t5.staticCost) + t6.staticCost) + t7.staticCost) + t8.staticCost) +
+        t9.staticCost) := rfl
+
+/-- Compose an arbitrary list left-to-right. This is the scalable 9+ endpoint. -/
 def composeList {α : Type u} {Invariant : α → Prop} :
     List (CertifiedTransform α Invariant) → CertifiedTransform α Invariant
   | [] => identity Invariant
