@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from typing import Any, Mapping, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
@@ -94,6 +95,35 @@ class OllamaProvider(AIProvider):
             raise LocalAIError("Ollama response did not contain message.content") from exc
         return str(content)
 
+    def embeddings(self, texts: Sequence[str]) -> tuple[tuple[float, ...], ...]:
+        if not self.model:
+            raise LocalAIError("select an Ollama embedding model before requesting embeddings")
+        requested = tuple(str(text) for text in texts)
+        if not requested:
+            return ()
+        data = _request_json(
+            f"{self.endpoint}/api/embed",
+            method="POST",
+            timeout=self.timeout,
+            payload={"model": self.model, "input": list(requested)},
+        )
+        raw = data.get("embeddings") if isinstance(data, dict) else None
+        if not isinstance(raw, list) or len(raw) != len(requested):
+            raise LocalAIError("Ollama embedding response has the wrong shape")
+        vectors = []
+        width = None
+        for vector in raw:
+            if not isinstance(vector, list) or not vector:
+                raise LocalAIError("Ollama embedding response contains an invalid vector")
+            converted = tuple(float(value) for value in vector)
+            if any(not math.isfinite(value) for value in converted):
+                raise LocalAIError("Ollama embedding response contains non-finite values")
+            width = len(converted) if width is None else width
+            if len(converted) != width:
+                raise LocalAIError("Ollama embedding response has inconsistent dimensions")
+            vectors.append(converted)
+        return tuple(vectors)
+
 
 class OpenAICompatibleProvider(AIProvider):
     display_name = "OpenAI-compatible local server"
@@ -157,6 +187,38 @@ class OpenAICompatibleProvider(AIProvider):
                 "OpenAI-compatible response did not contain choices[0].message.content"
             ) from exc
         return str(content)
+
+    def embeddings(self, texts: Sequence[str]) -> tuple[tuple[float, ...], ...]:
+        if not self.model:
+            raise LocalAIError("select a local embedding model before requesting embeddings")
+        requested = tuple(str(text) for text in texts)
+        if not requested:
+            return ()
+        data = _request_json(
+            f"{self.endpoint}/embeddings",
+            method="POST",
+            timeout=self.timeout,
+            payload={"model": self.model, "input": list(requested)},
+        )
+        rows = data.get("data") if isinstance(data, dict) else None
+        if not isinstance(rows, list) or len(rows) != len(requested):
+            raise LocalAIError("OpenAI-compatible embedding response has the wrong shape")
+        if all(isinstance(row, dict) and isinstance(row.get("index"), int) for row in rows):
+            rows = sorted(rows, key=lambda row: row["index"])
+        vectors = []
+        width = None
+        for row in rows:
+            vector = row.get("embedding") if isinstance(row, dict) else None
+            if not isinstance(vector, list) or not vector:
+                raise LocalAIError("OpenAI-compatible embedding response contains an invalid vector")
+            converted = tuple(float(value) for value in vector)
+            if any(not math.isfinite(value) for value in converted):
+                raise LocalAIError("OpenAI-compatible embedding response contains non-finite values")
+            width = len(converted) if width is None else width
+            if len(converted) != width:
+                raise LocalAIError("OpenAI-compatible embedding response has inconsistent dimensions")
+            vectors.append(converted)
+        return tuple(vectors)
 
 
 KNOWN_LOCAL_PROVIDERS = {
