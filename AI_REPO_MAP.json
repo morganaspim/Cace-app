@@ -8,11 +8,15 @@
     "production_ready": false
   },
   "start_here": [
-    "AGENTS.md",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "docs/BUILD_AND_TRUST_GUIDE.md",
     "docs/STATUS.md",
     "docs/ARCHITECTURE.md",
+    "docs/SECURITY_ARCHITECTURE.md",
     "docs/CONSTITUTION.md",
     "docs/CLAIMS.md",
+    "docs/BUG_FLUSH_ARCHITECTURE.md",
+    "docs/PROVENANCE_ATTESTATION.md",
     "docs/ROADMAP.md",
     "docs/MASTER_BUILD_SPEC.md",
     "docs/GOAL_REGISTRY.json",
@@ -123,5 +127,43 @@
     "classify_research_separately_from_verified_capability": true,
     "preserve_truth_and_evidence_boundaries": true,
     "avoid_qualification_sensitive_changes_for_goal_capture": true
-  }
+  },
+  "trust_architecture": {
+    "unified_guide": "docs/BUILD_AND_TRUST_GUIDE.md",
+    "security": "docs/SECURITY_ARCHITECTURE.md",
+    "formal_claim_policy": "docs/CLAIMS.md",
+    "bug_flush": "docs/BUG_FLUSH_ARCHITECTURE.md",
+    "provenance_and_log_retention": "docs/PROVENANCE_ATTESTATION.md",
+    "production_readiness": "docs/PRODUCTION_READINESS.md",
+    "machine_bootstrap": "CACE_AGENT_BOOTSTRAP.json"
+  },
+  "assurance_dimensions": {
+    "formal_math": "Lean/kernel + explicit hypotheses + canonical qualification",
+    "numerical": "module verifier/certificate/interval/numerical tests as applicable",
+    "software": "Python/native/web/package regression",
+    "security": "security controls and security tests",
+    "provenance": "content identity, signed attestations, independent retention",
+    "ai": "advisory only; never evidence"
+  },
+  "webapp_build_path": [
+    "browser Studio",
+    "typed API/session boundary",
+    "canonical Python graph/module/evidence core",
+    "C++ kernels where justified",
+    "durable experiment/evidence storage",
+    "controlled long-job workers",
+    "isolated formal qualification runner"
+  ],
+  "bug_prevention_loop": [
+    "reproduce",
+    "classify",
+    "root-cause fix",
+    "repository sibling sweep",
+    "regression test",
+    "permanent machine guard",
+    "aggregate validation",
+    "durable diagnostics",
+    "qualification-drift audit"
+  ],
+  "repository_reconstruction_requirement": "A repository-only reader must be able to recover product goals, current status, proof rigor, security boundaries, bug-flush policy, provenance/log retention, deployment shape, and definition of done without private chat history."
 }
