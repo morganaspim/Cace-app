@@ -77,6 +77,8 @@
     "formal/cace_formal/proof_guardrails.json",
     "formal/FAILURE_GUARDRAILS.md",
     "formal/cace_formal/CACEFormal/GuardrailCanaries.lean",
-    "ci/cace-exact-pin-lean-preflight.canonical.yml"
+    "ci/cace-exact-pin-lean-preflight.canonical.yml",
+    "scripts/check_cace_known_failure_regressions.py",
+    "scripts/check_lean_source_sanity.py"
   ]
 }
