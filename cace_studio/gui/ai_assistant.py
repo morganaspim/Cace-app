@@ -90,11 +90,19 @@ class _ChatWorker(QRunnable):
 class LocalAIAssistantWidget(QWidget):
     """Optional local assistant panel with no verification privileges."""
 
-    def __init__(self, settings, configure_callback, parent=None, context_provider=None) -> None:
+    def __init__(
+        self,
+        settings,
+        configure_callback,
+        parent=None,
+        context_provider=None,
+        activity_callback=None,
+    ) -> None:
         super().__init__(parent)
         self.settings = settings
         self.configure_callback = configure_callback
         self.context_provider = context_provider
+        self.activity_callback = activity_callback
         self.history: list[dict[str, str]] = []
         self.pool = QThreadPool.globalInstance()
         self._growth_memory = PersistentGrowthMemory()
@@ -195,6 +203,14 @@ class LocalAIAssistantWidget(QWidget):
             + guidance
         )
 
+    def _emit_activity(self, kind: str, payload) -> None:
+        if self.activity_callback is None:
+            return
+        try:
+            self.activity_callback(kind, payload)
+        except Exception:
+            pass
+
     def _live_context(self) -> str:
         if self.context_provider is None:
             return ""
@@ -222,6 +238,7 @@ class LocalAIAssistantWidget(QWidget):
             )
         self.grow_button.setEnabled(False)
         self.status.setText("Grow is exploring the local CACE corpus…")
+        self._emit_activity("working", query)
         live_context = self._live_context()
         growth_query = query if not live_context else query + "\n\nCURRENT CACE EXPERIMENT:\n" + live_context
         embedding_provider = None
@@ -257,6 +274,7 @@ class LocalAIAssistantWidget(QWidget):
         self._growth_cycle += 1
         self._growth_context = result.context_text()
         self._last_grow_result = result
+        self._emit_activity("grow", result)
         routes = ", ".join(route.expert_id for route in result.routes) or "general"
         top_sources = []
         for ranked in result.retrieved[:4]:
@@ -349,6 +367,7 @@ class LocalAIAssistantWidget(QWidget):
 
         self.prompt.clear()
         self.transcript.append(f"[you] {text}")
+        self._emit_activity("working", text)
         self.history.append({"role": "user", "content": text})
         messages = [{"role": "system", "content": self._system_message()}]
         live_context = self._live_context()
