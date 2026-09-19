@@ -20,7 +20,9 @@
     "CACE_PUBLIC_HELP_POLICY.json",
     "docs/JUST_WORKS_SELF_SANDBOXING.md",
     "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
-    "docs/help/README.md"
+    "docs/help/README.md",
+    "CACE_MULTI_TENANT_POLICY.json",
+    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md"
   ],
   "build_optimizer": {
     "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
@@ -48,7 +50,11 @@
     "startup self-checks and self-sandboxes the private/local service plane with safe defaults and visible graceful degradation",
     "free trial requires no credit card and is granted once per verified person identity anchor; new/deleted accounts cannot reset the trial",
     "post-trial limited mode is non-destructive and always preserves reasonable view/export/delete/recovery access to user-owned data",
-    "generate customer-safe help from the live registry so every registered module has at least two direct and two combined examples without exposing proprietary implementation or custom mathematics"
+    "generate customer-safe help from the live registry so every registered module has at least two direct and two combined examples without exposing proprietary implementation or custom mathematics",
+    "support many concurrent users through tenant-aware stateless gateways, durable tenant instances, isolated execution sandboxes and fair load-balanced scheduling",
+    "do not maintain a different source-code clone per user; all tenants run a reviewed immutable CACE release while their state remains tenant-scoped",
+    "local CACE/AI instances on user networks connect outbound to the gateway/broker and do not require inbound firewall/router exposure",
+    "cross-tenant data/job/cache/wallet/protein/evidence access is denied by default and requires explicit collaboration/economy capability"
   ],
   "hosted_builder_rules": [
     "do not output only a prototype when repository requirements call for a full production app",
@@ -141,5 +147,13 @@
     "module_coverage": "every live registered module",
     "minimum_examples": "2 direct + 2 combined per module; 2 per feature",
     "secrecy": "public behavior/contracts/evidence only; no proprietary equations, derivations, algorithms, hidden defaults, theorem bodies, source internals or credentials"
+  },
+  "multi_tenant_runtime": {
+    "source": "CACE_MULTI_TENANT_POLICY.json",
+    "recommended_architecture": "shared stateless control plane + isolated per-tenant sandboxes + durable tenant state",
+    "instance_model": "one durable logical instance_id per account/user; immutable shared release image; no per-user source clone",
+    "scaling": "horizontal gateway/API replicas, tenant-aware durable queue, warm/ephemeral workers, fair resource scheduling, suspend/resume",
+    "local_network": "outbound authenticated local-agent connection through directional pairing; no inbound customer network port required",
+    "isolation": "tenant_id required at every request/job/storage/cache capability boundary; deny cross-tenant access by default"
   }
 }

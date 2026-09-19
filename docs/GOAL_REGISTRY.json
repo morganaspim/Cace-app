@@ -946,6 +946,26 @@
         "Expired users retain sign-in, view, export/download, delete, account recovery, help and license-management rights.",
         "Account/trial/license state never changes scientific proof/evidence."
       ]
+    },
+    {
+      "id": "G064",
+      "category": "multi_tenant_scaling",
+      "priority": 64,
+      "intent_status": "required",
+      "title": "Multi-user persistent tenant instances with isolated load-balanced sandboxes",
+      "summary": "Support many concurrent CACE users through stateless load-balanced gateways, durable logical instances per account, tenant-scoped persistent data and isolated elastic execution sandboxes, including outbound-only local-network AI/CACE links.",
+      "acceptance": [
+        "Every authenticated user/account resolves to one durable logical CACE instance/tenant context.",
+        "All users execute the same reviewed immutable CACE release; no per-user source-code clone or drift is required.",
+        "Web/API gateways scale horizontally and authoritative state is external to any one gateway process.",
+        "Scientific/native/AI work runs in tenant/job-scoped sandboxes with CPU/RAM/GPU/network/filesystem limits.",
+        "Every tenant-owned database/object/cache/job record is server-bound to tenant identity and cross-tenant access is denied by default.",
+        "Persistent tenant state survives worker crash, restart, rescheduling, rolling upgrades and idle sandbox suspension.",
+        "Tenant-aware queues provide quotas, backpressure and starvation-resistant/fair scheduling.",
+        "Users' local CACE/AI instances connect outbound through authenticated pairing/broker transport without requiring inbound ports on their networks.",
+        "Enterprise/higher-risk workloads may move to dedicated namespace/microVM/VM isolation without changing scientific semantics.",
+        "Load balancing and worker replacement never alter evidence/proof semantics."
+      ]
     }
   ]
 }

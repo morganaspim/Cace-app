@@ -33,7 +33,9 @@
     "CACE_PUBLIC_HELP_POLICY.json",
     "docs/JUST_WORKS_SELF_SANDBOXING.md",
     "docs/TRIAL_AND_ACCOUNT_UNIQUENESS.md",
-    "docs/help/README.md"
+    "docs/help/README.md",
+    "CACE_MULTI_TENANT_POLICY.json",
+    "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
@@ -52,7 +54,8 @@
     "payment_policy": "CACE_PAYMENT_POLICY.json",
     "deployment_boundary": "CACE_DEPLOYMENT_BOUNDARY.json",
     "trial_account_policy": "CACE_TRIAL_ACCOUNT_POLICY.json",
-    "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json"
+    "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json",
+    "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -378,5 +381,13 @@
     "generated_markdown": "docs/help/generated/CACE_PUBLIC_HELP.md",
     "coverage": "all registered modules + customer features",
     "proprietary_boundary": "never disclose custom math/derivations/algorithms/theorem bodies/source internals/hidden defaults"
+  },
+  "multi_tenant": {
+    "recommendation": "shared stateless web/control plane with isolated tenant/job sandboxes and durable tenant state",
+    "instance_rule": "one logical CACE instance per account; shared immutable release code; never per-user source drift",
+    "availability": "logical instance remains available while compute may warm, suspend, resume or move",
+    "local_agent_rule": "user-network agents connect outbound through authenticated pairing/broker transport",
+    "fairness": "tenant quotas, separate interactive/batch queues, backpressure and starvation-resistant scheduling",
+    "isolation": "cross-tenant access denied by default"
   }
 }

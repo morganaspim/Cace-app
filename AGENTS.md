@@ -12,6 +12,7 @@ Read these in order before changing scientific or verification behavior:
 4. `CACE_DEPLOYMENT_BOUNDARY.json` — browser-only public surface and hardened private/local service policy.
 5. `CACE_TRIAL_ACCOUNT_POLICY.json` — one-person/one-trial and non-destructive expiry policy.
 6. `CACE_PUBLIC_HELP_POLICY.json` — customer-help completeness and proprietary-leakage boundary.
+7. `CACE_MULTI_TENANT_POLICY.json` — multi-user tenancy, isolation, persistence and load-balancing policy.
 3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
@@ -338,3 +339,36 @@ Explain what a module looks for and how to use/connect it, not how CACE
 implements it internally.
 
 Authority: `CACE_PUBLIC_HELP_POLICY.json`.
+
+
+## Multi-user / multi-tenant production rule
+
+CACE production must support many concurrent users/accounts without turning the
+system into one shared-privilege runtime or maintaining source-code clones per
+user.
+
+Preferred architecture:
+
+- shared stateless web/API gateway replicas;
+- tenant/account-aware control plane;
+- durable logical CACE instance per account/user;
+- isolated tenant/job sandboxes for private execution;
+- tenant-scoped persistent data/evidence/protein/account state;
+- durable tenant-aware job queues and fair scheduling;
+- optional warm sandboxes for interactive latency;
+- suspend/resume or worker replacement for idle/failed compute;
+- isolated proof qualification outside ordinary tenant workers.
+
+Users running local CACE/local-AI on their own network should initiate outbound
+authenticated connections to the CACE gateway/broker. Do not require customers
+to open inbound ports on home/lab/office networks.
+
+Never clone and independently mutate the CACE source tree for each user. Run a
+reviewed immutable release image and bind user-specific state through a tenant
+instance manifest.
+
+Cross-tenant access is denied by default. Collaboration/economy pairing must be
+explicitly capability-authorized.
+
+Machine-readable authority: `CACE_MULTI_TENANT_POLICY.json`.
+Design: `docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`.

@@ -106,6 +106,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I075 | customer-safe complete help | Generate a complete help/reference file from the live registry: every feature/module gets public inputs/outputs/parameter type/unit guidance, rigor/evidence explanations, at least two examples and two combined-module examples, while proprietary equations, algorithms, hidden defaults, theorem bodies and source internals remain secret. | G062 |
 | I076 | just-works one-person trial | Production CACE should be a full-featured maths/sciences playground that preflights and self-sandboxes automatically; the no-card free trial is one per verified person and survives account recreation, while expiry is transparent/non-destructive and preserves view/export/delete/recovery access. | G063 |
 
+| I077 | multi-tenant persistent CACE instances | Scale CACE to many users using stateless load-balanced gateways, one durable logical instance per account, tenant-scoped persistent state and isolated elastic sandboxes. Local CACE/AI on customer networks connects outbound through the pairing broker; warm/suspend/resume workers preserve an always-available experience without per-user source clones. | G064 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

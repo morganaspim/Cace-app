@@ -687,3 +687,34 @@ publishing proprietary CACE mathematics, algorithms, hidden defaults, theorem
 bodies, source internals or security secrets.
 
 See `CACE_PUBLIC_HELP_POLICY.json` and `docs/help/README.md`.
+
+
+## Multi-user / multi-tenant production architecture
+
+Production CACE must support many concurrent accounts while preserving strong
+tenant isolation and the browser-only gateway/private-service boundary.
+
+Preferred topology:
+
+`load-balanced stateless gateways -> tenant control plane -> isolated tenant/job
+sandboxes -> tenant-scoped durable storage`
+
+Each account owns a durable logical CACE instance. The instance is state, identity
+and capability configuration—not a private copy of the repository. All tenants
+run a reviewed immutable release image so upgrades remain atomic and source does
+not drift between users.
+
+The platform should keep user-visible state continuously available while allowing
+CPU/GPU/AI workers to stay warm, scale out, suspend, resume or be replaced.
+Tenant-aware queues enforce quotas, backpressure and fairness.
+
+Users may link local CACE/AI instances from their own networks through outbound
+authenticated broker connections and the existing directional pairing model;
+production must not require customers to open inbound firewall/router ports.
+
+Cross-tenant database, storage, cache, job, protein, wallet and evidence access
+is denied by default. Explicit collaboration/economy capabilities are the only
+normal cross-tenant path.
+
+See `CACE_MULTI_TENANT_POLICY.json` and
+`docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`.

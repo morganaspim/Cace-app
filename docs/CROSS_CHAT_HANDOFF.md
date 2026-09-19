@@ -503,3 +503,35 @@ Trial/product:
 - expiry is non-destructive limited mode, never ransomware behavior;
 - view/export/delete/recovery/help remain available after expiry;
 - startup target is a full production maths/sciences playground that self-preflights and self-sandboxes behind the browser-only gateway.
+
+
+## Multi-user persistent tenant runtime
+
+Added 2026-09-19.
+
+Durable goal:
+
+- G064 — multi-user persistent tenant instances with isolated load-balanced sandboxes.
+
+Recommended Rank-1 architecture:
+
+- stateless load-balanced web/API gateways;
+- tenant-aware control plane;
+- one durable logical CACE instance per user/account;
+- shared immutable reviewed CACE release image, not source clones;
+- tenant-scoped persistent account/experiment/evidence/protein/AI/economy state;
+- isolated warm or ephemeral execution sandboxes;
+- durable tenant-aware queues with quotas/backpressure/fair scheduling;
+- worker replacement/suspend/resume without loss of logical instance continuity;
+- exact formal qualification isolated from ordinary tenant workers.
+
+Local-network rule:
+
+- user local CACE/AI initiates an outbound authenticated connection;
+- existing directional pairing codes bind it to the correct account/tenant;
+- no inbound home/lab/office network port is required.
+
+Authorities:
+
+- `CACE_MULTI_TENANT_POLICY.json`
+- `docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md`
