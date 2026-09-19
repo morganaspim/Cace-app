@@ -189,5 +189,17 @@
       "year": 999
     },
     "hard_rule": "network brokers may not inject executable code/packages/plugins/Lean/arbitrary files or trusted evidence state"
+  },
+  "current_theorem_roadmap": {
+    "document": "docs/proofs/V341_TOP20_OF50_THEOREM_ROADMAP.md",
+    "method": "50 candidates ranked; top 20 selected by gap closure, leverage, tractability, reuse, and rigor safety",
+    "immediate_focus": "construct a concrete smooth boundary-vanishing box H1 core, extend its zero classical trace to functional zero trace, close it in graph norm, and feed the concrete H1-zero space into equilibrated Prager-Synge",
+    "batch_partition": [
+      "v3.41A ranks 1-8",
+      "v3.41B ranks 9-14",
+      "v3.41C ranks 15-16",
+      "v3.41D ranks 17-19",
+      "v3.41E rank 20"
+    ]
   }
 }
