@@ -8,6 +8,7 @@ from .local import create_local_provider, detect_local_providers
 from .corpus import build_local_fragments, build_local_index
 from .grow_candidates import GrowCandidate, build_grow_candidates
 from .growth_memory import GrowthFeedbackEvent, PersistentGrowthMemory
+from .research_ideas import IDEA_STATUSES, ResearchIdea, ResearchIdeaStore, seed_from_grow_candidate
 from .hybrid import GrowthEngine, GrowResult, ResearchFragment, SparseResearchIndex
 
 __all__ = [
@@ -26,4 +27,8 @@ __all__ = [
     "PersistentGrowthMemory",
     "GrowCandidate",
     "build_grow_candidates",
+    "IDEA_STATUSES",
+    "ResearchIdea",
+    "ResearchIdeaStore",
+    "seed_from_grow_candidate",
 ]
