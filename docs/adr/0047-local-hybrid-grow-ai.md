@@ -261,3 +261,71 @@ to Testable, Experimented, Promising, or Proof Candidate.
 The proposal engine and materializer are pure/testable layers outside the GUI.
 They do not import or mutate proof ledgers, claim registries, formal
 qualification state, certificates, or verification results.
+
+
+## Minimal / Balanced / Exploratory proposal strategies
+
+The **Build on Canvas** preview presents three independently generated,
+read-only proposals before approval.
+
+### Minimal — lowest compute
+
+Minimal searches associated-module subsets up to size three and prefers the
+smallest useful compatibility-checked graph. It prioritizes:
+
+1. a useful compatible connection or a standalone execution-ready source;
+2. execution readiness;
+3. more valid compatible edges;
+4. fewer unresolved required inputs; and
+5. fewer nodes.
+
+Minimal is intended for the cheapest falsifiable experiment, not maximum
+coverage.
+
+### Balanced — best connected
+
+Balanced keeps the bounded associated-module set but reorders it
+deterministically. At each step it prefers modules whose inputs can already be
+satisfied by placed outputs, then source-like modules, then modules that retain
+downstream producer value.
+
+All actual edges are still produced only by CACE's canonical exact type/unit
+compatibility contract. Balanced does not infer hidden semantic conversions.
+
+### Exploratory — bounded novelty
+
+Exploratory starts from Balanced and may add at most two locally registered
+modules not already associated with the idea.
+
+Candidate extras are derived from the Grow-seeded Research Idea text: title,
+notes, hypotheses, and Proposed Experiment. Ranking rewards:
+
+- lexical/metadata overlap with that idea context;
+- a compatible interface with the current proposed modules;
+- category diversity; and
+- a bounded amount of useful module interface structure.
+
+Connected idea-relevant novelty is preferred. If none exists, Exploratory may
+include at most one strongly idea-relevant disconnected concept; the preview
+must expose its unresolved state rather than pretending the graph is runnable.
+
+After bounded expansion, the combined module set is re-balanced before edge
+generation. Exploratory therefore remains acyclic, local, deterministic, and
+subject to exactly the same type/unit checks as Minimal and Balanced.
+
+### Strategy preview and approval
+
+The proposal dialog shows summary metrics for all three strategies:
+
+- node count;
+- compatible edge count;
+- unresolved required input count; and
+- ready / partial / empty status.
+
+The user can switch strategies repeatedly with no experiment mutation. The
+visual graph, rationale, Proposed Experiment text, unresolved inputs, and
+skipped modules update to match the selected strategy.
+
+Only the strategy selected when **Approve & Build** is pressed is materialized.
+Cancel leaves the experiment unchanged. Approval remains one undoable,
+autosaved edit and does not auto-advance Research Idea status.
