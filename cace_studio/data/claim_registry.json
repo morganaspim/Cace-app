@@ -28,19 +28,19 @@
       ],
       "nonclaims": [
         "Does not by itself prove all Python/C++ program behavior.",
-        "The H1 distributional-graph converse is representation-level and does not by itself construct unconditional H(div) graph density or every concrete PDE trace/core hypothesis.",
+        "The audited whole-space H(div) density endpoint is restricted to the canonical L² Hilbert graph model on Euclidean space; it does not by itself construct bounded-domain trace/core density, boundary regularity, or every concrete PDE hypothesis.",
         "The weak-Green/orthogonality/continuum-Prager-Synge endpoints retain their explicit analytic and PDE-specific hypotheses."
       ],
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "qualification": {
-        "attested_commit": "7091548766deef4301ac8d62d3445d95945662e7",
+        "attested_commit": "0392cec2fdfa677decef9fce043fd98456e4d40a",
         "current_head_qualified": true,
-        "proof_artifact_sha256": "3bce4e317ca9428b1d80482399d7cd444e6f3d0e4ba21fb9fb30902a12f0694a",
-        "reason": "Canonical exact-head qualification run 35280458500 passed at 7091548766deef4301ac8d62d3445d95945662e7; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
+        "proof_artifact_sha256": "e554c9720b81233f752cc8557ac1ac0417ae0fcd8b8054faf28ecc01212f9be8",
+        "reason": "Canonical exact-head qualification run 35448620643 passed at 0392cec2fdfa677decef9fce043fd98456e4d40a; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
         "status": "PASS"
       },
       "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",
-      "statement": "The continuum chain contains graph-space, unconditional representation-level H1 converse, Green-identity, bounded normal-trace, density-reduction, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
+      "statement": "The continuum chain contains graph-space, unconditional representation-level H1 converse, unconditional whole-space H(div) Hilbert graph density, Green-identity, bounded normal-trace, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
     }
   ],
   "policy": "fail-closed",
