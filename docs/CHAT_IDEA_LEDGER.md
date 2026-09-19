@@ -74,6 +74,13 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I054 | generally-useful mode | Preserve the idea of a GUI “Generally Useful” research/AI mode or button that favors broadly reusable discoveries rather than one-off results; define scoring/semantics before implementation. | Research UX |
 | I055 | cross-chat continuity | Every substantive CACE chat retrieves the durable handoff, preserves new meritorious ideas, refreshes current state, and mirrors the handoff outside GitHub. | New continuity goal G047 |
 
+
+| I056 | reasoning pedagogy | Train the local AI on reusable typed operations and operation sequences rather than static answer surfaces; curriculum progresses from single operators to compositions, inverse problems, counterfactuals, transfer and discovery. | New design: `docs/LOCAL_AI_REASONING_CURRICULUM.md`; G048 |
+| I057 | anti-memorization eval | Use independently generated canonical/perturbed paired tasks where load-bearing changes require answer changes, alongside irrelevant perturbations that require invariance; evaluate pair correctness, necessary flips, invariance, transfer and composition holdouts. | G048 |
+| I058 | geometric reasoning | Compress chaotic observations into typed relational/geometric structures, symmetries, invariants, sparse operator programs and checkable transformations instead of brute-force all-pairs association. | G048; related G017-G020 |
+| I059 | operator memory | Maintain a learned operator library with preconditions, invariants, inverses, commutation/composition rules, costs, failure domains and linked CACE checkers rather than an answer notebook. | G048 |
+| I060 | canvas heartbeat | Connect canvas items and the local AI through a deterministic Conway-inspired cellular heartbeat/state field for readiness, activity, waiting, stale, verification, failure and research attention; heartbeat can guide attention but never verification. | G049 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

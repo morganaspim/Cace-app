@@ -204,3 +204,27 @@ A future CACE chat that materially changes any of the following should refresh t
 - major feature completion or removal.
 
 The goal is continuity without making conversational memory part of the trusted computing base.
+
+
+## New local-AI reasoning direction
+
+Added 2026-09-19.
+
+Design document:
+
+`docs/LOCAL_AI_REASONING_CURRICULUM.md`
+
+New durable goals:
+
+- G048 — reasoning-first local AI curriculum and anti-memorization evaluation;
+- G049 — Conway-inspired canvas/local-AI heartbeat field.
+
+Core intent:
+
+- teach reusable typed operations and operation order rather than memorized answers;
+- procedural generation + held-out structural compositions;
+- canonical/load-bearing perturbation pairs where answers must change;
+- irrelevant/symmetry perturbations where answers must remain invariant;
+- external executable operator-plan checks rather than hidden chain-of-thought dependence;
+- geometric/relational structure, invariants and sparse operator programs rather than brute-force all-pairs association;
+- deterministic canvas heartbeat states that guide AI attention but can never promote verification.

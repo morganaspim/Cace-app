@@ -686,6 +686,38 @@
         "Meritorious ideas are deduplicated into the idea ledger/goal registry without changing evidence status.",
         "Continuity updates avoid qualification-sensitive source changes and never promote proof claims."
       ]
+    },
+    {
+      "id": "G048",
+      "category": "ai_reasoning",
+      "priority": 48,
+      "intent_status": "research",
+      "title": "Reasoning-first local AI curriculum and anti-memorization evaluation",
+      "summary": "Train compact local AI on reusable typed operations, compositions, invariants and counterfactual structure rather than answer memorization; evaluate with procedurally generated paired interventions, symmetry/invariance transforms, inverse problems and held-out compositions.",
+      "acceptance": [
+        "Training/eval tasks are procedurally generated with held-out structural templates and compositions.",
+        "Canonical and load-bearing perturbed pairs are evaluated together; irrelevant perturbations test invariance.",
+        "Model can emit an externally executable/type-checkable operator program without requiring hidden chain-of-thought disclosure.",
+        "Evaluation reports pair correctness, necessary-flip sensitivity, invariance, isomorphism transfer, composition holdout and distractor robustness.",
+        "AI output and reasoning metrics never promote formal or scientific verification state.",
+        "Implementation is independently designed from public/general concepts and all third-party code/data has explicit compatible licensing."
+      ]
+    },
+    {
+      "id": "G049",
+      "category": "ai_canvas_coordination",
+      "priority": 49,
+      "intent_status": "research",
+      "title": "Conway-inspired canvas and local-AI heartbeat field",
+      "summary": "Give each semantic canvas item a deterministic cellular heartbeat state and expose graph/heartbeat deltas to the local AI for attention, coordination and visualization without granting evidence authority.",
+      "acceptance": [
+        "Each canvas node has typed heartbeat states such as dormant, ready, active, waiting, blocked, stale, verifying, verified, failed and research-interest.",
+        "Heartbeat rules are deterministic, dependency-aware and versioned.",
+        "AI attention/research states are technically unable to set VERIFIED/PASS.",
+        "Semantic hash changes propagate stale state through hard dependencies.",
+        "Canvas overlay visualizes heartbeat activity separately from scientific evidence.",
+        "Heartbeat delta can be included in local-AI context packets without requiring full-canvas rereads."
+      ]
     }
   ]
 }
