@@ -9,7 +9,7 @@ import numpy as np
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.types import EvidenceKind
 
-from .math_features import hashed_text_sketch
+from .math_features import cosine_similarity, hashed_text_sketch
 from .memory import ExperienceMemory
 from .planner import CandidateAtom, CombinationPlanner, GroupCandidate, PlannerConfig
 from .ranker import RankerConfig, TinyResidualRanker
@@ -191,6 +191,37 @@ class HybridLocalAI:
             )
         return atoms
 
+    def _prefilter_atoms(
+        self,
+        atoms: list[CandidateAtom],
+        task_sketch: np.ndarray,
+        *,
+        generally_useful: bool,
+        limit: int = 64,
+    ) -> list[CandidateAtom]:
+        """Cheap O(n*d) gate before combinatorial beam expansion."""
+        if len(atoms) <= limit:
+            return atoms
+        ranked: list[tuple[float, str, CandidateAtom]] = []
+        for atom in atoms:
+            if generally_useful:
+                score = (
+                    0.45 * atom.proof_strength
+                    + 0.45 * atom.prior
+                    - 0.08 * np.log1p(atom.static_cost)
+                )
+            else:
+                relevance = max(0.0, cosine_similarity(atom.sketch, task_sketch))
+                score = (
+                    0.60 * relevance
+                    + 0.20 * atom.proof_strength
+                    + 0.20 * atom.prior
+                    - 0.06 * np.log1p(atom.static_cost)
+                )
+            ranked.append((float(score), atom.atom_id, atom))
+        ranked.sort(key=lambda item: (-item[0], item[1]))
+        return [item[2] for item in ranked[:limit]]
+
     def _planner(self, *, generally_useful: bool, max_group: int) -> CombinationPlanner:
         if generally_useful:
             config = PlannerConfig(
@@ -232,6 +263,11 @@ class HybridLocalAI:
             seed=self.seed,
         )
         atoms = self._atoms(task_sketch, generally_useful=generally_useful)
+        atoms = self._prefilter_atoms(
+            atoms,
+            task_sketch,
+            generally_useful=generally_useful,
+        )
         candidates = self._planner(
             generally_useful=generally_useful,
             max_group=max_group,
