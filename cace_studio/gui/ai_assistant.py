@@ -31,7 +31,16 @@ class _GrowSignals(QObject):
 
 
 class _GrowWorker(QRunnable):
-    def __init__(self, engine, query: str, cycle: int, chaos: float, budget: int, max_group_size: int) -> None:
+    def __init__(
+        self,
+        engine,
+        query: str,
+        cycle: int,
+        chaos: float,
+        budget: int,
+        max_group_size: int,
+        embedding_provider=None,
+    ) -> None:
         super().__init__()
         self.engine = engine
         self.query = query
@@ -39,6 +48,7 @@ class _GrowWorker(QRunnable):
         self.chaos = chaos
         self.budget = budget
         self.max_group_size = max_group_size
+        self.embedding_provider = embedding_provider
         self.signals = _GrowSignals()
 
     def run(self) -> None:  # pragma: no cover - exercised through GUI integration
@@ -50,6 +60,7 @@ class _GrowWorker(QRunnable):
                 chaos=self.chaos,
                 group_budget=self.budget,
                 max_group_size=self.max_group_size,
+                embedding_provider=self.embedding_provider,
             )
         except Exception as exc:
             self.signals.failed.emit(f"{type(exc).__name__}: {exc}")
@@ -177,6 +188,19 @@ class LocalAIAssistantWidget(QWidget):
         self.status.setText("Grow is exploring the local CACE corpus…")
         live_context = self._live_context()
         growth_query = query if not live_context else query + "\n\nCURRENT CACE EXPERIMENT:\n" + live_context
+        embedding_provider = None
+        if self.settings.ai_embedding_model:
+            try:
+                embedding_provider = create_local_provider(
+                    self.settings.ai_provider,
+                    self.settings.ai_endpoint,
+                    self.settings.ai_embedding_model,
+                    timeout=60.0,
+                )
+            except LocalAIError as exc:
+                self.transcript.append(
+                    f"[grow] Embedding model disabled for this cycle: {exc}"
+                )
         worker = _GrowWorker(
             self._growth_engine,
             growth_query,
@@ -184,6 +208,7 @@ class LocalAIAssistantWidget(QWidget):
             float(self.settings.ai_growth_chaos),
             int(self.settings.ai_growth_budget),
             int(self.settings.ai_growth_max_group_size),
+            embedding_provider,
         )
         worker.signals.finished.connect(self._grow_finished)
         worker.signals.failed.connect(self._grow_failed)
@@ -202,7 +227,8 @@ class LocalAIAssistantWidget(QWidget):
         self.transcript.append(
             "[grow] "
             f"cycle={self._growth_cycle} seed={result.seed} chaos={result.chaos:.2f} "
-            f"routes={routes}; retrieved={len(result.retrieved)}; groups={len(result.groups)}. "
+            f"routes={routes}; retrieved={len(result.retrieved)}; groups={len(result.groups)}; "
+            f"neural_rerank={'on' if result.neural_rerank_used else 'off'}. "
             f"Top local sources: {', '.join(top_sources) or 'none'}."
         )
         if result.groups:
