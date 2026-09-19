@@ -350,6 +350,14 @@ CACE account/login, first-time allowances, payment ledgers, tiered pass pricing,
 
 Hard trust-boundary rule: the proof runner does **not** authenticate users, store password hashes, process customer email, or hold payment/database credentials. It receives only signed proof-job requests and emits signed result/artifact metadata.
 
+## 8.2 Compute feature entitlements
+
+GPU acceleration may be toggled by Basic, Researcher, and Enterprise users. CUDA is offered only on compatible NVIDIA systems.
+
+CPU multithreading is included with Researcher and Enterprise. Basic may permanently unlock CPU multithreading for USD $15 as an account-level feature purchase, separate from time passes.
+
+Backend/thread choices must be recorded in numerical provenance and cannot alter formal proof status.
+
 ## 9. R&D funding policy
 
 The licensing UI may state that fees support:
