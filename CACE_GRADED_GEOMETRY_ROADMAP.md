@@ -165,8 +165,8 @@ This is exploratory until the exact algebraic semantics are proved.
 
 ## Current implementation order
 
-- [ ] #1 ExteriorPowerTransport
-- [ ] #2 DualBladePiola
+- [x] #1 ExteriorPowerTransport
+- [x] #2 DualBladePiola
 - [ ] #3 CellBladeComplex
 - [ ] #4 GradedTransformCertificate
 - [ ] #5 RotorNormalizer
@@ -179,3 +179,21 @@ After #1 and #2 are structurally complete, return to the remaining proof-critica
 unconditional H(div) regularization/density, standard bounded-domain identifications where needed,
 concrete continuum Prager–Synge instantiation, weighted SPD energy, audit/metadata enrollment, and
 canonical exact-current-head qualification.
+
+
+## Implemented in this branch
+
+### #1 ExteriorPowerTransport
+
+File: `formal/cace_formal/CACEFormal/ExteriorPowerTransport.lean`
+
+Implemented exact 2D grade-0/1/2 semantics, wedge/determinant transport, translation-free edge
+vectors, triangle determinant as a 2-blade, and arbitrary-chain grade-1/grade-2 fusion.
+
+### #2 DualBladePiola
+
+File: `formal/cace_formal/CACEFormal/DualBladePiola.lean`
+
+Implemented 2D dual/Hodge transport, cofactor-as-dual-conjugated-grade1, cofactor composition,
+edge normal-measure transport, Piola composition for nonsingular chains, and dual-blade flux
+conservation.
