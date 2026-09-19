@@ -56,6 +56,7 @@ LOCKED_PUSH_SCOPE = {
 COLLAB_AUTOMATIC_PATHS = {
     "collaboration/**",
     "quality/**",
+    "security/**",
     "scripts/**",
     "ops/**",
     "tests/**",
