@@ -1,0 +1,352 @@
+name: CACE Batched Exact-Pin Lean Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Comma, semicolon, or newline-separated quarantined CACEFormal/*.lean targets.'
+        required: true
+        default: 'CACEFormal/Example.lean'
+      prewarm_mathlib_cache:
+        description: 'Explicitly refresh the pinned Mathlib build cache before compiling (network allowed).'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+
+jobs:
+  batched-exact-pin-preflight:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 90
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_MANIFEST_CACHE_DIR: /var/lib/cace-cache/mathlib/manifests
+      LAKE_ARTIFACT_CACHE: 'true'
+      LAKE_CACHE_DIR: /var/lib/cace-cache/lake
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
+
+    steps:
+      - name: Checkout exact event commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          clean: true
+          persist-credentials: false
+
+      - name: Establish exact head and serialize CACE Actions
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID"
+          printf 'exact_head=%s\n' "$GITHUB_SHA"
+
+      - name: Validate and freeze quarantined batch targets
+        id: targets
+        shell: bash
+        env:
+          REQUESTED_MODULES: ${{ inputs.modules }}
+        run: |
+          set -euo pipefail
+          python3 scripts/cace_batch_proof_targets.py             --modules "$REQUESTED_MODULES"             --output cace-batch-targets.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("cace-batch-targets.json").read_text())
+          Path("cace-batch-target-modules.txt").write_text(
+              "".join(item["module"] + "\n" for item in data["targets"]),
+              encoding="utf-8",
+          )
+          Path("cace-batch-target-paths.txt").write_text(
+              "".join(item["path"] + "\n" for item in data["targets"]),
+              encoding="utf-8",
+          )
+          print(f'CACE_BATCH_TARGET_COUNT={data["target_count"]}')
+          print(f'CACE_BATCH_TARGETS_SHA256={data["targets_sha256"]}')
+          PY
+          echo "target_count=$(python3 -c 'import json; print(json.load(open("cace-batch-targets.json"))["target_count"])')" }} "$GITHUB_OUTPUT"
+          echo "targets_sha256=$(python3 -c 'import json; print(json.load(open("cace-batch-targets.json"))["targets_sha256"])')" }} "$GITHUB_OUTPUT"
+
+      - name: Validate permanent proof guardrails and audited impact plan
+        id: guardrails
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          python3 scripts/cace_proof_guardrails.py validate
+          python3 scripts/check_cace_workflow_guardrails.py
+          python3 scripts/check_cace_known_failure_regressions.py
+
+          base_ref="origin/$DEFAULT_BRANCH"
+          git rev-parse --verify "$base_ref^{commit}" >/dev/null
+          merge_base="$(git merge-base HEAD "$base_ref")"
+          test -n "$merge_base"
+          python3 scripts/cace_proof_guardrails.py impacted             --base-ref "$merge_base" > cace-impacted-modules.txt
+          if grep -vE '^(CACEFormal\.[A-Za-z0-9_.]+)?$' cace-impacted-modules.txt; then
+            echo "Impacted-module planner emitted non-module output." >&2
+            exit 31
+          fi
+          if test "$(sort cace-impacted-modules.txt | uniq -d | wc -l)" -ne 0; then
+            echo "Impacted-module planner emitted duplicate modules." >&2
+            exit 32
+          fi
+          printf 'merge_base=%s\n' "$merge_base" }} "$GITHUB_OUTPUT"
+          cat cace-impacted-modules.txt
+
+      - name: Reject malformed Lean source seams in every batch target
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t paths < cace-batch-target-paths.txt
+          args=()
+          for path in "${paths[@]}"; do
+            args+=("formal/cace_formal/$path")
+          done
+          python3 scripts/check_lean_source_sanity.py "${args[@]}"
+
+      - name: Restore pinned Lean and exact Mathlib package tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          test -x "$ELAN_HOME/bin/elan"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          mkdir -p formal/cace_formal/.lake
+          rm -rf formal/cace_formal/.lake/packages
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
+          flock -u 9
+          cd formal/cace_formal
+          lean --version
+          lake --version
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+          mkdir -p "$CACE_MANIFEST_CACHE_DIR"
+          manifest_key="$(
+            {
+              printf '%s\n' "$CACE_TOOLCHAIN"
+              sha256sum lakefile.lean
+            } | sha256sum | awk '{print $1}'
+          )"
+          manifest_cache="$CACE_MANIFEST_CACHE_DIR/$manifest_key.json"
+          if test -s "$manifest_cache"; then
+            cp "$manifest_cache" lake-manifest.json
+            echo "CACE_MANIFEST_CACHE_HIT key=$manifest_key"
+          else
+            echo "CACE_MANIFEST_CACHE_MISS key=$manifest_key"
+            MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+            test -s lake-manifest.json
+            install -m 0644 lake-manifest.json "$manifest_cache.tmp-$GITHUB_RUN_ID"
+            mv "$manifest_cache.tmp-$GITHUB_RUN_ID" "$manifest_cache"
+          fi
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+      - name: Explicitly prewarm pinned Mathlib artifacts
+        if: ${{ inputs.prewarm_mathlib_cache }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          cache_origin="https://lakecache.blob.core.windows.net/mathlib4-master"
+          ca_bundle=""
+          for candidate in /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem
+          do
+            if test -r "$candidate" && curl --cacert "$candidate" -sSI --max-time 15 "$cache_origin" >/dev/null; then
+              ca_bundle="$candidate"
+              break
+            fi
+          done
+          if test -z "$ca_bundle"; then
+            echo "No working system CA bundle found for the Mathlib cache origin." >&2
+            exit 20
+          fi
+          export CURL_CA_BUNDLE="$ca_bundle"
+          export SSL_CERT_FILE="$ca_bundle"
+          lake exe cache get
+
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -x -w 900 9
+          staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}"
+          backup="${CACE_PACKAGE_CACHE}.backup-${GITHUB_RUN_ID}"
+          rm -rf "$staging" "$backup"
+          cp -a --reflink=auto .lake/packages "$staging"
+          test "$(git -C "$staging/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          if test -d "$CACE_PACKAGE_CACHE"; then
+            mv "$CACE_PACKAGE_CACHE" "$backup"
+          fi
+          mv "$staging" "$CACE_PACKAGE_CACHE"
+          rm -rf "$backup"
+          flock -u 9
+
+      - name: Verify normal proof run is cache-local
+        if: ${{ ! inputs.prewarm_mathlib_cache }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find formal/cace_formal/.lake/packages/mathlib/.lake/build -type f -name '*.olean' -print -quit 2>/dev/null | grep -q .; then
+            echo "Pinned Mathlib package cache has no compiled .olean artifacts." >&2
+            exit 21
+          fi
+
+      - name: Compile proof API canaries
+        id: canary_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/cace-batch-canary-build.log"
+
+      - name: Compile changed audited modules and reverse dependents
+        id: impacted_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          mapfile -t modules < <(grep -ve '^[[:space:]]*$' cace-impacted-modules.txt || true)
+          if test "${#modules[@]}" -eq 0; then
+            echo "CACE_BATCH_IMPACTED_COMPILE_SKIPPED"
+          else
+            targets=()
+            for module in "${modules[@]}"; do
+              targets+=("+$module")
+            done
+            cd formal/cace_formal
+            lake build "${targets[@]}" 2>&1 | tee "$GITHUB_WORKSPACE/cace-batch-impacted-build.log"
+          fi
+
+      - name: Compile every quarantined target and collect full failure frontier
+        id: batch_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          : > cace-batch-compile-status.tsv
+          : > cace-batch-compile-failures.txt
+          overall=0
+          index=0
+          while IFS= read -r module; do
+            test -n "$module" || continue
+            index=$((index + 1))
+            safe="$(printf '%s' "$module" | tr '.-' '__')"
+            log="$GITHUB_WORKSPACE/cace-batch-target-${index}-${safe}.log"
+            echo "CACE_BATCH_COMPILE_START index=$index module=$module"
+            (
+              cd formal/cace_formal
+              lake build "+$module"
+            ) >"$log" 2>&1
+            rc=$?
+            cat "$log"
+            printf '%s\t%s\t%s\n' "$index" "$module" "$rc" }} cace-batch-compile-status.tsv
+            if test "$rc" -ne 0; then
+              printf '%s\n' "$module" }} cace-batch-compile-failures.txt
+              overall=1
+            fi
+          done < cace-batch-target-modules.txt
+          echo "CACE_BATCH_COMPILE_OVERALL=$overall"
+          exit "$overall"
+
+      - name: Aggregate batched preflight failures
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
+          IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
+          BATCH_OUTCOME: ${{ steps.batch_compile.outcome }}
+        run: |
+          set -euo pipefail
+          failures=0
+          : > cace-batch-diagnostic-sweep.txt
+          record() {
+            label="$1"
+            outcome="$2"
+            printf '%s=%s\n' "$label" "$outcome" | tee -a cace-batch-diagnostic-sweep.txt
+            case "$outcome" in
+              success|skipped) ;;
+              *) failures=$((failures + 1)) ;;
+            esac
+          }
+          record canary "$CANARY_OUTCOME"
+          record impacted "$IMPACTED_OUTCOME"
+          record batch_targets "$BATCH_OUTCOME"
+          if test -s cace-batch-compile-failures.txt; then
+            echo "Failed target modules:"
+            cat cace-batch-compile-failures.txt
+          fi
+          if test "$failures" -ne 0; then
+            echo "CACE_BATCH_PREFLIGHT_FAILURES=$failures"
+            exit 40
+          fi
+          echo "CACE_BATCH_PREFLIGHT_OK"
+
+      - name: Emit batched non-qualification summary
+        if: always()
+        shell: bash
+        env:
+          TARGET_COUNT: ${{ steps.targets.outputs.target_count }}
+          TARGETS_SHA256: ${{ steps.targets.outputs.targets_sha256 }}
+          MERGE_BASE: ${{ steps.guardrails.outputs.merge_base }}
+        run: |
+          cat > cace-batch-preflight-summary.txt <<EOF
+          evidence_class=engineering/formal-preflight
+          qualification=false
+          exact_head=$GITHUB_SHA
+          lean_toolchain=$CACE_TOOLCHAIN
+          mathlib_commit=$CACE_MATHLIB_COMMIT
+          target_count=$TARGET_COUNT
+          targets_sha256=$TARGETS_SHA256
+          merge_base=$MERGE_BASE
+          prewarm_mathlib_cache=${{ inputs.prewarm_mathlib_cache }}
+          batch_policy=all requested modules must be explicitly quarantined standalone targets
+          note=One batched preflight compiles all requested quarantined modules and reports the complete target failure frontier. It never promotes modules or replaces canonical qualification.
+          EOF
+          cat cace-batch-preflight-summary.txt
+
+      - name: Upload batched preflight evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-batched-exact-pin-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            cace-batch-preflight-summary.txt
+            cace-batch-targets.json
+            cace-batch-target-modules.txt
+            cace-batch-target-paths.txt
+            cace-impacted-modules.txt
+            cace-batch-compile-status.tsv
+            cace-batch-compile-failures.txt
+            cace-batch-diagnostic-sweep.txt
+            cace-batch-canary-build.log
+            cace-batch-impacted-build.log
+            cace-batch-target-*.log
+          if-no-files-found: warn
+          retention-days: 14
