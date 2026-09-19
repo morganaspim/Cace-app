@@ -7,12 +7,15 @@ from .provider import AIProvider, LocalAIError, ProviderHealth
 from .local import create_local_provider, detect_local_providers
 from .corpus import build_local_fragments, build_local_index
 from .experiment_proposal import (
+    PROPOSAL_STRATEGIES,
     ExperimentGraphProposal,
+    ProposalStrategy,
     ProposedEdge,
     ProposedNode,
     UnresolvedInput,
     materialize_experiment_proposal,
     propose_experiment_graph,
+    propose_experiment_strategies,
 )
 from .grow_candidates import GrowCandidate, build_grow_candidates
 from .growth_memory import GrowthFeedbackEvent, PersistentGrowthMemory
@@ -27,12 +30,15 @@ __all__ = [
     "detect_local_providers",
     "build_local_fragments",
     "build_local_index",
+    "PROPOSAL_STRATEGIES",
     "ExperimentGraphProposal",
+    "ProposalStrategy",
     "ProposedEdge",
     "ProposedNode",
     "UnresolvedInput",
     "materialize_experiment_proposal",
     "propose_experiment_graph",
+    "propose_experiment_strategies",
     "GrowthEngine",
     "GrowResult",
     "ResearchFragment",
