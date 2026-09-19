@@ -130,23 +130,9 @@ theorem referenceSimplexP1EndpointBoundary_eq_twoFacetCurrents
   have htop := referenceSimplexP1_upperEndpoint_integrable u i φ
   have hlow := referenceSimplexP1_lowerEndpoint_integrable u i φ
   rw [integral_sub htop hlow]
-  have hTopCurrent :=
-    referenceSimplex_topFacetP1BoundaryDistribution_apply u i φ
-  have hCoordCurrent :=
-    referenceSimplex_coordinateFacetP1BoundaryDistribution_apply u i φ
-  rw [referenceSimplexFiberPoint_zero_eq_base] at *
-  change
-    (∫ y : (referenceSimplexCoordinateLine i)ᗮ,
-        euclideanAffineScalarEval u (referenceSimplexTopEndpoint i y) •
-          φ (referenceSimplexTopEndpoint i y)
-        ∂(volume.restrict (referenceSimplexFiberBaseDomain i))) -
-      (∫ y : (referenceSimplexCoordinateLine i)ᗮ,
-        euclideanAffineScalarEval u (y : EuclideanDomain d) •
-          φ (y : EuclideanDomain d)
-        ∂(volume.restrict (referenceSimplexFiberBaseDomain i))) = _
-  rw [← hTopCurrent, ← neg_eq_iff_add_eq_zero.mp
-    (sub_eq_zero.mp rfl : (0 : ℂ) = 0)]
-  rw [hCoordCurrent]
+  rw [referenceSimplex_topFacetP1BoundaryDistribution_apply u i φ]
+  rw [referenceSimplex_coordinateFacetP1BoundaryDistribution_apply u i φ]
+  simp only [referenceSimplexFiberPoint_zero_eq_base]
   abel
 
 /--
