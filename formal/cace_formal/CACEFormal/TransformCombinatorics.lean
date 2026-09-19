@@ -17,9 +17,10 @@ hypercircle identity.  The cost field is intentionally abstract: a caller may
 instantiate it with operation count, cache misses, communication rounds, or any
 other monotone integer budget.
 
-The pair/triple/quadruple constructors are convenient named entry points for the
-2+, 3+, and 4+ module-combination search discussed in the CACE proof planner.
-The arbitrary `chain` constructor is the scalable endpoint.
+The pair/triple/quadruple/quintuple/sextuple/septuple/octuple/nonuple
+constructors are convenient named entry points for 2-through-9 module
+combination search. The arbitrary `chain` constructor is the scalable 9+
+endpoint.
 -/
 
 noncomputable section
@@ -101,6 +102,91 @@ def quadruple (a b c d : CertifiedGeometryTransform E) : CertifiedGeometryTransf
 
 @[simp] theorem quadruple_cost (a b c d : CertifiedGeometryTransform E) :
     (quadruple a b c d).cost = a.cost + (b.cost + (c.cost + d.cost)) := rfl
+
+/-- Named five-transform combination. -/
+def quintuple (a b c d e : CertifiedGeometryTransform E) : CertifiedGeometryTransform E :=
+  comp a (comp b (comp c (comp d e)))
+
+/-- Named six-transform combination. -/
+def sextuple (a b c d e f : CertifiedGeometryTransform E) : CertifiedGeometryTransform E :=
+  comp a (comp b (comp c (comp d (comp e f))))
+
+/-- Named seven-transform combination. -/
+def septuple (a b c d e f g : CertifiedGeometryTransform E) : CertifiedGeometryTransform E :=
+  comp a (comp b (comp c (comp d (comp e (comp f g)))))
+
+/-- Named eight-transform combination. -/
+def octuple (a b c d e f g h : CertifiedGeometryTransform E) : CertifiedGeometryTransform E :=
+  comp a (comp b (comp c (comp d (comp e (comp f (comp g h))))))
+
+/-- Named nine-transform combination. -/
+def nonuple (a b c d e f g h i : CertifiedGeometryTransform E) : CertifiedGeometryTransform E :=
+  comp a (comp b (comp c (comp d (comp e (comp f (comp g (comp h i)))))))
+
+@[simp] theorem quintuple_cost
+    (a b c d e : CertifiedGeometryTransform E) :
+    (quintuple a b c d e).cost =
+      a.cost + (b.cost + (c.cost + (d.cost + e.cost))) := rfl
+
+@[simp] theorem sextuple_cost
+    (a b c d e f : CertifiedGeometryTransform E) :
+    (sextuple a b c d e f).cost =
+      a.cost + (b.cost + (c.cost + (d.cost + (e.cost + f.cost)))) := rfl
+
+@[simp] theorem septuple_cost
+    (a b c d e f g : CertifiedGeometryTransform E) :
+    (septuple a b c d e f g).cost =
+      a.cost + (b.cost + (c.cost + (d.cost + (e.cost + (f.cost + g.cost))))) := rfl
+
+@[simp] theorem octuple_cost
+    (a b c d e f g h : CertifiedGeometryTransform E) :
+    (octuple a b c d e f g h).cost =
+      a.cost + (b.cost + (c.cost + (d.cost + (e.cost + (f.cost + (g.cost + h.cost)))))) := rfl
+
+@[simp] theorem nonuple_cost
+    (a b c d e f g h i : CertifiedGeometryTransform E) :
+    (nonuple a b c d e f g h i).cost =
+      a.cost + (b.cost + (c.cost + (d.cost + (e.cost + (f.cost + (g.cost + (h.cost + i.cost))))))) := rfl
+
+/-- Five certified geometry stages transport orthogonality. -/
+theorem quintuple_preserves_orthogonality
+    (a b c d e : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    inner ℝ ((quintuple a b c d e).toFun x)
+      ((quintuple a b c d e).toFun y) = 0 :=
+  (quintuple a b c d e).preserves_orthogonality hxy
+
+/-- Six certified geometry stages transport orthogonality. -/
+theorem sextuple_preserves_orthogonality
+    (a b c d e f : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    inner ℝ ((sextuple a b c d e f).toFun x)
+      ((sextuple a b c d e f).toFun y) = 0 :=
+  (sextuple a b c d e f).preserves_orthogonality hxy
+
+/-- Seven certified geometry stages transport orthogonality. -/
+theorem septuple_preserves_orthogonality
+    (a b c d e f g : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    inner ℝ ((septuple a b c d e f g).toFun x)
+      ((septuple a b c d e f g).toFun y) = 0 :=
+  (septuple a b c d e f g).preserves_orthogonality hxy
+
+/-- Eight certified geometry stages transport orthogonality. -/
+theorem octuple_preserves_orthogonality
+    (a b c d e f g h : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    inner ℝ ((octuple a b c d e f g h).toFun x)
+      ((octuple a b c d e f g h).toFun y) = 0 :=
+  (octuple a b c d e f g h).preserves_orthogonality hxy
+
+/-- Nine certified geometry stages transport orthogonality. -/
+theorem nonuple_preserves_orthogonality
+    (a b c d e f g h i : CertifiedGeometryTransform E) {x y : E}
+    (hxy : inner ℝ x y = 0) :
+    inner ℝ ((nonuple a b c d e f g h i).toFun x)
+      ((nonuple a b c d e f g h i).toFun y) = 0 :=
+  (nonuple a b c d e f g h i).preserves_orthogonality hxy
 
 /-- Compose an arbitrary ranked transform list. -/
 def chain : List (CertifiedGeometryTransform E) → CertifiedGeometryTransform E
