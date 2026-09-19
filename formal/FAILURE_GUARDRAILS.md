@@ -145,3 +145,17 @@ Before an expensive root/canonical run:
 **Regression guard:** `scripts/check_cace_workflow_guardrails.py`.
 
 This incident was caught before a runner dispatch; it is nevertheless recorded because the rule is that a discovered failure class receives a permanent guard.
+
+
+## F-010 — recursive import validator missed a missing reached module
+
+**Fingerprint:** the first guardrail implementation checked missing child imports but could fail to flag a missing module node already reached by the root-closure traversal.
+
+**Root cause:** validation inspected outgoing edges of reached nodes instead of directly comparing the reached CACEFormal module set with the source graph.
+
+**Permanent prevention:**
+- `missing_internal_modules` compares every reached CACEFormal module against the source graph;
+- a pure unit regression constructs `CACEFormal.A -> CACEFormal.Missing` and requires the missing module to be reported;
+- proof-plan generation still fails separately if a root-closure source file is absent.
+
+**Regression guard:** `tests/test_cace_proof_guardrails.py::test_missing_recursive_internal_module_is_rejected_by_graph_check`.
