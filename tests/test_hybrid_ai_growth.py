@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from cace_studio.ai.corpus import build_local_fragments
+from cace_studio.ai.grow_candidates import build_grow_candidates
 from cace_studio.ai.hybrid import (
     GrowthEngine,
     ResearchFragment,
@@ -195,3 +196,35 @@ def test_local_corpus_stays_inside_supplied_root(tmp_path):
     assert "local architecture" in joined
     assert "local_only" in joined
     assert "do not index" not in joined
+
+
+def test_grow_candidate_shortlist_is_stable_mixed_and_bounded():
+    result = GrowthEngine(SparseResearchIndex(_fragments())).grow(
+        "combine geometry proof experiment runtime",
+        group_budget=10,
+        max_group_size=4,
+    )
+    first = build_grow_candidates(result, limit=5, max_groups=3)
+    second = build_grow_candidates(result, limit=5, max_groups=3)
+
+    assert first == second
+    assert 1 <= len(first) <= 5
+    assert len({candidate.candidate_id for candidate in first}) == len(first)
+    assert any(candidate.target_kind == "group" for candidate in first)
+    assert any(candidate.target_kind == "fragment" for candidate in first)
+    assert all(candidate.target_ids for candidate in first)
+    assert all(
+        candidate.target_ids == tuple(sorted(candidate.target_ids))
+        for candidate in first
+        if candidate.target_kind == "group"
+    )
+
+
+def test_grow_candidate_shortlist_respects_limit():
+    result = GrowthEngine(SparseResearchIndex(_fragments())).grow(
+        "pattern combine geometry proof",
+        group_budget=10,
+    )
+    candidates = build_grow_candidates(result, limit=3, max_groups=2)
+    assert len(candidates) <= 3
+    assert sum(candidate.target_kind == "group" for candidate in candidates) <= 2
