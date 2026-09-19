@@ -150,7 +150,7 @@ theorem inner_singleCoordinateSchwartzGraph_eq_zero_of_mem_orthogonal
   have hzero :=
     inner_smoothHDivGraphPullback_eq_zero_of_mem_orthogonal n x hx q
   rw [hdivGraphHilbert_inner_eq] at hzero
-  simpa [q, smoothComplexHDivGraphMap] using hzero
+  simpa [q, smoothComplexHDivGraphMap, apply_ite] using hzero
 
 /-- Exact remaining analytic criterion for unconditional whole-space H(div)
 graph density. Orthogonality is stated only in the legitimate L²-product
