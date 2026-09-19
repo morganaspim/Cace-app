@@ -40,3 +40,13 @@ def test_duplicate_declaration_fragment_is_rejected() -> None:
     assert "duplicated-declaration-fragment" in _kinds(
         "noncomputable def foo noncomputable def foo : Nat := 0\n"
     )
+
+
+def test_mathlib_style_identifiers_are_not_false_positives() -> None:
+    text = """
+theorem ok : True := by
+  rw [MeasureTheory.L2.inner_def]
+  have h := fderiv_comp
+  trivial
+"""
+    assert scan_text(Path("Fixture.lean"), text) == []
