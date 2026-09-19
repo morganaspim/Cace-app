@@ -272,3 +272,16 @@ def test_lean_source_sanity_tracks_batched_preflight_surface() -> None:
     assert ".github/workflows/cace-batch-exact-pin-lean-preflight.yml" in text
     assert "scripts/cace_batch_proof_targets.py" in text
     assert "tests/test_cace_batch_proof_targets.py" in text
+
+
+def test_collaboration_serialization_exempts_only_source_sanity() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(
+        encoding="utf-8"
+    )
+    expected = (
+        'run: python scripts/cace_actions_serialization_guard.py '
+        '--current-run-id "${GITHUB_RUN_ID}" '
+        '--ignore-workflow-name "CACE Lean Source Sanity"'
+    )
+    assert expected in text
+    assert text.count("--ignore-workflow-name") == 1

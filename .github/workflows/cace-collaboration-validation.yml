@@ -45,10 +45,7 @@ jobs:
       - name: Enforce repository-wide CACE Actions serialization
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          python scripts/cace_actions_serialization_guard.py \\
-            --current-run-id "${GITHUB_RUN_ID}" \\
-            --ignore-workflow-name "CACE Lean Source Sanity"
+        run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}" --ignore-workflow-name "CACE Lean Source Sanity"
 
       - name: Enforce repository-wide CACE Actions policy
         run: python scripts/audit_cace_actions_policy.py
