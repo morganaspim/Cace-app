@@ -6,7 +6,6 @@ on:
       modules:
         description: 'Comma, semicolon, or newline-separated quarantined CACEFormal/*.lean targets.'
         required: true
-        default: 'CACEFormal/Example.lean'
       prewarm_mathlib_cache:
         description: 'Explicitly refresh the pinned Mathlib build cache before compiling (network allowed).'
         required: true
