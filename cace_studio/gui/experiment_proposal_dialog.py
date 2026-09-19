@@ -124,6 +124,10 @@ class ExperimentProposalDialog(QDialog):
 
     def _details_text(self) -> str:
         lines = [self.proposal.rationale, ""]
+        if self.proposal.description:
+            lines.append("Proposed experiment:")
+            lines.append("  " + self.proposal.description.replace("\n", "\n  "))
+            lines.append("")
         lines.append(f"Nodes ({len(self.proposal.nodes)}):")
         for node in self.proposal.nodes:
             lines.append(f"  {node.proposal_id}: {node.module_id} ({node.name})")
