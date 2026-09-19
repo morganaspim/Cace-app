@@ -128,3 +128,20 @@ Before an expensive root/canonical run:
 4. changed-module + reverse-dependent compile;
 5. exact audited-root compile;
 6. kernel/metadata/canonical qualification only after the exact root is green.
+
+
+## F-009 — malformed workflow edit / duplicated-truncated steps
+
+**Fingerprint:** an automated workflow edit accidentally duplicated/truncated YAML step blocks before dispatch.
+
+**Root cause:** incremental text splicing of a safety-critical workflow without an independent structural regression check.
+
+**Permanent prevention:**
+- safety-critical exact-pin workflow is replaced atomically when substantial structure changes;
+- `scripts/check_cace_workflow_guardrails.py` locks the required unique step surface and order;
+- the cheap source-sanity workflow validates exact-pin workflow structure whenever the workflow or guardrail files change;
+- exact-pin preflight also self-checks the workflow structure before any Lean/cache work.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py`.
+
+This incident was caught before a runner dispatch; it is nevertheless recorded because the rule is that a discovered failure class receives a permanent guard.
