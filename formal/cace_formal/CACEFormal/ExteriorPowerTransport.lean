@@ -54,7 +54,7 @@ def grade2 (F : Affine2) (B : ℝ) : ℝ :=
 @[simp] theorem grade1_identity (v : Point2) :
     grade1 Affine2.identity v = v := by
   rcases v with ⟨x, y⟩
-  rfl
+  norm_num [grade1, Affine2.identity]
 
 @[simp] theorem grade2_identity (B : ℝ) :
     grade2 Affine2.identity B = B := by
