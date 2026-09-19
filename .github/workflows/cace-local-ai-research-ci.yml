@@ -36,11 +36,13 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Keep job-level env free of runner.* expressions: runner context is only
+    # available after a runner is assigned, not while GitHub builds the job graph.
     env:
       QT_QPA_PLATFORM: offscreen
-      CACE_AI_GROWTH_MEMORY_PATH: ${{ runner.temp }}/cace-growth-memory.json
-      CACE_RESEARCH_IDEAS_PATH: ${{ runner.temp }}/cace-research-ideas.json
-      CACE_SETTINGS_PATH: ${{ runner.temp }}/cace-settings.json
+      CACE_AI_GROWTH_MEMORY_PATH: /tmp/cace-growth-memory.json
+      CACE_RESEARCH_IDEAS_PATH: /tmp/cace-research-ideas.json
+      CACE_SETTINGS_PATH: /tmp/cace-settings.json
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
