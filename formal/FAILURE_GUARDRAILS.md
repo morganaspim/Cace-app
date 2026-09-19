@@ -294,13 +294,14 @@ later normalization tactic canonicalizes commutative monomials into a different 
 form.
 
 **Permanent prevention:**
-- after choosing `ring_nf`, prove a second nonzero bridge for the exact canonical
-  denominator Lean emits;
-- pass that canonical bridge explicitly to `field_simp`;
+- after choosing `ring_nf`, prove nonzero bridges for every canonical denominator
+  shape that Lean emits at the proof seam, including both the fully expanded
+  `hden_nf` form and the partially factored `hden_div` form;
+- pass those canonical bridges explicitly to `field_simp`;
 - do not rely on a trailing `ring` to eliminate unresolved inverses.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires
-`hden_nf` to be established before `ring_nf`, requires
-`field_simp [hT, hden, hden_nf]`, and rejects the known post-`field_simp`
-`ring` tail in `normalizer_map_p1`.
+`hden_nf` and `hden_div` to be established before `ring_nf`, requires
+`field_simp [hT, hden, hden_nf, hden_div]`, and rejects the known
+post-`field_simp` `ring` tail in `normalizer_map_p1`.
 
