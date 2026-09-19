@@ -13,6 +13,7 @@
     "docs/GOAL_REGISTRY.json",
     "docs/ARCHITECTURE.md",
     "docs/SECURITY_ARCHITECTURE.md",
+    "docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md",
     "docs/OFFLINE_COLLABORATION_AND_LICENSING.md",
     "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
     "docs/CONSTITUTION.md",
@@ -265,5 +266,14 @@
       }
     },
     "provenance_rule": "record requested/actual backend, device/CUDA identity, thread count, and fallback; no effect on proof status"
+  },
+  "source_secrecy": {
+    "document": "docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md",
+    "release_policy": "security/release_secrecy_policy.json",
+    "scanner": "scripts/check_release_secrecy.py",
+    "principle": "do not ship crown jewels; minimize sensitive local execution; harden what must ship; verify the final artifact",
+    "encryption": "authenticated encryption at rest (AES-GCM with hardware acceleration or XChaCha20-Poly1305 as appropriate); keys never hard-coded",
+    "gpu_rule": "numeric buffers and opaque operation IDs only; no theorem/proof/source/secrets in GPU memory",
+    "hard_limit": "customer-controlled CPU/GPU execution cannot be made impossible to reverse engineer"
   }
 }
