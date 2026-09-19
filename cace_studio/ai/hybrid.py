@@ -258,6 +258,12 @@ class GrowthEngine:
     def __init__(self, index: SparseResearchIndex, router: ExpertRouter | None = None) -> None:
         self.index = index
         self.router = router or ExpertRouter()
+        self.seen_groups: Counter[tuple[str, ...]] = Counter()
+        self.seen_fragments: Counter[str] = Counter()
+
+    def reset_growth_memory(self) -> None:
+        self.seen_groups.clear()
+        self.seen_fragments.clear()
 
     @staticmethod
     def _seed(query: str, cycle: int) -> int:
@@ -288,7 +294,9 @@ class GrowthEngine:
                 sim = self.index.similarity(current, candidate)
                 rel = relevance[candidate] / max(1e-12, relevance[ids[0]] or 1.0)
                 novelty = 1.0 - max(self.index.similarity(candidate, seen) for seen in path)
+                repeat_penalty = min(0.35, 0.07 * self.seen_fragments[candidate])
                 score = (1.0 - chaos) * (0.55 * sim + 0.45 * rel) + chaos * novelty
+                score -= repeat_penalty
                 score += 1e-6 * _stable_unit_interval(f"{seed}:{current}:{candidate}")
                 candidates.append((score, candidate))
             candidates.sort(key=lambda item: (-item[0], item[1]))
@@ -326,7 +334,14 @@ class GrowthEngine:
                 redundancy = sum(pair_sims) / max(1, len(pair_sims))
                 novelty = 1.0 - redundancy
                 size_cost = 0.06 * (size - 2)
-                score = 0.55 * rel + 0.25 * diversity + 0.20 * novelty - size_cost
+                repeat_penalty = min(0.40, 0.08 * self.seen_groups[ids])
+                score = (
+                    0.55 * rel
+                    + 0.25 * diversity
+                    + 0.20 * novelty
+                    - size_cost
+                    - repeat_penalty
+                )
                 groups.append(
                     ConceptGroup(
                         fragment_ids=ids,
@@ -370,6 +385,11 @@ class GrowthEngine:
         if any(route.expert_id == "experiment" for route in routes):
             next_steps.append("Use at least two fixed seeds plus a zero-chaos control to separate exploration effects from stable structure.")
         next_steps.append("Promote nothing automatically: user review is required before persistent research memory or graph mutation.")
+
+        for fragment_id in walk:
+            self.seen_fragments[fragment_id] += 1
+        for group in groups:
+            self.seen_groups[group.fragment_ids] += 1
 
         return GrowResult(
             query=query,
