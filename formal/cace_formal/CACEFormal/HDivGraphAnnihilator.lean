@@ -94,8 +94,9 @@ theorem hdivGraph_eq_zero_of_reversedH1
     laplacian_eq_self_imp_eq_zero
       (complexL2ToDistribution n x.2)
       (laplacian_divCoordinate_eq_self_of_reversedH1 n x hdiv hrev)
-  have hg : x.2 = 0 :=
-    complexL2ToDistribution_injective n hgDist
+  have hg : x.2 = 0 := by
+    apply complexL2ToDistribution_injective n
+    simpa using hgDist
   have hgrad :=
     (mem_H1DistributionalGraphSubmodule_iff n (reversedHDivGraph x)).mp hrev
   have hq : x.1 = 0 := by

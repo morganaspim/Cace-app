@@ -59,6 +59,9 @@ MESH_ELEMENT_SOURCE = "formal/cace_formal/CACEFormal/MeshElementGeometry.lean"
 EXECUTABLE_RATIONAL_SOURCE = (
     "formal/cace_formal/CACEFormal/ExecutableRationalGeometry.lean"
 )
+SOURCE_SANITY_WORKFLOW = ".github/workflows/cace-lean-source-sanity.yml"
+POSITIVE_LAPLACIAN_SOURCE = "formal/cace_formal/CACEFormal/PositiveLaplacianAnnihilator.lean"
+HDIV_ANNIHILATOR_SOURCE = "formal/cace_formal/CACEFormal/HDivGraphAnnihilator.lean"
 RECENTER_TO_REAL_RE = re.compile(
     r"theorem\s+recenterMap_toReal\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_toReal)"
 )
@@ -194,6 +197,115 @@ def main() -> int:
                     f"{EXECUTABLE_RATIONAL_SOURCE}: recenterMap_toReal must explicitly "
                     "normalize Point.toReal before closing rational-to-real negation casts"
                 )
+
+    positive_laplacian_path = ROOT / POSITIVE_LAPLACIAN_SOURCE
+    if not positive_laplacian_path.is_file():
+        problems.append(f"missing regression source: {POSITIVE_LAPLACIAN_SOURCE}")
+    else:
+        positive_laplacian_text = positive_laplacian_path.read_text(encoding="utf-8")
+        start = positive_laplacian_text.find(
+            "theorem positiveLaplacianLowSymbol_hasTemperateGrowth"
+        )
+        end = positive_laplacian_text.find(
+            "theorem positiveLaplacianEnergySymbol_hasTemperateGrowth"
+        )
+        if start < 0 or end <= start:
+            problems.append(
+                f"{POSITIVE_LAPLACIAN_SOURCE}: unable to locate low-symbol growth theorem block"
+            )
+        else:
+            body = positive_laplacian_text[start:end]
+            if "hasTemperateGrowth_one_add_norm_sq_rpow" not in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: "
+                    "positiveLaplacianLowSymbol_hasTemperateGrowth must reuse Mathlib "
+                    "Bessel-potential temperate-growth theorem"
+                )
+            if "fun_prop" in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol reciprocal growth must not "
+                    "delegate to fun_prop"
+                )
+            if "Function.Complex.hasTemperateGrowth_ofReal.comp" in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: parenthesize "
+                    "Complex.hasTemperateGrowth_ofReal before composing the theorem"
+                )
+            if "(Function.Complex.hasTemperateGrowth_ofReal).comp" not in body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol complex lift must compose "
+                    "the pinned Complex.hasTemperateGrowth_ofReal theorem explicitly"
+                )
+
+        low_lap_start = positive_laplacian_text.find(
+            "theorem positiveLaplacianLow_laplacian"
+        )
+        low_lap_end = positive_laplacian_text.find(
+            "theorem laplacian_eq_self_imp_eq_zero"
+        )
+        if low_lap_start < 0 or low_lap_end <= low_lap_start:
+            problems.append(
+                f"{POSITIVE_LAPLACIAN_SOURCE}: unable to locate low-Laplacian multiplier block"
+            )
+        else:
+            low_lap_body = positive_laplacian_text[low_lap_start:low_lap_end]
+            if "ContinuousLinearMap.map_smul_of_tower" not in low_lap_body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-Laplacian proof must preserve "
+                    "the real-to-complex scalar tower explicitly"
+                )
+            if "Complex.coe_smul" not in low_lap_body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-Laplacian proof must normalize "
+                    "real scalar action through Complex.coe_smul"
+                )
+            if "rw [map_smul]" in low_lap_body:
+                problems.append(
+                    f"{POSITIVE_LAPLACIAN_SOURCE}: low-Laplacian proof reintroduced the "
+                    "invalid plain map_smul scalar-tower seam"
+                )
+
+        if "Complex.ofReal ((2 * Real.pi) ^ 2)" not in positive_laplacian_text:
+            problems.append(
+                f"{POSITIVE_LAPLACIAN_SOURCE}: positive-frequency coefficient must use "
+                "one canonical Complex.ofReal ((2 * Real.pi) ^ 2) representation"
+            )
+
+    hdiv_annihilator_path = ROOT / HDIV_ANNIHILATOR_SOURCE
+    if not hdiv_annihilator_path.is_file():
+        problems.append(f"missing regression source: {HDIV_ANNIHILATOR_SOURCE}")
+    else:
+        hdiv_annihilator_text = hdiv_annihilator_path.read_text(encoding="utf-8")
+        start = hdiv_annihilator_text.find(
+            "theorem hdivGraph_eq_zero_of_reversedH1"
+        )
+        if start < 0:
+            problems.append(
+                f"{HDIV_ANNIHILATOR_SOURCE}: unable to locate reversed-H1 zero theorem"
+            )
+        else:
+            body = hdiv_annihilator_text[start:]
+            if "complexL2ToDistribution_injective n hgDist" in body:
+                problems.append(
+                    f"{HDIV_ANNIHILATOR_SOURCE}: injectivity must normalize literal zero "
+                    "to complexL2ToDistribution n 0 before application"
+                )
+            if "simpa using hgDist" not in body:
+                problems.append(
+                    f"{HDIV_ANNIHILATOR_SOURCE}: reversed-H1 zero proof must explicitly "
+                    "normalize the distributional zero equality before injectivity"
+                )
+
+    source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
+    if not source_sanity_path.is_file():
+        problems.append(f"missing regression source: {SOURCE_SANITY_WORKFLOW}")
+    else:
+        source_sanity_text = source_sanity_path.read_text(encoding="utf-8")
+        required_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+        if required_ref not in source_sanity_text:
+            problems.append(
+                f"{SOURCE_SANITY_WORKFLOW}: checkout must fall back to github.sha on push events"
+            )
 
     formal_root = ROOT / "formal" / "cace_formal" / "CACEFormal"
     for path in sorted(formal_root.rglob("*.lean")):

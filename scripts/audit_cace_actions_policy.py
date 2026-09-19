@@ -68,10 +68,18 @@ COLLAB_HEAVY_MANUAL_PATHS = {
     "schema/**",
 }
 LEAN_SANITY_AUTOMATIC_PATHS = {
-    "formal/**/*.lean",
-    "scripts/check_lean_source_sanity.py",
-    "tests/test_lean_source_sanity.py",
+    ".github/workflows/cace-exact-pin-lean-preflight.yml",
     ".github/workflows/cace-lean-source-sanity.yml",
+    "ci/cace-exact-pin-lean-preflight.canonical.yml",
+    "formal/**/*.lean",
+    "formal/FAILURE_GUARDRAILS.md",
+    "formal/cace_formal/proof_guardrails.json",
+    "scripts/cace_proof_guardrails.py",
+    "scripts/check_cace_known_failure_regressions.py",
+    "scripts/check_cace_workflow_guardrails.py",
+    "scripts/check_lean_source_sanity.py",
+    "tests/test_cace_proof_guardrails.py",
+    "tests/test_lean_source_sanity.py",
 }
 REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}
 

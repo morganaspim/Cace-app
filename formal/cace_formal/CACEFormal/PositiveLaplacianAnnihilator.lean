@@ -34,6 +34,13 @@ noncomputable def laplacianFrequencySqSymbol {n : Nat} :
     EuclideanDomain n → ℂ :=
   fun x => Complex.ofReal (‖x‖ ^ 2)
 
+/-- Continuous linear frequency scaling `x ↦ (2π)x`.  Writing the resolvent
+through this map lets us reuse Mathlib's proved Bessel-potential temperate-growth
+theorem instead of asking automation to reason about a reciprocal. -/
+noncomputable def positiveLaplacianScale {n : Nat} :
+    EuclideanDomain n →L[ℝ] EuclideanDomain n :=
+  (2 * Real.pi) • ContinuousLinearMap.id ℝ (EuclideanDomain n)
+
 /-- Low-frequency inverse of `1 + (2π)²|ξ|²`. -/
 noncomputable def positiveLaplacianLowSymbol {n : Nat} :
     EuclideanDomain n → ℂ :=
@@ -43,7 +50,8 @@ noncomputable def positiveLaplacianLowSymbol {n : Nat} :
 /-- Complementary positive-frequency part. -/
 noncomputable def positiveLaplacianEnergySymbol {n : Nat} :
     EuclideanDomain n → ℂ :=
-  ((2 * (Real.pi : ℂ)) ^ 2) •
+  (fun _ : EuclideanDomain n =>
+      Complex.ofReal ((2 * Real.pi) ^ 2)) *
     (laplacianFrequencySqSymbol (n := n) *
       positiveLaplacianLowSymbol (n := n))
 
@@ -54,13 +62,63 @@ theorem laplacianFrequencySqSymbol_hasTemperateGrowth {n : Nat} :
 
 theorem positiveLaplacianLowSymbol_hasTemperateGrowth {n : Nat} :
     (positiveLaplacianLowSymbol (n := n)).HasTemperateGrowth := by
-  unfold positiveLaplacianLowSymbol
-  fun_prop
+  have hbase :
+      (fun y : EuclideanDomain n => (1 + ‖y‖ ^ 2) ^ (-1 : ℝ)).HasTemperateGrowth :=
+    Function.hasTemperateGrowth_one_add_norm_sq_rpow
+      (EuclideanDomain n) (-1 : ℝ)
+  have hscaledReal :
+      (fun x : EuclideanDomain n =>
+        (1 + ‖positiveLaplacianScale (n := n) x‖ ^ 2) ^ (-1 : ℝ)).HasTemperateGrowth := by
+    simpa [Function.comp_def] using
+      hbase.comp (positiveLaplacianScale (n := n)).hasTemperateGrowth
+  have hscaledComplex :
+      (fun x : EuclideanDomain n =>
+        Complex.ofReal
+          ((1 + ‖positiveLaplacianScale (n := n) x‖ ^ 2) ^ (-1 : ℝ))).HasTemperateGrowth := by
+    simpa [Function.comp_def] using
+      (Function.Complex.hasTemperateGrowth_ofReal).comp hscaledReal
+  have htwoPiPos : 0 < (2 * Real.pi : ℝ) :=
+    mul_pos (by norm_num) Real.pi_pos
+  have hscaleNorm (x : EuclideanDomain n) :
+      ‖positiveLaplacianScale (n := n) x‖ =
+        (2 * Real.pi) * ‖x‖ := by
+    rw [show positiveLaplacianScale (n := n) x =
+        (2 * Real.pi) • x by
+      simp [positiveLaplacianScale]]
+    rw [norm_smul, Real.norm_eq_abs, abs_of_pos htwoPiPos]
+  have hnorm (x : EuclideanDomain n) :
+      ‖positiveLaplacianScale (n := n) x‖ ^ 2 =
+        (2 * Real.pi) ^ 2 * ‖x‖ ^ 2 := by
+    rw [hscaleNorm x]
+    ring
+  have hfun :
+      (fun x : EuclideanDomain n =>
+        Complex.ofReal
+          ((1 + ‖positiveLaplacianScale (n := n) x‖ ^ 2) ^ (-1 : ℝ))) =
+        positiveLaplacianLowSymbol (n := n) := by
+    funext x
+    unfold positiveLaplacianLowSymbol
+    rw [hnorm x]
+  rw [← hfun]
+  exact hscaledComplex
 
 theorem positiveLaplacianEnergySymbol_hasTemperateGrowth {n : Nat} :
     (positiveLaplacianEnergySymbol (n := n)).HasTemperateGrowth := by
-  unfold positiveLaplacianEnergySymbol
-  fun_prop
+  have hprod :
+      (laplacianFrequencySqSymbol (n := n) *
+        positiveLaplacianLowSymbol (n := n)).HasTemperateGrowth :=
+    (laplacianFrequencySqSymbol_hasTemperateGrowth (n := n)).mul
+      (positiveLaplacianLowSymbol_hasTemperateGrowth (n := n))
+  have hconst :
+      (fun _ : EuclideanDomain n =>
+        Complex.ofReal ((2 * Real.pi) ^ 2)).HasTemperateGrowth :=
+    Function.HasTemperateGrowth.const _
+  change
+    ((fun _ : EuclideanDomain n =>
+        Complex.ofReal ((2 * Real.pi) ^ 2)) *
+      (laplacianFrequencySqSymbol (n := n) *
+        positiveLaplacianLowSymbol (n := n))).HasTemperateGrowth
+  exact hconst.mul hprod
 
 /-- Exact low/high partition of unity for the positive-Laplacian resolvent. -/
 theorem positiveLaplacianLow_add_energy {n : Nat}
@@ -75,11 +133,10 @@ theorem positiveLaplacianLow_add_energy {n : Nat}
     rw [Real.rpow_neg (by positivity)]
     norm_num
     field_simp
-  unfold positiveLaplacianLowSymbol positiveLaplacianEnergySymbol
-  unfold laplacianFrequencySqSymbol
   have hcomplex := congrArg Complex.ofReal hreal
-  simpa only [Pi.mul_apply, Pi.smul_apply, Complex.real_smul, Complex.ofReal_mul,
-    Complex.ofReal_add, Complex.ofReal_one, Complex.ofReal_pow] using hcomplex
+  simpa [positiveLaplacianLowSymbol, positiveLaplacianEnergySymbol,
+    laplacianFrequencySqSymbol, Pi.mul_apply, Complex.ofReal_mul,
+    Complex.ofReal_add, Complex.ofReal_pow, mul_assoc] using hcomplex
 
 /-- Every tempered distribution splits exactly into the low and complementary
 positive-frequency multipliers above. -/
@@ -141,21 +198,45 @@ theorem positiveLaplacianLow_laplacian {n : Nat}
       -TemperedDistribution.fourierMultiplierCLM ℂ
         (positiveLaplacianEnergySymbol (n := n)) u := by
   rw [TemperedDistribution.laplacian_eq_fourierMultiplierCLM]
-  rw [map_smul]
-  rw [TemperedDistribution.fourierMultiplierCLM_fourierMultiplierCLM_apply
-    (laplacianFrequencySqSymbol_hasTemperateGrowth (n := n))
-    (positiveLaplacianLowSymbol_hasTemperateGrowth (n := n))]
+  rw [ContinuousLinearMap.map_smul_of_tower]
+  have hfreq :=
+    laplacianFrequencySqSymbol_hasTemperateGrowth (n := n)
+  have hlow :=
+    positiveLaplacianLowSymbol_hasTemperateGrowth (n := n)
+  have hcompose :
+      TemperedDistribution.fourierMultiplierCLM ℂ
+          (positiveLaplacianLowSymbol (n := n))
+          (TemperedDistribution.fourierMultiplierCLM ℂ
+            (laplacianFrequencySqSymbol (n := n)) u) =
+        TemperedDistribution.fourierMultiplierCLM ℂ
+          (laplacianFrequencySqSymbol (n := n) *
+            positiveLaplacianLowSymbol (n := n)) u :=
+    TemperedDistribution.fourierMultiplierCLM_fourierMultiplierCLM_apply
+      hfreq hlow u
+  change
+    -(2 * Real.pi) ^ 2 •
+        TemperedDistribution.fourierMultiplierCLM ℂ
+          (positiveLaplacianLowSymbol (n := n))
+          (TemperedDistribution.fourierMultiplierCLM ℂ
+            (laplacianFrequencySqSymbol (n := n)) u) =
+      -TemperedDistribution.fourierMultiplierCLM ℂ
+        (positiveLaplacianEnergySymbol (n := n)) u
+  rw [hcompose]
   have hprod :
       (laplacianFrequencySqSymbol (n := n) *
         positiveLaplacianLowSymbol (n := n)).HasTemperateGrowth :=
-    (laplacianFrequencySqSymbol_hasTemperateGrowth (n := n)).mul
-      (positiveLaplacianLowSymbol_hasTemperateGrowth (n := n))
-  rw [show positiveLaplacianEnergySymbol (n := n) =
-      ((2 * (Real.pi : ℂ)) ^ 2) •
-        (laplacianFrequencySqSymbol (n := n) *
-          positiveLaplacianLowSymbol (n := n)) by rfl]
+    hfreq.mul hlow
+  have henergy :
+      positiveLaplacianEnergySymbol (n := n) =
+        Complex.ofReal ((2 * Real.pi) ^ 2) •
+          (laplacianFrequencySqSymbol (n := n) *
+            positiveLaplacianLowSymbol (n := n)) := by
+    funext x
+    simp [positiveLaplacianEnergySymbol, Pi.mul_apply]
+  rw [henergy]
   rw [TemperedDistribution.fourierMultiplierCLM_smul hprod]
-  norm_num
+  simp only [smul_apply, neg_smul, neg_inj]
+  exact (Complex.coe_smul ((2 * Real.pi) ^ 2) _).symm
 
 /-- The distributional Laplacian has no nonzero tempered eigenvector with
 positive eigenvalue one. -/

@@ -520,3 +520,74 @@ consume.
 **Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`
 requires the measured source-size headroom and preserves the unchanged post-copy
 5 GiB check.
+
+
+## F-028 — standalone quarantine lane required root promotion
+
+**Fingerprint:** an experimental H(div) density module was correctly kept out of the audited root,
+but the only exact-pin preflight rejected every target that was not already a direct audited-root
+import. This made the documented promotion sequence impossible: a quarantined module could not
+reach `STANDALONE_COMPILED` without first violating quarantine.
+
+**Root cause:** the preflight target validator encoded the root-qualified case only, while the
+failure ledger separately required standalone compilation before root promotion.
+
+**Permanent prevention:**
+- audited-root targets remain accepted exactly as before;
+- a non-root target is accepted only when `compile_root=false`;
+- that non-root target must be explicitly listed in `quarantined_root_imports`;
+- quarantined standalone targets are forbidden from simultaneously appearing in the root allowlist;
+- `compile_root=true` still rejects any target that is not directly imported by the audited root;
+- the workflow and its canonical byte-for-byte template carry the same fail-closed logic;
+- promotion is a deliberate state transition: promoted modules must leave quarantine before
+  they may enter either the audited root or its recursive root closure;
+- the root-closure guard rejects any future state in which a quarantined dependency becomes
+  reachable through a promoted module.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` requires the quarantine-only
+standalone branch, while `scripts/cace_proof_guardrails.py` and
+`tests/test_cace_proof_guardrails.py` enforce both quarantine isolation and the explicit
+promotion transition.
+
+Standalone compilation remains engineering evidence only. Root promotion additionally requires
+root compilation, kernel axiom audit, exact Lean-environment metadata, and exact-head qualification.
+
+
+## F-029 — positive-Laplacian multiplier scalar/API drift
+
+**Fingerprint:** the standalone positive-Laplacian dependency reached Lean and exposed several
+independent failures at once: theorem composition parsed as the nonexistent constant
+`Complex.hasTemperateGrowth_ofReal.comp`, real/complex coefficient normalization drifted,
+plain `map_smul` could not preserve the real-to-complex scalar tower, and multiplier algebra
+used incompatible spellings of the same `(2π)²` coefficient.
+
+**Root cause:** the experimental Fourier annihilator mixed equivalent real and complex scalar
+representations and relied on fragile theorem-dot parsing instead of the pinned Mathlib API.
+
+**Permanent prevention:**
+- compose the Bessel-potential growth proof with
+  `(Function.Complex.hasTemperateGrowth_ofReal).comp` explicitly for the pinned Mathlib revision;
+- use one canonical coefficient `Complex.ofReal ((2 * Real.pi) ^ 2)`;
+- use `ContinuousLinearMap.map_smul_of_tower` across the real/complex module tower;
+- normalize the final real scalar action with `Complex.coe_smul`;
+- reject reintroduction of plain `rw [map_smul]` in the low-Laplacian multiplier block.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
+
+
+## F-030 — H(div) zero-normalization mismatch
+
+**Fingerprint:** after the positive-Laplacian dependency compiled, the H(div) annihilator
+failed when `complexL2ToDistribution_injective` was applied directly to
+`complexL2ToDistribution n x.2 = 0`, while injectivity expected an equality against
+`complexL2ToDistribution n 0`.
+
+**Root cause:** Lean did not definitionally identify the literal zero in the distribution
+codomain with the image of zero under the continuous linear embedding at that application site.
+
+**Permanent prevention:**
+- introduce the L2 zero conclusion with an explicit injectivity application;
+- normalize the distributional equality with `simpa using hgDist` before invoking injectivity;
+- reject the fragile direct application `complexL2ToDistribution_injective n hgDist`.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`.

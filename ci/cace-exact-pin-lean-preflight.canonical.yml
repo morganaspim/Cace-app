@@ -66,6 +66,7 @@ jobs:
         shell: bash
         env:
           REQUESTED_MODULE_RAW: ${{ inputs.module }}
+          COMPILE_ROOT: ${{ inputs.compile_root }}
         run: |
           set -euo pipefail
           REQUESTED_MODULE="$(printf '%s' "$REQUESTED_MODULE_RAW" | sed -E 's/^Module:[[:space:]]*//; s/[[:space:]]+compile_root:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
@@ -77,12 +78,15 @@ jobs:
           test -f "formal/cace_formal/$REQUESTED_MODULE"
           module_name="${REQUESTED_MODULE%.lean}"
           module_name="${module_name//\//.}"
-          if ! grep -Fqx "import $module_name" formal/cace_formal/CACEFormal.lean; then
-            echo "Requested module is not directly imported by audited CACEFormal.lean root: $module_name" >&2
-            exit 3
-          fi
+          target_class="$(
+            python3 scripts/cace_proof_guardrails.py classify-target \
+              --module "$module_name" \
+              --compile-root "$COMPILE_ROOT"
+          )"
+          printf 'target_class=%s\n' "$target_class"
           printf 'module=%s\n' "$REQUESTED_MODULE" >> "$GITHUB_OUTPUT"
           printf 'module_name=%s\n' "$module_name" >> "$GITHUB_OUTPUT"
+          printf 'target_class=%s\n' "$target_class" >> "$GITHUB_OUTPUT"
 
       - name: Validate permanent proof guardrails and freeze proof plan
         id: guardrails
@@ -385,6 +389,7 @@ jobs:
           lean_toolchain=$CACE_TOOLCHAIN
           mathlib_commit=$CACE_MATHLIB_COMMIT
           target=${{ inputs.module }}
+          target_class=${{ steps.target.outputs.target_class }}
           compile_root=${{ inputs.compile_root }}
           prewarm_mathlib_cache=${{ inputs.prewarm_mathlib_cache }}
           proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}

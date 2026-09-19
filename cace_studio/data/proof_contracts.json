@@ -18,6 +18,10 @@
         "CACEFormal/WeakGreenFunctional.lean",
         "CACEFormal/ContinuumOrthogonality.lean",
         "CACEFormal/ContinuumPragerSynge.lean",
+        "CACEFormal/PositiveLaplacianAnnihilator.lean",
+        "CACEFormal/HDivGraphAnnihilator.lean",
+        "CACEFormal/OrthogonalClosure.lean",
+        "CACEFormal/HDivDensityReduction.lean",
         "CACEFormal/V330AxiomAudit.lean"
       ],
       "build_target": "CACEFormal.V330AxiomAudit",
@@ -48,6 +52,8 @@
         "CACEFormal.Continuum.inH1GraphRepresentative_mem",
         "CACEFormal.Continuum.inHDivGraphRepresentative_mem",
         "CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative",
+        "CACEFormal.Continuum.reversedHDivGraph_mem_H1_of_mem_orthogonal",
+        "CACEFormal.Continuum.complexSmoothGraphHilbertClosure_eq_distributional",
         "CACEFormal.Continuum.besselRieszSymbol_norm_le",
         "CACEFormal.Continuum.h1RieszSymbol_norm_le_one",
         "CACEFormal.Continuum.h1RieszSymbol_hasTemperateGrowth",
@@ -93,7 +99,7 @@
       "formal_system": "lean4",
       "nonclaims": [
         "The H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.",
-        "The H1 distributional-graph converse endpoints establish the representation-level H1 identification only; they do not by themselves construct unconditional H(div) graph density or every concrete PDE trace/core hypothesis.",
+        "The audited whole-space H(div) density endpoint is restricted to the canonical L² Hilbert graph model on Euclidean space; it does not by itself construct bounded-domain trace/core density, boundary regularity, or every concrete PDE hypothesis.",
         "The audited weak-Green and continuum Prager-Synge endpoints remain conditional on their explicit BoundedGreenPairing, GreenSmoothCore, zero-boundary-trace, and cross-term-identification hypotheses; this contract does not construct every concrete PDE instance.",
         "CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries.",
         "The executable binding certifies theorem-endpoint membership and qualified proof provenance only; it does not establish that runtime PDE inputs satisfy theorem hypotheses or that arbitrary numerical outputs are formally verified.",

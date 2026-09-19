@@ -6,6 +6,7 @@ import CACEFormal.H1DomainBridge
 import CACEFormal.DistributionalGraphRepresentatives
 import CACEFormal.H1BesselRieszReduction
 import CACEFormal.H1GraphConverse
+import CACEFormal.HDivDensityReduction
 import CACEFormal.WeakGreenFunctional
 import CACEFormal.ContinuumOrthogonality
 import CACEFormal.ContinuumPragerSynge
@@ -42,6 +43,8 @@ core, zero-trace witness, cross-term identity, or unconditional regularizer need
 #print axioms CACEFormal.Continuum.inH1GraphRepresentative_mem
 #print axioms CACEFormal.Continuum.inHDivGraphRepresentative_mem
 #print axioms CACEFormal.Continuum.inHDiv_iff_exists_distributionalGraphRepresentative
+#print axioms CACEFormal.Continuum.reversedHDivGraph_mem_H1_of_mem_orthogonal
+#print axioms CACEFormal.Continuum.complexSmoothGraphHilbertClosure_eq_distributional
 
 #print axioms CACEFormal.Continuum.besselRieszSymbol_norm_le
 #print axioms CACEFormal.Continuum.h1RieszSymbol_norm_le_one

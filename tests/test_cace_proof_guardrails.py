@@ -23,21 +23,24 @@ def test_current_audited_root_matches_guardrail_policy():
     guard.validate(config)
 
 
-def test_quarantined_modules_are_not_audited_root_imports():
+def test_promoted_hdiv_modules_leave_quarantine_and_enter_audited_root():
     guard = _guardrails()
     config = guard.load_config()
     root = ROOT / config["audited_root"]
     imports = set(guard.parse_imports(root))
     quarantined = set(config["quarantined_root_imports"])
-    assert imports.isdisjoint(quarantined)
-    assert {
+    promoted = {
         "CACEFormal.PositiveLaplacianAnnihilator",
         "CACEFormal.HDivGraphAnnihilator",
         "CACEFormal.OrthogonalClosure",
-    } <= quarantined
+        "CACEFormal.HDivDensityReduction",
+    }
+    assert imports.isdisjoint(quarantined)
+    assert promoted.isdisjoint(quarantined)
+    assert promoted <= imports
 
 
-def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules():
+def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
     guard = _guardrails()
     config = guard.load_config()
     module_root = ROOT / config["module_root"]
@@ -54,8 +57,11 @@ def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules()
     assert "CACEFormal.PhysicalP1RT0Element" in closure
     assert "CACEFormal.ExecutableRationalGeometry" in closure
     assert "CACEFormal.RuntimeApproximationContract" in closure
-    assert "CACEFormal.PositiveLaplacianAnnihilator" not in closure
-    assert "CACEFormal.HDivGraphAnnihilator" not in closure
+    assert "CACEFormal.PositiveLaplacianAnnihilator" in closure
+    assert "CACEFormal.HDivGraphAnnihilator" in closure
+    assert "CACEFormal.OrthogonalClosure" in closure
+    assert "CACEFormal.HDivDensityReduction" in closure
+    assert closure.isdisjoint(set(config["quarantined_root_imports"]))
 
 
 def test_missing_recursive_internal_module_is_rejected_by_graph_check():
@@ -157,6 +163,81 @@ def test_no_reserved_by_identifier_in_rcases_patterns():
         text = path.read_text(encoding="utf-8")
         bad = re.findall(r"rcases[^\n]*with\s+⟨[^\n⟩]*\bby\b[^\n⟩]*⟩", text)
         assert bad == [], f"{path.name}: {bad}"
+
+
+
+def test_target_classification_behavior_enforces_standalone_boundary():
+    import pytest
+
+    guard = _guardrails()
+    config = dict(guard.load_config())
+    config["allowed_root_imports"] = ["CACEFormal.RootAllowed"]
+    config["quarantined_root_imports"] = [
+        "CACEFormal.Quarantined",
+        "CACEFormal.QuarantinedViaRoot",
+    ]
+    graph = {
+        "CACEFormal": ("CACEFormal.RootAllowed",),
+        "CACEFormal.RootAllowed": (),
+        "CACEFormal.Quarantined": ("CACEFormal.RootAllowed",),
+        "CACEFormal.QuarantinedViaRoot": ("CACEFormal",),
+        "CACEFormal.Unlisted": (),
+    }
+    root_imports = ("CACEFormal.RootAllowed",)
+
+    assert (
+        guard.classify_target(
+            config,
+            "CACEFormal.RootAllowed",
+            compile_root=True,
+            graph=graph,
+            root_imports=root_imports,
+        )
+        == "audited-root"
+    )
+    assert (
+        guard.classify_target(
+            config,
+            "CACEFormal.Quarantined",
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+        == "quarantined-standalone"
+    )
+
+    with pytest.raises(guard.GuardrailError, match="requires compile_root=false"):
+        guard.classify_target(
+            config,
+            "CACEFormal.Quarantined",
+            compile_root=True,
+            graph=graph,
+            root_imports=root_imports,
+        )
+    with pytest.raises(guard.GuardrailError, match="not explicitly quarantined"):
+        guard.classify_target(
+            config,
+            "CACEFormal.Unlisted",
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+    with pytest.raises(guard.GuardrailError, match="reaches audited aggregate root"):
+        guard.classify_target(
+            config,
+            "CACEFormal.QuarantinedViaRoot",
+            compile_root=False,
+            graph=graph,
+            root_imports=root_imports,
+        )
+
+
+def test_exact_pin_workflow_uses_behaviorally_tested_target_classifier():
+    workflow = (
+        ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
+    ).read_text(encoding="utf-8")
+    assert "scripts/cace_proof_guardrails.py classify-target" in workflow
+    assert 'target_class="$(python3 scripts/cace_proof_guardrails.py classify-target' in workflow
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():
