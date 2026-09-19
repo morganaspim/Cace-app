@@ -39,6 +39,53 @@ def referenceSimplexFiberUpper {d : Nat}
     (i : Fin d) (x : EuclideanDomain d) : ℝ :=
   1 - referenceSimplexOtherCoordinateSum i x
 
+/--
+Replace exactly one Euclidean coordinate by a scalar parameter.
+
+This is the concrete line used for the Fubini slice: all coordinates except
+`i` remain fixed, while coordinate `i` is replaced by `t`.
+-/
+noncomputable def referenceSimplexFiberPoint {d : Nat}
+    (i : Fin d) (x : EuclideanDomain d) (t : ℝ) : EuclideanDomain d :=
+  x + (t - EuclideanSpace.proj i x) • basisVector i
+
+/-- The selected coordinate of the fiber point is exactly the slice parameter. -/
+@[simp]
+theorem referenceSimplexFiberPoint_proj_same {d : Nat}
+    (i : Fin d) (x : EuclideanDomain d) (t : ℝ) :
+    EuclideanSpace.proj i (referenceSimplexFiberPoint i x t) = t := by
+  simp [referenceSimplexFiberPoint, basisVector, EuclideanSpace.coe_proj,
+    PiLp.single_apply]
+
+/-- Every nonselected coordinate is unchanged along the coordinate fiber. -/
+theorem referenceSimplexFiberPoint_proj_ne {d : Nat}
+    (i j : Fin d) (x : EuclideanDomain d) (t : ℝ) (hji : j ≠ i) :
+    EuclideanSpace.proj j (referenceSimplexFiberPoint i x t) =
+      EuclideanSpace.proj j x := by
+  simp [referenceSimplexFiberPoint, basisVector, EuclideanSpace.coe_proj,
+    PiLp.single_apply, hji]
+
+/-- The sum of the nonselected coordinates is invariant along the fiber. -/
+@[simp]
+theorem referenceSimplexOtherCoordinateSum_fiberPoint {d : Nat}
+    (i : Fin d) (x : EuclideanDomain d) (t : ℝ) :
+    referenceSimplexOtherCoordinateSum i
+        (referenceSimplexFiberPoint i x t) =
+      referenceSimplexOtherCoordinateSum i x := by
+  unfold referenceSimplexOtherCoordinateSum
+  apply Finset.sum_congr rfl
+  intro j hj
+  exact referenceSimplexFiberPoint_proj_ne i j x t
+    (Finset.mem_erase.mp hj).1
+
+/-- Consequently the upper endpoint is constant along the same coordinate fiber. -/
+@[simp]
+theorem referenceSimplexFiberUpper_fiberPoint {d : Nat}
+    (i : Fin d) (x : EuclideanDomain d) (t : ℝ) :
+    referenceSimplexFiberUpper i (referenceSimplexFiberPoint i x t) =
+      referenceSimplexFiberUpper i x := by
+  simp [referenceSimplexFiberUpper]
+
 /-- Splitting the total coordinate sum into all coordinates except `i`, plus `i`. -/
 theorem referenceSimplex_coordinate_sum_split {d : Nat}
     (i : Fin d) (x : EuclideanDomain d) :
@@ -91,6 +138,28 @@ theorem mem_euclideanReferenceSimplex_iff_fiber
         (le_sub_iff_add_le').1 hi_upper
       rw [← referenceSimplex_coordinate_sum_split i x]
       exact hsum
+
+/--
+Once the nonselected coordinates are admissible, the reference-simplex slice
+is exactly the closed interval `[0, referenceSimplexFiberUpper i x]`.
+-/
+theorem referenceSimplexFiberPoint_mem_iff
+    {d : Nat} (i : Fin d) (x : EuclideanDomain d) (t : ℝ)
+    (hother :
+      ∀ j ∈ Finset.univ.erase i, 0 ≤ EuclideanSpace.proj j x) :
+    referenceSimplexFiberPoint i x t ∈ euclideanReferenceSimplex d ↔
+      t ∈ Set.Icc 0 (referenceSimplexFiberUpper i x) := by
+  rw [mem_euclideanReferenceSimplex_iff_fiber i]
+  constructor
+  · intro h
+    simpa using h.2
+  · intro ht
+    refine ⟨?_, ?_⟩
+    · intro j hj
+      rw [referenceSimplexFiberPoint_proj_ne i j x t
+        (Finset.mem_erase.mp hj).1]
+      exact hother j hj
+    · simpa using ht
 
 /-- A nonempty reference-simplex fiber necessarily has a nonnegative upper endpoint. -/
 theorem referenceSimplexFiberUpper_nonneg_of_mem
