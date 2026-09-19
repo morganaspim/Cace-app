@@ -486,6 +486,14 @@ The customer-facing proof package must pass a separate disclosure review so the 
 
 CACE proprietary theorem infrastructure should be protected continuously using reasonable secrecy measures such as private repositories, disclosure classification, least-privilege access, MFA/passkeys, encryption, access/export logging, confidentiality obligations, periodic access review, and mandatory pre-delivery disclosure checks. See `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`.
 
+## 13.5 Compute capability controls by account tier
+
+All account tiers expose a GPU acceleration ON/OFF control. CUDA is a specific NVIDIA backend and is shown only when compatible CUDA hardware/runtime is detected.
+
+Researcher and Enterprise include CPU multithreading. Basic is single-threaded by default and may permanently unlock CPU multithreading once for USD $15 through a durable account feature entitlement.
+
+Execution-backend controls change execution/provenance, not mathematical graph semantics or theorem truth. Numerical run records must bind the actual backend/device/thread configuration used. See `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`.
+
 ## 14. Security and production boundaries
 
 Production hardening should include:
