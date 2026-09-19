@@ -31,6 +31,10 @@ REQUIRED_NONCOMPUTABLE = {
         "noncomputable def certifiedNondegenerate",
         "noncomputable def certifiedPositive",
     ),
+    "formal/cace_formal/CACEFormal/PhysicalP1RT0Element.lean": (
+        "noncomputable def cellPairing",
+        "noncomputable def cellDivergence",
+    ),
 }
 
 RCASES_RESERVED = {
@@ -52,6 +56,12 @@ INVERSE_EDGE_E2_RE = re.compile(
     r"theorem\s+inverseEdgeLinear_map_e2\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_map_zero)"
 )
 MESH_ELEMENT_SOURCE = "formal/cace_formal/CACEFormal/MeshElementGeometry.lean"
+EXECUTABLE_RATIONAL_SOURCE = (
+    "formal/cace_formal/CACEFormal/ExecutableRationalGeometry.lean"
+)
+RECENTER_TO_REAL_RE = re.compile(
+    r"theorem\s+recenterMap_toReal\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_toReal)"
+)
 
 
 def main() -> int:
@@ -165,6 +175,24 @@ def main() -> int:
                 problems.append(
                     f"{MESH_ELEMENT_SOURCE}: realTriangle_det reintroduced the known "
                     "raw-unfold mod_cast failure seam"
+                )
+
+    executable_path = ROOT / EXECUTABLE_RATIONAL_SOURCE
+    if not executable_path.is_file():
+        problems.append(f"missing regression source: {EXECUTABLE_RATIONAL_SOURCE}")
+    else:
+        executable_text = executable_path.read_text(encoding="utf-8")
+        match = RECENTER_TO_REAL_RE.search(executable_text)
+        if not match:
+            problems.append(
+                f"{EXECUTABLE_RATIONAL_SOURCE}: unable to locate recenterMap_toReal regression block"
+            )
+        else:
+            body = match.group("body")
+            if "Point.toReal" not in body:
+                problems.append(
+                    f"{EXECUTABLE_RATIONAL_SOURCE}: recenterMap_toReal must explicitly "
+                    "normalize Point.toReal before closing rational-to-real negation casts"
                 )
 
     formal_root = ROOT / "formal" / "cace_formal" / "CACEFormal"

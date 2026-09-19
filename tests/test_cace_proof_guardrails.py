@@ -192,8 +192,29 @@ def test_real_division_proof_defs_are_explicitly_noncomputable():
             "noncomputable def certifiedNondegenerate",
             "noncomputable def certifiedPositive",
         ),
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "PhysicalP1RT0Element.lean": (
+            "noncomputable def cellPairing",
+            "noncomputable def cellDivergence",
+        ),
     }
     for path, required in checks.items():
         text = path.read_text(encoding="utf-8")
         for declaration in required:
             assert declaration in text, f"{path.name} missing {declaration}"
+
+
+
+def test_rational_recenter_to_real_normalizes_point_casts():
+    path = (
+        ROOT
+        / "formal"
+        / "cace_formal"
+        / "CACEFormal"
+        / "ExecutableRationalGeometry.lean"
+    )
+    text = path.read_text(encoding="utf-8")
+    start = text.find("theorem recenterMap_toReal")
+    end = text.find("@[simp] theorem inverseEdgeLinear_toReal")
+    assert start >= 0 and end > start
+    body = text[start:end]
+    assert "Point.toReal" in body

@@ -171,7 +171,8 @@ def normalizer (T : Triangle) : Affine :=
     (recenterMap T).toReal =
       ReferenceSimplexNormalization.recenterMap T.toReal := by
   cases T
-  simp [recenterMap, Triangle.toReal,
+  simp [recenterMap, Triangle.toReal, Point.toReal,
+    Affine.translation_toReal,
     ReferenceSimplexNormalization.recenterMap]
 
 @[simp] theorem inverseEdgeLinear_toReal (e1 e2 : Point) :

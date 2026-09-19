@@ -21,12 +21,12 @@ namespace PhysicalP1RT0Element
 
 /-- Unsigned geometric cell pairing, using ordinary area rather than signed
 oriented area. -/
-def cellPairing (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
+noncomputable def cellPairing (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
   |T.det| / 6 *
     (q.dotGrad v T.p0 + q.dotGrad v T.p1 + q.dotGrad v T.p2)
 
 /-- Unsigned geometric divergence contribution. -/
-def cellDivergence (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
+noncomputable def cellDivergence (T : Triangle2) (v : P1Affine) (q : RT0Affine) : ℝ :=
   -(|T.det| / 6 * q.divergence *
     (v.eval T.p0 + v.eval T.p1 + v.eval T.p2))
 

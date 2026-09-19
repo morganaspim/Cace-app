@@ -325,3 +325,47 @@ constructors without simplifying their projections before invoking `exact_mod_ca
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires
 `realTriangle_det` to simplify the structure projections before `exact_mod_cast`
 and rejects the known raw-`unfold` seam.
+
+
+## F-020 — unsigned physical real-valued definitions omitted `noncomputable`
+
+**Fingerprint:** `PhysicalP1RT0Element.cellPairing` and
+`PhysicalP1RT0Element.cellDivergence` failed code generation because real
+division depends on Lean's noncomputable real inverse implementation.
+
+**Root cause:** the new unsigned physical semantics used `|det| / 6` over
+`ℝ` but were introduced as plain `def` declarations.
+
+**Permanent prevention:**
+- both physical cell functionals are explicitly `noncomputable def`;
+- every proof-level real-valued definition that introduces division is added to
+  the dependency-free noncomputable declaration guard before another runner
+  dispatch.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`,
+`tests/test_cace_proof_guardrails.py`, and the existing proof API canary import
+of `PhysicalP1RT0Element`.
+
+## F-021 — rational-to-real recentering left negated coordinate casts opaque
+
+**Fingerprint:** `ExecutableRationalGeometry.recenterMap_toReal` left the goal
+
+```
+Affine2.translation ({x := -p.x, y := -p.y}.toReal) =
+Affine2.translation {x := -p.toReal.x, y := -p.toReal.y}
+```
+
+after the original simplification pass.
+
+**Root cause:** the proof unfolded triangle/recentering structure but did not
+explicitly normalize the rational point embedding, so casts of negated rational
+coordinates remained behind `Point.toReal`.
+
+**Permanent prevention:**
+- `recenterMap_toReal` explicitly simplifies `Point.toReal` and reuses
+  `Affine.translation_toReal`;
+- the cheap known-failure gate requires the point-embedding normalization seam
+  to remain visible in this theorem.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`,
+`tests/test_cace_proof_guardrails.py`, and `CACEFormal.GuardrailCanaries`.
