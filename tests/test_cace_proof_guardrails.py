@@ -161,3 +161,22 @@ def test_exact_pin_workflow_collects_compile_failure_frontier():
     assert workflow.count("continue-on-error: true") == 5
     assert "Aggregate diagnostic sweep failures" in workflow
     assert "CACE_DIAGNOSTIC_SWEEP_FAILURES" in workflow
+
+
+def test_real_division_proof_defs_are_explicitly_noncomputable():
+    checks = {
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "Piola.lean": (
+            "noncomputable def piolaVector",
+        ),
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "DualBladePiola.lean": (
+            "noncomputable def piolaSequence",
+        ),
+        ROOT / "formal" / "cace_formal" / "CACEFormal" / "AffineP1RT0Transport.lean": (
+            "noncomputable def piolaRT0",
+            "noncomputable def pullP1",
+        ),
+    }
+    for path, required in checks.items():
+        text = path.read_text(encoding="utf-8")
+        for declaration in required:
+            assert declaration in text, f"{path.name} missing {declaration}"
