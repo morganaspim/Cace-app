@@ -30,6 +30,7 @@ from cace_studio.core.serialization import load_experiment, save_experiment
 from .ai_assistant import LocalAIAssistantWidget
 from .ai_settings_dialog import LocalAISettingsDialog
 from .node_canvas import CanvasView, ModuleLibrary
+from .transform_preview import CoordinateTransformPreview
 
 
 class MainWindow(QMainWindow):
@@ -61,6 +62,7 @@ class MainWindow(QMainWindow):
         self._make_verification()
         self._make_console()
         self._make_controls()
+        self._make_transform_preview()
         self._make_assistant()
         self._sync_controls()
         self.autosave_timer = QTimer(self)
@@ -209,12 +211,72 @@ class MainWindow(QMainWindow):
         )
         return "\n".join(lines)
 
+    def _make_transform_preview(self):
+        self.transform_preview = CoordinateTransformPreview(self)
+        self.transform_preview_dock = self._dock(
+            "Transform Preview",
+            self.transform_preview,
+            Qt.RightDockWidgetArea,
+        )
+
+    def _assistant_animation(self, kind, payload):
+        try:
+            if kind == "grow":
+                labels = tuple(getattr(payload, "walk", ()) or ())
+                self.transform_preview.animate_ai_walk(labels, title="Grow working")
+            elif kind == "working":
+                text = str(payload or "AI working")
+                labels = [part for part in text.split() if part][:12]
+                self.transform_preview.animate_ai_walk(labels, title="Local AI working")
+        except Exception as exc:
+            self.console.append(
+                f"Animation preview skipped: {type(exc).__name__}: {exc}"
+            )
+
+    def _show_animation_for_node(self, node_id: str) -> bool:
+        if self.last_result is None or node_id not in self.last_result.outputs:
+            return False
+        node = next((item for item in self.experiment.nodes if item.id == node_id), None)
+        if node is None:
+            return False
+        try:
+            module = self.registry.create(node.module_id)
+            params = module.resolved_params(node.params)
+            payload = module.animation_payload(
+                params,
+                self.last_result.outputs[node_id],
+            )
+        except Exception as exc:
+            self.console.append(
+                f"Animation payload skipped for {node_id}: {type(exc).__name__}: {exc}"
+            )
+            return False
+        if not payload:
+            return False
+        if payload.get("kind") != "transform2d":
+            return False
+        try:
+            self.transform_preview.animate_transform(
+                payload["source"],
+                payload["target"],
+                title=str(payload.get("title") or module.metadata.name),
+                closed=bool(payload.get("closed", False)),
+                duration_ms=int(payload.get("duration_ms", 900)),
+            )
+        except Exception as exc:
+            self.console.append(
+                f"Animation preview skipped for {node_id}: {type(exc).__name__}: {exc}"
+            )
+            return False
+        return True
+
     def _make_assistant(self):
         self.assistant = LocalAIAssistantWidget(
             self.settings,
             self._configure_ai,
             parent=self,
             context_provider=self._assistant_context,
+            activity_callback=self._assistant_animation,
         )
         self.assistant_dock = self._dock("Local AI Assistant", self.assistant, Qt.RightDockWidgetArea)
 
@@ -369,6 +431,7 @@ class MainWindow(QMainWindow):
             "Important: capabilities are not run evidence. See Run Verification after execution."
         )
         self._show_node_verification(item.node_id)
+        self._show_animation_for_node(item.node_id)
 
     def _show_node_verification(self, node_id):
         if not self.last_result or node_id not in self.last_result.verification:
@@ -469,8 +532,14 @@ class MainWindow(QMainWindow):
                     f"  {certificate.node_id}: device={certificate.actual_device}/{certificate.backend}, "
                     f"evidence={certificate.evidence or ('none',)}, output={output}"
                 )
+            animated = False
             if self.selected_node_id:
                 self._show_node_verification(self.selected_node_id)
+                animated = self._show_animation_for_node(self.selected_node_id)
+            if not animated:
+                for node in self.experiment.nodes:
+                    if self._show_animation_for_node(node.id):
+                        break
         except Exception as exc:
             self.console.append(f"Run failed: {type(exc).__name__}: {exc}")
 
