@@ -32,7 +32,7 @@ theorem edgeNormalMeasure_map (F : Affine2) (a b : Point2) :
       F.cofactorNormal (edgeNormalMeasure a b) := by
   rcases F with ⟨aa, ab, ac, ad, tx, ty⟩
   rcases a with ⟨ax, ay⟩
-  rcases b with ⟨bx, by⟩
+  rcases b with ⟨bx, by_⟩
   ext <;>
     dsimp [edgeNormalMeasure, Affine2.mapPoint, Affine2.cofactorNormal,
       P1RT0Element.edgeNormalX, P1RT0Element.edgeNormalY] <;>
