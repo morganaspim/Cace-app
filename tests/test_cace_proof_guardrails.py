@@ -54,6 +54,15 @@ def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules()
     assert "CACEFormal.HDivGraphAnnihilator" not in closure
 
 
+def test_missing_recursive_internal_module_is_rejected_by_graph_check():
+    guard = _guardrails()
+    graph = {
+        "CACEFormal.A": ("CACEFormal.Missing",),
+    }
+    closure = guard.root_closure(("CACEFormal.A",), graph)
+    assert guard.missing_internal_modules(closure, graph) == ["CACEFormal.Missing"]
+
+
 def test_dependency_first_order_puts_dependencies_before_dependents():
     guard = _guardrails()
     graph = {
@@ -84,6 +93,11 @@ def test_plan_hash_is_deterministic_and_content_addressed():
     assert first == second
     assert len(first["plan_sha256"]) == 64
     assert first["guardrail_config_sha256"]
+    assert len(first["guardrail_sources"]) >= 6
+    assert any(
+        record["path"] == ".github/workflows/cace-exact-pin-lean-preflight.yml"
+        for record in first["guardrail_sources"]
+    )
     assert any(
         record.get("module") == "CACEFormal.ExteriorPowerTransport"
         for record in first["root_sources"]
