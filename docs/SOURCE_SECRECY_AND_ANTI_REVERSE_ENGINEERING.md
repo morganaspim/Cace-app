@@ -35,7 +35,9 @@ CACE should measure success as **risk reduction and economic deterrence**, not i
 
 ## 3. Information classification
 
-Every release-relevant component should have a disclosure class:
+Every release-relevant component should have a disclosure class. The canonical repository classification map is `security/source_classification.json`.
+
+Classes:
 
 - `PUBLIC` — safe for public/customer distribution.
 - `CUSTOMER_DELIVERABLE` — may be included only in the specified customer's package.
