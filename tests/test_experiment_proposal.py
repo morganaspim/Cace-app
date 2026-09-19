@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from cace_studio.ai.experiment_proposal import (
+    PROPOSAL_STRATEGIES,
     materialize_experiment_proposal,
     propose_experiment_graph,
+    propose_experiment_strategies,
 )
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.module import Module
@@ -76,6 +78,37 @@ class WrongUnit(Module):
         return {}
 
 
+class RotorGeometry(Module):
+    metadata = ModuleMetadata(
+        module_id="test.rotor-geometry",
+        name="Rotor Geometry",
+        version="1",
+        category="geometry",
+        description="rotor geometry transform for creative pattern exploration",
+        maturity=Maturity.PROTOTYPE,
+    )
+    inputs = (PortSpec("x", "number", unit="m"),)
+    outputs = (PortSpec("out", "number", unit="m"),)
+
+    def execute(self, inputs, params, ctx):
+        return {"out": inputs["x"]}
+
+
+class Unrelated(Module):
+    metadata = ModuleMetadata(
+        module_id="test.unrelated",
+        name="Unrelated",
+        version="1",
+        category="other",
+        description="completely unrelated thermal chemistry concept",
+        maturity=Maturity.PROTOTYPE,
+    )
+    inputs = (PortSpec("x", "number", unit="s"),)
+
+    def execute(self, inputs, params, ctx):
+        return {}
+
+
 class OptionalInput(Module):
     metadata = ModuleMetadata(
         module_id="test.optional",
@@ -101,9 +134,20 @@ class FakeRegistry:
     def create(self, module_id: str) -> Module:
         return self.classes_by_id[module_id]()
 
+    def classes(self):
+        return list(self.classes_by_id.values())
+
 
 def _registry() -> FakeRegistry:
-    classes = (Source, Middle, Sink, WrongUnit, OptionalInput)
+    classes = (
+        Source,
+        Middle,
+        Sink,
+        WrongUnit,
+        RotorGeometry,
+        Unrelated,
+        OptionalInput,
+    )
     return FakeRegistry({cls.metadata.module_id: cls for cls in classes})
 
 
@@ -285,3 +329,118 @@ def test_materialization_does_not_change_research_or_verification_metadata():
     }
     assert updated.metadata == original.metadata
     assert updated.metadata is not original.metadata
+
+
+def test_three_strategy_set_is_complete_and_deterministic():
+    registry = _registry()
+    first = propose_experiment_strategies(
+        registry,
+        ("test.sink", "test.middle", "test.source"),
+        title="Rotor geometry experiment",
+        description="Explore rotor geometry with the pipeline.",
+        idea_context="rotor geometry pattern",
+    )
+    second = propose_experiment_strategies(
+        registry,
+        ("test.sink", "test.middle", "test.source"),
+        title="Rotor geometry experiment",
+        description="Explore rotor geometry with the pipeline.",
+        idea_context="rotor geometry pattern",
+    )
+
+    assert tuple(first) == PROPOSAL_STRATEGIES
+    assert first == second
+    assert {proposal.strategy for proposal in first.values()} == set(PROPOSAL_STRATEGIES)
+
+
+def test_minimal_is_no_larger_than_balanced_and_keeps_useful_connection():
+    proposals = propose_experiment_strategies(
+        _registry(),
+        ("test.source", "test.middle", "test.sink", "test.optional"),
+        title="small pipeline",
+    )
+    minimal = proposals["minimal"]
+    balanced = proposals["balanced"]
+
+    assert len(minimal.nodes) <= len(balanced.nodes)
+    assert len(minimal.nodes) <= 3
+    assert minimal.edges or minimal.is_execution_ready
+    assert all(
+        int(edge.source_node[1:]) < int(edge.target_node[1:])
+        for edge in minimal.edges
+    )
+
+
+def test_balanced_recovers_producer_first_order_from_scrambled_modules():
+    balanced = propose_experiment_strategies(
+        _registry(),
+        ("test.sink", "test.middle", "test.source"),
+        title="scrambled",
+    )["balanced"]
+
+    assert [node.module_id for node in balanced.nodes] == [
+        "test.source",
+        "test.middle",
+        "test.sink",
+    ]
+    assert [(edge.source_node, edge.target_node) for edge in balanced.edges] == [
+        ("p1", "p2"),
+        ("p2", "p3"),
+    ]
+    assert balanced.is_execution_ready is True
+
+
+def test_exploratory_adds_bounded_idea_relevant_connected_novelty():
+    proposals = propose_experiment_strategies(
+        _registry(),
+        ("test.source", "test.middle", "test.sink"),
+        title="Rotor geometry discovery",
+        description="Try a rotor geometry transform as a new pattern.",
+        idea_context="rotor geometry creative pattern",
+    )
+    balanced_ids = {node.module_id for node in proposals["balanced"].nodes}
+    exploratory_ids = [node.module_id for node in proposals["exploratory"].nodes]
+    extras = [module_id for module_id in exploratory_ids if module_id not in balanced_ids]
+
+    assert "test.rotor-geometry" in extras
+    assert "test.unrelated" not in extras
+    assert len(extras) <= 2
+    assert len(proposals["exploratory"].nodes) <= 8
+    assert all(
+        edge.source_node != edge.target_node
+        for edge in proposals["exploratory"].edges
+    )
+
+
+def test_exploratory_does_not_bypass_type_or_unit_compatibility():
+    exploratory = propose_experiment_strategies(
+        _registry(),
+        ("test.source", "test.wrong-unit"),
+        title="Rotor geometry",
+        idea_context="rotor geometry",
+    )["exploratory"]
+
+    # Any edge entering WrongUnit would require unit s and must not be created
+    # from the meter-valued source or rotor geometry outputs.
+    wrong_node = next(
+        node.proposal_id
+        for node in exploratory.nodes
+        if node.module_id == "test.wrong-unit"
+    )
+    assert all(edge.target_node != wrong_node for edge in exploratory.edges)
+    assert any(
+        item.node_id == wrong_node and item.unit == "s"
+        for item in exploratory.unresolved_required_inputs
+    )
+
+
+def test_strategy_rationales_are_explicit():
+    proposals = propose_experiment_strategies(
+        _registry(),
+        ("test.source", "test.middle"),
+        title="rationale",
+        idea_context="rotor geometry",
+    )
+    assert proposals["minimal"].rationale.startswith("Minimal strategy:")
+    assert proposals["balanced"].rationale.startswith("Balanced strategy:")
+    assert proposals["exploratory"].rationale.startswith("Exploratory strategy:")
