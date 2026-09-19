@@ -32,7 +32,7 @@ Open-problem status can change, so every curated entry stores:
 
 CACE must never infer a current "open" status from an old snapshot. Curated catalogs are date-stamped and should be refreshed from authoritative sources before release updates.
 
-The v1 seed catalog uses the Clay Mathematics Institute Millennium Prize Problems. As verified on 2026-09-19, six remain unsolved/open and the Poincaré Conjecture is solved.
+The v1 seed catalog uses the Clay Mathematics Institute Millennium Prize Problems. As verified on 2026-09-19, five are listed unsolved, the Poincaré Conjecture is solved, and Navier–Stokes is represented as active-review: Clay announced on 2026-09-11 that it has apparently been settled, while Clay's official problem page still marks it Active and the prize-evaluation process remains pending.
 
 ## Offline-first architecture
 
@@ -92,7 +92,7 @@ Curated from Clay Mathematics Institute:
 
 - Birch and Swinnerton-Dyer Conjecture — open
 - Hodge Conjecture — open
-- Navier-Stokes Equation — open
+- Navier-Stokes Equation — active-review / apparent settlement announced 2026-09-11; official Clay problem page still Active
 - P vs NP — open
 - Riemann Hypothesis — open
 - Yang-Mills & the Mass Gap — open
@@ -136,7 +136,7 @@ Each catalog should use domain-appropriate authorities and evidence/status langu
 7. local-AI structured-context bridge;
 8. custom JSON catalog import;
 9. tests that:
-   - packaged catalog has six open + one solved Millennium entries;
+   - packaged catalog has five open + one active-review + one solved Millennium entries;
    - duplicate/invalid catalog entries fail closed;
    - importing a problem generates no verification evidence;
    - Play changes only heartbeat attention/context;

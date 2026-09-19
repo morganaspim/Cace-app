@@ -790,6 +790,52 @@
         "Solved historical problems are visibly distinguished but can still be studied as methodological examples.",
         "Scientific runtime remains offline-first; catalog URLs are metadata rather than implicit network fetches."
       ]
+    },
+    {
+      "id": "G055",
+      "category": "compute_orchestration",
+      "priority": 55,
+      "intent_status": "research",
+      "title": "Conway heartbeat spare-compute economy",
+      "summary": "Turn the non-evidentiary canvas heartbeat into an internal compute-credit game that harvests spare CPU/GPU headroom, budgets exploratory work, and learns scheduling efficiency from externally measured outcomes without monetary value or verification authority.",
+      "acceptance": [
+        "Credits have no monetary/crypto value and cannot alter evidence or proof status.",
+        "Credits are minted only from bounded resource-headroom measurements and capped per node/treasury.",
+        "Allocation is deterministic for the same heartbeat/bids/resource snapshot.",
+        "AI self-reported success cannot mint rewards; only scheduler/executor measurements may update efficiency statistics.",
+        "Research tasks can spend credits while user/verification-critical work can bypass or preempt the game."
+      ]
+    },
+    {
+      "id": "G056",
+      "category": "ai_security",
+      "priority": 56,
+      "intent_status": "planned",
+      "title": "Default-off superintelligence-class capability gate",
+      "summary": "Add an explicit GUI gate that denies providers/manifests classified as superintelligence-class unless the user opts in, while independently retaining sandbox, network, self-modification, evidence, and resource controls.",
+      "acceptance": [
+        "Default setting is OFF.",
+        "OFF rejects superintelligence-class provider manifests before inference.",
+        "ON is permission to admit that capability tier, not a claim that a model is or is not superintelligent.",
+        "Network, self-modification, shell/tool authority, evidence mutation, and compute budgets remain separate fail-closed capabilities.",
+        "Current loopback-only local providers remain bounded by the existing local-provider security model."
+      ]
+    },
+    {
+      "id": "G057",
+      "category": "ai_observability",
+      "priority": 57,
+      "intent_status": "research",
+      "title": "Immutable one-way deep-layer matrix observers",
+      "summary": "For locally instrumentable open models, copy hidden-layer activation matrices through a host-controlled one-way broker into two or more isolated observer containers so the AI cannot alter observer policy or receive an observer feedback channel.",
+      "acceptance": [
+        "Observer configuration/manifests are host-owned and content-addressed.",
+        "Model-to-observer flow is one-way; observer containers expose no return/control channel to the model.",
+        "At least two observer replicas can independently hash/encode the same layer-step matrices.",
+        "Weights and observer runtime are read-only where practical; observer archives are append-only/content-addressed.",
+        "Full hidden-layer capture is optional and resource-bounded; compact sketches/hashes are supported when full capture is too costly.",
+        "Feature is only advertised for inference engines that actually expose layer activations."
+      ]
     }
   ]
 }

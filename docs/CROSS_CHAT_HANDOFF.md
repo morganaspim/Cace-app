@@ -302,3 +302,23 @@ V1 policy:
 - Play may generate hypotheses/decompositions/experiments/proof obligations but cannot mark an open problem solved.
 
 Protein clarification also preserved as I065: use attributable imported protein structures and heartbeat/AI Play; do not reproduce AlphaFold.
+
+
+## Heartbeat economy and AI capability controls
+
+Added 2026-09-19.
+
+New goals:
+
+- G055 — Conway heartbeat spare-compute economy;
+- G056 — default-off superintelligence-class capability gate;
+- G057 — immutable one-way deep-layer matrix observers.
+
+Design invariants:
+
+- compute credits are an internal scheduling game only, with no monetary value and no evidence authority;
+- AI cannot reward itself; scheduler optimization uses externally measured completion/cost/latency data;
+- the high-capability checkbox is a provider-admission control, not a proof that an unchecked model is incapable of superintelligence;
+- enabling the gate does not automatically grant Internet, shell, self-modification, evidence mutation, or unbounded compute;
+- hidden-layer observers only apply to engines that expose activations;
+- layer/step matrices flow one-way into at least two host-controlled observer replicas with no feedback channel to inference.

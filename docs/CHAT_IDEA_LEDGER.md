@@ -90,6 +90,10 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I065 | protein playground | Keep AlphaFold as an external attributable protein-data source rather than reproducing its model; imported proteins become immutable CACE objects with residue heartbeats and a GUI Play button that routes bounded structural context to the local AI. | G051 |
 | I066 | open-problems toolkit | Curated, date-stamped open-problem catalogs (starting with the Millennium problems) can be searched in the GUI, imported as typed canvas objects, and explored with heartbeat-guided local AI while preserving source/status and never equating AI exploration with a solution. | G054 |
 
+| I067 | heartbeat economy | Extend the Conway-inspired canvas heartbeat into a bounded internal compute economy: spare CPU/GPU headroom mints non-monetary research credits, tasks bid for exploration budget, and scheduling strategies optimize against externally measured useful work rather than AI self-scores. | G055 |
+| I068 | high-capability AI gate | Add a default-OFF GUI gate for future superintelligence-class providers. OFF blocks that declared capability tier; ON merely permits admission while separate sandbox/network/self-modification/evidence/resource controls still apply. | G056 |
+| I069 | latent matrix observers | For instrumentable local/open neural models, export copies of hidden-layer matrices through a one-way host broker to multiple immutable observer containers; model inference receives no feedback/control channel from observers. | G057 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
