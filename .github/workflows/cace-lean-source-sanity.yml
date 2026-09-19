@@ -13,6 +13,7 @@ on:
       - 'tests/test_cace_proof_guardrails.py'
       - '.github/workflows/cace-lean-source-sanity.yml'
       - '.github/workflows/cace-exact-pin-lean-preflight.yml'
+      - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
 
 permissions:
   contents: read
