@@ -140,6 +140,31 @@ theorem edge_endpoint_data_map
     edgeFlux_piolaRT0_map F q a b a hdet,
     edgeFlux_piolaRT0_map F q a b b hdet⟩
 
+
+/-- The exact P1/RT0 edge pairing is invariant under affine scalar pullback and
+contravariant Piola transport. -/
+theorem edgePairing_map
+    (F : Affine2) (v : P1Affine) (q : RT0Affine) (a b : Point2)
+    (hdet : F.linearDet ≠ 0) :
+    P1RT0Element.edgePairing (pullP1 F v) (piolaRT0 F q)
+        (F.mapPoint a) (F.mapPoint b) =
+      P1RT0Element.edgePairing v q a b := by
+  rcases edge_endpoint_data_map F v q a b hdet with ⟨hva, hvb, hfa, hfb⟩
+  simp only [P1RT0Element.edgePairing, hva, hvb, hfa, hfb]
+
+/-- Consequently the exact three-edge boundary pairing of one triangle is
+affine-Piola invariant. -/
+theorem cellFacePairing_map
+    (F : Affine2) (T : Triangle2) (v : P1Affine) (q : RT0Affine)
+    (hdet : F.linearDet ≠ 0) :
+    P1RT0Element.cellFacePairing (F.mapTriangle T) (pullP1 F v) (piolaRT0 F q) =
+      P1RT0Element.cellFacePairing T v q := by
+  rcases T with ⟨p0, p1, p2⟩
+  simp only [P1RT0Element.cellFacePairing, Affine2.mapTriangle]
+  rw [edgePairing_map F v q p0 p1 hdet,
+      edgePairing_map F v q p1 p2 hdet,
+      edgePairing_map F v q p2 p0 hdet]
+
 end AffineP1RT0Transport
 
 end CACEFormal
