@@ -138,3 +138,12 @@ def test_studio_settings_ignore_unknown_fields_and_invalid_mode(tmp_path) -> Non
     settings = StudioSettings.load(path)
     assert settings.assistant_mode == "researcher"
     assert not hasattr(settings, "future_field")
+
+
+
+def test_public_ai_package_exports_research_preferences() -> None:
+    from cace_studio.ai import AI_RESEARCH_MODES, AIResearchPreferences
+
+    preferences = AIResearchPreferences()
+    assert "general" in AI_RESEARCH_MODES
+    assert preferences.effective_mode("researcher") == "researcher"

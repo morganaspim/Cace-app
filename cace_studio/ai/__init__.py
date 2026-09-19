@@ -5,6 +5,7 @@ verification and formal-evidence trusted computing base.
 """
 from .provider import AIProvider, LocalAIError, ProviderHealth
 from .local import create_local_provider, detect_local_providers
+from .preferences import AI_RESEARCH_MODES, AIResearchPreferences
 from .corpus import build_local_fragments, build_local_index
 from .experiment_proposal import (
     PROPOSAL_STRATEGIES,
