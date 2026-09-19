@@ -60,7 +60,7 @@ jobs:
           printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT" | tee -a "$evidence_dir/exact-head.txt"
           printf 'evidence_dir=%s\n' "$evidence_dir" | tee -a "$evidence_dir/exact-head.txt"
 
-          echo "CACE_SANITY_EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"
+          echo "CACE_SANITY_EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"\n          echo "CACE_SANITY_EXPECTED_SHA=$expected" >> "$GITHUB_ENV"
 
       - name: Run self-validating source sanity and cheap proof guards
         shell: bash
@@ -144,7 +144,7 @@ jobs:
           manifest = {
               "schema": "cace-source-sanity-evidence-v1",
               "repository": os.environ.get("GITHUB_REPOSITORY"),
-              "git_commit": os.environ.get("GITHUB_SHA"),
+              "git_commit": os.environ["CACE_SANITY_EXPECTED_SHA"],
               "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
               "workflow_run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
               "result": "PASS" if os.environ["CACE_SANITY_OVERALL"] == "0" else "FAIL",
