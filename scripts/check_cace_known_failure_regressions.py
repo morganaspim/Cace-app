@@ -225,12 +225,12 @@ def main() -> int:
                     f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol reciprocal growth must not "
                     "delegate to fun_prop"
                 )
-            if "Complex.hasTemperateGrowth_ofReal.comp" in body:
+            if "Function.Complex.hasTemperateGrowth_ofReal.comp" in body:
                 problems.append(
                     f"{POSITIVE_LAPLACIAN_SOURCE}: parenthesize "
                     "Complex.hasTemperateGrowth_ofReal before composing the theorem"
                 )
-            if "(Complex.hasTemperateGrowth_ofReal).comp" not in body:
+            if "(Function.Complex.hasTemperateGrowth_ofReal).comp" not in body:
                 problems.append(
                     f"{POSITIVE_LAPLACIAN_SOURCE}: low-symbol complex lift must compose "
                     "the pinned Complex.hasTemperateGrowth_ofReal theorem explicitly"
