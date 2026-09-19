@@ -195,9 +195,12 @@ def test_canonical_qualification_checkout_has_complete_ancestry():
         / "workflows"
         / "cace-formal-v336-theorem-metadata.yml"
     ).read_text(encoding="utf-8")
-    assert "Checkout exact event commit with complete qualification ancestry" in workflow
-    assert "fetch-depth: 0" in workflow
-    assert "fetch-depth: 64" not in workflow
+    assert "Checkout exact event commit with bounded initial history" in workflow
+    assert "fetch-depth: 64" in workflow
+    assert "Ensure attested qualification ancestry is locally complete" in workflow
+    assert "git merge-base --is-ancestor" in workflow
+    assert "git fetch --no-tags --deepen=256 origin" in workflow
+    assert "git fetch --no-tags --unshallow origin" in workflow
 
 
 

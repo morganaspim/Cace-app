@@ -382,16 +382,20 @@ The qualified ancestor was farther back, so `git merge-base --is-ancestor`
 operated on an incomplete local graph and failed closed for the wrong reason.
 
 **Permanent prevention:**
-- canonical qualification uses `actions/checkout` with `fetch-depth: 0`;
-- qualification inheritance checks always run against complete repository
-  ancestry, while later cache-reuse logic may still deliberately bound its own
-  ancestor search for performance;
+- canonical qualification starts with a bounded 64-commit checkout;
+- before qualification-drift tests, it extracts every currently-qualified
+  attested commit from the canonical claim registry and verifies ancestry;
+- missing ancestry is deepened by 256 commits first, with an unshallow fetch
+  only as a correctness fallback;
+- qualification inheritance therefore always runs against enough repository
+  ancestry without paying the disk cost of full history on every run;
 - exact-head checkout and clean-worktree checks remain unchanged.
 
 **Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_checkout_has_complete_ancestry`.
 
 This does not weaken qualification drift. It makes the existing fail-closed
-ancestry check operate on complete evidence instead of a shallow approximation.
+ancestry check operate on complete evidence while keeping the common path
+storage-bounded.
 
 
 ## F-023 — unbounded validated build-cache retention exhausted runner reserve
@@ -422,3 +426,26 @@ fell below the existing 5 GiB safety reserve.
 Deleting an old build cache cannot inherit or create qualification. Lake still
 rebuilds changed/reverse-dependent modules and canonical qualification still
 requires fresh exact-head theorem metadata, kernel axiom audit, and attestation.
+
+
+## F-023 — full-history ancestry repair consumed qualification disk reserve
+
+**Fingerprint:** after fixing shallow-history ancestry by unconditionally fetching
+the complete repository history, canonical qualification passed governance but
+stopped at the 5 GiB free-space gate with only about 4.57 GiB available.
+
+**Root cause:** correctness was restored with an unnecessarily expensive checkout
+strategy. Complete history was downloaded even though the active attested commit
+was only modestly beyond the original shallow boundary.
+
+**Permanent prevention:**
+- qualification checkout is shallow by default;
+- the workflow deterministically deepens only until all currently-qualified
+  attested commits are provably connected to HEAD;
+- full unshallow history is retained only as a rare correctness fallback;
+- the 5 GiB qualification disk reserve remains unchanged;
+- old owned resumable proof-build caches are separately bounded and pruned as
+  acceleration data, never as proof evidence.
+
+**Regression guard:** `tests/test_qualification_drift_v331.py::test_canonical_qualification_checkout_has_complete_ancestry`
+and `test_canonical_qualification_prunes_only_owned_cache_acceleration_before_disk_gate`.

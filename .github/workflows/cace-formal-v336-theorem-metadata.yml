@@ -62,13 +62,13 @@ jobs:
           command -v flock
           command -v gzip
 
-      - name: Checkout exact event commit with complete qualification ancestry
+      - name: Checkout exact event commit with bounded initial history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          # Qualification inheritance compares HEAD with the attested commit.
-          # A bounded shallow clone can falsely report a real ancestor as absent.
-          fetch-depth: 0
+          # Keep the initial checkout small. The next step deepens only as much
+          # as qualification inheritance actually requires.
+          fetch-depth: 64
           clean: true
           persist-credentials: false
 
@@ -87,6 +87,65 @@ jobs:
           echo "CACE_EXPECTED_SHA=$actual" >> "$GITHUB_ENV"
           echo "CACE_STATUS_DIR=$status_dir" >> "$GITHUB_ENV"
           echo "exact_current_head=$actual"
+
+      - name: Ensure attested qualification ancestry is locally complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          attested_file="$RUNNER_TEMP/cace-qualified-attested-commits.txt"
+          python - "$attested_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          output = Path(sys.argv[1])
+          raw = json.loads(Path("cace_studio/data/claim_registry.json").read_text(encoding="utf-8"))
+          commits = sorted(
+              {
+                  str(claim.get("qualification", {}).get("attested_commit", "")).strip()
+                  for claim in raw.get("claims", [])
+                  if claim.get("qualification", {}).get("current_head_qualified") is True
+                  and claim.get("qualification", {}).get("attested_commit")
+              }
+          )
+          output.write_text("".join(f"{commit}\n" for commit in commits), encoding="utf-8")
+          PY
+
+          while IFS= read -r attested; do
+            [[ "$attested" =~ ^[0-9a-f]{40}$ ]] || {
+              echo "Invalid attested commit in canonical registry: $attested" >&2
+              exit 1
+            }
+
+            if git merge-base --is-ancestor "$attested" HEAD 2>/dev/null; then
+              echo "CACE_QUALIFICATION_ANCESTRY_PRESENT attested=$attested mode=initial"
+              continue
+            fi
+
+            if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+              git fetch --no-tags --deepen=256 origin "$GITHUB_SHA"
+            fi
+
+            if git merge-base --is-ancestor "$attested" HEAD 2>/dev/null; then
+              echo "CACE_QUALIFICATION_ANCESTRY_PRESENT attested=$attested mode=deepened"
+              continue
+            fi
+
+            if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+              # Rare fallback: correctness beats checkout size. This executes
+              # only when the qualified ancestor lies beyond the bounded deepen.
+              git fetch --no-tags --unshallow origin "$GITHUB_SHA" ||                 git fetch --no-tags --unshallow origin
+            fi
+
+            git merge-base --is-ancestor "$attested" HEAD || {
+              echo "Attested commit $attested is not an ancestor of $GITHUB_SHA." >&2
+              exit 1
+            }
+            echo "CACE_QUALIFICATION_ANCESTRY_PRESENT attested=$attested mode=unshallow-fallback"
+          done < "$attested_file"
+
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Set up pinned ARM64-capable Python
         shell: bash
