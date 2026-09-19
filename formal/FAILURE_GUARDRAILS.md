@@ -293,12 +293,35 @@ nonzero hypotheses.
 **Permanent prevention:**
 - the normalizer is factored into `recenterMap` followed by `inverseEdgeLinear`;
 - `edgeDet` is one named determinant object shared by both inverse-column theorems;
-- `inverseEdgeLinear_map_e1`, `inverseEdgeLinear_map_e2`, and
-  `inverseEdgeLinear_linearDet` discharge the 2×2 inverse algebra once;
+- `inverseEdgeLinear_map_e1` and `inverseEdgeLinear_map_e2` establish one local
+  canonical commuted nonzero bridge `hΔcomm` before denominator clearing;
+- `inverseEdgeLinear_linearDet` discharges its reciprocal determinant directly;
 - `normalizer_map_p1` and `normalizer_map_p2` delegate to those lemmas and no
-  longer contain raw `field_simp`, `ring_nf`, or ad-hoc denominator bridges.
+  longer contain raw denominator normalization logic.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires the
-inverse-edge theorem surface, requires `normalizer_map_p1` to delegate to
-`inverseEdgeLinear_map_e1`, and rejects reintroduction of the old raw denominator
-tactic seam.
+inverse-edge theorem surface, requires both inverse-column lemmas to establish
+`hΔcomm` before `field_simp [hΔ, hΔcomm]`, requires `normalizer_map_p1` to
+delegate to `inverseEdgeLinear_map_e1`, and rejects reintroduction of the old raw
+denominator tactic seam.
+
+## F-019 — raw structure unfolding blocked rational-to-real Jacobian coercion
+
+**Fingerprint:** `exact_mod_cast` had the correct rational signed-Jacobian equality,
+but the real target still contained unreduced `Triangle2` structure projections such
+as an explicit record followed by `.p1.x`.  The cast theorem therefore did not match
+the target syntactically.
+
+**Root cause:** `unfold realTriangle realPoint Triangle2.det` exposed record
+constructors without simplifying their projections before invoking `exact_mod_cast`.
+
+**Permanent prevention:**
+- simplify the canonical mesh triangle and point constructors with
+  `simp only [realTriangle, realPoint, Triangle2.det]` before casting;
+- use the existing `MeshCertificate.signedJacobian_formula` as the sole rational
+  source of the determinant equality;
+- do not duplicate the Jacobian polynomial as a new independent certificate.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires
+`realTriangle_det` to simplify the structure projections before `exact_mod_cast`
+and rejects the known raw-`unfold` seam.
