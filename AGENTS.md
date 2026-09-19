@@ -15,6 +15,8 @@ Read these in order before changing scientific or verification behavior:
 7. `CACE_MULTI_TENANT_POLICY.json` — multi-user tenancy, isolation, persistence and load-balancing policy.
 8. `CACE_PUBLIC_SERVICE_POLICY.json` — global public signup/access and country policy.
 9. `CACE_TELEMETRY_PRIVACY_POLICY.json` — essential heartbeat, product analytics and proof-contribution privacy boundaries.
+10. `CACE_BASE44_GITHUB_SYNC_POLICY.json` — Base44/GitHub two-way sync ownership, CI, database and deployment boundary.
+11. `BASE44.md` — concise Base44-specific coding instructions.
 3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
 4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
@@ -417,3 +419,40 @@ contribution/IP terms.
 
 Authority: `CACE_TELEMETRY_PRIVACY_POLICY.json`.
 Executable allowlist: `cace_studio/telemetry_contract.py`.
+
+
+## Base44 two-way GitHub sync
+
+Base44 is a synchronized **customer-facing/product builder**, not a proof,
+wallet, scientific-runtime, secret, or production-database authority.
+
+Machine authority: `CACE_BASE44_GITHUB_SYNC_POLICY.json`.
+Human architecture: `docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md`.
+Base44-specific entry point: `BASE44.md`.
+
+Normal Base44 direct-write zone:
+
+- `web/**`
+- `base44/**`
+- `docs/base44/**`
+
+Joint-review zone includes `api/**`, public schemas, and customer-help
+contracts. Protected proof/science/security/wallet/account-authority paths must
+not be directly changed by Base44.
+
+Base44 Verification, Testing Agent, and Security Scan are useful early signals.
+They do not replace CACE Build Lite, GitHub engineering gates, qualification
+drift checks, Exact-Pin Lean, audited-root checks, or canonical exact-current-head
+qualification.
+
+Two-way GitHub sync carries source/schema changes, never production database
+rows or secrets.
+
+If a Base44 feature requires protected functionality, Base44 should define the
+typed public API/schema it needs, preserve the protected implementation, and let
+the CACE-side change pass ordinary review before the synced public contract is
+consumed.
+
+The automated path guard lives in:
+`scripts/check_base44_sync_contract.py`
+and `.github/workflows/cace-base44-sync-boundary.yml`.

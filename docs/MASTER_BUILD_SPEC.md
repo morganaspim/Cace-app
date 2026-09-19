@@ -744,3 +744,31 @@ with IP/contribution terms.
 See `CACE_PUBLIC_SERVICE_POLICY.json`,
 `CACE_TELEMETRY_PRIVACY_POLICY.json`, and
 `docs/PUBLIC_SERVICE_AND_TELEMETRY.md`.
+
+
+## Base44 two-way GitHub sync architecture
+
+CACE may use Base44 two-way GitHub synchronization to accelerate the
+customer-facing web/product layer.
+
+Authority split:
+
+- Base44: web/product generation, preview, customer UX and early web checks;
+- GitHub: canonical code history, PR review, CACE CI, exact release identity;
+- private CACE services: science, proofs, native compute, AI authority, private
+  databases, wallet custody and secrets.
+
+Base44's normal direct-write zone is `web/**`, `base44/**`, and
+`docs/base44/**`. Public API/schema/help integration is joint-review work.
+Formal proof, scientific core/modules, C++, authoritative account/trial logic,
+security/payment/wallet policy, local-AI capability authority, and proof-sensitive
+CI remain protected.
+
+Two-way sync versions schema/migrations/contracts—not production rows or secrets.
+
+Base44 Verification/Testing/Security checks are additive early signals. CACE
+Build Lite, engineering regression and formal qualification remain the real
+promotion gates.
+
+See `CACE_BASE44_GITHUB_SYNC_POLICY.json` and
+`docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md`.

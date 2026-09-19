@@ -38,7 +38,10 @@
     "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
     "CACE_PUBLIC_SERVICE_POLICY.json",
     "CACE_TELEMETRY_PRIVACY_POLICY.json",
-    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md",
+    "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+    "BASE44.md",
+    "docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
@@ -60,7 +63,8 @@
     "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json",
     "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json",
     "public_service_access": "CACE_PUBLIC_SERVICE_POLICY.json",
-    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json"
+    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "base44_github_sync": "CACE_BASE44_GITHUB_SYNC_POLICY.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -409,5 +413,21 @@
     "analytics": "privacy-controlled aggregate/pseudonymous product/sales usage",
     "contribution": "actual proof/research artifacts explicit opt-in only",
     "contract": "cace_studio/telemetry_contract.py"
+  },
+  "base44_github_sync": {
+    "role": "two-way synced customer-facing builder; no proof/wallet/scientific/private-data authority",
+    "direct_write": [
+      "web/**",
+      "base44/**",
+      "docs/base44/**"
+    ],
+    "joint_review": [
+      "api/**",
+      "schema/public/**",
+      "docs/help/**"
+    ],
+    "guard": "scripts/check_base44_sync_contract.py + cace-base44-sync-boundary workflow",
+    "database": "Git stores schema/migrations/contracts only; private production data remains outside Git/Base44 sync",
+    "release": "reviewed GitHub exact commit and required CACE gates remain authoritative"
   }
 }

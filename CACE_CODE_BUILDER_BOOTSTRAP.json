@@ -25,7 +25,10 @@
     "docs/MULTI_TENANT_SERVICE_ARCHITECTURE.md",
     "CACE_PUBLIC_SERVICE_POLICY.json",
     "CACE_TELEMETRY_PRIVACY_POLICY.json",
-    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md"
+    "docs/PUBLIC_SERVICE_AND_TELEMETRY.md",
+    "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+    "BASE44.md",
+    "docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md"
   ],
   "build_optimizer": {
     "command": "python scripts/cace_build_lite.py --repo . --git-base origin/main --profile quick --commands",
@@ -183,5 +186,32 @@
       "proof_research_contribution: explicit opt-in only"
     ],
     "evidence_rule": "telemetry cannot create or modify proof/evidence truth"
+  },
+  "base44_github_sync": {
+    "source": "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+    "base44_role": "synchronized web/product builder and preview surface",
+    "github_role": "canonical source history, review, CACE CI and release identity",
+    "normal_write_zone": [
+      "web/**",
+      "base44/**",
+      "docs/base44/**"
+    ],
+    "joint_review_zone": [
+      "api/**",
+      "schema/public/**",
+      "docs/help/**",
+      "public product docs/web tests"
+    ],
+    "protected_rule": "proof/science/core/security/wallet/account-authority/agent-policy paths are not direct Base44 write targets",
+    "database_rule": "sync schemas/migrations/contracts, never production rows/secrets/private scientific or wallet state",
+    "check_order": [
+      "Base44 Verification",
+      "Base44 Testing Agent",
+      "Base44 Security Scan",
+      "CACE Build Lite",
+      "GitHub engineering gates",
+      "formal qualification gates when applicable"
+    ],
+    "deploy_rule": "Base44 may preview/deploy customer-facing surfaces; production CACE release authority remains exact reviewed GitHub commit + required CACE gates"
   }
 }

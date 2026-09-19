@@ -1,0 +1,214 @@
+{
+  "schema": "cace.base44-github-sync.v1",
+  "role": "two-way Base44-GitHub synchronization, ownership, CI, database and deployment contract",
+  "source_of_truth": {
+    "canonical_repo": "morganaspim/Cace-app",
+    "canonical_system": "GitHub repository + reviewed CI/qualification evidence",
+    "base44_role": "synchronized customer-facing web/product builder and preview surface",
+    "rule": "Two-way sync may move source changes between Base44 and GitHub, but GitHub history/review plus CACE CI remain the merge/deployment authority."
+  },
+  "sync_modes": {
+    "preferred": {
+      "id": "protected_monorepo",
+      "description": "Base44 syncs with the CACE repository but has a narrow write zone. Protected paths are guarded by policy, CI and review."
+    },
+    "strongest_isolation": {
+      "id": "dedicated_web_repo",
+      "description": "If Base44 cannot honor the protected monorepo workflow reliably, sync Base44 with a dedicated CACE web repository and consume versioned public API/schema contracts from Cace-app."
+    }
+  },
+  "base44_owned_paths": [
+    "web/**",
+    "base44/**",
+    "docs/base44/**"
+  ],
+  "joint_review_paths": [
+    "api/**",
+    "schema/public/**",
+    "docs/help/**",
+    "docs/PUBLIC_*.md",
+    "tests/test_web_*.py",
+    "tests/test_feedback*.py"
+  ],
+  "cace_protected_paths": [
+    "formal/**",
+    "cpp/**",
+    "cace_studio/core/**",
+    "cace_studio/modules/**",
+    "cace_studio/data/proof_*.json",
+    "cace_studio/accounts.py",
+    "cace_studio/trial_entitlement.py",
+    "cace_studio/telemetry_contract.py",
+    "cace_studio/ai/**",
+    "scripts/*proof*",
+    "scripts/*qualification*",
+    "scripts/check_deployment_boundary.py",
+    "tests/test_cace_proof_guardrails.py",
+    "tests/test_proof_contract*.py",
+    "tests/test_*qualification*.py",
+    "tests/test_*proof*.py",
+    ".github/workflows/*lean*.yml",
+    ".github/workflows/*qualification*.yml",
+    "CACE_*POLICY.json",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "CACE_BUILD_LITE.json",
+    "AGENTS.md",
+    "LICENSE",
+    "NOTICE",
+    ".github/workflows/cace-*.yml"
+  ],
+  "generated_read_only_paths": [
+    "docs/help/generated/**",
+    "AI_REPO_MAP.json"
+  ],
+  "ownership_rules": [
+    "Base44 may edit base44-owned paths directly through two-way sync.",
+    "Joint-review paths require a normal GitHub PR/review and the applicable CACE checks before merge.",
+    "Base44 must not directly edit CACE-protected paths. It should propose a typed API/schema requirement instead.",
+    "Generated/read-only paths must be regenerated from canonical source rather than hand-edited.",
+    "If a feature cannot be completed inside the Base44 write zone, Base44 must preserve the current architecture and emit the required private API/schema change rather than reimplementing protected semantics."
+  ],
+  "database_boundary": {
+    "version_control_allowed": [
+      "schema definitions",
+      "entity definitions",
+      "migrations",
+      "seed/test fixtures that contain no production data or secrets",
+      "public API/read-model contracts"
+    ],
+    "never_sync_to_git": [
+      "production customer rows",
+      "sessions",
+      "password hashes or identity tokens",
+      "scientific experiment contents",
+      "proof/evidence payloads",
+      "protein sequences/coordinates unless explicitly public fixture data",
+      "wallet balances as authoritative state",
+      "wallet keys/seeds",
+      "payment credentials",
+      "private telemetry",
+      "raw feedback/proof contributions"
+    ],
+    "base44_authoritative_candidate_data": [
+      "customer-facing auth/session UX state",
+      "low-risk profile fields",
+      "feature preferences",
+      "public help/content metadata",
+      "customer-support ticket display state",
+      "non-secret public receipt identifiers"
+    ],
+    "cace_private_authoritative_data": [
+      "trial anti-abuse entitlement ledger",
+      "scientific experiments and outputs",
+      "proof/evidence/provenance",
+      "protein library private content",
+      "local-AI pairings/capabilities",
+      "Math Coin authoritative balances/escrow/burn state",
+      "Monero custody/payment settlement",
+      "master wallet custody",
+      "formal qualification evidence"
+    ],
+    "mirror_rule": "Base44 may hold a customer-facing read model/status mirror, but proof/evidence/wallet/scientific truth stays authoritative in the private CACE service plane."
+  },
+  "ci_hierarchy": [
+    {
+      "rank": 1,
+      "system": "Base44 Verification",
+      "authority": "early builder/code quality signal only"
+    },
+    {
+      "rank": 2,
+      "system": "Base44 Testing Agent",
+      "authority": "customer-flow/browser behavior signal only"
+    },
+    {
+      "rank": 3,
+      "system": "Base44 Security Scan",
+      "authority": "web/security recommendation signal only"
+    },
+    {
+      "rank": 4,
+      "system": "CACE Build Lite",
+      "authority": "deterministic affected-check planner; never proof evidence"
+    },
+    {
+      "rank": 5,
+      "system": "GitHub Actions engineering gates",
+      "authority": "authoritative engineering merge gate for Python/C++/web/policy/security regression"
+    },
+    {
+      "rank": 6,
+      "system": "qualification drift + exact-pin Lean/audited-root checks",
+      "authority": "formal-source promotion prerequisites"
+    },
+    {
+      "rank": 7,
+      "system": "canonical exact-current-head qualification",
+      "authority": "formal public-proof promotion authority"
+    }
+  ],
+  "deployment": {
+    "base44_may_deploy": [
+      "customer-facing web UI",
+      "static/public browser assets",
+      "approved Base44-managed customer/product services that do not own CACE scientific/proof/wallet authority"
+    ],
+    "base44_must_not_deploy_as_authority": [
+      "canonical scientific runtime",
+      "Lean qualification runner",
+      "proof/evidence promotion",
+      "wallet custody/signing",
+      "local AI model-control service",
+      "native C++/GPU scientific workers",
+      "private experiment/evidence databases"
+    ],
+    "production_rule": "Only reviewed GitHub commits that pass required CACE gates may become production CACE releases. A Base44 preview/publish event is not by itself a CACE production-release attestation."
+  },
+  "secrets": {
+    "never_in_base44_prompt_or_client": [
+      "wallet private keys or seeds",
+      "Monero spend/view keys",
+      "database credentials",
+      "signing keys",
+      "proof runner credentials",
+      "production API secrets",
+      "model-control secrets"
+    ],
+    "server_side_only": true,
+    "rule": "Use deployment secret stores/connectors. Two-way GitHub sync must never be used as a secret transport."
+  },
+  "formal_proof": {
+    "base44_authority": "none",
+    "rules": [
+      "Base44 cannot create PASS/VERIFIED/formal status.",
+      "Base44 cannot edit theorem source, proof contracts, proof ledger, canonical qualification metadata, or proof-sensitive CI without protected review.",
+      "Base44 may render customer-safe proof status returned by typed CACE APIs.",
+      "Base44 may render customer-safe LaTeX proof views without receiving proprietary theorem source or hidden proof-search traces."
+    ]
+  },
+  "protected_change_protocol": {
+    "base44_action": "stop direct edit and create a GitHub-visible requirement/proposal describing the typed API/schema change needed",
+    "cace_action": "implement/review protected change on a normal CACE branch",
+    "sync_back": "after merge, two-way sync returns the reviewed public contract/UI-compatible change to Base44",
+    "no_bypass": "do not duplicate protected logic in Base44 to avoid the review boundary"
+  },
+  "production_acceptance": [
+    "two-way sync round-trip does not modify protected paths unexpectedly",
+    "Base44-owned changes pass Base44 checks plus CACE Build Lite and relevant GitHub engineering gates",
+    "protected-path change attempted by a Base44 sync branch fails the sync-boundary guard",
+    "generated/read-only paths cannot be hand-edited by Base44 workflow",
+    "database schema changes are versioned while production rows remain outside Git",
+    "Base44 preview cannot promote proof/evidence/wallet/scientific truth",
+    "production deployment references an exact reviewed GitHub commit",
+    "rollback to a prior reviewed GitHub commit is documented and tested"
+  ],
+  "repo_settings_required": [
+    "Require pull requests before merging protected branches.",
+    "Require CODEOWNERS review for protected paths where supported.",
+    "Require CACE engineering checks before merge.",
+    "Do not allow Base44 integration credentials to bypass branch protection.",
+    "Configure BASE44_GITHUB_ACTOR repository variable once the actual GitHub actor/app identity is known.",
+    "Prefer Base44-originated branches/pull requests or another reviewable integration path rather than direct production-main writes."
+  ]
+}

@@ -562,3 +562,38 @@ Executable allowlist:
 - `cace_studio/telemetry_contract.py`
 
 The public production domain remains deployment-defined until an owned domain is actually deployed; builders must not invent one.
+
+
+## Base44 two-way GitHub synchronization contract
+
+Added 2026-09-19 on branch `architecture/base44-github-sync-contract`.
+
+Durable goal:
+
+- G071 / I084 — Base44 two-way GitHub sync with protected CACE ownership boundaries.
+
+New authorities:
+
+- `CACE_BASE44_GITHUB_SYNC_POLICY.json`
+- `BASE44.md`
+- `docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md`
+- `scripts/check_base44_sync_contract.py`
+- `.github/workflows/cace-base44-sync-boundary.yml`
+- `.github/CODEOWNERS`
+
+Architecture:
+
+- Base44 = synced customer-facing web/product builder;
+- GitHub = canonical source/review/CI/release identity;
+- private CACE plane = science/proofs/AI/native compute/private data/wallet custody.
+
+Base44-owned: `web/**`, `base44/**`, `docs/base44/**`.
+
+Joint review: `api/**`, public schemas, customer-help contracts.
+
+Protected: formal/proof/core/modules/C++/authoritative account/security/wallet/AI
+capability and agent-policy surfaces.
+
+Set GitHub repository variable `BASE44_GITHUB_ACTOR` after the actual Base44
+GitHub App/bot actor is known. The boundary workflow also treats `base44/*`
+branches or actors containing "base44" as strict Base44 sync.

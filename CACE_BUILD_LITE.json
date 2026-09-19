@@ -36,6 +36,43 @@
       ]
     },
     {
+      "id": "base44_sync_contract",
+      "deps": [
+        "python_syntax"
+      ],
+      "triggers": [
+        "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+        "BASE44.md",
+        "docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md",
+        "scripts/check_base44_sync_contract.py",
+        "tests/test_base44_sync_contract.py",
+        ".github/CODEOWNERS",
+        ".github/workflows/cace-base44-sync-boundary.yml",
+        "web/**",
+        "base44/**",
+        "api/**",
+        "schema/public/**"
+      ],
+      "cache_inputs": [
+        "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+        "scripts/check_base44_sync_contract.py",
+        "tests/test_base44_sync_contract.py",
+        ".github/CODEOWNERS"
+      ],
+      "command": "python scripts/check_base44_sync_contract.py --git-base origin/main --json && python -m pytest -q tests/test_base44_sync_contract.py",
+      "executor": "local",
+      "estimated_seconds": 5,
+      "cpu_units": 1,
+      "priority": 170,
+      "fail_fast": true,
+      "proof_sensitive": false,
+      "cache_policy": "skip_on_exact_hit",
+      "profiles": [
+        "quick",
+        "merge"
+      ]
+    },
+    {
       "id": "public_service_telemetry_policy",
       "deps": [
         "python_syntax"
@@ -322,7 +359,8 @@
         "deployment_boundary_policy",
         "public_help_contract",
         "trial_account_policy",
-        "public_service_telemetry_policy"
+        "public_service_telemetry_policy",
+        "base44_sync_contract"
       ],
       "triggers": [
         "cace_studio/**",

@@ -985,6 +985,23 @@
         "Actual proof/theorem/research artifact contribution is off by default and requires separate explicit opt-in plus IP/contribution terms.",
         "Telemetry can never promote scientific evidence or formal proof status."
       ]
+    },
+    {
+      "id": "G071",
+      "category": "builder_sync_architecture",
+      "priority": 71,
+      "intent_status": "required",
+      "title": "Base44 two-way GitHub sync with protected CACE ownership boundaries",
+      "summary": "Use Base44 two-way GitHub sync as a customer-facing web/product implementation surface while GitHub remains canonical and proof/science/security/wallet/private-data authority stays in protected CACE paths/services.",
+      "acceptance": [
+        "A machine-readable sync contract classifies Base44-owned, joint-review, protected and generated/read-only paths.",
+        "Base44-originated protected/unclassified edits fail the sync-boundary guard.",
+        "Base44 checks remain early signals and cannot replace CACE engineering/formal gates.",
+        "Production data/secrets are never transported through Git sync; only schemas/migrations/contracts are versioned.",
+        "Base44 preview/deployment cannot promote proof/evidence/wallet/scientific truth.",
+        "CODEOWNERS marks protected CACE paths for owner review where branch protection supports it.",
+        "Repository variable BASE44_GITHUB_ACTOR can bind the actual integration actor to strict sync enforcement."
+      ]
     }
   ]
 }
