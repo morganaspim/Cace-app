@@ -276,18 +276,37 @@ def _balanced_module_ids(registry, requested: tuple[str, ...]) -> tuple[str, ...
             required = sum(1 for port in module.inputs if port.required)
             compatible = _compatible_input_count(placed, module)
             source_bonus = 1 if not module.inputs else 0
+            producer_value = min(len(module.outputs), 4)
             scored.append(
                 (
                     compatible,
                     source_bonus,
+                    producer_value,
                     -required,
                     -original_index,
                     module_id,
                     module,
                 )
             )
-        scored.sort(key=lambda item: (-item[0], -item[1], -item[2], -item[3], item[4]))
-        _compatible, _source_bonus, _required, _index, module_id, module = scored[0]
+        scored.sort(
+            key=lambda item: (
+                -item[0],
+                -item[1],
+                -item[2],
+                -item[3],
+                -item[4],
+                item[5],
+            )
+        )
+        (
+            _compatible,
+            _source_bonus,
+            _producer_value,
+            _required,
+            _index,
+            module_id,
+            module,
+        ) = scored[0]
         ordered.append(module_id)
         placed.append((module_id, module))
         remaining = [item for item in remaining if item[0] != module_id]
@@ -307,6 +326,11 @@ def _exploratory_extra_modules(
         for module_id in base_ids
         if registry.contains(module_id)
     }
+    base_modules = [
+        registry.create(module_id)
+        for module_id in base_ids
+        if registry.contains(module_id)
+    ]
     candidates = []
     for cls in registry.classes():
         metadata = cls.metadata
@@ -327,17 +351,46 @@ def _exploratory_extra_modules(
             continue
         category_novelty = 1 if metadata.category not in base_categories else 0
         module = registry.create(module_id)
+        incoming_links = sum(
+            1
+            for target_port in module.inputs
+            for base_module in base_modules
+            for source_port in base_module.outputs
+            if port_connection_error(source_port, target_port) is None
+        )
+        outgoing_links = sum(
+            1
+            for source_port in module.outputs
+            for base_module in base_modules
+            for target_port in base_module.inputs
+            if port_connection_error(source_port, target_port) is None
+        )
+        compatible_links = incoming_links + outgoing_links
         interface_value = len(module.inputs) + len(module.outputs)
         candidates.append(
             (
+                compatible_links,
                 overlap,
                 category_novelty,
                 min(interface_value, 6),
                 module_id,
             )
         )
-    candidates.sort(key=lambda item: (-item[0], -item[1], -item[2], item[3]))
-    return tuple(item[3] for item in candidates[: max(0, int(limit))])
+    candidates.sort(
+        key=lambda item: (-item[0], -item[1], -item[2], -item[3], item[4])
+    )
+    selected = [item[4] for item in candidates if item[0] > 0][: max(0, int(limit))]
+    if len(selected) < max(0, int(limit)):
+        # If no interface-compatible novelty remains, allow at most one
+        # disconnected but strongly idea-relevant module; the preview will make
+        # its unresolved state explicit rather than hiding the gap.
+        for item in candidates:
+            module_id = item[4]
+            if module_id in selected:
+                continue
+            selected.append(module_id)
+            break
+    return tuple(selected[: max(0, int(limit))])
 
 
 def propose_experiment_strategies(
@@ -365,9 +418,12 @@ def propose_experiment_strategies(
         idea_text=" ".join((title, description, idea_context)),
         limit=2,
     )
-    exploratory_ids = _canonical_module_ids(
-        (*balanced_ids, *exploratory_extras),
-        limit=max_modules,
+    exploratory_ids = _balanced_module_ids(
+        registry,
+        _canonical_module_ids(
+            (*balanced_ids, *exploratory_extras),
+            limit=max_modules,
+        ),
     )
 
     proposals = {
