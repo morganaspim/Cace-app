@@ -109,7 +109,7 @@ theorem edgeNormalMeasure_eq_p1rt0 (a b : Point2) :
       ⟨P1RT0Element.edgeNormalX a b,
        P1RT0Element.edgeNormalY a b⟩ := by
   rcases a with ⟨ax, ay⟩
-  rcases b with ⟨bx, by⟩
+  rcases b with ⟨bx, by_⟩
   rfl
 
 /-- Affine edge mapping transports the full oriented normal-measure vector by
