@@ -34,6 +34,7 @@ def test_quarantined_modules_are_not_audited_root_imports():
         "CACEFormal.PositiveLaplacianAnnihilator",
         "CACEFormal.HDivGraphAnnihilator",
         "CACEFormal.OrthogonalClosure",
+        "CACEFormal.HDivDensityReduction",
     } <= quarantined
 
 
@@ -56,6 +57,7 @@ def test_root_closure_contains_new_graded_geometry_but_not_quarantined_modules()
     assert "CACEFormal.RuntimeApproximationContract" in closure
     assert "CACEFormal.PositiveLaplacianAnnihilator" not in closure
     assert "CACEFormal.HDivGraphAnnihilator" not in closure
+    assert "CACEFormal.HDivDensityReduction" not in closure
 
 
 def test_missing_recursive_internal_module_is_rejected_by_graph_check():
@@ -157,6 +159,19 @@ def test_no_reserved_by_identifier_in_rcases_patterns():
         text = path.read_text(encoding="utf-8")
         bad = re.findall(r"rcases[^\n]*with\s+⟨[^\n⟩]*\bby\b[^\n⟩]*⟩", text)
         assert bad == [], f"{path.name}: {bad}"
+
+
+
+def test_exact_pin_workflow_supports_quarantined_standalone_without_root_promotion():
+    workflow = (
+        ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
+    ).read_text(encoding="utf-8")
+    assert 'COMPILE_ROOT: ${{ inputs.compile_root }}' in workflow
+    assert 'test "$COMPILE_ROOT" = "false"' in workflow
+    assert "quarantined_root_imports" in workflow
+    assert 'target_class="quarantined-standalone"' in workflow
+    assert "Requested non-root module is not explicitly quarantined" in workflow
+    assert "standalone quarantine compilation requires compile_root=false" in workflow
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():
