@@ -321,6 +321,8 @@ def _exploratory_extra_modules(
     idea_text: str,
     limit: int = 2,
 ) -> tuple[str, ...]:
+    if not base_ids:
+        return ()
     query_tokens = _tokens(idea_text)
     base_categories = {
         registry.create(module_id).metadata.category
