@@ -196,6 +196,29 @@ theorem composeList_preserves {α : Type u} {Invariant : α → Prop}
     Invariant ((composeList ts).run x) :=
   (composeList ts).preserves x hx
 
+/-- Splitting a ranked transform plan into batches does not change the
+left-to-right execution semantics.  This supports 5+ through 9+ planning by
+combining smaller certified batches. -/
+theorem composeList_run_append
+    {α : Type u} {Invariant : α → Prop}
+    (left right : List (CertifiedTransform α Invariant)) (x : α) :
+    (composeList (left ++ right)).run x =
+      (composeList right).run ((composeList left).run x) := by
+  induction left generalizing x with
+  | nil =>
+      rfl
+  | cons t ts ih =>
+      simp only [List.cons_append, composeList, comp_run]
+      exact ih (t.run x)
+
+/-- Declared static costs are additive across the same batch split. -/
+theorem totalStaticCost_append
+    {α : Type u} {Invariant : α → Prop}
+    (left right : List (CertifiedTransform α Invariant)) :
+    totalStaticCost (left ++ right) =
+      totalStaticCost left + totalStaticCost right := by
+  simp [totalStaticCost, List.map_append]
+
 /-- The composed certificate carries exactly the sum of the declared costs. -/
 theorem composeList_staticCost {α : Type u} {Invariant : α → Prop}
     (ts : List (CertifiedTransform α Invariant)) :
