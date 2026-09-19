@@ -129,6 +129,54 @@ The web app should support:
 - print-friendly reports;
 - clear distinction between a visual demonstration and a verified scientific result.
 
+### 5.4 Coordinate-system and tiling visualization layer
+
+CACE should let users change the **visual coordinate system** independently of the mathematical experiment. A coordinate view is presentation metadata unless an explicit computational transform module is inserted into the graph.
+
+Core rule:
+
+`canonical mathematical data -> view transform -> renderer`
+
+Changing only the view must not alter theorem hypotheses, numerical inputs, certificates, verification state, or the semantic experiment fingerprint. Presentation/view state should have its own fingerprint. If a transform, quantization, snapping rule, or basis change is intended to alter computation, it must become an explicit typed semantic operation and therefore invalidate/recompute dependent evidence normally.
+
+The GUI should provide a coordinate-view palette that can grow beyond conventional Cartesian axes. Useful views include:
+
+- ordinary 2D Cartesian square grid;
+- rotated/scaled Cartesian bases;
+- polar views;
+- triangular lattice coordinates;
+- hexagonal tiling with axial/cube-style labels;
+- barycentric/simplex views;
+- user-defined lattice bases;
+- Gaussian-integer style square lattice using a basis involving `1` and `i`;
+- Eisenstein-integer style triangular/hexagonal lattice using `1` and `omega`, with `omega = exp(2*pi*i/3)`;
+- experimental complex-radix views involving bases such as `i` or `omega`;
+- periodic tilings by squares, triangles, hexagons, and other supported polygons;
+- aperiodic/substitution tilings, including aperiodic monotile ("einstein") style views;
+- hierarchical/fractal views such as quadtree, hex-tree, recursive substitution tilings, and tile-address coordinate systems;
+- user-defined tiling/basis plugins that satisfy the same renderer contract.
+
+A tiled or fractal coordinate view may label a location by both a canonical coordinate and a hierarchical tile address such as:
+
+`level -> parent tile -> child tile -> local coordinate`
+
+This makes recursive/fractal navigation possible without replacing the underlying mathematical coordinates.
+
+The GUI should expose:
+
+- coordinate-view selector;
+- basis vectors / fundamental-domain overlay;
+- grid or tile layer;
+- axes and labels;
+- nesting/substitution depth for hierarchical views;
+- optional tile-address display;
+- pan/zoom/fit behavior that is stable across view changes;
+- side-by-side or overlay comparison of two coordinate views;
+- export/import of presentation settings without changing scientific evidence;
+- a clear badge stating `VISUALIZATION ONLY` for non-semantic coordinate views.
+
+Novel tiled/fractal coordinate systems are encouraged as research features, but each renderer should define its mapping to/from canonical coordinates, ambiguity/non-invertibility behavior, numerical stability, and performance limits. Visual novelty alone must never be described as new mathematics or as proof.
+
 ## 6. Shared semantics across desktop, web, CLI, and agents
 
 Desktop Studio, web UI, headless CLI, tests, and external agents must consume the **same core graph/module/evidence contracts**. No UI is allowed to invent a parallel scientific truth model.
@@ -409,15 +457,17 @@ Unless a later explicit user instruction supersedes this ordering, prefer:
 2. harden proof/sanity/CI guardrails without weakening formal scope;
 3. keep repository status and agent navigation current;
 4. complete browser parity for the scientific canvas;
-5. finish Research Idea / Proposed Experiment / Build on Canvas workflow;
-6. complete no-code local AI provider UX and zero-contact sandbox;
-7. complete save/load/replay/export/print and evidence inspection in the web UI;
-8. production API/job/storage architecture and Oracle deployment;
-9. plugin isolation/security hardening;
-10. certified FEM/PDE end-to-end;
-11. graded-geometry/combinatorial transform research;
-12. larger demo library and advanced research modules;
-13. production-release qualification.
+5. add the coordinate-system/tiling visualization palette with presentation-only semantics;
+6. finish Research Idea / Proposed Experiment / Build on Canvas workflow;
+7. complete no-code local AI provider UX and zero-contact sandbox;
+8. complete save/load/replay/export/print and evidence inspection in the web UI;
+9. production API/job/storage architecture and Oracle deployment;
+10. plugin isolation/security hardening;
+11. certified FEM/PDE end-to-end;
+12. graded-geometry/combinatorial transform research;
+13. tiled/complex-base/fractal coordinate research;
+14. larger demo library and advanced research modules;
+15. production-release qualification.
 
 ## 19. Definition of done for the working webapp
 
@@ -431,6 +481,7 @@ A build should not be called a complete working CACE webapp until a user can, fr
 - execute full or scoped runs;
 - see progress and cancellation state;
 - inspect real results and visualizations;
+- switch among supported coordinate/tile views without changing the underlying experiment evidence;
 - inspect PASS/FAIL/NOT_RUN/stale evidence;
 - see assumptions/nonclaims;
 - inspect proof/certificate provenance when present;

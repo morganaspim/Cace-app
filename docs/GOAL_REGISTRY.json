@@ -353,6 +353,34 @@
         "Claims are traceable to appropriate evidence.",
         "AI/plugins remain optional and bounded."
       ]
+    },
+    {
+      "id": "G027",
+      "category": "visualization",
+      "priority": 27,
+      "intent_status": "required",
+      "title": "Coordinate-system visualization palette",
+      "summary": "Let users switch among Cartesian, triangular, hexagonal, barycentric, lattice, complex-basis, and other coordinate views without changing the underlying mathematics or evidence.",
+      "acceptance": [
+        "Coordinate view state is presentation metadata with its own fingerprint and is excluded from the semantic experiment fingerprint.",
+        "Changing a view does not alter theorem hypotheses, numerical inputs, certificates, verification state, or proof status.",
+        "Any coordinate transform intended to affect computation is represented as an explicit typed semantic module.",
+        "GUI exposes basis/grid/tile/axis/label controls and clearly marks non-semantic modes as VISUALIZATION ONLY."
+      ]
+    },
+    {
+      "id": "G028",
+      "category": "visualization_research",
+      "priority": 28,
+      "intent_status": "research",
+      "title": "Tiled, complex-base, and fractal coordinate views",
+      "summary": "Explore hexagonal and other polygonal tilings, Gaussian/Eisenstein-style lattices, experimental i/omega complex-radix views, aperiodic monotile tilings, and hierarchical fractal tile-address coordinate systems.",
+      "acceptance": [
+        "Every view defines a mapping to canonical coordinates and documents ambiguity/non-invertibility.",
+        "Hierarchical views can expose recursive tile addresses in addition to canonical coordinates.",
+        "Aperiodic/substitution and fractal views remain visualization/research features unless separate mathematical claims are proved.",
+        "Novel view renderers report numerical stability and performance limits."
+      ]
     }
   ]
 }
