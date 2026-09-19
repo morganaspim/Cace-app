@@ -47,6 +47,27 @@ noncomputable def hdivGraphHilbertEquiv (n : Nat) :
     ((hdivVectorHilbertEquiv n).prodCongr
       (ContinuousLinearEquiv.refl ℂ (ComplexL2 n)))
 
+
+@[simp]
+theorem hdivGraphHilbertEquiv_apply (n : Nat)
+    (x : HDivComplexGraphHilbert n) :
+    hdivGraphHilbertEquiv n x =
+      ((fun i => (WithLp.ofLp x).1 i), (WithLp.ofLp x).2) := by
+  rfl
+
+/-- The canonical graph Hilbert inner product is the sum of the coordinate L²
+inner products plus the divergence-coordinate L² inner product. -/
+theorem hdivGraphHilbert_inner_eq (n : Nat)
+    (x y : HDivComplexGraphHilbert n) :
+    ⟪x, y⟫_ℂ =
+      (∑ i : Fin n,
+        ⟪(hdivGraphHilbertEquiv n x).1 i,
+          (hdivGraphHilbertEquiv n y).1 i⟫_ℂ) +
+        ⟪(hdivGraphHilbertEquiv n x).2,
+          (hdivGraphHilbertEquiv n y).2⟫_ℂ := by
+  rw [WithLp.prod_inner_apply, PiLp.inner_apply]
+  rfl
+
 /-- Schwartz H(div) graph core pulled back to the Hilbert graph space. -/
 noncomputable def ComplexHDivSmoothGraphCoreHilbert (n : Nat) :
     Submodule ℂ (HDivComplexGraphHilbert n) :=
@@ -93,6 +114,27 @@ theorem isClosed_HDivDistributionalGraphSubmoduleHilbert
         Set (HDivComplexGraphAmbient n)))
   exact (isClosed_HDivDistributionalGraphSubmodule n).preimage
     (hdivGraphHilbertEquiv n).continuous
+
+/-- A smooth Schwartz H(div) graph datum pulled back through the Hilbert
+equivalence lies in the pulled-back smooth core. -/
+theorem smoothComplexHDivGraphPullback_mem_core
+    (n : Nat) (q : ComplexSmoothVector n) :
+    (hdivGraphHilbertEquiv n).symm (smoothComplexHDivGraphMap n q) ∈
+      ComplexHDivSmoothGraphCoreHilbert n := by
+  rw [mem_ComplexHDivSmoothGraphCoreHilbert_iff]
+  rw [(hdivGraphHilbertEquiv n).apply_symm_apply]
+  exact ⟨q, rfl⟩
+
+/-- Orthogonality to the pulled-back smooth core can be tested directly on
+every pulled-back Schwartz H(div) graph datum. -/
+theorem inner_smoothHDivGraphPullback_eq_zero_of_mem_orthogonal
+    (n : Nat) (x : HDivComplexGraphHilbert n)
+    (hx : x ∈ (ComplexHDivSmoothGraphCoreHilbert n)ᗮ)
+    (q : ComplexSmoothVector n) :
+    ⟪(hdivGraphHilbertEquiv n).symm (smoothComplexHDivGraphMap n q), x⟫_ℂ = 0 := by
+  exact
+    ((ComplexHDivSmoothGraphCoreHilbert n).mem_orthogonal x).1 hx _
+      (smoothComplexHDivGraphPullback_mem_core n q)
 
 /-- Exact remaining analytic criterion for unconditional whole-space H(div)
 graph density. Orthogonality is stated only in the legitimate L²-product
