@@ -124,6 +124,7 @@ def test_collaboration_trigger_is_lightweight_only() -> None:
     for path in (
         "collaboration/**",
         "quality/**",
+        "security/**",
         "scripts/**",
         "ops/**",
         "tests/**",
@@ -182,6 +183,14 @@ def test_collaboration_trigger_must_keep_scripts_surface(tmp_path: Path) -> None
     root = _fixture(tmp_path)
     path = root / "cace-collaboration-validation.yml"
     text = path.read_text().replace("      - 'scripts/**'\n", "", 1)
+    path.write_text(text)
+    assert "collaboration-trigger-paths" in _kinds(audit(root))
+
+
+def test_collaboration_trigger_must_keep_security_surface(tmp_path: Path) -> None:
+    root = _fixture(tmp_path)
+    path = root / "cace-collaboration-validation.yml"
+    text = path.read_text().replace("      - 'security/**'\n", "", 1)
     path.write_text(text)
     assert "collaboration-trigger-paths" in _kinds(audit(root))
 
