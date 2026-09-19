@@ -537,3 +537,18 @@ Build the smallest useful version:
 11. regression tests proving verification state cannot be promoted by AI/heartbeat rules.
 
 Only after this baseline works should CACE experiment with representation-learning changes inside the local neural model.
+
+
+## Baseline implementation status
+
+Branch: \`feature/local-ai-reasoning-heartbeat\`
+
+The first executable slice now provides:
+
+- \`cace_studio/ai/reasoning.py\` — typed reasoning operators, executable operator programs, paired intervention evaluation, deterministic parity task generation, and operator mastery tracking;
+- \`cace_studio/core/heartbeat.py\` — dependency-aware canvas heartbeat with stale/failure propagation and a separate non-authoritative AI research-interest channel;
+- \`cace_studio/ai/heartbeat_context.py\` — bounded heartbeat-delta packets for local-AI attention/routing;
+- \`cace_studio/gui/node_canvas.py\` — visible per-node heartbeat labels consuming the same heartbeat frames;
+- regression tests that reject answer memorization on a load-bearing flip, distinguish operation order, reject NOT_RUN as VERIFIED, propagate stale/blocked state, reject fake verification objects, and prove the AI update schema has no verification-state field.
+
+The heartbeat protocol is deliberately separate from formal/scientific evidence authority.
