@@ -30,7 +30,7 @@ from cace_studio.core.report import save_run_report
 from cace_studio.core.serialization import load_experiment, save_experiment
 from cace_studio.ai.experiment_proposal import (
     materialize_experiment_proposal,
-    propose_experiment_graph,
+    propose_experiment_strategies,
 )
 from cace_studio.ai.research_ideas import ResearchIdeaStore
 from .ai_assistant import LocalAIAssistantWidget
@@ -322,28 +322,49 @@ class MainWindow(QMainWindow):
         self.research_ideas_dock.setVisible(False)
 
     def _build_research_idea_on_canvas(self, idea) -> None:
-        proposal = propose_experiment_graph(
+        idea_context = "\n".join(
+            [
+                idea.title,
+                idea.notes,
+                *idea.hypotheses,
+                idea.proposed_experiment,
+            ]
+        )
+        proposals = propose_experiment_strategies(
             self.registry,
             idea.associated_modules,
             title=idea.title,
             description=idea.proposed_experiment,
+            idea_context=idea_context,
             max_modules=8,
         )
-        if proposal.is_empty:
-            skipped = ", ".join(proposal.skipped_modules) or "none"
+        if all(proposal.is_empty for proposal in proposals.values()):
+            skipped = sorted(
+                {
+                    module_id
+                    for proposal in proposals.values()
+                    for module_id in proposal.skipped_modules
+                }
+            )
             self.console.append(
-                "Research Idea graph proposal is empty. "
-                f"Associated modules may be missing or unknown; skipped={skipped}."
+                "Research Idea graph proposals are empty. "
+                "Associated modules may be missing or unknown; "
+                f"skipped={', '.join(skipped) or 'none'}."
             )
             return
 
-        dialog = ExperimentProposalDialog(proposal, self)
+        dialog = ExperimentProposalDialog(
+            proposals,
+            self,
+            initial_strategy="balanced",
+        )
         if dialog.exec() != QDialog.Accepted:
             self.console.append(
                 f"Cancelled canvas build for Research Idea: {idea.title}"
             )
             return
 
+        proposal = dialog.selected_proposal
         try:
             self._apply_experiment_proposal(proposal, idea_title=idea.title)
         except Exception as exc:
@@ -352,6 +373,7 @@ class MainWindow(QMainWindow):
             )
             return
         self.console.append(
+            f"Built {proposal.strategy.title()} strategy. "
             f"Research Idea status remains '{idea.status}'. "
             "Building a graph does not auto-promote research maturity."
         )
