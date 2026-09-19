@@ -203,6 +203,20 @@ class MainWindow(QMainWindow):
         if len(self.experiment.edges) > 60:
             lines.append(f"- ... {len(self.experiment.edges) - 60} more edge(s) omitted")
 
+        ideas = self.research_idea_store.list()[:10]
+        if ideas:
+            lines.append("Local Research Ideas notebook (planning only; not proof status):")
+            for idea in ideas:
+                hypothesis = idea.hypotheses[0] if idea.hypotheses else "no hypothesis recorded"
+                if len(hypothesis) > 240:
+                    hypothesis = hypothesis[:237] + "..."
+                lines.append(
+                    f"- [{idea.status}] {idea.title}; hypothesis={hypothesis}; "
+                    f"modules={', '.join(idea.associated_modules) or 'none'}"
+                )
+        else:
+            lines.append("Local Research Ideas notebook: empty")
+
         if self.last_result is None:
             lines.append("Current attached run evidence: none")
         else:
