@@ -67,11 +67,22 @@ COLLAB_HEAVY_MANUAL_PATHS = {
     "cace_studio/**",
     "schema/**",
 }
+# Keep this set synchronized with the permanent proof-guardrail surface in
+# cace-lean-source-sanity.yml.  Broadening the workflow without broadening this
+# explicit policy remains a fail-closed error.
 LEAN_SANITY_AUTOMATIC_PATHS = {
     "formal/**/*.lean",
     "scripts/check_lean_source_sanity.py",
+    "scripts/cace_proof_guardrails.py",
+    "scripts/check_cace_workflow_guardrails.py",
+    "scripts/check_cace_known_failure_regressions.py",
+    "formal/cace_formal/proof_guardrails.json",
+    "formal/FAILURE_GUARDRAILS.md",
     "tests/test_lean_source_sanity.py",
+    "tests/test_cace_proof_guardrails.py",
     ".github/workflows/cace-lean-source-sanity.yml",
+    ".github/workflows/cace-exact-pin-lean-preflight.yml",
+    "ci/cace-exact-pin-lean-preflight.canonical.yml",
 }
 REQUIRED_SELF_HOSTED_LABELS = {"self-hosted", "cace", "oci", "aarch64"}
 
