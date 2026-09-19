@@ -236,12 +236,6 @@ theorem positiveLaplacianLow_laplacian {n : Nat}
   rw [henergy]
   rw [TemperedDistribution.fourierMultiplierCLM_smul hprod]
   simp only [smul_apply, neg_smul, neg_inj]
-  have hcoeff :
-      Complex.ofReal ((2 * Real.pi) ^ 2) =
-        (2 * (Real.pi : ℂ)) ^ 2 := by
-    rw [Complex.ofReal_pow, Complex.ofReal_mul]
-    norm_num
-  rw [← hcoeff]
   exact (Complex.coe_smul ((2 * Real.pi) ^ 2) _).symm
 
 /-- The distributional Laplacian has no nonzero tempered eigenvector with
