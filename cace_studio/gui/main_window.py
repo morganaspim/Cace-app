@@ -113,6 +113,9 @@ class MainWindow(QMainWindow):
 
         ai_menu = self.menuBar().addMenu("AI")
         self._action(ai_menu, "Configure Local AI", self._configure_ai)
+
+        research_menu = self.menuBar().addMenu("Research")
+        self._action(research_menu, "Open Research Ideas", self._show_research_ideas)
         self._sync_history_actions()
 
     def _make_library(self):
@@ -292,6 +295,12 @@ class MainWindow(QMainWindow):
             self.research_ideas,
             Qt.BottomDockWidgetArea,
         )
+        self.research_ideas_dock.setVisible(False)
+
+    def _show_research_ideas(self) -> None:
+        self.research_ideas.refresh()
+        self.research_ideas_dock.setVisible(True)
+        self.research_ideas_dock.raise_()
 
     def _research_idea_kept(self, idea, created: bool) -> None:
         self.research_ideas.select_idea(idea.idea_id)
