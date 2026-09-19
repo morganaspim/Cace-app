@@ -546,3 +546,25 @@ and the continued root exclusion of `CACEFormal.HDivDensityReduction`.
 
 This creates engineering evidence only. A standalone pass does not imply root compilation,
 axiom audit, or exact-head qualification.
+
+
+## F-028 — positive-Laplacian multiplier scalar/API drift
+
+**Fingerprint:** the standalone positive-Laplacian dependency reached Lean and exposed several
+independent failures at once: theorem composition parsed as the nonexistent constant
+`Complex.hasTemperateGrowth_ofReal.comp`, real/complex coefficient normalization drifted,
+plain `map_smul` could not preserve the real-to-complex scalar tower, and multiplier algebra
+used incompatible spellings of the same `(2π)²` coefficient.
+
+**Root cause:** the experimental Fourier annihilator mixed equivalent real and complex scalar
+representations and relied on fragile theorem-dot parsing instead of the pinned Mathlib API.
+
+**Permanent prevention:**
+- compose the Bessel-potential growth proof with
+  `(Complex.hasTemperateGrowth_ofReal).comp` explicitly;
+- use one canonical coefficient `Complex.ofReal ((2 * Real.pi) ^ 2)`;
+- use `ContinuousLinearMap.map_smul_of_tower` across the real/complex module tower;
+- normalize the final real scalar action with `Complex.coe_smul`;
+- reject reintroduction of plain `rw [map_smul]` in the low-Laplacian multiplier block.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
