@@ -280,3 +280,27 @@ so the follow-up tactic is applied only to remaining goals.
 
 **Regression guard:** early compile canaries pin `cellPairing_map` and
 `cellDivergence_map`.
+
+## F-018 — ring normalization changed determinant monomial order after the nonzero bridge
+
+**Fingerprint:** after `ring_nf`, Lean rewrote the reference-simplex determinant to a
+canonical denominator such as
+`y2 * x1 - y2 * x0 - x1 * y0 + x0 * y1 + y0 * x2 - x2 * y1`,
+while the previously proved nonzero bridge used an algebraically equal but differently
+ordered polynomial. `field_simp` therefore left inverse factors and the proof stalled.
+
+**Root cause:** proving a nonzero fact for one expanded polynomial is not enough when a
+later normalization tactic canonicalizes commutative monomials into a different syntactic
+form.
+
+**Permanent prevention:**
+- after choosing `ring_nf`, prove a second nonzero bridge for the exact canonical
+  denominator Lean emits;
+- pass that canonical bridge explicitly to `field_simp`;
+- do not rely on a trailing `ring` to eliminate unresolved inverses.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires
+`hden_nf` to be established before `ring_nf`, requires
+`field_simp [hT, hden, hden_nf]`, and rejects the known post-`field_simp`
+`ring` tail in `normalizer_map_p1`.
+
