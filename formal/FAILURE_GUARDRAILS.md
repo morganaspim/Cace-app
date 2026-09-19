@@ -297,12 +297,11 @@ form.
 - after choosing `ring_nf`, prove nonzero bridges for every canonical denominator
   shape that Lean emits at the proof seam, including both the fully expanded
   `hden_nf` form and the partially factored `hden_div` form;
-- once normalization reduces the goal to `D / D = 1`, close it directly with
-  `div_self hden_div` instead of re-entering `field_simp`;
-- do not rely on trailing algebra tactics to eliminate unresolved inverses.
+- use `field_simp [hden_div]` only after normalization, so denominator clearing is
+  driven by the exact nonzero expression Lean emits at this seam;
+- use `ring` only on the resulting denominator-free polynomial goal.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py` requires
-`hden_nf` and `hden_div` to be established before `ring_nf`, requires
-`exact div_self hden_div` after normalization, and rejects any later
-`field_simp` in `normalizer_map_p1`.
+`hden_nf` and `hden_div` to be established before `ring_nf`, followed in
+order by `field_simp [hden_div]` and `ring` in `normalizer_map_p1`.
 
