@@ -99,7 +99,7 @@ theorem edgeVector_mapPoint (F : Affine2) (a b : Point2) :
       grade1 F (edgeVector a b) := by
   rcases F with ⟨aa, ab, ac, ad, tx, ty⟩
   rcases a with ⟨ax, ay⟩
-  rcases b with ⟨bx, by⟩
+  rcases b with ⟨bx, by_⟩
   ext <;> dsimp [edgeVector, grade1, Affine2.mapPoint] <;> ring
 
 /-- A triangle determinant is exactly the wedge of its two base edge vectors. -/
