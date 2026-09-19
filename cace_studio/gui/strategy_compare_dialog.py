@@ -3,6 +3,7 @@ from __future__ import annotations
 try:
     from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Qt
     from PySide6.QtWidgets import (
+        QAbstractItemView,
         QDialog,
         QHBoxLayout,
         QLabel,
@@ -92,8 +93,8 @@ class StrategyComparisonDialog(QDialog):
                 "Novelty",
             ]
         )
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SingleSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.itemSelectionChanged.connect(self._selection_changed)
 
         for summary in comparison.summaries:
