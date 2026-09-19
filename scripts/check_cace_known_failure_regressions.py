@@ -59,6 +59,7 @@ MESH_ELEMENT_SOURCE = "formal/cace_formal/CACEFormal/MeshElementGeometry.lean"
 EXECUTABLE_RATIONAL_SOURCE = (
     "formal/cace_formal/CACEFormal/ExecutableRationalGeometry.lean"
 )
+SOURCE_SANITY_WORKFLOW = ".github/workflows/cace-lean-source-sanity.yml"
 RECENTER_TO_REAL_RE = re.compile(
     r"theorem\s+recenterMap_toReal\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_toReal)"
 )
@@ -194,6 +195,17 @@ def main() -> int:
                     f"{EXECUTABLE_RATIONAL_SOURCE}: recenterMap_toReal must explicitly "
                     "normalize Point.toReal before closing rational-to-real negation casts"
                 )
+
+    source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
+    if not source_sanity_path.is_file():
+        problems.append(f"missing regression source: {SOURCE_SANITY_WORKFLOW}")
+    else:
+        source_sanity_text = source_sanity_path.read_text(encoding="utf-8")
+        required_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+        if required_ref not in source_sanity_text:
+            problems.append(
+                f"{SOURCE_SANITY_WORKFLOW}: checkout must fall back to github.sha on push events"
+            )
 
     formal_root = ROOT / "formal" / "cace_formal" / "CACEFormal"
     for path in sorted(formal_root.rglob("*.lean")):
