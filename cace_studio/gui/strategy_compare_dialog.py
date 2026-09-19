@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 try:
-    from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
+    from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Qt
     from PySide6.QtWidgets import (
         QDialog,
         QHBoxLayout,
@@ -118,7 +118,7 @@ class StrategyComparisonDialog(QDialog):
             ]
             for col, value in enumerate(values):
                 item = QTableWidgetItem(value)
-                item.setData(256, summary.strategy)
+                item.setData(Qt.UserRole, summary.strategy)
                 self.table.setItem(row, col, item)
 
         self.table.resizeColumnsToContents()
@@ -151,7 +151,7 @@ class StrategyComparisonDialog(QDialog):
         rows = self.table.selectionModel().selectedRows()
         if not rows:
             return None
-        strategy = str(self.table.item(rows[0].row(), 0).data(256))
+        strategy = str(self.table.item(rows[0].row(), 0).data(Qt.UserRole))
         return next(
             (
                 summary
