@@ -55,34 +55,6 @@ theorem referenceSimplex_topFacetFluxFactor_eq_one
     nlinarith
   simpa [J, n] using hprod
 
-/-- The top normal component is the reciprocal of the surface Jacobian. -/
-theorem referenceSimplex_topFacetOutwardNormalComponent_eq_inv_normDet
-    {d : Nat} [NeZero d] (i : Fin d) :
-    simplexFacetOutwardNormalComponent
-        (referenceGeometricSimplex d) 0 i =
-      ((referenceSimplexTopLinearMap i).normDet)⁻¹ := by
-  have hJ :
-      (referenceSimplexTopLinearMap i).normDet ≠ 0 :=
-    ne_of_gt (referenceSimplexTopLinearMap_normDet_pos i)
-  apply (eq_inv_iff_mul_eq_zero hJ).2
-  have h :=
-    referenceSimplex_topFacetFluxFactor_eq_one i
-  nlinarith
-
-/-- Equivalently, the Jacobian is the reciprocal of the matching normal component. -/
-theorem referenceSimplex_topLinearMap_normDet_eq_inv_normalComponent
-    {d : Nat} [NeZero d] (i : Fin d) :
-    (referenceSimplexTopLinearMap i).normDet =
-      (simplexFacetOutwardNormalComponent
-        (referenceGeometricSimplex d) 0 i)⁻¹ := by
-  have hn :
-      simplexFacetOutwardNormalComponent
-        (referenceGeometricSimplex d) 0 i ≠ 0 :=
-    ne_of_gt (referenceSimplex_topFacetOutwardNormalComponent_pos i)
-  apply (eq_inv_iff_mul_eq_zero hn).2
-  have h :=
-    referenceSimplex_topFacetFluxFactor_eq_one i
-  nlinarith
 
 end
 
