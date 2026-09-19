@@ -17,6 +17,8 @@ import CACEFormal.MeshCombinatorics
 import CACEFormal.CertifiedComposition
 import CACEFormal.GeometryTransforms
 import CACEFormal.AffineGeometry
+import CACEFormal.AffineP1RT0Transport
+import CACEFormal.AffineAssemblyTransport
 import CACEFormal.TransformCombinatorics
 import CACEFormal.Piola
 import CACEFormal.DiscreteMeshAdmissibility
