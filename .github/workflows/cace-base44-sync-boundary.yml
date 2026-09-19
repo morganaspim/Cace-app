@@ -2,19 +2,52 @@ name: CACE Base44 Sync Boundary
 
 on:
   pull_request:
+    paths:
+      - 'CACE_BASE44_GITHUB_SYNC_POLICY.json'
+      - 'BASE44.md'
+      - 'docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md'
+      - 'web/**'
+      - 'base44/**'
+      - 'api/**'
+      - 'schema/public/**'
+      - 'docs/help/**'
+      - 'formal/**'
+      - 'cpp/**'
+      - 'cace_studio/core/**'
+      - 'cace_studio/modules/**'
+      - 'cace_studio/data/proof_*.json'
+      - 'cace_studio/accounts.py'
+      - 'cace_studio/trial_entitlement.py'
+      - 'cace_studio/ai/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/CODEOWNERS'
+      - '.github/workflows/cace-base44-sync-boundary.yml'
+      - 'CACE_*POLICY.json'
+      - 'CACE_AGENT_BOOTSTRAP.json'
+      - 'CACE_CODE_BUILDER_BOOTSTRAP.json'
+      - 'CACE_BUILD_LITE.json'
+      - 'AGENTS.md'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+
 jobs:
   base44-sync-boundary:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cace, oci, aarch64]
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Refuse concurrent CACE runner work
+        run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}" --ignore-workflow-name "CACE Collaboration Coordination Validation" --ignore-workflow-name "CACE Lean Source Sanity"
 
       - name: Classify changed paths and enforce Base44 boundary
         env:

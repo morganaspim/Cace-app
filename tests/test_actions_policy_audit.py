@@ -17,6 +17,7 @@ ACTIVE = (
     "cace-exact-pin-lean-preflight.yml",
     "cace-batch-exact-pin-lean-preflight.yml",
     "cace-lean-source-sanity.yml",
+    "cace-base44-sync-boundary.yml",
 )
 
 
@@ -285,3 +286,29 @@ def test_collaboration_serialization_exempts_only_source_sanity() -> None:
     )
     assert expected in text
     assert text.count("--ignore-workflow-name") == 1
+
+
+def test_base44_sync_boundary_is_serialized_and_scoped() -> None:
+    text = (WORKFLOWS / "cace-base44-sync-boundary.yml").read_text(encoding="utf-8")
+    assert "group: cace-canonical-qualification-oci" in text
+    assert "cancel-in-progress: false" in text
+    assert "runs-on: [self-hosted, cace, oci, aarch64]" in text
+    assert "scripts/check_base44_sync_contract.py" in text
+    assert "BASE44_GITHUB_ACTOR" in text
+    for path in (
+        "web/**",
+        "api/**",
+        "formal/**",
+        "cace_studio/core/**",
+        "cace_studio/modules/**",
+        "CACE_*POLICY.json",
+    ):
+        assert f"- '{path}'" in text
+
+
+def test_base44_sync_boundary_trigger_cannot_drop_formal_surface(tmp_path: Path) -> None:
+    root = _fixture(tmp_path)
+    path = root / "cace-base44-sync-boundary.yml"
+    text = path.read_text(encoding="utf-8").replace("      - 'formal/**'\n", "", 1)
+    path.write_text(text, encoding="utf-8")
+    assert "base44-boundary-trigger-paths" in _kinds(audit(root))

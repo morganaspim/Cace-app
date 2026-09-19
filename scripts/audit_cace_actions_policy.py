@@ -32,6 +32,7 @@ EXPECTED_ACTIVE = {
     "cace-exact-pin-lean-preflight.yml",
     "cace-batch-exact-pin-lean-preflight.yml",
     "cace-lean-source-sanity.yml",
+    "cace-base44-sync-boundary.yml",
 }
 EXPECTED_AUTOMATIC = {
     "cace-collaboration-validation.yml": {"pull_request"},
@@ -41,6 +42,7 @@ EXPECTED_AUTOMATIC = {
     "cace-exact-pin-lean-preflight.yml": set(),
     "cace-batch-exact-pin-lean-preflight.yml": set(),
     "cace-lean-source-sanity.yml": {"pull_request"},
+    "cace-base44-sync-boundary.yml": {"pull_request"},
 }
 LOCKED_PUSH_SCOPE = {
     "cace-formal-v336-theorem-metadata.yml": {
@@ -70,6 +72,34 @@ COLLAB_HEAVY_MANUAL_PATHS = {
     "cace_studio/**",
     "schema/**",
 }
+BASE44_BOUNDARY_AUTOMATIC_PATHS = {
+    "CACE_BASE44_GITHUB_SYNC_POLICY.json",
+    "BASE44.md",
+    "docs/BASE44_GITHUB_SYNC_ARCHITECTURE.md",
+    "web/**",
+    "base44/**",
+    "api/**",
+    "schema/public/**",
+    "docs/help/**",
+    "formal/**",
+    "cpp/**",
+    "cace_studio/core/**",
+    "cace_studio/modules/**",
+    "cace_studio/data/proof_*.json",
+    "cace_studio/accounts.py",
+    "cace_studio/trial_entitlement.py",
+    "cace_studio/ai/**",
+    "scripts/**",
+    "tests/**",
+    ".github/CODEOWNERS",
+    ".github/workflows/cace-base44-sync-boundary.yml",
+    "CACE_*POLICY.json",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "CACE_CODE_BUILDER_BOOTSTRAP.json",
+    "CACE_BUILD_LITE.json",
+    "AGENTS.md",
+}
+
 LEAN_SANITY_AUTOMATIC_PATHS = {
     ".github/workflows/cace-exact-pin-lean-preflight.yml",
     ".github/workflows/cace-batch-exact-pin-lean-preflight.yml",
@@ -306,6 +336,21 @@ def audit(root: Path) -> dict:
                         },
                     }
                 )
+        if filename == "cace-base44-sync-boundary.yml":
+            observed_paths = set(
+                item["automatic_scope"].get("pull_request", {}).get("paths", [])
+            )
+            if observed_paths != BASE44_BOUNDARY_AUTOMATIC_PATHS:
+                violations.append(
+                    {
+                        "file": filename,
+                        "kind": "base44-boundary-trigger-paths",
+                        "detail": {
+                            "expected": sorted(BASE44_BOUNDARY_AUTOMATIC_PATHS),
+                            "observed": sorted(observed_paths),
+                        },
+                    }
+                )
         if filename == "cace-lean-source-sanity.yml":
             observed_paths = set(
                 item["automatic_scope"].get("pull_request", {}).get("paths", [])
@@ -361,6 +406,7 @@ def audit(root: Path) -> dict:
         "required_self_hosted_labels": sorted(REQUIRED_SELF_HOSTED_LABELS),
         "collaboration_automatic_paths": sorted(COLLAB_AUTOMATIC_PATHS),
         "collaboration_heavy_manual_paths": sorted(COLLAB_HEAVY_MANUAL_PATHS),
+        "base44_boundary_automatic_paths": sorted(BASE44_BOUNDARY_AUTOMATIC_PATHS),
         "lean_sanity_automatic_paths": sorted(LEAN_SANITY_AUTOMATIC_PATHS),
         "expected_active": sorted(EXPECTED_ACTIVE),
         "expected_automatic": {
