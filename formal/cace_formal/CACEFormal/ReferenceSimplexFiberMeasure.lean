@@ -102,6 +102,30 @@ theorem integral_eq_coordinateLine_prod
   rw [InnerProductSpace.euclideanHausdorffMeasure_eq_volume] at h
   simpa [s, e, Submodule.measurableEquivProd_symm_apply] using h
 
+/--
+Integrability is preserved when ambient Euclidean coordinates are replaced by
+the canonical coordinate-line/orthogonal-hyperplane product coordinates.
+-/
+theorem Integrable.coordinateLine_prod
+    {d : Nat} {F : Type*}
+    [NormedAddCommGroup F] [NormedSpace ℝ F]
+    (i : Fin d) {f : EuclideanDomain d → F}
+    (hf : Integrable f) :
+    Integrable
+      (fun q :
+        referenceSimplexCoordinateLine i ×
+          (referenceSimplexCoordinateLine i)ᗮ =>
+        f ((q.1 : EuclideanDomain d) + (q.2 : EuclideanDomain d))) := by
+  let s := referenceSimplexCoordinateLine i
+  let e := s.measurableEquivProd (0 : EuclideanDomain d)
+  have hmp :=
+    (s.measurePreserving_measurableEquivProd (0 : EuclideanDomain d)).symm
+  rw [InnerProductSpace.euclideanHausdorffMeasure_eq_volume] at hmp
+  have hcomp : Integrable (f ∘ e.symm) :=
+    hmp.integrable_comp_of_integrable hf
+  simpa [s, e, Function.comp_def,
+    Submodule.measurableEquivProd_symm_apply] using hcomp
+
 /-- Integration over the coordinate line is ordinary Lebesgue integration in its scalar parameter. -/
 theorem integral_coordinateLine_eq_real
     {d : Nat} {F : Type*}
