@@ -17,11 +17,13 @@ import CACEFormal.MeshCombinatorics
 import CACEFormal.CertifiedComposition
 import CACEFormal.GeometryTransforms
 import CACEFormal.AffineGeometry
+import CACEFormal.ExteriorPowerTransport
 import CACEFormal.AffineP1RT0Transport
 import CACEFormal.ReferenceSimplexNormalization
 import CACEFormal.AffineAssemblyTransport
 import CACEFormal.TransformCombinatorics
 import CACEFormal.Piola
+import CACEFormal.DualBladePiola
 import CACEFormal.DiscreteMeshAdmissibility
 import CACEFormal.ConcreteMeshCertificate
 import CACEFormal.MeshCertificate
