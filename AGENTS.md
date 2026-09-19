@@ -6,16 +6,21 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 
 Read these in order before changing scientific or verification behavior:
 
-1. `docs/STATUS.md` — current source/qualification state.
-2. `docs/ARCHITECTURE.md` — subsystem boundaries and trusted-computing-base model.
-3. `docs/CONSTITUTION.md` — non-negotiable project rules.
-4. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
-5. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
-6. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
-7. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
-8. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
-9. `AI_REPO_MAP.json` — machine-readable navigation.
-10. The relevant release/proof-scope file for the feature being changed.
+1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
+2. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
+3. `docs/STATUS.md` — current source/qualification state.
+4. `docs/ARCHITECTURE.md` — subsystem boundaries and trusted-computing-base model.
+5. `docs/SECURITY_ARCHITECTURE.md` — trust zones, threats, isolation and secrets policy.
+6. `docs/CONSTITUTION.md` — non-negotiable project rules.
+7. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
+8. `docs/BUG_FLUSH_ARCHITECTURE.md` — permanent defect-class prevention loop.
+9. `docs/PROVENANCE_ATTESTATION.md` — content identity, independent logs and evidence preservation.
+10. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
+11. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
+12. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
+13. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
+14. `AI_REPO_MAP.json` — machine-readable navigation.
+15. The relevant release/proof-scope file for the feature being changed.
 
 Always inspect exact-commit Actions evidence before describing current source as formally qualified or production-ready. Historical reports, release notes and example outputs are snapshots, not inherited current-head evidence.
 
@@ -65,3 +70,7 @@ When the user states a new CACE goal with clear product, scientific, engineering
 ## Provenance
 
 Future immutable provenance uses content addresses, deterministic Merkle bundles, signed attestations, an append-only transparency ledger and optional external timestamp/blockchain anchoring. This establishes tamper/provenance evidence only and never proves a mathematical claim. See `docs/PROVENANCE_ATTESTATION.md`.
+
+## Repository-only reconstruction requirement
+
+A repository-reading agent must be able to reconstruct the intended webapp, proof/evidence architecture, security boundaries, bug-flush process, provenance/log-retention policy, deployment shape, and acceptance criteria without private chat history. If that is not possible from `CACE_AGENT_BOOTSTRAP.json` and the documents it references, improve repository discoverability before relying on conversational context.
