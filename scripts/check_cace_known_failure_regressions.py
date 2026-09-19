@@ -61,6 +61,7 @@ EXECUTABLE_RATIONAL_SOURCE = (
 )
 SOURCE_SANITY_WORKFLOW = ".github/workflows/cace-lean-source-sanity.yml"
 POSITIVE_LAPLACIAN_SOURCE = "formal/cace_formal/CACEFormal/PositiveLaplacianAnnihilator.lean"
+HDIV_ANNIHILATOR_SOURCE = "formal/cace_formal/CACEFormal/HDivGraphAnnihilator.lean"
 RECENTER_TO_REAL_RE = re.compile(
     r"theorem\s+recenterMap_toReal\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_toReal)"
 )
@@ -269,6 +270,31 @@ def main() -> int:
                 f"{POSITIVE_LAPLACIAN_SOURCE}: positive-frequency coefficient must use "
                 "one canonical Complex.ofReal ((2 * Real.pi) ^ 2) representation"
             )
+
+    hdiv_annihilator_path = ROOT / HDIV_ANNIHILATOR_SOURCE
+    if not hdiv_annihilator_path.is_file():
+        problems.append(f"missing regression source: {HDIV_ANNIHILATOR_SOURCE}")
+    else:
+        hdiv_annihilator_text = hdiv_annihilator_path.read_text(encoding="utf-8")
+        start = hdiv_annihilator_text.find(
+            "theorem hdivGraph_eq_zero_of_reversedH1"
+        )
+        if start < 0:
+            problems.append(
+                f"{HDIV_ANNIHILATOR_SOURCE}: unable to locate reversed-H1 zero theorem"
+            )
+        else:
+            body = hdiv_annihilator_text[start:]
+            if "complexL2ToDistribution_injective n hgDist" in body:
+                problems.append(
+                    f"{HDIV_ANNIHILATOR_SOURCE}: injectivity must normalize literal zero "
+                    "to complexL2ToDistribution n 0 before application"
+                )
+            if "simpa using hgDist" not in body:
+                problems.append(
+                    f"{HDIV_ANNIHILATOR_SOURCE}: reversed-H1 zero proof must explicitly "
+                    "normalize the distributional zero equality before injectivity"
+                )
 
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
     if not source_sanity_path.is_file():
