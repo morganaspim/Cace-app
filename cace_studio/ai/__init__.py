@@ -6,6 +6,7 @@ verification and formal-evidence trusted computing base.
 from .provider import AIProvider, LocalAIError, ProviderHealth
 from .local import create_local_provider, detect_local_providers
 from .corpus import build_local_fragments, build_local_index
+from .grow_candidates import GrowCandidate, build_grow_candidates
 from .growth_memory import GrowthFeedbackEvent, PersistentGrowthMemory
 from .hybrid import GrowthEngine, GrowResult, ResearchFragment, SparseResearchIndex
 
@@ -23,4 +24,6 @@ __all__ = [
     "SparseResearchIndex",
     "GrowthFeedbackEvent",
     "PersistentGrowthMemory",
+    "GrowCandidate",
+    "build_grow_candidates",
 ]
