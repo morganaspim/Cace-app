@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Callable, Iterable
+from uuid import uuid4
 
+from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.types import port_connection_error
 
 
@@ -35,6 +38,7 @@ class UnresolvedInput:
 @dataclass(frozen=True)
 class ExperimentGraphProposal:
     title: str
+    description: str
     nodes: tuple[ProposedNode, ...]
     edges: tuple[ProposedEdge, ...]
     unresolved_required_inputs: tuple[UnresolvedInput, ...]
@@ -69,6 +73,7 @@ def propose_experiment_graph(
     module_ids: Iterable[str],
     *,
     title: str = "Proposed experiment",
+    description: str = "",
     max_modules: int = 8,
 ) -> ExperimentGraphProposal:
     """Build a deterministic, compatibility-checked graph proposal.
@@ -158,9 +163,73 @@ def propose_experiment_graph(
 
     return ExperimentGraphProposal(
         title=str(title).strip() or "Proposed experiment",
+        description=str(description).strip()[:20_000],
         nodes=tuple(nodes),
         edges=tuple(edges),
         unresolved_required_inputs=tuple(unresolved),
         skipped_modules=tuple(skipped),
         rationale=rationale,
     )
+
+
+
+def materialize_experiment_proposal(
+    experiment: Experiment,
+    proposal: ExperimentGraphProposal,
+    *,
+    origin: tuple[float, float] = (40.0, 40.0),
+    id_factory: Callable[[], str] | None = None,
+) -> tuple[Experiment, dict[str, str]]:
+    """Return a copied Experiment with the approved proposal appended.
+
+    The input Experiment is never mutated. Proposal node ids are translated to
+    fresh experiment node ids and every edge is mapped through that translation.
+    """
+    if proposal.is_empty:
+        raise ValueError("cannot materialize an empty experiment proposal")
+
+    factory = id_factory or (lambda: f"n_{uuid4().hex[:8]}")
+    updated = deepcopy(experiment)
+    existing_ids = {node.id for node in updated.nodes}
+    mapping: dict[str, str] = {}
+
+    for proposed in proposal.nodes:
+        node_id = str(factory()).strip()
+        attempts = 0
+        while not node_id or node_id in existing_ids:
+            attempts += 1
+            if attempts > 1000:
+                raise RuntimeError("could not allocate a unique experiment node id")
+            node_id = str(factory()).strip()
+        existing_ids.add(node_id)
+        mapping[proposed.proposal_id] = node_id
+        updated.nodes.append(
+            Node(
+                id=node_id,
+                module_id=proposed.module_id,
+                params={},
+                position=(
+                    float(origin[0]) + proposed.position[0],
+                    float(origin[1]) + proposed.position[1],
+                ),
+            )
+        )
+
+    for edge in proposal.edges:
+        try:
+            source_node = mapping[edge.source_node]
+            target_node = mapping[edge.target_node]
+        except KeyError as exc:
+            raise ValueError(
+                f"proposal edge references unknown proposal node: {exc.args[0]}"
+            ) from exc
+        updated.edges.append(
+            Edge(
+                source_node=source_node,
+                source_port=edge.source_port,
+                target_node=target_node,
+                target_port=edge.target_port,
+            )
+        )
+
+    return updated, mapping
