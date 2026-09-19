@@ -170,7 +170,12 @@ class MainWindow(QMainWindow):
         self._dock("Controls", widget, Qt.LeftDockWidgetArea)
 
     def _make_assistant(self):
-        self.assistant = LocalAIAssistantWidget(self.settings, self._configure_ai, self)
+        self.assistant = LocalAIAssistantWidget(
+            self.settings,
+            self._configure_ai,
+            self.registry,
+            self,
+        )
         self.assistant_dock = self._dock("Local AI Assistant", self.assistant, Qt.RightDockWidgetArea)
 
     def _configure_ai(self):
