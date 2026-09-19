@@ -92,6 +92,28 @@ def main() -> int:
             f"Rejected: exact-pin workflow lost guardrail snippets: {missing_snippets}"
         )
 
+    if text.count("continue-on-error: true") != 5:
+        raise SystemExit(
+            "Rejected: diagnostic sweep must have exactly five continue-on-error stages"
+        )
+
+    diagnostic_ids = (
+        "canary_compile",
+        "impacted_compile",
+        "target_compile",
+        "plan_recheck",
+        "root_compile",
+    )
+    for step_id in diagnostic_ids:
+        if f"id: {step_id}" not in text:
+            raise SystemExit(f"Rejected: missing diagnostic step id: {step_id}")
+
+    aggregate_pos = text.find("- name: Aggregate diagnostic sweep failures")
+    root_pos = text.find("- name: Compile audited root")
+    summary_pos = text.find("- name: Emit non-qualification summary")
+    if not (root_pos < aggregate_pos < summary_pos):
+        raise SystemExit("Rejected: diagnostic aggregate gate is out of required order")
+
     if text.count("jobs:") != 1 or text.count("exact-pin-lean-preflight:") != 1:
         raise SystemExit("Rejected: malformed/duplicated exact-pin job structure")
 
