@@ -21,6 +21,39 @@ coordinates.  A concrete regularizer on `HDivGraphAmbient n` therefore upgrades 
 an equality without any further closure bookkeeping.
 -/
 
+/--
+Real-coordinate orthogonal-annihilator criterion.
+
+As in the complex graph model, the real smooth H(div) core is dense in the
+pulled-back distributional graph as soon as that target contains no nonzero
+vector orthogonal to the entire smooth core.
+-/
+theorem realHDivSmoothGraphClosure_eq_distributionalPreimage_of_relativeOrthogonal
+    (n : Nat)
+    (hzero : ∀ x : HDivGraphAmbient n,
+      x ∈ RealHDivDistributionalPreimage n →
+      x ∈ (HDivSmoothGraphCore n)ᗮ →
+      x = 0) :
+    (HDivSmoothGraphCore n).topologicalClosure =
+      RealHDivDistributionalPreimage n := by
+  exact submodule_topologicalClosure_eq_of_relativeOrthogonal_pointwise
+    (HDivSmoothGraphCore n)
+    (RealHDivDistributionalPreimage n)
+    (HDivSmoothGraphCore_le_RealHDivDistributionalPreimage n)
+    (isClosed_RealHDivDistributionalPreimage n)
+    hzero
+
+/-- Reverse inclusion from the real relative-orthogonal criterion. -/
+theorem realDistributionalPreimage_le_HDivSmoothGraphClosure_of_relativeOrthogonal
+    (n : Nat)
+    (hzero : ∀ x : HDivGraphAmbient n,
+      x ∈ RealHDivDistributionalPreimage n →
+      x ∈ (HDivSmoothGraphCore n)ᗮ →
+      x = 0) :
+    RealHDivDistributionalPreimage n ≤
+      (HDivSmoothGraphCore n).topologicalClosure := by
+  rw [realHDivSmoothGraphClosure_eq_distributionalPreimage_of_relativeOrthogonal n hzero]
+
 /-- If every datum in the pulled-back distributional relation admits real smooth-core
 regularizations converging in graph norm, then the real smooth graph closure is exactly that
 relation. -/
