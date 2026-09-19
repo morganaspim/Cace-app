@@ -444,3 +444,62 @@ def test_strategy_rationales_are_explicit():
     assert proposals["minimal"].rationale.startswith("Minimal strategy:")
     assert proposals["balanced"].rationale.startswith("Balanced strategy:")
     assert proposals["exploratory"].rationale.startswith("Exploratory strategy:")
+
+
+def test_minimal_recovers_compatible_pair_from_scrambled_order():
+    minimal = propose_experiment_strategies(
+        _registry(),
+        ("test.sink", "test.middle", "test.source"),
+        title="minimal scrambled",
+    )["minimal"]
+
+    assert len(minimal.nodes) <= 2
+    assert minimal.edges
+    assert minimal.is_execution_ready is True
+    assert minimal.nodes[0].module_id == "test.source"
+
+
+def test_all_strategies_preserve_unknown_associated_modules():
+    proposals = propose_experiment_strategies(
+        _registry(),
+        ("missing.module", "test.source", "test.middle"),
+        title="unknown module reporting",
+        idea_context="rotor geometry",
+    )
+
+    for proposal in proposals.values():
+        assert "missing.module" in proposal.skipped_modules
+
+
+def test_selected_strategy_materialization_reflects_that_strategy_only():
+    proposals = propose_experiment_strategies(
+        _registry(),
+        ("test.source", "test.middle", "test.sink"),
+        title="Rotor geometry discovery",
+        idea_context="rotor geometry",
+    )
+    minimal = proposals["minimal"]
+    exploratory = proposals["exploratory"]
+
+    minimal_graph, _ = materialize_experiment_proposal(
+        Experiment(),
+        minimal,
+        id_factory=iter(("m1", "m2", "m3")).__next__,
+    )
+    exploratory_ids = iter(
+        ("e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8")
+    )
+    exploratory_graph, _ = materialize_experiment_proposal(
+        Experiment(),
+        exploratory,
+        id_factory=exploratory_ids.__next__,
+    )
+
+    assert len(minimal_graph.nodes) == len(minimal.nodes)
+    assert len(exploratory_graph.nodes) == len(exploratory.nodes)
+    assert [node.module_id for node in minimal_graph.nodes] == [
+        node.module_id for node in minimal.nodes
+    ]
+    assert [node.module_id for node in exploratory_graph.nodes] == [
+        node.module_id for node in exploratory.nodes
+    ]
