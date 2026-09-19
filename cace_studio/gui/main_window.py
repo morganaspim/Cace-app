@@ -27,9 +27,11 @@ from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, Node
 from cace_studio.core.report import save_run_report
 from cace_studio.core.serialization import load_experiment, save_experiment
+from cace_studio.ai.research_ideas import ResearchIdeaStore
 from .ai_assistant import LocalAIAssistantWidget
 from .ai_settings_dialog import LocalAISettingsDialog
 from .node_canvas import CanvasView, ModuleLibrary
+from .research_ideas import ResearchIdeasWidget
 from .transform_preview import CoordinateTransformPreview
 
 
@@ -42,6 +44,7 @@ class MainWindow(QMainWindow):
         self.history = ExperimentHistory(limit=100)
         self.last_result = None
         self.selected_node_id = None
+        self.research_idea_store = ResearchIdeaStore()
         self.setWindowTitle(f"CACE Studio — Verified Research Environment {__version__}")
         self.resize(1380, 860)
         self.scene = QGraphicsScene(self)
@@ -63,6 +66,7 @@ class MainWindow(QMainWindow):
         self._make_console()
         self._make_controls()
         self._make_transform_preview()
+        self._make_research_ideas()
         self._make_assistant()
         self._sync_controls()
         self.autosave_timer = QTimer(self)
@@ -270,6 +274,37 @@ class MainWindow(QMainWindow):
             return False
         return True
 
+    def _current_module_ids(self) -> tuple[str, ...]:
+        seen = set()
+        result = []
+        for node in self.experiment.nodes:
+            module_id = str(node.module_id).strip()
+            if not module_id or module_id in seen:
+                continue
+            seen.add(module_id)
+            result.append(module_id)
+        return tuple(result)
+
+    def _make_research_ideas(self):
+        self.research_ideas = ResearchIdeasWidget(self.research_idea_store, self)
+        self.research_ideas_dock = self._dock(
+            "Research Ideas",
+            self.research_ideas,
+            Qt.BottomDockWidgetArea,
+        )
+
+    def _research_idea_kept(self, idea, created: bool) -> None:
+        self.research_ideas.select_idea(idea.idea_id)
+        self.research_ideas_dock.setVisible(True)
+        self.console.append(
+            (
+                "Created Research Idea from Grow Keep: "
+                if created
+                else "Opened existing Research Idea for kept Grow candidate: "
+            )
+            + idea.title
+        )
+
     def _make_assistant(self):
         self.assistant = LocalAIAssistantWidget(
             self.settings,
@@ -277,6 +312,9 @@ class MainWindow(QMainWindow):
             parent=self,
             context_provider=self._assistant_context,
             activity_callback=self._assistant_animation,
+            research_idea_store=self.research_idea_store,
+            research_idea_callback=self._research_idea_kept,
+            module_context_provider=self._current_module_ids,
         )
         self.assistant_dock = self._dock("Local AI Assistant", self.assistant, Qt.RightDockWidgetArea)
 
