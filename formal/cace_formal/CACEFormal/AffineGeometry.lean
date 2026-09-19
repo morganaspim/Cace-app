@@ -263,6 +263,40 @@ def certifiedPositive (F : Affine2) (hF : 0 < F.linearDet) :
     rw [det_mapTriangle]
     exact mul_pos hF hT
 
+/-- A fused affine chain has the product determinant scaling law on
+triangles. -/
+theorem det_mapTriangle_chain (Fs : List Affine2) (T : Triangle2) :
+    ((chain Fs).mapTriangle T).det =
+      (Fs.map linearDet).prod * T.det := by
+  rw [det_mapTriangle, linearDet_chain]
+
+/-- A fused chain whose determinant product is nonzero is one certified
+nondegeneracy-preserving stage, regardless of how many affine stages were
+fused. -/
+def certifiedChainNondegenerate
+    (Fs : List Affine2) (hprod : (Fs.map linearDet).prod ≠ 0) :
+    CertifiedTransform Triangle2 GeometryTransforms.Nondegenerate :=
+  certifiedNondegenerate (chain Fs) (by
+    rw [linearDet_chain]
+    exact hprod)
+
+/-- A fused chain whose determinant product is positive is one certified
+positive-orientation stage. -/
+def certifiedChainPositive
+    (Fs : List Affine2) (hprod : 0 < (Fs.map linearDet).prod) :
+    CertifiedTransform Triangle2 GeometryTransforms.PositiveOrientation :=
+  certifiedPositive (chain Fs) (by
+    rw [linearDet_chain]
+    exact hprod)
+
+@[simp] theorem certifiedChainNondegenerate_staticCost
+    (Fs : List Affine2) (hprod : (Fs.map linearDet).prod ≠ 0) :
+    (certifiedChainNondegenerate Fs hprod).staticCost = 1 := rfl
+
+@[simp] theorem certifiedChainPositive_staticCost
+    (Fs : List Affine2) (hprod : 0 < (Fs.map linearDet).prod) :
+    (certifiedChainPositive Fs hprod).staticCost = 1 := rfl
+
 /-- Translation, viewed through the general affine theorem, is certified
 orientation preserving. -/
 def translationPositive (v : Point2) :
