@@ -50,7 +50,7 @@ proved by the mesh certificate. -/
 theorem realTriangle_det
     (mesh : MeshCertificate) (K : Fin mesh.triangleCount) :
     (realTriangle mesh K).det = (mesh.signedJacobian K : ℝ) := by
-  unfold realTriangle realPoint Triangle2.det
+  simp only [realTriangle, realPoint, Triangle2.det]
   exact_mod_cast (mesh.signedJacobian_formula K).symm
 
 /-- Every canonical element triangle produced from a mesh certificate is
