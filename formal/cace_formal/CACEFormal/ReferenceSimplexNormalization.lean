@@ -80,9 +80,11 @@ theorem inverseEdgeLinear_map_e1
   rcases e1 with ⟨x1, y1⟩
   rcases e2 with ⟨x2, y2⟩
   change x1 * y2 - y1 * x2 ≠ 0 at hΔ
+  have hΔcomm : y2 * x1 - y1 * x2 ≠ 0 := by
+    simpa [mul_comm] using hΔ
   ext <;>
     dsimp [inverseEdgeLinear, edgeDet, Affine2.mapPoint] <;>
-    field_simp [hΔ] <;>
+    field_simp [hΔ, hΔcomm] <;>
     ring
 
 /-- The inverse-edge linear map sends the second matrix column to the second
@@ -93,9 +95,11 @@ theorem inverseEdgeLinear_map_e2
   rcases e1 with ⟨x1, y1⟩
   rcases e2 with ⟨x2, y2⟩
   change x1 * y2 - y1 * x2 ≠ 0 at hΔ
+  have hΔcomm : y2 * x1 - y1 * x2 ≠ 0 := by
+    simpa [mul_comm] using hΔ
   ext <;>
     dsimp [inverseEdgeLinear, edgeDet, Affine2.mapPoint] <;>
-    field_simp [hΔ] <;>
+    field_simp [hΔ, hΔcomm] <;>
     ring
 
 @[simp] theorem inverseEdgeLinear_map_zero (e1 e2 : Point2) :
@@ -112,8 +116,7 @@ theorem inverseEdgeLinear_linearDet
   rcases e2 with ⟨x2, y2⟩
   change x1 * y2 - y1 * x2 ≠ 0 at hΔ
   dsimp [inverseEdgeLinear, edgeDet, Affine2.linearDet]
-  field_simp [hΔ] <;>
-    ring
+  field_simp [hΔ]
 
 /-- Canonical normalizer: recenter at `p0`, then invert the exact two-edge
 column matrix.  This decomposition keeps the determinant as one named object
