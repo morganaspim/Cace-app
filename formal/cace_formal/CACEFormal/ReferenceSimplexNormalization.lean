@@ -46,7 +46,6 @@ theorem normalizer_linearDet
   change ((x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)) ≠ 0 at hT
   dsimp [normalizer, Affine2.linearDet, Triangle2.det]
   field_simp [hT]
-  ring
 
 /-- Nondegenerate triangles produce nonsingular normalizers. -/
 theorem normalizer_linearDet_ne_zero
@@ -80,9 +79,18 @@ theorem normalizer_map_p1
     (normalizer T).mapPoint T.p1 = ⟨1, 0⟩ := by
   rcases T with ⟨⟨x0, y0⟩, ⟨x1, y1⟩, ⟨x2, y2⟩⟩
   change ((x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)) ≠ 0 at hT
+  have hden :
+      y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 ≠ 0 := by
+    intro hzero
+    apply hT
+    calc
+      (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0) =
+          y2 * x1 - y2 * x0 - y0 * x1 + y0 * x2 - y1 * x2 + y1 * x0 := by
+            ring
+      _ = 0 := hzero
   ext <;>
     dsimp [normalizer, Affine2.mapPoint, Triangle2.det] <;>
-    field_simp [hT] <;>
+    field_simp [hT, hden] <;>
     ring
 
 /-- The third vertex maps exactly to (0,1). -/
