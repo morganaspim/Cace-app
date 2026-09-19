@@ -77,6 +77,47 @@ def test_grow_changes_exploration_without_mutating_fragments():
     assert all(2 <= len(group.fragment_ids) <= 4 for group in high.groups)
 
 
+class _FakeEmbeddingProvider:
+    def embeddings(self, texts):
+        vectors = []
+        for text in texts:
+            lowered = text.lower()
+            if "rotor" in lowered or "blade" in lowered or "geometry" in lowered:
+                vectors.append((1.0, 0.0, 0.0))
+            elif "proof" in lowered or "theorem" in lowered:
+                vectors.append((0.0, 1.0, 0.0))
+            else:
+                vectors.append((0.0, 0.0, 1.0))
+        return tuple(vectors)
+
+
+class _BrokenEmbeddingProvider:
+    def embeddings(self, texts):
+        raise RuntimeError("embedding backend unavailable")
+
+
+def test_optional_neural_rerank_is_used_when_available():
+    engine = GrowthEngine(SparseResearchIndex(_fragments()))
+    result = engine.grow(
+        "rotor blade geometry",
+        embedding_provider=_FakeEmbeddingProvider(),
+    )
+    assert result.neural_rerank_used is True
+    assert "reranked" in result.neural_rerank_note
+    assert result.retrieved[0].fragment.fragment_id == "geometry"
+
+
+def test_neural_rerank_failure_falls_back_to_sparse_path():
+    engine = GrowthEngine(SparseResearchIndex(_fragments()))
+    result = engine.grow(
+        "proof geometry",
+        embedding_provider=_BrokenEmbeddingProvider(),
+    )
+    assert result.retrieved
+    assert result.neural_rerank_used is False
+    assert "fallback after RuntimeError" in result.neural_rerank_note
+
+
 def test_growth_memory_tracks_and_resets_seen_candidates():
     engine = GrowthEngine(SparseResearchIndex(_fragments()))
     first = engine.grow("combine geometry experiment", cycle=0, chaos=0.4)
