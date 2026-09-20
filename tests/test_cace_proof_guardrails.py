@@ -313,6 +313,17 @@ def test_exact_pin_workflow_uses_behaviorally_tested_target_classifier():
     assert '--compile-root "$COMPILE_ROOT"' in workflow
 
 
+def test_canonical_qualification_reclaims_disposable_cache_without_weakening_disk_reserve():
+    workflow = (
+        ROOT / ".github" / "workflows" / "cace-formal-v336-theorem-metadata.yml"
+    ).read_text(encoding="utf-8")
+    assert "min_free_kb=$((5 * 1024 * 1024))" in workflow
+    assert "python -m pip cache purge" in workflow
+    assert '"$RUNNER_TEMP/uv-v337-bin/uv" cache clean' in workflow
+    assert "-name 'cace-v337-qualification.*' -user \"$(id -un)\"" in workflow
+    assert "Formal qualification requires 5 GiB plus source-staging headroom before copy" in workflow
+
+
 def test_exact_pin_workflow_collects_compile_failure_frontier():
     workflow = (
         ROOT / ".github" / "workflows" / "cace-exact-pin-lean-preflight.yml"
