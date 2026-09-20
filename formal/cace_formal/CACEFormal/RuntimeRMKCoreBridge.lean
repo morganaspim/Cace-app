@@ -24,6 +24,11 @@ structure Vec2 where
 
 namespace Vec2
 
+theorem ext_eq {u v : Vec2} (hx : u.x = v.x) (hy : u.y = v.y) : u = v := by
+  cases u
+  cases v
+  simp_all
+
 def toReal (v : Vec2) : Point2 :=
   ⟨(v.x : ℝ), (v.y : ℝ)⟩
 
@@ -74,7 +79,7 @@ theorem matVec_mul (A B : Mat2) (v : Vec2) :
   rcases A with ⟨a00, a01, a10, a11⟩
   rcases B with ⟨b00, b01, b10, b11⟩
   rcases v with ⟨x, y⟩
-  apply Vec2.ext <;> dsimp [matVec, mul] <;> ring
+  apply Vec2.ext_eq <;> dsimp [matVec, mul] <;> ring
 
 @[simp] theorem matVec_to_grade1 (A : Mat2) (v : Vec2) :
     (matVec A v).toReal =
@@ -111,8 +116,8 @@ def toReal (F : AffineMap2) : Affine2 :=
 
 @[simp] theorem linearDet_toReal (F : AffineMap2) :
     F.toReal.linearDet = (F.linear.det : ℝ) := by
-  rcases F with ⟨A, t⟩
-  simpa [toReal, Mat2.toAffineReal] using Mat2.linearDet_toReal A
+  rcases F with ⟨⟨a, b, c, d⟩, ⟨tx, ty⟩⟩
+  simp [toReal, Mat2.det, Affine2.linearDet]
 
 end AffineMap2
 
