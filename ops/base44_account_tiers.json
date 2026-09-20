@@ -55,6 +55,14 @@
         "submit_proof_candidate_for_project_review": true,
         "request_purchasable_full_rigor_proof_package": false,
         "enterprise_commercial_rights": false
+      },
+      "recurring_sale_prices_usd": {
+        "Tuesday_and_Saturday": {
+          "day": 2.5,
+          "week": 7.5,
+          "month": 19.5,
+          "year": 99.5
+        }
       }
     },
     "Researcher": {
@@ -81,6 +89,14 @@
         "submit_proof_candidate_for_project_review": true,
         "request_purchasable_full_rigor_proof_package": false,
         "enterprise_commercial_rights": false
+      },
+      "recurring_sale_prices_usd": {
+        "Tuesday_and_Saturday": {
+          "day": 6,
+          "week": 19.6,
+          "month": 59.6,
+          "year": 399.6
+        }
       }
     },
     "Enterprise": {
@@ -118,6 +134,14 @@
           "private deployment",
           "large seat counts"
         ]
+      },
+      "recurring_sale_prices_usd_per_named_user_or_seat": {
+        "Tuesday_and_Saturday": {
+          "day": 24.75,
+          "week": 99.75,
+          "month": 374.75,
+          "year": 2499.75
+        }
       }
     }
   },
@@ -127,6 +151,46 @@
     "Do not hide general proof-candidate contribution from Basic or Researcher users.",
     "Show purchasable Full-Rigor Proof Package only for Enterprise entitlements.",
     "Purchasing compute/account benefits never changes proof status.",
-    "Target prices are commercial configuration, not proof-sensitive constants, and may change prospectively."
-  ]
+    "Target prices are commercial configuration, not proof-sensitive constants, and may change prospectively.",
+    "On Tuesday and Saturday in America/Phoenix, show the recurring pass sale for eligible day/week/month/year passes: Basic 50% off, Researcher 60% off, Enterprise 75% off.",
+    "Weekly pass-sale discounts are non-stackable and do not apply to the Basic perpetual multithread unlock, bespoke Full-Rigor Proof Package, or separately quoted Enterprise services."
+  ],
+  "recurring_pass_promotion": {
+    "policy_id": "weekly_tuesday_saturday_pass_sale_v1",
+    "timezone": "America/Phoenix",
+    "active_weekdays": [
+      "Tuesday",
+      "Saturday"
+    ],
+    "local_window": {
+      "start": "00:00:00",
+      "end": "23:59:59.999"
+    },
+    "eligible_products": [
+      "day_pass",
+      "week_pass",
+      "month_pass",
+      "year_pass"
+    ],
+    "discount_percent_by_tier": {
+      "Basic": 50,
+      "Researcher": 60,
+      "Enterprise": 75
+    },
+    "stacking_allowed": false,
+    "rounding": {
+      "currency": "USD",
+      "decimals": 2,
+      "mode": "ROUND_HALF_UP"
+    },
+    "exclusions": [
+      "Basic perpetual CPU multithread unlock",
+      "Enterprise Full-Rigor Proof Package",
+      "separately quoted enterprise compute",
+      "private deployment",
+      "dedicated support",
+      "private relay/storage",
+      "large seat quotes"
+    ]
+  }
 }

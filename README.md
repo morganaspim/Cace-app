@@ -25,6 +25,7 @@ The project deliberately separates software maturity from evidence strength. A n
 - `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md` — UI/Gemini proof candidates → GitHub draft PR → normal rigor → human review; Enterprise prove-first/sell-second path
 - `docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md` — Base44-facing Basic/Researcher/Enterprise benefits and UI entitlement rules
 - `ops/base44_account_tiers.json` — machine-readable account tier/benefit manifest
+- `ops/pass_promotion_policy.json` — recurring Tuesday/Saturday pass-sale pricing and eligibility rules
 - `CACE_AGENT_BOOTSTRAP.json` — single machine-readable repository handoff
 - `docs/BUILD_AND_TRUST_GUIDE.md` — unified build, rigor, security, bug-flush and provenance architecture
 - `docs/STATUS.md` — current implementation and qualification state

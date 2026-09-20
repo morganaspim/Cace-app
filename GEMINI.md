@@ -23,6 +23,7 @@ Before browser/product work, also read:
 - `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`
 - `ops/proof_submission_policy.json`
 - `ops/base44_account_tiers.json`
+- `ops/pass_promotion_policy.json`
 - `docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md`
 
 Gemini must not use Base44 as an event bus for canvas motion, run/proof polling, worker telemetry, autonomous-agent turns, scientific artifacts, or AI inference. Those paths remain local/browser or Oracle/CACE according to the typed API contract.
@@ -287,3 +288,12 @@ Use the Base44 account-tier manifest for all account-benefit presentation and ga
 - Only Enterprise may request the commercial Full-Rigor Proof Package.
 - GPU/CUDA availability and CPU-threading benefits must match the manifest.
 - Do not infer benefits from price/tier names or hard-code them across UI components.
+
+
+## Commercial pass promotions
+
+Gemini/Base44 must use `ops/pass_promotion_policy.json` for Tuesday/Saturday pass pricing.
+
+Do not hard-code promotional percentages or discounted prices in components. Resolve the active commercial day in `America/Phoenix`, show the normal and discounted price, and persist the applied promotion policy ID in invoice/order metadata.
+
+Enterprise proof-package administration may use the protected Base44 reserve defined in `ops/base44_free_tier_budget.json`, but proof/science execution remains Oracle/CACE.

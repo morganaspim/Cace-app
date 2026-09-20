@@ -33,6 +33,35 @@
   "policy": {
     "optional_integrations_default_enabled": false,
     "silent_paid_upgrade_allowed": false,
-    "queue_noncritical_metadata_when_hard_stopped": true
+    "queue_noncritical_metadata_when_hard_stopped": true,
+    "enterprise_proof_order_priority": "ENTERPRISE_ORDER_CRITICAL",
+    "enterprise_order_can_use_protected_reserve": true,
+    "enterprise_order_cannot_bypass_platform_allowance": true
+  },
+  "enterprise_proof_order_credit_reserve": {
+    "enabled": true,
+    "purpose": "Protect Base44 capacity for active Enterprise Full-Rigor Proof Package order/account workflow.",
+    "message_credits_reserved": 5,
+    "integration_credits_reserved": 20,
+    "normal_features_may_not_consume_reserve": true,
+    "allowed_when_normal_policy_zone_is_hard_stop": true,
+    "hard_ceiling": "Never exceed the platform-reported monthly allowance or silently purchase paid credits.",
+    "eligible_operations": [
+      "create_or_update_proof_order_metadata",
+      "enterprise_order_status_transition_metadata",
+      "statement_of_work_metadata",
+      "contract_signature_status_metadata",
+      "payment_or_credit_approval_metadata",
+      "customer_delivery_status_metadata",
+      "operator_notification_for_enterprise_proof_order"
+    ],
+    "forbidden_even_for_enterprise_orders": [
+      "scientific_execution",
+      "Lean_or_proof_runner_execution",
+      "high_frequency_CI_polling",
+      "proof_artifact_storage",
+      "worker_telemetry",
+      "raw_scientific_data"
+    ]
   }
 }

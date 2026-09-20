@@ -137,3 +137,39 @@ See:
 - `docs/BASE44_CREDIT_POLICY.md`
 - `docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md`
 - `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`
+
+
+## Recurring Tuesday/Saturday pass sale
+
+The machine-readable recurring promotion is:
+
+- `ops/pass_promotion_policy.json`
+- mirrored in `ops/base44_account_tiers.json`
+
+Commercial calendar:
+
+- timezone: **America/Phoenix**
+- eligible days: **Tuesday and Saturday**
+- active for the full local calendar day
+- non-stackable
+
+Discounts:
+
+| Tier | Discount | 1 day | 1 week | 1 month | 1 year |
+|---|---:|---:|---:|---:|---:|
+| Basic | 50% off | $2.50 | $7.50 | $19.50 | $99.50 |
+| Researcher | 60% off | $6.00 | $19.60 | $59.60 | $399.60 |
+| Enterprise | 75% off | $24.75 | $99.75 | $374.75 | $2,499.75 |
+
+The sale applies only to eligible day/week/month/year account passes.
+
+It does **not** apply to:
+
+- the Basic perpetual CPU multithread unlock;
+- Enterprise Full-Rigor Proof Packages;
+- proof consulting/SOW pricing;
+- separately quoted Enterprise compute/deployment/support/storage/site arrangements.
+
+Gemini/Base44 should render the price from the promotion policy and persist the promotion policy ID, normal price, discount percent, final price, and purchase timestamp in invoice/order metadata.
+
+The discount is commercial configuration only and has no effect on scientific or proof status.

@@ -193,3 +193,20 @@ Required behavior includes:
 General proof-candidate submission is not Enterprise-only. The commercial Full-Rigor Proof Package path is Enterprise-only.
 
 Base44 may gate ordinary UI benefits from account metadata, but CACE must revalidate scientific/security/proof-sensitive actions server-side.
+
+
+## Recurring pass sale + Enterprise order credit priority
+
+Gemini must consume `ops/pass_promotion_policy.json` for recurring pass pricing.
+
+On Tuesday and Saturday in `America/Phoenix`:
+
+- Basic passes are 50% off;
+- Researcher passes are 60% off;
+- Enterprise passes are 75% off.
+
+The sale applies only to account passes, is non-stackable, and excludes the Basic multithread unlock and bespoke Enterprise Full-Rigor Proof Package pricing.
+
+For an active Enterprise proof-package order, the Base44 adapter may classify necessary low-volume order operations as `ENTERPRISE_ORDER_CRITICAL` and use the protected reserve defined in `ops/base44_free_tier_budget.json`.
+
+Do not move proof computation/CI/artifact storage into Base44 merely because an Enterprise order exists.

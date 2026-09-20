@@ -11,6 +11,8 @@
     "docs/BRANCH_LIFECYCLE.md",
     "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
     "ops/base44_account_tiers.json",
+    "ops/base44_free_tier_budget.json",
+    "ops/pass_promotion_policy.json",
     "ops/proof_submission_policy.json",
     "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
     "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md",
@@ -90,7 +92,9 @@
     "proof_submission_workflow": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
     "proof_submission_policy": "ops/proof_submission_policy.json",
     "base44_account_tiers": "ops/base44_account_tiers.json",
-    "base44_account_entitlement_contract": "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md"
+    "base44_account_entitlement_contract": "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+    "pass_promotion_policy": "ops/pass_promotion_policy.json",
+    "base44_credit_budget": "ops/base44_free_tier_budget.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -199,7 +203,8 @@
     "Never claim production readiness from formal proof alone.",
     "Preserve theorem hypotheses and unresolved obligations.",
     "UI/Gemini proof submissions and draft PRs are review candidates only; canonical qualification plus explicit human review remain required.",
-    "Base44/Gemini must use ops/base44_account_tiers.json for Basic/Researcher/Enterprise benefits; do not invent or scatter tier rules in UI code."
+    "Base44/Gemini must use ops/base44_account_tiers.json for Basic/Researcher/Enterprise benefits; do not invent or scatter tier rules in UI code.",
+    "Use the recurring pass promotion policy for Tuesday/Saturday pricing and preserve Base44 protected reserve for active Enterprise proof-package administration."
   ],
   "completion_checklist_source": "docs/MASTER_BUILD_SPEC.md#19-definition-of-done-for-the-working-webapp",
   "network_security": {

@@ -228,3 +228,12 @@ Submission branches are controlled review artifacts and should be classified/fro
 ## Trust boundary
 
 User proof sketches, Gemini output, GitHub PRs, review comments, and commercial intent are all non-evidentiary until the canonical CACE proof/qualification pipeline establishes the relevant result.
+
+
+## Base44 priority during Enterprise proof-package orders
+
+Once an Enterprise proof-package request becomes an active order workflow, Base44 may use its protected credit reserve for low-volume order administration and notifications.
+
+This is intentionally separate from proof execution.
+
+Base44 may track order/customer workflow state, but the actual proof candidate, GitHub rigor checks, Lean qualification, proof artifacts, and `PROOF_READY_FOR_SALE` decision remain authoritative in CACE/GitHub qualification systems.

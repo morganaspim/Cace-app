@@ -116,3 +116,31 @@ The app should avoid repeated Base44 entitlement reads:
 - refresh on meaningful entitlement/account changes;
 - do not query Base44 on canvas events, scientific progress, proof polling, or worker heartbeats;
 - revalidate sensitive operations at Oracle/CACE rather than increasing Base44 polling frequency.
+
+
+## Enterprise Full-Rigor Proof Package credit reserve
+
+An active Enterprise Full-Rigor Proof Package order is a **high-priority permitted Base44 use**.
+
+The machine budget reserves:
+
+- **5 message credits/month**
+- **20 integration credits/month**
+
+for Enterprise proof-order administration.
+
+Normal/optional Base44 features must not consume this protected reserve.
+
+When ordinary Base44 activity has reached the normal HARD STOP, an active Enterprise proof-order workflow may still use the protected reserve for low-volume operations such as:
+
+- order metadata;
+- proof-order status transitions;
+- SOW/contract status;
+- signature status;
+- payment/credit approval status;
+- delivery status;
+- operator/customer notifications related to that order.
+
+This exception does **not** move scientific/proof work into Base44. Even for an Enterprise order, Base44 must not run Lean, execute science, store authoritative proof artifacts, stream CI, or carry high-frequency proof telemetry.
+
+The reserve may never silently exceed the platform-reported monthly allowance or trigger paid credits/resources.

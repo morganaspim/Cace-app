@@ -648,3 +648,40 @@ Base44 may mirror low-volume account/tier/entitlement metadata and use it for or
 The manifest is a product-entitlement configuration surface, not mathematical evidence. Oracle/CACE remains authoritative for scientific execution, security enforcement, proof qualification, and Enterprise proof-package proof-ready status.
 
 Tier/benefit changes should update the Base44 manifest and this account architecture in the same product-policy change.
+
+
+## Recurring pass promotion
+
+CACE account passes use a recurring weekly sale on **Tuesday and Saturday**, evaluated in `America/Phoenix`.
+
+Discounts:
+
+- Basic: **50% off**
+- Researcher: **60% off**
+- Enterprise: **75% off**
+
+The sale covers eligible day/week/month/year passes only and is non-stackable.
+
+Current discounted targets:
+
+| Tier | Day | Week | Month | Year |
+|---|---:|---:|---:|---:|
+| Basic | $2.50 | $7.50 | $19.50 | $99.50 |
+| Researcher | $6.00 | $19.60 | $59.60 | $399.60 |
+| Enterprise | $24.75 | $99.75 | $374.75 | $2,499.75 |
+
+The sale does not discount the Basic perpetual multithread unlock or a bespoke Enterprise Full-Rigor Proof Package.
+
+Invoices should bind the promotion policy ID and the price calculation used at purchase time.
+
+Canonical machine policy: `ops/pass_promotion_policy.json`.
+
+## Base44 use during Enterprise proof orders
+
+For an active Enterprise Full-Rigor Proof Package order, Base44 credits should be used for the low-volume customer/account/order workflow when helpful.
+
+A protected monthly reserve is defined in `ops/base44_free_tier_budget.json`.
+
+This includes order/SOW/contract/payment/delivery status and related notifications, but not scientific execution or formal verification itself.
+
+Oracle/CACE + GitHub/Lean remain authoritative for the actual proof.

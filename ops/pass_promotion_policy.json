@@ -1,0 +1,103 @@
+{
+  "schema": "cace-recurring-pass-promotion-v1",
+  "policy_id": "weekly_tuesday_saturday_pass_sale_v1",
+  "updated_at": "2026-09-20",
+  "timezone": "America/Phoenix",
+  "active_weekdays": [
+    "Tuesday",
+    "Saturday"
+  ],
+  "active_local_window": {
+    "start": "00:00:00",
+    "end": "23:59:59.999"
+  },
+  "applies_to": {
+    "product_type": "account_pass",
+    "durations": [
+      "day",
+      "week",
+      "month",
+      "year"
+    ],
+    "eligible_tiers": [
+      "Basic",
+      "Researcher",
+      "Enterprise"
+    ]
+  },
+  "discount_percent": {
+    "Basic": 50,
+    "Researcher": 60,
+    "Enterprise": 75
+  },
+  "normal_prices_usd": {
+    "Basic": {
+      "day": 4.99,
+      "week": 14.99,
+      "month": 39,
+      "year": 199
+    },
+    "Researcher": {
+      "day": 14.99,
+      "week": 49,
+      "month": 149,
+      "year": 999
+    },
+    "Enterprise": {
+      "day": 99,
+      "week": 399,
+      "month": 1499,
+      "year": 9999
+    }
+  },
+  "sale_prices_usd": {
+    "Basic": {
+      "day": 2.5,
+      "week": 7.5,
+      "month": 19.5,
+      "year": 99.5
+    },
+    "Researcher": {
+      "day": 6,
+      "week": 19.6,
+      "month": 59.6,
+      "year": 399.6
+    },
+    "Enterprise": {
+      "day": 24.75,
+      "week": 99.75,
+      "month": 374.75,
+      "year": 2499.75
+    }
+  },
+  "calculation": {
+    "formula": "sale_price = normal_price * (1 - discount_percent / 100)",
+    "currency": "USD",
+    "round_to_decimals": 2,
+    "rounding_mode": "ROUND_HALF_UP"
+  },
+  "stacking_allowed": false,
+  "exclusions": [
+    "Basic perpetual CPU multithread unlock",
+    "Enterprise Full-Rigor Proof Package",
+    "enterprise proof consulting/SOW price",
+    "separately quoted enterprise compute",
+    "private deployment",
+    "dedicated support",
+    "private relay/storage",
+    "large seat/site quotes",
+    "taxes or externally imposed fees unless separately configured"
+  ],
+  "ui_rules": [
+    "Resolve eligibility using America/Phoenix local calendar day.",
+    "Show both normal price and discounted price on eligible Tuesdays and Saturdays.",
+    "Do not store the discounted price as a permanent entitlement price after the promotional calendar day ends.",
+    "Persist the applied promotion policy ID, normal price, discount percent, final price, and purchase timestamp on the invoice/order metadata.",
+    "Do not stack this sale with another promotion unless a future policy explicitly permits it."
+  ],
+  "authority": {
+    "commercial_configuration": true,
+    "scientific_evidence_authority": false,
+    "proof_promotion_authority": false
+  }
+}
