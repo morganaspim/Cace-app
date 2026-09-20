@@ -17,7 +17,10 @@ from cace_studio.core.reasoning_curriculum import (
     composition_split,
     evaluate_pair,
     evaluate_task,
+    curriculum_batch_manifest,
+    curriculum_batch_manifest_sha256,
     curriculum_signals_from_perception,
+    curriculum_symmetry_benchmark_record,
     generate_affine_apply_pair,
     generate_exact_curriculum_batch,
     generate_exterior_wedge_pair,
@@ -25,6 +28,7 @@ from cace_studio.core.reasoning_curriculum import (
     generate_permutation_action_pair,
     generate_simplex_barycentric_pair,
     rank_heartbeat_aware_skills,
+    replay_exact_curriculum_batch,
 )
 
 
@@ -571,4 +575,68 @@ def test_perception_adapter_rejects_evidence_authority_and_unknown_states():
         curriculum_signals_from_perception(
             bad,
             node_skill_ids={"n1": ["skill"]},
+        )
+
+
+def test_curriculum_manifest_is_deterministic_and_replayable_without_native_payload_serialization():
+    batch = generate_exact_curriculum_batch(_FakeNative, seed=404)
+    manifest = curriculum_batch_manifest(batch)
+    digest1 = curriculum_batch_manifest_sha256(batch)
+    digest2 = curriculum_batch_manifest_sha256(
+        generate_exact_curriculum_batch(
+            _FakeNative,
+            seed=404,
+            holdout_family=batch.holdout_family,
+        )
+    )
+
+    assert manifest["evidence_authority"] is False
+    assert manifest["pair_count"] == 5
+    assert manifest["task_count"] == 10
+    assert len(digest1) == 64
+    assert digest1 == digest2
+    assert all("expected_output" not in record for record in manifest["pairs"])
+
+    replayed = replay_exact_curriculum_batch(_FakeNative, manifest)
+    assert replayed.batch_id == batch.batch_id
+    assert replayed.holdout_family == batch.holdout_family
+
+
+def test_curriculum_manifest_replay_rejects_authority_and_pair_tampering():
+    batch = generate_exact_curriculum_batch(_FakeNative, seed=505)
+    manifest = curriculum_batch_manifest(batch)
+
+    authority = dict(manifest)
+    authority["evidence_authority"] = True
+    with pytest.raises(ValueError, match="evidence_authority=false"):
+        replay_exact_curriculum_batch(_FakeNative, authority)
+
+    tampered = dict(manifest)
+    tampered["pairs"] = [dict(item) for item in manifest["pairs"]]
+    tampered["pairs"][0]["generator_version"] = "tampered"
+    with pytest.raises(ValueError, match="pair metadata mismatch"):
+        replay_exact_curriculum_batch(_FakeNative, tampered)
+
+
+def test_curriculum_symmetry_benchmark_record_is_descriptive_only():
+    record = curriculum_symmetry_benchmark_record(
+        raw_states=6,
+        canonical_states=1,
+        eliminated_states=5,
+        reduction_fraction=5 / 6,
+        canonicalization_idempotent=True,
+        raw_key_seconds=0.1,
+        canonicalization_seconds=0.2,
+    )
+    assert record["performance_claim"] == "none; timings are descriptive only"
+    assert record["evidence_authority"] is False
+    assert record["eliminated_states"] == 5
+
+    with pytest.raises(ValueError):
+        curriculum_symmetry_benchmark_record(
+            raw_states=6,
+            canonical_states=2,
+            eliminated_states=5,
+            reduction_fraction=0.5,
+            canonicalization_idempotent=True,
         )
