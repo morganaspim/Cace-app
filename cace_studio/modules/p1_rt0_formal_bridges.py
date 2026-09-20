@@ -116,7 +116,6 @@ class P1RT0FormalRuntimePacket(Module):
             mesh_definition_name=mesh_definition_name,
             binding_prefix=binding_prefix,
         )
-        source_binding["run_id"] = ctx.run_id
         return {
             "runtime_packet": packet,
             "lean_source": lean_source,
@@ -130,7 +129,6 @@ class P1RT0FormalRuntimePacket(Module):
 
         packet_check = verify_p1_rt0_runtime_packet(packet)
         binding_for_check = dict(binding) if isinstance(binding, Mapping) else {}
-        binding_for_check.pop("run_id", None)
         binding_check = verify_formal_source_binding(
             binding_for_check,
             packet,
