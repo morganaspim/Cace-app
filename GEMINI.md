@@ -73,7 +73,7 @@ Read these in this order:
 
 Always re-query live GitHub/CI state before acting on a proof or deployment gate. Snapshot documents can be stale.
 
-## What Gemini should own
+## What Gemini should own in Presentation Builder mode
 
 Gemini may implement and improve:
 
