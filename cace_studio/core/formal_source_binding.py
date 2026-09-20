@@ -42,6 +42,19 @@ def create_formal_source_binding(
     if not isinstance(lean_source, str) or not lean_source.strip():
         raise ValueError("lean_source must be non-empty text")
 
+    expected_snippets = (
+        f"def {mesh_definition_name} : MeshCertificate where",
+        f"def {binding_prefix}P1",
+        f"def {binding_prefix}RT0",
+        f'def {binding_prefix}PacketSha256 : String := "{packet["packet_sha256"]}"',
+        f'def {binding_prefix}MeshCertificateSha256 : String := "{packet["mesh_certificate"]["sha256"]}"',
+    )
+    missing = [snippet for snippet in expected_snippets if snippet not in lean_source]
+    if missing:
+        raise ValueError(
+            "generated Lean source missing expected binding symbols: " + "; ".join(missing)
+        )
+
     binding: dict[str, Any] = {
         "schema": SOURCE_BINDING_SCHEMA,
         "runtime_packet_schema": PACKET_SCHEMA,
@@ -53,6 +66,7 @@ def create_formal_source_binding(
             "p1": f"{binding_prefix}P1",
             "rt0": f"{binding_prefix}RT0",
             "packet_sha256": f"{binding_prefix}PacketSha256",
+            "mesh_certificate_sha256": f"{binding_prefix}MeshCertificateSha256",
         },
         "fsl_status": {
             "FSL-0": "PASS_EXACT_RUNTIME_PACKET",
@@ -106,6 +120,27 @@ def verify_formal_source_binding(
         errors.append("mesh certificate SHA-256 mismatch")
     if binding.get("lean_source_sha256") != lean_source_sha256(lean_source):
         errors.append("Lean source SHA-256 mismatch")
+
+    symbols = binding.get("generated_symbols")
+    if not isinstance(symbols, Mapping):
+        errors.append("missing generated_symbols")
+    else:
+        mesh_name = symbols.get("mesh")
+        p1_name = symbols.get("p1")
+        rt0_name = symbols.get("rt0")
+        packet_hash_name = symbols.get("packet_sha256")
+        mesh_hash_name = symbols.get("mesh_certificate_sha256")
+        expected_source_snippets = (
+            f"def {mesh_name} : MeshCertificate where",
+            f"def {p1_name}",
+            f"def {rt0_name}",
+            f'def {packet_hash_name} : String := "{packet["packet_sha256"]}"',
+            f'def {mesh_hash_name} : String := "{packet["mesh_certificate"]["sha256"]}"',
+        )
+        for snippet in expected_source_snippets:
+            if snippet not in lean_source:
+                errors.append(f"generated symbol/source mismatch: {snippet}")
+
     if binding.get("formal_claim") is not False:
         errors.append("generated source binding must not claim formal verification")
     if binding.get("lean_build_state") != "NOT_RUN":
