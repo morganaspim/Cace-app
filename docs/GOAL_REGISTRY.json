@@ -1077,6 +1077,85 @@
         "Exact/formal status follows the ordinary evidence pipeline; representational compression cannot weaken rigor."
       ],
       "inspiration": "Part of the Sophonic-AI-inspired geometric-reasoning/training direction; exact combinatorics/group-action implementation and evaluation remain independently designed in CACE."
+    },
+    {
+      "id": "G073",
+      "category": "ai_capability_feedback",
+      "priority": 73,
+      "intent_status": "required",
+      "title": "Capability-gap feedback to rigorous tool incubation",
+      "summary": "When a user asks for an unavailable capability, CACE should offer structured feedback/tool request capture and, when approved, route it into the Gemini/local Rigorous Tool Builder pipeline through C++ implementation, tests, Lean attempt, source-to-formal binding and normal proof gates.",
+      "acceptance": [
+        "Unsupported capability detection is grounded in the real registry and never fabricated.",
+        "The assistant offers Request this capability / Send feedback and preserves the user's active experiment.",
+        "Tool requests capture intended semantics, typed inputs/outputs, connections, evidence target and failure cases without uploading research data by default.",
+        "Approved requests can become cace-ai-tool-submission-v1 work for Gemini/local builders.",
+        "Incomplete formalization is submitted with explicit unresolved obligations rather than self-promoted.",
+        "A requested tool is not advertised as production-ready until the normal production-completeness and evidence gates pass."
+      ]
+    },
+    {
+      "id": "G074",
+      "category": "visual_programming",
+      "priority": 74,
+      "intent_status": "required",
+      "title": "Typed visual scientific programming language with semantic animation",
+      "summary": "Make the canvas behave like an intuitive typed visual programming language with reusable subgraphs, explicit ports, deterministic semantics and animations derived from real state transitions rather than decorative UI logic.",
+      "acceptance": [
+        "Connections are governed by canonical type/unit/domain contracts and invalid links fail before execution.",
+        "Reusable subgraphs can become serializable higher-level modules with explicit contracts.",
+        "Every semantic operation can expose a presentation animation derived from before/after semantic state.",
+        "Animations never alter values, execution order, evidence or headless/API semantics and support reduced-motion mode.",
+        "Production module chains work end-to-end across GUI/API/CLI/agent paths rather than through module-name-specific UI hacks.",
+        "CACE uses independently designed visuals/interaction and does not copy third-party visual-programming branding, assets, code or trade dress without explicit license review."
+      ]
+    },
+    {
+      "id": "G075",
+      "category": "math_workbench",
+      "priority": 75,
+      "intent_status": "required",
+      "title": "Independent mathematical workbench with formula cards and beautiful typed input",
+      "summary": "Provide a professional numerical/mathematical workbench experience with command/tool discovery, variable/data workspace, canonical equation input, formula cards, plots, notebooks, demos and Help while independently designing the UI and semantics.",
+      "acceptance": [
+        "Rendered equations round-trip through the canonical typed AST and are never the semantic source of truth.",
+        "Formula cards expose equations, symbols, units, assumptions, compatible modules, evidence capability, demos and Build on Canvas.",
+        "Tool search, workspace/data inspection, plots, notebooks, history and demos use CACE-owned designs and canonical semantics.",
+        "No third-party product UI, proprietary code, documentation text, icons, trade dress or branding is copied without a separate license/provenance review.",
+        "Trademarked external product names are not used as CACE feature names."
+      ]
+    },
+    {
+      "id": "G076",
+      "category": "research_assistant_planning",
+      "priority": 76,
+      "intent_status": "required",
+      "title": "Grounded Top-10 next-actions assistant",
+      "summary": "After every meaningful canvas or experiment change, the Local Research Assistant can rank up to ten grounded next actions from real modules, blockers, evidence state, compatible connections, research ideas and compute constraints to get experiments running faster.",
+      "acceptance": [
+        "Suggestions reference actual node/module IDs and available capabilities.",
+        "Each suggestion shows why it matters, expected graph diff, prerequisites, approximate cost and expected evidence impact.",
+        "Ranking rewards objective relevance, executability, blocker removal, information gain, rigor gain, compatibility, cost and diversity.",
+        "Unavailable capabilities are surfaced as Tool Requests rather than fabricated actions.",
+        "The assistant does not mutate the canvas without the applicable user/automation approval policy.",
+        "Suggestion quality is regression-tested against deterministic baseline ranking and representative workflows."
+      ]
+    },
+    {
+      "id": "G077",
+      "category": "ai_math_efficiency",
+      "priority": 77,
+      "intent_status": "research",
+      "title": "Benchmark-driven math-guided neural efficiency",
+      "summary": "Use exact symmetries, ReasoningOperators, equivariant models, sparse geometric representations, curriculum learning, canonical caching and verifier-guided distillation to reduce local-AI search/context/compute while preserving or improving correctness and transfer.",
+      "acceptance": [
+        "Symmetry canonicalization and operator programs are benchmarked against non-structured baselines.",
+        "Equivariant architectures are used only where a declared symmetry/action justifies them.",
+        "Training holds out complete operator compositions and includes paired intervention/invariance evaluation.",
+        "Benchmarks report correctness, transfer, search states, operator steps, tokens/context, latency, memory and verifier-closure rate.",
+        "No technique is called an optimization unless measured gains survive correctness/evidence-integrity checks.",
+        "The direction remains Sophonic-AI-inspired at the high-level conceptual level while implementation, datasets, objectives and evaluation are independently designed."
+      ]
     }
   ]
 }
