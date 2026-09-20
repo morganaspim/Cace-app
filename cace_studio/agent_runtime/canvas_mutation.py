@@ -8,6 +8,7 @@ from typing import Any, Callable, Literal, Mapping
 
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, ExperimentGroup, Node
+from cace_studio.core.module import ValidationError
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.reproducibility import (
     drift_report,
@@ -429,7 +430,10 @@ class CanvasMutationRuntime:
 
     def _validate_candidate(self, experiment: Experiment) -> None:
         self._validate_params(experiment)
-        GraphExecutor(self.registry)._validate_and_order(experiment)
+        try:
+            GraphExecutor(self.registry)._validate_and_order(experiment)
+        except ValidationError as exc:
+            raise CanvasMutationError(str(exc)) from exc
 
     @staticmethod
     def _find_node(experiment: Experiment, node_id: str) -> Node:
