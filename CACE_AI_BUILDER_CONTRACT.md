@@ -86,6 +86,16 @@ For Gemini/Google AI Studio, the browser implementation is explicitly a **presen
 
 The Gemini-specific entrypoint is `GEMINI.md`; the detailed integration handoff is `docs/GEMINI_AI_STUDIO_HANDOFF.md`.
 
+## 4A. Rigorous Tool Builder permission
+
+AI builders, including Gemini, may directly implement C++ scientific/exact tools and may write Lean theorem statements/proofs when operating under the appropriate change class.
+
+The required contribution path is defined by `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`.
+
+When an AI cannot complete the formal proof or runtime-to-formal bridge, it must preserve the useful engineering work and create a proof-ready submission packet conforming to `collaboration/schema/cace-ai-tool-submission.schema.json`. The packet must list unresolved obligations and a recommended next gate.
+
+This permission does not grant evidence authority. The submission schema intentionally provides no legal AI-authored `FORMAL_PASS` state and fixes `promotion_authority=false`.
+
 ## 5. Change classes
 
 Every proposed change must be classified before implementation.
@@ -281,3 +291,10 @@ An AI-built change is successful only when:
 - unresolved obligations are preserved rather than hidden.
 
 Fast code generation is useful. Trust is earned only through CACE's independent contracts and verification pipeline.
+
+
+## 15. Heartbeat/perception boundary
+
+Agent/canvas perception packets conforming to `schema/cace-agent-perception.schema.json` may guide attention, scheduling, experiment proposals and recovery. They may expose canonical evidence state snapshots read from authoritative subsystems, but they cannot author or promote those states.
+
+Use heartbeat/perception to make the AI responsive to the evolving experiment, not to bypass certificates, checkers, theorem hypotheses, or qualification.
