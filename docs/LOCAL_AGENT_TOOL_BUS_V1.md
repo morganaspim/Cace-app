@@ -672,3 +672,133 @@ This closes a deeper crash case:
 8. the active workspace stays at version 2.
 
 Recovery therefore never rolls the workspace backward merely to resolve an older idempotency record.
+
+
+## v1.6 approved autonomous multi-step canvas plans
+
+v1.6 adds a higher-level plan object above the v1.4/v1.5 mutation transaction layer. The planner may propose a multi-step graph construction plan, but it still never receives direct mutable access to the workspace.
+
+### Plan preview
+
+`cace.canvas.preview_plan` is read-only. A request contains up to 50 typed steps. Every step has:
+
+- a canonical `step_id`;
+- zero or more explicit `depends_on` step IDs; and
+- one or more existing typed canvas mutation operations.
+
+CACE validates the dependency graph, rejects unknown dependencies/cycles, and deterministically topologically sorts ready steps by step ID.
+
+The plan preview then simulates each step sequentially against a copy of the persisted workspace. Every simulated step creates and persists an ordinary immutable `CanvasPreviewRecord` with the exact future workspace transition:
+
+`N -> N+1 -> N+2 -> ...`
+
+No workspace mutation occurs during plan preview.
+
+### One immutable plan identity
+
+The durable `CanvasPlanRecord` binds:
+
+- workspace ID;
+- base and final workspace versions;
+- base and final semantic/full hashes;
+- deterministic ordered step IDs;
+- explicit step dependencies;
+- each step's immutable preview ID;
+- each step's base/target versions and hashes;
+- each step diff hash; and
+- dependency estimates.
+
+The content-addressed `plan_id` is the SHA-256 identity of that entire non-proof-authoritative plan object.
+
+`cace.canvas.execute_plan` accepts only the stored `plan_id`. The model cannot insert, remove, reorder, or rewrite plan operations after approval.
+
+### Advisory execution/proof dependency estimate
+
+Plan preview also reports:
+
+- canonical final graph execution node order;
+- corresponding module execution order;
+- unique module IDs;
+- required external inputs not supplied by graph edges; and
+- per-module maturity, declared evidence metadata, formal-artifact metadata, and limitations.
+
+This information is advisory planning metadata only. Declared proof metadata is explicitly labeled as **not executed verification evidence** and has no promotion authority.
+
+### One human approval for the entire exact plan
+
+`canvas_plan_approval_callback(...)` resolves the requested `plan_id` from the durable plan store and presents the exact stored plan to the human decision callback.
+
+The approval payload therefore includes the full deterministic ordered plan, every child preview/hash/version transition, final target hashes, and dependency estimate.
+
+The approval applies only to that exact plan identity.
+
+### Durable approval reuse on crash recovery
+
+The operation ledger now persists whether an exact Tool Bus operation was human-approved.
+
+For approval-required idempotent tools, recovery/replay may reuse that prior approval only when all of these still match:
+
+- operation ID;
+- canonical tool name; and
+- canonical input SHA-256.
+
+Old operation records that do not contain the approval flag default to unapproved and therefore require the normal approval path.
+
+This means an approved plan is not re-prompted merely because the process crashed after durable transaction claim. Changing the plan ID or any tool arguments does not inherit the old approval.
+
+### Step execution is still transaction-based
+
+The plan handler does not perform one giant workspace overwrite.
+
+For every ordered step it derives a deterministic child operation ID from:
+
+- plan ID;
+- outer plan operation ID;
+- step ID;
+- step index; and
+- step preview ID.
+
+Each step is then committed through the existing `CanvasMutationRuntime.commit` path with:
+
+- the exact stored child preview;
+- the current run/lease/fencing generation;
+- the second fencing check inside the workspace lock;
+- optimistic workspace version/base-hash checks;
+- atomic persisted workspace replacement;
+- post-commit hash verification; and
+- an immutable workspace transaction receipt.
+
+The plan stops on the first failure.
+
+### Crash/resume
+
+On retry/recovery, CACE examines the workspace receipt lineage before each step.
+
+- A step whose exact child receipt already exists is not executed again.
+- The next missing step may execute only if the current workspace exactly matches that step's approved base version/hashes.
+- An unexpected workspace state fails closed.
+- If some earlier plan steps already committed and a later step becomes unresolved, the outer plan transaction remains recovery-blocked rather than pretending the entire plan failed atomically.
+
+This permits:
+
+`step 1 -> step 2 -> crash -> recover -> step 3 -> ...`
+
+without replaying steps 1 or 2.
+
+### Historical completed-plan reconciliation
+
+If every plan step committed but the outer plan operation ledger crashed before finalization, later workspace transactions may legitimately advance the workspace further.
+
+Recovery uses the immutable child receipt chain to reconstruct the completed plan's historical final result. It finalizes the old outer plan transaction without rolling the current newer workspace backward.
+
+### Final verification
+
+For a normally completing plan, CACE requires the final persisted workspace version and semantic/full hashes to equal the approved plan target exactly.
+
+A recovered historical plan returns the exact approved historical target from its validated receipt chain while leaving a newer current workspace untouched.
+
+### Trust boundary
+
+Plan approval, dependency estimates, child transactions, workspace hashes, and plan completion remain engineering coordination/provenance.
+
+They do not create verifier PASS, FORMAL evidence, theorem qualification, or proof-ledger promotion.

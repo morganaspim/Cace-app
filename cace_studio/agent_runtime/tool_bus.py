@@ -194,6 +194,36 @@ class ToolBus:
 
         decision = self.policy.decision(tool.capability)
         approved = decision == "allow"
+        reused_durable_approval = False
+
+        if (
+            decision == "approval"
+            and call.operation_id is not None
+            and self.operation_store is not None
+        ):
+            try:
+                existing_operation = self.operation_store.load(call.operation_id)
+            except Exception as exc:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.RECOVERY_BLOCKED,
+                    approved=False,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error=(
+                        "durable approval lookup failed: "
+                        f"{type(exc).__name__}: {exc}"
+                    ),
+                )
+            if (
+                existing_operation is not None
+                and existing_operation.tool_name == tool.name
+                and existing_operation.input_sha256 == input_sha256
+                and existing_operation.approved
+            ):
+                approved = True
+                reused_durable_approval = True
 
         if decision == "deny":
             return self._record(
@@ -206,7 +236,7 @@ class ToolBus:
                 error=f"capability denied: {tool.capability.value}",
             )
 
-        if decision == "approval":
+        if decision == "approval" and not reused_durable_approval:
             if self.approval_callback is None:
                 return self._record(
                     call=call,
@@ -326,6 +356,7 @@ class ToolBus:
                     input_sha256=input_sha256,
                     lease_id=call.lease_id,
                     lease_generation=call.lease_generation,
+                    approved=approved,
                 )
             except OperationConflictError as exc:
                 return self._record(

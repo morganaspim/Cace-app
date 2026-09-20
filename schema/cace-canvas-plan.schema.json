@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-canvas-plan.schema.json",
+  "title": "CACE Autonomous Canvas Plan v1",
+  "description": "Immutable multi-step canvas plan preview/execution contracts. Engineering coordination only; no proof authority.",
+  "$defs": {
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": {"enum": ["add_node","remove_node","replace_params","move_node","add_edge","remove_edge"]},
+        "node_id": {"type": "string"},
+        "module_id": {"type": "string"},
+        "params": {"type": "object"},
+        "position": {
+          "oneOf": [
+            {"type":"array","prefixItems":[{"type":"number"},{"type":"number"}],"minItems":2,"maxItems":2},
+            {"type":"null"}
+          ]
+        },
+        "source_node": {"type":"string"},
+        "source_port": {"type":"string"},
+        "target_node": {"type":"string"},
+        "target_port": {"type":"string"}
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id","operations"],
+      "properties": {
+        "step_id": {"type":"string","pattern":"^[A-Za-z0-9._-]{1,128}$"},
+        "depends_on": {"type":"array","uniqueItems":true,"items":{"type":"string"}},
+        "operations": {"type":"array","minItems":1,"maxItems":100,"items":{"$ref":"#/$defs/operation"}}
+      }
+    },
+    "preview_request": {
+      "type":"object",
+      "additionalProperties":false,
+      "required":["steps"],
+      "properties":{
+        "steps":{"type":"array","minItems":1,"maxItems":50,"items":{"$ref":"#/$defs/step"}}
+      }
+    },
+    "execute_request": {
+      "type":"object",
+      "additionalProperties":false,
+      "required":["plan_id"],
+      "properties":{"plan_id":{"type":"string","pattern":"^[0-9a-f]{64}$"}}
+    },
+    "preview_response": {
+      "type":"object",
+      "additionalProperties":false,
+      "required":[
+        "plan_id","step_count","ordered_step_ids","workspace_id",
+        "base_workspace_version","target_workspace_version",
+        "base_semantic_sha256","base_full_sha256",
+        "target_semantic_sha256","target_full_sha256",
+        "dependency_estimate","proof_effect","promotion_authority"
+      ],
+      "properties":{
+        "plan_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "step_count":{"type":"integer","minimum":1},
+        "ordered_step_ids":{"type":"array","items":{"type":"string"}},
+        "workspace_id":{"type":"string"},
+        "base_workspace_version":{"type":"integer","minimum":0},
+        "target_workspace_version":{"type":"integer","minimum":1},
+        "base_semantic_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "base_full_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "target_semantic_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "target_full_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "dependency_estimate":{"type":"object"},
+        "proof_effect":{"const":"none"},
+        "promotion_authority":{"const":false}
+      }
+    },
+    "execute_response": {
+      "type":"object",
+      "additionalProperties":false,
+      "required":[
+        "plan_id","operation_id","completed_steps","child_operation_ids",
+        "workspace_id","base_workspace_version","final_workspace_version",
+        "target_semantic_sha256","target_full_sha256",
+        "post_semantic_sha256","post_full_sha256",
+        "semantic_hash_verified","full_hash_verified",
+        "proof_effect","promotion_authority"
+      ],
+      "properties":{
+        "plan_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "operation_id":{"type":"string","minLength":1},
+        "completed_steps":{"type":"array","items":{"type":"string"}},
+        "child_operation_ids":{"type":"array","items":{"type":"string","pattern":"^[0-9a-f]{64}$"}},
+        "workspace_id":{"type":"string"},
+        "base_workspace_version":{"type":"integer","minimum":0},
+        "final_workspace_version":{"type":"integer","minimum":1},
+        "target_semantic_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "target_full_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "post_semantic_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "post_full_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+        "semantic_hash_verified":{"const":true},
+        "full_hash_verified":{"const":true},
+        "proof_effect":{"const":"none"},
+        "promotion_authority":{"const":false}
+      }
+    }
+  },
+  "oneOf":[
+    {"$ref":"#/$defs/preview_request"},
+    {"$ref":"#/$defs/execute_request"},
+    {"$ref":"#/$defs/preview_response"},
+    {"$ref":"#/$defs/execute_response"}
+  ]
+}

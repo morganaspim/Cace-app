@@ -49,6 +49,7 @@ class OperationRecord:
     lease_generation: int
     created_unix: float
     updated_unix: float
+    approved: bool = False
     result: Mapping[str, Any] | None = None
     proof_effect: str = "none"
     promotion_authority: bool = False
@@ -86,6 +87,7 @@ class OperationRecord:
             "lease_generation": self.lease_generation,
             "created_unix": self.created_unix,
             "updated_unix": self.updated_unix,
+            "approved": self.approved,
             "result": dict(self.result) if self.result is not None else None,
             "proof_effect": "none",
             "promotion_authority": False,
@@ -108,6 +110,7 @@ class OperationRecord:
             lease_generation=int(payload.get("lease_generation", 0)),
             created_unix=float(payload["created_unix"]),
             updated_unix=float(payload["updated_unix"]),
+            approved=bool(payload.get("approved", False)),
             result=dict(result) if result is not None else None,
             proof_effect=str(payload.get("proof_effect", "none")),
             promotion_authority=bool(payload.get("promotion_authority", False)),
@@ -202,6 +205,7 @@ class FileOperationStore:
         input_sha256: str,
         lease_id: str = "",
         lease_generation: int = 0,
+        approved: bool = False,
     ) -> OperationClaim:
         operation_id = _safe_operation_id(operation_id)
         with CrossProcessFileLock(self._lock_path(operation_id)):
@@ -236,6 +240,7 @@ class FileOperationStore:
                 lease_generation=int(lease_generation),
                 created_unix=now,
                 updated_unix=now,
+                approved=bool(approved),
             )
             self._save_unlocked(record)
             return OperationClaim(operation_id, "execute")
@@ -283,6 +288,7 @@ class FileOperationStore:
                 lease_generation=existing.lease_generation,
                 created_unix=existing.created_unix,
                 updated_unix=now,
+                approved=existing.approved,
                 result=result.to_dict(),
             )
             self._save_unlocked(committed)

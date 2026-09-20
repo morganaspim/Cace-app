@@ -40,6 +40,20 @@ from .canvas_mutation import (
     canvas_preview_approval_callback,
     register_canvas_mutation_tools,
 )
+from .canvas_plan import (
+    CanvasPlanError,
+    CanvasPlanExecuteRequest,
+    CanvasPlanExecuteResponse,
+    CanvasPlanPreviewRequest,
+    CanvasPlanPreviewResponse,
+    CanvasPlanRecord,
+    CanvasPlanRuntime,
+    CanvasPlanStep,
+    CanvasPlanStepRecord,
+    FileCanvasPlanStore,
+    canvas_plan_approval_callback,
+    register_canvas_plan_tools,
+)
 from .core_tools import register_core_tools
 from .durable_lease import DurableAgentLease, FileAgentLeaseManager
 from .operations import (
@@ -97,6 +111,15 @@ __all__ = [
     "CanvasMutationError",
     "CanvasMutationOperation",
     "CanvasMutationRuntime",
+    "CanvasPlanError",
+    "CanvasPlanExecuteRequest",
+    "CanvasPlanExecuteResponse",
+    "CanvasPlanPreviewRequest",
+    "CanvasPlanPreviewResponse",
+    "CanvasPlanRecord",
+    "CanvasPlanRuntime",
+    "CanvasPlanStep",
+    "CanvasPlanStepRecord",
     "CanvasPreviewRecord",
     "CanvasPreviewRequest",
     "CanvasPreviewResponse",
@@ -105,6 +128,7 @@ __all__ = [
     "CanonicalEvidenceState",
     "DurableAgentLease",
     "FileAgentLeaseManager",
+    "FileCanvasPlanStore",
     "FileCanvasPreviewStore",
     "FileCheckpointStore",
     "FileExperimentWorkspace",
@@ -132,8 +156,10 @@ __all__ = [
     "WorkspaceCommitReceipt",
     "WorkspaceConflictError",
     "WorkspaceVersionRecord",
+    "canvas_plan_approval_callback",
     "canvas_preview_approval_callback",
     "operation_id_for",
     "register_canvas_mutation_tools",
+    "register_canvas_plan_tools",
     "register_core_tools",
 ]

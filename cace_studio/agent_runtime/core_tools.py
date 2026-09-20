@@ -10,6 +10,7 @@ from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.reproducibility import experiment_fingerprint, registry_contract_fingerprint
 
 from .canvas_mutation import FileCanvasPreviewStore, register_canvas_mutation_tools
+from .canvas_plan import FileCanvasPlanStore, register_canvas_plan_tools
 from .contracts import Capability, ToolContext, TypedTool
 from .tool_bus import ToolBus
 from .workspace_store import FileExperimentWorkspace
@@ -136,6 +137,7 @@ def register_core_tools(
     gpu_enabled: bool = False,
     canvas_preview_store: FileCanvasPreviewStore | None = None,
     canvas_workspace_store: FileExperimentWorkspace | None = None,
+    canvas_plan_store: FileCanvasPlanStore | None = None,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
 
@@ -270,10 +272,19 @@ def register_core_tools(
         and active_experiment is not None
         and canvas_preview_store is not None
     ):
-        register_canvas_mutation_tools(
+        canvas_runtime = register_canvas_mutation_tools(
             bus,
             registry=registry,
             active_experiment=active_experiment,
             preview_store=canvas_preview_store,
             workspace_store=canvas_workspace_store,
         )
+        if canvas_workspace_store is not None and canvas_plan_store is not None:
+            register_canvas_plan_tools(
+                bus,
+                canvas_runtime=canvas_runtime,
+                registry=registry,
+                preview_store=canvas_preview_store,
+                plan_store=canvas_plan_store,
+                workspace_store=canvas_workspace_store,
+            )
