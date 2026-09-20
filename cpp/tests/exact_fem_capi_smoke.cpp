@@ -128,7 +128,7 @@ int main() {
     ready=green=ortho=eqf=bdf=inf=0;
     if (cace_exact_assembly_status(
             mesh,pnum,pden,changed_qnum.data(),qden,4,
-            &ready,&green,&eqf,&bdf,&inf) != 0) {
+            &ready,&green,&ortho,&eqf,&bdf,&inf) != 0) {
         cace_exact_mesh_destroy(mesh);
         return fail(10, "changed assembly status call");
     }
