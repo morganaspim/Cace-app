@@ -49,7 +49,10 @@ Canonical files:
 
 ## Initial production palette
 
-The first intentionally small integration palette is:
+The initial connection palette is intentionally limited to modules with complete
+tested workflows:
+
+**Core/science**
 
 - `core.constant`
 - `core.add`
@@ -59,6 +62,25 @@ The first intentionally small integration palette is:
 - `verify.constant_residual`
 - `verify.interval_literal`
 - `verify.interval_square`
+
+**Shapes and matter**
+
+- `geometry.circle`
+- `geometry.parabola`
+- `geometry.conic`
+- `geometry.hyperbola`
+- `geometry.sphere`
+- `geometry.hypercube`
+- `geometry.affine_transform_object`
+- `chemistry.atom`
+- `chemistry.bond`
+
+**Math Workspace**
+
+- `math.custom_equation`
+- `math.equation_features`
+- `math.graph_equation_2d`
+- `math.graph_equation_3d`
 
 This is a bootstrap palette for connecting the product shell. It is not a claim
 that other CACE modules are broken. Other modules remain engineering/research
@@ -86,6 +108,29 @@ Grid 1D -> Quadratic Field --\
 
 ```text
 Interval -> Interval Square
+```
+
+### Shapes and matter
+
+```text
+Shape -> Affine Transform
+
+Atom --\
+       -> Bond -> Affine Transform
+Atom --/
+```
+
+### Custom equation 2D
+
+```text
+Custom Equation --+-> Equation Feature Summary
+                  \-> Graph Equation 2D
+```
+
+### Custom equation 3D
+
+```text
+Custom Equation -> Graph Equation 3D
 ```
 
 The exact graph fixtures and expectations live in

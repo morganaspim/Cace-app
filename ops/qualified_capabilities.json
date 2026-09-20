@@ -528,6 +528,127 @@
           "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
         ]
       }
+    },
+    {
+      "module_id": "math.custom_equation",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "custom_equation_2d",
+        "custom_equation_3d"
+      ],
+      "public_help": {
+        "summary": "Turn user-entered mathematical notation into a safe first-class CACE equation object.",
+        "input_notes": [],
+        "output_notes": [
+          "equation: canonical equation object with normalized expression and display LaTeX"
+        ],
+        "example": "Enter y = 2x^2 + sin(x), then connect the equation to Graph Equation 2D or Equation Feature Summary.",
+        "nonclaims": [
+          "Parsing and graphing do not prove mathematical properties of the equation.",
+          "Arbitrary Python/code execution is not supported."
+        ]
+      }
+    },
+    {
+      "module_id": "math.equation_features",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "custom_equation_2d"
+      ],
+      "public_help": {
+        "summary": "Summarize equation structure for the UI, Grow, and local-AI experiment reasoning.",
+        "input_notes": [
+          "equation: CACE equation object"
+        ],
+        "output_notes": [
+          "features: symbols, functions, operator structure, graphability hints, and structural complexity counts"
+        ],
+        "example": "Custom Equation → Equation Feature Summary, then let the local AI explain the structure or suggest a qualified experiment.",
+        "nonclaims": [
+          "Feature summaries are descriptive and do not establish theorem truth."
+        ]
+      }
+    },
+    {
+      "module_id": "math.graph_equation_2d",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "custom_equation_2d"
+      ],
+      "public_help": {
+        "summary": "Numerically sample an explicit or implicit equation for deterministic 2D graph rendering.",
+        "input_notes": [
+          "equation: CACE equation object"
+        ],
+        "output_notes": [
+          "graph: explicit point samples or implicit residual grid with contour level 0"
+        ],
+        "example": "Graph y = sin(x), or graph x^2 + y^2 = 4 as a zero contour.",
+        "nonclaims": [
+          "Finite graph sampling is visualization/numerical evidence only and does not prove global curve properties."
+        ]
+      }
+    },
+    {
+      "module_id": "math.graph_equation_3d",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "custom_equation_3d"
+      ],
+      "public_help": {
+        "summary": "Numerically sample an explicit two-variable surface for 3D rendering.",
+        "input_notes": [
+          "equation: explicit surface such as z = sin(x) * cos(y) or f(x,y) = ..."
+        ],
+        "output_notes": [
+          "surface: deterministic x/y/value grids for the 3D renderer"
+        ],
+        "example": "Custom Equation z = sin(x) cos(y) → Graph Equation 3D.",
+        "nonclaims": [
+          "Version 1 supports explicit two-variable surfaces only.",
+          "Sampling and rendering do not create formal proof."
+        ]
+      }
     }
   ],
   "proof_effect": "none",
@@ -644,6 +765,27 @@
       "target_module_id": "geometry.affine_transform_object",
       "target_port": "object",
       "workflow_id": "molecule_geometry"
+    },
+    {
+      "source_module_id": "math.custom_equation",
+      "source_port": "equation",
+      "target_module_id": "math.equation_features",
+      "target_port": "equation",
+      "workflow_id": "custom_equation_2d"
+    },
+    {
+      "source_module_id": "math.custom_equation",
+      "source_port": "equation",
+      "target_module_id": "math.graph_equation_2d",
+      "target_port": "equation",
+      "workflow_id": "custom_equation_2d"
+    },
+    {
+      "source_module_id": "math.custom_equation",
+      "source_port": "equation",
+      "target_module_id": "math.graph_equation_3d",
+      "target_port": "equation",
+      "workflow_id": "custom_equation_3d"
     }
   ]
 }

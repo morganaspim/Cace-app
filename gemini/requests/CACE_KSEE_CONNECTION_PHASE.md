@@ -201,3 +201,55 @@ Additional required browser tests:
 18. two authorized linked heartbeat streams activate the City;
 19. replayed/unlinked city heartbeat packets are rejected;
 20. City state cannot change canonical evidence/proof state.
+
+
+## Math Workspace
+
+Read `docs/MATH_WORKSPACE.md`.
+
+Implement a first-class **Math** entry surface backed by the qualified CACE
+equation modules.
+
+The primary experience must not look like a programming editor.
+
+Required behavior:
+
+- beautiful live typeset math while the user enters an equation;
+- friendly keyboard input including powers, roots, fractions, Greek letters,
+  trig/log functions, constants, and common implicit multiplication;
+- clickable symbol/function palette;
+- accessible canonical text representation;
+- syntax errors shown immediately but non-destructively;
+- one-click **Graph 2D**, **Graph 3D**, **Add to Canvas**, **Grow**, and **Ask AI**;
+- equation Canvas cards prominently show typeset mathematics;
+- technical JSON/hash/provenance details stay expandable rather than visually
+  dominating ordinary math work;
+- explicit and implicit 2D graph payloads use the canonical CACE output;
+- 3D surfaces use the canonical CACE output and tested 3D renderer;
+- local AI can summarize the bounded equation feature object and suggest
+  qualified experiments/transforms;
+- Grow may seed proposals from the equation but cannot invent mathematical truth.
+
+Use `display_latex` from the CACE equation object for presentation and keep the
+canonical safe expression for execution/reproducibility.
+
+Do not send raw editor text directly into `eval`, JavaScript `Function`, or
+another executable-code surface.
+
+Any third-party math editor/typesetter added to the frontend must:
+
+1. be locally bundled rather than loaded from a CDN;
+2. have a pinned lockfile;
+3. pass the CACE frontend license/SBOM gate;
+4. not fetch executable code remotely at runtime.
+
+Additional browser tests:
+
+21. math editor round-trips canonical equation text and display LaTeX;
+22. friendly `2x^2 + π` style input displays correctly;
+23. malicious/programming syntax is rejected by the backend and handled safely;
+24. explicit 2D equation renders from canonical samples;
+25. implicit 2D equation renders the canonical zero contour;
+26. explicit 3D equation renders the canonical surface;
+27. Ask AI/Grow receives bounded equation features rather than arbitrary code;
+28. equation-to-Canvas creation uses real qualified CACE nodes.

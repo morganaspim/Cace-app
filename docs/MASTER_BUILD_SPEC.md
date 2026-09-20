@@ -884,3 +884,31 @@ real renderer and visual regression tests pass.
 
 Gemini/Antigravity owns the browser renderer implementation against these typed
 contracts; it must not reimplement CACE scientific semantics in JavaScript.
+
+
+## Beautiful custom-equation Math Workspace
+
+CACE-KSEE must treat user-entered mathematics as a first-class typed scientific
+object. Canonical contract: `docs/MATH_WORKSPACE.md`.
+
+The normal experience favors typeset mathematical notation rather than programming
+syntax. The frontend may offer visual fractions, powers, roots, Greek letters,
+matrices, trig/log functions, parameter sliders and symbol palettes, while the
+backend stores and executes a strict safe canonical expression.
+
+The backend must never use arbitrary Python/JavaScript execution to evaluate user
+equations.
+
+Qualified equation modules provide:
+
+- safe equation parsing and canonical/display representations;
+- bounded structural feature summaries for AI/Grow;
+- deterministic explicit/implicit 2D graph sampling;
+- deterministic explicit two-variable 3D surface sampling.
+
+Equation objects can be placed on Canvas and used by local AI/Grow only through
+the Qualified Capability Registry and graph validation.
+
+If Gemini adds a browser math editor/typesetter dependency, it must be pinned,
+locally bundled, represented in the frontend lockfile, and included in the
+release license/SBOM gate.

@@ -372,6 +372,95 @@
       "expected": {
         "completed": true
       }
+    },
+    {
+      "workflow_id": "custom_equation_2d",
+      "title": "Custom equation to structural features and 2D graph",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Custom Equation 2D",
+        "nodes": [
+          {
+            "id": "eq",
+            "module_id": "math.custom_equation",
+            "params": {
+              "equation": "y = 2x^2 + sin(x)"
+            }
+          },
+          {
+            "id": "features",
+            "module_id": "math.equation_features",
+            "params": {}
+          },
+          {
+            "id": "graph",
+            "module_id": "math.graph_equation_2d",
+            "params": {
+              "x_min": -4,
+              "x_max": 4,
+              "y_min": -10,
+              "y_max": 40,
+              "samples": 129
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "eq",
+            "source_port": "equation",
+            "target_node": "features",
+            "target_port": "equation"
+          },
+          {
+            "source_node": "eq",
+            "source_port": "equation",
+            "target_node": "graph",
+            "target_port": "equation"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "workflow_id": "custom_equation_3d",
+      "title": "Custom equation to 3D surface graph",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Custom Equation 3D",
+        "nodes": [
+          {
+            "id": "eq",
+            "module_id": "math.custom_equation",
+            "params": {
+              "equation": "z = sin(x) * cos(y)"
+            }
+          },
+          {
+            "id": "surface",
+            "module_id": "math.graph_equation_3d",
+            "params": {
+              "x_min": -3,
+              "x_max": 3,
+              "y_min": -3,
+              "y_max": 3,
+              "samples": 33
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "eq",
+            "source_port": "equation",
+            "target_node": "surface",
+            "target_port": "equation"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true
+      }
     }
   ],
   "proof_effect": "none",

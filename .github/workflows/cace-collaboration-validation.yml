@@ -7,6 +7,9 @@ on:
     # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
     paths:
       - 'collaboration/**'
+      - 'docs/**'
+      - 'cace_studio/**'
+      - 'api/**'
       - 'quality/**'
       - 'security/**'
       - 'scripts/**'
@@ -87,6 +90,7 @@ jobs:
             tests/test_geometric_animation.py \
             tests/test_conway_city.py \
             tests/test_geometric_objects.py \
+            tests/test_custom_equations.py \
             tests/test_experiment_advisor.py \
             tests/test_compact_geometric_ranker.py \
             tests/test_web_api.py \

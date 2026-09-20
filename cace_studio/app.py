@@ -4,6 +4,7 @@ from .core.capability_registry import QualifiedCapabilityRegistry
 from .core.settings import StudioSettings
 from .modules import register_all
 from .modules.geometric_objects import register_geometric_objects
+from .modules.equations import register_equation_modules
 from .modules.formal_v322 import register_formal_v322
 from .modules.formal_v325 import register_formal_v325
 from .modules.formal_hypothesis_bridges import register_formal_hypothesis_bridges
@@ -15,6 +16,7 @@ def build_registry() -> ModuleRegistry:
     r = ModuleRegistry()
     register_all(r)
     register_geometric_objects(r)
+    register_equation_modules(r)
     if not r.contains("formal322.concrete_mesh_certificate_prager_synge"):
         register_formal_v322(r)
     if not r.contains("formal325.mesh_certificate_generator"):

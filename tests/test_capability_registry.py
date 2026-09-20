@@ -32,6 +32,10 @@ EXPECTED_INITIAL_UI = {
     "chemistry.atom",
     "chemistry.bond",
     "geometry.affine_transform_object",
+    "math.graph_equation_3d",
+    "math.graph_equation_2d",
+    "math.equation_features",
+    "math.custom_equation",
 }
 
 

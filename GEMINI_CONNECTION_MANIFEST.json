@@ -25,6 +25,7 @@
     "schema/cace-geometric-animation-event.schema.json",
     "ops/coordinate_views.json",
     "docs/LOCAL_AI_HYBRID_RUNTIME.md",
+    "docs/MATH_WORKSPACE.md",
     "ops/qualified_capabilities.json",
     "docs/QUALIFIED_CAPABILITY_REGISTRY.md",
     "gemini/VRE_CLOSURE_HANDOFF.md",
@@ -235,6 +236,12 @@
       "build": "Monero checkout UX against the payment-only Cloud Run service: server-priced catalog, QR/address/expiry, confirmation progress, purchase history, signed entitlement display, and paid-feature unlock state",
       "authority": "Cloud Run verifies payment; Base44 stores low-volume history/entitlement mirror; Oracle/CACE verifies entitlement before paid scientific execution",
       "production_gate": "MONERO_PAYMENT_BACKEND_PENDING until verifier + signing + end-to-end tests are configured"
+    },
+    {
+      "id": "GWEB-15",
+      "build": "CACE-KSEE Math Workspace: beautiful visual equation entry, display-LaTeX rendering, friendly symbol palette, qualified 2D/3D graphing, Add-to-Canvas, Grow, and local-AI equation summary/experiment actions",
+      "authority": "CACE backend parses/validates/evaluates equations; frontend is presentation/input only",
+      "security": "no eval/Function/code execution; locally bundled pinned math UI dependencies only after license/SBOM review"
     }
   ],
   "must_not_build": [
@@ -423,5 +430,19 @@
     "evidence_authority": false,
     "proof_effect": "none",
     "real_money_or_crypto_authority": false
+  },
+  "math_workspace": {
+    "contract": "docs/MATH_WORKSPACE.md",
+    "qualified_modules": [
+      "math.custom_equation",
+      "math.equation_features",
+      "math.graph_equation_2d",
+      "math.graph_equation_3d"
+    ],
+    "presentation_field": "display_latex",
+    "canonical_execution_field": "normalized",
+    "ai_context": "bounded equation feature summary + qualified capability catalog",
+    "grow_rule": "proposal only until graph validation/preview/approval",
+    "arbitrary_code_execution": false
   }
 }

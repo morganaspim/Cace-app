@@ -397,7 +397,8 @@
     "implement and visually test all renderer-qualified coordinate views",
     "activate Conway City only for authorized linked workspace heartbeat federation",
     "add Invite Collaborators workspace action",
-    "keep proprietary science/proof logic off the browser"
+    "keep proprietary science/proof logic off the browser",
+    "implement Math Workspace against docs/MATH_WORKSPACE.md and qualified equation modules"
   ],
   "shape_matter_toolbox": {
     "status": "BACKEND_MODULES_STAGED_GEMINI_UI_REQUIRED",
@@ -419,6 +420,27 @@
     "contract": "docs/CONWAY_ECONOMIC_CITY.md",
     "activation": "2+ authorized linked workspaces with live federated heartbeats",
     "real_money_or_crypto_authority": false,
+    "proof_effect": "none"
+  },
+  "math_workspace": {
+    "status": "CORE_CONTRACT_STAGED_FOR_CI_GEMINI_UI_REQUIRED",
+    "contract": "docs/MATH_WORKSPACE.md",
+    "modules": [
+      "math.custom_equation",
+      "math.equation_features",
+      "math.graph_equation_2d",
+      "math.graph_equation_3d"
+    ],
+    "frontend_requirements": [
+      "beautiful live typeset math",
+      "friendly non-programming equation input",
+      "2D/3D graph actions",
+      "Add to Canvas",
+      "Grow",
+      "Ask AI",
+      "accessible canonical text",
+      "locally bundled licensed math-rendering dependency if used"
+    ],
     "proof_effect": "none"
   }
 }
