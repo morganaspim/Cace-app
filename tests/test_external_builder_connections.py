@@ -116,7 +116,7 @@ def test_gemini_connection_owns_interface_not_science() -> None:
     assert "client-side formal PASS" in forbidden
 
     batch_ids = [item["id"] for item in manifest["build_program"]]
-    assert batch_ids == [f"GWEB-{index}" for index in range(1, 15)]
+    assert batch_ids == [f"GWEB-{index}" for index in range(1, 16)]
 
     exception = manifest["branch_policy"][
         "controlled_proof_submission_exception"
