@@ -197,3 +197,30 @@ File: `formal/cace_formal/CACEFormal/DualBladePiola.lean`
 Implemented 2D dual/Hodge transport, cofactor-as-dual-conjugated-grade1, cofactor composition,
 edge normal-measure transport, Piola composition for nonsingular chains, and dual-blade flux
 conservation.
+
+
+## Combinatorial/group action bridge
+
+The graded-geometry stack should interoperate with the exact combinatorics/group-action toolbox rather than treating geometric transforms as unrelated one-off formulas.
+
+Target path:
+
+```text
+finite combinatorial/group object
+ -> certified action / canonical representative
+ -> cell/vector/frame/blade transformation
+ -> invariant/equivariance checker
+ -> fused graded certificate/kernel
+ -> Local-AI ReasoningOperator
+```
+
+High-value exact interfaces include:
+
+- permutations of vertices/cells/basis blades;
+- orientation/sign actions;
+- finite symmetry groups of supported meshes/shapes;
+- orbits of equivalent cell/frame configurations;
+- canonical representatives for cache/reasoning reuse;
+- composition/inverse of supported transform actions.
+
+This is expected to reduce repeated equivalent work only when benchmarked. The group representation and its action must be explicit and checked; visual symmetry alone is not enough.
