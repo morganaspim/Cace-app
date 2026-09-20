@@ -62,7 +62,7 @@ jobs:
           REQUESTED_MODULES: ${{ inputs.modules }}
         run: |
           set -euo pipefail
-          python3 scripts/cace_batch_proof_targets.py             --modules "$REQUESTED_MODULES"             --output cace-batch-targets.json
+          python3 -m scripts.cace_batch_proof_targets             --modules "$REQUESTED_MODULES"             --output cace-batch-targets.json
           python3 - <<'PY'
           import json
           from pathlib import Path
