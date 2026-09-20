@@ -43,3 +43,29 @@ typed CACE tool calls
 ```
 
 Browser/TypeScript remains presentation only.
+
+
+## Self-improving tool contribution loop
+
+The Local AI should be able to make CACE progressively more capable through bounded contributions:
+
+```text
+observe canvas / notebook
+ -> identify reusable missing capability
+ -> specify typed tool
+ -> implement/test C++ kernel
+ -> add thin orchestration/binding
+ -> attempt Lean formalization
+ -> package unresolved obligations if needed
+ -> collaboration review
+ -> proof qualification when applicable
+ -> register accepted tool
+ -> expose Help/example
+ -> reuse tool in later experiments
+```
+
+The canonical contract is `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`.
+
+A contribution may stop at a proof-ready packet without being discarded. Another agent/human can continue from the explicit unresolved obligations.
+
+This is how CACE can become better over time without allowing an AI to redefine evidence truth.
