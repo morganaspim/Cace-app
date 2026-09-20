@@ -858,6 +858,38 @@
         "The Conway heartbeat economic-city visualization cannot promote scientific evidence, theorem status, or verification state.",
         "Any production exchange against real cryptocurrency requires a separate security, market-integrity, accounting, and jurisdiction-specific compliance review."
       ]
+    },
+    {
+      "id": "G059",
+      "category": "ai_development_governance",
+      "priority": 59,
+      "intent_status": "required",
+      "title": "Gemini-first AI builder contract with evidence isolation",
+      "summary": "Use Gemini AI Code Studio as the primary implementation environment while enforcing one repository-visible builder contract that keeps AI outside proof/evidence authority and preserves CACE trust boundaries.",
+      "acceptance": [
+        "CACE_AI_BUILDER_CONTRACT.md is discoverable from agent/bootstrap navigation.",
+        "All AI builders classify changes by trust impact before implementation.",
+        "AI-generated code, tests, theorem sketches, and metadata can never independently create formal PASS.",
+        "Proof-sensitive changes preserve quarantine, Exact-Pin, audited-root, canonical qualification, and drift rules.",
+        "CACE remains fully usable with AI disabled."
+      ]
+    },
+    {
+      "id": "G060",
+      "category": "proof_rigor",
+      "priority": 60,
+      "intent_status": "planned",
+      "title": "Concrete runtime-to-formal P1/RT0 and continuum linkage",
+      "summary": "Build an auditable fail-closed chain from canonical runtime mesh/P1/RT0 packets to exact Lean objects, discrete theorem instantiation, and eventually bounded-box H1/H(div)/volumePairing continuum hypotheses.",
+      "acceptance": [
+        "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md defines FSL-0 through FSL-13.",
+        "Runtime packet identity is deterministic and content-addressed.",
+        "P1/RT0 coefficients and certified mesh geometry are bound exactly or remain non-formal.",
+        "Discrete exact theorem instantiation is kept separate from continuum graph-space membership.",
+        "H1/H(div) membership, finite-sum to volumePairing equality, trace cancellation, and cross-term identification require explicit Lean theorems.",
+        "Missing or stale bindings remain unresolved/NOT_RUN.",
+        "Canonical proof contract and exact-current-head qualification remain mandatory for formal promotion."
+      ]
     }
   ]
 }
