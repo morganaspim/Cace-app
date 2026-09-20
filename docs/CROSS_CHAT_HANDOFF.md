@@ -410,3 +410,65 @@ New durable goals:
 Key preserved nonclaim: exact discrete P1/RT0 identities and qualified generic continuum theorems do not automatically establish that arbitrary runtime finite-element fields satisfy the continuum graph-space/Green-pairing hypotheses. Missing source-to-formal links remain unresolved/NOT_RUN.
 
 This builder-foundation branch is documentation/governance only; it does not itself qualify any theorem or runtime bridge.
+
+
+## Rigorous Math Kernel -> Math Toolbox -> Science completeness program
+
+Added 2026-09-19 after the Gemini web-boundary handoff was merged.
+
+The user explicitly chose to strengthen CACE's mathematical capability before substantial Google AI Studio web implementation.
+
+New design documents:
+
+- `docs/CACE_RIGOROUS_MATH_KERNEL_V1.md`
+- `docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md`
+- `docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md`
+
+New durable goals:
+
+- G061 — CACE Rigorous Math Kernel v1;
+- G062 — broad proof-backed mathematical toolbox;
+- G063 — full-featured composable science modules;
+- G064 — integrated Help pages + runnable example library.
+
+Implementation order:
+
+```text
+RMK-v1
+  -> canonical proof-backed Math Toolbox
+  -> full-featured composable Science Modules
+  -> structured Help + tested examples
+  -> substantial Gemini browser presentation polish
+```
+
+Gemini queue change:
+
+- `gemini/CACE_GEMINI_TASK_STATE.json` now makes **RMK-1** the first task.
+- GWEB-1 is deferred until the math/API foundation is stable enough.
+- Minimal web/API scaffolding is still allowed if it does not freeze unstable scientific interfaces.
+
+RMK-1 target:
+
+- canonical exact rational/scalar arithmetic in C++;
+- exact vector primitives;
+- deterministic canonical math packets + semantic hashes;
+- thin Python bindings;
+- malformed/overflow/adversarial tests;
+- no change to formal proof status from implementation alone.
+
+Math toolbox direction:
+
+- migrate away from proliferating historical version-number wrappers;
+- use semantic canonical module IDs;
+- reuse existing Lean theorem families only through explicit runtime bindings;
+- show evidence badges distinguishing FORMAL, EXACT, INTERVAL, SYMBOLIC, NUMERICAL, REVIEWED and EXPERIMENTAL.
+
+Science-module direction:
+
+- shared typed objects and units;
+- real module-to-module interoperability;
+- appropriate verifiers/certificates;
+- Help pages and runnable examples;
+- approximately 100 curated high-value examples as a long-term target.
+
+This program is architecture/implementation intent only and does not alter existing proof qualification state.
