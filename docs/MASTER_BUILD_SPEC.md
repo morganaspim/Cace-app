@@ -722,3 +722,27 @@ The heartbeat field should provide the Local AI with a compact typed state strea
 This stream should expose meaningful live deltas such as active/blocked/stale/verifying nodes, semantic-hash changes, residual and convergence trends, resource pressure, blockers, artifact references and canonical evidence snapshots.
 
 The purpose is to let the AI follow the experiment continuously and direct attention intelligently. Perception, research-interest and heartbeat activity are non-evidentiary and cannot create scientific verification or proof.
+
+
+## 29. Research-assistant-first onboarding and daily VRE experience
+
+The canonical product/UX contract is `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`.
+
+After account creation and entitlement, CACE should greet the user through the Local Research Assistant rather than placing them directly on an unexplained empty canvas.
+
+Primary entry actions are:
+
+- Describe an experiment;
+- Show demos for my field;
+- Explore full capabilities;
+- Open recent work when available.
+
+The assistant translates natural-language research intent into grounded demo recommendations or a previewable typed experiment graph, with Minimal/Balanced/Exploratory variants where useful. The initial chat transitions into the persistent Assistant surface beside the canvas.
+
+CACE should present itself as a **VRE — Verified Research Environment** for interactive rigorous mathematics and science. Preferred product message:
+
+> **Explore rigorous math with AI that learns geometric reasoning.**
+
+This wording is aspirational/product-facing and must preserve evidence honesty. "Verified" does not mean every module is formally verified, and "learns geometric reasoning" means the assistant improves through local research memory, accepted CACE tools/representations, and validated reasoning workflows rather than promoting model output to truth.
+
+Returning users should be able to use CACE daily as a research workbench: resume experiments, inspect unfinished Research Ideas, receive contextual heartbeat/perception updates, compare runs, and ask the assistant to guide/build/explain throughout the active workspace.
