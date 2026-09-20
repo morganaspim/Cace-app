@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-ai-tool-submission.schema.json",
+  "title": "CACE AI Rigorous Tool Submission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "submission_id",
+    "head_sha",
+    "agent",
+    "track",
+    "tool",
+    "cpp",
+    "formal",
+    "verification",
+    "unresolved_obligations",
+    "recommended_next_gate",
+    "promotion_authority",
+    "packet_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "cace-ai-tool-submission-v1"
+    },
+    "submission_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,160}$"
+    },
+    "head_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "track": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I"
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantic_id",
+        "title",
+        "purpose",
+        "assumptions",
+        "failure_modes",
+        "target_evidence"
+      ],
+      "properties": {
+        "semantic_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{2,159}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "failure_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "target_evidence": {
+          "enum": [
+            "ENGINEERING",
+            "NUMERICAL",
+            "EXACT",
+            "INTERVAL",
+            "FORMAL"
+          ]
+        }
+      }
+    },
+    "cpp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headers",
+        "sources",
+        "tests",
+        "bindings"
+      ],
+      "properties": {
+        "headers": {
+          "$ref": "#/$defs/pathArray"
+        },
+        "sources": {
+          "$ref": "#/$defs/pathArray"
+        },
+        "tests": {
+          "$ref": "#/$defs/pathArray"
+        },
+        "bindings": {
+          "$ref": "#/$defs/pathArray"
+        }
+      }
+    },
+    "formal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proof_state",
+        "lean_files",
+        "theorem_names",
+        "source_to_formal_refs"
+      ],
+      "properties": {
+        "proof_state": {
+          "enum": [
+            "NOT_STARTED",
+            "DRAFT",
+            "QUARANTINED",
+            "PREFLIGHT_ONLY",
+            "QUALIFICATION_REQUIRED"
+          ]
+        },
+        "lean_files": {
+          "$ref": "#/$defs/pathArray"
+        },
+        "theorem_names": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "source_to_formal_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_tests",
+        "property_tests",
+        "adversarial_tests",
+        "exact_or_certificate_checks"
+      ],
+      "properties": {
+        "unit_tests": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "property_tests": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "adversarial_tests": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "exact_or_certificate_checks": {
+          "$ref": "#/$defs/stringArray"
+        }
+      }
+    },
+    "unresolved_obligations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "recommended_next_gate": {
+      "enum": [
+        "ENGINEERING_REVIEW",
+        "LEAN_DRAFT",
+        "LEAN_QUARANTINE",
+        "EXACT_PIN_PREFLIGHT",
+        "AUDITED_PROMOTION",
+        "CANONICAL_QUALIFICATION"
+      ]
+    },
+    "promotion_authority": {
+      "const": false
+    },
+    "packet_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "pathArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!/)(?!.*\\\\.\\\\./).+$"
+      },
+      "uniqueItems": true
+    },
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  }
+}
