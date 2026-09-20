@@ -4,7 +4,33 @@ This file is the **Gemini-first repository entrypoint** for implementation work.
 
 ## Primary rule
 
-> **Google AI Studio / Gemini builds the web presentation layer against CACE's typed API/core. It must not duplicate the scientific engine, proof engine, evidence semantics, or formal qualification logic in JavaScript/TypeScript/Node.**
+> **Gemini is a primary CACE implementation builder. It may work in Presentation Builder mode or Rigorous Tool Builder mode. Scientific/exact kernels belong in C++, orchestration in Python, formal mathematics in Lean, and canonical qualification remains external to AI authority. JavaScript/TypeScript/Node must never become an alternate scientific/proof engine.**
+
+## Gemini operating modes
+
+### 1. Presentation Builder
+
+Build the browser experience against CACE's typed API/core. The browser remains presentation/controller code and may not duplicate scientific/proof semantics.
+
+### 2. Rigorous Tool Builder
+
+Gemini is explicitly allowed to improve CACE's mathematical/scientific core by:
+
+- designing typed tool/module contracts;
+- implementing canonical load-bearing algorithms in `cpp/**`;
+- writing C++ unit/property/adversarial tests;
+- adding thin Python bindings/orchestration where necessary;
+- implementing exact/certificate checkers;
+- writing Lean theorem statements and proof attempts under `formal/**`;
+- implementing explicit runtime-to-formal bindings;
+- preparing Help/examples;
+- preparing a proof-ready handoff when some formal obligations remain.
+
+Before Rigorous Tool Builder work, read `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`.
+
+If Gemini cannot finish a proof or source-to-formal bridge, it must submit a machine-readable packet conforming to `collaboration/schema/cace-ai-tool-submission.schema.json`, validated by `scripts/validate_ai_tool_submission.py`. Unresolved obligations must remain explicit.
+
+Gemini may reach draft/quarantine/preflight-ready states, but it may not self-declare canonical `FORMAL`/`PASS`. Exact-current-head qualification remains authoritative.
 
 CACE remains layered as:
 
@@ -158,3 +184,12 @@ Report:
 - recommended next gate.
 
 If the answer to “qualification-sensitive files changed” is yes, stop treating the batch as ordinary web work and follow the formal workflow.
+
+
+## Agent Perception Packet
+
+For Local AI / canvas integration, consume the typed perception stream in `schema/cace-agent-perception.schema.json`.
+
+This stream gives the agent compact live experiment deltas—active/blocked/stale/verifying state, residual/convergence trend, resource pressure, blockers, canonical evidence snapshots, and research-interest—so it can react to the evolving canvas without rereading the entire experiment.
+
+Treat this as non-evidentiary perception/coordination data. It cannot promote proof or scientific evidence.
