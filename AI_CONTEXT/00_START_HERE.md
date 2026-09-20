@@ -117,3 +117,18 @@ Never guess the contents of discarded files.
 ## Authority
 
 Implementation plan/idea coverage is not proof evidence. Scientific/formal truth still comes from exact source, canonical claim/proof data, Lean source, and exact qualification artifacts.
+
+
+## Current RMK formal/workbench additions
+
+Builders working on rigorous math, Local AI, or the browser workbench must also
+read:
+
+- `docs/proofs/RMK_FORMAL_LINKAGE_MATRIX.json`
+- `docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md`
+- `docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md`
+- `docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md`
+
+The formal linkage matrix is fail-closed: a runtime tool marked NOT_LINKED must
+not be described as formally connected merely because a related Lean theorem
+exists.
