@@ -141,13 +141,14 @@ int cace_exact_assembly_status(
     int cell_count,
     int* out_ready,
     int* out_local_green,
+    int* out_orthogonality_sum_zero,
     int* out_equilibrium_failures,
     int* out_boundary_failures,
     int* out_interior_failures) {
     try {
         if (!raw_handle || !p1_numerators || !p1_denominators ||
             !rt0_numerators || !rt0_denominators || !out_ready ||
-            !out_local_green || !out_equilibrium_failures ||
+            !out_local_green || !out_orthogonality_sum_zero || !out_equilibrium_failures ||
             !out_boundary_failures || !out_interior_failures) return -1;
         if (cell_count < 0) return -1;
 
@@ -183,6 +184,7 @@ int cace_exact_assembly_status(
 
         *out_ready = status.ready_for_lean_assembly ? 1 : 0;
         *out_local_green = status.all_local_green ? 1 : 0;
+        *out_orthogonality_sum_zero = status.orthogonality_sum_zero ? 1 : 0;
         *out_equilibrium_failures = equilibrium_failures;
         *out_boundary_failures = boundary_failures;
         *out_interior_failures = interior_failures;
