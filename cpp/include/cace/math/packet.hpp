@@ -3,6 +3,8 @@
 #include "cace/math/rational.hpp"
 #include "cace/math/vector.hpp"
 #include "cace/math/sparse_matrix.hpp"
+#include "cace/math/polynomial.hpp"
+#include "cace/math/geometry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -179,6 +181,33 @@ public:
         packet.exact_payload = value.canonical_text();
         packet.conventions.emplace("scalar", "math.exact.rational");
         packet.conventions.emplace("storage", "csr-canonical");
+        return packet;
+    }
+
+    static MathPacket exact_polynomial(const ExactPolynomial& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.polynomial";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("monomial_order", "lexicographic-exponent-vector");
+        return packet;
+    }
+
+    static MathPacket exact_affine_map(const ExactAffineMap& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.affine_map";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("action", "column-vector-Ax-plus-b");
+        return packet;
+    }
+
+    static MathPacket exact_simplex(const ExactSimplex& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.simplex";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("orientation", "vertex-order-determinant");
         return packet;
     }
 };
