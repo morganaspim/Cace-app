@@ -6,6 +6,7 @@
 #include "cace/math/polynomial.hpp"
 #include "cace/math/geometry.hpp"
 #include "cace/math/exterior.hpp"
+#include "cace/math/combinatorics.hpp"
 
 #include <algorithm>
 #include <array>
@@ -228,6 +229,24 @@ public:
         packet.exact_payload = value.canonical_text();
         packet.conventions.emplace("scalar", "math.exact.rational");
         packet.conventions.emplace("orientation", "right-handed-plane-action");
+        return packet;
+    }
+
+    static MathPacket exact_permutation(const ExactPermutation& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.permutation";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("action", "basis-index-image");
+        packet.conventions.emplace("composition", "outer-after-inner");
+        return packet;
+    }
+
+    static MathPacket finite_permutation_group(const FinitePermutationGroup& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.finite_permutation_group";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("enumeration", "lexicographic-closure");
+        packet.conventions.emplace("identity", "explicit-degree");
         return packet;
     }
 };
