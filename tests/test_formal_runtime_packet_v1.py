@@ -150,6 +150,22 @@ def test_source_binding_is_content_addressed_and_unqualified():
     assert binding["fsl_status"]["FSL-13"] == "UNRESOLVED"
 
 
+def test_source_binding_rejects_wrong_declared_symbols():
+    packet = build_packet()
+    source = render_lean_p1_rt0_binding(
+        packet,
+        mesh_definition_name="testRuntimeMesh",
+        binding_prefix="testRuntimeBinding",
+    )
+    with pytest.raises(ValueError, match="missing expected binding symbols"):
+        create_formal_source_binding(
+            packet,
+            source,
+            mesh_definition_name="wrongRuntimeMesh",
+            binding_prefix="testRuntimeBinding",
+        )
+
+
 def test_tampered_generated_source_breaks_binding():
     packet = build_packet()
     source = render_lean_p1_rt0_binding(
