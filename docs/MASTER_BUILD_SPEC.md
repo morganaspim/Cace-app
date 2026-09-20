@@ -636,3 +636,45 @@ Gemini AI Code Studio is the preferred primary implementation environment for CA
 Any implementation that connects Python/C++ runtime objects to Lean theorem hypotheses must follow `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`. The intended chain is content-addressed runtime packet → exact mesh/P1/RT0 representation → exact discrete theorem instantiation → explicit H1/H(div) graph-space bridges → finite pairing / continuum `volumePairing` equality → boundary/cross-term discharge → canonically qualified concrete continuum endpoint.
 
 Until the relevant bridge theorems exist and are qualified, CACE must preserve the nonclaim that exact finite-element identities or generic qualified continuum theorems automatically establish continuum hypotheses for arbitrary runtime FE fields. Missing bridges remain unresolved/NOT_RUN.
+
+
+## 22. Rigorous Math Kernel and proof-backed Math Toolbox
+
+Before extensive browser polish, CACE should stabilize a canonical reusable mathematical substrate described by `docs/CACE_RIGOROUS_MATH_KERNEL_V1.md`.
+
+The kernel should provide exact/certified/numerical primitives for arithmetic, sparse linear algebra, polynomial/affine algebra, geometry, exterior/graded algebra, calculus operators, piecewise fields, norms/pairings, and deterministic proof-linkage packets.
+
+A broad user-facing mathematical toolbox should then be built from these primitives according to `docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md`.
+
+Core rules:
+
+- maximize useful mathematical capability, not file/module count;
+- prefer semantic canonical module IDs over new version-number wrappers;
+- reuse existing qualified Lean theorem families when concrete runtime bindings exist;
+- preserve explicit REVIEWED/EXACT/INTERVAL/NUMERICAL/FORMAL distinctions;
+- no theorem file or successful test automatically makes arbitrary runtime data formally proved;
+- proof-backed tools expose unresolved hypotheses rather than hiding them.
+
+## 23. Full-featured composable science modules
+
+After the canonical math contracts are stable enough, systematically upgrade scientific modules under `docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md`.
+
+Science domains should share canonical object types for geometry, meshes, fields, materials, particles, molecular/protein structures, operators, solutions, residuals, uncertainty, units and evidence.
+
+The target is graph-level interoperability such as:
+
+`Geometry -> Mesh -> Material -> PDE -> Solver -> Residual -> Estimator -> Certificate -> Visualization`
+
+and cross-domain graphs where types actually match.
+
+A science module is not considered full-featured solely because it executes. Production-intended modules require typed/unit-aware interfaces, assumptions, verification, reproducibility, limitations, Help content and runnable examples.
+
+## 24. Help and executable examples as part of the module contract
+
+Help is a first-class module surface, not an afterthought.
+
+Production-intended modules should expose structured Help metadata covering purpose, mathematics/science, equations, inputs/outputs, parameters, units, assumptions, evidence level, limitations, references, connection suggestions, examples and troubleshooting.
+
+Examples should be loadable onto the canvas and should include minimal, realistic and compositional cases where meaningful. High-value modules should include a failure example demonstrating how an invalid assumption or failed verifier appears.
+
+The curated example library should trend toward approximately 100 high-value reproducible demonstrations across mathematics, PDE/FEM, mechanics, electromagnetics, molecular/materials/protein work, data/statistics, signals, geometry and interdisciplinary combinations.

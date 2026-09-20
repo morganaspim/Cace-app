@@ -11,6 +11,9 @@
     "docs/GEMINI_AI_STUDIO_HANDOFF.md",
     "gemini/CACE_GEMINI_TASK_STATE.json",
     "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
+    "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+    "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+    "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md",
     "CACE_AI_BUILDER_CONTRACT.md",
     "docs/CHAT_IDEA_LEDGER.md",
     "docs/CROSS_CHAT_HANDOFF.md",
@@ -329,5 +332,24 @@
     "gemini_task_state": "gemini/CACE_GEMINI_TASK_STATE.json",
     "web_presentation_rule": "AI Studio/Gemini owns browser presentation and interaction; CACE Python API/core, C++ kernels, and Lean qualification remain the scientific/evidence authority. Do not duplicate scientific or proof semantics in JavaScript/TypeScript/Node.",
     "optional_node_role": "development/static/proxy only; never alternate scientific backend"
+  },
+  "math_science_foundation": {
+    "current_priority": "CACE Rigorous Math Kernel v1 before substantial Gemini web polish",
+    "rigorous_math_kernel": "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+    "proof_backed_toolbox": "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+    "science_completeness": "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md",
+    "durable_goals": [
+      "G061",
+      "G062",
+      "G063",
+      "G064"
+    ],
+    "implementation_order": [
+      "RMK-v1",
+      "Proof-backed Math Toolbox",
+      "Science module completeness/interoperability",
+      "Help + executable examples",
+      "Gemini web presentation polish"
+    ]
   }
 }

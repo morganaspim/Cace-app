@@ -890,6 +890,62 @@
         "Missing or stale bindings remain unresolved/NOT_RUN.",
         "Canonical proof contract and exact-current-head qualification remain mandatory for formal promotion."
       ]
+    },
+    {
+      "id": "G061",
+      "category": "math_kernel",
+      "priority": 61,
+      "intent_status": "required",
+      "title": "CACE Rigorous Math Kernel v1",
+      "summary": "Build a canonical C++ mathematical substrate for exact rationals, sparse linear algebra, polynomial/affine algebra, geometry, exterior/graded primitives, calculus operators, piecewise fields, norms, and deterministic proof-linkage packets, with Python as thin orchestration.",
+      "acceptance": [
+        "Canonical exact mathematical objects are deterministic, typed, content-addressed, and fail closed on malformed/overflow conditions.",
+        "Load-bearing algorithms are implemented once in C++ and not duplicated in Python or browser code.",
+        "Exact, interval, symbolic, numerical, reviewed, and formally connected evidence modes remain distinct.",
+        "Runtime objects intended for formal use have explicit source-to-formal binding hooks compatible with FSL obligations."
+      ]
+    },
+    {
+      "id": "G062",
+      "category": "math_toolbox",
+      "priority": 62,
+      "intent_status": "required",
+      "title": "Broad proof-backed mathematical toolbox",
+      "summary": "Expose a large canonical module library across algebra, linear algebra, calculus, geometry, combinatorics, analysis, FEM/variational mathematics, graph-space obligations, and transforms, reusing qualified Lean results where explicit runtime bindings exist.",
+      "acceptance": [
+        "Production math tools use semantic canonical module IDs instead of proliferating historical version wrappers.",
+        "Every module exposes assumptions, limitations, evidence badges, and verifier behavior.",
+        "Existing Lean theorem families are mapped to useful runtime tools without inferring FORMAL status from file existence.",
+        "Reviewed mathematics remains REVIEWED until a real formal bridge and current qualification exist."
+      ]
+    },
+    {
+      "id": "G063",
+      "category": "scientific_modules",
+      "priority": 63,
+      "intent_status": "required",
+      "title": "Full-featured composable science modules",
+      "summary": "Systematically upgrade science modules into typed, unit-aware, verifiable, reusable building blocks sharing canonical math/geometry/field/material/solution/evidence objects so modules from the same or different domains link naturally on the canvas.",
+      "acceptance": [
+        "Each production-intended science module defines typed ports, units, assumptions, execution, verification, reproducibility metadata, limitations, and interoperable shared object types.",
+        "Core workflows can be assembled by typed connections rather than UI special-casing module-name pairs.",
+        "Important outputs have an appropriate exact, interval, invariant, residual, convergence, reference, cross-method, or formal verification path when feasible.",
+        "Historical modules migrate through compatibility adapters instead of abrupt deletion."
+      ]
+    },
+    {
+      "id": "G064",
+      "category": "help_examples",
+      "priority": 64,
+      "intent_status": "required",
+      "title": "Integrated module Help pages and runnable example library",
+      "summary": "Give every production-intended math/science module structured Help content, worked examples, Canvas-loadable experiments, connection suggestions, evidence explanations, and troubleshooting.",
+      "acceptance": [
+        "Help answers purpose, theory/equations, inputs/outputs, units, assumptions, evidence strength, limitations, references, and failure causes.",
+        "Each production-intended module has a minimal example and realistic example; important modules also have composition and failure examples.",
+        "Examples are executable/versioned/tested and can be added directly to Canvas.",
+        "Long-term curated example library grows toward roughly 100 high-value demonstrations without confusing historical outputs with current evidence."
+      ]
     }
   ]
 }

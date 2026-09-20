@@ -58,31 +58,31 @@
       "id": "GWEB-1",
       "name": "typed client and React shell",
       "qualification_sensitive": false,
-      "status": "READY"
+      "status": "DEFERRED_UNTIL_RMK_API_FOUNDATION"
     },
     {
       "id": "GWEB-2",
       "name": "graph editing feature parity",
       "qualification_sensitive": false,
-      "status": "BLOCKED_BY_GWEB-1"
+      "status": "BLOCKED_BY_RMK_AND_PRIOR_GWEB_BATCH"
     },
     {
       "id": "GWEB-3",
       "name": "execution and evidence parity",
       "qualification_sensitive": false,
-      "status": "BLOCKED_BY_GWEB-2"
+      "status": "BLOCKED_BY_RMK_AND_PRIOR_GWEB_BATCH"
     },
     {
       "id": "GWEB-4",
       "name": "advanced presentation-only coordinate/3D visualization",
       "qualification_sensitive": false,
-      "status": "BLOCKED_BY_GWEB-3"
+      "status": "BLOCKED_BY_RMK_AND_PRIOR_GWEB_BATCH"
     },
     {
       "id": "GWEB-5",
       "name": "local AI and Research Notebook presentation",
       "qualification_sensitive": false,
-      "status": "BLOCKED_BY_GWEB-4"
+      "status": "BLOCKED_BY_RMK_AND_PRIOR_GWEB_BATCH"
     }
   ],
   "concurrent_work_do_not_mix": [
@@ -105,6 +105,42 @@
     "AGENTS.md",
     "docs/CROSS_CHAT_HANDOFF.md"
   ],
-  "first_task": "GWEB-1",
-  "first_task_instruction": "Create a typed TypeScript API client and React shell that consumes the existing FastAPI API without moving scientific/evidence semantics into the browser. Preserve the current web/ frontend until parity tests pass."
+  "first_task": "RMK-1",
+  "first_task_instruction": "Implement RMK-1 from docs/CACE_RIGOROUS_MATH_KERNEL_V1.md: canonical exact rational/scalar arithmetic, exact vector primitives, and deterministic mathematical packet serialization/hashing in C++ with thin Python bindings and adversarial tests. Do not change formal proof status or duplicate the kernel in Python/TypeScript.",
+  "program_sequence": [
+    {
+      "id": "RMK-v1",
+      "name": "CACE Rigorous Math Kernel v1",
+      "specification": "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+      "status": "PRIORITY_BEFORE_WEB_BUILD"
+    },
+    {
+      "id": "MATH-TOOLBOX",
+      "name": "Proof-backed Math Toolbox",
+      "specification": "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+      "status": "AFTER_RMK_CORE"
+    },
+    {
+      "id": "SCIENCE-COMPLETENESS",
+      "name": "Composable full-featured Science Modules",
+      "specification": "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md",
+      "status": "AFTER_CANONICAL_MATH_CONTRACTS"
+    },
+    {
+      "id": "GWEB",
+      "name": "Gemini browser presentation program",
+      "specification": "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+      "status": "DEFER_POLISH_UNTIL_MATH_API_CONTRACTS_STABILIZE"
+    }
+  ],
+  "pre_web_foundation_gate": {
+    "reason": "User chose to strengthen rigorous math capability and module interoperability before substantial browser implementation.",
+    "required_docs": [
+      "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+      "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+      "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md"
+    ],
+    "browser_work_allowed": "Only minimal API/client scaffolding that does not freeze unstable math/science interfaces.",
+    "heavy_ui_polish": "deferred"
+  }
 }

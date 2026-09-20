@@ -98,6 +98,11 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I071 | alphafold db api | Resolve a UniProt accession through the current public AlphaFold DB prediction API, use its version-current PDB URL instead of guessed filenames, preserve CC-BY-4.0 attribution/hashes, place the API source on the canvas, auto-run it, and expose the returned typed protein structure to Protein Playground heartbeat Play. | G051 |
 
+| I072 | rigorous math kernel | Build a canonical C++ rigorous math kernel for exact rationals, sparse linear algebra, polynomial/affine algebra, geometry, graded/exterior primitives, calculus operators, piecewise fields, norms, and deterministic proof-linkage packets; Python remains thin orchestration. | G061 |
+| I073 | proof-backed math toolbox | Convert the strongest existing Lean theorem families and exact checkers into a broad semantic math-tool library with explicit FORMAL/EXACT/INTERVAL/SYMBOLIC/NUMERICAL/REVIEWED/EXPERIMENTAL evidence badges rather than proliferating version wrappers. | G062 |
+| I074 | composable science modules | Upgrade scientific modules into full-featured typed/unit-aware components that share canonical objects and link naturally across geometry, PDE/FEM, mechanics, EM, molecular, materials, protein, data/statistics, signals and research physics. | G063 |
+| I075 | module help and examples | Treat Help and examples as part of the module contract: theory/equations, assumptions, evidence, limitations, connection suggestions, troubleshooting, minimal/realistic/composition/failure examples, and Add-to-Canvas workflows. | G064 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

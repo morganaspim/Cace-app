@@ -29,7 +29,10 @@
     "docs/ROADMAP.md",
     "docs/MASTER_BUILD_SPEC.md",
     "docs/GOAL_REGISTRY.json",
-    "docs/AI_QUICKSTART.md"
+    "docs/AI_QUICKSTART.md",
+    "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+    "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+    "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md"
   ],
   "canonical_truth_sources": {
     "claim_registry": "cace_studio/data/claim_registry.json",
@@ -290,5 +293,18 @@
     ],
     "backend_boundary": "api/index.py",
     "rule": "When presentation needs missing scientific semantics, extend the typed Python API/core instead of recreating the rule in JavaScript/TypeScript/Node."
+  },
+  "rigorous_math_program": {
+    "kernel": "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+    "toolbox": "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+    "science_standard": "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md",
+    "architecture": "C++ canonical math primitives -> thin Python orchestration -> typed math/science modules -> API -> browser presentation; Lean provides formal theorem source and qualification where explicit bindings exist",
+    "priority_order": [
+      "RMK-v1",
+      "proof-backed math toolbox",
+      "full-featured composable science modules",
+      "structured help/examples",
+      "web UI polish"
+    ]
   }
 }
