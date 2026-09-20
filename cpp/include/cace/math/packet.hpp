@@ -5,6 +5,7 @@
 #include "cace/math/sparse_matrix.hpp"
 #include "cace/math/polynomial.hpp"
 #include "cace/math/geometry.hpp"
+#include "cace/math/exterior.hpp"
 
 #include <algorithm>
 #include <array>
@@ -208,6 +209,25 @@ public:
         packet.exact_payload = value.canonical_text();
         packet.conventions.emplace("scalar", "math.exact.rational");
         packet.conventions.emplace("orientation", "vertex-order-determinant");
+        return packet;
+    }
+
+    static MathPacket exact_exterior(const ExactExterior& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.exterior";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("basis", "ordered-orthonormal-e0-eN");
+        packet.conventions.emplace("blade_encoding", "uint64-bitmask");
+        return packet;
+    }
+
+    static MathPacket exact_plane_rotor(const ExactPlaneRotor& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.plane_rotor";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("orientation", "right-handed-plane-action");
         return packet;
     }
 };

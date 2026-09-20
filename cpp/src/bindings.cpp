@@ -9,6 +9,7 @@
 #include "cace/math/polynomial.hpp"
 #include "cace/math/affine.hpp"
 #include "cace/math/geometry.hpp"
+#include "cace/math/exterior.hpp"
 
 namespace py = pybind11;
 
@@ -26,6 +27,8 @@ PYBIND11_MODULE(_cace_runtime, m) {
     using cace::math::ExactPolynomial;
     using cace::math::ExactAffineMap;
     using cace::math::ExactSimplex;
+    using cace::math::ExactExterior;
+    using cace::math::ExactPlaneRotor;
     using cace::math::MathPacket;
     using cace::math::Rational;
 
@@ -189,6 +192,53 @@ PYBIND11_MODULE(_cace_runtime, m) {
         })
         .def("__eq__", [](const ExactSimplex& a, const ExactSimplex& b) { return a == b; }, py::is_operator());
 
+    py::class_<ExactExterior>(m, "ExactExterior")
+        .def(py::init<>())
+        .def(py::init<std::size_t>())
+        .def(py::init<std::size_t, std::map<ExactExterior::Mask, Rational>>())
+        .def_property_readonly("dimension", &ExactExterior::dimension)
+        .def_property_readonly("term_count", &ExactExterior::term_count)
+        .def_property_readonly("is_zero", &ExactExterior::is_zero)
+        .def("coefficient", &ExactExterior::coefficient)
+        .def("grade", &ExactExterior::grade)
+        .def("is_homogeneous", &ExactExterior::is_homogeneous)
+        .def("scaled", &ExactExterior::scaled)
+        .def("wedge", &ExactExterior::wedge)
+        .def("left_contraction", &ExactExterior::left_contraction)
+        .def("hodge_dual", &ExactExterior::hodge_dual)
+        .def("pushforward", &ExactExterior::pushforward)
+        .def("canonical_text", &ExactExterior::canonical_text)
+        .def("packet_hash", [](const ExactExterior& value) {
+            return MathPacket::exact_exterior(value).semantic_hash();
+        })
+        .def_static("grade_of", &ExactExterior::grade_of)
+        .def_static("scalar", &ExactExterior::scalar)
+        .def_static("basis_vector", &ExactExterior::basis_vector)
+        .def_static("basis_blade", &ExactExterior::basis_blade)
+        .def("__add__", [](const ExactExterior& a, const ExactExterior& b) { return a + b; }, py::is_operator())
+        .def("__sub__", [](const ExactExterior& a, const ExactExterior& b) { return a - b; }, py::is_operator())
+        .def("__neg__", [](const ExactExterior& value) { return -value; }, py::is_operator())
+        .def("__eq__", [](const ExactExterior& a, const ExactExterior& b) { return a == b; }, py::is_operator());
+
+    py::class_<ExactPlaneRotor>(m, "ExactPlaneRotor")
+        .def(py::init<std::size_t, std::size_t, std::size_t, Rational, Rational>())
+        .def_property_readonly("dimension", &ExactPlaneRotor::dimension)
+        .def_property_readonly("first_axis", &ExactPlaneRotor::first_axis)
+        .def_property_readonly("second_axis", &ExactPlaneRotor::second_axis)
+        .def_property_readonly("cosine", &ExactPlaneRotor::cosine,
+             py::return_value_policy::reference_internal)
+        .def_property_readonly("sine", &ExactPlaneRotor::sine,
+             py::return_value_policy::reference_internal)
+        .def("apply", &ExactPlaneRotor::apply)
+        .def("matrix", &ExactPlaneRotor::matrix)
+        .def("inverse", &ExactPlaneRotor::inverse)
+        .def("compose_same_plane", &ExactPlaneRotor::compose_same_plane)
+        .def("canonical_text", &ExactPlaneRotor::canonical_text)
+        .def("packet_hash", [](const ExactPlaneRotor& value) {
+            return MathPacket::exact_plane_rotor(value).semantic_hash();
+        })
+        .def("__eq__", [](const ExactPlaneRotor& a, const ExactPlaneRotor& b) { return a == b; }, py::is_operator());
+
     py::class_<MathPacket>(m, "MathPacket")
         .def(py::init<>())
         .def_readwrite("schema_version", &MathPacket::schema_version)
@@ -206,7 +256,9 @@ PYBIND11_MODULE(_cace_runtime, m) {
         .def_static("from_exact_sparse_matrix", &MathPacket::exact_sparse_matrix)
         .def_static("from_exact_polynomial", &MathPacket::exact_polynomial)
         .def_static("from_exact_affine_map", &MathPacket::exact_affine_map)
-        .def_static("from_exact_simplex", &MathPacket::exact_simplex);
+        .def_static("from_exact_simplex", &MathPacket::exact_simplex)
+        .def_static("from_exact_exterior", &MathPacket::exact_exterior)
+        .def_static("from_exact_plane_rotor", &MathPacket::exact_plane_rotor);
 
     m.def("semantic_sha256", &cace::math::semantic_sha256);
 }
