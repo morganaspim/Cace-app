@@ -856,3 +856,137 @@ def rank_heartbeat_aware_skills(
         )
 
     return tuple(sorted(candidate_skill_ids, key=key))
+
+
+def curriculum_batch_manifest(batch: ReasoningCurriculumBatch) -> dict[str, Any]:
+    """Return a JSON-safe deterministic replay manifest for a curriculum batch.
+
+    Native state/parameter objects are intentionally not serialized here. Replay
+    regenerates them from family, seed, generator version, and the canonical
+    native backend.
+    """
+
+    def pair_record(pair: PairedReasoningTasks, *, role: str) -> dict[str, Any]:
+        return {
+            "role": role,
+            "family": pair.baseline.family,
+            "pair_id": pair.baseline.pair_id,
+            "seed": pair.baseline.seed,
+            "generator_version": pair.baseline.generator_version,
+            "split": pair.baseline.split,
+            "baseline_task_id": pair.baseline.task_id,
+            "intervention_task_id": pair.intervention.task_id,
+            "baseline_operator_signature": list(pair.baseline.operator_signature()),
+            "intervention_operator_signature": list(
+                pair.intervention.operator_signature()
+            ),
+            "load_bearing_intervention": pair.intervention.load_bearing_intervention,
+            "evidence_authority": False,
+        }
+
+    records = [
+        *(pair_record(pair, role="train") for pair in batch.train_pairs),
+        *(pair_record(pair, role="holdout") for pair in batch.holdout_pairs),
+    ]
+    records.sort(key=lambda item: (item["role"], item["family"], item["pair_id"]))
+    return {
+        "schema_version": "cace-reasoning-curriculum-batch-v1",
+        "batch_id": batch.batch_id,
+        "seed": batch.seed,
+        "holdout_family": batch.holdout_family,
+        "pair_count": batch.pair_count,
+        "task_count": batch.task_count,
+        "pairs": records,
+        "replay_rule": (
+            "regenerate exact native task objects from family + seed + "
+            "generator_version; manifest carries no mathematical evidence"
+        ),
+        "evidence_authority": False,
+    }
+
+
+def curriculum_batch_manifest_sha256(batch: ReasoningCurriculumBatch) -> str:
+    import json
+
+    payload = json.dumps(
+        curriculum_batch_manifest(batch),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return sha256(payload).hexdigest()
+
+
+def replay_exact_curriculum_batch(
+    native_module: Any,
+    manifest: Mapping[str, Any],
+) -> ReasoningCurriculumBatch:
+    """Replay a batch from deterministic manifest identity fields."""
+
+    if manifest.get("schema_version") != "cace-reasoning-curriculum-batch-v1":
+        raise ValueError("unsupported curriculum batch manifest")
+    if manifest.get("evidence_authority") is not False:
+        raise ValueError("curriculum manifest must have evidence_authority=false")
+
+    seed = manifest.get("seed")
+    holdout_family = manifest.get("holdout_family")
+    batch_id = manifest.get("batch_id")
+    if not isinstance(seed, int):
+        raise ValueError("curriculum manifest seed must be an integer")
+    if not isinstance(holdout_family, str) or not holdout_family:
+        raise ValueError("curriculum manifest holdout_family must be non-empty")
+    if not isinstance(batch_id, str) or len(batch_id) != 64:
+        raise ValueError("curriculum manifest batch_id must be a SHA-256 string")
+
+    replayed = generate_exact_curriculum_batch(
+        native_module,
+        seed=seed,
+        holdout_family=holdout_family,
+    )
+    if replayed.batch_id != batch_id:
+        raise ValueError("curriculum manifest batch identity mismatch")
+
+    expected = curriculum_batch_manifest(replayed)
+    supplied_pairs = manifest.get("pairs")
+    if supplied_pairs != expected["pairs"]:
+        raise ValueError("curriculum manifest pair metadata mismatch")
+    if manifest.get("pair_count") != expected["pair_count"]:
+        raise ValueError("curriculum manifest pair_count mismatch")
+    if manifest.get("task_count") != expected["task_count"]:
+        raise ValueError("curriculum manifest task_count mismatch")
+    return replayed
+
+
+def curriculum_symmetry_benchmark_record(
+    *,
+    raw_states: int,
+    canonical_states: int,
+    eliminated_states: int,
+    reduction_fraction: float,
+    canonicalization_idempotent: bool,
+    raw_key_seconds: float | None = None,
+    canonicalization_seconds: float | None = None,
+) -> dict[str, Any]:
+    """Normalize measured group-reasoning metrics for curriculum reporting."""
+
+    if raw_states < 0 or canonical_states < 0 or eliminated_states < 0:
+        raise ValueError("symmetry benchmark counts must be non-negative")
+    if canonical_states > raw_states:
+        raise ValueError("canonical_states cannot exceed raw_states")
+    if eliminated_states != raw_states - canonical_states:
+        raise ValueError("eliminated_states must equal raw_states-canonical_states")
+    if not 0.0 <= reduction_fraction <= 1.0:
+        raise ValueError("reduction_fraction must be in [0,1]")
+
+    return {
+        "schema_version": "cace-curriculum-symmetry-benchmark-v1",
+        "raw_states": raw_states,
+        "canonical_states": canonical_states,
+        "eliminated_states": eliminated_states,
+        "reduction_fraction": reduction_fraction,
+        "canonicalization_idempotent": bool(canonicalization_idempotent),
+        "raw_key_seconds": raw_key_seconds,
+        "canonicalization_seconds": canonicalization_seconds,
+        "performance_claim": "none; timings are descriptive only",
+        "evidence_authority": False,
+    }
