@@ -193,3 +193,35 @@ For Local AI / canvas integration, consume the typed perception stream in `schem
 This stream gives the agent compact live experiment deltas—active/blocked/stale/verifying state, residual/convergence trend, resource pressure, blockers, canonical evidence snapshots, and research-interest—so it can react to the evolving canvas without rereading the entire experiment.
 
 Treat this as non-evidentiary perception/coordination data. It cannot promote proof or scientific evidence.
+
+
+## Product experience: Research Assistant first
+
+Gemini should implement the post-account product experience described in `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`.
+
+The default newly entitled user flow is:
+
+```text
+account created / signed in
+ -> Research Assistant welcome chat
+ -> describe experiment | field demos | full capabilities | recent work
+ -> grounded proposal/demo selection
+ -> preview typed graph
+ -> Build on Canvas
+ -> assistant persists beside the Studio
+```
+
+CACE should be presented as a **VRE — Verified Research Environment** for interactive rigorous math/science.
+
+Preferred headline/subheadline:
+
+- **CACE — Verified Research Environment**
+- **Explore rigorous math with AI that learns geometric reasoning.**
+
+The UI must immediately clarify rigor through actual evidence labels. "Verified" is the environment's evidence-oriented design, not a claim that every result is formally verified.
+
+"AI that learns geometric reasoning" should be implemented through local research memory, accepted tool/operator knowledge, geometric representations, prior experiment patterns and validated workflows—not by letting model-generated conclusions become truth.
+
+Field-specific demos must come from real structured demo metadata. If the user asks for something that does not exist, label it as a proposed experiment rather than pretending a demo exists.
+
+This onboarding/daily-work experience is a first-class Gemini browser responsibility once the underlying typed APIs/catalogs are ready.
