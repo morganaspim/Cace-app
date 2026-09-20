@@ -353,6 +353,6 @@ def test_canvas_preview_rejects_hidden_module_when_capability_gate_is_active(tmp
             },
         )
     )
-    assert preview.status is ToolStatus.ERROR
+    assert preview.status is ToolStatus.INVALID_REQUEST
     assert "unavailable on ai surface" in preview.error
     assert [node.id for node in experiment.nodes] == ["src"]

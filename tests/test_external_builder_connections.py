@@ -146,12 +146,17 @@ def test_proof_promotion_and_multi_user_boundaries() -> None:
     assert gemini["proof_promotion_compatibility"]["breaking_external_change_requires_versioned_migration"] is True
     assert gemini["multi_user_sessions"]["status_until_backend_ready"] == "MULTI_USER_BACKEND_PENDING"
     assert gemini["multi_user_sessions"]["cloud_run_used"] is False
-    assert gemini["multi_user_sessions"]["transport"] == "DIRECT_BROWSER_TO_ORACLE_CACE"
+    assert gemini["multi_user_sessions"]["transport"] == "DIRECT_BROWSER_TO_PRODUCTION_CACE"
+    assert gemini["multi_user_sessions"]["oracle_used"] is False
+    assert gemini["multi_user_sessions"]["oracle_role"] == "CI_AND_QUALIFICATION_ONLY"
     assert gemini["cloud_run_deployment"]["role"] == "MONERO_PAYMENT_SERVICE_ONLY"
     assert gemini["cloud_run_deployment"]["general_web_hosting_allowed"] is False
     assert gemini["cloud_run_deployment"]["general_api_edge_allowed"] is False
     assert gemini["cloud_run_deployment"]["multi_user_session_edge_allowed"] is False
-    assert gemini["cloud_run_deployment"]["scientific_authority_remains"] == "Oracle/CACE"
+    assert gemini["cloud_run_deployment"]["scientific_authority_remains"] == "Production CACE backend"
+    assert gemini["oracle_boundary"]["role"] == "CI_AND_QUALIFICATION_ONLY"
+    assert gemini["oracle_boundary"]["production_api"] is False
+    assert gemini["oracle_boundary"]["production_science"] is False
 
     multi = _load("ops/multi_user_session_policy.json")
     assert multi["browser_session"]["disconnect_cancels_run"] is False
