@@ -7,6 +7,10 @@
     "production_ready": false
   },
   "first_read": [
+    "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md",
+    "docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md",
+    "docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md",
+    "docs/proofs/RMK_FORMAL_LINKAGE_MATRIX.json",
     "schema/cace-reasoning-operator.schema.json",
     "docs/CACE_REASONING_OPERATOR_V1.md",
     "docs/TYPED_EQUATION_DATA_WIZARD.md",
@@ -71,7 +75,11 @@
     "experiment_to_proof_discovery": "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
     "typed_equation_data_wizard": "docs/TYPED_EQUATION_DATA_WIZARD.md",
     "reasoning_operator_runtime": "cace_studio/core/reasoning.py",
-    "reasoning_operator_schema": "schema/cace-reasoning-operator.schema.json"
+    "reasoning_operator_schema": "schema/cace-reasoning-operator.schema.json",
+    "rmk_formal_linkage_matrix": "docs/proofs/RMK_FORMAL_LINKAGE_MATRIX.json",
+    "capability_gap_feedback": "docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md",
+    "interactive_workbench": "docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md",
+    "geometric_ai_efficiency": "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -408,7 +416,9 @@
       "evidence_authority": false,
       "initial_focus": "exact permutations, finite groups, exterior algebra, affine/simplex geometry",
       "benchmark": "scripts/benchmark_group_reasoning.py"
-    }
+    },
+    "capability_gap_flow": "missing capability -> Tool Request -> Gemini/local rigorous builder -> proof-ready submission -> normal evidence gates",
+    "top10_next_actions": "grounded advisory ranking from canvas/module/evidence/heartbeat state; unavailable actions become Tool Requests"
   },
   "product_experience": {
     "vre_name": "CACE — Verified Research Environment",
