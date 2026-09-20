@@ -253,3 +253,22 @@ A production implementation should demonstrate that:
 8. a no-AI fallback remains fully usable;
 9. returning users can resume daily research from recent experiments/Research Ideas;
 10. heartbeat/perception can provide contextual experiment updates without changing evidence state.
+
+
+## Equation/data wizard handoff
+
+When the user's request cannot safely be converted from free text alone, the Research Assistant should open the typed wizard defined in `docs/TYPED_EQUATION_DATA_WIZARD.md` rather than guessing.
+
+Examples:
+
+- PDE equation/domain/boundary conditions;
+- units or material constants;
+- tensor/vector dimensions;
+- optimization constraints;
+- dataset column/unit mappings;
+- group action definitions;
+- user-supplied mathematical expressions with ambiguous symbols.
+
+The assistant can prefill likely fields conversationally, but the user sees the structured equation/data state, pretty mathematical rendering and deterministic validation before Build on Canvas.
+
+This keeps conversational ease without sacrificing typed rigor.
