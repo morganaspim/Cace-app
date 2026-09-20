@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
@@ -216,3 +217,31 @@ def test_module_emits_symbolic_not_formal_evidence():
         outputs["lean_source"],
     )
     assert check["passed"] is True
+
+
+
+def test_quarantined_lean_fixture_matches_generator_byte_for_byte():
+    data = runtime_fixture()
+    packet = build_p1_rt0_runtime_packet(
+        data["mesh"],
+        data["p1_cells"],
+        data["rt0_cells"],
+        source_identity={
+            "module_id": "formal_bridge.p1_rt0_runtime_packet",
+            "module_version": "1.0.0",
+        },
+    )
+    generated = render_lean_p1_rt0_binding(
+        packet,
+        mesh_definition_name="runtimeP1RT0FixtureMesh",
+        binding_prefix="runtimeP1RT0Fixture",
+    )
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "formal"
+        / "cace_formal"
+        / "CACEFormal"
+        / "Generated"
+        / "RuntimeP1RT0BindingFixture.lean"
+    ).read_text(encoding="utf-8")
+    assert generated == fixture
