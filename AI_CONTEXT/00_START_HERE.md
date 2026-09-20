@@ -70,6 +70,16 @@ When a new idea has merit:
 3. map it to an A–I track or explicitly mark it cross-cutting/later;
 4. never upgrade evidence/proof status through documentation.
 
+## Rigorous tool-building contract
+
+Gemini/Antigravity may operate as rigorous tool builders, including C++ implementation and Lean proof attempts. Before such work, read:
+
+- `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`
+- `collaboration/schema/cace-ai-tool-submission.schema.json`
+- `schema/cace-agent-perception.schema.json`
+
+If formal closure cannot be completed, preserve a validated proof-ready submission with explicit unresolved obligations rather than discarding the work.
+
 ## Implementation contract
 
 Before coding a batch, the builder should emit or internally maintain:
