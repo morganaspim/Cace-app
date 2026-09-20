@@ -124,6 +124,68 @@
         "state": "LEAN_GENERATED"
       },
       "toolchain_file": "formal/cace_formal/lean-toolchain"
+    },
+    {
+      "allowed_axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "audited_source_files": [
+        "CACEFormal/RuntimeRMKCoreBridge.lean",
+        "CACEFormal/RuntimeGroupExteriorBridge.lean",
+        "CACEFormal/RMKAxiomAudit.lean"
+      ],
+      "build_target": "CACEFormal.RMKAxiomAudit",
+      "claim_id": "cace.rmk.runtime-formal-linkage-v1",
+      "contract_id": "cace.proof.rmk.runtime-formal-linkage.v1",
+      "dependency_pins": {
+        "lean_toolchain": "leanprover/lean4:v4.32.1",
+        "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6"
+      },
+      "endpoint_theorems": [
+        "CACEFormal.RuntimeRMK.Mat2.linearDet_toReal",
+        "CACEFormal.RuntimeRMK.Mat2.matVec_identity",
+        "CACEFormal.RuntimeRMK.Mat2.matVec_mul",
+        "CACEFormal.RuntimeRMK.Mat2.matVec_to_grade1",
+        "CACEFormal.RuntimeRMK.AffineMap2.apply_toReal",
+        "CACEFormal.RuntimeRMK.AffineMap2.linearDet_toReal",
+        "CACEFormal.RuntimeRMK.verifiesSolution_sound",
+        "CACEFormal.RuntimeRMK.verifiesInverse_sound",
+        "CACEFormal.RuntimeRMK.PlaneRotor2.det_matrix",
+        "CACEFormal.RuntimeRMK.PlaneRotor2.normSq_apply",
+        "CACEFormal.RuntimeRMK.wedge_toReal",
+        "CACEFormal.RuntimeRMK.wedge_matVec",
+        "CACEFormal.RuntimeRMK.wedge_pushforward_refines_exteriorPower",
+        "CACEFormal.RuntimeRMK.Permutation2.act_eq_matVec",
+        "CACEFormal.RuntimeRMK.Permutation2.det_matrix_eq_sign",
+        "CACEFormal.RuntimeRMK.Permutation2.wedge_act",
+        "CACEFormal.RuntimeRMK.Permutation2.swap_toReal_eq_affineSwap",
+        "CACEFormal.RuntimeRMK.triangle_swap01_det"
+      ],
+      "formal_system": "lean4",
+      "nonclaims": [
+        "This contract qualifies the Lean two-dimensional rational RMK bridge theorem surface; it does not by itself prove byte-for-byte or semantic equivalence to arbitrary C++ runtime objects.",
+        "The exact solution and inverse bridge theorems specify checker semantics only; they do not prove correctness of the runtime Gaussian elimination, RREF, rank, nullspace, or solve algorithms.",
+        "CSR canonicalization, general sparse multiplication, multivariate polynomial semantics, and general finite permutation-group closure/orbit/stabilizer/canonicalization remain outside this contract.",
+        "Exact-Pin and kernel qualification of these bridge theorems does not convert unrelated numerical, interval, experimental, or runtime evidence into FORMAL evidence."
+      ],
+      "required_checks": [
+        "clean-tree",
+        "pinned-lean-toolchain",
+        "pinned-mathlib-commit",
+        "unfinished-token-guard",
+        "audited-root-build",
+        "kernel-axiom-audit",
+        "source-bundle-hash",
+        "exact-current-head",
+        "content-addressed-attestation"
+      ],
+      "theorem_dependency_metadata": {
+        "state": "SOURCE_IMPORT_CLOSURE_ONLY",
+        "note": "This first RMK promotion records the exact audited theorem set and source bundle. Full Lean.Environment theorem dependency records may be added later without weakening the current kernel axiom audit."
+      },
+      "toolchain_file": "formal/cace_formal/lean-toolchain"
     }
   ],
   "policy": "Proof contracts define the exact static formal scope required for qualification. Contract identity is content-addressed and theorem-to-theorem dependency edges are generated from Lean.Environment, never inferred from source text.",
