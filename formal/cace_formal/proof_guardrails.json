@@ -67,7 +67,8 @@
     "CACEFormal.HDivDensityReduction"
   ],
   "quarantined_root_imports": [
-    "CACEFormal.Generated.RuntimeP1RT0BindingFixture"
+    "CACEFormal.Generated.RuntimeP1RT0BindingFixture",
+    "CACEFormal.Generated.RuntimeP1RT0LocalSemanticsFixture"
   ],
   "policy": {
     "root_imports_are_exact_allowlist": true,
