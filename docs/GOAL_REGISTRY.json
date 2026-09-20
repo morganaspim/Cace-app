@@ -985,6 +985,81 @@
         "Actual proof/theorem/research artifact contribution is off by default and requires separate explicit opt-in plus IP/contribution terms.",
         "Telemetry can never promote scientific evidence or formal proof status."
       ]
+    },
+    {
+      "id": "G066",
+      "category": "multi_window_spatial_ui",
+      "priority": 66,
+      "intent_status": "planned",
+      "title": "Multi-window semantic routing with non-Cartesian scientific workspaces",
+      "summary": "Support multiple independent windows/monitors using ordinary physical windows plus pluggable semantic coordinate systems while keeping layout separate from scientific/proof state.",
+      "acceptance": [
+        "Physical windows remain ordinary screen rectangles.",
+        "WindowIntent carries source/role/evidence/heartbeat/pin/workspace metadata.",
+        "User pins override routing and spatial memory is preserved.",
+        "Hex/radial routing precedes hyperbolic/Voronoi/Hilbert/simplex/complex/fractal/3D plugins.",
+        "Layout persistence never changes scientific hashes/evidence/proof."
+      ]
+    },
+    {
+      "id": "G067",
+      "category": "local_ai_architecture",
+      "priority": 67,
+      "intent_status": "required",
+      "title": "Ordered sandbox-first local hybrid deep AI",
+      "summary": "Build Build Lite and builder/bug-sweep tooling first, then sandbox, then a bounded local hybrid AI using typed CACE tools and independent verification.",
+      "acceptance": [
+        "Build order is Build Lite -> builder/bug sweep -> sandbox -> local AI -> curriculum -> canvas/heartbeat.",
+        "AI begins network/shell/self-modification/package-install/proof/evidence/wallet/secret denied.",
+        "Hybrid architecture separates language, typed planning, tool routing, retrieval, specialists and checking.",
+        "Paired intervention/invariance tests are required.",
+        "External methods/components require compatible provenance/license review."
+      ]
+    },
+    {
+      "id": "G068",
+      "category": "math_coin_commerce",
+      "priority": 68,
+      "intent_status": "required",
+      "title": "Human-approved Math Coin spending, buy-more help, and secure master custody",
+      "summary": "Require user approval for AI-requested MATH, use an introductory 1,000 MATH = USD 0.01 reference price, expose a buy-more help surface, and keep master-wallet recovery material out of Git/browser/AI/log/email.",
+      "acceptance": [
+        "AI cannot self-approve or enlarge spending authority.",
+        "Spend prompt shows amount, purpose/action/provider, fees and before/after balance.",
+        "Reference price is not described as guaranteed market/investment value.",
+        "Live checkout credits only confirmed idempotent settlement.",
+        "Master recovery material is owner-only secure custody and never emailed."
+      ]
+    },
+    {
+      "id": "G069",
+      "category": "contribution_rewards_and_proof_access",
+      "priority": 69,
+      "intent_status": "required",
+      "title": "Tiered discovery rewards and proof access",
+      "summary": "Basic users can opt in to contribute discoveries for host-reviewed MATH rewards; Researchers can view customer-safe own-instance LaTeX proofs; Enterprise/Government customers can buy full-rigor proof packages.",
+      "acceptance": [
+        "Contribution rewards use existing treasury MATH and never mint beyond the fixed supply.",
+        "User/local AI cannot self-award impact/rewards.",
+        "Researcher proof views show assumptions/attribution/evidence/provenance/limitations without proprietary internals.",
+        "Enterprise proof commerce remains prove-first-sell-second.",
+        "Tier/reward/payment never changes proof truth."
+      ]
+    },
+    {
+      "id": "G070",
+      "category": "planning_continuity",
+      "priority": 70,
+      "intent_status": "required",
+      "title": "Dependency-ranked master idea roadmap and implementation timeline",
+      "summary": "Maintain one coding-agent-readable roadmap that preserves all meritorious CACE ideas, ranks implementation by dependency/correctness, tracks live blockers and side branches, and mirrors the plan outside GitHub.",
+      "acceptance": [
+        "Roadmap links to the append-only idea ledger rather than deleting deferred ideas.",
+        "Current live proof/product blockers are recorded.",
+        "Implementation is grouped into explicit dependency phases and ranked tracks.",
+        "Agent bootstrap files point to the roadmap.",
+        "A secondary Library continuity copy exists when Library access is available."
+      ]
     }
   ]
 }

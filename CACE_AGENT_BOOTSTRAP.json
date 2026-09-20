@@ -9,6 +9,8 @@
   "first_read": [
     "docs/CHAT_IDEA_LEDGER.md",
     "CACE_BUILD_LITE.json",
+    "docs/CACE_MASTER_IDEA_ROADMAP_2026-09-19.md",
+    "CACE_MASTER_IDEA_ROADMAP.json",
     "CACE_CODE_BUILDER_BOOTSTRAP.json",
     "CACE_PAYMENT_POLICY.json",
     "CACE_DEPLOYMENT_BOUNDARY.json",
@@ -60,7 +62,8 @@
     "public_help_policy": "CACE_PUBLIC_HELP_POLICY.json",
     "multi_tenant_runtime": "CACE_MULTI_TENANT_POLICY.json",
     "public_service_access": "CACE_PUBLIC_SERVICE_POLICY.json",
-    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json"
+    "telemetry_privacy": "CACE_TELEMETRY_PRIVACY_POLICY.json",
+    "master_idea_roadmap": "CACE_MASTER_IDEA_ROADMAP.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -409,5 +412,11 @@
     "analytics": "privacy-controlled aggregate/pseudonymous product/sales usage",
     "contribution": "actual proof/research artifacts explicit opt-in only",
     "contract": "cace_studio/telemetry_contract.py"
+  },
+  "master_roadmap": {
+    "role": "dependency-ranked implementation navigation only",
+    "human_readable": "docs/CACE_MASTER_IDEA_ROADMAP_2026-09-19.md",
+    "idea_inventory": "docs/CHAT_IDEA_LEDGER.md",
+    "rule": "refresh live GitHub/CI state, then take highest-ranked unblocked work compatible with branch/proof constraints; roadmap never promotes evidence"
   }
 }

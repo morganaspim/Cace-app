@@ -110,6 +110,12 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I078 | public signup privacy-preserving feedback loop | Operate one stable public CACE signup URL for eligible users, block CN/KP at the trusted edge per product policy, give each user a durable tenant instance, and collect strict allowlisted operational/heartbeat/proof-status metadata plus privacy-controlled aggregate usage analytics for product/sales improvement; actual proof/research content is a separate explicit opt-in. | G065 |
 
+| I079 | semantic multi-window routing | Use rectangular OS/browser windows plus pluggable CACE semantic coordinates (Cartesian, hex, radial, hyperbolic, Voronoi, Hilbert/Morton, simplex, complex/Eisenstein, fractal, 3D) to route scientific views. User pins and spatial memory dominate automatic routing; layout never changes proof/scientific semantics. | G066 |
+| I080 | sandbox-first local hybrid AI | Force the build sequence Build Lite -> builder/bug-sweep -> hardened sandbox -> local hybrid deep AI -> reasoning curriculum -> canvas/heartbeat. Hybrid AI uses typed CACE tools, specialists, provenance-aware retrieval and independent checkers; public ideas may inspire independent work only with compatible IP/license provenance. | G067 |
+| I081 | Math Coin human spend approval | Local AI may request MATH but a host-owned GUI approval shows amount/reference value/purpose/provider/fees/balance and requires user approval once or a separately configured bounded budget. Start reference at 1,000 MATH = USD 0.01; master recovery material never traverses Git/browser/AI/log/email. | G068 |
+| I082 | tiered discovery rewards and proof access | Basic users may opt in to contribute discoveries and earn host-reviewed proportional MATH rewards from a fixed treasury; Researchers can view attributed customer-safe LaTeX proofs from their own instance; Enterprise/Government can buy full-rigor proof packages under prove-first-sell-second rules without receiving proprietary CACE Background IP. | G069 |
+| I083 | master roadmap | Maintain one dependency-ranked master idea roadmap/timeline that points coding agents to all durable goals/ideas, live blockers, side branches, and phase gates without turning planning text into proof evidence. | G070 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

@@ -9,6 +9,7 @@ Read these in order before changing scientific or verification behavior:
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
 2. `CACE_BUILD_LITE.json` — low-cost deterministic build/test optimizer for coding agents.
 3. `CACE_PAYMENT_POLICY.json` — canonical public payment-wallet policy; do not invent replacement wallets.
+4. `CACE_MASTER_IDEA_ROADMAP.json` — dependency-ranked master implementation/research roadmap; planning only, never proof evidence.
 4. `CACE_DEPLOYMENT_BOUNDARY.json` — browser-only public surface and hardened private/local service policy.
 5. `CACE_TRIAL_ACCOUNT_POLICY.json` — one-person/one-trial and non-destructive expiry policy.
 6. `CACE_PUBLIC_HELP_POLICY.json` — customer-help completeness and proprietary-leakage boundary.
@@ -417,3 +418,20 @@ contribution/IP terms.
 
 Authority: `CACE_TELEMETRY_PRIVACY_POLICY.json`.
 Executable allowlist: `cace_studio/telemetry_contract.py`.
+
+
+## Master idea roadmap
+
+Before selecting substantial new work, read:
+
+- `CACE_MASTER_IDEA_ROADMAP.json`
+- `docs/CACE_MASTER_IDEA_ROADMAP_2026-09-19.md`
+- `docs/CHAT_IDEA_LEDGER.md`
+
+Use the roadmap rank/dependency phases as the default implementation order.
+Refresh live GitHub/CI state before acting because the roadmap is a snapshot, not
+an execution oracle.
+
+Do not delete deferred ideas merely because they are not on the active path.
+Append/deduplicate them in the idea ledger. Planning documents cannot create
+PASS/VERIFIED/formal qualification.

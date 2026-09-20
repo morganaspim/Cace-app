@@ -8,6 +8,8 @@
     "AGENTS.md",
     "CACE_AGENT_BOOTSTRAP.json",
     "CACE_BUILD_LITE.json",
+    "docs/CACE_MASTER_IDEA_ROADMAP_2026-09-19.md",
+    "CACE_MASTER_IDEA_ROADMAP.json",
     "CACE_PAYMENT_POLICY.json",
     "CACE_DEPLOYMENT_BOUNDARY.json",
     "docs/CROSS_CHAT_HANDOFF.md",
@@ -183,5 +185,12 @@
       "proof_research_contribution: explicit opt-in only"
     ],
     "evidence_rule": "telemetry cannot create or modify proof/evidence truth"
+  },
+  "master_roadmap": {
+    "source": "CACE_MASTER_IDEA_ROADMAP.json",
+    "human_readable": "docs/CACE_MASTER_IDEA_ROADMAP_2026-09-19.md",
+    "selection_rule": "refresh live state, run Build Lite, choose highest-ranked unblocked item compatible with current branch and architecture",
+    "idea_rule": "preserve/deduplicate meritorious ideas in docs/CHAT_IDEA_LEDGER.md; never silently delete deferred research",
+    "proof_rule": "planning priority has zero proof/evidence authority"
   }
 }
