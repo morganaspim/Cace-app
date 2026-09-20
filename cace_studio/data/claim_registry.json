@@ -41,6 +41,26 @@
       },
       "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",
       "statement": "The continuum chain contains graph-space, unconditional representation-level H1 converse, unconditional whole-space H(div) Hilbert graph density, Green-identity, bounded normal-trace, weak-Green, zero-boundary-orthogonality, and conditional continuum Prager-Synge proof infrastructure."
+    },
+    {
+      "claim_id": "cace.rmk.runtime-formal-linkage-v1",
+      "evidence_ceiling": "formally-verified",
+      "module_ids": [],
+      "nonclaims": [
+        "Does not by itself prove arbitrary C++ RMK implementation equivalence.",
+        "Does not prove the runtime RREF/rank/nullspace/solve algorithms.",
+        "Does not cover CSR canonicalization, multivariate polynomial semantics, or general finite permutation-group closure/orbit/stabilizer/canonicalization."
+      ],
+      "proof_contract_id": "cace.proof.rmk.runtime-formal-linkage.v1",
+      "qualification": {
+        "attested_commit": null,
+        "current_head_qualified": false,
+        "proof_artifact_sha256": null,
+        "reason": "RMK Lean bridge promotion is pending audited-root Exact-Pin and canonical exact-current-head qualification.",
+        "status": "PENDING"
+      },
+      "scope": "Two-dimensional exact-rational RMK Lean bridge theorem surface defined by cace.proof.rmk.runtime-formal-linkage.v1.",
+      "statement": "The promoted Lean RMK bridge formalizes exact 2D rational vector/matrix/affine/rotor, wedge, degree-2 permutation, and triangle-orientation laws."
     }
   ],
   "policy": "fail-closed",
