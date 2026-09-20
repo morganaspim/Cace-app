@@ -272,3 +272,45 @@ Examples:
 The assistant can prefill likely fields conversationally, but the user sees the structured equation/data state, pretty mathematical rendering and deterministic validation before Build on Canvas.
 
 This keeps conversational ease without sacrificing typed rigor.
+
+
+## Grounded Top 10 next actions
+
+After a meaningful canvas, run, notebook, or heartbeat change, the Research
+Assistant may show up to ten grounded next actions.
+
+Suggestions are generated from real state:
+
+- active objective / Research Idea;
+- selected node and graph neighborhood;
+- missing required inputs;
+- type/unit-compatible upstream/downstream modules;
+- blockers/stale nodes;
+- verifier/evidence state;
+- residual/convergence signals;
+- available theorem/proof matches;
+- compute/resource budget;
+- save/replay/compare/visualize opportunities.
+
+Each suggestion shows a short reason, affected nodes, prerequisites, approximate
+cost, expected graph change, and expected evidence impact.
+
+The assistant should prefer actions that can actually run now and that reduce
+time-to-experiment.
+
+If a useful next action needs a capability that is not available, the suggestion
+becomes **Request this capability** and follows
+`docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md`.
+
+The Top-10 list is advisory and cannot create evidence or silently mutate the
+canvas.
+
+## Animated mathematical operations
+
+The Studio should visually animate semantic operations when useful, including
+group/permutation actions, affine transforms, blades/wedges, matrix actions,
+mesh refinement, solver progress and data flow.
+
+Animations must be projections of actual semantic state transitions. Turning
+animation off, using reduced-motion mode, or running headless must produce the
+same computation and evidence.

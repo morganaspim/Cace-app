@@ -153,3 +153,34 @@ This gives the agent a compact live view of:
 - research-interest signals.
 
 This is the AI's live **experimental state stream**. It is not a substitute for data, certificates, or proof.
+
+
+## Capability-gap intake from users
+
+The Research Assistant may create a structured Tool Request when a user asks
+for a capability that the real CACE registry does not provide.
+
+Canonical intake:
+
+```text
+user request
+ -> registry confirms capability is absent/incomplete
+ -> offer Request this capability / Send feedback
+ -> structured Tool Request
+ -> engineering triage
+ -> Gemini/local Rigorous Tool Builder
+ -> cace-ai-tool-submission-v1
+ -> ordinary engineering/formal promotion ladder
+```
+
+The assistant should preserve the user's motivating experiment and desired
+connections, but should not upload private research data by default.
+
+Tool-request popularity may influence engineering priority. It can never
+strengthen mathematical evidence.
+
+When the builder changes a tool that already has qualified formal coverage, it
+must treat the old runtime-to-formal binding as potentially stale and either
+show that the existing theorem/binding still applies or submit updated Lean and
+binding obligations. No implementation change inherits FORMAL status merely
+because an older version was qualified.

@@ -12,7 +12,13 @@ import json
 import re
 from pathlib import Path
 
-from scripts import cace_proof_guardrails as guard
+try:
+    from scripts import cace_proof_guardrails as guard
+except ModuleNotFoundError:
+    # Support direct local invocation: python scripts/cace_batch_proof_targets.py
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from scripts import cace_proof_guardrails as guard
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_ROOT = ROOT / "formal" / "cace_formal"
