@@ -194,4 +194,9 @@ def test_module_emits_symbolic_not_formal_evidence():
     assert records[0].state is VerificationState.PASS
     assert records[0].kind.value == "symbolic"
     assert outputs["source_binding"]["fsl_status"]["FSL-5"] == "UNRESOLVED"
-    check = verify_formal_source_binding(\n        outputs["source_binding"], outputs["runtime_packet"], outputs["lean_source"]\n    )\n    assert check["passed"] is True\n
+    check = verify_formal_source_binding(
+        outputs["source_binding"],
+        outputs["runtime_packet"],
+        outputs["lean_source"],
+    )
+    assert check["passed"] is True
