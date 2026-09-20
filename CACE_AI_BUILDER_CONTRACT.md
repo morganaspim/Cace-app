@@ -73,6 +73,19 @@ Do not invert this dependency. GUI code must not create alternate scientific sem
 
 Python orchestrates. C++ is reserved for justified heavy kernels. Lean remains the formal proof source.
 
+### Gemini / Google AI Studio browser boundary
+
+For Gemini/Google AI Studio, the browser implementation is explicitly a **presentation/controller layer** over the typed CACE API/core.
+
+- React/TypeScript may own layout, interaction, view state, 2D/3D camera behavior, presentation-only coordinate visualizations, and a typed API client.
+- The authoritative browser/backend boundary is `api/index.py` and the canonical Python core it invokes.
+- If AI Studio generates a Node server for preview/development, that server is a thin static/proxy layer only.
+- JavaScript/TypeScript/Node must not become a second implementation of graph execution, scientific modules, C++ exact/numerical kernels, certificate validity, claim/proof governance, formal status, or Lean qualification.
+- Client-side validation may improve UX, but backend validation must remain authoritative.
+- When a browser feature requires semantics not exposed by the API, extend the typed Python API/core rather than recreating those semantics in the browser.
+
+The Gemini-specific entrypoint is `GEMINI.md`; the detailed integration handoff is `docs/GEMINI_AI_STUDIO_HANDOFF.md`.
+
 ## 5. Change classes
 
 Every proposed change must be classified before implementation.
