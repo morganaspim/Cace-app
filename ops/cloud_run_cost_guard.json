@@ -1,7 +1,7 @@
 {
-  "schema": "cace-cloud-run-cost-guard-v1",
+  "schema": "cace-cloud-run-cost-guard-v2",
   "updated_at": "2026-09-20",
-  "objective": "Use paid Cloud Run only when the stateless edge is materially needed and bound burst cost aggressively.",
+  "objective": "Permit paid Cloud Run only for Monero payment coordination and keep all other CACE workloads off Cloud Run.",
   "default_state": "DISABLED",
   "enablement": {
     "production_enable_requires_explicit_operator_approval": true,
@@ -18,16 +18,17 @@
     "note": "Google Cloud billing budgets/alerts are monitoring controls, not a guaranteed hard spending cap."
   },
   "allowed_activation_reasons": [
-    "public multi-user web edge needs independent scaling from Oracle",
-    "server-side auth/session callback cannot safely live in browser",
-    "SSE/status fanout materially reduces load on Oracle",
-    "temporary production traffic exceeds the direct Oracle/browser edge design"
+    "server-side Monero checkout/payment verification and signed entitlement issuance"
   ],
   "not_sufficient_reasons": [
+    "web hosting",
+    "multi-user sessions",
+    "general API proxying",
+    "SSE/event fanout",
     "development convenience",
     "every commit",
     "single-user testing",
-    "static files alone",
+    "static files",
     "scientific computation",
     "proof computation",
     "background polling"
@@ -42,8 +43,7 @@
     "gpu": false,
     "cpu_always_allocated": false,
     "background_workers": false,
-    "sticky_sessions": false,
-    "note": "Service-level max instances is a strong cost guard but Google documents that it can be exceeded briefly in some scaling/revision conditions."
+    "sticky_sessions": false
   },
   "deploy_policy": {
     "continuous_deploy_default": false,
@@ -52,7 +52,7 @@
     "reviewed_manual_deploy_default": true,
     "github_remains_source_of_truth": true,
     "ai_studio_direct_deploy_requires_operator_approval": true,
-    "cloud_build_runs_only_for_approved_deployments": true
+    "cloud_build_runs_only_for_approved_payment_service_deployments": true
   },
   "artifact_registry_policy": {
     "avoid_build_per_commit": true,
@@ -62,11 +62,12 @@
     "note": "Cloud Build and Artifact Registry have pricing separate from Cloud Run."
   },
   "traffic_policy": {
-    "large_scientific_artifact_proxying": false,
-    "high_frequency_science_telemetry": false,
+    "only_payment_routes_allowed": true,
+    "general_cace_routes_allowed": false,
+    "scientific_artifact_proxying": false,
+    "science_telemetry": false,
     "proof_artifact_proxying": false,
-    "base44_proxying_only_when_needed": false,
-    "prefer_direct_typed_oracle_calls_when_safe_and_authenticated": true
+    "oracle_api_proxying": false
   },
   "emergency_controls": {
     "operator_can_disable_service": true,
@@ -87,5 +88,16 @@
     "do_not_claim_hard_spend_cap": true
   },
   "proof_effect": "none",
-  "promotion_authority": false
+  "promotion_authority": false,
+  "payment_exception": {
+    "classification": "MONERO_PAYMENT_CRITICAL",
+    "permitted": true,
+    "still_requires_explicit_production_enable": true,
+    "still_requires_monthly_budget": true,
+    "min_instances": 0,
+    "max_instances": 1,
+    "background_polling": false,
+    "wallet_custody": false,
+    "canonical_service_policy": "ops/cloud_run_payment_service_policy.json"
+  }
 }

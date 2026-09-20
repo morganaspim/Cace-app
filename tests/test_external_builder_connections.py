@@ -116,7 +116,7 @@ def test_gemini_connection_owns_interface_not_science() -> None:
     assert "client-side formal PASS" in forbidden
 
     batch_ids = [item["id"] for item in manifest["build_program"]]
-    assert batch_ids == [f"GWEB-{index}" for index in range(1, 14)]
+    assert batch_ids == [f"GWEB-{index}" for index in range(1, 15)]
 
     exception = manifest["branch_policy"][
         "controlled_proof_submission_exception"
@@ -145,31 +145,45 @@ def test_proof_promotion_and_multi_user_boundaries() -> None:
     assert gemini["proof_promotion_compatibility"]["coupling"] == "VERSIONED_TYPED_API_ONLY"
     assert gemini["proof_promotion_compatibility"]["breaking_external_change_requires_versioned_migration"] is True
     assert gemini["multi_user_sessions"]["status_until_backend_ready"] == "MULTI_USER_BACKEND_PENDING"
-    assert gemini["cloud_run_deployment"]["role"] == "OPTIONAL_STATELESS_WEB_SERVER_EDGE_ONLY"
+    assert gemini["multi_user_sessions"]["cloud_run_used"] is False
+    assert gemini["multi_user_sessions"]["transport"] == "DIRECT_BROWSER_TO_ORACLE_CACE"
+    assert gemini["cloud_run_deployment"]["role"] == "MONERO_PAYMENT_SERVICE_ONLY"
+    assert gemini["cloud_run_deployment"]["general_web_hosting_allowed"] is False
+    assert gemini["cloud_run_deployment"]["general_api_edge_allowed"] is False
+    assert gemini["cloud_run_deployment"]["multi_user_session_edge_allowed"] is False
     assert gemini["cloud_run_deployment"]["scientific_authority_remains"] == "Oracle/CACE"
 
     multi = _load("ops/multi_user_session_policy.json")
     assert multi["browser_session"]["disconnect_cancels_run"] is False
     assert multi["browser_session"]["reload_cancels_run"] is False
     assert multi["run_queue"]["defaults"]["max_concurrent_heavy_science_workers"] == 1
+    assert multi["cloud_run_rule"].startswith("Cloud Run is excluded")
     assert multi["proof_effect"] == "none"
 
-    cloud = _load("ops/cloud_run_edge_policy.json")
-    assert cloud["authority"]["scientific"] is False
-    assert cloud["authority"]["proof"] is False
-    assert cloud["production_guardrails"]["min_instances"] == 0
-    assert cloud["production_guardrails"]["max_instances"] == 1
-    assert cloud["production_guardrails"]["billing_mode"] == "request_based"
-    assert cloud["production_guardrails"]["gpu"] is False
-    assert cloud["production_guardrails"]["continuous_deploy_default"] is False
-    assert cloud["multi_user"]["stateless_instances"] is True
+    tombstone = _load("ops/cloud_run_edge_policy.json")
+    assert tombstone["status"] == "DEPRECATED_COMPATIBILITY_ALIAS"
+    assert tombstone["canonical_policy"] == "ops/cloud_run_payment_service_policy.json"
+    assert "web hosting" in tombstone["disabled_uses"]
+    assert "multi-user session edge" in tombstone["disabled_uses"]
+
+    cloud = _load("ops/cloud_run_payment_service_policy.json")
+    assert cloud["sole_production_responsibility"] == "MONERO_PAYMENT_COORDINATION"
+    assert cloud["wallet_custody"]["wallet_seed_allowed"] is False
+    assert cloud["wallet_custody"]["wallet_spend_key_allowed"] is False
+    assert cloud["cost_guard"]["min_instances"] == 0
+    assert cloud["cost_guard"]["max_instances"] == 1
+    assert cloud["cost_guard"]["gpu"] is False
+    assert cloud["cost_guard"]["continuous_deploy"] is False
 
     cost = _load("ops/cloud_run_cost_guard.json")
     assert cost["default_state"] == "DISABLED"
-    assert cost["enablement"]["production_enable_requires_explicit_operator_approval"] is True
-    assert cost["enablement"]["monthly_budget_must_be_set_before_production_enable"] is True
+    assert cost["allowed_activation_reasons"] == [
+        "server-side Monero checkout/payment verification and signed entitlement issuance"
+    ]
     assert cost["runtime_limits"]["min_instances"] == 0
     assert cost["runtime_limits"]["max_instances"] == 1
     assert cost["runtime_limits"]["gpu"] is False
+    assert cost["traffic_policy"]["only_payment_routes_allowed"] is True
+    assert cost["traffic_policy"]["general_cace_routes_allowed"] is False
     assert cost["deploy_policy"]["continuous_deploy_default"] is False
     assert cost["deploy_policy"]["automatic_deploy_on_push"] is False

@@ -1,16 +1,8 @@
 {
-  "schema": "cace-recurring-pass-promotion-v1",
-  "policy_id": "weekly_tuesday_saturday_pass_sale_v1",
+  "schema": "cace-recurring-pass-promotion-v5",
+  "policy_id": "tuesday_day_alt_saturday_week_quarterly_month_triennial_year_v5",
   "updated_at": "2026-09-20",
   "timezone": "America/Phoenix",
-  "active_weekdays": [
-    "Tuesday",
-    "Saturday"
-  ],
-  "active_local_window": {
-    "start": "00:00:00",
-    "end": "23:59:59.999"
-  },
   "applies_to": {
     "product_type": "account_pass",
     "durations": [
@@ -26,9 +18,26 @@
     ]
   },
   "discount_percent": {
-    "Basic": 50,
-    "Researcher": 60,
-    "Enterprise": 75
+    "tuesday_day": {
+      "Basic": 75,
+      "Researcher": 75,
+      "Enterprise": 75
+    },
+    "alternating_saturday_week": {
+      "Basic": 50,
+      "Researcher": 60,
+      "Enterprise": 75
+    },
+    "quarterly_month": {
+      "Basic": 45,
+      "Researcher": 45,
+      "Enterprise": 45
+    },
+    "triennial_year": {
+      "Basic": 50,
+      "Researcher": 50,
+      "Enterprise": 50
+    }
   },
   "normal_prices_usd": {
     "Basic": {
@@ -51,30 +60,36 @@
     }
   },
   "sale_prices_usd": {
-    "Basic": {
-      "day": 2.5,
-      "week": 7.5,
-      "month": 19.5,
-      "year": 99.5
+    "tuesday_day": {
+      "Basic": 1.25,
+      "Researcher": 3.75,
+      "Enterprise": 24.75
     },
-    "Researcher": {
-      "day": 6,
-      "week": 19.6,
-      "month": 59.6,
-      "year": 399.6
+    "alternating_saturday_week": {
+      "Basic": 7.5,
+      "Researcher": 19.6,
+      "Enterprise": 99.75
     },
-    "Enterprise": {
-      "day": 24.75,
-      "week": 99.75,
-      "month": 374.75,
-      "year": 2499.75
+    "quarterly_month": {
+      "Basic": 21.45,
+      "Researcher": 81.95,
+      "Enterprise": 824.45
+    },
+    "triennial_year": {
+      "Basic": 99.5,
+      "Researcher": 499.5,
+      "Enterprise": 4999.5
     }
   },
   "calculation": {
     "formula": "sale_price = normal_price * (1 - discount_percent / 100)",
     "currency": "USD",
     "round_to_decimals": 2,
-    "rounding_mode": "ROUND_HALF_UP"
+    "rounding_mode": "ROUND_HALF_UP",
+    "tuesday_eligibility": "local_weekday == Tuesday",
+    "saturday_eligibility": "local_weekday == Saturday and ((local_date - 2026-09-26).days % 14) == 0",
+    "quarterly_month_eligibility": "local_date is every 3 calendar months from 2026-12-20 (same day-of-month) in America/Phoenix",
+    "triennial_year_eligibility": "local_date is every 3 years from 2027-01-01 and local time is within 00:00:00..23:59:59.999 America/Phoenix"
   },
   "stacking_allowed": false,
   "exclusions": [
@@ -89,15 +104,113 @@
     "taxes or externally imposed fees unless separately configured"
   ],
   "ui_rules": [
-    "Resolve eligibility using America/Phoenix local calendar day.",
-    "Show both normal price and discounted price on eligible Tuesdays and Saturdays.",
-    "Do not store the discounted price as a permanent entitlement price after the promotional calendar day ends.",
-    "Persist the applied promotion policy ID, normal price, discount percent, final price, and purchase timestamp on the invoice/order metadata.",
-    "Do not stack this sale with another promotion unless a future policy explicitly permits it."
+    "Each recurring promotion is active only for its specified full America/Phoenix local calendar day.",
+    "Resolve the commercial calendar in America/Phoenix.",
+    "Every Tuesday, only the 1-day pass receives the weekly promotion and it is 75% off for Basic, Researcher, and Enterprise.",
+    "On sale Saturdays every 14 days starting 2026-09-26, only the 1-week pass receives the Saturday promotion: Basic 50% off, Researcher 60% off, Enterprise 75% off.",
+    "Every 3 calendar months starting 2026-12-20, the 1-month pass is 45% off for Basic, Researcher, and Enterprise.",
+    "If two promotion schedules coincide, each applies only to its own duration; discounts do not stack on a single SKU.",
+    "The server computes promotion eligibility and price; clients may not submit authoritative discount eligibility or final price.",
+    "Persist policy ID, active schedule branch, normal price, discount percent, final price, requested SKU, quote timestamp, and purchase timestamp.",
+    "Every 3 years starting 2027-01-01, the 1-year pass is 50% off for Basic, Researcher, and Enterprise for exactly one 24-hour America/Phoenix calendar day.",
+    "For the triennial year-pass sale, order creation and first verified payment sighting must occur inside the 24-hour window; blockchain/payment confirmations may complete afterward.",
+    "If multiple promotion schedules coincide, each applies only to its own SKU duration; discounts never stack on one SKU.",
+    "The server computes promotion eligibility and price; clients may not submit authoritative discount eligibility or final price."
   ],
   "authority": {
     "commercial_configuration": true,
     "scientific_evidence_authority": false,
     "proof_promotion_authority": false
+  },
+  "schedule": {
+    "tuesday": {
+      "cadence": "weekly",
+      "available_durations": [
+        "day"
+      ],
+      "unavailable_durations": [
+        "week",
+        "month",
+        "year"
+      ],
+      "discount_percent": {
+        "Basic": 75,
+        "Researcher": 75,
+        "Enterprise": 75
+      },
+      "active_local_window": {
+        "start": "00:00:00",
+        "end": "23:59:59.999"
+      }
+    },
+    "saturday": {
+      "cadence": "every_14_days",
+      "anchor_sale_date": "2026-09-26",
+      "available_durations": [
+        "week"
+      ],
+      "unavailable_durations": [
+        "day",
+        "month",
+        "year"
+      ],
+      "discount_percent": {
+        "Basic": 50,
+        "Researcher": 60,
+        "Enterprise": 75
+      },
+      "non_sale_saturday_behavior": "no Saturday recurring promotion; ordinary catalog/prices apply except any independently active quarterly month promotion",
+      "active_local_window": {
+        "start": "00:00:00",
+        "end": "23:59:59.999"
+      }
+    },
+    "quarterly_month": {
+      "cadence": "every_3_months",
+      "anchor_sale_date": "2026-12-20",
+      "timezone": "America/Phoenix",
+      "available_durations": [
+        "month"
+      ],
+      "discount_percent": {
+        "Basic": 45,
+        "Researcher": 45,
+        "Enterprise": 45
+      },
+      "rule": "The 1-month pass is 45% off for all tiers on the full local calendar day every 3 months from 2026-12-20.",
+      "active_local_window": {
+        "start": "00:00:00",
+        "end": "23:59:59.999"
+      }
+    },
+    "ordinary_days": {
+      "available_durations": [
+        "day",
+        "week",
+        "month",
+        "year"
+      ],
+      "promotion_applies": false,
+      "rule": "Outside active promotion windows, normal configured catalog/prices apply."
+    },
+    "triennial_year": {
+      "cadence": "every_3_years",
+      "anchor_sale_date": "2027-01-01",
+      "timezone": "America/Phoenix",
+      "active_local_window": {
+        "start": "00:00:00",
+        "end": "23:59:59.999"
+      },
+      "available_durations": [
+        "year"
+      ],
+      "discount_percent": {
+        "Basic": 50,
+        "Researcher": 50,
+        "Enterprise": 50
+      },
+      "purchase_window_rule": "Order must be created and first verified payment sighting must occur within the 24-hour sale window; confirmations may complete afterward.",
+      "rule": "The 1-year pass is 50% off for all tiers for one 24-hour local calendar day every 3 years starting 2027-01-01."
+    }
   }
 }

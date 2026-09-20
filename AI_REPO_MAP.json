@@ -15,10 +15,15 @@
     "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
     "BRANCH_LIFECYCLE.json",
     "ops/proof_promotion_external_compatibility.json",
-    "ops/cloud_run_cost_guard.json",
-    "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
     "ops/cloud_run_edge_policy.json",
-    "docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md",
+    "ops/cloud_run_payment_service_policy.json",
+    "docs/CLOUD_RUN_MONERO_PAYMENT_DEPLOYMENT.md",
+    "ops/cloud_run_cost_guard.json",
+    "schema/cace-payment-entitlement-grant.schema.json",
+    "gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md",
+    "ops/monero_payment_policy.json",
+    "docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md",
+    "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
     "ops/multi_user_session_policy.json",
     "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md",
     "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
@@ -82,7 +87,10 @@
     "multi_user_session_policy": "ops/multi_user_session_policy.json",
     "cloud_run_edge_policy": "ops/cloud_run_edge_policy.json",
     "proof_promotion_external_compatibility": "ops/proof_promotion_external_compatibility.json",
-    "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json"
+    "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json",
+    "monero_payment_policy": "ops/monero_payment_policy.json",
+    "payment_entitlement_schema": "schema/cace-payment-entitlement-grant.schema.json",
+    "cloud_run_payment_service_policy": "ops/cloud_run_payment_service_policy.json"
   },
   "repository_areas": [
     {
@@ -140,8 +148,9 @@
     "NOT_RUN"
   ],
   "hard_rules_for_agents": [
-    "Cloud Run is optional paid edge infrastructure and must remain disabled/cost-capped unless explicitly approved; never use it for scientific/proof authority.",
-    "Gemini multi-user/cloud-edge presentation must stay stateless/reconnectable and decoupled from proof internals; Oracle/CACE remains authority.",
+    "Cloud Run is payment-only: Monero order/payment/entitlement coordination only; never use it for web hosting, sessions, general API edge, SSE/events, science, proofs, telemetry, or AI.",
+    "Gemini multi-user presentation talks directly to Oracle/CACE; Base44 supplies low-volume identity/entitlements; Cloud Run is not in the session/run path.",
+    "Monero payment unlock is server-verified and signed; promotion pricing is server-computed; Base44 only mirrors low-volume payment/entitlement metadata.",
     "Connected Base44/Gemini builders must obey their machine connection manifests; only ACTIVE branches are writable and protected CACE paths remain protected.",
     "Use only branches marked ACTIVE in BRANCH_LIFECYCLE.json for new work unless the user explicitly reactivates another branch.",
     "Never convert NOT_RUN or absent verification into PASS.",

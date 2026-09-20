@@ -70,6 +70,24 @@
         "protected Enterprise-order reserve state"
       ],
       "constraint": "Never present a local estimate as Base44's official bill unless an official provider API supplies it."
+    },
+    {
+      "id": "B44-6",
+      "name": "Monero payment ledger and entitlement mirror",
+      "status": "AFTER_B44_2",
+      "sources": [
+        "ops/monero_payment_policy.json",
+        "docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md",
+        "schema/cace-payment-entitlement-grant.schema.json"
+      ],
+      "build": [
+        "server-write-only payment/order records",
+        "user-readable own purchase history",
+        "lifetime paid USD-equivalent and XMR aggregates",
+        "current signed entitlement mirror metadata",
+        "promotion/SKU/paid amount/payment timestamps"
+      ],
+      "constraint": "Users cannot write paid/confirmed/entitlement state. Base44 mirrors verified Cloud Run/CACE commerce state only."
     }
   ],
   "never_build": [

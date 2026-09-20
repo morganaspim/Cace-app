@@ -75,3 +75,27 @@ A proof being strengthened or canonically promoted should require **no Base44 ch
 Read `ops/multi_user_session_policy.json`.
 
 Base44 supports multi-user CACE by supplying low-volume identity, organization/workspace membership, and entitlement metadata. Do not implement presence heartbeats, workspace autosave, run progress, queue polling, worker state, or proof polling in Base44.
+
+
+## Monero payments and paid entitlements
+
+Read:
+
+- `docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md`
+- `ops/monero_payment_policy.json`
+- `schema/cace-payment-entitlement-grant.schema.json`
+
+Base44 stores only low-volume server-written payment/order history and entitlement mirror metadata.
+
+Users may read their own purchase history but may not write:
+
+- paid/confirmed status;
+- received amount;
+- tier;
+- entitlement duration;
+- entitlement grant;
+- proof-ready state.
+
+Cloud Run verifies the payment and signs the entitlement grant. Oracle/CACE verifies the signed grant before paid scientific capabilities execute.
+
+Base44 must not run or poll the Monero verifier.

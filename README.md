@@ -21,8 +21,14 @@ The project deliberately separates software maturity from evidence strength. A n
 - `docs/EXTERNAL_BUILDER_CONNECTIONS.md` — shared connection/permission escalation overview
 - `docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md` — reconnectable concurrent-session UX, workspace isolation and fair queued science
 - `gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md` — required Oracle/CACE backend extensions before multi-user production readiness
-- `docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md` — AI Studio/GitHub → Cloud Run stateless edge while Oracle/CACE remains scientific authority
-- `ops/cloud_run_cost_guard.json` — fail-closed paid Cloud Run budget/scaling/deployment guard; disabled by default
+- `docs/CLOUD_RUN_MONERO_PAYMENT_DEPLOYMENT.md` — payment-only Cloud Run deployment contract; no general CACE hosting/edge use
+- `ops/cloud_run_payment_service_policy.json` — canonical payment-only Cloud Run responsibility/route/security policy
+- `ops/cloud_run_cost_guard.json` — fail-closed Cloud Run payment-service budget/scaling/deployment guard; disabled by default
+- `ops/cloud_run_edge_policy.json` — deprecated compatibility tombstone explicitly disabling general Cloud Run edge use
+- `docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md` — Cloud Run Monero payment verification + Base44 payment history + signed entitlement architecture
+- `ops/monero_payment_policy.json` — server-side payment, confirmation, promotion, and entitlement rules
+- `gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md` — Gemini checkout/history UI contract
+- `schema/cace-payment-entitlement-grant.schema.json` — signed paid-feature entitlement payload
 - `docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md` — proof promotion compatibility boundary for Gemini/Base44
 - `base44/BASE44_TASK_STATE.json` — minimum ordered Base44 service build plan
 - `gemini/CACE_GEMINI_TASK_STATE.json` — Gemini implementation prerequisites and live task state

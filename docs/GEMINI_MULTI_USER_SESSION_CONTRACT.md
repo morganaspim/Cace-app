@@ -22,10 +22,13 @@ Machine policy: `ops/multi_user_session_policy.json`.
 Default free-VM model:
 
 - many browser sessions;
-- scalable/stateless Cloud Run web edge where enabled;
-- responsive Oracle/CACE API control plane;
-- one heavy scientific worker at a time;
-- durable fair queue for additional runs.
+- browser/Gemini UI talks directly to Oracle/CACE for session/workspace/run traffic;
+- Base44 supplies low-volume identity/membership/entitlement metadata;
+- one heavy scientific worker at a time by default;
+- durable fair queue for additional runs;
+- interactive Oracle/CACE API capacity is reserved separately from heavy workers.
+
+**Cloud Run is not part of this path. It is reserved for Monero payment coordination only.**
 
 ## Base44
 
@@ -44,7 +47,7 @@ Never use Base44 for:
 
 Oracle/CACE is authoritative for:
 
-- workspace authorization;
+- authenticated session/workspace authorization;
 - canonical experiment/workspace version;
 - scientific run queue;
 - run ownership;
@@ -62,7 +65,7 @@ Gemini builds:
 - local IndexedDB drafts;
 - reconnect UX;
 - run queue/status UI;
-- one SSE event stream per active browser session;
+- one SSE event stream per active browser session from Oracle/CACE;
 - polling fallback with backoff;
 - version-conflict/rebase UI.
 
@@ -99,9 +102,9 @@ On reconnect:
 
 1. restore authenticated identity/entitlements;
 2. restore known workspace/run IDs;
-3. GET authoritative workspace/version;
+3. GET authoritative workspace/version from Oracle/CACE;
 4. GET active/recent run snapshots;
-5. open/reopen the event stream;
+5. open/reopen the Oracle/CACE event stream;
 6. reconcile local drafts;
 7. continue showing the same run.
 
@@ -110,7 +113,6 @@ On reconnect:
 "Without interruption" must not fabricate survival of a dead process.
 
 - Browser/network interruption: run continues.
-- Cloud Run instance replacement: stateless edge reconnects.
 - Oracle API restart: durable state reloads.
 - Worker crash: FAILED or RECOVERY_REQUIRED.
 - Oracle VM reboot/reclamation: recover durable workspace/queue state; interrupted science is explicitly recovered/restarted where supported.

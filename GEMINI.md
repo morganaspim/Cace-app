@@ -338,37 +338,52 @@ Browser refresh/disconnect must not cancel runs. Use optimistic workspace concur
 
 Do not label production multi-user support ready until Oracle/CACE implements and passes the backend readiness requirements.
 
-## Cloud Run
+## Cloud Run — payment service only
+
+Cloud Run is **not** a CACE web host or general application edge.
 
 Read:
 
-- `docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md`
-- `ops/cloud_run_edge_policy.json`
+- `docs/CLOUD_RUN_MONERO_PAYMENT_DEPLOYMENT.md`
+- `ops/cloud_run_payment_service_policy.json`
+- `ops/cloud_run_cost_guard.json`
 
-Cloud Run may host the stateless Gemini-built web/server edge. Oracle/CACE remains the durable/scientific authority.
+The only approved Cloud Run production responsibility is **Monero payment coordination**.
 
-Do not choose the production Cloud Run service name or region without explicit operator approval.
+Do not deploy to Cloud Run:
 
+- the React CACE application;
+- general API routes;
+- multi-user session/workspace/run traffic;
+- SSE/event fanout;
+- scientific execution;
+- proofs;
+- telemetry;
+- AI inference.
 
-## Cloud Run cost guard
+Cloud Run stays disabled until the payment service is explicitly enabled. It remains request-based, min=0, max=1 initially, with no GPU, no always-on CPU, no automatic deploy-on-push/PR, and an operator-set monthly budget required.
 
-Cloud Run is **disabled by default**.
+Browser/session/scientific traffic goes directly to Oracle/CACE. Base44 supplies low-volume account/entitlement metadata.
 
-Read `ops/cloud_run_cost_guard.json` before any deployment.
+## Monero checkout
 
-Default production guard:
+Read:
 
-- request-based billing;
-- min instances = 0;
-- max instances = 1;
-- 1 vCPU / 512 MiB;
-- no GPU;
-- no always-on CPU;
-- no automatic deploy-on-push/PR;
-- continuous deployment disabled;
-- operator-set monthly budget required before production enablement;
-- explicit operator approval required for AI Studio direct deploy.
+- `docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md`
+- `ops/monero_payment_policy.json`
+- `gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md`
 
-Do not use Cloud Run merely for development convenience, single-user testing, static files, scientific/proof compute, or background polling.
+Gemini builds checkout/purchase-history UX only. The browser is never payment authority.
 
-Do not raise scaling or billing settings without explicit operator approval.
+Promotion catalog and price are server-computed from `ops/pass_promotion_policy.json`.
+
+Current recurring schedule in `America/Phoenix`:
+
+- every Tuesday: 1-day pass, 75% off all tiers;
+- every 14 days on Saturday from 2026-09-26: 1-week pass, tier-specific discounts;
+- every 3 months from 2026-12-20: 1-month pass, 45% off all tiers;
+- every 3 years from 2027-01-01: 1-year pass, 50% off all tiers for one 24-hour day.
+
+For the 3-year annual sale, both order creation and first verified payment sighting must occur inside the 24-hour window. Confirmations may finish afterward.
+
+Do not unlock paid features from browser state or Base44 rows alone. Oracle/CACE verifies the signed entitlement grant.

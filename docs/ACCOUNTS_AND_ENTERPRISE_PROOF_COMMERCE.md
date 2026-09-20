@@ -652,29 +652,29 @@ Tier/benefit changes should update the Base44 manifest and this account architec
 
 ## Recurring pass promotion
 
-CACE account passes use a recurring weekly sale on **Tuesday and Saturday**, evaluated in `America/Phoenix`.
+Canonical policy: `ops/pass_promotion_policy.json`.
 
-Discounts:
+All promotion eligibility is computed in `America/Phoenix`.
 
-- Basic: **50% off**
-- Researcher: **60% off**
-- Enterprise: **75% off**
+- **Every Tuesday:** 1-day pass, 75% off for Basic/Researcher/Enterprise.
+- **Every 14 days on Saturday, starting 2026-09-26:** 1-week pass; Basic 50% off, Researcher 60% off, Enterprise 75% off.
+- **Every 3 calendar months, starting 2026-12-20:** 1-month pass, 45% off for all tiers.
+- **Every 3 years, starting 2027-01-01:** 1-year pass, 50% off for all tiers for exactly one 24-hour America/Phoenix calendar day. The order and first verified payment sighting must both occur inside that sale window; confirmations may complete afterward.
 
-The sale covers eligible day/week/month/year passes only and is non-stackable.
+Current promotional targets:
 
-Current discounted targets:
+| Promotion | Basic | Researcher | Enterprise |
+|---|---:|---:|---:|
+| Tuesday 1-day | $1.25 | $3.75 | $24.75 |
+| Alternating Saturday 1-week | $7.50 | $19.60 | $99.75 |
+| Quarterly 1-month | $21.45 | $81.95 | $824.45 |
+| Triennial 1-year | $99.50 | $499.50 | $4,999.50 |
 
-| Tier | Day | Week | Month | Year |
-|---|---:|---:|---:|---:|
-| Basic | $2.50 | $7.50 | $19.50 | $99.50 |
-| Researcher | $6.00 | $19.60 | $59.60 | $399.60 |
-| Enterprise | $24.75 | $99.75 | $374.75 | $2,499.75 |
+The checkout server—not the browser—determines whether a promotion is active and the final price.
 
-The sale does not discount the Basic perpetual multithread unlock or a bespoke Enterprise Full-Rigor Proof Package.
+If two promotion schedules coincide, each remains scoped to its own SKU duration; discounts do not stack.
 
-Invoices should bind the promotion policy ID and the price calculation used at purchase time.
-
-Canonical machine policy: `ops/pass_promotion_policy.json`.
+The recurring promotion never discounts the Basic perpetual multithread unlock, Enterprise Full-Rigor Proof Package, or separately quoted Enterprise services.
 
 ## Base44 use during Enterprise proof orders
 

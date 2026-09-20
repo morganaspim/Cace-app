@@ -1,0 +1,220 @@
+{
+  "schema": "cace-monero-payment-policy-v1",
+  "updated_at": "2026-09-20",
+  "asset": "XMR",
+  "role_split": {
+    "cloud_run": "stateless checkout, quote/order binding, verifier calls, payment finalization, signed entitlement grant",
+    "base44": "low-volume payment ledger, invoice metadata, account entitlement mirror, user-visible payment history",
+    "oracle_cace": "verify signed entitlement grant before paid scientific features execute",
+    "monero_verifier": "authoritative receive-address/subaddress and chain/wallet payment confirmation source"
+  },
+  "cloud_run": {
+    "permitted_use_reason": "MONERO_PAYMENT_CRITICAL",
+    "default_service_state": "DISABLED_UNTIL_PAYMENT_FEATURE_EXPLICITLY_ENABLED",
+    "request_based_billing": true,
+    "min_instances": 0,
+    "max_instances": 1,
+    "gpu": false,
+    "background_polling": false,
+    "wallet_seed_allowed": false,
+    "wallet_spend_key_allowed": false,
+    "monero_wallet_files_allowed": false,
+    "payment_signing_private_key_location": "Google Secret Manager or equivalent server-side secret injection only",
+    "browser_secret_exposure": false
+  },
+  "verifier": {
+    "adapter": "UNCONFIGURED_UNTIL_OPERATOR_SELECTS_VERIFIER",
+    "supported_architecture_examples": [
+      "BTCPay Server + community Monero plugin on persistent infrastructure",
+      "dedicated Monero wallet-RPC/payment verifier on persistent infrastructure",
+      "future reviewed merchant processor with authenticated server API/webhook"
+    ],
+    "cloud_run_must_not_host": [
+      "monerod blockchain node",
+      "persistent monero-wallet-rpc wallet state",
+      "wallet seed or spend-key custody"
+    ],
+    "preferred_order_addressing": "unique subaddress or verifier-issued unique invoice destination per order",
+    "minimum_confirmations_default": 10,
+    "confirmation_policy": "configurable upward; never below operator-approved production threshold",
+    "double_spend_or_reorg_state": "do not finalize entitlement",
+    "note": "BTCPay Monero support is community/plugin based rather than core BTCPay support."
+  },
+  "quote": {
+    "fiat_currency": "USD",
+    "pricing_sources": [
+      "ops/base44_account_tiers.json",
+      "ops/pass_promotion_policy.json"
+    ],
+    "price_selection": "SKU + tier + server-computed promotion schedule frozen at order creation",
+    "phoenix_promotion_timezone": "America/Phoenix",
+    "xmr_rate_source": "selected verifier/approved rate provider",
+    "quote_expiry_seconds": 900,
+    "persist": [
+      "sku",
+      "tier",
+      "duration",
+      "normal_price_usd",
+      "active_promotion_branch",
+      "discount_percent",
+      "final_price_usd",
+      "promotion_policy_id",
+      "xmr_usd_rate",
+      "xmr_amount_due_atomic",
+      "quote_created_at",
+      "quote_expires_at"
+    ],
+    "catalog_rule": {
+      "timezone": "America/Phoenix",
+      "tuesday": {
+        "cadence": "weekly",
+        "eligible_duration": "day",
+        "discount_percent_all_tiers": 75
+      },
+      "alternating_saturday": {
+        "cadence_days": 14,
+        "anchor_sale_date": "2026-09-26",
+        "eligible_duration": "week",
+        "discount_percent_by_tier": {
+          "Basic": 50,
+          "Researcher": 60,
+          "Enterprise": 75
+        }
+      },
+      "quarterly_month": {
+        "cadence_months": 3,
+        "anchor_sale_date": "2026-12-20",
+        "eligible_duration": "month",
+        "discount_percent_all_tiers": 45
+      },
+      "year_pass_discounted": "only_during_triennial_24_hour_sale",
+      "collision_rule": "Each active promotion applies only to its own SKU duration; discounts never stack on one SKU.",
+      "enforcement": "Cloud Run computes promotion eligibility and final price server-side; client-submitted promotion flags/prices are ignored/rejected.",
+      "triennial_year": {
+        "cadence_years": 3,
+        "anchor_sale_date": "2027-01-01",
+        "active_local_window": {
+          "start": "00:00:00",
+          "end": "23:59:59.999"
+        },
+        "eligible_duration": "year",
+        "discount_percent_all_tiers": 50,
+        "payment_window_rule": "Order creation and first verified payment sighting must occur inside the 24-hour America/Phoenix sale window; confirmations may complete afterward."
+      }
+    }
+  },
+  "fulfillment": {
+    "infer_product_from_amount": false,
+    "overpayment_upgrades_tier": false,
+    "underpayment_unlocks": false,
+    "partial_payment_state": "PAYMENT_PARTIAL",
+    "expired_quote_state": "QUOTE_EXPIRED",
+    "confirmed_state": "PAYMENT_CONFIRMED",
+    "grant_rule": "grant exactly the frozen order SKU after verified amount meets invoice and confirmation policy",
+    "duplicate_event_rule": "idempotent no-op after same verified payment/order is finalized",
+    "refunds": "manual/review workflow initially; no automatic Monero refund from Cloud Run",
+    "triennial_year_sale": {
+      "stale_quote_rule": "A year-pass quote created during the sale is not fulfillable at the sale price if the first verified payment sighting occurs after the 24-hour window.",
+      "confirmation_rule": "If first verified payment sighting occurred inside the sale window, required confirmations may complete later.",
+      "underpayment_rule": "Underpayment inside the window does not reserve the discounted entitlement beyond the window unless the invoice is fully satisfied before the window closes."
+    }
+  },
+  "order_states": [
+    "CREATED",
+    "AWAITING_PAYMENT",
+    "PAYMENT_SEEN",
+    "PAYMENT_PARTIAL",
+    "CONFIRMING",
+    "PAYMENT_CONFIRMED",
+    "ENTITLEMENT_GRANTED",
+    "QUOTE_EXPIRED",
+    "PAYMENT_FAILED",
+    "REVIEW_REQUIRED",
+    "REFUND_REVIEW"
+  ],
+  "base44_payment_record": {
+    "server_write_only": true,
+    "user_may_read_own": true,
+    "user_may_not_edit": true,
+    "fields": [
+      "payment_id",
+      "order_id",
+      "principal_id",
+      "organization_id_optional",
+      "asset",
+      "txid_or_provider_reference",
+      "xmr_received_atomic",
+      "xmr_required_atomic",
+      "normal_price_usd",
+      "discount_percent",
+      "final_price_usd",
+      "promotion_policy_id",
+      "xmr_usd_rate_at_quote",
+      "quote_created_at",
+      "payment_seen_at",
+      "confirmed_at",
+      "confirmations_at_finalization",
+      "tier",
+      "duration",
+      "sku",
+      "entitlement_id",
+      "entitlement_valid_from",
+      "entitlement_valid_until_optional",
+      "cloud_run_revision",
+      "verifier_adapter",
+      "status"
+    ],
+    "account_aggregates": [
+      "lifetime_paid_usd_equivalent",
+      "lifetime_paid_xmr_atomic",
+      "last_payment_confirmed_at",
+      "last_payment_id"
+    ],
+    "note": "USD equivalent uses the frozen order price, not a later market value."
+  },
+  "entitlement_grant": {
+    "format": "signed compact JSON payload",
+    "signing_algorithm": "Ed25519",
+    "private_key_holder": "Cloud Run payment service secret only",
+    "public_key_consumers": [
+      "Oracle/CACE entitlement verifier",
+      "optional Base44 backend verification"
+    ],
+    "payload_fields": [
+      "grant_id",
+      "principal_id",
+      "organization_id_optional",
+      "order_id",
+      "payment_id",
+      "sku",
+      "tier",
+      "features",
+      "valid_from",
+      "valid_until_optional",
+      "issued_at",
+      "promotion_policy_id_optional",
+      "policy_version"
+    ],
+    "cace_rule": "Oracle/CACE must verify signature, principal binding, validity interval and feature entitlement before paid capability execution."
+  },
+  "entitlement_examples": {
+    "basic_pass": "unlock Basic features for purchased duration; promotions apply only when the server-side recurring schedule makes that SKU eligible; CPU multithreading still requires its separate perpetual unlock",
+    "researcher_pass": "unlock Researcher features including CPU multithreading for purchased duration",
+    "enterprise_pass": "unlock Enterprise/commercial features for purchased duration",
+    "basic_multithread_unlock": "separate perpetual feature entitlement; excluded from recurring Tuesday/Saturday discount",
+    "enterprise_proof_package": "separate order workflow; Monero may pay an approved invoice only after PROOF_READY_FOR_SALE / contract stage according to commerce policy"
+  },
+  "security": [
+    "Never accept browser-supplied paid/confirmed status.",
+    "Never unlock from transaction ID supplied by browser without verifier confirmation.",
+    "Never expose wallet seed/spend key, payment signing private key, Base44 service credential or Oracle credential to browser.",
+    "Use constant-time/idempotent server-side finalization keyed by order/payment identity.",
+    "Do not let a user write their own Base44 payment or entitlement rows.",
+    "Log commerce provenance without storing unnecessary payer identity or inventing blockchain transparency that Monero does not provide.",
+    "Do not accept client-supplied promotion eligibility or discounted price; compute sale schedule and price server-side.",
+    "Triennial year-pass discount requires both order creation and first verified payment sighting within the configured 24-hour sale window."
+  ],
+  "compliance_note": "Merchant/operator remains responsible for applicable tax, accounting, sanctions and other legal obligations; privacy features are not a mechanism to bypass them.",
+  "proof_effect": "none",
+  "promotion_authority": false
+}

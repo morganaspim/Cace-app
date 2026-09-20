@@ -195,17 +195,20 @@ General proof-candidate submission is not Enterprise-only. The commercial Full-R
 Base44 may gate ordinary UI benefits from account metadata, but CACE must revalidate scientific/security/proof-sensitive actions server-side.
 
 
-## Recurring pass sale + Enterprise order credit priority
+## Recurring pass promotions + Enterprise order credit priority
 
-Gemini must consume `ops/pass_promotion_policy.json` for recurring pass pricing.
+Gemini must consume `ops/pass_promotion_policy.json`; do not hard-code promotion dates or percentages in components.
 
-On Tuesday and Saturday in `America/Phoenix`:
+In `America/Phoenix`:
 
-- Basic passes are 50% off;
-- Researcher passes are 60% off;
-- Enterprise passes are 75% off.
+- every Tuesday: show the 1-day pass at 75% off for all tiers;
+- every 14 days on Saturday starting 2026-09-26: show the 1-week sale (Basic 50%, Researcher 60%, Enterprise 75%);
+- every 3 months starting 2026-12-20: show the 1-month pass at 45% off for all tiers;
+- every 3 years starting 2027-01-01: show the 1-year pass at 50% off for all tiers for exactly one 24-hour America/Phoenix day; the checkout server requires both order creation and first verified payment sighting within that window.
 
-The sale applies only to account passes, is non-stackable, and excludes the Basic multithread unlock and bespoke Enterprise Full-Rigor Proof Package pricing.
+The UI must treat server-returned catalog/price data as authoritative. Client-submitted promotion eligibility or final price is never trusted.
+
+If promotions coincide, show both eligible SKUs independently; never stack discounts on one SKU.
 
 For an active Enterprise proof-package order, the Base44 adapter may classify necessary low-volume order operations as `ENTERPRISE_ORDER_CRITICAL` and use the protected reserve defined in `ops/base44_free_tier_budget.json`.
 

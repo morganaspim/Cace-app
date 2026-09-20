@@ -139,37 +139,80 @@ See:
 - `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`
 
 
-## Recurring Tuesday/Saturday pass sale
+## Recurring pass promotions
 
-The machine-readable recurring promotion is:
+Canonical machine policy:
 
 - `ops/pass_promotion_policy.json`
 - mirrored in `ops/base44_account_tiers.json`
 
-Commercial calendar:
+All promotion dates are evaluated in **America/Phoenix** and all discounts are server-computed.
 
-- timezone: **America/Phoenix**
-- eligible days: **Tuesday and Saturday**
-- active for the full local calendar day
-- non-stackable
+### Every Tuesday — 1-day pass
 
-Discounts:
+Every Tuesday, the **1-day pass is 75% off for all tiers**.
 
-| Tier | Discount | 1 day | 1 week | 1 month | 1 year |
-|---|---:|---:|---:|---:|---:|
-| Basic | 50% off | $2.50 | $7.50 | $19.50 | $99.50 |
-| Researcher | 60% off | $6.00 | $19.60 | $59.60 | $399.60 |
-| Enterprise | 75% off | $24.75 | $99.75 | $374.75 | $2,499.75 |
+| Tier | Normal | Tuesday |
+|---|---:|---:|
+| Basic | $4.99 | $1.25 |
+| Researcher | $14.99 | $3.75 |
+| Enterprise | $99.00 | $24.75 |
 
-The sale applies only to eligible day/week/month/year account passes.
+### Every other Saturday — 1-week pass
 
-It does **not** apply to:
+The first sale Saturday is **September 26, 2026**. The sale repeats every 14 days.
 
-- the Basic perpetual CPU multithread unlock;
-- Enterprise Full-Rigor Proof Packages;
-- proof consulting/SOW pricing;
-- separately quoted Enterprise compute/deployment/support/storage/site arrangements.
+| Tier | Normal | Sale Saturday |
+|---|---:|---:|
+| Basic | $14.99 | $7.50 |
+| Researcher | $49.00 | $19.60 |
+| Enterprise | $399.00 | $99.75 |
 
-Gemini/Base44 should render the price from the promotion policy and persist the promotion policy ID, normal price, discount percent, final price, and purchase timestamp in invoice/order metadata.
+On non-sale Saturdays, the normal catalog/prices apply unless the independent quarterly month promotion is active.
 
-The discount is commercial configuration only and has no effect on scientific or proof status.
+### Every 3 months — 1-month pass
+
+The first quarterly month-pass sale is **December 20, 2026** and repeats every three calendar months on the 20th.
+
+The **1-month pass is 45% off for all tiers**:
+
+| Tier | Normal | Quarterly sale |
+|---|---:|---:|
+| Basic | $39.00 | $21.45 |
+| Researcher | $149.00 | $81.95 |
+| Enterprise | $1,499.00 | $824.45 |
+
+### Every 3 years — 1-year pass
+
+The first 24-hour annual-pass event is **January 1, 2027** and repeats every three years: January 1, 2030; January 1, 2033; and so on.
+
+For exactly the local calendar day `00:00:00–23:59:59.999 America/Phoenix`, the **1-year pass is 50% off for all tiers**:
+
+| Tier | Normal | Triennial 24-hour sale |
+|---|---:|---:|
+| Basic | $199.00 | $99.50 |
+| Researcher | $999.00 | $499.50 |
+| Enterprise | $9,999.00 | $4,999.50 |
+
+To prevent a discounted quote from being carried beyond the event, the order must be created **and the first verified payment sighting must occur inside the 24-hour sale window**. Payment confirmations may complete afterward.
+
+
+### Enforcement
+
+The browser is not the pricing authority.
+
+Gemini/Base44/Cloud Run must resolve the active catalog and price from `ops/pass_promotion_policy.json`. Checkout rejects a client-supplied discount or unavailable promotional SKU.
+
+If two promotions fall on the same calendar day, each applies only to its own duration; discounts never stack on the same SKU.
+
+Invoice/order metadata should persist:
+
+- requested SKU;
+- normal price;
+- active promotion branch;
+- discount percent;
+- final price;
+- promotion policy ID;
+- quote/purchase timestamp.
+
+These commercial discounts never alter scientific or proof status.

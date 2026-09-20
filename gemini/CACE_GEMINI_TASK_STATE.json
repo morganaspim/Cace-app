@@ -260,13 +260,15 @@
     "backend_request": "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md",
     "production_status": "MULTI_USER_BACKEND_PENDING",
     "ui_build_allowed": true,
-    "production_ready_requires_backend_gate": true
+    "production_ready_requires_backend_gate": true,
+    "transport": "DIRECT_BROWSER_TO_ORACLE_CACE",
+    "cloud_run_used": false
   },
   "cloud_run": {
-    "policy": "ops/cloud_run_edge_policy.json",
+    "canonical_policy": "ops/cloud_run_payment_service_policy.json",
     "cost_guard": "ops/cloud_run_cost_guard.json",
-    "contract": "docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md",
-    "role": "optional_stateless_web_server_edge",
+    "contract": "docs/CLOUD_RUN_MONERO_PAYMENT_DEPLOYMENT.md",
+    "role": "monero_payment_service_only",
     "default_enabled": false,
     "direct_deploy_requires_operator_approval": true,
     "continuous_deploy_default": false,
@@ -274,7 +276,30 @@
     "min_instances": 0,
     "billing_mode": "request_based",
     "production_name_region": "UNSET_PENDING_OPERATOR_DECISION",
-    "monthly_budget": "REQUIRED_BEFORE_PRODUCTION_ENABLE"
+    "monthly_budget": "REQUIRED_BEFORE_PRODUCTION_ENABLE",
+    "forbidden": [
+      "web hosting",
+      "general API edge",
+      "multi-user sessions",
+      "SSE/event fanout",
+      "science",
+      "proofs"
+    ]
   },
-  "proof_promotion_compatibility": "ops/proof_promotion_external_compatibility.json"
+  "proof_promotion_compatibility": "ops/proof_promotion_external_compatibility.json",
+  "monero_payments": {
+    "policy": "ops/monero_payment_policy.json",
+    "contract": "docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md",
+    "api_request": "gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md",
+    "status": "MONERO_PAYMENT_BACKEND_PENDING",
+    "ui_build_allowed": true,
+    "live_enable_requires": [
+      "payment verifier selected",
+      "Cloud Run payment endpoint explicitly enabled",
+      "server signing key configured",
+      "Base44 server-only payment/entitlement writes",
+      "Oracle/CACE entitlement signature verification",
+      "end-to-end test payment"
+    ]
+  }
 }

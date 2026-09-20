@@ -28,7 +28,11 @@
     "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
     "ops/proof_promotion_external_compatibility.json",
     "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
-    "ops/multi_user_session_policy.json"
+    "ops/multi_user_session_policy.json",
+    "docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md",
+    "ops/monero_payment_policy.json",
+    "schema/cace-payment-entitlement-grant.schema.json",
+    "gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md"
   ],
   "branch_policy": {
     "registry": "BRANCH_LIFECYCLE.json",
@@ -104,7 +108,10 @@
     "low-volume user preferences, notes, tags, and collaboration metadata",
     "low-volume notification/read-state metadata",
     "Enterprise Full-Rigor Proof Package order/SOW/contract/payment/delivery workflow metadata",
-    "local estimate of Base44 credit consumption and policy-zone state"
+    "local estimate of Base44 credit consumption and policy-zone state",
+    "server-write-only Monero payment history metadata",
+    "signed entitlement mirror metadata",
+    "purchase amount/time/SKU/promotion metadata"
   ],
   "explicitly_do_not_build": [
     "scientific execution engine",
@@ -141,7 +148,9 @@
       "workspace membership metadata",
       "invoice/order metadata",
       "Enterprise proof-order commercial workflow metadata",
-      "notification/read state"
+      "notification/read state",
+      "payment ledger metadata",
+      "signed entitlement grant metadata"
     ],
     "forbidden_authoritative": [
       "scientific result truth",
@@ -191,5 +200,14 @@
       "proof polling"
     ],
     "polling_for_session_state": false
+  },
+  "payment_boundary": {
+    "policy": "ops/monero_payment_policy.json",
+    "contract": "docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md",
+    "role": "PAYMENT_LEDGER_AND_ENTITLEMENT_MIRROR_ONLY",
+    "server_write_only": true,
+    "user_read_own_history": true,
+    "user_cannot_self_grant_entitlement": true,
+    "proof_or_science_authority": false
   }
 }

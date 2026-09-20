@@ -1,0 +1,87 @@
+{
+  "schema": "cace-cloud-run-monero-payment-service-v1",
+  "updated_at": "2026-09-20",
+  "status": "DISABLED_UNTIL_EXPLICIT_PAYMENT_ENABLE",
+  "sole_production_responsibility": "MONERO_PAYMENT_COORDINATION",
+  "explicitly_forbidden_responsibilities": [
+    "hosting the CACE web application",
+    "general API gateway or reverse proxy",
+    "multi-user session edge",
+    "SSE/WebSocket/event fanout",
+    "workspace storage or autosave",
+    "scientific run queue",
+    "scientific execution",
+    "Lean/proof qualification",
+    "proof/evidence storage",
+    "worker telemetry",
+    "AI inference",
+    "background polling"
+  ],
+  "request_surface": [
+    "POST /payments/v1/orders",
+    "GET /payments/v1/orders/{order_id}",
+    "POST /payments/v1/provider-events/{adapter}",
+    "GET /payments/v1/me/history",
+    "GET /payments/v1/me/entitlements"
+  ],
+  "responsibilities": [
+    "resolve authenticated principal for checkout request",
+    "resolve SKU and server-side promotion price",
+    "freeze quote and XMR amount",
+    "call configured persistent Monero payment verifier",
+    "authenticate verifier callbacks/events",
+    "verify payment amount and required confirmations",
+    "idempotently finalize payment",
+    "write server-authoritative low-volume payment/order metadata to Base44",
+    "sign the purchased entitlement grant",
+    "return payment/order/entitlement status to the authenticated user"
+  ],
+  "wallet_custody": {
+    "wallet_seed_allowed": false,
+    "wallet_spend_key_allowed": false,
+    "persistent_wallet_files_allowed": false,
+    "monerod_allowed": false,
+    "monero_wallet_rpc_persistent_state_allowed": false,
+    "verifier_adapter_required": true
+  },
+  "entitlement": {
+    "schema": "schema/cace-payment-entitlement-grant.schema.json",
+    "signing_algorithm": "Ed25519",
+    "private_signing_key_location": "server-side secret injection only",
+    "oracle_cace_must_verify_before_paid_scientific_execution": true,
+    "base44_is_mirror_not_authority": true
+  },
+  "pricing": {
+    "source": "ops/pass_promotion_policy.json",
+    "client_authoritative_price_allowed": false,
+    "server_computed": true,
+    "timezone": "America/Phoenix"
+  },
+  "cost_guard": {
+    "default_enabled": false,
+    "explicit_operator_enable_required": true,
+    "monthly_budget_required_before_enable": true,
+    "billing_mode": "request_based",
+    "min_instances": 0,
+    "max_instances": 1,
+    "vcpu": 1,
+    "memory_mib": 512,
+    "gpu": false,
+    "cpu_always_allocated": false,
+    "continuous_deploy": false,
+    "automatic_deploy_on_push": false,
+    "automatic_deploy_on_pr": false,
+    "background_polling": false,
+    "rule": "Cloud Run should receive traffic only for active payment/order/history/entitlement requests or authenticated verifier callbacks."
+  },
+  "deployment": {
+    "source_of_truth": "GitHub",
+    "service_name": "UNSET_UNTIL_EXPLICIT_OPERATOR_DECISION",
+    "region": "UNSET_UNTIL_EXPLICIT_OPERATOR_DECISION",
+    "ai_studio_direct_deploy_allowed": false,
+    "reviewed_manual_deploy_only": true,
+    "cloud_build_only_for_approved_payment_service_deployments": true
+  },
+  "proof_effect": "none",
+  "promotion_authority": false
+}

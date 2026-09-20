@@ -1,93 +1,19 @@
 {
-  "schema": "cace-cloud-run-edge-policy-v1",
+  "schema": "cace-cloud-run-nonpayment-disabled-v1",
   "updated_at": "2026-09-20",
-  "role": "optional_stateless_web_and_server_edge_only",
-  "default_enabled": false,
-  "cost_guard": "ops/cloud_run_cost_guard.json",
-  "deployment_sources": [
-    "Google AI Studio Build Mode",
-    "GitHub reviewed manual deployment",
-    "prebuilt Artifact Registry container"
-  ],
-  "authority": {
-    "scientific": false,
-    "proof": false,
-    "verification": false,
-    "claim_promotion": false,
-    "durable_scientific_state": false
-  },
-  "service_identity": {
-    "production_service_name": "UNSET_UNTIL_EXPLICIT_DEPLOYMENT_DECISION",
-    "production_region": "UNSET_UNTIL_EXPLICIT_DEPLOYMENT_DECISION",
-    "rule": "Treat service name and region as deployment identity. Do not choose casually; moving later means creating/migrating to a new service."
-  },
-  "recommended_usage": [
-    "host Gemini-built React/full-stack presentation when a stateless edge is actually needed",
-    "stateless authenticated server routes",
-    "typed gateway/proxy to Oracle/CACE only when materially useful",
-    "session bootstrap",
-    "SSE/event fanout when it materially reduces Oracle load",
-    "static assets when already part of the deployed app"
-  ],
-  "forbidden_usage": [
-    "authoritative scientific execution",
-    "Lean/proof qualification",
-    "proof ledger",
-    "durable scientific workspace/run source of truth",
-    "worker sandbox",
-    "C++ scientific kernels",
-    "high-memory long-running scientific jobs",
-    "background polling merely to keep an instance warm"
-  ],
-  "production_guardrails": {
-    "enabled_by_default": false,
-    "explicit_operator_approval_required": true,
-    "operator_monthly_budget_required": true,
-    "billing_mode": "request_based",
-    "min_instances": 0,
-    "max_instances": 1,
-    "container_concurrency": 80,
-    "vcpu": 1,
-    "memory_mib": 512,
-    "gpu": false,
-    "cpu_always_allocated": false,
-    "continuous_deploy_default": false
-  },
-  "deployment_pipeline": {
-    "preferred_source_of_truth": "GitHub",
-    "ai_studio_build_allowed": true,
-    "ai_studio_direct_deploy_requires_operator_approval": true,
-    "continuous_deploy_allowed_but_default_disabled": true,
-    "cloud_build_allowed_for_approved_deployments": true,
-    "artifact_registry_allowed": true,
-    "docker_hub_allowed_for_existing_reviewed_images": true,
-    "rule": "GitHub remains canonical source. Avoid build/deploy per commit."
-  },
-  "secrets": {
-    "browser_secrets_allowed": false,
-    "server_side_secret_injection_allowed": true,
-    "oracle_credentials_in_browser": false,
-    "cace_signing_keys_in_cloud_run": false
-  },
-  "multi_user": {
-    "stateless_instances": true,
-    "sticky_sessions_required": false,
-    "durable_state_location": "Oracle/CACE + approved low-volume Base44 account metadata",
-    "scale_out_must_not_create_duplicate_scientific_runs": true,
-    "idempotency_required": true
-  },
-  "use_only_when": [
-    "a public multi-user edge is materially needed",
-    "server-side auth/session callbacks cannot safely live in-browser",
-    "event fanout materially reduces Oracle/API load",
-    "approved production traffic requires edge isolation/scaling"
-  ],
-  "prefer_not_to_use_when": [
-    "single-user or development use",
-    "Oracle/browser direct path is sufficient",
-    "only static content is needed",
-    "the workload is scientific/proof compute",
-    "the task would trigger frequent Cloud Build/Artifact Registry churn"
+  "status": "DEPRECATED_COMPATIBILITY_ALIAS",
+  "canonical_policy": "ops/cloud_run_payment_service_policy.json",
+  "rule": "Cloud Run must not be used as the CACE web/server edge. Its only approved production responsibility is Monero payment coordination.",
+  "disabled_uses": [
+    "web hosting",
+    "general API edge",
+    "multi-user session edge",
+    "SSE/event fanout",
+    "Oracle proxy",
+    "science",
+    "proofs",
+    "telemetry",
+    "AI inference"
   ],
   "proof_effect": "none",
   "promotion_authority": false

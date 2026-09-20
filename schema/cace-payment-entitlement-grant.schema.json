@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-payment-entitlement-grant.schema.json",
+  "title": "CACE Signed Payment Entitlement Grant Payload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "grant_schema",
+    "grant_id",
+    "principal_id",
+    "order_id",
+    "payment_id",
+    "sku",
+    "tier",
+    "features",
+    "valid_from",
+    "issued_at",
+    "policy_version"
+  ],
+  "properties": {
+    "grant_schema": {
+      "const": "cace-payment-entitlement-grant-v1"
+    },
+    "grant_id": {
+      "type": "string",
+      "minLength": 16
+    },
+    "principal_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "organization_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "payment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sku": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tier": {
+      "enum": [
+        "Basic",
+        "Researcher",
+        "Enterprise"
+      ]
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "promotion_policy_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
