@@ -7,6 +7,7 @@
     "production_ready": false
   },
   "first_read": [
+    "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
     "schema/cace-agent-perception.schema.json",
     "collaboration/schema/cace-ai-tool-submission.schema.json",
     "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
@@ -61,7 +62,8 @@
     "agent_heartbeat_protocol": "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
     "ai_rigorous_tool_pipeline": "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
     "ai_tool_submission_schema": "collaboration/schema/cace-ai-tool-submission.schema.json",
-    "agent_perception_schema": "schema/cace-agent-perception.schema.json"
+    "agent_perception_schema": "schema/cace-agent-perception.schema.json",
+    "post_account_research_assistant_ux": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -390,5 +392,12 @@
     "self_improving_tool_loop": "observe -> specify -> C++ implement/test -> Lean attempt -> proof-ready handoff or qualification -> accepted reusable tool",
     "perception_schema": "schema/cace-agent-perception.schema.json",
     "perception_evidence_authority": false
+  },
+  "product_experience": {
+    "vre_name": "CACE — Verified Research Environment",
+    "preferred_message": "Explore rigorous math with AI that learns geometric reasoning.",
+    "post_account_entry": "Research Assistant welcome",
+    "assistant_role": "persistent local-first research assistant across onboarding, canvas, notebook and daily work",
+    "evidence_rule": "assistant explains and consumes evidence; it never creates proof/evidence authority"
   }
 }
