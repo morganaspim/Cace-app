@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-reasoning-operator.schema.json",
+  "title": "CACE ReasoningOperator Descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operator_id",
+    "version",
+    "title",
+    "input_types",
+    "output_type",
+    "preconditions",
+    "invariants",
+    "implementation_ref",
+    "cost_class",
+    "evidence_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "cace-reasoning-operator-v1"},
+    "operator_id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z0-9_.-]+$"
+    },
+    "version": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "input_types": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "output_type": {"type": "string", "minLength": 1},
+    "preconditions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "invariants": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "inverse_operator_id": {"type": ["string", "null"], "minLength": 3},
+    "commutes_with": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 3},
+      "uniqueItems": true,
+      "default": []
+    },
+    "implementation_ref": {"type": "string", "minLength": 1},
+    "checker_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true,
+      "default": []
+    },
+    "cost_class": {
+      "enum": [
+        "constant",
+        "linear",
+        "quadratic",
+        "cubic",
+        "bounded-enumeration",
+        "backend-dependent"
+      ]
+    },
+    "evidence_authority": {"const": false}
+  }
+}
