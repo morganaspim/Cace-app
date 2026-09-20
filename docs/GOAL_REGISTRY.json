@@ -702,7 +702,8 @@
         "AI output and reasoning metrics never promote formal or scientific verification state.",
         "Implementation is independently designed from public/general concepts and all third-party code/data has explicit compatible licensing.",
         "Reasoning curricula should exploit exact combinatorics, symmetry groups and group actions when they measurably reduce equivalent search states or improve compositional transfer."
-      ]
+      ],
+      "inspiration": "Sophonic-AI-inspired at the high-level idea level; independently implemented by CACE with no implied affiliation or use of non-public methods."
     },
     {
       "id": "G049",
@@ -1074,7 +1075,8 @@
         "Accepted tools expose ReasoningOperator metadata including preconditions, invariants, inverses/composition and failure domains.",
         "Efficiency improvements are benchmarked against suitable non-group/operator baselines rather than assumed.",
         "Exact/formal status follows the ordinary evidence pipeline; representational compression cannot weaken rigor."
-      ]
+      ],
+      "inspiration": "Part of the Sophonic-AI-inspired geometric-reasoning/training direction; exact combinatorics/group-action implementation and evaluation remain independently designed in CACE."
     }
   ]
 }
