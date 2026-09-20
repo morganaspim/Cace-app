@@ -197,6 +197,30 @@ jobs:
           build_cache_base="$CACE_PERSISTENT_BUILD_CACHE_ROOT/$toolchain_key/$CACE_MATHLIB_COMMIT"
           build_cache="$build_cache_base/$formal_tree"
 
+          reclaim_disposable_space() {
+            before_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+            echo "CACE_DISK_RECLAIM_START available_kb=$before_kb target_kb=$prune_target_kb"
+
+            python -m pip cache purge >/dev/null 2>&1 || true
+            if [[ -x "$RUNNER_TEMP/uv-v337-bin/uv" ]]; then
+              "$RUNNER_TEMP/uv-v337-bin/uv" cache clean >/dev/null 2>&1 || true
+            fi
+
+            find /var/tmp -mindepth 1 -maxdepth 1 -type d \
+              -name 'cace-v337-qualification.*' -user "$(id -un)" \
+              -print -exec rm -rf -- {} + || true
+
+            after_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+            echo "CACE_DISK_RECLAIM_DONE before_kb=$before_kb after_kb=$after_kb target_kb=$prune_target_kb"
+          }
+
+          # Keep the full 5 GiB reserve. Reclaim only disposable download/build
+          # caches and stale owned qualification scratch before proof-cache pruning.
+          available_kb="$(df -Pk /var/tmp | awk 'NR==2 {print $4}')"
+          if (( available_kb < prune_target_kb )); then
+            reclaim_disposable_space
+          fi
+
           # Per-tree proof caches are acceleration only, never qualification
           # evidence. Bound them before a new qualification so validated old
           # trees cannot exhaust the runner. The pre-copy target includes the
