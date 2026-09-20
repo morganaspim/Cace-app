@@ -627,3 +627,12 @@ Production readiness additionally requires exact-commit regression/security/depl
 - require blockchain/cryptocurrency for provenance;
 - let web convenience bypass canonical scientific contracts;
 - let documentation commits disturb an in-flight exact-head proof qualification unnecessarily.
+
+
+## 21. AI builder governance and source-to-formal linkage
+
+Gemini AI Code Studio is the preferred primary implementation environment for CACE, but it is an untrusted software-building assistant rather than a verification authority. All AI builders must obey `CACE_AI_BUILDER_CONTRACT.md`; CACE must remain usable with AI disabled.
+
+Any implementation that connects Python/C++ runtime objects to Lean theorem hypotheses must follow `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`. The intended chain is content-addressed runtime packet → exact mesh/P1/RT0 representation → exact discrete theorem instantiation → explicit H1/H(div) graph-space bridges → finite pairing / continuum `volumePairing` equality → boundary/cross-term discharge → canonically qualified concrete continuum endpoint.
+
+Until the relevant bridge theorems exist and are qualified, CACE must preserve the nonclaim that exact finite-element identities or generic qualified continuum theorems automatically establish continuum hypotheses for arbitrary runtime FE fields. Missing bridges remain unresolved/NOT_RUN.

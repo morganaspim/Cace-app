@@ -391,3 +391,22 @@ GUI/heartbeat:
 - **Play Selected Protein with Local AI** applies residue-level + source-node heartbeats without mutating the imported structure.
 
 The two PRs remain separated by responsibility: #48 owns scientific/API objects; #50 owns heartbeat/AI/GUI control integration.
+
+
+## Rigorous AI builder foundation
+
+Added 2026-09-19 on documentation branch `docs/rigorous-builder-foundation-v1`.
+
+New governance/specification files:
+
+- `CACE_AI_BUILDER_CONTRACT.md` — Gemini AI Code Studio is the preferred primary implementation environment, but AI remains outside evidence authority and must preserve the existing proof/qualification architecture.
+- `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md` — defines FSL-0..FSL-13 from canonical runtime packet through exact P1/RT0 discrete binding and onward to explicit H1/H(div)/`volumePairing` continuum linkage.
+
+New durable goals:
+
+- G059 — Gemini-first AI builder contract with evidence isolation.
+- G060 — concrete runtime-to-formal P1/RT0 and continuum linkage.
+
+Key preserved nonclaim: exact discrete P1/RT0 identities and qualified generic continuum theorems do not automatically establish that arbitrary runtime finite-element fields satisfy the continuum graph-space/Green-pairing hypotheses. Missing source-to-formal links remain unresolved/NOT_RUN.
+
+This builder-foundation branch is documentation/governance only; it does not itself qualify any theorem or runtime bridge.

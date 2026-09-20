@@ -6,6 +6,8 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 
 Read these in order before changing scientific or verification behavior:
 
+AI code builders must additionally obey `CACE_AI_BUILDER_CONTRACT.md`. Any change that binds runtime objects to Lean hypotheses/endpoints must additionally obey `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`.
+
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
 2. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
 3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
@@ -63,7 +65,7 @@ For releases, require the appropriate combination of full Python/native tests, p
 
 ## AI and external agents
 
-AI may inspect, explain, propose and edit, but AI output is never verification evidence. The project must remain usable with AI completely disabled. Future local-provider support should be no-code for users but remain outside the evidence trusted-computing base.
+AI may inspect, explain, propose and edit, but AI output is never verification evidence. Gemini AI Code Studio is the preferred primary implementation environment, but it has no special evidence authority and is bound by `CACE_AI_BUILDER_CONTRACT.md`. The project must remain usable with AI completely disabled. Future local-provider support should be no-code for users but remain outside the evidence trusted-computing base.
 
 When changing the repository for agent discoverability, generate or derive indexes from canonical source wherever practical; do not maintain conflicting duplicate source trees. `AI_REPO_MAP.json` is navigation, not a substitute for reading the canonical implementation and claim data.
 
