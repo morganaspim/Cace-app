@@ -1,5 +1,7 @@
 # Google AI Studio / Gemini Web Integration Handoff
 
+> **Scope note:** This document governs Gemini's browser/presentation work. Gemini also has an explicit **Rigorous Tool Builder** mode for C++ kernels, tests, Lean proof attempts, and source-to-formal bindings. For that mode, follow `GEMINI.md` and `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`. This web handoff does not prohibit rigorous core work.
+
 Status: implementation handoff. **Not verification evidence.**
 
 ## 1. Integration decision
