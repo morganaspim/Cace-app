@@ -248,7 +248,7 @@ def test_batched_exact_pin_is_manual_only_and_serialized() -> None:
     assert "group: cace-canonical-qualification-oci" in text
     assert "cancel-in-progress: false" in text
     assert "runs-on: [self-hosted, cace, oci, aarch64]" in text
-    assert "cace_batch_proof_targets.py" in text
+    assert "python3 -m scripts.cace_batch_proof_targets" in text
     assert "quarantined-standalone" in (
         ROOT / "scripts" / "cace_batch_proof_targets.py"
     ).read_text(encoding="utf-8")
