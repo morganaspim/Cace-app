@@ -25,7 +25,7 @@ def wedge (u v : Vec2) : ℚ :=
     ExteriorPower2.wedge u.toReal v.toReal = (wedge u v : ℝ) := by
   rcases u with ⟨ux, uy⟩
   rcases v with ⟨vx, vy⟩
-  norm_num [wedge, Vec2.toReal, ExteriorPower2.wedge]
+  simp [wedge, Vec2.toReal, ExteriorPower2.wedge]
 
 /-- Exact top-grade pushforward law mirrored by ExactExterior.pushforward. -/
 theorem wedge_matVec (A : Mat2) (u v : Vec2) :
@@ -70,7 +70,7 @@ def matrix : Permutation2 → Mat2
     act p v = (matrix p).matVec v := by
   cases p <;>
     rcases v with ⟨x, y⟩ <;>
-    norm_num [act, matrix, Mat2.identity, Mat2.matVec]
+    simp [act, matrix, Mat2.identity, Mat2.matVec]
 
 @[simp] theorem det_matrix_eq_sign (p : Permutation2) :
     (matrix p).det = sign p := by
@@ -90,7 +90,7 @@ theorem wedge_act (p : Permutation2) (u v : Vec2) :
     (act swap v).toReal = Affine2.swapAxes.mapPoint v.toReal := by
   rcases v with ⟨x, y⟩
   ext <;>
-    norm_num [act, Vec2.toReal, Affine2.swapAxes, Affine2.mapPoint]
+    simp [act, Vec2.toReal, Affine2.swapAxes, Affine2.mapPoint]
 
 end Permutation2
 
@@ -103,7 +103,7 @@ theorem triangle_swap01_det (a b c : Vec2) :
   rcases a with ⟨ax, ay⟩
   rcases b with ⟨bx, by⟩
   rcases c with ⟨cx, cy⟩
-  norm_num [triangle, Vec2.toReal, Triangle2.det]
+  simp [triangle, Vec2.toReal, Triangle2.det]
   ring
 
 end RuntimeRMK
