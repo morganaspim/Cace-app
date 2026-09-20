@@ -259,12 +259,13 @@ jobs:
             safe="$(printf '%s' "$module" | tr '.-' '__')"
             log="$GITHUB_WORKSPACE/cace-batch-target-${index}-${safe}.log"
             echo "CACE_BATCH_COMPILE_START index=$index module=$module"
+            set +e
             (
               cd formal/cace_formal
               lake build "+$module"
-            ) >"$log" 2>&1
-            rc=$?
-            cat "$log"
+            ) 2>&1 | tee "$log"
+            rc=${PIPESTATUS[0]}
+            set -e
             printf '%s\t%s\t%s\n' "$index" "$module" "$rc" >> cace-batch-compile-status.tsv
             if test "$rc" -ne 0; then
               printf '%s\n' "$module" >> cace-batch-compile-failures.txt
@@ -300,6 +301,16 @@ jobs:
           if test -s cace-batch-compile-failures.txt; then
             echo "Failed target modules:"
             cat cace-batch-compile-failures.txt
+            echo "=== Lean target failure diagnostics ==="
+            while IFS= read -r failed_module; do
+              test -n "$failed_module" || continue
+              safe="$(printf '%s' "$failed_module" | tr '.-' '__')"
+              for log in cace-batch-target-*-"$safe".log; do
+                test -f "$log" || continue
+                echo "--- $failed_module :: $log (last 200 lines) ---"
+                tail -n 200 "$log"
+              done
+            done < cace-batch-compile-failures.txt
           fi
           if test "$failures" -ne 0; then
             echo "CACE_BATCH_PREFLIGHT_FAILURES=$failures"
