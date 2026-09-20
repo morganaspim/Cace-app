@@ -17,11 +17,14 @@ from cace_studio.core.reasoning_curriculum import (
     composition_split,
     evaluate_pair,
     evaluate_task,
+    curriculum_signals_from_perception,
     generate_affine_apply_pair,
+    generate_exact_curriculum_batch,
     generate_exterior_wedge_pair,
     generate_group_canonicalization_pair,
     generate_permutation_action_pair,
     generate_simplex_barycentric_pair,
+    rank_heartbeat_aware_skills,
 )
 
 
@@ -412,3 +415,160 @@ def test_simplex_pair_tracks_vertex_relabel_in_barycentric_coordinates():
 def test_generators_reject_invalid_dimensions(generator, kwargs):
     with pytest.raises(ValueError):
         generator(_FakeNative, seed=1, **kwargs)
+
+
+def test_exact_curriculum_batch_is_seeded_and_holds_out_whole_family():
+    batch1 = generate_exact_curriculum_batch(_FakeNative, seed=2026)
+    batch2 = generate_exact_curriculum_batch(_FakeNative, seed=2026)
+
+    assert batch1.batch_id == batch2.batch_id
+    assert batch1.holdout_family == batch2.holdout_family
+    assert batch1.pair_count == 5
+    assert batch1.task_count == 10
+    assert len(batch1.train_pairs) == 4
+    assert len(batch1.holdout_pairs) == 1
+    assert batch1.holdout_pairs[0].baseline.family == batch1.holdout_family
+    assert all(
+        pair.baseline.family != batch1.holdout_family
+        for pair in batch1.train_pairs
+    )
+    assert batch1.evidence_authority is False
+
+
+def test_exact_curriculum_batch_allows_explicit_family_holdout():
+    batch = generate_exact_curriculum_batch(
+        _FakeNative,
+        seed=8,
+        holdout_family="exterior-wedge-basis-intervention",
+    )
+    assert batch.holdout_family == "exterior-wedge-basis-intervention"
+    assert batch.holdout_pairs[0].baseline.family == batch.holdout_family
+
+    with pytest.raises(ValueError):
+        generate_exact_curriculum_batch(
+            _FakeNative,
+            seed=8,
+            holdout_family="missing-family",
+        )
+
+
+def _perception_packet(nodes):
+    return {
+        "schema_version": "cace-agent-perception-v1",
+        "run_id": "run-1",
+        "experiment_id": "exp-1",
+        "monotonic_seq": 1,
+        "semantic_graph_hash": "a" * 64,
+        "emitted_at": "2026-09-20T00:00:00Z",
+        "network_mode": "LOCAL_ZERO_CONTACT",
+        "nodes": nodes,
+        "evidence_authority": False,
+    }
+
+
+def _perception_node(
+    node_id,
+    *,
+    heartbeat_state="READY",
+    changed=False,
+    residual_trend="UNKNOWN",
+    resource_pressure=0.0,
+    research_interest=0.0,
+    canonical_evidence_state="UNKNOWN",
+):
+    return {
+        "node_id": node_id,
+        "semantic_hash": "b" * 64,
+        "heartbeat_state": heartbeat_state,
+        "changed": changed,
+        "residual_norm": None,
+        "residual_trend": residual_trend,
+        "convergence_progress": None,
+        "resource_pressure": resource_pressure,
+        "research_interest": research_interest,
+        "blocker_refs": [],
+        "canonical_evidence_state": canonical_evidence_state,
+        "artifact_refs": [],
+    }
+
+
+def test_perception_signals_prioritize_blocked_worsening_skill_without_evidence_authority():
+    packet = _perception_packet(
+        [
+            _perception_node(
+                "group-node",
+                heartbeat_state="BLOCKED",
+                changed=True,
+                residual_trend="WORSENING",
+                research_interest=0.9,
+                canonical_evidence_state="STALE",
+            ),
+            _perception_node(
+                "affine-node",
+                heartbeat_state="VERIFIED",
+                canonical_evidence_state="PASS",
+            ),
+        ]
+    )
+    signals = curriculum_signals_from_perception(
+        packet,
+        node_skill_ids={
+            "group-node": ["finite-group-coordinate-canonicalization"],
+            "affine-node": ["affine-translation-intervention"],
+        },
+    )
+    by_skill = {signal.skill_id: signal for signal in signals}
+    assert (
+        by_skill["finite-group-coordinate-canonicalization"].score
+        > by_skill["affine-translation-intervention"].score
+    )
+    assert by_skill["finite-group-coordinate-canonicalization"].evidence_authority is False
+    assert "canonical-stale-mirrored" in by_skill[
+        "finite-group-coordinate-canonicalization"
+    ].reasons
+
+
+def test_heartbeat_aware_ranking_uses_attention_then_mastery_frontier():
+    table = MasteryTable()
+    table.record(["affine"], correct=True)
+    table.record(["group"], correct=True)
+    signals = curriculum_signals_from_perception(
+        _perception_packet(
+            [
+                _perception_node(
+                    "n1",
+                    heartbeat_state="FAILED",
+                    canonical_evidence_state="FAIL",
+                )
+            ]
+        ),
+        node_skill_ids={"n1": ["group"]},
+    )
+
+    ranked = rank_heartbeat_aware_skills(
+        table,
+        ["affine", "group"],
+        signals=signals,
+    )
+    assert ranked[0] == "group"
+
+    fallback = rank_heartbeat_aware_skills(
+        MasteryTable(),
+        ["b", "a"],
+    )
+    assert fallback == ("a", "b")
+
+
+def test_perception_adapter_rejects_evidence_authority_and_unknown_states():
+    packet = _perception_packet([])
+    packet["evidence_authority"] = True
+    with pytest.raises(ValueError, match="evidence_authority=false"):
+        curriculum_signals_from_perception(packet, node_skill_ids={})
+
+    bad = _perception_packet([_perception_node("n1")])
+    bad["nodes"][0]["heartbeat_state"] = "FORMAL_PASS"
+    with pytest.raises(ValueError, match="heartbeat_state"):
+        curriculum_signals_from_perception(
+            bad,
+            node_skill_ids={"n1": ["skill"]},
+        )
