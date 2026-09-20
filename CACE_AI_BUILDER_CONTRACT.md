@@ -71,7 +71,9 @@ The preferred dependency direction is:
 
 Do not invert this dependency. GUI code must not create alternate scientific semantics. AI-specific code must remain outside the evidence trusted-computing base.
 
-Python orchestrates. C++ is reserved for justified heavy kernels. Lean remains the formal proof source.
+Python orchestrates. **C++ is the default home for production scientific and mathematical runtime kernels**, including mesh geometry, exact arithmetic, finite-element algebra/assembly, solvers, estimators, and other load-bearing computations. Lean remains the formal proof source.
+
+Python may provide GUI/API orchestration, module graph execution, serialization/provenance, configuration, thin native bindings, and independent reference/checker implementations. A Python reference implementation must not silently become a second canonical scientific truth path when an equivalent C++ production kernel exists. New load-bearing scientific semantics should therefore be implemented in C++ first unless a written design note justifies another placement.
 
 ## 5. Change classes
 
