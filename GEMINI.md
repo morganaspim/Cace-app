@@ -4,7 +4,33 @@ This file is the **Gemini-first repository entrypoint** for implementation work.
 
 ## Primary rule
 
-> **Google AI Studio / Gemini builds the web presentation layer against CACE's typed API/core. It must not duplicate the scientific engine, proof engine, evidence semantics, or formal qualification logic in JavaScript/TypeScript/Node.**
+> **Gemini is a primary CACE implementation builder. It may work in Presentation Builder mode or Rigorous Tool Builder mode. Scientific/exact kernels belong in C++, orchestration in Python, formal mathematics in Lean, and canonical qualification remains external to AI authority. JavaScript/TypeScript/Node must never become an alternate scientific/proof engine.**
+
+## Gemini operating modes
+
+### 1. Presentation Builder
+
+Build the browser experience against CACE's typed API/core. The browser remains presentation/controller code and may not duplicate scientific/proof semantics.
+
+### 2. Rigorous Tool Builder
+
+Gemini is explicitly allowed to improve CACE's mathematical/scientific core by:
+
+- designing typed tool/module contracts;
+- implementing canonical load-bearing algorithms in `cpp/**`;
+- writing C++ unit/property/adversarial tests;
+- adding thin Python bindings/orchestration where necessary;
+- implementing exact/certificate checkers;
+- writing Lean theorem statements and proof attempts under `formal/**`;
+- implementing explicit runtime-to-formal bindings;
+- preparing Help/examples;
+- preparing a proof-ready handoff when some formal obligations remain.
+
+Before Rigorous Tool Builder work, read `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`.
+
+If Gemini cannot finish a proof or source-to-formal bridge, it must submit a machine-readable packet conforming to `collaboration/schema/cace-ai-tool-submission.schema.json`, validated by `scripts/validate_ai_tool_submission.py`. Unresolved obligations must remain explicit.
+
+Gemini may reach draft/quarantine/preflight-ready states, but it may not self-declare canonical `FORMAL`/`PASS`. Exact-current-head qualification remains authoritative.
 
 CACE remains layered as:
 
@@ -47,7 +73,7 @@ Read these in this order:
 
 Always re-query live GitHub/CI state before acting on a proof or deployment gate. Snapshot documents can be stale.
 
-## What Gemini should own
+## What Gemini should own in Presentation Builder mode
 
 Gemini may implement and improve:
 
@@ -158,3 +184,71 @@ Report:
 - recommended next gate.
 
 If the answer to “qualification-sensitive files changed” is yes, stop treating the batch as ordinary web work and follow the formal workflow.
+
+
+## Agent Perception Packet
+
+For Local AI / canvas integration, consume the typed perception stream in `schema/cace-agent-perception.schema.json`.
+
+This stream gives the agent compact live experiment deltas—active/blocked/stale/verifying state, residual/convergence trend, resource pressure, blockers, canonical evidence snapshots, and research-interest—so it can react to the evolving canvas without rereading the entire experiment.
+
+Treat this as non-evidentiary perception/coordination data. It cannot promote proof or scientific evidence.
+
+
+## Product experience: Research Assistant first
+
+Gemini should implement the post-account product experience described in `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`.
+
+The default newly entitled user flow is:
+
+```text
+account created / signed in
+ -> Research Assistant welcome chat
+ -> describe experiment | field demos | full capabilities | recent work
+ -> grounded proposal/demo selection
+ -> preview typed graph
+ -> Build on Canvas
+ -> assistant persists beside the Studio
+```
+
+CACE should be presented as a **VRE — Verified Research Environment** for interactive rigorous math/science.
+
+Preferred headline/subheadline:
+
+- **CACE — Verified Research Environment**
+- **Explore rigorous math with AI that learns geometric reasoning.**
+
+The UI must immediately clarify rigor through actual evidence labels. "Verified" is the environment's evidence-oriented design, not a claim that every result is formally verified.
+
+"AI that learns geometric reasoning" should be implemented through local research memory, accepted tool/operator knowledge, geometric representations, prior experiment patterns and validated workflows—not by letting model-generated conclusions become truth.
+
+Field-specific demos must come from real structured demo metadata. If the user asks for something that does not exist, label it as a proposed experiment rather than pretending a demo exists.
+
+This onboarding/daily-work experience is a first-class Gemini browser responsibility once the underlying typed APIs/catalogs are ready.
+
+
+## Production completeness, proof discovery, and wizard UX
+
+Gemini must treat these as first-class product requirements:
+
+- `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`
+- `docs/TYPED_EQUATION_DATA_WIZARD.md`
+- `docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md`
+
+### Production rule
+
+Do not present a feature/module/domain as production-complete because its central algorithm or UI panel exists.
+
+A production path must work end to end: discovery, typed/wizard input, connection, validation, execution, evidence, result inspection, persistence/export, Help/failure handling and representative regression coverage.
+
+### Wizard rule
+
+For complex mathematical input, build a polished structured equation/data wizard with live mathematical rendering over a canonical typed AST. The assistant may prefill; deterministic backend/core validation decides whether the object is valid.
+
+### Proof-discovery rule
+
+The browser may display proof opportunities and Proof Candidates generated by the canonical core, including links to experiments and theorem matches. It must distinguish observation/conjecture/exact/certified/formal states and never infer proof from experimental repetition.
+
+### Math/AI rule
+
+Expose expanding combinatorics/group-action/geometric operator tools to the Local AI through typed backend contracts. Do not duplicate their semantics in TypeScript.

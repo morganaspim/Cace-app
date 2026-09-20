@@ -701,3 +701,79 @@ CACE should implement a provider-independent Local AI runtime described by `docs
 Google Antigravity and Gemini/AI Studio are preferred build/orchestration environments, but the finished Local AI must retain a genuine Local / Zero Contact mode requiring no cloud/network service.
 
 Agent liveness, meaningful durable progress, checkpoints, semantic canvas heartbeat state, and canonical scientific verification are separate concepts. Heartbeats support observability, scheduling, attention and recovery; they can never create or promote PASS, VERIFIED, FORMAL, theorem qualification, proof-ledger, or source-to-formal evidence.
+
+
+## 27. AI-built rigorous tools and proof-ready handoff
+
+Gemini, Antigravity and CACE Local AI should be allowed to improve the scientific/mathematical capability of the repository, not only its presentation layer.
+
+The canonical workflow is defined by `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`:
+
+`typed specification -> C++ implementation -> tests/checkers -> thin orchestration -> Lean proof attempt -> source-to-formal binding -> proof gates -> qualified promotion`.
+
+If an AI cannot complete formal closure, it should preserve the useful work in a machine-readable packet conforming to `collaboration/schema/cace-ai-tool-submission.schema.json`. Unresolved proof obligations, attempted theorem endpoints, tests and recommended next gate remain explicit so another agent/human can continue.
+
+AI builders may author C++ and Lean. They may not authoritatively promote their own work to FORMAL/PASS.
+
+## 28. Live experiment perception for Local AI
+
+The heartbeat field should provide the Local AI with a compact typed state stream conforming to `schema/cace-agent-perception.schema.json`.
+
+This stream should expose meaningful live deltas such as active/blocked/stale/verifying nodes, semantic-hash changes, residual and convergence trends, resource pressure, blockers, artifact references and canonical evidence snapshots.
+
+The purpose is to let the AI follow the experiment continuously and direct attention intelligently. Perception, research-interest and heartbeat activity are non-evidentiary and cannot create scientific verification or proof.
+
+
+## 29. Research-assistant-first onboarding and daily VRE experience
+
+The canonical product/UX contract is `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`.
+
+After account creation and entitlement, CACE should greet the user through the Local Research Assistant rather than placing them directly on an unexplained empty canvas.
+
+Primary entry actions are:
+
+- Describe an experiment;
+- Show demos for my field;
+- Explore full capabilities;
+- Open recent work when available.
+
+The assistant translates natural-language research intent into grounded demo recommendations or a previewable typed experiment graph, with Minimal/Balanced/Exploratory variants where useful. The initial chat transitions into the persistent Assistant surface beside the canvas.
+
+CACE should present itself as a **VRE — Verified Research Environment** for interactive rigorous mathematics and science. Preferred product message:
+
+> **Explore rigorous math with AI that learns geometric reasoning.**
+
+This wording is aspirational/product-facing and must preserve evidence honesty. "Verified" does not mean every module is formally verified, and "learns geometric reasoning" means the assistant improves through local research memory, accepted CACE tools/representations, and validated reasoning workflows rather than promoting model output to truth.
+
+Returning users should be able to use CACE daily as a research workbench: resume experiments, inspect unfinished Research Ideas, receive contextual heartbeat/perception updates, compare runs, and ask the assistant to guide/build/explain throughout the active workspace.
+
+
+## 30. Experiment-to-proof and math-tool improvement flywheel
+
+The canonical design is `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`.
+
+As experiments run, CACE should surface typed proof opportunities: applicable existing theorem endpoints, exact identities, invariants, symmetry/group structure, or new Proof Candidate obligations.
+
+Experiments may discover **what should be proved**; numerical observation itself is never formal proof.
+
+Successfully qualified reusable mathematics should feed back into the canonical toolbox, exact/C++ kernels, Help/examples and the Local AI operator library. This creates a compounding loop in which more rigorous math tools can make later AI planning more structured and efficient.
+
+Combinatorics and finite group actions are a particular priority because canonical representatives, symmetry actions, generators and operator composition can reduce redundant reasoning/search when benchmarks confirm the benefit.
+
+## 31. Typed equation/data wizard
+
+The canonical UX/semantic design is `docs/TYPED_EQUATION_DATA_WIZARD.md`.
+
+Complex-input modules should expose a guided path for equations, variables, units, domains, boundary/initial conditions, constraints and datasets. Equations should render cleanly but resolve to a canonical typed expression AST shared across GUI/API/CLI/agent surfaces.
+
+The Research Assistant may conversationally prefill the wizard. Deterministic type/unit/domain/module validation remains authoritative.
+
+## 32. Production-completeness gate
+
+"Production-grade" applies only to fully connected working workflows, not isolated implementations.
+
+A production feature/module/domain must close its end-to-end path:
+
+`discover -> input/wizard -> type/assumption validation -> connect -> execute -> verify -> inspect -> save/replay/export -> Help/troubleshoot -> regression`.
+
+All advertised features must be fleshed out and interoperable through canonical shared contracts. Placeholder modules, broken connections, duplicated browser-only semantics, undocumented inputs or missing representative end-to-end tests block production status.

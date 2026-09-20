@@ -2,7 +2,7 @@
   "schema_version": 1,
   "status": "implementation coordination only; not verification evidence",
   "primary_environment": "Google AI Studio / Gemini",
-  "integration_mode": "web-presentation-against-cace-api",
+  "integration_mode": "dual-mode-presentation-and-rigorous-tool-builder",
   "hard_boundary": {
     "browser_owns": [
       "React/TypeScript presentation",
@@ -98,6 +98,12 @@
     }
   ],
   "required_first_read": [
+    "docs/TYPED_EQUATION_DATA_WIZARD.md",
+    "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
+    "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
+    "schema/cace-agent-perception.schema.json",
+    "collaboration/schema/cace-ai-tool-submission.schema.json",
+    "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
     "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
     "docs/CACE_LOCAL_AGENT_RUNTIME.md",
     "AI_CONTEXT/PULL_MANIFEST.json",
@@ -166,5 +172,72 @@
     "antigravity_skill": ".agents/skills/cace-local-agent-runtime/SKILL.md",
     "zero_contact_required": true,
     "evidence_authority": false
+  },
+  "builder_modes": {
+    "presentation_builder": {
+      "allowed": true,
+      "rule": "Browser presentation/controller against canonical typed API; no scientific/proof duplication in JS/TS/Node."
+    },
+    "rigorous_tool_builder": {
+      "allowed": true,
+      "specification": "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
+      "cpp_allowed": true,
+      "lean_draft_and_proof_allowed": true,
+      "source_to_formal_allowed": true,
+      "self_formal_promotion_allowed": false,
+      "unfinished_submission_schema": "collaboration/schema/cace-ai-tool-submission.schema.json",
+      "submission_validator": "scripts/validate_ai_tool_submission.py"
+    }
+  },
+  "agent_perception": {
+    "schema": "schema/cace-agent-perception.schema.json",
+    "purpose": "compact non-evidentiary live canvas state stream for local-AI attention/planning",
+    "evidence_authority": false
+  },
+  "product_experience": {
+    "specification": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
+    "identity": "CACE — Verified Research Environment",
+    "message": "Explore rigorous math with AI that learns geometric reasoning.",
+    "default_post_account_flow": [
+      "Research Assistant welcome chat",
+      "Describe experiment / field demos / full capabilities / recent work",
+      "Grounded demo or typed graph proposal",
+      "Preview before mutation",
+      "Build on Canvas",
+      "Persistent Research Assistant in Studio"
+    ],
+    "daily_use": true,
+    "local_first": true,
+    "no_ai_fallback": true,
+    "evidence_authority": false
+  },
+  "production_completion_gate": {
+    "required": true,
+    "full_chain": [
+      "discover",
+      "wizard/input",
+      "validate",
+      "connect",
+      "execute",
+      "verify",
+      "inspect",
+      "persist/export",
+      "help/failure",
+      "end-to-end regression"
+    ],
+    "partial_feature_not_production": true
+  },
+  "proof_discovery": {
+    "specification": "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
+    "experiments_surface_proof_opportunities": true,
+    "empirical_observation_is_proof": false,
+    "qualified_reusable_math_feeds_toolbox": true
+  },
+  "equation_data_wizard": {
+    "specification": "docs/TYPED_EQUATION_DATA_WIZARD.md",
+    "typed_ast_authoritative": true,
+    "live_math_rendering": true,
+    "assistant_prefill_allowed": true,
+    "deterministic_validation_authoritative": true
   }
 }

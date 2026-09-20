@@ -297,3 +297,41 @@ A science domain is “full-featured” only when:
 - failure states are understandable;
 - no browser-only semantic implementation is required;
 - the domain passes its regression suite.
+
+
+## 11. Production-grade means end-to-end complete
+
+A module or domain is not production-grade merely because its core algorithm exists.
+
+For every advertised production workflow, CACE must validate the whole path:
+
+```text
+discover/select
+ -> wizard/typed input
+ -> connect compatible modules
+ -> validate types/units/domains/assumptions
+ -> execute
+ -> verify/certify where applicable
+ -> inspect results/evidence
+ -> save/replay/export
+ -> Help/troubleshooting
+ -> representative regression test
+```
+
+Required UI/API/CLI/agent paths must share the same semantics.
+
+No production badge for a module/domain while a required step is a placeholder, silently unsupported, duplicated only in browser code, or unable to round-trip through persistence.
+
+Cross-module end-to-end regression graphs are mandatory for production domains.
+
+## 12. Input wizard requirement
+
+Modules with nontrivial equations, data schemas, boundary/initial conditions, material definitions or other structured inputs should integrate with `docs/TYPED_EQUATION_DATA_WIZARD.md`.
+
+The wizard is part of module completeness when ordinary users would otherwise need internal syntax or undocumented conventions.
+
+## 13. Experiment-to-proof integration
+
+Suitable science modules should expose exact identities, invariants, residual relations, symmetry structure and theorem applicability metadata to the proof-discovery layer defined in `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`.
+
+This supports proof discovery without turning empirical behavior into proof.

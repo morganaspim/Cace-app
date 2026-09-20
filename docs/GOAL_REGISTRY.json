@@ -700,8 +700,10 @@
         "Model can emit an externally executable/type-checkable operator program without requiring hidden chain-of-thought disclosure.",
         "Evaluation reports pair correctness, necessary-flip sensitivity, invariance, isomorphism transfer, composition holdout and distractor robustness.",
         "AI output and reasoning metrics never promote formal or scientific verification state.",
-        "Implementation is independently designed from public/general concepts and all third-party code/data has explicit compatible licensing."
-      ]
+        "Implementation is independently designed from public/general concepts and all third-party code/data has explicit compatible licensing.",
+        "Reasoning curricula should exploit exact combinatorics, symmetry groups and group actions when they measurably reduce equivalent search states or improve compositional transfer."
+      ],
+      "inspiration": "Sophonic-AI-inspired at the high-level idea level; independently implemented by CACE with no implied affiliation or use of non-public methods."
     },
     {
       "id": "G049",
@@ -716,7 +718,8 @@
         "AI attention/research states are technically unable to set VERIFIED/PASS.",
         "Semantic hash changes propagate stale state through hard dependencies.",
         "Canvas overlay visualizes heartbeat activity separately from scientific evidence.",
-        "Heartbeat delta can be included in local-AI context packets without requiring full-canvas rereads."
+        "Heartbeat delta can be included in local-AI context packets without requiring full-canvas rereads.",
+        "A typed agent perception packet can carry compact residual/convergence/blocker/resource/evidence deltas so local AI can follow the live experiment without rereading the full canvas."
       ]
     },
     {
@@ -930,7 +933,8 @@
         "Each production-intended science module defines typed ports, units, assumptions, execution, verification, reproducibility metadata, limitations, and interoperable shared object types.",
         "Core workflows can be assembled by typed connections rather than UI special-casing module-name pairs.",
         "Important outputs have an appropriate exact, interval, invariant, residual, convergence, reference, cross-method, or formal verification path when feasible.",
-        "Historical modules migrate through compatibility adapters instead of abrupt deletion."
+        "Historical modules migrate through compatibility adapters instead of abrupt deletion.",
+        "A science domain is production-complete only after representative end-to-end module chains, input guidance, validation, evidence, Help/examples and failure handling pass together."
       ]
     },
     {
@@ -972,8 +976,107 @@
         "Local/Zero Contact mode requires no cloud/network dependency.",
         "Agent liveness, progress, checkpoint and verification states remain distinct.",
         "Heartbeat/checkpoint protocol supports monotonic sequencing, lease expiry and recovery.",
-        "AI/heartbeat state cannot create PASS, VERIFIED, FORMAL or proof-ledger promotion."
+        "AI/heartbeat state cannot create PASS, VERIFIED, FORMAL or proof-ledger promotion.",
+        "The local agent may propose/build reusable tools through the rigorous contribution pipeline, but accepted capability and evidence promotion remain independently governed."
       ]
+    },
+    {
+      "id": "G067",
+      "category": "ai_rigorous_tooling",
+      "priority": 67,
+      "intent_status": "required",
+      "title": "AI-built C++ tools with formalization and proof-ready handoff",
+      "summary": "Allow Gemini, Antigravity and local agents to improve CACE by implementing canonical C++ tools, tests, exact/certified checkers, Lean proof attempts and runtime-to-formal bindings, with a machine-readable handoff whenever formal closure remains.",
+      "acceptance": [
+        "Gemini has an explicit Rigorous Tool Builder mode in repository-visible instructions.",
+        "New load-bearing math/science algorithms are implemented in C++ rather than duplicated in browser code.",
+        "AI may write Lean theorem statements/proofs but cannot self-promote FORMAL/PASS.",
+        "Incomplete formal work can be preserved as a validated cace-ai-tool-submission-v1 packet with unresolved obligations and next gate.",
+        "Accepted tools follow the ordinary CACE engineering/formal promotion ladder before production/formal presentation."
+      ]
+    },
+    {
+      "id": "G068",
+      "category": "research_assistant_ux",
+      "priority": 68,
+      "intent_status": "required",
+      "title": "Research-assistant-first post-account onboarding and daily workspace",
+      "summary": "After account creation, greet the user with a local Research Assistant chat that can accept a natural-language experiment, recommend real demos relevant to the user's field, show full CACE capabilities, or resume recent work; then transition continuously into the scientific canvas with the assistant remaining available.",
+      "acceptance": [
+        "Newly entitled users land on a Research Assistant welcome experience instead of an unexplained empty canvas.",
+        "The assistant offers Describe an experiment, Show demos for my field, Explore full capabilities, and Open recent work when available.",
+        "Demo recommendations are grounded in structured real demo/module metadata rather than fabricated availability.",
+        "Natural-language intent can produce a previewable typed experiment graph with Minimal/Balanced/Exploratory variants and Build on Canvas.",
+        "The welcome chat persists as the Studio Research Assistant after the canvas opens.",
+        "CACE presents itself as a VRE/Verified Research Environment while exposing the actual evidence class of every result rather than implying all modules are formally verified.",
+        "Preferred product message is 'Explore rigorous math with AI that learns geometric reasoning,' with learning defined through local research memory, accepted tools, geometric representations, and validated workflows rather than AI-generated truth.",
+        "Returning users can use the assistant as a daily research workspace companion with recent experiments, Research Ideas, stale/blocked work, and suggested next steps.",
+        "Local/Zero Contact mode supports the experience without required cloud AI, and a no-AI fallback remains fully usable.",
+        "Heartbeat/perception gives the assistant contextual awareness of the running experiment without any evidence authority."
+      ]
+    },
+    {
+      "id": "G069",
+      "category": "proof_discovery",
+      "priority": 69,
+      "intent_status": "required",
+      "title": "Experiment-to-proof discovery loop",
+      "summary": "Running experiments should surface theorem matches, exact identities, invariants and proof candidates; CACE should connect applicable qualified theorems or create explicit proof obligations and feed successfully formalized reusable mathematics back into the toolbox.",
+      "acceptance": [
+        "Suitable runtime results can emit typed non-authoritative ProofOpportunity records linked to exact experiment/node semantic hashes.",
+        "Existing theorem matching checks hypotheses, representation identity and source-to-formal requirements rather than text similarity alone.",
+        "Unmatched opportunities become persistent Proof Candidate Research Ideas with assumptions, counterexample history and unresolved obligations.",
+        "Numerical/empirical patterns never auto-promote to formal proof; AI proof attempts enter quarantine and ordinary proof gates.",
+        "Qualified reusable results can be promoted through normal engineering review into canonical tools, Help/examples and AI ReasoningOperators."
+      ]
+    },
+    {
+      "id": "G070",
+      "category": "production_completeness",
+      "priority": 70,
+      "intent_status": "required",
+      "title": "End-to-end production completeness gate",
+      "summary": "No feature, module or scientific domain is considered production-grade unless its complete user workflow works together: typed inputs, connections, execution, validation, evidence, Help, examples, persistence, failure handling and UI/API/agent integration.",
+      "acceptance": [
+        "Every advertised production module has stable typed inputs/outputs, assumptions, validation, verification behavior, structured Help and runnable examples.",
+        "Compatible modules connect through canonical shared object types without pair-specific UI hacks.",
+        "End-to-end tests exercise representative cross-module workflows, not only isolated units.",
+        "Complex-input modules provide guided input/wizard support where needed.",
+        "Missing, stale, NOT_RUN and failure states remain visible and understandable.",
+        "A domain cannot be marketed as production-grade while required modules or connections are placeholders, broken, duplicated or browser-only."
+      ]
+    },
+    {
+      "id": "G071",
+      "category": "input_ux",
+      "priority": 71,
+      "intent_status": "required",
+      "title": "Typed equation and data wizard with high-quality math rendering",
+      "summary": "Complex mathematical/scientific inputs should be created through a guided typed wizard with symbol definitions, units/domains, validation, structured data import and readable rendered equations that round-trip through canonical CACE semantics.",
+      "acceptance": [
+        "Equation input parses to a canonical typed AST and renders high-quality mathematics; LaTeX is an export/presentation format rather than the semantic source of truth.",
+        "Wizard steps collect variables, domains, units, assumptions, boundary/initial conditions and module-specific requirements.",
+        "Undefined symbols, type/shape/unit/domain errors and missing required conditions are caught before expensive execution where feasible.",
+        "Data import previews mappings and never silently discards or reinterprets columns.",
+        "Wizard output is editable, serializable and identical in semantics across GUI/API/CLI/agent paths.",
+        "Research Assistant can conversationally populate wizard fields while deterministic validation remains authoritative."
+      ]
+    },
+    {
+      "id": "G072",
+      "category": "ai_math_efficiency",
+      "priority": 72,
+      "intent_status": "planned",
+      "title": "Combinatorial and group-action reasoning acceleration",
+      "summary": "Expand exact combinatorics, finite groups and group-action tools and integrate them with geometric representations/operator memory so the Local AI can canonicalize symmetry-equivalent states, compose reusable transformations and reduce reasoning/search cost.",
+      "acceptance": [
+        "Canonical tools cover permutations, combinations, finite explicit groups, group actions, orbits/stabilizers, canonical representatives and small-group Cayley structures where tractable.",
+        "Group/combinatorial objects can act on supported vectors, frames, cells, blades, graphs and other typed geometry through explicit checked mappings.",
+        "Accepted tools expose ReasoningOperator metadata including preconditions, invariants, inverses/composition and failure domains.",
+        "Efficiency improvements are benchmarked against suitable non-group/operator baselines rather than assumed.",
+        "Exact/formal status follows the ordinary evidence pipeline; representational compression cannot weaken rigor."
+      ],
+      "inspiration": "Part of the Sophonic-AI-inspired geometric-reasoning/training direction; exact combinatorics/group-action implementation and evaluation remain independently designed in CACE."
     }
   ]
 }

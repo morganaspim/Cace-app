@@ -64,3 +64,39 @@ Presentation animation never changes semantic hashes or evidence.
 ## Security
 
 No secrets in heartbeat payloads. Host-observed resource measurements outrank AI self-report. Zero-contact mode may not use heartbeat transport as a network escape. Heartbeats cannot mutate proof/evidence registries.
+
+
+## Agent Perception Packet — giving the AI a live sense of the canvas
+
+The Local AI should receive a compact, versioned experimental state stream conforming to:
+
+`schema/cace-agent-perception.schema.json`.
+
+The purpose is to let the agent continuously perceive meaningful change without rereading the full graph. A packet may contain, per node:
+
+- semantic hash and whether it changed;
+- heartbeat state;
+- residual magnitude when available;
+- residual trend: improving/stable/worsening/unknown;
+- convergence progress when defined;
+- host-measured resource pressure;
+- dependency blockers;
+- canonical evidence-state snapshot;
+- artifact references;
+- a non-evidentiary research-interest score.
+
+This acts like a **sensory layer for the experiment**: the agent can notice a residual worsening, a solver becoming blocked, a proof obligation becoming stale, or a new result appearing and decide what to inspect next.
+
+Important separation:
+
+```text
+perception / heartbeat
+        -> attention / planning / scheduling
+        -> tool request / experiment proposal
+        -> canonical computation or verifier
+        -> evidence state
+```
+
+The arrow never runs backward: attention, excitement, research-interest, convergence heuristics, or repeated heartbeats cannot manufacture evidence.
+
+Only emit `VERIFIED` heartbeat state when mirroring an authoritative verified state from the canonical subsystem. Otherwise use the appropriate nonverified state.

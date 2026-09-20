@@ -19,6 +19,14 @@ The target behavior is a compact specialist that can:
 
 The design deliberately avoids dependence on hidden chain-of-thought disclosure. Reasoning is tested by behavior under controlled transformations and by externally checkable intermediate objects.
 
+## Inspiration and attribution
+
+The **geometric reasoning and training/curriculum direction is Sophonic-AI-inspired at the level of high-level ideas**.
+
+CACE uses that inspiration as a prompt to investigate structured/geometric representations, transformation-aware training, compositional reasoning, counterfactual evaluation, and compact reusable operator programs.
+
+CACE must still implement its own architecture, datasets/task generators, mathematical operators, training objectives, evaluation suite, code, and proof/evidence integration. This attribution does not imply affiliation with Sophonic AI, compatibility with any proprietary Sophonic system, access to non-public methods, or transfer of external verification claims.
+
 ## Independent-design / IP rule
 
 CACE may take inspiration from **publicly described general ideas** such as paired counterfactual/perturbation evaluation, compact specialist models, geometric representations, curriculum learning, program induction, contrastive learning, and cellular automata.
@@ -537,3 +545,52 @@ Build the smallest useful version:
 11. regression tests proving verification state cannot be promoted by AI/heartbeat rules.
 
 Only after this baseline works should CACE experiment with representation-learning changes inside the local neural model.
+
+
+## 19. Combinatorial/group canonicalization for efficient reasoning
+
+Prioritize exact group/combinatorial operators as compact reasoning primitives.
+
+Useful patterns include:
+
+```text
+state
+ -> detect symmetry/group action
+ -> canonical representative
+ -> solve/reason once
+ -> transport result across orbit
+ -> checker/theorem validation
+```
+
+and:
+
+```text
+long transform sequence
+ -> identify generators
+ -> compose/normalize group element
+ -> execute one canonical action
+ -> verify invariant/equivariance
+```
+
+Candidate operator families:
+
+- permutation / compose / inverse;
+- orbit / stabilizer;
+- canonical representative;
+- group action;
+- coset for supported finite cases;
+- Cayley neighbor/action lookup;
+- incidence and boundary composition;
+- rewrite to normal form.
+
+Use only mathematically declared actions. Do not infer a symmetry group because an embedding "looks symmetric."
+
+Measure whether the representation reduces planning steps, token/context use, search states, latency or error rate relative to baselines.
+
+## 20. Proof discovery as curriculum growth
+
+The experiment-to-proof system in `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md` may propose new reusable operator motifs.
+
+Only after a mathematical operation has the appropriate exact/certified/formal support and engineering review should it enter the trusted operator curriculum as a validated operation.
+
+Unproved conjectures may remain research examples, never trusted operator rules.

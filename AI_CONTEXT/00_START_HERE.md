@@ -37,6 +37,9 @@ Read these first, in this order:
 19. `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`
 20. `gemini/CACE_GEMINI_TASK_STATE.json`
 21. `AI_REPO_MAP.json`
+22. `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`
+23. `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`
+24. `docs/TYPED_EQUATION_DATA_WIZARD.md`
 
 For Antigravity also read `.agents/AGENTS.md` and use the relevant skill under `.agents/skills/`.
 
@@ -69,6 +72,16 @@ When a new idea has merit:
 2. promote it to `GOAL_REGISTRY.json` when it becomes durable implementation intent;
 3. map it to an A–I track or explicitly mark it cross-cutting/later;
 4. never upgrade evidence/proof status through documentation.
+
+## Rigorous tool-building contract
+
+Gemini/Antigravity may operate as rigorous tool builders, including C++ implementation and Lean proof attempts. Before such work, read:
+
+- `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`
+- `collaboration/schema/cace-ai-tool-submission.schema.json`
+- `schema/cace-agent-perception.schema.json`
+
+If formal closure cannot be completed, preserve a validated proof-ready submission with explicit unresolved obligations rather than discarding the work.
 
 ## Implementation contract
 

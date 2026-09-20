@@ -96,3 +96,24 @@ A record may contain `discovery_refs` and `evidence_refs`. These are references 
 ## Agent behavior
 
 ChatGPT, Gemini, local models, and future agents use the same schema. Model identity grants no evidence privilege. Agents should prefer small exact-head tasks, state uncertainty, preserve failed attempts as engineering evidence when useful, and never promote telemetry, correlations, analogies, or AI suggestions beyond `AI_PROPOSAL` without independent evidence.
+
+
+## Rigorous tool submission packets
+
+An AI agent that creates or extends a mathematical/scientific CACE tool may attach a rigorous-tool submission packet to a normal `PROPOSAL` collaboration record.
+
+The inner packet must conform to:
+
+`collaboration/schema/cace-ai-tool-submission.schema.json`
+
+and may be validated with:
+
+```text
+python scripts/validate_ai_tool_submission.py <submission.json>
+```
+
+The packet records the exact source head, C++ files/tests, formal proof state, proposed Lean theorem names/files, source-to-formal references, checks completed, unresolved obligations, and the recommended next proof/engineering gate.
+
+The packet deliberately has `promotion_authority=false`, and its formal state enum does not contain `FORMAL_PASS`. A packet therefore cannot promote a claim; it can only make work reviewable and handoff-ready.
+
+A fully proved-looking AI submission still requires the ordinary CACE proof path and canonical qualification before formal promotion.

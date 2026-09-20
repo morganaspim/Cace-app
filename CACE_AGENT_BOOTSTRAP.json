@@ -7,6 +7,12 @@
     "production_ready": false
   },
   "first_read": [
+    "docs/TYPED_EQUATION_DATA_WIZARD.md",
+    "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
+    "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
+    "schema/cace-agent-perception.schema.json",
+    "collaboration/schema/cace-ai-tool-submission.schema.json",
+    "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
     ".agents/AGENTS.md",
     "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
     "docs/CACE_LOCAL_AGENT_RUNTIME.md",
@@ -55,7 +61,13 @@
     "ai_builder_contract": "CACE_AI_BUILDER_CONTRACT.md",
     "source_to_formal_linkage": "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
     "local_agent_runtime": "docs/CACE_LOCAL_AGENT_RUNTIME.md",
-    "agent_heartbeat_protocol": "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md"
+    "agent_heartbeat_protocol": "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
+    "ai_rigorous_tool_pipeline": "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
+    "ai_tool_submission_schema": "collaboration/schema/cace-ai-tool-submission.schema.json",
+    "agent_perception_schema": "schema/cace-agent-perception.schema.json",
+    "post_account_research_assistant_ux": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
+    "experiment_to_proof_discovery": "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
+    "typed_equation_data_wizard": "docs/TYPED_EQUATION_DATA_WIZARD.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -339,7 +351,15 @@
     "gemini_web_handoff": "docs/GEMINI_AI_STUDIO_HANDOFF.md",
     "gemini_task_state": "gemini/CACE_GEMINI_TASK_STATE.json",
     "web_presentation_rule": "AI Studio/Gemini owns browser presentation and interaction; CACE Python API/core, C++ kernels, and Lean qualification remain the scientific/evidence authority. Do not duplicate scientific or proof semantics in JavaScript/TypeScript/Node.",
-    "optional_node_role": "development/static/proxy only; never alternate scientific backend"
+    "optional_node_role": "development/static/proxy only; never alternate scientific backend",
+    "rigorous_tool_builder": {
+      "enabled": true,
+      "cpp_implementation": true,
+      "lean_draft_and_proof": true,
+      "source_to_formal_binding": true,
+      "self_formal_promotion": false,
+      "fallback": "validated proof-ready tool submission packet with explicit unresolved obligations"
+    }
   },
   "math_science_foundation": {
     "current_priority": "CACE Rigorous Math Kernel v1 before substantial Gemini web polish",
@@ -371,5 +391,24 @@
       "docs/CHAT_IDEA_LEDGER.md"
     ],
     "rule": "Tier-0 instructions first, then deterministic task-specific source shards; never trust silently discarded files."
+  },
+  "local_agent_runtime": {
+    "self_improving_tool_loop": "observe -> specify -> C++ implement/test -> Lean attempt -> proof-ready handoff or qualification -> accepted reusable tool",
+    "perception_schema": "schema/cace-agent-perception.schema.json",
+    "perception_evidence_authority": false,
+    "proof_discovery": "experiment -> proof opportunity/theorem match -> Proof Candidate -> quarantine/qualification -> reusable tool/operator",
+    "group_reasoning_priority": "exact combinatorics/group actions/canonical representatives integrated with geometric ReasoningOperators when benchmarked useful"
+  },
+  "product_experience": {
+    "vre_name": "CACE — Verified Research Environment",
+    "preferred_message": "Explore rigorous math with AI that learns geometric reasoning.",
+    "post_account_entry": "Research Assistant welcome",
+    "assistant_role": "persistent local-first research assistant across onboarding, canvas, notebook and daily work",
+    "evidence_rule": "assistant explains and consumes evidence; it never creates proof/evidence authority"
+  },
+  "production_completeness": {
+    "fail_closed": true,
+    "rule": "No advertised production feature/module/domain is complete until its end-to-end workflow, interoperability, validation, evidence, Help/examples, persistence and regression path work together.",
+    "complex_input_requires_wizard_when_needed": true
   }
 }

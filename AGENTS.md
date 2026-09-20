@@ -8,9 +8,9 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 
 Read these in order before changing scientific or verification behavior:
 
-**Gemini / Google AI Studio:** begin with `GEMINI.md` and `docs/GEMINI_AI_STUDIO_HANDOFF.md`. The browser layer is presentation only: it must consume CACE's typed API/core and must not duplicate scientific, exact-math, graph-execution, proof, evidence, or qualification semantics in JavaScript/TypeScript/Node.
+**Gemini / Google AI Studio:** begin with `GEMINI.md`. Gemini has two allowed modes: Presentation Builder and Rigorous Tool Builder. In Rigorous Tool Builder mode it may implement C++ kernels, tests, Lean proof attempts, and source-to-formal bindings under `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`; it still cannot self-promote proof/evidence. The browser layer remains presentation only and must not duplicate scientific/proof semantics in JavaScript/TypeScript/Node.
 
-AI code builders must additionally obey `CACE_AI_BUILDER_CONTRACT.md`. Any change that binds runtime objects to Lean hypotheses/endpoints must additionally obey `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`.
+AI code builders must additionally obey `CACE_AI_BUILDER_CONTRACT.md`. Rigorous tool contributions use `collaboration/schema/cace-ai-tool-submission.schema.json`; live Local-AI canvas perception uses `schema/cace-agent-perception.schema.json`. Any change that binds runtime objects to Lean hypotheses/endpoints must additionally obey `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`.
 
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
 2. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.

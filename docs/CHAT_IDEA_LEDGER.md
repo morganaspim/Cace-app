@@ -77,7 +77,7 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I056 | reasoning pedagogy | Train the local AI on reusable typed operations and operation sequences rather than static answer surfaces; curriculum progresses from single operators to compositions, inverse problems, counterfactuals, transfer and discovery. | New design: `docs/LOCAL_AI_REASONING_CURRICULUM.md`; G048 |
 | I057 | anti-memorization eval | Use independently generated canonical/perturbed paired tasks where load-bearing changes require answer changes, alongside irrelevant perturbations that require invariance; evaluate pair correctness, necessary flips, invariance, transfer and composition holdouts. | G048 |
-| I058 | geometric reasoning | Compress chaotic observations into typed relational/geometric structures, symmetries, invariants, sparse operator programs and checkable transformations instead of brute-force all-pairs association. | G048; related G017-G020 |
+| I058 | geometric reasoning | Sophonic-AI-inspired high-level direction: compress chaotic observations into typed relational/geometric structures, symmetries, invariants, sparse operator programs and checkable transformations instead of brute-force all-pairs association; CACE implementation remains independently designed. | G048; related G017-G020 |
 | I059 | operator memory | Maintain a learned operator library with preconditions, invariants, inverses, commutation/composition rules, costs, failure domains and linked CACE checkers rather than an answer notebook. | G048 |
 | I060 | canvas heartbeat | Connect canvas items and the local AI through a deterministic Conway-inspired cellular heartbeat/state field for readiness, activity, waiting, stale, verification, failure and research attention; heartbeat can guide attention but never verification. | G049 |
 
@@ -102,6 +102,15 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I073 | proof-backed math toolbox | Convert the strongest existing Lean theorem families and exact checkers into a broad semantic math-tool library with explicit FORMAL/EXACT/INTERVAL/SYMBOLIC/NUMERICAL/REVIEWED/EXPERIMENTAL evidence badges rather than proliferating version wrappers. | G062 |
 | I074 | composable science modules | Upgrade scientific modules into full-featured typed/unit-aware components that share canonical objects and link naturally across geometry, PDE/FEM, mechanics, EM, molecular, materials, protein, data/statistics, signals and research physics. | G063 |
 | I075 | module help and examples | Treat Help and examples as part of the module contract: theory/equations, assumptions, evidence, limitations, connection suggestions, troubleshooting, minimal/realistic/composition/failure examples, and Add-to-Canvas workflows. | G064 |
+
+| I076 | research assistant onboarding | After account creation, CACE opens with a local Research Assistant chat asking what the user wants to investigate, offering field-relevant demos/full capabilities/recent work, then builds or previews a typed canvas while persisting as a daily research assistant; product identity is a VRE for interactive rigorous math with AI-assisted geometric reasoning. | G068 |
+
+| I077 | experiment-to-proof flywheel | Experiments should continuously surface applicable qualified theorem links and new proof candidates; successful reusable proofs feed back into C++/exact math tools, canvas modules and the AI operator library without ever treating numerical observation as proof. | G069 |
+| I078 | production completeness gate | A feature/domain counts as production-grade only when its full connected workflow works: discover/input/validate/connect/execute/evidence/results/persistence/help/failure/regression; no placeholder or browser-only semantics. | G070 |
+| I079 | equation data wizard | Provide guided typed equation/data entry with clean rendered mathematics, symbol/unit/domain validation, boundary/initial condition guidance, data mapping previews and conversational AI prefill over one canonical AST. | G071 |
+| I080 | group reasoning acceleration | Expand exact combinatorics and finite group actions, canonical representatives, orbits/stabilizers and symmetry-aware geometric mappings as reusable ReasoningOperators to reduce redundant AI search when benchmarks show real benefit. | G072 |
+
+| I081 | Sophonic inspiration attribution | Record that CACE geometric reasoning and its training/curriculum direction are Sophonic-AI-inspired at the high-level conceptual level while CACE independently implements architecture, generators, operators, objectives, evaluation, and proof integration without implying affiliation or access to proprietary methods. | G048, G072 |
 
 ## Current theorem idea inventory
 

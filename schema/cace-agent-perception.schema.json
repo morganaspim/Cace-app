@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-agent-perception.schema.json",
+  "title": "CACE Agent Canvas Perception Packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "experiment_id",
+    "monotonic_seq",
+    "semantic_graph_hash",
+    "emitted_at",
+    "network_mode",
+    "nodes",
+    "evidence_authority"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "cace-agent-perception-v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "monotonic_seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "semantic_graph_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "emitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "network_mode": {
+      "enum": [
+        "LOCAL_ZERO_CONTACT",
+        "HYBRID",
+        "GENERAL_AGENT"
+      ]
+    },
+    "evidence_authority": {
+      "const": false
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "semantic_hash",
+          "heartbeat_state",
+          "changed",
+          "residual_trend",
+          "convergence_progress",
+          "resource_pressure",
+          "research_interest",
+          "blocker_refs",
+          "canonical_evidence_state"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "semantic_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "heartbeat_state": {
+            "enum": [
+              "DORMANT",
+              "READY",
+              "ACTIVE",
+              "WAITING",
+              "BLOCKED",
+              "STALE",
+              "VERIFYING",
+              "VERIFIED",
+              "FAILED",
+              "RESEARCH_INTEREST"
+            ]
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "residual_norm": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "residual_trend": {
+            "enum": [
+              "IMPROVING",
+              "STABLE",
+              "WORSENING",
+              "UNKNOWN"
+            ]
+          },
+          "convergence_progress": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "resource_pressure": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "research_interest": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blocker_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "canonical_evidence_state": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN",
+              "STALE",
+              "UNKNOWN"
+            ]
+          },
+          "artifact_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}
