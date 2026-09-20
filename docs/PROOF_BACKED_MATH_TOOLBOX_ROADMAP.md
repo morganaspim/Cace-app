@@ -305,3 +305,30 @@ A successful new proof should be assessed for whether it deserves:
 - structured Help/examples.
 
 This is how the proof corpus becomes an increasingly useful computational/reasoning library rather than a disconnected archive.
+
+
+## Interactive workbench presentation
+
+The Math Toolbox should be usable both as canvas modules and as an independent
+mathematical workbench.
+
+High-value surfaces:
+
+- searchable tool/function palette;
+- variable/data workspace;
+- typed equation editor;
+- formula cards with rendered math and canonical semantics;
+- plots/tables/3D views;
+- runnable demos;
+- notebook/history;
+- Build on Canvas;
+- proof/evidence links;
+- compatibility suggestions.
+
+External numerical-computing products may inspire only broad workflow ideas.
+CACE should use its own UI, visual identity, code, icons, documentation and
+semantic model.
+
+Each Formula Card must expose the underlying canonical module/tool ID and
+evidence capability. Pretty rendering cannot hide assumptions or upgrade proof
+status.
