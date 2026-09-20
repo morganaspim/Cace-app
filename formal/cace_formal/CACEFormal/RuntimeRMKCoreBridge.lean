@@ -24,11 +24,6 @@ structure Vec2 where
 
 namespace Vec2
 
-@[ext] theorem ext {u v : Vec2} (hx : u.x = v.x) (hy : u.y = v.y) : u = v := by
-  cases u
-  cases v
-  simp_all
-
 def toReal (v : Vec2) : Point2 :=
   ⟨(v.x : ℝ), (v.y : ℝ)⟩
 
@@ -45,13 +40,6 @@ structure Mat2 where
   deriving DecidableEq, Repr
 
 namespace Mat2
-
-@[ext] theorem ext {A B : Mat2}
-    (h00 : A.m00 = B.m00) (h01 : A.m01 = B.m01)
-    (h10 : A.m10 = B.m10) (h11 : A.m11 = B.m11) : A = B := by
-  cases A
-  cases B
-  simp_all
 
 def identity : Mat2 := ⟨1, 0, 0, 1⟩
 
