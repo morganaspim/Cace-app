@@ -112,6 +112,12 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I081 | Sophonic inspiration attribution | Record that CACE geometric reasoning and its training/curriculum direction are Sophonic-AI-inspired at the high-level conceptual level while CACE independently implements architecture, generators, operators, objectives, evaluation, and proof integration without implying affiliation or access to proprietary methods. | G048, G072 |
 
+| I082 | missing capability feedback loop | When the assistant cannot satisfy a request with real CACE tools, offer a structured capability request that can become a Gemini/local rigorous-tool contribution and proof-ready submission instead of fabricating support. | G073 |
+| I083 | typed visual scientific programming | Treat canvas modules as a real typed visual language with reusable subgraphs and canonical semantics; use independently designed block-style interaction only at the high-level idea level. | G074 |
+| I084 | semantic operation animation | Animate data/math operations from actual before/after state while keeping animation presentation-only, optional and evidence-neutral. | G074 |
+| I085 | independent math workbench | Build formula cards, beautiful typed equations, variable/data workspace, plots, notebooks, demos and tool discovery using CACE-owned design; external numerical-workbench products are only high-level inspiration. | G075 |
+| I086 | top-10 grounded next actions | Local AI should continuously rank up to ten real next actions for the active canvas from blockers, compatible modules, evidence state, ideas and costs, and convert unavailable actions into Tool Requests. | G076 |
+| I087 | benchmark-driven math-guided neural optimization | Use symmetry canonicalization, executable operator programs, equivariance, sparse geometry, curriculum/holdouts, canonical caches and verifier-guided distillation; keep only measured improvements. | G077 |
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
