@@ -15,6 +15,8 @@ The project deliberately separates software maturity from evidence strength. A n
 
 ## Start here
 
+- `GEMINI.md` — Gemini / Google AI Studio entrypoint; browser presentation must consume CACE's typed API/core rather than duplicate scientific/proof semantics
+- `docs/GEMINI_AI_STUDIO_HANDOFF.md` — explicit web integration topology, ownership matrix and migration batches
 - `CACE_AGENT_BOOTSTRAP.json` — single machine-readable repository handoff
 - `docs/BUILD_AND_TRUST_GUIDE.md` — unified build, rigor, security, bug-flush and provenance architecture
 - `docs/STATUS.md` — current implementation and qualification state
