@@ -41,6 +41,9 @@
         "lease_generation": {
           "type": "integer",
           "minimum": 0
+        },
+        "run_id": {
+          "type": "string"
         }
       }
     },

@@ -19,6 +19,7 @@ from .contracts import (
     ToolDescriptor,
     ToolResult,
     ToolStatus,
+    ToolPreconditionError,
     ToolValidationError,
     TypedTool,
     dataclass_schema,
@@ -27,6 +28,7 @@ from .contracts import (
 )
 
 ApprovalCallback = Callable[[ToolCall, ToolDescriptor], bool]
+LeaseValidator = Callable[[ToolCall], None]
 
 IDEMPOTENCY_REQUIRED_CAPABILITIES = frozenset(
     {
@@ -51,10 +53,12 @@ class ToolBus:
         policy: CapabilityPolicy | None = None,
         approval_callback: ApprovalCallback | None = None,
         operation_store: FileOperationStore | None = None,
+        lease_validator: LeaseValidator | None = None,
     ) -> None:
         self.policy = policy or CapabilityPolicy.zero_contact()
         self.approval_callback = approval_callback
         self.operation_store = operation_store
+        self.lease_validator = lease_validator
         self._tools: dict[str, TypedTool] = {}
         self._audit: list[ToolAuditRecord] = []
         self._sequence = 0
@@ -73,6 +77,13 @@ class ToolBus:
         if self.operation_store is not None and self.operation_store.root != store.root:
             raise ValueError("Tool Bus operation store is already configured")
         self.operation_store = store
+
+    def set_lease_validator(self, validator: LeaseValidator) -> None:
+        if not callable(validator):
+            raise TypeError("lease validator must be callable")
+        if self.lease_validator is not None and self.lease_validator is not validator:
+            raise ValueError("Tool Bus lease validator is already configured")
+        self.lease_validator = validator
 
     def descriptor(self, name: str) -> ToolDescriptor:
         try:
@@ -268,7 +279,9 @@ class ToolBus:
                 error="durable operation store is required for this capability",
             )
         if idempotency_required and (
-            not call.lease_id or call.lease_generation <= 0
+            not call.run_id
+            or not call.lease_id
+            or call.lease_generation <= 0
         ):
             return self._record(
                 call=call,
@@ -277,8 +290,31 @@ class ToolBus:
                 approved=approved,
                 input_sha256=input_sha256,
                 output_sha256=None,
-                error="durable lease fencing token is required for this capability",
+                error="durable run/lease fencing token is required for this capability",
             )
+        if idempotency_required:
+            if self.lease_validator is None:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.INVALID_REQUEST,
+                    approved=approved,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error="current durable lease validator is required for this capability",
+                )
+            try:
+                self.lease_validator(call)
+            except Exception as exc:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.RECOVERY_BLOCKED,
+                    approved=approved,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error=f"lease fencing validation failed: {type(exc).__name__}: {exc}",
+                )
 
         operation_claimed = False
         if call.operation_id is not None and self.operation_store is not None:
@@ -358,12 +394,45 @@ class ToolBus:
             call_id=call.call_id,
             tool_name=tool.name,
             capability=tool.capability,
+            run_id=call.run_id,
             operation_id=call.operation_id,
             lease_id=call.lease_id,
             lease_generation=call.lease_generation,
         )
         try:
             response = tool.handler(request, context)
+        except ToolPreconditionError as exc:
+            result = self._record(
+                call=call,
+                tool=tool,
+                status=ToolStatus.INVALID_REQUEST,
+                approved=approved,
+                input_sha256=input_sha256,
+                output_sha256=None,
+                error=str(exc),
+            )
+            if operation_claimed and self.operation_store is not None:
+                try:
+                    self.operation_store.commit(
+                        operation_id=call.operation_id or "",
+                        tool_name=tool.name,
+                        input_sha256=input_sha256,
+                        result=result,
+                    )
+                except Exception as commit_exc:
+                    return self._record(
+                        call=call,
+                        tool=tool,
+                        status=ToolStatus.RECOVERY_BLOCKED,
+                        approved=approved,
+                        input_sha256=input_sha256,
+                        output_sha256=None,
+                        error=(
+                            "safe tool rejection could not be durably committed; "
+                            f"automatic replay is blocked: {type(commit_exc).__name__}: {commit_exc}"
+                        ),
+                    )
+            return result
         except Exception as exc:
             return self._record(
                 call=call,

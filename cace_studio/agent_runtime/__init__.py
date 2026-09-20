@@ -14,6 +14,7 @@ from .contracts import (
     ToolDescriptor,
     ToolResult,
     ToolStatus,
+    ToolPreconditionError,
     TypedTool,
 )
 from .controller import (
@@ -24,6 +25,19 @@ from .controller import (
     AgentRunReport,
     AgentTurnContext,
     LocalJSONPlanner,
+)
+from .canvas_mutation import (
+    CanvasCommitRequest,
+    CanvasCommitResponse,
+    CanvasMutationError,
+    CanvasMutationOperation,
+    CanvasMutationRuntime,
+    CanvasPreviewRecord,
+    CanvasPreviewRequest,
+    CanvasPreviewResponse,
+    FileCanvasPreviewStore,
+    canvas_preview_approval_callback,
+    register_canvas_mutation_tools,
 )
 from .core_tools import register_core_tools
 from .durable_lease import DurableAgentLease, FileAgentLeaseManager
@@ -71,11 +85,20 @@ __all__ = [
     "AgentRunReport",
     "AgentTurnContext",
     "AuditIntegrityError",
+    "CanvasCommitRequest",
+    "CanvasCommitResponse",
+    "CanvasMutationError",
+    "CanvasMutationOperation",
+    "CanvasMutationRuntime",
+    "CanvasPreviewRecord",
+    "CanvasPreviewRequest",
+    "CanvasPreviewResponse",
     "Capability",
     "CapabilityPolicy",
     "CanonicalEvidenceState",
     "DurableAgentLease",
     "FileAgentLeaseManager",
+    "FileCanvasPreviewStore",
     "FileCheckpointStore",
     "FileOperationStore",
     "HashChainedAuditJournal",
@@ -95,7 +118,10 @@ __all__ = [
     "ToolDescriptor",
     "ToolResult",
     "ToolStatus",
+    "ToolPreconditionError",
     "TypedTool",
+    "canvas_preview_approval_callback",
     "operation_id_for",
+    "register_canvas_mutation_tools",
     "register_core_tools",
 ]

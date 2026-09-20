@@ -321,6 +321,20 @@ class AgentController:
             self.tool_bus.set_operation_store(
                 FileOperationStore(checkpoint_store.root / ".operations")
             )
+        if (
+            isinstance(self.lease_manager, FileAgentLeaseManager)
+            and self.tool_bus.lease_validator is None
+        ):
+            lease_manager = self.lease_manager
+
+            def validate_lease(call: ToolCall) -> None:
+                lease_manager.assert_current(
+                    call.run_id,
+                    call.lease_id,
+                    call.lease_generation,
+                )
+
+            self.tool_bus.set_lease_validator(validate_lease)
         self.heartbeat_callback = heartbeat_callback
         self.perception_provider = perception_provider
         self.audit_journal = audit_journal
@@ -865,6 +879,7 @@ class AgentController:
                     call_id=f"{run_id}:{tool_calls}",
                     tool_name=decision.tool_name,
                     arguments=arguments,
+                    run_id=run_id,
                     operation_id=operation_id,
                     lease_id=lease.lease_id,
                     lease_generation=lease.generation,

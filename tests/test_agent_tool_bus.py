@@ -11,6 +11,7 @@ from cace_studio.agent_runtime import (
     AgentTurnContext,
     Capability,
     CapabilityPolicy,
+    FileAgentLeaseManager,
     FileOperationStore,
     ToolBus,
     ToolCall,
@@ -107,12 +108,19 @@ def test_approval_required_capability_fails_closed_without_approval(tmp_path) ->
     assert denied.status is ToolStatus.DENIED
     assert "approval required" in denied.error
 
+    lease_manager = FileAgentLeaseManager(tmp_path / "approved-leases")
+    lease = lease_manager.acquire("approved-run", "approved-owner", ttl_seconds=60.0)
     approved_bus = ToolBus(
         policy=CapabilityPolicy.zero_contact(),
         approval_callback=lambda call, descriptor: (
             call.tool_name == descriptor.name == "test.echo"
         ),
         operation_store=FileOperationStore(tmp_path / "approved-operations"),
+        lease_validator=lambda call: lease_manager.assert_current(
+            call.run_id,
+            call.lease_id,
+            call.lease_generation,
+        ),
     )
     approved_bus.register(_echo_tool(Capability.CANVAS_MUTATE))
     allowed = approved_bus.invoke(
@@ -120,9 +128,10 @@ def test_approval_required_capability_fails_closed_without_approval(tmp_path) ->
             "call-2",
             "test.echo",
             {"text": "y"},
+            run_id="approved-run",
             operation_id="approved-operation-1",
-            lease_id="lease-1",
-            lease_generation=1,
+            lease_id=lease.lease_id,
+            lease_generation=lease.generation,
         )
     )
     assert allowed.status is ToolStatus.OK

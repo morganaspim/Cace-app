@@ -222,6 +222,22 @@ class FileAgentLeaseManager:
             self._save_unlocked(released)
             return True
 
+    def assert_current(
+        self,
+        run_id: str,
+        lease_id: str,
+        generation: int,
+    ) -> DurableAgentLease:
+        current = self.current(run_id)
+        if current is None:
+            raise LeaseUnavailableError("no active durable lease for run")
+        if (
+            current.lease_id != lease_id
+            or current.generation != generation
+        ):
+            raise LeaseUnavailableError("durable lease fencing token is stale")
+        return current
+
     def current(self, run_id: str) -> DurableAgentLease | None:
         run_id = _safe_run_id(run_id)
         with CrossProcessFileLock(self._lock_path(run_id)):

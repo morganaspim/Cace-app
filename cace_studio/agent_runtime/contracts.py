@@ -104,6 +104,7 @@ class ToolCall:
     call_id: str
     tool_name: str
     arguments: Mapping[str, Any]
+    run_id: str = ""
     operation_id: str | None = None
     lease_id: str = ""
     lease_generation: int = 0
@@ -115,6 +116,8 @@ class ToolCall:
             raise ValueError("tool name must be a non-empty string")
         if not isinstance(self.arguments, Mapping):
             raise TypeError("tool arguments must be a mapping")
+        if not isinstance(self.run_id, str):
+            raise TypeError("tool run_id must be a string")
         if self.operation_id is not None:
             if not isinstance(self.operation_id, str) or not self.operation_id:
                 raise ValueError("tool operation_id must be non-empty when supplied")
@@ -223,6 +226,7 @@ class ToolContext:
     call_id: str
     tool_name: str
     capability: Capability
+    run_id: str = ""
     operation_id: str | None = None
     lease_id: str = ""
     lease_generation: int = 0
@@ -269,6 +273,12 @@ class TypedTool(Generic[RequestT, ResponseT]):
 
 
 class ToolValidationError(ValueError):
+    pass
+
+
+class ToolPreconditionError(ValueError):
+    """Safe fail-closed rejection raised before a tool performs side effects."""
+
     pass
 
 

@@ -391,3 +391,125 @@ The remaining work is now narrower:
 - OS/process CPU/RAM/disk/time sandbox quotas;
 - GUI controls for pause/cancel, lease ownership, pending transactions, approvals, and recovery resolution.
 
+
+
+## v1.4 typed canvas mutation: preview -> approval -> fenced commit -> hash verification
+
+Canvas mutation is now an explicit two-tool protocol. The planner never receives direct mutable access to an `Experiment`.
+
+### Typed operations
+
+`CanvasMutationOperation` currently supports a bounded batch of:
+
+- `add_node`;
+- `remove_node`;
+- `replace_params`;
+- `move_node`;
+- `add_edge`; and
+- `remove_edge`.
+
+The preview path validates the final candidate graph against canonical CACE registry/executor rules, including:
+
+- registered module identity;
+- known parameter names;
+- existing source/target nodes;
+- source/output and target/input port existence;
+- exact port type/unit compatibility;
+- single occupancy of target inputs; and
+- cycle rejection.
+
+Node removal deterministically removes incident edges and removes the node from organizational groups; empty groups produced by that removal are dropped.
+
+### Read-only durable preview
+
+`cace.canvas.preview_mutation` is a `read_experiment` tool. It:
+
+1. deep-copies the active experiment;
+2. applies the typed operation batch to the copy only;
+3. validates the candidate graph;
+4. computes canonical base/target semantic and full experiment hashes;
+5. computes the existing canonical `drift_report`;
+6. hashes the normalized mutation batch and deterministic diff;
+7. derives a content-addressed `preview_id`; and
+8. persists an immutable content-hashed preview record.
+
+The active experiment is unchanged during preview.
+
+The preview store re-computes the mutation hash, diff hash, preview identity, and base/target fields when loading a record. A merely self-consistent outer JSON hash is not accepted as sufficient preview identity.
+
+### Approval of the exact diff
+
+`cace.canvas.commit_preview` accepts **only** a `preview_id`.
+
+The model cannot supply a replacement mutation batch during commit.
+
+`canvas_preview_approval_callback(...)` resolves that ID from the trusted preview store and presents the human decision callback with the exact stored:
+
+- operation list;
+- structural drift report;
+- base semantic/full hashes;
+- target semantic/full hashes;
+- mutation hash; and
+- diff hash.
+
+A denied approval leaves the active experiment unchanged.
+
+### Current fencing, not merely a positive token
+
+Consequential Tool Bus capabilities now require a configured current-lease validator in addition to:
+
+- run ID;
+- lease ID;
+- positive lease generation;
+- operation ID; and
+- durable operation store.
+
+Checkpointed `AgentController` instances wire their `FileAgentLeaseManager` into the Tool Bus validator automatically.
+
+Immediately before a consequential handler may execute, the Tool Bus verifies that the supplied lease ID/generation is the **currently active durable fencing token for that run**. A stale process therefore cannot commit a preview after another process has acquired a newer generation.
+
+### Idempotent commit and safe rejection
+
+The commit call continues to use the v1.3 durable operation ledger.
+
+Safe precondition failures such as:
+
+- unknown preview;
+- stale base experiment;
+- preview-content identity mismatch; or
+- deterministic target mismatch before mutation
+
+use `ToolPreconditionError`. These are durably committed as deterministic `invalid_request` results so retries replay the rejection rather than becoming ambiguous in-progress transactions.
+
+Errors that may occur after a generic handler could have begun side effects remain `recovery_blocked`.
+
+### Commit algorithm
+
+After approval, fencing, and idempotency checks, canvas commit:
+
+1. loads and re-validates the immutable preview;
+2. verifies the active experiment still matches both approved base hashes;
+3. re-applies the stored operations to a fresh copy;
+4. re-computes target semantic/full hashes and the deterministic diff hash;
+5. refuses commit unless all recomputed values equal the approved preview;
+6. replaces the active experiment state with the validated candidate;
+7. re-computes the active experiment semantic/full hashes; and
+8. requires exact equality with the approved target hashes.
+
+If the final hash verification fails, the in-memory experiment is restored from the pre-commit snapshot and the commit fails closed.
+
+The resulting Tool Bus operation remains:
+
+- `proof_effect = "none"`;
+- `promotion_authority = false`; and
+- incapable of manufacturing verifier, formal, or proof-ledger state.
+
+### Deliberate boundary
+
+v1.4 mutates the active in-memory `Experiment` owned by the CACE process. It does not yet claim an atomic distributed workspace/database commit shared across independent application processes.
+
+The next hardening layer for production multi-worker mutation is a workspace persistence transaction that atomically binds:
+
+`preview target hash -> lease generation -> operation ID -> persisted experiment version`.
+
+That can reuse the same typed preview, approval, fencing, and idempotency contracts rather than changing planner semantics.
