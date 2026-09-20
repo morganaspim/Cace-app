@@ -1,6 +1,5 @@
 from __future__ import annotations
 import ctypes, os, sys
-from fractions import Fraction
 from pathlib import Path
 from dataclasses import dataclass
 import numpy as np
@@ -47,14 +46,6 @@ class NativeRuntime:
                 lib.cace_sparse_multifrontal_ldlt_solve.argtypes=[ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_longlong),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_double)]
                 lib.cace_sparse_supernodal_ldlt_solve.argtypes=[ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_longlong),ctypes.POINTER(ctypes.c_longlong),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_longlong),ctypes.POINTER(ctypes.c_double)]
                 lib.cace_p1_1d_stiffness.argtypes=[ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int)]
-                if hasattr(lib,"cace_exact_mesh_create"):
-                    lib.cace_exact_mesh_create.argtypes=[ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.c_int]
-                    lib.cace_exact_mesh_create.restype=ctypes.c_void_p
-                    lib.cace_exact_mesh_destroy.argtypes=[ctypes.c_void_p]
-                    lib.cace_exact_mesh_counts.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int)]
-                    lib.cace_exact_mesh_signed_jacobian.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64)]
-                    lib.cace_exact_assembly_status.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int)]
-                    lib.cace_exact_cell_values.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int]
                 self.lib=lib
                 ver=(lib.cace_runtime_version() or b'').decode()
                 return NativeStatus(True,'cpp20-cabi',ver,str(p),'')
@@ -69,157 +60,6 @@ class NativeRuntime:
     def _pd(a): return a.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     @staticmethod
     def _pi(a): return a.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-
-    @staticmethod
-    def _exact_fraction(value):
-        if isinstance(value, bool) or isinstance(value, float):
-            raise ValueError("exact native inputs must not be booleans or binary floats")
-        if isinstance(value, Fraction):
-            return value
-        if isinstance(value, int):
-            return Fraction(value, 1)
-        if isinstance(value, str):
-            try:
-                return Fraction(value)
-            except (ValueError, ZeroDivisionError) as exc:
-                raise ValueError(f"invalid exact rational {value!r}") from exc
-        raise TypeError(f"unsupported exact rational input type: {type(value).__name__}")
-
-    @classmethod
-    def _exact_arrays(cls, values):
-        fractions=[cls._exact_fraction(value) for value in values]
-        nums=np.ascontiguousarray([value.numerator for value in fractions],dtype=np.int64)
-        dens=np.ascontiguousarray([value.denominator for value in fractions],dtype=np.int64)
-        return nums,dens
-
-    @staticmethod
-    def _pi64(a): return a.ctypes.data_as(ctypes.POINTER(ctypes.c_int64))
-
-    def exact_fem_evaluate(self,vertices,triangles,p1_cells,rt0_cells):
-        """Marshal exact rational data into the C++ exact-FEM kernel.
-
-        Python performs representation/ABI work only. Mesh topology, Jacobians,
-        P1/RT0 element algebra, Green identities, and assembly admissibility are
-        computed by C++.
-        """
-        if not self.lib: raise RuntimeError(self.status.reason)
-        if len(vertices)<3: raise ValueError("exact mesh requires at least three vertices")
-        if not triangles: raise ValueError("exact mesh requires at least one triangle")
-        if len(p1_cells)!=len(triangles) or len(rt0_cells)!=len(triangles):
-            raise ValueError("P1/RT0 arrays must have exactly one entry per triangle")
-
-        coord_values=[]
-        for vertex in vertices:
-            if len(vertex)!=2: raise ValueError("each exact vertex requires x,y")
-            coord_values.extend(vertex)
-        coord_num,coord_den=self._exact_arrays(coord_values)
-
-        strict_triangles=[]
-        for triangle in triangles:
-            if len(triangle)!=3:
-                raise ValueError("triangles must be an N x 3 integer array")
-            row=[]
-            for vertex_id in triangle:
-                if isinstance(vertex_id,bool) or not isinstance(vertex_id,int):
-                    raise ValueError("triangle vertex ids must be genuine integers")
-                if vertex_id<0 or vertex_id>np.iinfo(np.int32).max:
-                    raise ValueError("triangle vertex ids must fit nonnegative int32")
-                row.append(vertex_id)
-            strict_triangles.append(row)
-        tri=np.ascontiguousarray(strict_triangles,dtype=np.int32)
-
-        def flatten_cells(cells,name):
-            values=[]
-            for cell in cells:
-                if len(cell)!=3: raise ValueError(f"{name} cells require exactly three coefficients")
-                values.extend(cell)
-            return self._exact_arrays(values)
-
-        pnum,pden=flatten_cells(p1_cells,"P1")
-        qnum,qden=flatten_cells(rt0_cells,"RT0")
-
-        handle=self.lib.cace_exact_mesh_create(
-            self._pi64(coord_num),self._pi64(coord_den),len(vertices),
-            self._pi(tri.reshape(-1)),len(triangles),
-        )
-        if not handle:
-            raise RuntimeError("native exact mesh construction failed")
-
-        try:
-            nv=ctypes.c_int(); nt=ctypes.c_int(); ne=ctypes.c_int()
-            ni=ctypes.c_int(); nb=ctypes.c_int()
-            rc=self.lib.cace_exact_mesh_counts(
-                handle,ctypes.byref(nv),ctypes.byref(nt),ctypes.byref(ne),
-                ctypes.byref(ni),ctypes.byref(nb),
-            )
-            if rc: raise RuntimeError(f"native exact mesh counts failed with code {rc}")
-
-            jacobians=[]
-            for cell in range(len(triangles)):
-                num=ctypes.c_int64(); den=ctypes.c_int64()
-                rc=self.lib.cace_exact_mesh_signed_jacobian(
-                    handle,cell,ctypes.byref(num),ctypes.byref(den)
-                )
-                if rc: raise RuntimeError(f"native exact Jacobian failed with code {rc}")
-                jacobians.append(str(Fraction(num.value,den.value)))
-
-            ready=ctypes.c_int(); local_green=ctypes.c_int(); orthogonality=ctypes.c_int()
-            eq_fail=ctypes.c_int(); bdy_fail=ctypes.c_int(); int_fail=ctypes.c_int()
-            rc=self.lib.cace_exact_assembly_status(
-                handle,
-                self._pi64(pnum),self._pi64(pden),
-                self._pi64(qnum),self._pi64(qden),
-                len(triangles),
-                ctypes.byref(ready),ctypes.byref(local_green),ctypes.byref(orthogonality),
-                ctypes.byref(eq_fail),ctypes.byref(bdy_fail),ctypes.byref(int_fail),
-            )
-            if rc: raise RuntimeError(f"native exact assembly status failed with code {rc}")
-
-            cell_values=[]
-            for cell in range(len(triangles)):
-                nums=np.zeros(5,dtype=np.int64); dens=np.zeros(5,dtype=np.int64)
-                rc=self.lib.cace_exact_cell_values(
-                    handle,
-                    self._pi64(pnum),self._pi64(pden),
-                    self._pi64(qnum),self._pi64(qden),
-                    cell,self._pi64(nums),self._pi64(dens),5,
-                )
-                if rc: raise RuntimeError(f"native exact cell evaluation failed with code {rc}")
-                values=[str(Fraction(int(nums[i]),int(dens[i]))) for i in range(5)]
-                cell_values.append({
-                    "cell_pairing":values[0],
-                    "cell_divergence":values[1],
-                    "local_face_pairings":values[2:],
-                })
-
-            return {
-                "backend":"cpp20-cabi-exact-fem",
-                "native_version":self.status.version,
-                "counts":{
-                    "vertices":nv.value,
-                    "triangles":nt.value,
-                    "edges":ne.value,
-                    "interior_edges":ni.value,
-                    "boundary_edges":nb.value,
-                },
-                "signed_jacobians":jacobians,
-                "cell_values":cell_values,
-                "assembly":{
-                    "all_local_green":bool(local_green.value),
-                    "orthogonality_sum_zero":bool(orthogonality.value),
-                    "equilibrium_failures":eq_fail.value,
-                    "boundary_failures":bdy_fail.value,
-                    "interior_failures":int_fail.value,
-                    "ready_for_lean_assembly":bool(ready.value),
-                },
-                "formal_state":"generated-inputs-unqualified",
-                "scope_note":(
-                    "Exact C++ runtime evidence only. Lean theorem instantiation and "
-                    "canonical qualification are separate required gates."
-                ),
-            }
-        finally:
-            self.lib.cace_exact_mesh_destroy(handle)
 
     def csr_matvec(self,csr,x):
         if not self.lib: raise RuntimeError(self.status.reason)
