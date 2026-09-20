@@ -746,3 +746,34 @@ CACE should present itself as a **VRE — Verified Research Environment** for in
 This wording is aspirational/product-facing and must preserve evidence honesty. "Verified" does not mean every module is formally verified, and "learns geometric reasoning" means the assistant improves through local research memory, accepted CACE tools/representations, and validated reasoning workflows rather than promoting model output to truth.
 
 Returning users should be able to use CACE daily as a research workbench: resume experiments, inspect unfinished Research Ideas, receive contextual heartbeat/perception updates, compare runs, and ask the assistant to guide/build/explain throughout the active workspace.
+
+
+## 30. Experiment-to-proof and math-tool improvement flywheel
+
+The canonical design is `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`.
+
+As experiments run, CACE should surface typed proof opportunities: applicable existing theorem endpoints, exact identities, invariants, symmetry/group structure, or new Proof Candidate obligations.
+
+Experiments may discover **what should be proved**; numerical observation itself is never formal proof.
+
+Successfully qualified reusable mathematics should feed back into the canonical toolbox, exact/C++ kernels, Help/examples and the Local AI operator library. This creates a compounding loop in which more rigorous math tools can make later AI planning more structured and efficient.
+
+Combinatorics and finite group actions are a particular priority because canonical representatives, symmetry actions, generators and operator composition can reduce redundant reasoning/search when benchmarks confirm the benefit.
+
+## 31. Typed equation/data wizard
+
+The canonical UX/semantic design is `docs/TYPED_EQUATION_DATA_WIZARD.md`.
+
+Complex-input modules should expose a guided path for equations, variables, units, domains, boundary/initial conditions, constraints and datasets. Equations should render cleanly but resolve to a canonical typed expression AST shared across GUI/API/CLI/agent surfaces.
+
+The Research Assistant may conversationally prefill the wizard. Deterministic type/unit/domain/module validation remains authoritative.
+
+## 32. Production-completeness gate
+
+"Production-grade" applies only to fully connected working workflows, not isolated implementations.
+
+A production feature/module/domain must close its end-to-end path:
+
+`discover -> input/wizard -> type/assumption validation -> connect -> execute -> verify -> inspect -> save/replay/export -> Help/troubleshoot -> regression`.
+
+All advertised features must be fleshed out and interoperable through canonical shared contracts. Placeholder modules, broken connections, duplicated browser-only semantics, undocumented inputs or missing representative end-to-end tests block production status.
