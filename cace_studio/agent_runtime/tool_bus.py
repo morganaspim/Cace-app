@@ -4,6 +4,12 @@ from typing import Callable
 
 from cace_studio.core.reproducibility import sha256_identity
 
+from .operations import (
+    FileOperationStore,
+    OperationConflictError,
+    OperationInProgressError,
+)
+
 from .contracts import (
     Capability,
     CapabilityPolicy,
@@ -22,6 +28,14 @@ from .contracts import (
 
 ApprovalCallback = Callable[[ToolCall, ToolDescriptor], bool]
 
+IDEMPOTENCY_REQUIRED_CAPABILITIES = frozenset(
+    {
+        Capability.CANVAS_MUTATE,
+        Capability.WORKSPACE_WRITE,
+        Capability.TOOL_PROPOSE,
+    }
+)
+
 
 class ToolBus:
     """Typed, capability-scoped execution boundary for local agents.
@@ -36,9 +50,11 @@ class ToolBus:
         *,
         policy: CapabilityPolicy | None = None,
         approval_callback: ApprovalCallback | None = None,
+        operation_store: FileOperationStore | None = None,
     ) -> None:
         self.policy = policy or CapabilityPolicy.zero_contact()
         self.approval_callback = approval_callback
+        self.operation_store = operation_store
         self._tools: dict[str, TypedTool] = {}
         self._audit: list[ToolAuditRecord] = []
         self._sequence = 0
@@ -50,6 +66,13 @@ class ToolBus:
 
     def contains(self, name: str) -> bool:
         return name in self._tools
+
+    def set_operation_store(self, store: FileOperationStore) -> None:
+        if not isinstance(store, FileOperationStore):
+            raise TypeError("operation store must be a FileOperationStore")
+        if self.operation_store is not None and self.operation_store.root != store.root:
+            raise ValueError("Tool Bus operation store is already configured")
+        self.operation_store = store
 
     def descriptor(self, name: str) -> ToolDescriptor:
         try:
@@ -64,6 +87,10 @@ class ToolBus:
             request_schema=dataclass_schema(tool.request_type),
             response_schema=dataclass_schema(tool.response_type),
             requires_approval=decision == "approval",
+            idempotency_required=(
+                tool.idempotency_required
+                or tool.capability in IDEMPOTENCY_REQUIRED_CAPABILITIES
+            ),
         )
 
     def descriptors(self, *, include_denied: bool = False) -> tuple[ToolDescriptor, ...]:
@@ -216,11 +243,124 @@ class ToolBus:
                 error=str(exc),
             )
 
+        idempotency_required = (
+            tool.idempotency_required
+            or tool.capability in IDEMPOTENCY_REQUIRED_CAPABILITIES
+        )
+        if idempotency_required and call.operation_id is None:
+            return self._record(
+                call=call,
+                tool=tool,
+                status=ToolStatus.INVALID_REQUEST,
+                approved=approved,
+                input_sha256=input_sha256,
+                output_sha256=None,
+                error="durable operation_id is required for this capability",
+            )
+        if idempotency_required and self.operation_store is None:
+            return self._record(
+                call=call,
+                tool=tool,
+                status=ToolStatus.INVALID_REQUEST,
+                approved=approved,
+                input_sha256=input_sha256,
+                output_sha256=None,
+                error="durable operation store is required for this capability",
+            )
+        if idempotency_required and (
+            not call.lease_id or call.lease_generation <= 0
+        ):
+            return self._record(
+                call=call,
+                tool=tool,
+                status=ToolStatus.INVALID_REQUEST,
+                approved=approved,
+                input_sha256=input_sha256,
+                output_sha256=None,
+                error="durable lease fencing token is required for this capability",
+            )
+
+        operation_claimed = False
+        if call.operation_id is not None and self.operation_store is not None:
+            try:
+                claim = self.operation_store.claim(
+                    operation_id=call.operation_id,
+                    call_id=call.call_id,
+                    tool_name=tool.name,
+                    input_sha256=input_sha256,
+                    lease_id=call.lease_id,
+                    lease_generation=call.lease_generation,
+                )
+            except OperationConflictError as exc:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.INVALID_REQUEST,
+                    approved=approved,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error=f"idempotency conflict: {exc}",
+                )
+            except OperationInProgressError as exc:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.RECOVERY_BLOCKED,
+                    approved=approved,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error=f"idempotency replay blocked: {exc}",
+                )
+            except Exception as exc:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.RECOVERY_BLOCKED,
+                    approved=approved,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error=f"operation ledger unavailable: {type(exc).__name__}: {exc}",
+                )
+
+            if claim.action == "replay":
+                assert claim.result is not None
+                stored = claim.result
+                replayed = ToolResult(
+                    call_id=call.call_id,
+                    tool_name=tool.name,
+                    status=stored.status,
+                    output=dict(stored.output) if stored.output is not None else None,
+                    error=stored.error,
+                )
+                output_sha256 = (
+                    sha256_identity(dict(replayed.output))
+                    if replayed.output is not None
+                    else None
+                )
+                self._audit.append(
+                    ToolAuditRecord(
+                        sequence=self._sequence,
+                        call_id=call.call_id,
+                        tool_name=tool.name,
+                        capability=tool.capability,
+                        status=replayed.status,
+                        approved=approved,
+                        input_sha256=input_sha256,
+                        output_sha256=output_sha256,
+                        error=replayed.error,
+                    )
+                )
+                return replayed
+            operation_claimed = True
+
         context = ToolContext(
             sequence=self._sequence,
             call_id=call.call_id,
             tool_name=tool.name,
             capability=tool.capability,
+            operation_id=call.operation_id,
+            lease_id=call.lease_id,
+            lease_generation=call.lease_generation,
         )
         try:
             response = tool.handler(request, context)
@@ -228,7 +368,11 @@ class ToolBus:
             return self._record(
                 call=call,
                 tool=tool,
-                status=ToolStatus.ERROR,
+                status=(
+                    ToolStatus.RECOVERY_BLOCKED
+                    if operation_claimed
+                    else ToolStatus.ERROR
+                ),
                 approved=approved,
                 input_sha256=input_sha256,
                 output_sha256=None,
@@ -239,7 +383,11 @@ class ToolBus:
             return self._record(
                 call=call,
                 tool=tool,
-                status=ToolStatus.INVALID_RESPONSE,
+                status=(
+                    ToolStatus.RECOVERY_BLOCKED
+                    if operation_claimed
+                    else ToolStatus.INVALID_RESPONSE
+                ),
                 approved=approved,
                 input_sha256=input_sha256,
                 output_sha256=None,
@@ -258,12 +406,45 @@ class ToolBus:
             return self._record(
                 call=call,
                 tool=tool,
-                status=ToolStatus.INVALID_RESPONSE,
+                status=(
+                    ToolStatus.RECOVERY_BLOCKED
+                    if operation_claimed
+                    else ToolStatus.INVALID_RESPONSE
+                ),
                 approved=approved,
                 input_sha256=input_sha256,
                 output_sha256=None,
                 error=f"response is not a canonical tool payload: {exc}",
             )
+
+        result = ToolResult(
+            call_id=call.call_id,
+            tool_name=tool.name,
+            status=ToolStatus.OK,
+            output=output,
+            error="",
+        )
+        if operation_claimed and self.operation_store is not None:
+            try:
+                self.operation_store.commit(
+                    operation_id=call.operation_id or "",
+                    tool_name=tool.name,
+                    input_sha256=input_sha256,
+                    result=result,
+                )
+            except Exception as exc:
+                return self._record(
+                    call=call,
+                    tool=tool,
+                    status=ToolStatus.RECOVERY_BLOCKED,
+                    approved=approved,
+                    input_sha256=input_sha256,
+                    output_sha256=None,
+                    error=(
+                        "tool returned but durable operation commit failed; "
+                        f"automatic replay is blocked: {type(exc).__name__}: {exc}"
+                    ),
+                )
 
         self._audit.append(
             ToolAuditRecord(
@@ -278,10 +459,4 @@ class ToolBus:
                 error="",
             )
         )
-        return ToolResult(
-            call_id=call.call_id,
-            tool_name=tool.name,
-            status=ToolStatus.OK,
-            output=output,
-            error="",
-        )
+        return result

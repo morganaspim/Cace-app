@@ -96,6 +96,7 @@ class ToolStatus(str, Enum):
     INVALID_REQUEST = "invalid_request"
     INVALID_RESPONSE = "invalid_response"
     ERROR = "error"
+    RECOVERY_BLOCKED = "recovery_blocked"
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,9 @@ class ToolCall:
     call_id: str
     tool_name: str
     arguments: Mapping[str, Any]
+    operation_id: str | None = None
+    lease_id: str = ""
+    lease_generation: int = 0
 
     def __post_init__(self) -> None:
         if not isinstance(self.call_id, str) or not self.call_id.strip():
@@ -111,6 +115,22 @@ class ToolCall:
             raise ValueError("tool name must be a non-empty string")
         if not isinstance(self.arguments, Mapping):
             raise TypeError("tool arguments must be a mapping")
+        if self.operation_id is not None:
+            if not isinstance(self.operation_id, str) or not self.operation_id:
+                raise ValueError("tool operation_id must be non-empty when supplied")
+            if len(self.operation_id) > 128 or any(
+                ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
+                for ch in self.operation_id
+            ):
+                raise ValueError("tool operation_id contains unsupported characters")
+        if not isinstance(self.lease_id, str):
+            raise TypeError("tool lease_id must be a string")
+        if (
+            not isinstance(self.lease_generation, int)
+            or isinstance(self.lease_generation, bool)
+            or self.lease_generation < 0
+        ):
+            raise ValueError("tool lease_generation must be a non-negative integer")
 
 
 @dataclass(frozen=True)
@@ -121,6 +141,7 @@ class ToolDescriptor:
     request_schema: Mapping[str, Any]
     response_schema: Mapping[str, Any]
     requires_approval: bool
+    idempotency_required: bool = False
     proof_effect: str = "none"
     promotion_authority: bool = False
 
@@ -132,6 +153,7 @@ class ToolDescriptor:
             "request_schema": dict(self.request_schema),
             "response_schema": dict(self.response_schema),
             "requires_approval": self.requires_approval,
+            "idempotency_required": self.idempotency_required,
             "proof_effect": self.proof_effect,
             "promotion_authority": self.promotion_authority,
         }
@@ -201,6 +223,9 @@ class ToolContext:
     call_id: str
     tool_name: str
     capability: Capability
+    operation_id: str | None = None
+    lease_id: str = ""
+    lease_generation: int = 0
 
 
 RequestT = TypeVar("RequestT")
@@ -220,6 +245,7 @@ class TypedTool(Generic[RequestT, ResponseT]):
     request_type: type[RequestT]
     response_type: type[ResponseT]
     handler: ToolHandler[RequestT, ResponseT]
+    idempotency_required: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name.strip():
@@ -238,6 +264,8 @@ class TypedTool(Generic[RequestT, ResponseT]):
             raise TypeError("tool response_type must be a dataclass type")
         if not callable(self.handler):
             raise TypeError("tool handler must be callable")
+        if not isinstance(self.idempotency_required, bool):
+            raise TypeError("tool idempotency_required must be boolean")
 
 
 class ToolValidationError(ValueError):

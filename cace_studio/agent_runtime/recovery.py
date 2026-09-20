@@ -32,6 +32,7 @@ class AgentHeartbeat:
     tool_calls: int
     failures: int
     lease_id: str
+    lease_generation: int = 0
     checkpoint_sha256: str | None = None
     detail: str = ""
     evidence_authority: bool = False
@@ -43,6 +44,8 @@ class AgentHeartbeat:
             raise ValueError("heartbeat monotonic_seq must be non-negative")
         if self.step < 0 or self.tool_calls < 0 or self.failures < 0:
             raise ValueError("heartbeat counters must be non-negative")
+        if self.lease_generation < 0:
+            raise ValueError("heartbeat lease_generation must be non-negative")
         if self.evidence_authority:
             raise ValueError("agent heartbeat cannot have evidence authority")
 
@@ -56,6 +59,7 @@ class AgentHeartbeat:
             "tool_calls": self.tool_calls,
             "failures": self.failures,
             "lease_id": self.lease_id,
+            "lease_generation": self.lease_generation,
             "checkpoint_sha256": self.checkpoint_sha256,
             "detail": self.detail,
             "evidence_authority": False,

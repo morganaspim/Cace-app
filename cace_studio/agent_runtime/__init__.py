@@ -26,6 +26,15 @@ from .controller import (
     LocalJSONPlanner,
 )
 from .core_tools import register_core_tools
+from .durable_lease import DurableAgentLease, FileAgentLeaseManager
+from .operations import (
+    FileOperationStore,
+    OperationClaim,
+    OperationConflictError,
+    OperationInProgressError,
+    OperationRecord,
+    operation_id_for,
+)
 from .perception import (
     AgentNetworkMode,
     AgentPerceptionPacket,
@@ -65,11 +74,18 @@ __all__ = [
     "Capability",
     "CapabilityPolicy",
     "CanonicalEvidenceState",
+    "DurableAgentLease",
+    "FileAgentLeaseManager",
     "FileCheckpointStore",
+    "FileOperationStore",
     "HashChainedAuditJournal",
     "LeaseUnavailableError",
     "LocalJSONPlanner",
     "NodePerception",
+    "OperationClaim",
+    "OperationConflictError",
+    "OperationInProgressError",
+    "OperationRecord",
     "PerceptionHeartbeatState",
     "ResidualTrend",
     "ToolAuditRecord",
@@ -80,5 +96,6 @@ __all__ = [
     "ToolResult",
     "ToolStatus",
     "TypedTool",
+    "operation_id_for",
     "register_core_tools",
 ]

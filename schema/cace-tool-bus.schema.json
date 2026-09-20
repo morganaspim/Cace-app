@@ -7,14 +7,41 @@
     "tool_call": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["call_id", "tool_name", "arguments"],
+      "required": [
+        "call_id",
+        "tool_name",
+        "arguments"
+      ],
       "properties": {
-        "call_id": {"type": "string", "minLength": 1},
+        "call_id": {
+          "type": "string",
+          "minLength": 1
+        },
         "tool_name": {
           "type": "string",
           "pattern": "^[a-z0-9][a-z0-9._-]*$"
         },
-        "arguments": {"type": "object"}
+        "arguments": {
+          "type": "object"
+        },
+        "operation_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,128}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lease_id": {
+          "type": "string"
+        },
+        "lease_generation": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "tool_result": {
@@ -31,16 +58,42 @@
         "promotion_authority"
       ],
       "properties": {
-        "tool_result_schema": {"const": 1},
-        "call_id": {"type": "string", "minLength": 1},
-        "tool_name": {"type": "string", "minLength": 1},
-        "status": {
-          "enum": ["ok", "denied", "invalid_request", "invalid_response", "error"]
+        "tool_result_schema": {
+          "const": 1
         },
-        "output": {"type": ["object", "null"]},
-        "error": {"type": "string"},
-        "proof_effect": {"const": "none"},
-        "promotion_authority": {"const": false}
+        "call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "denied",
+            "invalid_request",
+            "invalid_response",
+            "error",
+            "recovery_blocked"
+          ]
+        },
+        "output": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "error": {
+          "type": "string"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
       }
     },
     "audit_record": {
@@ -61,31 +114,74 @@
         "promotion_authority"
       ],
       "properties": {
-        "tool_audit_schema": {"const": 1},
-        "sequence": {"type": "integer", "minimum": 1},
-        "call_id": {"type": "string", "minLength": 1},
-        "tool_name": {"type": "string", "minLength": 1},
-        "capability": {"type": "string", "minLength": 1},
-        "status": {
-          "enum": ["ok", "denied", "invalid_request", "invalid_response", "error"]
+        "tool_audit_schema": {
+          "const": 1
         },
-        "approved": {"type": "boolean"},
-        "input_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "output_sha256": {
-          "oneOf": [
-            {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-            {"type": "null"}
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "denied",
+            "invalid_request",
+            "invalid_response",
+            "error",
+            "recovery_blocked"
           ]
         },
-        "error": {"type": "string"},
-        "proof_effect": {"const": "none"},
-        "promotion_authority": {"const": false}
+        "approved": {
+          "type": "boolean"
+        },
+        "input_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "output_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": "string"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
       }
     }
   },
   "oneOf": [
-    {"$ref": "#/$defs/tool_call"},
-    {"$ref": "#/$defs/tool_result"},
-    {"$ref": "#/$defs/audit_record"}
+    {
+      "$ref": "#/$defs/tool_call"
+    },
+    {
+      "$ref": "#/$defs/tool_result"
+    },
+    {
+      "$ref": "#/$defs/audit_record"
+    }
   ]
 }

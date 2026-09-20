@@ -291,3 +291,103 @@ New checkpoints therefore bind:
 Older v1.1 checkpoints remain readable for compatibility, but only checkpoints created after this hardening carry those additional resume constraints.
 
 This still does not claim general distributed exactly-once mutation semantics. If a process stops after a tool side effect but before a v2 result is durably journaled, CACE retains the pending marker and blocks automatic replay.
+
+
+## v1.3 durable cross-process lease + operation idempotency
+
+This slice closes the remaining local multi-process coordination gap before CACE exposes approved canvas-mutation tools to an autonomous planner.
+
+### Filesystem-backed fencing lease
+
+When an `AgentController` is configured with a `FileCheckpointStore`, it now defaults to a `FileAgentLeaseManager` rooted under the trusted checkpoint directory.
+
+The durable lease manager:
+
+- serializes lease transitions with an OS advisory file lock;
+- stores a content-hashed lease record;
+- retains the previous generation after release or expiry;
+- increments the generation on every acquisition;
+- rejects stale renewals whose lease ID, owner, or generation no longer matches;
+- uses wall-clock expiry because the record must be meaningful across processes;
+- remains coordination metadata only with no proof/evidence authority.
+
+The lease generation is a fencing epoch. It is attached to each controller-generated Tool Bus call so future mutation handlers can reject stale owners at their own transactional boundary.
+
+### Deterministic operation / transaction IDs
+
+Every controller tool action now gets a deterministic `operation_id` derived from:
+
+- run ID;
+- tool-call ordinal;
+- canonical tool name; and
+- canonical arguments.
+
+The planner never chooses the operation ID, lease ID, or fencing generation.
+
+The resulting `ToolCall` carries:
+
+- `operation_id`;
+- `lease_id`; and
+- `lease_generation`.
+
+Those fields are propagated into `ToolContext` for canonical handlers that need transaction-aware writes.
+
+### Durable operation ledger
+
+`FileOperationStore` provides a per-operation cross-process ledger with content-hashed atomic records and OS-locked claim/commit transitions.
+
+States are intentionally small:
+
+- `in_progress`: the operation was durably claimed but there is no committed result;
+- `committed`: the exact typed result is durably stored.
+
+Behavior:
+
+1. First claim for an operation/tool/input tuple receives `execute`.
+2. A second process seeing `in_progress` receives `recovery_blocked`; the handler is not re-executed.
+3. A second process seeing `committed` receives the stored typed result without re-running the handler.
+4. Reusing one operation ID for different canonical input/tool identity is rejected as an idempotency conflict.
+5. If the handler starts and then errors, returns an invalid response, or its durable operation commit fails, the operation remains unresolved and automatic replay is blocked.
+
+This gives CACE at-most-once automatic execution for one operation ID and replay of committed results. It intentionally does not pretend an uncommitted side effect is safe to repeat.
+
+### Consequential capability gate
+
+The Tool Bus now marks these capabilities as idempotency-required:
+
+- `canvas_mutate`;
+- `workspace_write`; and
+- `tool_propose`.
+
+Even if human approval is granted, those capabilities fail closed unless both conditions hold:
+
+- the Tool Bus call has a host-generated `operation_id`; and
+- a durable `FileOperationStore` is configured.
+
+This gate is in place **before** approved canvas-mutation tools are added.
+
+### Dual-source recovery
+
+A pending checkpoint can now recover a completed call from either:
+
+1. the committed operation ledger; or
+2. the typed hash-chained audit journal.
+
+The operation ledger is checked first because it is the idempotency authority. The audit journal remains provenance/history.
+
+An audit result whose status is itself `recovery_blocked` is not treated as a completed safe result.
+
+Neither source creates scientific evidence, verification PASS, FORMAL status, or proof-ledger promotion.
+
+### Remaining boundary before high-autonomy mutation
+
+The remaining work is now narrower:
+
+- transaction-aware canvas mutation commands with preview/diff/approval;
+- mutation handlers that verify lease fencing generation at commit time;
+- explicit operator resolution for unresolved `in_progress` operations;
+- crash/fault injection around claim -> handler -> operation commit -> audit -> checkpoint boundaries;
+- storage retention/redaction/mirroring policy;
+- OS/process CPU/RAM/disk/time sandbox quotas;
+- GUI controls for pause/cancel, lease ownership, pending transactions, approvals, and recovery resolution.
+

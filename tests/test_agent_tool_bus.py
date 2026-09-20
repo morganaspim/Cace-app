@@ -11,6 +11,7 @@ from cace_studio.agent_runtime import (
     AgentTurnContext,
     Capability,
     CapabilityPolicy,
+    FileOperationStore,
     ToolBus,
     ToolCall,
     ToolStatus,
@@ -23,6 +24,7 @@ from cace_studio.core.module import ExecutionContext, Module
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.types import Maturity, ModuleMetadata, PortSpec
 from cace_studio.ai.provider import AIProvider, ProviderHealth
+from cace_studio.core.reproducibility import sha256_identity
 
 
 @dataclass(frozen=True)
@@ -98,7 +100,7 @@ def test_zero_contact_policy_hard_denies_network_even_when_registered() -> None:
     assert "test.network" not in {item.name for item in bus.descriptors()}
 
 
-def test_approval_required_capability_fails_closed_without_approval() -> None:
+def test_approval_required_capability_fails_closed_without_approval(tmp_path) -> None:
     bus = ToolBus(policy=CapabilityPolicy.zero_contact())
     bus.register(_echo_tool(Capability.CANVAS_MUTATE))
     denied = bus.invoke(ToolCall("call-1", "test.echo", {"text": "x"}))
@@ -110,9 +112,19 @@ def test_approval_required_capability_fails_closed_without_approval() -> None:
         approval_callback=lambda call, descriptor: (
             call.tool_name == descriptor.name == "test.echo"
         ),
+        operation_store=FileOperationStore(tmp_path / "approved-operations"),
     )
     approved_bus.register(_echo_tool(Capability.CANVAS_MUTATE))
-    allowed = approved_bus.invoke(ToolCall("call-2", "test.echo", {"text": "y"}))
+    allowed = approved_bus.invoke(
+        ToolCall(
+            "call-2",
+            "test.echo",
+            {"text": "y"},
+            operation_id="approved-operation-1",
+            lease_id="lease-1",
+            lease_generation=1,
+        )
+    )
     assert allowed.status is ToolStatus.OK
     assert approved_bus.audit_records[-1].approved is True
 
@@ -303,3 +315,150 @@ def test_local_json_planner_accepts_only_strict_json_and_visible_tools() -> None
     )
     with pytest.raises(ValueError, match="one JSON object"):
         fenced.decide(context)
+
+
+def test_consequential_capability_requires_durable_idempotency(tmp_path) -> None:
+    bus = ToolBus(
+        policy=CapabilityPolicy.zero_contact(),
+        approval_callback=lambda _call, _descriptor: True,
+    )
+    bus.register(_echo_tool(Capability.CANVAS_MUTATE))
+    descriptor = bus.descriptor("test.echo")
+    assert descriptor.idempotency_required is True
+
+    missing_id = bus.invoke(ToolCall("call-no-id", "test.echo", {"text": "x"}))
+    assert missing_id.status is ToolStatus.INVALID_REQUEST
+    assert "operation_id" in missing_id.error
+
+    with_id_no_store = bus.invoke(
+        ToolCall(
+            "call-no-store",
+            "test.echo",
+            {"text": "x"},
+            operation_id="mutation-operation",
+            lease_id="lease-a",
+            lease_generation=2,
+        )
+    )
+    assert with_id_no_store.status is ToolStatus.INVALID_REQUEST
+    assert "operation store" in with_id_no_store.error
+
+    fenced_bus = ToolBus(
+        policy=CapabilityPolicy.zero_contact(),
+        approval_callback=lambda _call, _descriptor: True,
+        operation_store=FileOperationStore(tmp_path / "fenced-operations"),
+    )
+    fenced_bus.register(_echo_tool(Capability.CANVAS_MUTATE))
+    missing_lease = fenced_bus.invoke(
+        ToolCall(
+            "call-no-lease",
+            "test.echo",
+            {"text": "x"},
+            operation_id="mutation-operation-2",
+        )
+    )
+    assert missing_lease.status is ToolStatus.INVALID_REQUEST
+    assert "lease fencing token" in missing_lease.error
+
+
+def test_operation_store_replays_committed_result_without_handler_reexecution(tmp_path) -> None:
+    calls: list[tuple[str, str | None, int]] = []
+
+    def handler(request: EchoRequest, context) -> EchoResponse:
+        calls.append((request.text, context.operation_id, context.lease_generation))
+        return EchoResponse(request.text)
+
+    tool = TypedTool(
+        name="test.idempotent_echo",
+        description="Exercise durable operation replay.",
+        capability=Capability.READ_RUNTIME,
+        request_type=EchoRequest,
+        response_type=EchoResponse,
+        handler=handler,
+    )
+    root = tmp_path / "operations"
+    first = ToolBus(operation_store=FileOperationStore(root))
+    second = ToolBus(operation_store=FileOperationStore(root))
+    first.register(tool)
+    second.register(tool)
+
+    call1 = ToolCall(
+        "call-a",
+        "test.idempotent_echo",
+        {"text": "once"},
+        operation_id="same-operation",
+        lease_id="lease-a",
+        lease_generation=7,
+    )
+    result1 = first.invoke(call1)
+    assert result1.status is ToolStatus.OK
+    assert calls == [("once", "same-operation", 7)]
+
+    call2 = ToolCall(
+        "call-b",
+        "test.idempotent_echo",
+        {"text": "once"},
+        operation_id="same-operation",
+        lease_id="lease-b",
+        lease_generation=8,
+    )
+    result2 = second.invoke(call2)
+    assert result2.status is ToolStatus.OK
+    assert result2.call_id == "call-b"
+    assert result2.output == {"text": "once"}
+    assert calls == [("once", "same-operation", 7)]
+
+    conflict = second.invoke(
+        ToolCall(
+            "call-c",
+            "test.idempotent_echo",
+            {"text": "different"},
+            operation_id="same-operation",
+            lease_id="lease-b",
+            lease_generation=8,
+        )
+    )
+    assert conflict.status is ToolStatus.INVALID_REQUEST
+    assert "idempotency conflict" in conflict.error
+
+
+def test_in_progress_operation_blocks_duplicate_execution(tmp_path) -> None:
+    calls: list[str] = []
+
+    def handler(request: EchoRequest, _context) -> EchoResponse:
+        calls.append(request.text)
+        return EchoResponse(request.text)
+
+    store = FileOperationStore(tmp_path / "blocked-operations")
+    store.claim(
+        operation_id="pending-operation",
+        call_id="prior-call",
+        tool_name="test.pending_echo",
+        input_sha256=sha256_identity({"text": "x"}),
+        lease_id="old-lease",
+        lease_generation=1,
+    )
+    bus = ToolBus(operation_store=store)
+    bus.register(
+        TypedTool(
+            name="test.pending_echo",
+            description="Exercise unresolved operation blocking.",
+            capability=Capability.READ_RUNTIME,
+            request_type=EchoRequest,
+            response_type=EchoResponse,
+            handler=handler,
+        )
+    )
+    result = bus.invoke(
+        ToolCall(
+            "new-call",
+            "test.pending_echo",
+            {"text": "x"},
+            operation_id="pending-operation",
+            lease_id="new-lease",
+            lease_generation=2,
+        )
+    )
+    assert result.status is ToolStatus.RECOVERY_BLOCKED
+    assert "already in progress" in result.error
+    assert calls == []

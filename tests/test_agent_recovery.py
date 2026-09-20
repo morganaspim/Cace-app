@@ -14,13 +14,16 @@ from cace_studio.agent_runtime import (
     AgentLeaseManager,
     AgentPhase,
     Capability,
+    FileAgentLeaseManager,
     FileCheckpointStore,
+    FileOperationStore,
     HashChainedAuditJournal,
     LeaseUnavailableError,
     ToolBus,
     ToolCall,
     ToolStatus,
     TypedTool,
+    operation_id_for,
 )
 
 
@@ -357,3 +360,138 @@ def test_resume_rejects_budget_expansion_and_tool_contract_drift(tmp_path) -> No
             ScriptedPlanner([AgentDecision.finish("no")]),
             resume_run_id="bound-run",
         )
+
+
+def test_file_lease_manager_persists_fencing_generation_across_instances(tmp_path) -> None:
+    now = [1_000.0]
+    first_manager = FileAgentLeaseManager(
+        tmp_path / "leases",
+        clock=lambda: now[0],
+    )
+    second_manager = FileAgentLeaseManager(
+        tmp_path / "leases",
+        clock=lambda: now[0],
+    )
+
+    first = first_manager.acquire("durable-run", "owner-a", ttl_seconds=5.0)
+    with pytest.raises(LeaseUnavailableError):
+        second_manager.acquire("durable-run", "owner-b", ttl_seconds=5.0)
+
+    assert first_manager.release(first) is True
+    second = second_manager.acquire("durable-run", "owner-b", ttl_seconds=5.0)
+    assert second.generation == first.generation + 1
+
+    restarted = FileAgentLeaseManager(
+        tmp_path / "leases",
+        clock=lambda: now[0],
+    )
+    assert restarted.current("durable-run") == second
+
+    now[0] = 1_006.0
+    third = restarted.acquire("durable-run", "owner-c", ttl_seconds=5.0)
+    assert third.generation == second.generation + 1
+    with pytest.raises(LeaseUnavailableError):
+        second_manager.renew(second)
+
+
+def test_controller_uses_durable_coordination_when_checkpointing(tmp_path) -> None:
+    bus = ToolBus()
+    store = FileCheckpointStore(tmp_path / "checkpoints")
+    controller = AgentController(
+        bus,
+        checkpoint_store=store,
+        owner_id="durable-owner",
+    )
+    assert isinstance(controller.lease_manager, FileAgentLeaseManager)
+    assert isinstance(bus.operation_store, FileOperationStore)
+
+
+def test_pending_checkpoint_recovers_from_operation_ledger_without_audit(tmp_path) -> None:
+    calls: list[str] = []
+
+    @dataclass(frozen=True)
+    class CountRequest:
+        text: str
+
+    @dataclass(frozen=True)
+    class CountResponse:
+        text: str
+
+    def handler(request: CountRequest, _context) -> CountResponse:
+        calls.append(request.text)
+        return CountResponse(request.text)
+
+    bus = ToolBus()
+    bus.register(
+        TypedTool(
+            name="test.operation_recovery",
+            description="Exercise operation-ledger recovery.",
+            capability=Capability.READ_RUNTIME,
+            request_type=CountRequest,
+            response_type=CountResponse,
+            handler=handler,
+        )
+    )
+    store = FileCheckpointStore(tmp_path / "checkpoints-op")
+    controller = AgentController(
+        bus,
+        checkpoint_store=store,
+        owner_id="owner-a",
+        budget=AgentBudget(max_steps=4, max_tool_calls=2, max_failures=2),
+    )
+    operation_id = operation_id_for(
+        run_id="op-recover",
+        ordinal=1,
+        tool_name="test.operation_recovery",
+        arguments={"text": "once"},
+    )
+    result = bus.invoke(
+        ToolCall(
+            "op-recover:1",
+            "test.operation_recovery",
+            {"text": "once"},
+            operation_id=operation_id,
+            lease_id="prior-lease",
+            lease_generation=1,
+        )
+    )
+    assert result.status is ToolStatus.OK
+    assert calls == ["once"]
+
+    store.save(
+        AgentCheckpoint(
+            run_id="op-recover",
+            task="resume from operation ledger",
+            next_step=1,
+            tool_calls=1,
+            failures=0,
+            heartbeat_seq=0,
+            budget=controller._budget_snapshot(),
+            tool_contract_sha256=controller._tool_contract_sha256(),
+            pending_call={
+                "call_id": "op-recover:1",
+                "operation_id": operation_id,
+                "tool_name": "test.operation_recovery",
+                "arguments": {"text": "once"},
+                "lease_id": "prior-lease",
+                "lease_generation": 1,
+                "step": 1,
+            },
+        )
+    )
+    resumed = AgentController(
+        bus,
+        checkpoint_store=store,
+        owner_id="owner-b",
+        budget=controller.budget,
+    )
+    report = resumed.run(
+        "resume from operation ledger",
+        ScriptedPlanner([AgentDecision.finish("done")]),
+        resume_run_id="op-recover",
+    )
+    assert report.status == "finished"
+    assert calls == ["once"]
+    assert report.tool_calls == 1
+    assert report.trace[0].tool_result is not None
+    assert report.trace[0].tool_result.output == {"text": "once"}

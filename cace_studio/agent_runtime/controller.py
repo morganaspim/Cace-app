@@ -10,6 +10,8 @@ from cace_studio.core.reproducibility import sha256_identity
 
 from .audit import HashChainedAuditJournal
 from .contracts import ToolCall, ToolDescriptor, ToolResult, ToolStatus
+from .durable_lease import DurableAgentLease, FileAgentLeaseManager
+from .operations import FileOperationStore, operation_id_for
 from .recovery import (
     AgentCheckpoint,
     AgentHeartbeat,
@@ -297,7 +299,7 @@ class AgentController:
         *,
         budget: AgentBudget | None = None,
         checkpoint_store: FileCheckpointStore | None = None,
-        lease_manager: AgentLeaseManager | None = None,
+        lease_manager: AgentLeaseManager | FileAgentLeaseManager | None = None,
         heartbeat_callback: HeartbeatCallback | None = None,
         perception_provider: PerceptionProvider | None = None,
         audit_journal: HashChainedAuditJournal | None = None,
@@ -307,7 +309,18 @@ class AgentController:
         self.tool_bus = tool_bus
         self.budget = budget or AgentBudget()
         self.checkpoint_store = checkpoint_store
-        self.lease_manager = lease_manager or AgentLeaseManager()
+        if lease_manager is not None:
+            self.lease_manager = lease_manager
+        elif checkpoint_store is not None:
+            self.lease_manager = FileAgentLeaseManager(
+                checkpoint_store.root / ".leases"
+            )
+        else:
+            self.lease_manager = AgentLeaseManager()
+        if checkpoint_store is not None and self.tool_bus.operation_store is None:
+            self.tool_bus.set_operation_store(
+                FileOperationStore(checkpoint_store.root / ".operations")
+            )
         self.heartbeat_callback = heartbeat_callback
         self.perception_provider = perception_provider
         self.audit_journal = audit_journal
@@ -355,7 +368,7 @@ class AgentController:
         step: int,
         tool_calls: int,
         failures: int,
-        lease: AgentLease,
+        lease: AgentLease | DurableAgentLease,
         checkpoint_sha256: str | None = None,
         detail: str = "",
     ) -> int:
@@ -368,6 +381,7 @@ class AgentController:
             tool_calls=tool_calls,
             failures=failures,
             lease_id=lease.lease_id,
+            lease_generation=lease.generation,
             checkpoint_sha256=checkpoint_sha256,
             detail=detail,
         )
@@ -504,9 +518,53 @@ class AgentController:
             trace = [AgentTraceEntry.from_dict(item) for item in checkpoint.trace]
             if checkpoint.pending_call is not None:
                 pending = dict(checkpoint.pending_call)
-                recovered_event = None
+                pending_tool = str(pending.get("tool_name", ""))
+                pending_arguments = pending.get("arguments", {})
+                pending_operation_id = pending.get("operation_id")
+                recovered_result: ToolResult | None = None
                 recovery_error = ""
-                if self.audit_journal is not None:
+
+                if not isinstance(pending_arguments, Mapping):
+                    recovery_error = "pending tool arguments are malformed"
+
+                if (
+                    not recovery_error
+                    and isinstance(pending_operation_id, str)
+                    and pending_operation_id
+                    and self.tool_bus.operation_store is not None
+                ):
+                    try:
+                        operation = self.tool_bus.operation_store.load(
+                            pending_operation_id
+                        )
+                        if operation is not None and operation.state == "committed":
+                            expected_input = sha256_identity(dict(pending_arguments))
+                            if (
+                                operation.tool_name != pending_tool
+                                or operation.input_sha256 != expected_input
+                            ):
+                                recovery_error = (
+                                    "durable operation result does not match the "
+                                    "pending tool call"
+                                )
+                            else:
+                                recovered_result = (
+                                    self.tool_bus.operation_store.lookup_result(
+                                        pending_operation_id
+                                    )
+                                )
+                    except Exception as exc:
+                        recovery_error = (
+                            "durable operation verification failed during recovery: "
+                            f"{type(exc).__name__}: {exc}"
+                        )
+
+                recovered_event = None
+                if (
+                    recovered_result is None
+                    and not recovery_error
+                    and self.audit_journal is not None
+                ):
                     try:
                         recovered_event = self.audit_journal.lookup_event(
                             str(pending.get("call_id", ""))
@@ -517,44 +575,54 @@ class AgentController:
                             f"{type(exc).__name__}: {exc}"
                         )
 
-                if recovered_event is not None and not recovery_error:
-                    record, recovered_result = recovered_event
-                    pending_tool = str(pending.get("tool_name", ""))
-                    pending_arguments = pending.get("arguments", {})
-                    if not isinstance(pending_arguments, Mapping):
-                        recovery_error = "pending tool arguments are malformed"
-                    elif (
+                if (
+                    recovered_result is None
+                    and recovered_event is not None
+                    and not recovery_error
+                ):
+                    record, audit_result = recovered_event
+                    expected_input = sha256_identity(dict(pending_arguments))
+                    if (
                         record.tool_name != pending_tool
-                        or record.input_sha256
-                        != sha256_identity(dict(pending_arguments))
+                        or record.input_sha256 != expected_input
                     ):
                         recovery_error = (
                             "durable audit result does not match the pending tool call"
                         )
+                    elif audit_result.status is ToolStatus.RECOVERY_BLOCKED:
+                        recovery_error = (
+                            "durable audit records an unresolved operation; "
+                            "automatic continuation remains blocked"
+                        )
                     else:
-                        recovered_step = int(pending.get("step", max(1, start_step)))
-                        recovered_decision = AgentDecision.tool(
-                            pending_tool,
-                            dict(pending_arguments),
-                        )
-                        trace.append(
-                            AgentTraceEntry(
-                                recovered_step,
-                                recovered_decision,
-                                recovered_result,
-                            )
-                        )
-                        observations.append(
-                            self._bounded_observation(
-                                recovered_result,
-                                self.budget.max_observation_chars,
-                            )
-                        )
-                        if recovered_result.status is not ToolStatus.OK:
-                            failures += 1
-                        start_step = recovered_step + 1
+                        recovered_result = audit_result
 
-                if recovered_event is None or recovery_error:
+                if recovered_result is not None and not recovery_error:
+                    recovered_step = int(
+                        pending.get("step", max(1, start_step))
+                    )
+                    recovered_decision = AgentDecision.tool(
+                        pending_tool,
+                        dict(pending_arguments),
+                    )
+                    trace.append(
+                        AgentTraceEntry(
+                            recovered_step,
+                            recovered_decision,
+                            recovered_result,
+                        )
+                    )
+                    observations.append(
+                        self._bounded_observation(
+                            recovered_result,
+                            self.budget.max_observation_chars,
+                        )
+                    )
+                    if recovered_result.status is not ToolStatus.OK:
+                        failures += 1
+                    start_step = recovered_step + 1
+
+                if recovered_result is None or recovery_error:
                     lease = self.lease_manager.acquire(
                         run_id, self.owner_id, ttl_seconds=self.lease_ttl_seconds
                     )
@@ -786,15 +854,28 @@ class AgentController:
                 # lease into a Tool Bus invocation.
                 lease = self.lease_manager.renew(lease)
                 tool_calls += 1
+                arguments = dict(decision.arguments or {})
+                operation_id = operation_id_for(
+                    run_id=run_id,
+                    ordinal=tool_calls,
+                    tool_name=decision.tool_name,
+                    arguments=arguments,
+                )
                 call = ToolCall(
                     call_id=f"{run_id}:{tool_calls}",
                     tool_name=decision.tool_name,
-                    arguments=decision.arguments or {},
+                    arguments=arguments,
+                    operation_id=operation_id,
+                    lease_id=lease.lease_id,
+                    lease_generation=lease.generation,
                 )
                 pending_call = {
                     "call_id": call.call_id,
+                    "operation_id": operation_id,
                     "tool_name": call.tool_name,
                     "arguments": dict(call.arguments),
+                    "lease_id": lease.lease_id,
+                    "lease_generation": lease.generation,
                     "step": step,
                 }
                 checkpoint_sha = self._save_checkpoint(
@@ -879,6 +960,45 @@ class AgentController:
                 observations.append(
                     self._bounded_observation(result, self.budget.max_observation_chars)
                 )
+                if result.status is ToolStatus.RECOVERY_BLOCKED:
+                    failures += 1
+                    message = result.error or (
+                        "operation entered an uncertain durable state; "
+                        "automatic continuation is blocked"
+                    )
+                    checkpoint_sha = self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=pending_call,
+                        status="recovery_blocked",
+                    )
+                    self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=AgentPhase.RECOVERY_BLOCKED,
+                        step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        checkpoint_sha256=checkpoint_sha,
+                        detail=message,
+                    )
+                    return self._report(
+                        run_id,
+                        task,
+                        "recovery_blocked",
+                        message,
+                        step,
+                        tool_calls,
+                        failures,
+                        trace,
+                    )
                 if result.status is not ToolStatus.OK:
                     failures += 1
 
