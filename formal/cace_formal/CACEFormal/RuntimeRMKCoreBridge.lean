@@ -74,12 +74,12 @@ def toAffineReal (A : Mat2) : Affine2 :=
 @[simp] theorem linearDet_toReal (A : Mat2) :
     A.toAffineReal.linearDet = (A.det : ℝ) := by
   rcases A with ⟨a, b, c, d⟩
-  norm_num [toAffineReal, det, Affine2.linearDet]
+  simp [toAffineReal, det, Affine2.linearDet]
 
 @[simp] theorem matVec_identity (v : Vec2) :
     matVec identity v = v := by
   rcases v with ⟨x, y⟩
-  norm_num [matVec, identity]
+  simp [matVec, identity]
 
 theorem matVec_mul (A B : Mat2) (v : Vec2) :
     matVec (mul A B) v = matVec A (matVec B v) := by
@@ -94,7 +94,7 @@ theorem matVec_mul (A B : Mat2) (v : Vec2) :
   rcases A with ⟨a, b, c, d⟩
   rcases v with ⟨x, y⟩
   ext <;>
-    norm_num [matVec, Vec2.toReal, toAffineReal, ExteriorPower2.grade1]
+    simp [matVec, Vec2.toReal, toAffineReal, ExteriorPower2.grade1]
 
 end Mat2
 
@@ -119,7 +119,7 @@ def toReal (F : AffineMap2) : Affine2 :=
   rcases F with ⟨⟨a, b, c, d⟩, ⟨tx, ty⟩⟩
   rcases p with ⟨x, y⟩
   ext <;>
-    norm_num [apply, Vec2.toReal, Mat2.matVec, toReal, Affine2.mapPoint]
+    simp [apply, Vec2.toReal, Mat2.matVec, toReal, Affine2.mapPoint]
 
 @[simp] theorem linearDet_toReal (F : AffineMap2) :
     F.toReal.linearDet = (F.linear.det : ℝ) := by
