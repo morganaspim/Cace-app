@@ -120,6 +120,20 @@ def test_collaboration_preflight_matches_canonical_python_runtime() -> None:
     assert _python_runtime_pin(collaboration) == _python_runtime_pin(formal)
 
 
+def test_canonical_qualification_reclaims_disposable_space_without_weakening_reserve() -> None:
+    text = (WORKFLOWS / "cace-formal-v336-theorem-metadata.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "min_free_kb=$((5 * 1024 * 1024))" in text
+    assert "reclaim_disposable_space()" in text
+    assert "python -m pip cache purge" in text
+    assert '"$RUNNER_TEMP/uv-v337-bin/uv" cache clean' in text
+    assert "-name 'cace-v337-qualification.*' -user \"$(id -un)\"" in text
+    assert "CACE_DISK_RECLAIM_DONE" in text
+    assert "available_kb < prune_target_kb" in text
+    assert "Formal qualification requires at least 5 GiB free after source staging" in text
+
+
 def test_collaboration_trigger_is_lightweight_only() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
     for path in (
