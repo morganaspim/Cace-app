@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from cace_studio.core.native_runtime import NativeRuntime
+from cace_studio.native_exact_fem import ExactFemNativeRuntime
 
 
 def square_center_inputs():
@@ -29,11 +29,11 @@ def square_center_inputs():
     return vertices, triangles, p1, rt0
 
 
-def native_or_skip() -> NativeRuntime:
-    runtime = NativeRuntime()
+def native_or_skip() -> ExactFemNativeRuntime:
+    runtime = ExactFemNativeRuntime()
     if not runtime.status.available:
         pytest.skip(runtime.status.reason)
-    if not hasattr(runtime.lib, "cace_exact_mesh_create"):
+    if not runtime.exact_available:
         pytest.skip("native library predates exact-FEM C ABI")
     return runtime
 
@@ -99,4 +99,12 @@ def test_native_exact_fem_rejects_coercible_triangle_ids(bad_id):
     vertices, triangles, p1, rt0 = square_center_inputs()
     triangles[0] = (bad_id, 1, 4)
     with pytest.raises(ValueError, match="genuine integers"):
+        runtime.exact_fem_evaluate(vertices, triangles, p1, rt0)
+
+
+def test_native_exact_fem_rejects_decimal_string():
+    runtime = native_or_skip()
+    vertices, triangles, p1, rt0 = square_center_inputs()
+    vertices[4] = ("0.5", "1/2")
+    with pytest.raises(ValueError, match="integer or numerator/denominator"):
         runtime.exact_fem_evaluate(vertices, triangles, p1, rt0)
