@@ -701,3 +701,24 @@ CACE should implement a provider-independent Local AI runtime described by `docs
 Google Antigravity and Gemini/AI Studio are preferred build/orchestration environments, but the finished Local AI must retain a genuine Local / Zero Contact mode requiring no cloud/network service.
 
 Agent liveness, meaningful durable progress, checkpoints, semantic canvas heartbeat state, and canonical scientific verification are separate concepts. Heartbeats support observability, scheduling, attention and recovery; they can never create or promote PASS, VERIFIED, FORMAL, theorem qualification, proof-ledger, or source-to-formal evidence.
+
+
+## 27. AI-built rigorous tools and proof-ready handoff
+
+Gemini, Antigravity and CACE Local AI should be allowed to improve the scientific/mathematical capability of the repository, not only its presentation layer.
+
+The canonical workflow is defined by `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`:
+
+`typed specification -> C++ implementation -> tests/checkers -> thin orchestration -> Lean proof attempt -> source-to-formal binding -> proof gates -> qualified promotion`.
+
+If an AI cannot complete formal closure, it should preserve the useful work in a machine-readable packet conforming to `collaboration/schema/cace-ai-tool-submission.schema.json`. Unresolved proof obligations, attempted theorem endpoints, tests and recommended next gate remain explicit so another agent/human can continue.
+
+AI builders may author C++ and Lean. They may not authoritatively promote their own work to FORMAL/PASS.
+
+## 28. Live experiment perception for Local AI
+
+The heartbeat field should provide the Local AI with a compact typed state stream conforming to `schema/cace-agent-perception.schema.json`.
+
+This stream should expose meaningful live deltas such as active/blocked/stale/verifying nodes, semantic-hash changes, residual and convergence trends, resource pressure, blockers, artifact references and canonical evidence snapshots.
+
+The purpose is to let the AI follow the experiment continuously and direct attention intelligently. Perception, research-interest and heartbeat activity are non-evidentiary and cannot create scientific verification or proof.
