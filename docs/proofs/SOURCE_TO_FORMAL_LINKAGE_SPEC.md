@@ -316,14 +316,21 @@ A resolver may discharge only the exact premise named by that certificate.
 
 Prefer strengthening canonical subsystems instead of creating many version wrappers.
 
-Suggested runtime additions:
+Suggested production/runtime additions:
 
-- `cace_studio/core/formal_runtime_packet.py`
-  - canonical packet types, hashing, validation.
-- `cace_studio/core/formal_source_binding.py`
-  - generated-source identity and packet/source binding.
+- `cpp/include/cace/exact_fem.hpp`
+  - canonical exact rational mesh, P1, RT0, local Green, and assembly-obligation kernel;
+  - production mathematical semantics live here, not in Python.
+- `cpp/src/c_api.cpp` and/or the existing native binding layer
+  - narrow ABI for exact objects/results;
+  - no duplicate mathematical implementation in the binding.
+- `cace_studio/core/native_runtime.py`
+  - Python orchestration/marshalling only;
+  - serialization, provenance, and content hashing may live here;
+  - it must not recompute the load-bearing FEM mathematics independently.
 - `cace_studio/modules/p1_rt0_formal_bridges.py`
-  - FSL-2..7 runtime bridge modules/resolvers.
+  - fail-closed orchestration from C++ exact objects/results to generated Lean candidates and proof-gate metadata.
+- the existing Python `mesh_certificate.py` may remain as a legacy/reference/checker path, but it is not the preferred production truth path once the C++ exact kernel covers the same semantics.
 - later, only after Lean theorems exist:
   - continuum bridge modules for FSL-8..13.
 
@@ -390,7 +397,7 @@ For multiple ready bridge modules, use the existing batched preflight where appr
 
 ### Milestone 2 — exact discrete packet and binding
 
-Implement FSL-0..4 with tests. No new formal public claim yet.
+Implement FSL-0..4 in the C++ scientific kernel first, with only thin Python orchestration/bindings. No new formal public claim yet.
 
 ### Milestone 3 — concrete discrete theorem instantiation
 
