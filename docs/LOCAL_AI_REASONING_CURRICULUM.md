@@ -647,10 +647,22 @@ audited theorem surface, but that does not make curriculum scheduling,
 task-generation policy, model behavior, or arbitrary native runtime algorithms
 formal proof evidence.
 
-Next implementation priorities are:
+Implemented in the same curriculum batch:
 
-1. additional exact task generators for exterior, affine, simplex, and finite-group canonicalization operators;
-2. structured curriculum batches with generator-family holdouts;
-3. Tool-Bus execution/reporting integration;
-4. heartbeat-aware lesson scheduling;
-5. measured comparison of raw versus symmetry-canonicalized reasoning workloads.
+1. exact paired task generators for permutation action, finite-group coordinate canonicalization, exterior wedge, affine application, and simplex barycentric coordinates;
+2. deterministic multi-family batches with one entire generator family held out for transfer evaluation;
+3. an Agent Perception Packet adapter that converts heartbeat/change/residual/resource/research-interest state into non-evidentiary curriculum attention signals;
+4. deterministic heartbeat-aware lesson ranking layered on top of mastery statistics.
+
+The perception adapter consumes the existing
+`schema/cace-agent-perception.schema.json` contract. It does not create a
+parallel heartbeat format and rejects any packet that attempts to set
+`evidence_authority=true`.
+
+Remaining implementation priorities are:
+
+1. integrate task execution/reporting with the future concrete AgentController / typed CACE Tool Bus runtime once that class exists;
+2. persist/replay generated curriculum batches with generator-version and seed manifests;
+3. add measured raw-vs-symmetry-canonicalized workload benchmarks to the curriculum evaluation report;
+4. connect accepted Research Ideas / canvas node types to explicit skill IDs for automatic but reviewable lesson targeting;
+5. add model-provider training adapters only after the deterministic task/evaluation contracts are stable.
