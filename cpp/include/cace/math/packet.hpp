@@ -2,6 +2,7 @@
 
 #include "cace/math/rational.hpp"
 #include "cace/math/vector.hpp"
+#include "cace/math/sparse_matrix.hpp"
 
 #include <algorithm>
 #include <array>
@@ -160,6 +161,24 @@ public:
         packet.exact_payload = value.canonical_text();
         packet.conventions.emplace("scalar", "math.exact.rational");
         packet.conventions.emplace("ordering", "index-ascending");
+        return packet;
+    }
+
+    static MathPacket exact_matrix(const ExactMatrix& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.matrix";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("storage", "dense-row-major-canonical-text");
+        return packet;
+    }
+
+    static MathPacket exact_sparse_matrix(const ExactSparseMatrix& value) {
+        MathPacket packet;
+        packet.type_id = "math.exact.sparse_matrix";
+        packet.exact_payload = value.canonical_text();
+        packet.conventions.emplace("scalar", "math.exact.rational");
+        packet.conventions.emplace("storage", "csr-canonical");
         return packet;
     }
 };
