@@ -17,6 +17,9 @@
     "GEMINI.md",
     "GEMINI_CONNECTION_MANIFEST.json",
     "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
+    "gemini/VRE_CLOSURE_HANDOFF.md",
+    "ops/production_vre_closure.json",
+    "docs/PRODUCTION_VRE_CLOSURE_PLAN.md",
     "BRANCH_LIFECYCLE.json",
     "CACE_AGENT_BOOTSTRAP.json",
     "CACE_AI_BUILDER_CONTRACT.md",
@@ -310,5 +313,10 @@
     "cloud_run_verifies_and_signs": true,
     "base44_mirrors_history_and_entitlement": true,
     "oracle_cace_revalidates_entitlement": true
+  },
+  "production_vre_closure": {
+    "checklist": "ops/production_vre_closure.json",
+    "handoff": "gemini/VRE_CLOSURE_HANDOFF.md",
+    "rule": "Gemini may own presentation/integration/browser test closure inside its existing write scope; protected backend/scientific/proof/security closure remains CACE/ChatGPT controlled."
   }
 }

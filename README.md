@@ -30,6 +30,8 @@ The project deliberately separates software maturity from evidence strength. A n
 - `gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md` — Gemini checkout/history UI contract
 - `schema/cace-payment-entitlement-grant.schema.json` — signed paid-feature entitlement payload
 - `docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md` — proof promotion compatibility boundary for Gemini/Base44
+- `docs/PRODUCTION_VRE_CLOSURE_PLAN.md` + `ops/production_vre_closure.json` — production VRE release blockers, owners, and gates
+- `gemini/VRE_CLOSURE_HANDOFF.md` — ordered Gemini production-closure batches
 - `base44/BASE44_TASK_STATE.json` — minimum ordered Base44 service build plan
 - `gemini/CACE_GEMINI_TASK_STATE.json` — Gemini implementation prerequisites and live task state
 - `docs/BRANCH_LIFECYCLE.md` — branch deprecation/freeze/archive policy and recovery rules

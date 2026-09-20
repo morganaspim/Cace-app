@@ -12,6 +12,8 @@
     "BASE44.md",
     "base44/BASE44_TASK_STATE.json",
     "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
+    "ops/production_vre_closure.json",
+    "docs/PRODUCTION_VRE_CLOSURE_PLAN.md",
     "BRANCH_LIFECYCLE.json",
     "ops/proof_promotion_external_compatibility.json",
     "ops/cloud_run_payment_service_policy.json",
@@ -126,7 +128,8 @@
     "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json",
     "monero_payment_policy": "ops/monero_payment_policy.json",
     "payment_entitlement_schema": "schema/cace-payment-entitlement-grant.schema.json",
-    "cloud_run_payment_service_policy": "ops/cloud_run_payment_service_policy.json"
+    "cloud_run_payment_service_policy": "ops/cloud_run_payment_service_policy.json",
+    "production_vre_closure": "ops/production_vre_closure.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -226,6 +229,7 @@
     "semantic_change_rule": "Any transform that changes computation must be an explicit typed graph operation and invalidate/recompute dependent evidence."
   },
   "hard_rules": [
+    "Do not call CACE production-grade until all P0 items in ops/production_vre_closure.json are complete.",
     "Cloud Run is reserved exclusively for Monero payment coordination; do not route the CACE web app, sessions, workspaces, runs, SSE/events, science, proofs, telemetry, or AI through Cloud Run.",
     "Cloud Run payment service remains disabled by default and cost-capped: explicit operator enablement + monthly budget, request-based billing, min=0/max=1 initial scaling, no GPU/always-on CPU, no automatic deploy-on-push.",
     "Cloud Run may coordinate Monero payments under the cost guard but may not hold Monero wallet seed/spend keys or persistent wallet state.",

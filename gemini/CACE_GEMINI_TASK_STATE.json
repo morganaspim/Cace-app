@@ -301,5 +301,19 @@
       "Oracle/CACE entitlement signature verification",
       "end-to-end test payment"
     ]
+  },
+  "production_vre_closure": {
+    "checklist": "ops/production_vre_closure.json",
+    "handoff": "gemini/VRE_CLOSURE_HANDOFF.md",
+    "current_batch": "G-CLOSE-1",
+    "sequence": [
+      "G-CLOSE-1",
+      "G-CLOSE-2",
+      "G-CLOSE-3",
+      "G-CLOSE-4",
+      "G-CLOSE-5",
+      "G-CLOSE-6",
+      "G-CLOSE-7"
+    ]
   }
 }

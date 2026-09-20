@@ -13,6 +13,8 @@
     "BASE44.md",
     "base44/BASE44_TASK_STATE.json",
     "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
+    "ops/production_vre_closure.json",
+    "docs/PRODUCTION_VRE_CLOSURE_PLAN.md",
     "BRANCH_LIFECYCLE.json",
     "ops/proof_promotion_external_compatibility.json",
     "ops/cloud_run_edge_policy.json",
@@ -90,7 +92,8 @@
     "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json",
     "monero_payment_policy": "ops/monero_payment_policy.json",
     "payment_entitlement_schema": "schema/cace-payment-entitlement-grant.schema.json",
-    "cloud_run_payment_service_policy": "ops/cloud_run_payment_service_policy.json"
+    "cloud_run_payment_service_policy": "ops/cloud_run_payment_service_policy.json",
+    "production_vre_closure": "ops/production_vre_closure.json"
   },
   "repository_areas": [
     {
@@ -148,6 +151,7 @@
     "NOT_RUN"
   ],
   "hard_rules_for_agents": [
+    "Production VRE readiness is governed by ops/production_vre_closure.json; all P0 gates must close before a production-grade claim.",
     "Cloud Run is payment-only: Monero order/payment/entitlement coordination only; never use it for web hosting, sessions, general API edge, SSE/events, science, proofs, telemetry, or AI.",
     "Gemini multi-user presentation talks directly to Oracle/CACE; Base44 supplies low-volume identity/entitlements; Cloud Run is not in the session/run path.",
     "Monero payment unlock is server-verified and signed; promotion pricing is server-computed; Base44 only mirrors low-volume payment/entitlement metadata.",
