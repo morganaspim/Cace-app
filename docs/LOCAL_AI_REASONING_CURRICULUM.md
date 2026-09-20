@@ -594,3 +594,28 @@ The experiment-to-proof system in `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md` m
 Only after a mathematical operation has the appropriate exact/certified/formal support and engineering review should it enter the trusted operator curriculum as a validated operation.
 
 Unproved conjectures may remain research examples, never trusted operator rules.
+
+
+## 21. Implemented ReasoningOperator v1 bridge
+
+The first operator-runtime slice is implemented in:
+
+- `cace_studio/core/reasoning.py`
+- `schema/cace-reasoning-operator.schema.json`
+- `docs/CACE_REASONING_OPERATOR_V1.md`
+- `scripts/benchmark_group_reasoning.py`
+
+The initial registry maps advisory operator IDs to the canonical exact C++/pybind
+RMK implementations for permutations, finite-group canonicalization, exterior
+algebra, affine maps and simplex barycentric coordinates.
+
+The Python layer deliberately does **not** reimplement those mathematical
+algorithms.
+
+Initial evaluation support includes paired interventions and measured
+symmetry-state canonicalization. All results carry
+`evidence_authority=false`.
+
+This completes the schema/registry portion of the first implementation slice.
+The next curriculum work is procedural task generation, composition holdouts,
+mastery statistics, Tool-Bus integration and heartbeat-aware planning.
