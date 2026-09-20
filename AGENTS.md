@@ -13,6 +13,15 @@ Before checking out, creating, rebasing, committing to, or branching from any Gi
 
 If a requested branch is not ACTIVE, do not guess. Inspect live GitHub/PR state and update the lifecycle registry before doing new work.
 
+## External builder connection gates
+
+Connected external builders must read their own machine manifest before doing any work:
+
+- **Base44:** `BASE44.md` + `BASE44_CONNECTION_MANIFEST.json`
+- **Gemini / Google AI Studio Build Mode / Antigravity:** `GEMINI.md` + `GEMINI_CONNECTION_MANIFEST.json`
+
+These manifests are fail-closed permission contracts. Base44 is confined to commodity application services and direct repository writes under `base44/**`. Gemini is the primary interface builder and may directly write only its default frontend/state areas unless the user/ChatGPT grants a temporary task-specific exception. Both must obey `BRANCH_LIFECYCLE.json`.
+
 ## Start here
 
 **AI context budget:** first read `AI_CONTEXT/00_START_HERE.md` and `AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md`. Never request more than 800 repository files in one AI context pull; if a candidate set is larger, split it deterministically. Do not trust silently discarded/truncated files.

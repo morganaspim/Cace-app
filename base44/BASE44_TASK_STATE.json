@@ -1,0 +1,83 @@
+{
+  "schema": "cace-base44-task-state-v1",
+  "status": "READY_FOR_CONNECTION",
+  "connection_manifest": "BASE44_CONNECTION_MANIFEST.json",
+  "branch_registry": "BRANCH_LIFECYCLE.json",
+  "rule": "Build only the minimum commodity services listed here; do not expand scope without explicit user/ChatGPT approval.",
+  "tasks": [
+    {
+      "id": "B44-1",
+      "name": "Accounts and organizations",
+      "status": "READY",
+      "build": [
+        "authentication/account profile",
+        "organization/team membership",
+        "workspace membership metadata"
+      ]
+    },
+    {
+      "id": "B44-2",
+      "name": "Entitlements and passes",
+      "status": "AFTER_B44_1",
+      "sources": [
+        "ops/base44_account_tiers.json",
+        "ops/pass_promotion_policy.json"
+      ],
+      "build": [
+        "Basic/Researcher/Enterprise entitlement metadata",
+        "first-time trial claim metadata",
+        "Basic permanent multithread-unlock entitlement metadata",
+        "day/week/month/year pass invoice metadata",
+        "Tuesday/Saturday promotion application metadata"
+      ]
+    },
+    {
+      "id": "B44-3",
+      "name": "Low-volume workspace app metadata",
+      "status": "AFTER_B44_1",
+      "build": [
+        "preferences",
+        "notes/tags",
+        "collaboration metadata",
+        "notification/read state"
+      ]
+    },
+    {
+      "id": "B44-4",
+      "name": "Enterprise proof-order administration",
+      "status": "AFTER_B44_1",
+      "sources": [
+        "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+        "ops/base44_free_tier_budget.json"
+      ],
+      "build": [
+        "proof-order metadata",
+        "SOW/contract status metadata",
+        "payment/credit-approval status metadata",
+        "delivery status metadata",
+        "low-volume order notifications"
+      ],
+      "constraint": "No proof computation, qualification, artifact authority, or CI streaming in Base44."
+    },
+    {
+      "id": "B44-5",
+      "name": "Credit budget status",
+      "status": "AFTER_B44_1",
+      "source": "ops/base44_free_tier_budget.json",
+      "build": [
+        "local estimated credit counters",
+        "GREEN/YELLOW/RED/HARD_STOP policy state",
+        "protected Enterprise-order reserve state"
+      ],
+      "constraint": "Never present a local estimate as Base44's official bill unless an official provider API supplies it."
+    }
+  ],
+  "never_build": [
+    "CACE scientific backend",
+    "CACE primary browser UI",
+    "proof engine",
+    "scientific/proof telemetry",
+    "high-frequency event bus",
+    "AI inference service"
+  ]
+}

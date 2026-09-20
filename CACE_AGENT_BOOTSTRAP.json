@@ -7,6 +7,11 @@
     "production_ready": false
   },
   "first_read": [
+    "GEMINI_CONNECTION_MANIFEST.json",
+    "BASE44_CONNECTION_MANIFEST.json",
+    "BASE44.md",
+    "base44/BASE44_TASK_STATE.json",
+    "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
     "BRANCH_LIFECYCLE.json",
     "docs/BRANCH_LIFECYCLE.md",
     "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
@@ -94,7 +99,15 @@
     "base44_account_tiers": "ops/base44_account_tiers.json",
     "base44_account_entitlement_contract": "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
     "pass_promotion_policy": "ops/pass_promotion_policy.json",
-    "base44_credit_budget": "ops/base44_free_tier_budget.json"
+    "base44_credit_budget": "ops/base44_free_tier_budget.json",
+    "external_builder_connections": {
+      "base44": "BASE44_CONNECTION_MANIFEST.json",
+      "gemini": "GEMINI_CONNECTION_MANIFEST.json"
+    },
+    "external_builder_task_state": {
+      "base44": "base44/BASE44_TASK_STATE.json",
+      "gemini": "gemini/CACE_GEMINI_TASK_STATE.json"
+    }
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -194,6 +207,7 @@
     "semantic_change_rule": "Any transform that changes computation must be an explicit typed graph operation and invalidate/recompute dependent evidence."
   },
   "hard_rules": [
+    "Connected Base44/Gemini builders must obey their external-builder connection manifests and BRANCH_LIFECYCLE.json before any write.",
     "Before repository writes, resolve the branch through BRANCH_LIFECYCLE.json; only ACTIVE is writable by default.",
     "Never weaken proof scope or negative tests merely to pass CI.",
     "Never turn NOT_RUN/absent verification into PASS.",

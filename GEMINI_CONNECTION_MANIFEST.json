@@ -1,0 +1,221 @@
+{
+  "schema": "cace-external-builder-connection-v1",
+  "provider": "Google AI Studio Build Mode / Antigravity",
+  "role": "primary_cace_interface_builder",
+  "authority": {
+    "presentation": true,
+    "interaction_view_state": true,
+    "typed_clients": true,
+    "frontend_tests": true,
+    "scientific": false,
+    "proof": false,
+    "verification": false,
+    "claim_promotion": false,
+    "security_truth": false
+  },
+  "startup_read_order": [
+    "GEMINI.md",
+    "GEMINI_CONNECTION_MANIFEST.json",
+    "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
+    "BRANCH_LIFECYCLE.json",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "CACE_AI_BUILDER_CONTRACT.md",
+    "AI_REPO_MAP.json",
+    "docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md",
+    "docs/GEMINI_IMPLEMENTATION_CONTRACT.md",
+    "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+    "gemini/CACE_GEMINI_TASK_STATE.json",
+    "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+    "docs/BASE44_CREDIT_POLICY.md",
+    "ops/base44_account_tiers.json",
+    "ops/base44_free_tier_budget.json",
+    "ops/pass_promotion_policy.json",
+    "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+    "ops/proof_submission_policy.json",
+    "schema/cace-tool-bus.schema.json",
+    "schema/cace-canvas-mutation.schema.json",
+    "schema/cace-canvas-plan.schema.json",
+    "schema/cace-autonomy-loop.schema.json",
+    "schema/cace-agent-perception.schema.json",
+    "schema/cace-execution-containment.schema.json",
+    "schema/cace-linux-sandbox.schema.json",
+    "schema/cace-cgroup-v2.schema.json"
+  ],
+  "branch_policy": {
+    "registry": "BRANCH_LIFECYCLE.json",
+    "writable_statuses": [
+      "ACTIVE"
+    ],
+    "current_snapshot": {
+      "branch": "feature/local-agent-tool-bus-v1",
+      "status": "ACTIVE",
+      "pr": 79
+    },
+    "main": "READ_ONLY_INTEGRATION",
+    "frozen_branches": "READ_COMPARE_ONLY",
+    "deprecated_archived_branches": "DO_NOT_USE_AS_BASE",
+    "force_push": false,
+    "merge_pull_request": false,
+    "delete_branch": false,
+    "create_branch_by_default": false,
+    "controlled_proof_submission_exception": {
+      "pattern": "submission/proof/<submission-id>",
+      "permission": "initial controlled submission commit/draft PR only",
+      "after_initial_commit": "FROZEN",
+      "policy": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md"
+    }
+  },
+  "repository_permissions": {
+    "direct_write_allow": [
+      "webapp/**",
+      "gemini/**"
+    ],
+    "legacy_frontend": {
+      "paths": [
+        "web/index.html",
+        "web/studio.css",
+        "web/studio.js"
+      ],
+      "permission": "READ_ONLY_UNTIL_REACT_FEATURE_PARITY_AND_EXPLICIT_MIGRATION_APPROVAL"
+    },
+    "create_if_needed": [
+      "webapp/package.json",
+      "webapp/package-lock.json",
+      "webapp/pnpm-lock.yaml",
+      "webapp/src/**",
+      "webapp/public/**",
+      "webapp/tests/**",
+      "webapp/vite.config.*",
+      "webapp/tsconfig*.json"
+    ],
+    "propose_only": [
+      "api/index.py",
+      "schema/**",
+      "docs/GEMINI_*.md",
+      "docs/architecture/**",
+      "ops/**",
+      "base44/**"
+    ],
+    "direct_write_deny": [
+      "cace_studio/core/**",
+      "cace_studio/modules/**",
+      "cace_studio/agent_runtime/**",
+      "cace_studio/data/claim_registry.json",
+      "cace_studio/data/proof_ledger.json",
+      "cpp/**",
+      "formal/**",
+      "CACEFormal/**",
+      "security/**",
+      "ci/**",
+      "scripts/**",
+      ".github/**",
+      "schema/claim.schema.json",
+      "schema/evidence-*.json",
+      "schema/proof-*.json",
+      "schema/signed-attestation-v1.schema.json",
+      "BASELINE*.json",
+      "RELEASE*.json",
+      "BRANCH_LIFECYCLE.json",
+      "CACE_AGENT_BOOTSTRAP.json",
+      "AI_REPO_MAP.json"
+    ],
+    "temporary_permission_rule": "A protected/propose-only path may be edited only when the user/ChatGPT explicitly grants that path for the current task and the change follows the applicable CACE rigor/CI class."
+  },
+  "cace_api_boundary": {
+    "authoritative_backend": "api/index.py + canonical Python/C++/Lean core behind it",
+    "client_rule": "Use one typed frontend client; no ad-hoc scientific semantics in components.",
+    "missing_endpoint_rule": "Create a typed API extension request under gemini/requests/**; do not reproduce missing CACE semantics in JavaScript/TypeScript."
+  },
+  "base44_boundary": {
+    "role": "consume Base44 through one typed adapter for low-volume commodity services",
+    "recommended_client": "webapp/src/services/base44Client.ts",
+    "forbidden": "Do not turn Base44 into the CACE event bus, science backend, AI inference plane, telemetry system, or proof store."
+  },
+  "build_program": [
+    {
+      "id": "GWEB-1",
+      "build": "React/TypeScript shell + typed CACE API client + health/modules/claims",
+      "preserve": [
+        "web/** fallback"
+      ],
+      "scientific_semantics": false
+    },
+    {
+      "id": "GWEB-2",
+      "build": "module library/search, drag/drop, click-connect, typed property editor, groups, undo/redo, copy/paste, pan/zoom/fit/minimap, save/open/autosave",
+      "authority": "backend validates connections/types/units"
+    },
+    {
+      "id": "GWEB-3",
+      "build": "run graph, selected+upstream, GPU request controls, pause/resume/cancel, run status, evidence/claim panels, stale-evidence UX",
+      "authority": "CACE backend"
+    },
+    {
+      "id": "GWEB-4",
+      "build": "2D/3D switch, drag-to-rotate, Cartesian/hex/Einstein/aperiodic/complex-base/omega/fractal presentation views, mesh/vector/scalar overlays",
+      "constraint": "visualization-only unless a typed CACE scientific transform endpoint exists"
+    },
+    {
+      "id": "GWEB-5",
+      "build": "Research Assistant, Local AI toggle/provider UI, Research Idea notebook, Keep/Useful/Reject, Minimal/Balanced/Exploratory proposals, Build-on-Canvas preview, heartbeat"
+    },
+    {
+      "id": "GWEB-6",
+      "build": "approved autonomy UI: plan preview/approval, execution progress, perception, recovery/attention inbox, worker receipts, sandbox/cgroup status"
+    },
+    {
+      "id": "GWEB-7",
+      "build": "Base44-backed account/auth UI, Basic/Researcher/Enterprise benefits, trials, multithread unlock, workspace/team/preferences/notes",
+      "pricing_sources": [
+        "ops/base44_account_tiers.json",
+        "ops/pass_promotion_policy.json"
+      ]
+    },
+    {
+      "id": "GWEB-8",
+      "build": "Tuesday/Saturday pricing UX, invoice metadata display, Base44 credit-budget/admin panel, Enterprise proof-order reserve visibility"
+    },
+    {
+      "id": "GWEB-9",
+      "build": "Submit Proof Candidate flow, GitHub draft-PR status, PR_REVIEW_REQUIRED operator alert, Enterprise Request Full-Rigor Proof Package workflow",
+      "authority": "CACE/GitHub/Lean rigor pipeline"
+    },
+    {
+      "id": "GWEB-10",
+      "build": "Oracle/CACE admin health: free-VM resource limits, storage pressure, worker concurrency, sandbox preflight/capabilities, recovery state"
+    },
+    {
+      "id": "GWEB-11",
+      "build": "Help/examples/onboarding, printable/exportable data views, optional Buy-the-developers-a-coffee PayPal support link clearly separated from core functionality"
+    }
+  ],
+  "must_not_build": [
+    "second GraphExecutor",
+    "scientific solver/runtime in JS/TS/Node",
+    "exact FEM algebra duplicate",
+    "proof engine",
+    "client-side formal PASS",
+    "client-side proof promotion",
+    "alternate certificate verifier",
+    "alternate sandbox/security authority",
+    "duplicate Base44 backend",
+    "secret-bearing browser logic"
+  ],
+  "proof_submission_permission": {
+    "allowed": "draft theorem/proof text/tests and prepare controlled submission packet",
+    "not_allowed": "set FORMAL/PASS, alter proof ledger, bypass audits, merge qualification PR",
+    "policy": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md"
+  },
+  "change_report_required": [
+    "changed files",
+    "build-program batch IDs",
+    "CACE endpoints consumed or requested",
+    "Base44 operations added",
+    "expected Base44 credit effect",
+    "tests",
+    "scientific/evidence impact",
+    "qualification-sensitive paths touched",
+    "unresolved obligations"
+  ],
+  "task_state": "gemini/CACE_GEMINI_TASK_STATE.json"
+}

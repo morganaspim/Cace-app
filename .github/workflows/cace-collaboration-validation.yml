@@ -12,6 +12,16 @@ on:
       - 'scripts/**'
       - 'ops/**'
       - 'tests/**'
+      - 'BASE44.md'
+      - 'BASE44_CONNECTION_MANIFEST.json'
+      - 'GEMINI.md'
+      - 'GEMINI_CONNECTION_MANIFEST.json'
+      - 'BRANCH_LIFECYCLE.json'
+      - 'CACE_AGENT_BOOTSTRAP.json'
+      - 'AI_REPO_MAP.json'
+      - 'base44/**'
+      - 'docs/BASE44_*.md'
+      - 'docs/GEMINI_*.md'
       - 'pyproject.toml'
       - '.github/workflows/cace-*.yml'
 
@@ -101,6 +111,7 @@ jobs:
             tests/test_execution_containment.py \
             tests/test_autonomy_containment.py \
             tests/test_worker_sandbox.py \
+            tests/test_external_builder_connections.py \
             tests/test_execution_control_v336.py \
             tests/test_release_secrecy.py \
             tests/test_export_v330_environment_metadata.py \

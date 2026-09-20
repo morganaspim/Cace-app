@@ -2,6 +2,22 @@
 
 This file is the **Gemini-first repository entrypoint** for implementation work. It is implementation governance only; it is not scientific, proof, qualification, or production-readiness evidence.
 
+## Connection manifest — read first
+
+Before any repository or product work, read `GEMINI_CONNECTION_MANIFEST.json`.
+
+That manifest is the machine-readable source for Gemini's:
+
+- branch permissions;
+- direct-write allowlist;
+- protected/propose-only paths;
+- CACE/Base44 authority boundaries;
+- complete UI build program;
+- controlled proof-submission exception;
+- required handoff report.
+
+If this file and older prose disagree about write permission, use the stricter permission and stop for user/ChatGPT review.
+
 ## Branch lifecycle gate
 
 Before editing any repository file, read `BRANCH_LIFECYCLE.json` and `docs/BRANCH_LIFECYCLE.md`.

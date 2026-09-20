@@ -239,5 +239,19 @@
     "live_math_rendering": true,
     "assistant_prefill_allowed": true,
     "deterministic_validation_authoritative": true
-  }
+  },
+  "connection_manifest": "GEMINI_CONNECTION_MANIFEST.json",
+  "branch_registry": "BRANCH_LIFECYCLE.json",
+  "permission_summary": {
+    "direct_write": [
+      "webapp/**",
+      "gemini/**"
+    ],
+    "legacy_web": "READ_ONLY_UNTIL_REACT_FEATURE_PARITY_AND_EXPLICIT_MIGRATION_APPROVAL",
+    "api_and_schema": "PROPOSE_ONLY unless explicitly granted for current task",
+    "protected_core_proof_security": "DIRECT_WRITE_DENIED by default",
+    "git": "ACTIVE branches only; no force-push, merge, or branch deletion"
+  },
+  "presentation_program_source": "GEMINI_CONNECTION_MANIFEST.json#build_program",
+  "connection_rule": "Read GEMINI_CONNECTION_MANIFEST.json before choosing files or beginning an implementation batch."
 }

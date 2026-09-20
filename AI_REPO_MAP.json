@@ -8,6 +8,11 @@
     "production_ready": false
   },
   "start_here": [
+    "GEMINI_CONNECTION_MANIFEST.json",
+    "BASE44_CONNECTION_MANIFEST.json",
+    "BASE44.md",
+    "base44/BASE44_TASK_STATE.json",
+    "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
     "BRANCH_LIFECYCLE.json",
     "docs/BRANCH_LIFECYCLE.md",
     "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
@@ -57,7 +62,15 @@
     "proof_submission_workflow": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
     "base44_account_tiers": "ops/base44_account_tiers.json",
     "pass_promotion_policy": "ops/pass_promotion_policy.json",
-    "base44_credit_budget": "ops/base44_free_tier_budget.json"
+    "base44_credit_budget": "ops/base44_free_tier_budget.json",
+    "external_builder_connections": {
+      "base44": "BASE44_CONNECTION_MANIFEST.json",
+      "gemini": "GEMINI_CONNECTION_MANIFEST.json"
+    },
+    "external_builder_task_state": {
+      "base44": "base44/BASE44_TASK_STATE.json",
+      "gemini": "gemini/CACE_GEMINI_TASK_STATE.json"
+    }
   },
   "repository_areas": [
     {
@@ -115,6 +128,7 @@
     "NOT_RUN"
   ],
   "hard_rules_for_agents": [
+    "Connected Base44/Gemini builders must obey their machine connection manifests; only ACTIVE branches are writable and protected CACE paths remain protected.",
     "Use only branches marked ACTIVE in BRANCH_LIFECYCLE.json for new work unless the user explicitly reactivates another branch.",
     "Never convert NOT_RUN or absent verification into PASS.",
     "Never infer a continuum theorem from numerical tests.",

@@ -1,0 +1,168 @@
+{
+  "schema": "cace-external-builder-connection-v1",
+  "provider": "Base44",
+  "role": "commodity_application_services_only",
+  "authority": {
+    "scientific": false,
+    "proof": false,
+    "verification": false,
+    "claim_promotion": false,
+    "security_truth": false,
+    "account_entitlement_metadata": true
+  },
+  "startup_read_order": [
+    "BASE44.md",
+    "BASE44_CONNECTION_MANIFEST.json",
+    "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
+    "base44/BASE44_TASK_STATE.json",
+    "BRANCH_LIFECYCLE.json",
+    "docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md",
+    "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+    "docs/BASE44_CREDIT_POLICY.md",
+    "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+    "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+    "ops/base44_account_tiers.json",
+    "ops/base44_free_tier_budget.json",
+    "ops/pass_promotion_policy.json",
+    "ops/proof_submission_policy.json"
+  ],
+  "branch_policy": {
+    "registry": "BRANCH_LIFECYCLE.json",
+    "writable_statuses": [
+      "ACTIVE"
+    ],
+    "current_snapshot": {
+      "branch": "feature/local-agent-tool-bus-v1",
+      "status": "ACTIVE",
+      "pr": 79
+    },
+    "main": "READ_ONLY_INTEGRATION",
+    "create_branch_by_default": false,
+    "force_push": false,
+    "merge_pull_request": false,
+    "delete_branch": false,
+    "rule": "Branch existence is not permission. Do not write unless the exact branch is ACTIVE in BRANCH_LIFECYCLE.json."
+  },
+  "repository_permissions": {
+    "direct_write_allow": [
+      "base44/**"
+    ],
+    "read_allow": [
+      "BASE44.md",
+      "BASE44_CONNECTION_MANIFEST.json",
+      "BRANCH_LIFECYCLE.json",
+      "docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md",
+      "docs/BASE44_*.md",
+      "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+      "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+      "ops/base44_*.json",
+      "ops/pass_promotion_policy.json",
+      "ops/proof_submission_policy.json"
+    ],
+    "propose_only": [
+      "ops/base44_account_tiers.json",
+      "ops/base44_free_tier_budget.json",
+      "ops/pass_promotion_policy.json",
+      "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+      "docs/BASE44_CREDIT_POLICY.md",
+      "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md"
+    ],
+    "direct_write_deny": [
+      "web/**",
+      "webapp/**",
+      "api/**",
+      "cace_studio/**",
+      "cpp/**",
+      "formal/**",
+      "CACEFormal/**",
+      "schema/**",
+      "security/**",
+      "scripts/**",
+      "ci/**",
+      ".github/**",
+      "tests/**",
+      "collaboration/**",
+      "BASELINE*.json",
+      "RELEASE*.json",
+      "BRANCH_LIFECYCLE.json",
+      "CACE_AGENT_BOOTSTRAP.json",
+      "AI_REPO_MAP.json"
+    ]
+  },
+  "build_exactly": [
+    "authentication and account/profile service",
+    "organization/team/workspace membership metadata",
+    "Basic/Researcher/Enterprise entitlement metadata",
+    "first-time trial claim metadata",
+    "Basic perpetual multithread-unlock entitlement metadata",
+    "day/week/month/year pass purchase and invoice metadata",
+    "Tuesday/Saturday promotion metadata application from ops/pass_promotion_policy.json",
+    "low-volume user preferences, notes, tags, and collaboration metadata",
+    "low-volume notification/read-state metadata",
+    "Enterprise Full-Rigor Proof Package order/SOW/contract/payment/delivery workflow metadata",
+    "local estimate of Base44 credit consumption and policy-zone state"
+  ],
+  "explicitly_do_not_build": [
+    "scientific execution engine",
+    "graph execution semantics",
+    "C++ or Python scientific kernels",
+    "Lean or any proof engine",
+    "proof qualification or proof ledger",
+    "scientific artifact store",
+    "worker receipts or sandbox runtime",
+    "high-frequency event bus",
+    "canvas position/event persistence",
+    "run/proof polling",
+    "worker telemetry",
+    "autonomous-agent turn storage",
+    "LLM inference plane",
+    "alternate React/CACE interface",
+    "alternate CACE API",
+    "Oracle deployment/orchestration"
+  ],
+  "credit_policy": {
+    "source": "ops/base44_free_tier_budget.json",
+    "optional_integrations_default_enabled": false,
+    "enterprise_proof_order_reserve_allowed": true,
+    "never_silently_buy_credits": true,
+    "high_frequency_use_forbidden": true
+  },
+  "data_boundary": {
+    "allowed_low_volume": [
+      "user/account identifiers",
+      "organization membership",
+      "entitlement/tier state",
+      "preferences",
+      "notes/tags",
+      "workspace membership metadata",
+      "invoice/order metadata",
+      "Enterprise proof-order commercial workflow metadata",
+      "notification/read state"
+    ],
+    "forbidden_authoritative": [
+      "scientific result truth",
+      "verification PASS/FAIL authority",
+      "FORMAL status",
+      "canonical proof artifacts",
+      "proof-ledger truth",
+      "scientific run artifacts",
+      "sandbox security truth",
+      "Oracle/CACE secrets",
+      "signing keys",
+      "payment secrets"
+    ]
+  },
+  "handoff_to_gemini": {
+    "rule": "Expose only the low-volume commodity service/API surface Gemini needs through its Base44 adapter. Do not generate the CACE UI.",
+    "consumer": "Gemini AI Studio Build Mode / Antigravity"
+  },
+  "change_report_required": [
+    "Base44 resources/entities/functions created",
+    "new metered operations",
+    "expected monthly credit effect",
+    "secrets/permissions added",
+    "files changed",
+    "whether any request exceeded this manifest"
+  ],
+  "task_state": "base44/BASE44_TASK_STATE.json"
+}
