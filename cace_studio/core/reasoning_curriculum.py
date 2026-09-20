@@ -626,3 +626,233 @@ def generate_simplex_barycentric_pair(
         baseline_expected=baseline_expected,
         intervention_expected=intervention_expected,
     )
+
+
+@dataclass(frozen=True)
+class ReasoningCurriculumBatch:
+    batch_id: str
+    seed: int
+    train_pairs: tuple[PairedReasoningTasks, ...]
+    holdout_pairs: tuple[PairedReasoningTasks, ...]
+    holdout_family: str
+    evidence_authority: bool = field(default=False, init=False)
+
+    @property
+    def pair_count(self) -> int:
+        return len(self.train_pairs) + len(self.holdout_pairs)
+
+    @property
+    def task_count(self) -> int:
+        return 2 * self.pair_count
+
+
+@dataclass(frozen=True)
+class CurriculumAttentionSignal:
+    skill_id: str
+    node_ids: tuple[str, ...]
+    score: float
+    reasons: tuple[str, ...]
+    evidence_authority: bool = field(default=False, init=False)
+
+
+_EXACT_FAMILY_GENERATORS = (
+    ("permutation-coordinate-action", generate_permutation_action_pair),
+    ("finite-group-coordinate-canonicalization", generate_group_canonicalization_pair),
+    ("exterior-wedge-basis-intervention", generate_exterior_wedge_pair),
+    ("affine-translation-intervention", generate_affine_apply_pair),
+    ("simplex-vertex-relabel-barycentric", generate_simplex_barycentric_pair),
+)
+
+
+def _derived_seed(seed: int, label: str) -> int:
+    raw = f"{seed}|{label}".encode("utf-8")
+    return int(sha256(raw).hexdigest()[:16], 16) % (2**31)
+
+
+def generate_exact_curriculum_batch(
+    native_module: Any,
+    *,
+    seed: int,
+    holdout_family: str | None = None,
+) -> ReasoningCurriculumBatch:
+    """Generate one seeded pair from each exact ReasoningOperator family.
+
+    One entire family is held out so evaluation can measure transfer across a
+    generator family rather than merely unseen values from a trained family.
+    """
+
+    families = tuple(name for name, _ in _EXACT_FAMILY_GENERATORS)
+    if holdout_family is None:
+        index = _derived_seed(seed, "family-holdout") % len(families)
+        holdout_family = families[index]
+    if holdout_family not in families:
+        raise ValueError(f"unknown holdout_family: {holdout_family}")
+
+    train: list[PairedReasoningTasks] = []
+    holdout: list[PairedReasoningTasks] = []
+    for family, generator in _EXACT_FAMILY_GENERATORS:
+        pair = generator(
+            native_module,
+            seed=_derived_seed(seed, family),
+        )
+        if family == holdout_family:
+            holdout.append(pair)
+        else:
+            train.append(pair)
+
+    batch_id = sha256(
+        f"exact-curriculum-v1|{seed}|{holdout_family}".encode("utf-8")
+    ).hexdigest()
+    return ReasoningCurriculumBatch(
+        batch_id=batch_id,
+        seed=seed,
+        train_pairs=tuple(train),
+        holdout_pairs=tuple(holdout),
+        holdout_family=holdout_family,
+    )
+
+
+_HEARTBEAT_PRIORITY = {
+    "FAILED": 1.00,
+    "BLOCKED": 0.95,
+    "STALE": 0.85,
+    "RESEARCH_INTEREST": 0.65,
+    "WAITING": 0.45,
+    "ACTIVE": 0.35,
+    "READY": 0.25,
+    "VERIFYING": 0.20,
+    "VERIFIED": 0.05,
+    "DORMANT": 0.00,
+}
+
+
+def curriculum_signals_from_perception(
+    packet: Mapping[str, Any],
+    *,
+    node_skill_ids: Mapping[str, Sequence[str]],
+) -> tuple[CurriculumAttentionSignal, ...]:
+    """Convert a validated Agent Perception Packet into advisory skill signals.
+
+    The JSON schema remains the authoritative packet validator. This adapter
+    rechecks the fields it consumes and the non-evidence boundary so malformed
+    or authority-bearing packets fail closed.
+    """
+
+    if packet.get("schema_version") != "cace-agent-perception-v1":
+        raise ValueError("unsupported agent perception schema")
+    if packet.get("evidence_authority") is not False:
+        raise ValueError("agent perception must have evidence_authority=false")
+    nodes = packet.get("nodes")
+    if not isinstance(nodes, list):
+        raise ValueError("agent perception nodes must be an array")
+
+    aggregated: dict[str, dict[str, Any]] = {}
+    for raw in nodes:
+        if not isinstance(raw, Mapping):
+            raise ValueError("agent perception node must be an object")
+        node_id = raw.get("node_id")
+        heartbeat = raw.get("heartbeat_state")
+        if not isinstance(node_id, str) or not node_id:
+            raise ValueError("agent perception node_id must be non-empty")
+        if heartbeat not in _HEARTBEAT_PRIORITY:
+            raise ValueError(f"unsupported heartbeat_state: {heartbeat}")
+
+        skills = tuple(node_skill_ids.get(node_id, ()))
+        if not skills:
+            continue
+
+        reasons: list[str] = [f"heartbeat:{heartbeat}"]
+        score = _HEARTBEAT_PRIORITY[heartbeat]
+
+        if raw.get("changed") is True:
+            score += 0.15
+            reasons.append("semantic-change")
+
+        trend = raw.get("residual_trend")
+        if trend == "WORSENING":
+            score += 0.20
+            reasons.append("residual-worsening")
+        elif trend not in {"IMPROVING", "STABLE", "UNKNOWN"}:
+            raise ValueError(f"unsupported residual_trend: {trend}")
+
+        canonical = raw.get("canonical_evidence_state")
+        if canonical == "FAIL":
+            score += 0.20
+            reasons.append("canonical-fail-mirrored")
+        elif canonical == "STALE":
+            score += 0.15
+            reasons.append("canonical-stale-mirrored")
+        elif canonical == "NOT_RUN":
+            score += 0.05
+            reasons.append("canonical-not-run-mirrored")
+        elif canonical not in {"PASS", "UNKNOWN"}:
+            raise ValueError(f"unsupported canonical_evidence_state: {canonical}")
+
+        research_interest = raw.get("research_interest")
+        resource_pressure = raw.get("resource_pressure")
+        if not isinstance(research_interest, (int, float)) or not 0 <= research_interest <= 1:
+            raise ValueError("research_interest must be in [0,1]")
+        if not isinstance(resource_pressure, (int, float)) or not 0 <= resource_pressure <= 1:
+            raise ValueError("resource_pressure must be in [0,1]")
+
+        if research_interest:
+            score += 0.20 * float(research_interest)
+            reasons.append("research-interest")
+        if resource_pressure:
+            # High resource pressure reduces immediate lesson priority rather
+            # than being interpreted as scientific difficulty or evidence.
+            score -= 0.15 * float(resource_pressure)
+            reasons.append("resource-pressure")
+
+        score = max(0.0, min(1.5, score))
+        for skill_id in skills:
+            if not skill_id:
+                raise ValueError("skill IDs must be non-empty")
+            entry = aggregated.setdefault(
+                skill_id,
+                {"score": 0.0, "nodes": set(), "reasons": set()},
+            )
+            entry["score"] = max(float(entry["score"]), score)
+            entry["nodes"].add(node_id)
+            entry["reasons"].update(reasons)
+
+    return tuple(
+        CurriculumAttentionSignal(
+            skill_id=skill_id,
+            node_ids=tuple(sorted(value["nodes"])),
+            score=float(value["score"]),
+            reasons=tuple(sorted(value["reasons"])),
+        )
+        for skill_id, value in sorted(aggregated.items())
+    )
+
+
+def rank_heartbeat_aware_skills(
+    mastery: MasteryTable,
+    candidate_skill_ids: Sequence[str],
+    *,
+    signals: Sequence[CurriculumAttentionSignal] = (),
+    target_accuracy: float = 0.75,
+) -> tuple[str, ...]:
+    """Rank curriculum skills using perception urgency, then mastery frontier."""
+
+    if not candidate_skill_ids:
+        raise ValueError("candidate_skill_ids must be non-empty")
+    if not 0.0 <= target_accuracy <= 1.0:
+        raise ValueError("target_accuracy must be in [0,1]")
+
+    signal_score = {signal.skill_id: signal.score for signal in signals}
+
+    def key(skill_id: str) -> tuple[float, int, float, int, str]:
+        skill = mastery.get(skill_id)
+        unseen = 0 if skill.attempts == 0 else 1
+        distance = abs(skill.accuracy - target_accuracy)
+        return (
+            -signal_score.get(skill_id, 0.0),
+            unseen,
+            distance,
+            skill.attempts,
+            skill_id,
+        )
+
+    return tuple(sorted(candidate_skill_ids, key=key))
