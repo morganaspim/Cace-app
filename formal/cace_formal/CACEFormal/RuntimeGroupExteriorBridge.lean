@@ -101,7 +101,7 @@ def triangle (a b c : Vec2) : Triangle2 :=
 theorem triangle_swap01_det (a b c : Vec2) :
     (triangle b a c).det = -(triangle a b c).det := by
   rcases a with ⟨ax, ay⟩
-  rcases b with ⟨bx, by⟩
+  rcases b with ⟨bx, byv⟩
   rcases c with ⟨cx, cy⟩
   simp [triangle, Vec2.toReal, Triangle2.det]
   ring
