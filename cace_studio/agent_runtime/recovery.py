@@ -191,6 +191,8 @@ class AgentCheckpoint:
     tool_calls: int
     failures: int
     heartbeat_seq: int
+    budget: Mapping[str, int] | None = None
+    tool_contract_sha256: str | None = None
     observations: tuple[Mapping[str, Any], ...] = ()
     trace: tuple[Mapping[str, Any], ...] = ()
     pending_call: Mapping[str, Any] | None = None
@@ -206,6 +208,16 @@ class AgentCheckpoint:
             raise ValueError("checkpoint next_step must be positive")
         if min(self.tool_calls, self.failures, self.heartbeat_seq) < 0:
             raise ValueError("checkpoint counters must be non-negative")
+        if self.budget is not None:
+            if not isinstance(self.budget, Mapping):
+                raise ValueError("checkpoint budget must be an object or null")
+            for key, value in self.budget.items():
+                if not isinstance(key, str) or not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                    raise ValueError("checkpoint budget entries must be positive integers")
+        if self.tool_contract_sha256 is not None:
+            value = self.tool_contract_sha256
+            if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
+                raise ValueError("checkpoint tool_contract_sha256 must be lowercase SHA-256")
         if self.proof_effect != "none" or self.promotion_authority:
             raise ValueError("agent checkpoint cannot carry proof authority")
         if self.status not in {
@@ -226,6 +238,8 @@ class AgentCheckpoint:
             "tool_calls": self.tool_calls,
             "failures": self.failures,
             "heartbeat_seq": self.heartbeat_seq,
+            "budget": dict(self.budget) if self.budget is not None else None,
+            "tool_contract_sha256": self.tool_contract_sha256,
             "observations": [dict(item) for item in self.observations],
             "trace": [dict(item) for item in self.trace],
             "pending_call": dict(self.pending_call) if self.pending_call is not None else None,
@@ -246,6 +260,8 @@ class AgentCheckpoint:
             "tool_calls",
             "failures",
             "heartbeat_seq",
+            "budget",
+            "tool_contract_sha256",
             "observations",
             "trace",
             "pending_call",
@@ -261,6 +277,12 @@ class AgentCheckpoint:
         observations = payload.get("observations", [])
         trace = payload.get("trace", [])
         pending = payload.get("pending_call")
+        budget = payload.get("budget")
+        tool_contract_sha256 = payload.get("tool_contract_sha256")
+        if budget is not None and not isinstance(budget, Mapping):
+            raise ValueError("checkpoint budget must be an object or null")
+        if tool_contract_sha256 is not None and not isinstance(tool_contract_sha256, str):
+            raise ValueError("checkpoint tool_contract_sha256 must be a string or null")
         if not isinstance(observations, list) or not all(
             isinstance(x, Mapping) for x in observations
         ):
@@ -280,6 +302,12 @@ class AgentCheckpoint:
             tool_calls=int(payload["tool_calls"]),
             failures=int(payload["failures"]),
             heartbeat_seq=int(payload.get("heartbeat_seq", 0)),
+            budget=(
+                {str(key): int(value) for key, value in budget.items()}
+                if budget is not None
+                else None
+            ),
+            tool_contract_sha256=tool_contract_sha256,
             observations=tuple(dict(x) for x in observations),
             trace=tuple(dict(x) for x in trace),
             pending_call=dict(pending) if pending is not None else None,

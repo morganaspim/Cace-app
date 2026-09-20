@@ -261,3 +261,33 @@ When a perception provider is configured, `AgentController` validates the packet
 A configured perception provider that fails or returns a malformed/authoritative packet aborts the run. The planner is not silently given stale substitute context.
 
 Perception is read-only. v1.2 grants no new Tool Bus capability and no canvas-mutation authority.
+
+
+## v1.1.1 exact pending-result recovery
+
+The durable audit journal now has a backward-compatible schema v2. New controller writes persist both:
+
+- the canonical `ToolAuditRecord`; and
+- the matching typed `ToolResult`.
+
+This closes the safe crash window between **tool completed + audit fsync** and the later post-call checkpoint. On resume, if the checkpoint still says a call is pending but the v2 journal contains a hash-verified matching result, the controller restores that result into the trace/observation stream and continues **without invoking the tool again**.
+
+Recovery remains fail-closed when:
+
+- no typed durable result exists for the pending call;
+- the audit chain fails verification;
+- the durable record's tool name or input hash differs from the pending call;
+- the checkpoint's original budget differs from the resumed controller budget; or
+- the Tool Bus descriptor fingerprint changed since the checkpoint.
+
+New checkpoints therefore bind:
+
+- `max_steps`;
+- `max_tool_calls`;
+- `max_failures`;
+- `max_observation_chars`; and
+- a canonical SHA-256 fingerprint of the planner-visible typed Tool Bus contract.
+
+Older v1.1 checkpoints remain readable for compatibility, but only checkpoints created after this hardening carry those additional resume constraints.
+
+This still does not claim general distributed exactly-once mutation semantics. If a process stops after a tool side effect but before a v2 result is durably journaled, CACE retains the pending marker and blocks automatic replay.

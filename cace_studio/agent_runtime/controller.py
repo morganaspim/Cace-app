@@ -6,6 +6,7 @@ from typing import Any, Callable, Mapping, Protocol, Sequence
 from uuid import uuid4
 
 from cace_studio.ai.provider import AIProvider
+from cace_studio.core.reproducibility import sha256_identity
 
 from .audit import HashChainedAuditJournal
 from .contracts import ToolCall, ToolDescriptor, ToolResult, ToolStatus
@@ -315,6 +316,19 @@ class AgentController:
         if self.lease_ttl_seconds <= 0:
             raise ValueError("lease_ttl_seconds must be positive")
 
+    def _budget_snapshot(self) -> dict[str, int]:
+        return {
+            "max_steps": self.budget.max_steps,
+            "max_tool_calls": self.budget.max_tool_calls,
+            "max_failures": self.budget.max_failures,
+            "max_observation_chars": self.budget.max_observation_chars,
+        }
+
+    def _tool_contract_sha256(self) -> str:
+        return sha256_identity(
+            [descriptor.to_dict() for descriptor in self.tool_bus.descriptors()]
+        )
+
     @staticmethod
     def _bounded_observation(result: ToolResult, max_chars: int) -> Mapping[str, Any]:
         payload = result.to_dict()
@@ -419,6 +433,8 @@ class AgentController:
                 tool_calls=tool_calls,
                 failures=failures,
                 heartbeat_seq=heartbeat_seq,
+                budget=self._budget_snapshot(),
+                tool_contract_sha256=self._tool_contract_sha256(),
                 observations=tuple(dict(item) for item in observations),
                 trace=tuple(entry.to_dict() for entry in trace),
                 pending_call=dict(pending_call) if pending_call is not None else None,
@@ -470,6 +486,16 @@ class AgentController:
                 raise ValueError("resume task does not match checkpoint task")
             if checkpoint.status != "running":
                 raise ValueError(f"checkpoint is not resumable: status={checkpoint.status}")
+            if (
+                checkpoint.budget is not None
+                and dict(checkpoint.budget) != self._budget_snapshot()
+            ):
+                raise ValueError("resume budget does not match checkpoint budget")
+            if (
+                checkpoint.tool_contract_sha256 is not None
+                and checkpoint.tool_contract_sha256 != self._tool_contract_sha256()
+            ):
+                raise ValueError("Tool Bus contract changed since checkpoint")
             start_step = checkpoint.next_step
             tool_calls = checkpoint.tool_calls
             failures = checkpoint.failures
@@ -477,44 +503,101 @@ class AgentController:
             observations = [dict(item) for item in checkpoint.observations]
             trace = [AgentTraceEntry.from_dict(item) for item in checkpoint.trace]
             if checkpoint.pending_call is not None:
-                lease = self.lease_manager.acquire(
-                    run_id, self.owner_id, ttl_seconds=self.lease_ttl_seconds
-                )
-                try:
-                    heartbeat_seq = self._heartbeat(
-                        run_id=run_id,
-                        heartbeat_seq=heartbeat_seq,
-                        phase=AgentPhase.RECOVERY_BLOCKED,
-                        step=max(0, start_step - 1),
-                        tool_calls=tool_calls,
-                        failures=failures,
-                        lease=lease,
-                        detail="prior process stopped with a pending tool call; automatic replay is forbidden",
+                pending = dict(checkpoint.pending_call)
+                recovered_event = None
+                recovery_error = ""
+                if self.audit_journal is not None:
+                    try:
+                        recovered_event = self.audit_journal.lookup_event(
+                            str(pending.get("call_id", ""))
+                        )
+                    except Exception as exc:
+                        recovery_error = (
+                            "durable audit verification failed during recovery: "
+                            f"{type(exc).__name__}: {exc}"
+                        )
+
+                if recovered_event is not None and not recovery_error:
+                    record, recovered_result = recovered_event
+                    pending_tool = str(pending.get("tool_name", ""))
+                    pending_arguments = pending.get("arguments", {})
+                    if not isinstance(pending_arguments, Mapping):
+                        recovery_error = "pending tool arguments are malformed"
+                    elif (
+                        record.tool_name != pending_tool
+                        or record.input_sha256
+                        != sha256_identity(dict(pending_arguments))
+                    ):
+                        recovery_error = (
+                            "durable audit result does not match the pending tool call"
+                        )
+                    else:
+                        recovered_step = int(pending.get("step", max(1, start_step)))
+                        recovered_decision = AgentDecision.tool(
+                            pending_tool,
+                            dict(pending_arguments),
+                        )
+                        trace.append(
+                            AgentTraceEntry(
+                                recovered_step,
+                                recovered_decision,
+                                recovered_result,
+                            )
+                        )
+                        observations.append(
+                            self._bounded_observation(
+                                recovered_result,
+                                self.budget.max_observation_chars,
+                            )
+                        )
+                        if recovered_result.status is not ToolStatus.OK:
+                            failures += 1
+                        start_step = recovered_step + 1
+
+                if recovered_event is None or recovery_error:
+                    lease = self.lease_manager.acquire(
+                        run_id, self.owner_id, ttl_seconds=self.lease_ttl_seconds
                     )
-                    self._save_checkpoint(
-                        run_id=run_id,
-                        task=task,
-                        next_step=start_step,
-                        tool_calls=tool_calls,
-                        failures=failures,
-                        heartbeat_seq=heartbeat_seq,
-                        observations=observations,
-                        trace=trace,
-                        pending_call=checkpoint.pending_call,
-                        status="recovery_blocked",
-                    )
-                    return self._report(
-                        run_id,
-                        task,
-                        "recovery_blocked",
-                        "checkpoint contains a pending tool call; inspect audit/checkpoint state before retrying",
-                        max(0, start_step - 1),
-                        tool_calls,
-                        failures,
-                        trace,
-                    )
-                finally:
-                    self.lease_manager.release(lease)
+                    try:
+                        detail = recovery_error or (
+                            "prior process stopped with a pending tool call and no "
+                            "recoverable typed result; automatic replay is forbidden"
+                        )
+                        heartbeat_seq = self._heartbeat(
+                            run_id=run_id,
+                            heartbeat_seq=heartbeat_seq,
+                            phase=AgentPhase.RECOVERY_BLOCKED,
+                            step=max(0, start_step - 1),
+                            tool_calls=tool_calls,
+                            failures=failures,
+                            lease=lease,
+                            detail=detail,
+                        )
+                        self._save_checkpoint(
+                            run_id=run_id,
+                            task=task,
+                            next_step=start_step,
+                            tool_calls=tool_calls,
+                            failures=failures,
+                            heartbeat_seq=heartbeat_seq,
+                            observations=observations,
+                            trace=trace,
+                            pending_call=checkpoint.pending_call,
+                            status="recovery_blocked",
+                        )
+                        return self._report(
+                            run_id,
+                            task,
+                            "recovery_blocked",
+                            detail,
+                            max(0, start_step - 1),
+                            tool_calls,
+                            failures,
+                            trace,
+                        )
+                    finally:
+                        self.lease_manager.release(lease)
+
 
         lease = self.lease_manager.acquire(
             run_id, self.owner_id, ttl_seconds=self.lease_ttl_seconds
@@ -758,7 +841,7 @@ class AgentController:
                         latest_audit = self.tool_bus.audit_records[-1]
                         if latest_audit.call_id != call.call_id:
                             raise RuntimeError("Tool Bus audit tail does not match completed call")
-                        self.audit_journal.append(latest_audit)
+                        self.audit_journal.append(latest_audit, result)
                     except Exception as exc:
                         failures += 1
                         message = (
