@@ -53,11 +53,11 @@
       ],
       "proof_contract_id": "cace.proof.rmk.runtime-formal-linkage.v1",
       "qualification": {
-        "attested_commit": null,
-        "current_head_qualified": false,
-        "proof_artifact_sha256": null,
-        "reason": "RMK Lean bridge promotion is pending audited-root Exact-Pin and canonical exact-current-head qualification.",
-        "status": "PENDING"
+        "attested_commit": "cf0829662f5a1939cc254f4ef251f8c750089760",
+        "current_head_qualified": true,
+        "proof_artifact_sha256": "b183c605c1cb25ba8089cbba7b5de7d290364a3cb68ebaedf1a695934a6e6620",
+        "reason": "Canonical exact-head qualification run 35490840805 passed on merged main at cf0829662f5a1939cc254f4ef251f8c750089760. The RMK qualification artifact kernel-audited 18 theorem endpoints under Lean 4.32.1 / Mathlib 520045ab14e26149ee970e2e617ca04b09bde5d6 and is bound to proof contract cace.proof.rmk.runtime-formal-linkage.v1.",
+        "status": "PASS"
       },
       "scope": "Two-dimensional exact-rational RMK Lean bridge theorem surface defined by cace.proof.rmk.runtime-formal-linkage.v1.",
       "statement": "The promoted Lean RMK bridge formalizes exact 2D rational vector/matrix/affine/rotor, wedge, degree-2 permutation, and triangle-orientation laws."
