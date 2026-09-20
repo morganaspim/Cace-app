@@ -19,6 +19,14 @@ The target behavior is a compact specialist that can:
 
 The design deliberately avoids dependence on hidden chain-of-thought disclosure. Reasoning is tested by behavior under controlled transformations and by externally checkable intermediate objects.
 
+## Inspiration and attribution
+
+The **geometric reasoning and training/curriculum direction is Sophonic-AI-inspired at the level of high-level ideas**.
+
+CACE uses that inspiration as a prompt to investigate structured/geometric representations, transformation-aware training, compositional reasoning, counterfactual evaluation, and compact reusable operator programs.
+
+CACE must still implement its own architecture, datasets/task generators, mathematical operators, training objectives, evaluation suite, code, and proof/evidence integration. This attribution does not imply affiliation with Sophonic AI, compatibility with any proprietary Sophonic system, access to non-public methods, or transfer of external verification claims.
+
 ## Independent-design / IP rule
 
 CACE may take inspiration from **publicly described general ideas** such as paired counterfactual/perturbation evaluation, compact specialist models, geometric representations, curriculum learning, program induction, contrastive learning, and cellular automata.
