@@ -28,6 +28,8 @@ A Node server created by AI Studio may be used only as a **development/static/pr
 
 ## Read before editing
 
+**Gemini file-ingestion rule:** read `AI_CONTEXT/00_START_HERE.md`, `AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md`, and `AI_CONTEXT/PULL_MANIFEST.json` first. CACE plans for a maximum of 800 files per context pull to stay safely below the observed ~1000-file ingestion ceiling. If more files are needed, use deterministic task shards; never continue after silent truncation/discard.
+
 Read these in this order:
 
 1. `CACE_AGENT_BOOTSTRAP.json`

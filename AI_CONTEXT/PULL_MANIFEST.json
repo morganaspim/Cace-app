@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "role": "Gemini/Antigravity context-loading policy; not evidence",
+  "max_files_per_context_pull": 800,
+  "target_task_source_files": 500,
+  "reason": "Reserve safety margin below the observed ~1000-file Gemini ingestion ceiling so critical files are not silently discarded.",
+  "fail_closed_on_truncation": true,
+  "tier0_required": [
+    "AI_CONTEXT/00_START_HERE.md",
+    "AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "AGENTS.md",
+    "GEMINI.md",
+    "CACE_AI_BUILDER_CONTRACT.md",
+    "docs/MASTER_BUILD_SPEC.md",
+    "docs/GOAL_REGISTRY.json",
+    "docs/CHAT_IDEA_LEDGER.md",
+    "docs/CROSS_CHAT_HANDOFF.md",
+    "docs/STATUS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/CONSTITUTION.md",
+    "docs/CLAIMS.md",
+    "docs/BUILD_AND_TRUST_GUIDE.md",
+    "docs/CACE_RIGOROUS_MATH_KERNEL_V1.md",
+    "docs/PROOF_BACKED_MATH_TOOLBOX_ROADMAP.md",
+    "docs/SCIENCE_MODULE_COMPLETENESS_STANDARD.md",
+    "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
+    "gemini/CACE_GEMINI_TASK_STATE.json",
+    "AI_REPO_MAP.json"
+  ],
+  "idea_sources": {
+    "durable_goals": "docs/GOAL_REGISTRY.json",
+    "append_only_idea_memory": "docs/CHAT_IDEA_LEDGER.md"
+  },
+  "source_selection": {
+    "navigation": "AI_REPO_MAP.json",
+    "rule": "Load only files relevant to the active A-I track and its tests/dependencies. Split deterministically before exceeding 800 total files."
+  },
+  "truncation_response": "STOP_AND_RESHARD"
+}

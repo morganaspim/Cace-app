@@ -678,3 +678,26 @@ Production-intended modules should expose structured Help metadata covering purp
 Examples should be loadable onto the canvas and should include minimal, realistic and compositional cases where meaningful. High-value modules should include a failure example demonstrating how an invalid assumption or failed verifier appears.
 
 The curated example library should trend toward approximately 100 high-value reproducible demonstrations across mathematics, PDE/FEM, mechanics, electromagnetics, molecular/materials/protein work, data/statistics, signals, geometry and interdisciplinary combinations.
+
+
+## 25. Bounded AI context loading for coding agents
+
+Gemini AI Code Studio and Google Antigravity must be able to reconstruct CACE implementation intent without bulk-loading the entire repository.
+
+The canonical entrypoint is `AI_CONTEXT/00_START_HERE.md`, with the current execution map in `AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md`.
+
+Because the user has observed an approximately 1000-file Gemini ingestion ceiling where excess files may be discarded, CACE plans for an **800-file maximum per context pull**. Any larger context must be split into deterministic task-specific shards. Silent truncation/discard is a stop condition, not permission to guess.
+
+Tier 0 must always include the master goals and append-only idea ledger so deferred ideas remain visible:
+- `docs/GOAL_REGISTRY.json`;
+- `docs/CHAT_IDEA_LEDGER.md`.
+
+The active implementation batch then loads only the exact source/tests/dependencies required for its A-I track.
+
+## 26. CACE-owned local agent runtime and heartbeat recovery
+
+CACE should implement a provider-independent Local AI runtime described by `docs/CACE_LOCAL_AGENT_RUNTIME.md` and `docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md`.
+
+Google Antigravity and Gemini/AI Studio are preferred build/orchestration environments, but the finished Local AI must retain a genuine Local / Zero Contact mode requiring no cloud/network service.
+
+Agent liveness, meaningful durable progress, checkpoints, semantic canvas heartbeat state, and canonical scientific verification are separate concepts. Heartbeats support observability, scheduling, attention and recovery; they can never create or promote PASS, VERIFIED, FORMAL, theorem qualification, proof-ledger, or source-to-formal evidence.

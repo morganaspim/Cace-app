@@ -946,6 +946,34 @@
         "Examples are executable/versioned/tested and can be added directly to Canvas.",
         "Long-term curated example library grows toward roughly 100 high-value demonstrations without confusing historical outputs with current evidence."
       ]
+    },
+    {
+      "id": "G065",
+      "category": "ai_context",
+      "priority": 65,
+      "intent_status": "required",
+      "title": "Bounded AI context pack for Gemini and Antigravity",
+      "summary": "Guarantee coding agents see the complete A-I implementation program, durable goals and idea ledger without exceeding Gemini's observed ~1000-file ingestion limit.",
+      "acceptance": [
+        "AI_CONTEXT/00_START_HERE.md is reachable from AGENTS.md, GEMINI.md and CACE_AGENT_BOOTSTRAP.json.",
+        "Planned context pulls are capped at 800 files and fail closed on truncation/discard.",
+        "Tier 0 always includes GOAL_REGISTRY and CHAT_IDEA_LEDGER so deferred ideas are not lost.",
+        "Task source is loaded in deterministic shards rather than whole-repository bulk pulls."
+      ]
+    },
+    {
+      "id": "G066",
+      "category": "ai_agent_runtime",
+      "priority": 66,
+      "intent_status": "required",
+      "title": "Provider-independent local agent runtime with heartbeat recovery",
+      "summary": "Build CACE-owned local agentic AI with zero-contact mode, typed tools, leases, checkpoints, semantic canvas heartbeats and strict evidence isolation.",
+      "acceptance": [
+        "Local/Zero Contact mode requires no cloud/network dependency.",
+        "Agent liveness, progress, checkpoint and verification states remain distinct.",
+        "Heartbeat/checkpoint protocol supports monotonic sequencing, lease expiry and recovery.",
+        "AI/heartbeat state cannot create PASS, VERIFIED, FORMAL or proof-ledger promotion."
+      ]
     }
   ]
 }

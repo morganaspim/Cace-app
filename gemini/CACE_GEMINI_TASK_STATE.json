@@ -98,6 +98,11 @@
     }
   ],
   "required_first_read": [
+    "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
+    "docs/CACE_LOCAL_AGENT_RUNTIME.md",
+    "AI_CONTEXT/PULL_MANIFEST.json",
+    "AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md",
+    "AI_CONTEXT/00_START_HERE.md",
     "GEMINI.md",
     "CACE_AGENT_BOOTSTRAP.json",
     "CACE_AI_BUILDER_CONTRACT.md",
@@ -142,5 +147,24 @@
     ],
     "browser_work_allowed": "Only minimal API/client scaffolding that does not freeze unstable math/science interfaces.",
     "heavy_ui_polish": "deferred"
+  },
+  "context_loading_policy": {
+    "max_files_per_pull": 800,
+    "fail_closed_on_truncation": true,
+    "canonical_entrypoint": "AI_CONTEXT/00_START_HERE.md",
+    "implementation_plan": "AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md",
+    "idea_sources": [
+      "docs/GOAL_REGISTRY.json",
+      "docs/CHAT_IDEA_LEDGER.md"
+    ]
+  },
+  "local_agent_program": {
+    "status": "SPECIFIED; major implementation follows RMK/API foundation",
+    "specification": "docs/CACE_LOCAL_AGENT_RUNTIME.md",
+    "heartbeat_specification": "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
+    "antigravity_entrypoint": ".agents/AGENTS.md",
+    "antigravity_skill": ".agents/skills/cace-local-agent-runtime/SKILL.md",
+    "zero_contact_required": true,
+    "evidence_authority": false
   }
 }

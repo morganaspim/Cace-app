@@ -7,6 +7,12 @@
     "production_ready": false
   },
   "first_read": [
+    ".agents/AGENTS.md",
+    "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
+    "docs/CACE_LOCAL_AGENT_RUNTIME.md",
+    "AI_CONTEXT/PULL_MANIFEST.json",
+    "AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md",
+    "AI_CONTEXT/00_START_HERE.md",
     "GEMINI.md",
     "docs/GEMINI_AI_STUDIO_HANDOFF.md",
     "gemini/CACE_GEMINI_TASK_STATE.json",
@@ -47,7 +53,9 @@
     "security_policy": "docs/SECURITY_ARCHITECTURE.md",
     "provenance_policy": "docs/PROVENANCE_ATTESTATION.md",
     "ai_builder_contract": "CACE_AI_BUILDER_CONTRACT.md",
-    "source_to_formal_linkage": "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md"
+    "source_to_formal_linkage": "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
+    "local_agent_runtime": "docs/CACE_LOCAL_AGENT_RUNTIME.md",
+    "agent_heartbeat_protocol": "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -351,5 +359,17 @@
       "Help + executable examples",
       "Gemini web presentation polish"
     ]
+  },
+  "ai_context_loading": {
+    "max_files_per_pull": 800,
+    "fail_closed_on_truncation": true,
+    "entrypoint": "AI_CONTEXT/00_START_HERE.md",
+    "implementation_program": "AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md",
+    "pull_manifest": "AI_CONTEXT/PULL_MANIFEST.json",
+    "all_idea_sources": [
+      "docs/GOAL_REGISTRY.json",
+      "docs/CHAT_IDEA_LEDGER.md"
+    ],
+    "rule": "Tier-0 instructions first, then deterministic task-specific source shards; never trust silently discarded files."
   }
 }
