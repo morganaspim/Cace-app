@@ -2,7 +2,7 @@
   "schema_version": 1,
   "status": "implementation coordination only; not verification evidence",
   "primary_environment": "Google AI Studio / Gemini",
-  "integration_mode": "web-presentation-against-cace-api",
+  "integration_mode": "dual-mode-presentation-and-rigorous-tool-builder",
   "hard_boundary": {
     "browser_owns": [
       "React/TypeScript presentation",
@@ -98,6 +98,9 @@
     }
   ],
   "required_first_read": [
+    "schema/cace-agent-perception.schema.json",
+    "collaboration/schema/cace-ai-tool-submission.schema.json",
+    "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
     "docs/CACE_AGENT_HEARTBEAT_PROTOCOL.md",
     "docs/CACE_LOCAL_AGENT_RUNTIME.md",
     "AI_CONTEXT/PULL_MANIFEST.json",
@@ -165,6 +168,27 @@
     "antigravity_entrypoint": ".agents/AGENTS.md",
     "antigravity_skill": ".agents/skills/cace-local-agent-runtime/SKILL.md",
     "zero_contact_required": true,
+    "evidence_authority": false
+  },
+  "builder_modes": {
+    "presentation_builder": {
+      "allowed": true,
+      "rule": "Browser presentation/controller against canonical typed API; no scientific/proof duplication in JS/TS/Node."
+    },
+    "rigorous_tool_builder": {
+      "allowed": true,
+      "specification": "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
+      "cpp_allowed": true,
+      "lean_draft_and_proof_allowed": true,
+      "source_to_formal_allowed": true,
+      "self_formal_promotion_allowed": false,
+      "unfinished_submission_schema": "collaboration/schema/cace-ai-tool-submission.schema.json",
+      "submission_validator": "scripts/validate_ai_tool_submission.py"
+    }
+  },
+  "agent_perception": {
+    "schema": "schema/cace-agent-perception.schema.json",
+    "purpose": "compact non-evidentiary live canvas state stream for local-AI attention/planning",
     "evidence_authority": false
   }
 }
