@@ -9,9 +9,15 @@ from cace_studio.core.native_runtime import NativeRuntime
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.reproducibility import experiment_fingerprint, registry_contract_fingerprint
 
+from .autonomy_loop import (
+    FileAutonomySessionStore,
+    ReplanProvider,
+    register_autonomy_loop_tools,
+)
 from .canvas_mutation import FileCanvasPreviewStore, register_canvas_mutation_tools
 from .canvas_plan import FileCanvasPlanStore, register_canvas_plan_tools
 from .contracts import Capability, ToolContext, TypedTool
+from .perception import AgentNetworkMode
 from .tool_bus import ToolBus
 from .workspace_store import FileExperimentWorkspace
 
@@ -138,6 +144,9 @@ def register_core_tools(
     canvas_preview_store: FileCanvasPreviewStore | None = None,
     canvas_workspace_store: FileExperimentWorkspace | None = None,
     canvas_plan_store: FileCanvasPlanStore | None = None,
+    autonomy_session_store: FileAutonomySessionStore | None = None,
+    autonomy_replan_provider: ReplanProvider | None = None,
+    autonomy_network_mode: AgentNetworkMode = AgentNetworkMode.LOCAL_ZERO_CONTACT,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
 
@@ -280,7 +289,7 @@ def register_core_tools(
             workspace_store=canvas_workspace_store,
         )
         if canvas_workspace_store is not None and canvas_plan_store is not None:
-            register_canvas_plan_tools(
+            plan_runtime = register_canvas_plan_tools(
                 bus,
                 canvas_runtime=canvas_runtime,
                 registry=registry,
@@ -288,3 +297,15 @@ def register_core_tools(
                 plan_store=canvas_plan_store,
                 workspace_store=canvas_workspace_store,
             )
+            if autonomy_session_store is not None:
+                register_autonomy_loop_tools(
+                    bus,
+                    registry=registry,
+                    plan_runtime=plan_runtime,
+                    plan_store=canvas_plan_store,
+                    workspace_store=canvas_workspace_store,
+                    session_store=autonomy_session_store,
+                    replan_provider=autonomy_replan_provider,
+                    network_mode=autonomy_network_mode,
+                    gpu_enabled=gpu_enabled,
+                )

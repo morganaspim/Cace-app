@@ -802,3 +802,180 @@ A recovered historical plan returns the exact approved historical target from it
 Plan approval, dependency estimates, child transactions, workspace hashes, and plan completion remain engineering coordination/provenance.
 
 They do not create verifier PASS, FORMAL evidence, theorem qualification, or proof-ledger promotion.
+
+
+## v1.7 bounded Plan -> Execute -> Observe -> Replan autonomy
+
+v1.7 adds a durable autonomy-session layer above the approved multi-step plan runtime.
+
+The design deliberately does **not** mean “approve once and mutate forever.” One autonomy cycle is the largest approval unit.
+
+A cycle is:
+
+`approved pending plan -> execute exact plan -> run one bounded scientific experiment -> build canonical perception -> optionally preview one follow-up plan`
+
+If a follow-up plan is created, the session returns to `WAITING_PLAN_APPROVAL`. That new plan cannot mutate the workspace until a new approval is granted for that exact plan identity.
+
+### Host-created autonomy session
+
+Autonomy sessions are created by the trusted host/UI through `AutonomyLoopRuntime.create_session(...)`, not by arbitrary planner text.
+
+A durable session binds:
+
+- session ID;
+- research objective;
+- workspace ID;
+- exact pending plan ID;
+- immutable run specification;
+- explicit autonomy budget;
+- cycle/science/replan counters;
+- latest canonical perception packet; and
+- immutable completed-cycle receipts.
+
+The session store uses cross-process locking, content-hashed envelopes, and atomic replacement.
+
+### Explicit budgets
+
+`AutonomyLoopBudget` bounds:
+
+- total approved cycles;
+- total scientific runs;
+- total automatic replans; and
+- maximum plan steps per cycle.
+
+Budgets are persisted in the session and counters may never exceed them.
+
+When there is no remaining cycle/run/replan budget, the session finishes instead of silently extending autonomy.
+
+### One approval per workspace-changing cycle
+
+`cace.autonomy.advance` accepts:
+
+- `session_id`; and
+- the session's exact current `plan_id`.
+
+Its approval callback resolves the durable session and durable plan and presents the human with:
+
+- objective;
+- total budget and budget already used;
+- exact scientific run specification;
+- exact immutable pending plan;
+- every child preview/hash/version transition;
+- dependency estimates; and
+- the explicit post-plan behavior: one science run, perception, and at most one follow-up plan preview.
+
+The plan ID is part of the Tool Bus canonical input hash and operation identity. A new replan therefore cannot inherit approval from a previous plan.
+
+### Science execution
+
+After the approved plan commits, CACE loads the persisted workspace and requires its version and semantic/full hashes to equal the approved plan target.
+
+Only then does the loop execute the canonical `GraphExecutor`.
+
+The run specification can bind:
+
+- selected-upstream target node IDs;
+- external inputs; and
+- deterministic seed.
+
+An interrupted/incomplete run does not advance the autonomy session.
+
+### Observation
+
+A real `RunResult` is summarized into a non-authoritative `AutonomyRunSummary`.
+
+The same real result is passed to `AgentPerceptionTracker` so canonical evidence states continue to derive only from actual `VerificationRecord` objects.
+
+The perception packet remains:
+
+- `evidence_authority = false`;
+- incapable of manufacturing PASS/FORMAL state; and
+- observation input for replanning only.
+
+Perception trackers are isolated per autonomy session.
+
+### Strict local-AI replanning
+
+`LocalJSONReplanProvider` adapts the existing loopback-only `AIProvider` interface.
+
+The local model is allowed to return exactly one JSON object:
+
+- `{"action":"finish"}`; or
+- `{"action":"replan","steps":[...]}`.
+
+No free-form response is executable.
+
+A replan is decoded into the typed `CanvasPlanPreviewRequest` contract, then processed by the existing deterministic/canonical plan-preview path.
+
+The model cannot:
+
+- execute the follow-up plan;
+- grant its own approval;
+- mutate the workspace directly;
+- create verification evidence;
+- promote proof state; or
+- bypass plan/graph validation.
+
+### Follow-up plans are preview-only
+
+The replan provider may create at most one follow-up plan per completed cycle.
+
+That plan preview is durable and content-addressed, but it does **not** mutate the workspace.
+
+The autonomy session stores its ID as the new `pending_plan_id` and returns to `WAITING_PLAN_APPROVAL`.
+
+The next mutation requires a distinct Tool Bus operation and a new human approval.
+
+### Durable cycle receipts
+
+Every fully completed autonomy cycle stores an immutable receipt before the outer Tool Bus operation is finalized.
+
+A cycle receipt binds:
+
+- outer operation ID;
+- executed plan ID;
+- cycle index; and
+- the exact typed cycle response, including science run ID, perception, next plan ID, workspace version, and remaining budgets.
+
+If the process crashes after session persistence but before operation-ledger finalization, recovery returns the stored cycle response without:
+
+- re-executing the workspace plan;
+- rerunning science;
+- invoking the replan model again; or
+- asking the human to approve the same exact operation again.
+
+The v1.6 durable approval bit is reused only when operation ID, tool name, and canonical input hash still match exactly.
+
+### Fail-closed post-mutation behavior
+
+Before an approved plan begins, malformed/stale session or plan inputs are safe precondition failures.
+
+After the plan has committed, failures in:
+
+- workspace-target verification;
+- scientific execution;
+- perception construction;
+- local replan generation/validation; or
+- durable cycle-receipt persistence
+
+are not misclassified as harmless input errors. They stop automatic continuation and remain recovery-visible.
+
+### Deliberate race boundary
+
+A science observation is only started after the persisted workspace is verified to still equal the just-approved plan target.
+
+If another worker advances the workspace before that check, CACE refuses to observe/replan from the wrong graph.
+
+If a crash occurs after plan completion but before a durable cycle receipt and a later worker advances the workspace, recovery fails closed rather than pretending the later workspace is the approved experiment that was meant to be observed.
+
+### Trust boundary
+
+Autonomy sessions, budgets, plan approvals, run summaries, perceptions, and replans remain orchestration/provenance.
+
+They do not create:
+
+- verifier PASS;
+- FORMAL evidence;
+- theorem qualification;
+- proof-ledger promotion; or
+- mathematical correctness.
