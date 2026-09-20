@@ -53,7 +53,7 @@ class NativeRuntime:
                     lib.cace_exact_mesh_destroy.argtypes=[ctypes.c_void_p]
                     lib.cace_exact_mesh_counts.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int)]
                     lib.cace_exact_mesh_signed_jacobian.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64)]
-                    lib.cace_exact_assembly_status.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int)]
+                    lib.cace_exact_assembly_status.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int)]
                     lib.cace_exact_cell_values.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int,ctypes.POINTER(ctypes.c_int64),ctypes.POINTER(ctypes.c_int64),ctypes.c_int]
                 self.lib=lib
                 ver=(lib.cace_runtime_version() or b'').decode()
@@ -114,11 +114,19 @@ class NativeRuntime:
             coord_values.extend(vertex)
         coord_num,coord_den=self._exact_arrays(coord_values)
 
-        tri=np.ascontiguousarray(triangles,dtype=np.int32)
-        if tri.ndim!=2 or tri.shape[1]!=3:
-            raise ValueError("triangles must be an N x 3 integer array")
-        if np.any(tri<0):
-            raise ValueError("triangle vertex ids must be nonnegative")
+        strict_triangles=[]
+        for triangle in triangles:
+            if len(triangle)!=3:
+                raise ValueError("triangles must be an N x 3 integer array")
+            row=[]
+            for vertex_id in triangle:
+                if isinstance(vertex_id,bool) or not isinstance(vertex_id,int):
+                    raise ValueError("triangle vertex ids must be genuine integers")
+                if vertex_id<0 or vertex_id>np.iinfo(np.int32).max:
+                    raise ValueError("triangle vertex ids must fit nonnegative int32")
+                row.append(vertex_id)
+            strict_triangles.append(row)
+        tri=np.ascontiguousarray(strict_triangles,dtype=np.int32)
 
         def flatten_cells(cells,name):
             values=[]
@@ -155,14 +163,14 @@ class NativeRuntime:
                 if rc: raise RuntimeError(f"native exact Jacobian failed with code {rc}")
                 jacobians.append(str(Fraction(num.value,den.value)))
 
-            ready=ctypes.c_int(); local_green=ctypes.c_int()
+            ready=ctypes.c_int(); local_green=ctypes.c_int(); orthogonality=ctypes.c_int()
             eq_fail=ctypes.c_int(); bdy_fail=ctypes.c_int(); int_fail=ctypes.c_int()
             rc=self.lib.cace_exact_assembly_status(
                 handle,
                 self._pi64(pnum),self._pi64(pden),
                 self._pi64(qnum),self._pi64(qden),
                 len(triangles),
-                ctypes.byref(ready),ctypes.byref(local_green),
+                ctypes.byref(ready),ctypes.byref(local_green),ctypes.byref(orthogonality),
                 ctypes.byref(eq_fail),ctypes.byref(bdy_fail),ctypes.byref(int_fail),
             )
             if rc: raise RuntimeError(f"native exact assembly status failed with code {rc}")
@@ -198,6 +206,7 @@ class NativeRuntime:
                 "cell_values":cell_values,
                 "assembly":{
                     "all_local_green":bool(local_green.value),
+                    "orthogonality_sum_zero":bool(orthogonality.value),
                     "equilibrium_failures":eq_fail.value,
                     "boundary_failures":bdy_fail.value,
                     "interior_failures":int_fail.value,
