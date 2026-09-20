@@ -6,6 +6,9 @@
 #include "cace/math/vector.hpp"
 #include "cace/math/sparse_matrix.hpp"
 #include "cace/math/exact_linalg.hpp"
+#include "cace/math/polynomial.hpp"
+#include "cace/math/affine.hpp"
+#include "cace/math/geometry.hpp"
 
 namespace py = pybind11;
 
@@ -20,6 +23,9 @@ PYBIND11_MODULE(_cace_runtime, m) {
     using cace::math::ExactVector;
     using cace::math::ExactMatrix;
     using cace::math::ExactSparseMatrix;
+    using cace::math::ExactPolynomial;
+    using cace::math::ExactAffineMap;
+    using cace::math::ExactSimplex;
     using cace::math::MathPacket;
     using cace::math::Rational;
 
@@ -117,6 +123,72 @@ PYBIND11_MODULE(_cace_runtime, m) {
     m.def("exact_is_positive_definite", &cace::math::is_positive_definite);
     m.def("exact_is_negative_definite", &cace::math::is_negative_definite);
 
+    py::class_<ExactPolynomial>(m, "ExactPolynomial")
+        .def(py::init<>())
+        .def(py::init<std::size_t>())
+        .def(py::init<std::size_t, std::vector<ExactPolynomial::Term>>())
+        .def_property_readonly("variables", &ExactPolynomial::variables)
+        .def_property_readonly("term_count", &ExactPolynomial::term_count)
+        .def_property_readonly("total_degree", &ExactPolynomial::total_degree)
+        .def_property_readonly("is_zero", &ExactPolynomial::is_zero)
+        .def("evaluate", &ExactPolynomial::evaluate)
+        .def("derivative", &ExactPolynomial::derivative)
+        .def("gradient", &ExactPolynomial::gradient)
+        .def("hessian", &ExactPolynomial::hessian)
+        .def("scaled", &ExactPolynomial::scaled)
+        .def("compose", &ExactPolynomial::compose)
+        .def("canonical_text", &ExactPolynomial::canonical_text)
+        .def("packet_hash", [](const ExactPolynomial& value) {
+            return MathPacket::exact_polynomial(value).semantic_hash();
+        })
+        .def_static("constant", &ExactPolynomial::constant)
+        .def_static("variable", &ExactPolynomial::variable)
+        .def("__add__", [](const ExactPolynomial& a, const ExactPolynomial& b) { return a + b; }, py::is_operator())
+        .def("__sub__", [](const ExactPolynomial& a, const ExactPolynomial& b) { return a - b; }, py::is_operator())
+        .def("__mul__", [](const ExactPolynomial& a, const ExactPolynomial& b) { return a * b; }, py::is_operator())
+        .def("__neg__", [](const ExactPolynomial& value) { return -value; }, py::is_operator())
+        .def("__eq__", [](const ExactPolynomial& a, const ExactPolynomial& b) { return a == b; }, py::is_operator());
+
+    py::class_<ExactAffineMap>(m, "ExactAffineMap")
+        .def(py::init<>())
+        .def(py::init<ExactMatrix, ExactVector>())
+        .def_property_readonly("input_dimension", &ExactAffineMap::input_dimension)
+        .def_property_readonly("output_dimension", &ExactAffineMap::output_dimension)
+        .def_property_readonly("linear", &ExactAffineMap::linear,
+             py::return_value_policy::reference_internal)
+        .def_property_readonly("translation", &ExactAffineMap::translation,
+             py::return_value_policy::reference_internal)
+        .def("apply", &ExactAffineMap::apply)
+        .def("compose", &ExactAffineMap::compose)
+        .def("inverse", &ExactAffineMap::inverse)
+        .def("jacobian_determinant", &ExactAffineMap::jacobian_determinant)
+        .def("canonical_text", &ExactAffineMap::canonical_text)
+        .def("packet_hash", [](const ExactAffineMap& value) {
+            return MathPacket::exact_affine_map(value).semantic_hash();
+        })
+        .def_static("identity", &ExactAffineMap::identity)
+        .def("__eq__", [](const ExactAffineMap& a, const ExactAffineMap& b) { return a == b; }, py::is_operator());
+
+    py::class_<ExactSimplex>(m, "ExactSimplex")
+        .def(py::init<std::vector<ExactVector>>())
+        .def_property_readonly("dimension", &ExactSimplex::dimension)
+        .def_property_readonly("vertices", &ExactSimplex::vertices,
+             py::return_value_policy::reference_internal)
+        .def("edge_matrix", &ExactSimplex::edge_matrix)
+        .def("signed_jacobian", &ExactSimplex::signed_jacobian)
+        .def("orientation", &ExactSimplex::orientation)
+        .def("signed_volume", &ExactSimplex::signed_volume)
+        .def("volume", &ExactSimplex::volume)
+        .def("barycentric_coordinates", &ExactSimplex::barycentric_coordinates)
+        .def("from_barycentric", &ExactSimplex::from_barycentric)
+        .def("contains_closed", &ExactSimplex::contains_closed)
+        .def("reference_map", &ExactSimplex::reference_map)
+        .def("canonical_text", &ExactSimplex::canonical_text)
+        .def("packet_hash", [](const ExactSimplex& value) {
+            return MathPacket::exact_simplex(value).semantic_hash();
+        })
+        .def("__eq__", [](const ExactSimplex& a, const ExactSimplex& b) { return a == b; }, py::is_operator());
+
     py::class_<MathPacket>(m, "MathPacket")
         .def(py::init<>())
         .def_readwrite("schema_version", &MathPacket::schema_version)
@@ -131,7 +203,10 @@ PYBIND11_MODULE(_cace_runtime, m) {
         .def_static("from_rational", &MathPacket::rational)
         .def_static("from_exact_vector", &MathPacket::exact_vector)
         .def_static("from_exact_matrix", &MathPacket::exact_matrix)
-        .def_static("from_exact_sparse_matrix", &MathPacket::exact_sparse_matrix);
+        .def_static("from_exact_sparse_matrix", &MathPacket::exact_sparse_matrix)
+        .def_static("from_exact_polynomial", &MathPacket::exact_polynomial)
+        .def_static("from_exact_affine_map", &MathPacket::exact_affine_map)
+        .def_static("from_exact_simplex", &MathPacket::exact_simplex);
 
     m.def("semantic_sha256", &cace::math::semantic_sha256);
 }
