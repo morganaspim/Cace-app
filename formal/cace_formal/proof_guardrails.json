@@ -64,12 +64,11 @@
     "CACEFormal.PositiveLaplacianAnnihilator",
     "CACEFormal.HDivGraphAnnihilator",
     "CACEFormal.OrthogonalClosure",
-    "CACEFormal.HDivDensityReduction"
+    "CACEFormal.HDivDensityReduction",
+    "CACEFormal.RuntimeRMKCoreBridge",
+    "CACEFormal.RuntimeGroupExteriorBridge"
   ],
-  "quarantined_root_imports": [
-    "CACEFormal.RuntimeGroupExteriorBridge",
-    "CACEFormal.RuntimeRMKCoreBridge"
-  ],
+  "quarantined_root_imports": [],
   "policy": {
     "root_imports_are_exact_allowlist": true,
     "quarantined_modules_may_not_enter_root": true,

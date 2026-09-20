@@ -95,6 +95,7 @@ jobs:
             tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
             tests/test_proof_contract_v336.py \
+            tests/test_rmk_formal_qualification.py \
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
             tests/test_qualification_promotion_v339.py

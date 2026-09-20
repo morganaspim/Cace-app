@@ -181,7 +181,8 @@ jobs:
             tests/test_export_v330_environment_metadata.py \
             tests/test_continuum_attestation_v337.py \
             tests/test_lean_theorem_metadata_v336.py \
-            tests/test_proof_contract_v336.py
+            tests/test_proof_contract_v336.py \
+            tests/test_rmk_formal_qualification.py
           python scripts/check_bug_sweep.py
 
       - name: Prepare isolated formal qualification build and cache identity
@@ -519,19 +520,22 @@ jobs:
           from pathlib import Path
           from cace_studio.core.proof_contract import ProofContractRegistry
 
-          contract = ProofContractRegistry.load_default().for_claim('cace.v330.continuum-proof-strengthening')
-          if contract is None:
-              raise SystemExit('missing ProofContract')
+          registry = ProofContractRegistry.load_default()
           pattern = re.compile(r'\bsorry\b|\badmit\b|OPEN OBLIGATION')
           failures = []
+          checked = set()
           root = Path('formal/cace_formal')
-          for relative in contract.audited_source_files:
-              text = (root / relative).read_text(encoding='utf-8')
-              if pattern.search(text):
-                  failures.append(relative)
+          for contract in registry.contracts:
+              for relative in contract.audited_source_files:
+                  if relative in checked:
+                      continue
+                  checked.add(relative)
+                  text = (root / relative).read_text(encoding='utf-8')
+                  if pattern.search(text):
+                      failures.append(relative)
           if failures:
               raise SystemExit(f'Unfinished proof tokens in audited sources: {failures}')
-          print(f'CACE_UNFINISHED_TOKEN_GUARD_PASS:{len(contract.audited_source_files)}')
+          print(f'CACE_UNFINISHED_TOKEN_GUARD_PASS:{len(checked)}')
           PY
 
       - name: Re-verify exact source state before formal qualification work
@@ -541,6 +545,20 @@ jobs:
           test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
           diff -qr --exclude=.lake --exclude=lake-manifest.json formal/cace_formal "$CACE_FORMAL_DIR"
+
+      - name: Compile audited root and RMK kernel-audit surface
+        shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        env:
+          LEAN_ABORT_ON_PANIC: '1'
+        run: |
+          set -euo pipefail
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase audited-root-build -- \
+            lake build CACEFormal
+          python "$GITHUB_WORKSPACE/scripts/cace_run_with_heartbeat.py" \
+            --phase rmk-axiom-audit-build -- \
+            lake build CACEFormal.RMKAxiomAudit
 
       - name: Compile unconditional H1 reconstruction and graph converse
         shell: bash
@@ -616,6 +634,43 @@ jobs:
           print('CACE_V337_METADATA_AND_KERNEL_AUDIT_BINDING_PASS')
           PY
 
+      - name: Build exact-current-head RMK formal qualification
+        shell: bash
+        working-directory: ${{ env.CACE_FORMAL_DIR }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" python "$GITHUB_WORKSPACE/scripts/export_rmk_qualification.py" \
+            --formal-dir "$CACE_FORMAL_DIR" \
+            --output-dir "$CACE_OUTPUT_DIR" \
+            --git-commit "$CACE_EXPECTED_SHA"
+
+      - name: Verify RMK formal qualification binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from cace_studio.core.proof_contract import ProofContractRegistry
+
+          output = Path(os.environ['CACE_OUTPUT_DIR'])
+          artifact = json.loads((output / 'rmk_formal_qualification.json').read_text())
+          contract = ProofContractRegistry.load_default().for_claim('cace.rmk.runtime-formal-linkage-v1')
+          if contract is None:
+              raise SystemExit('missing RMK proof contract')
+          assert artifact['artifact_schema'] == 'cace-rmk-formal-qualification-v1'
+          assert artifact['qualification_state'] == 'LEAN_KERNEL_AUDITED'
+          assert artifact['claim_id'] == contract.claim_id
+          assert artifact['proof_contract_id'] == contract.contract_id
+          assert artifact['proof_contract_sha256'] == contract.contract_sha256
+          assert artifact['git_commit'] == os.environ['CACE_EXPECTED_SHA']
+          assert artifact['mathlib_commit'] == os.environ['CACE_MATHLIB_COMMIT']
+          assert artifact['theorem_count'] == len(contract.endpoint_theorems)
+          assert artifact['kernel_axiom_audit']['theorem_count'] == len(contract.endpoint_theorems)
+          assert len(artifact['audited_source_bundle']['bundle_sha256']) == 64
+          print('CACE_RMK_FORMAL_QUALIFICATION_BINDING_PASS')
+          PY
+
       - name: Verify exact-current-head attestation preconditions
         shell: bash
         run: |
@@ -627,6 +682,8 @@ jobs:
           test -s "$CACE_FORMAL_DIR/lake-manifest.json"
           test -s "$CACE_OUTPUT_DIR/v330_kernel_axiom_audit.json"
           test -s "$CACE_OUTPUT_DIR/v330_lean_environment_metadata.json"
+          test -s "$CACE_OUTPUT_DIR/rmk_kernel_axiom_audit.json"
+          test -s "$CACE_OUTPUT_DIR/rmk_formal_qualification.json"
 
       - name: Build exact-current-head continuum proof attestation
         shell: bash
@@ -652,6 +709,8 @@ jobs:
           sha256sum -c cace_continuum_qualification_attestation.json.sha256
           sha256sum -c v330_lean_environment_metadata.json.sha256
           sha256sum -c v330_kernel_axiom_audit.json.sha256
+          sha256sum -c rmk_formal_qualification.json.sha256
+          sha256sum -c rmk_kernel_axiom_audit.json.sha256
           printf '%s\n' "$CACE_EXPECTED_SHA" > commit.txt
           printf '%s\n' "$GITHUB_RUN_ID" > workflow_run_id.txt
           printf '%s\n' "$GITHUB_RUN_ATTEMPT" > workflow_run_attempt.txt
@@ -670,6 +729,11 @@ jobs:
             ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.json
             ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.json.sha256
             ${{ env.CACE_OUTPUT_DIR }}/v330_kernel_axiom_audit.raw.txt
+            ${{ env.CACE_OUTPUT_DIR }}/rmk_formal_qualification.json
+            ${{ env.CACE_OUTPUT_DIR }}/rmk_formal_qualification.json.sha256
+            ${{ env.CACE_OUTPUT_DIR }}/rmk_kernel_axiom_audit.json
+            ${{ env.CACE_OUTPUT_DIR }}/rmk_kernel_axiom_audit.json.sha256
+            ${{ env.CACE_OUTPUT_DIR }}/rmk_kernel_axiom_audit.raw.txt
             ${{ env.CACE_OUTPUT_DIR }}/commit.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_id.txt
             ${{ env.CACE_OUTPUT_DIR }}/workflow_run_attempt.txt

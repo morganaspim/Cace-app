@@ -1,6 +1,6 @@
 {
   "schema_version": "cace-rmk-formal-linkage-v1",
-  "status": "preflight-required; no formal promotion",
+  "status": "audited-root promotion candidate; canonical exact-head qualification pending",
   "exact_runtime_head_scope": "RMK-1 through RMK-4 plus exact permutation/group-action kernel",
   "bridge_modules": [
     "CACEFormal.RuntimeRMKCoreBridge",
@@ -10,49 +10,49 @@
     {
       "runtime": "Rational / ExactVector (2D specialization)",
       "formal": "Lean ℚ + RuntimeRMK.Vec2",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "Exact rational semantics; runtime packet/source identity still required before formal promotion."
     },
     {
       "runtime": "ExactMatrix 2x2 specialization",
       "formal": "RuntimeRMK.Mat2",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "matvec, matrix composition and determinant semantics modeled."
     },
     {
       "runtime": "exact solution/inverse checkers",
       "formal": "RuntimeRMK.verifiesSolution / verifiesInverse",
-      "state": "CHECKER_SEMANTICS_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "Checker proposition semantics only; C++ Gaussian/RREF algorithm itself is not yet proved."
     },
     {
       "runtime": "ExactAffineMap 2D specialization",
       "formal": "RuntimeRMK.AffineMap2 -> CACEFormal.Affine2",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "Exact Ax+b and determinant correspondence."
     },
     {
       "runtime": "ExactPlaneRotor 2D",
       "formal": "RuntimeRMK.PlaneRotor2",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "Unit constraint implies determinant 1 and exact squared-norm preservation."
     },
     {
       "runtime": "ExactExterior top-grade 2D",
       "formal": "RuntimeRMK.wedge -> ExteriorPower2",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "Pushforward determinant law refines existing ExteriorPower2.wedge_grade1 theorem."
     },
     {
       "runtime": "ExactPermutation degree-2 action",
       "formal": "RuntimeRMK.Permutation2",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "Coordinate action, determinant sign and wedge orientation sign."
     },
     {
       "runtime": "ExactSimplex triangle orientation under vertex swap",
       "formal": "RuntimeRMK.triangle_swap01_det",
-      "state": "BRIDGE_DRAFT",
+      "state": "AUDITED_ROOT_CANDIDATE",
       "notes": "2D simplex orientation law."
     },
     {
@@ -80,5 +80,14 @@
       "notes": "Degree-2 action semantics bridged; general finite closure and canonicalization correctness remain future formal obligations."
     }
   ],
-  "evidence_rule": "BRIDGE_DRAFT and CHECKER_SEMANTICS_DRAFT are not FORMAL/PASS. Exact-Pin preflight only checks compilation and proof elaboration; audited promotion and canonical exact-head qualification are separate."
+  "evidence_rule": "AUDITED_ROOT_CANDIDATE is not FORMAL/PASS. Promotion requires audited-root Exact-Pin compile, explicit RMKAxiomAudit kernel checks, and canonical exact-current-head qualification bound to the RMK proof contract. NOT_LINKED items remain outside formal scope.",
+  "promotion": {
+    "proof_contract_claim_id": "cace.rmk.runtime-formal-linkage-v1",
+    "audit_module": "CACEFormal.RMKAxiomAudit",
+    "required_sequence": [
+      "audited-root Exact-Pin compile",
+      "RMK kernel axiom audit",
+      "exact-current-head qualification artifact"
+    ]
+  }
 }
