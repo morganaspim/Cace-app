@@ -2,6 +2,21 @@
 
 This file is the **Gemini-first repository entrypoint** for implementation work. It is implementation governance only; it is not scientific, proof, qualification, or production-readiness evidence.
 
+## Product architecture contract
+
+> **Gemini builds the interface. Base44 supplies scarce, low-volume commodity app services. Oracle/CACE remains the scientific authority and high-frequency data plane.**
+
+Before browser/product work, also read:
+
+- `docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md`
+- `docs/GEMINI_IMPLEMENTATION_CONTRACT.md`
+- `docs/BASE44_CREDIT_POLICY.md`
+- `docs/ORACLE_ALWAYS_FREE_RESOURCE_POLICY.md`
+- `ops/base44_free_tier_budget.json`
+- `ops/oracle_always_free_budget.json`
+
+Gemini must not use Base44 as an event bus for canvas motion, run/proof polling, worker telemetry, autonomous-agent turns, scientific artifacts, or AI inference. Those paths remain local/browser or Oracle/CACE according to the typed API contract.
+
 ## Primary rule
 
 > **Gemini is a primary CACE implementation builder. It may work in Presentation Builder mode or Rigorous Tool Builder mode. Scientific/exact kernels belong in C++, orchestration in Python, formal mathematics in Lean, and canonical qualification remains external to AI authority. JavaScript/TypeScript/Node must never become an alternate scientific/proof engine.**

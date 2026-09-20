@@ -1,0 +1,25 @@
+{
+  "schema": "cace-oracle-always-free-budget-v1",
+  "last_reviewed": "2026-09-20",
+  "resource_snapshot": {
+    "ampere_a1_total_ocpus": 2,
+    "ampere_a1_total_memory_gb": 12,
+    "block_volume_total_gb": 200
+  },
+  "cace_defaults": {
+    "heavy_science_worker_concurrency": 1,
+    "worker_cpu_cores_max": 1.5,
+    "worker_memory_bytes_max": 6442450944,
+    "host_memory_reserve_bytes": 3221225472,
+    "storage_pressure": {
+      "yellow_fraction": 0.6,
+      "red_fraction": 0.75,
+      "optional_growth_stop_fraction": 0.85
+    }
+  },
+  "policy": {
+    "silent_paid_resource_creation_allowed": false,
+    "concurrent_heavy_science_and_lean_qualification_default": false,
+    "fake_load_to_avoid_idle_reclamation_allowed": false
+  }
+}
