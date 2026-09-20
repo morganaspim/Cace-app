@@ -8,6 +8,12 @@
     "production_ready": false
   },
   "start_here": [
+    "BRANCH_LIFECYCLE.json",
+    "docs/BRANCH_LIFECYCLE.md",
+    "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+    "ops/base44_account_tiers.json",
+    "ops/proof_submission_policy.json",
+    "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
     "GEMINI.md",
     "docs/GEMINI_AI_STUDIO_HANDOFF.md",
     "gemini/CACE_GEMINI_TASK_STATE.json",
@@ -44,7 +50,10 @@
     "module_registry": "cace_studio/app.py",
     "headless_cli": "cace_studio/cli.py",
     "native_runtime": "cpp/",
-    "tests": "tests/"
+    "tests": "tests/",
+    "branch_lifecycle": "BRANCH_LIFECYCLE.json",
+    "proof_submission_workflow": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+    "base44_account_tiers": "ops/base44_account_tiers.json"
   },
   "repository_areas": [
     {
@@ -102,6 +111,7 @@
     "NOT_RUN"
   ],
   "hard_rules_for_agents": [
+    "Use only branches marked ACTIVE in BRANCH_LIFECYCLE.json for new work unless the user explicitly reactivates another branch.",
     "Never convert NOT_RUN or absent verification into PASS.",
     "Never infer a continuum theorem from numerical tests.",
     "Never treat GPU/CPU agreement as mathematical proof.",
@@ -109,7 +119,9 @@
     "Preserve theorem hypotheses and explicit unresolved obligations.",
     "AI output is never verification evidence.",
     "Check exact-commit workflow evidence before saying current source is formally qualified or production-ready.",
-    "Do not claim famous open problems are solved without genuinely complete proof and appropriate external review."
+    "Do not claim famous open problems are solved without genuinely complete proof and appropriate external review.",
+    "Treat UI/Gemini proof submissions and GitHub draft PRs as non-evidentiary until the normal CACE qualification and human-review gates pass.",
+    "Use the Base44 account-tier manifest for product entitlements; Base44 account gating never creates scientific/proof authority."
   ],
   "current_primary_gate": {
     "status_source": "docs/STATUS.md",

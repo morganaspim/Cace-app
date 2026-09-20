@@ -149,3 +149,47 @@ Report:
 - scientific/evidence impact;
 - qualification-sensitive changes yes/no;
 - unresolved obligations.
+
+
+## Proof-candidate submission and GitHub review
+
+When CACE exposes **Submit Proof Candidate for CACE Review** or an Enterprise **Request Full-Rigor Proof Package** flow, Gemini may help package the candidate for review.
+
+Gemini may:
+
+- normalize the theorem/assumption packet;
+- draft Lean source;
+- draft tests and source-to-formal notes;
+- prepare a bounded repository patch;
+- prepare a draft PR description.
+
+Gemini must route the result through `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md` and `ops/proof_submission_policy.json`.
+
+Gemini must never treat the submission, generated Lean, draft PR, or passing preflight as proof authority.
+
+A controlled submission should produce a draft GitHub PR on `submission/proof/<submission-id>`. After the initial submission commit, that branch is a frozen review artifact under `BRANCH_LIFECYCLE.json`.
+
+When CI reaches the human gate, the UI should surface `PR_REVIEW_REQUIRED` with the PR URL, exact head SHA, current checks, unresolved obligations, and recommended next gate so the operator can review it through ChatGPT.
+
+For Enterprise proof packages, the customer purchase flow cannot proceed to completed sale until canonical qualification and deliverability review produce `PROOF_READY_FOR_SALE`.
+
+
+## Base44 account tiers and benefits
+
+Base44/Gemini must use `ops/base44_account_tiers.json` and `docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md` as the account-benefit contract.
+
+Do not duplicate tier benefits in unrelated UI components.
+
+Centralize account feature checks through one entitlement adapter, for example:
+
+`accountEntitlements.can("request_full_rigor_proof_package")`
+
+Required behavior includes:
+
+- Basic: 24-hour first-time intro entitlement, GPU/CUDA when available, single-thread CPU by default, optional perpetual multithread unlock, proof-candidate submission;
+- Researcher: 48-hour first-time intro entitlement, GPU/CUDA, CPU multithreading included, proof-candidate submission;
+- Enterprise: commercial-use entitlement, GPU/CUDA, CPU multithreading included, proof-candidate submission, and eligibility to request a purchasable Full-Rigor Proof Package.
+
+General proof-candidate submission is not Enterprise-only. The commercial Full-Rigor Proof Package path is Enterprise-only.
+
+Base44 may gate ordinary UI benefits from account metadata, but CACE must revalidate scientific/security/proof-sensitive actions server-side.

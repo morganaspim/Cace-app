@@ -610,3 +610,41 @@ Default destination:
 The assistant should not require the user to permanently declare a scientific field. Field relevance may be inferred from the current voluntary conversation and, where the user permits workspace memory, from non-sensitive research preferences and prior CACE activity.
 
 Local/Zero Contact AI remains the preferred privacy-preserving assistant path. When no AI provider is available, the same entry screen must still expose deterministic demo browsing, Help, full capabilities, recent work, and an empty-canvas option.
+
+
+## Proof candidates collected in the UI and GitHub review
+
+CACE may collect proof candidates directly from a workspace/canvas.
+
+When Gemini is enabled, it may help convert a candidate into a typed proof contribution, Lean draft, tests, and a draft GitHub PR. This does not create proof evidence.
+
+The canonical workflow is defined in:
+
+- `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`
+- `ops/proof_submission_policy.json`
+
+### General CACE-improvement submissions
+
+A non-commercial research submission may be sent to GitHub for project review. The generated PR goes through the normal CACE rigor gates. When it reaches the human gate, CACE surfaces a `PR_REVIEW_REQUIRED` operator item so the repository owner can inspect the exact PR/head/checks with ChatGPT and decide whether to merge or request changes.
+
+### Enterprise full-rigor proof requests
+
+If an Enterprise user requests a purchasable proof package, CACE freezes the requested result/scope and may use Gemini to prepare the internal proof contribution/PR.
+
+The proof PR then goes through the same normal rigor checks and human review. The customer is not asked to complete purchase of a finished proof until the result has passed canonical qualification and deliverability/IP review and is explicitly marked `PROOF_READY_FOR_SALE`.
+
+Thus Gemini/GitHub act as implementation/review surfaces, while Oracle/CACE + Lean qualification remain the proof authority and the existing rule remains **prove first, sell second**.
+
+
+## Base44 account entitlement mirror
+
+The Base44-facing machine-readable tier/benefit contract is:
+
+- `ops/base44_account_tiers.json`
+- `docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md`
+
+Base44 may mirror low-volume account/tier/entitlement metadata and use it for ordinary UI gating.
+
+The manifest is a product-entitlement configuration surface, not mathematical evidence. Oracle/CACE remains authoritative for scientific execution, security enforcement, proof qualification, and Enterprise proof-package proof-ready status.
+
+Tier/benefit changes should update the Base44 manifest and this account architecture in the same product-policy change.

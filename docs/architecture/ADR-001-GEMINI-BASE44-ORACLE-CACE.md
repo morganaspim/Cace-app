@@ -178,3 +178,37 @@ Tradeoffs:
 - `docs/ORACLE_ALWAYS_FREE_RESOURCE_POLICY.md`
 - `docs/ARCHITECTURE.md`
 - `docs/SECURITY_ARCHITECTURE.md`
+
+
+## Proof-contribution pathway
+
+The layer split also applies to proof submissions:
+
+```text
+CACE UI
+  -> optional Gemini packaging/draft formalization
+  -> controlled GitHub draft PR
+  -> CACE/Lean rigor pipeline
+  -> operator PR review (ChatGPT-assisted if desired)
+  -> canonical merge/qualification
+```
+
+For Enterprise proof-package requests, this same path happens before the proof is eligible for sale. Base44 may hold low-volume submission/order metadata, but it never stores authoritative proof truth or promotes evidence.
+
+See `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`.
+
+
+## Account entitlement boundary
+
+Base44 owns/mirrors low-volume account entitlement metadata according to `ops/base44_account_tiers.json`.
+
+This may control presentation such as:
+
+- trial/access indicators;
+- GPU/CUDA control visibility;
+- Basic multithread unlock state;
+- Researcher/Enterprise multithread inclusion;
+- Enterprise commercial-use UI;
+- Enterprise Full-Rigor Proof Package request eligibility.
+
+It does not grant Base44 scientific/proof authority. CACE revalidates sensitive operations at the Oracle/CACE boundary.

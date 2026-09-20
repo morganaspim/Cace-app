@@ -7,6 +7,12 @@
     "production_ready": false
   },
   "first_read": [
+    "BRANCH_LIFECYCLE.json",
+    "docs/BRANCH_LIFECYCLE.md",
+    "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+    "ops/base44_account_tiers.json",
+    "ops/proof_submission_policy.json",
+    "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
     "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md",
     "docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md",
     "docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md",
@@ -79,7 +85,12 @@
     "rmk_formal_linkage_matrix": "docs/proofs/RMK_FORMAL_LINKAGE_MATRIX.json",
     "capability_gap_feedback": "docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md",
     "interactive_workbench": "docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md",
-    "geometric_ai_efficiency": "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md"
+    "geometric_ai_efficiency": "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md",
+    "branch_lifecycle": "BRANCH_LIFECYCLE.json",
+    "proof_submission_workflow": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+    "proof_submission_policy": "ops/proof_submission_policy.json",
+    "base44_account_tiers": "ops/base44_account_tiers.json",
+    "base44_account_entitlement_contract": "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -179,13 +190,16 @@
     "semantic_change_rule": "Any transform that changes computation must be an explicit typed graph operation and invalidate/recompute dependent evidence."
   },
   "hard_rules": [
+    "Before repository writes, resolve the branch through BRANCH_LIFECYCLE.json; only ACTIVE is writable by default.",
     "Never weaken proof scope or negative tests merely to pass CI.",
     "Never turn NOT_RUN/absent verification into PASS.",
     "Never treat numerical evidence as continuum proof.",
     "Never treat AI output as verification evidence.",
     "Never treat provenance/signatures/log retention as mathematical proof.",
     "Never claim production readiness from formal proof alone.",
-    "Preserve theorem hypotheses and unresolved obligations."
+    "Preserve theorem hypotheses and unresolved obligations.",
+    "UI/Gemini proof submissions and draft PRs are review candidates only; canonical qualification plus explicit human review remain required.",
+    "Base44/Gemini must use ops/base44_account_tiers.json for Basic/Researcher/Enterprise benefits; do not invent or scatter tier rules in UI code."
   ],
   "completion_checklist_source": "docs/MASTER_BUILD_SPEC.md#19-definition-of-done-for-the-working-webapp",
   "network_security": {

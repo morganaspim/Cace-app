@@ -2,11 +2,24 @@
 
 CACE is a proprietary computational research environment owned by Emmanuel Spiro. Read `LICENSE` and `NOTICE`. AI assistance is optional; the runtime and verification path must not require an AI service.
 
+## Branch lifecycle — read before any repository write
+
+Before checking out, creating, rebasing, committing to, or branching from any Git branch, read:
+
+- `BRANCH_LIFECYCLE.json` — canonical machine-readable branch status registry;
+- `docs/BRANCH_LIFECYCLE.md` — human policy and recovery rules.
+
+**Only branches with status `ACTIVE` are writable by default.** Branch existence, historical CI success, or an open PR does not make a branch current. `INTEGRATION`, `FROZEN`, `DEPRECATED`, `ARCHIVED`, and `REVIEW_REQUIRED` are non-writable unless the user explicitly reactivates/assigns them.
+
+If a requested branch is not ACTIVE, do not guess. Inspect live GitHub/PR state and update the lifecycle registry before doing new work.
+
 ## Start here
 
 **AI context budget:** first read `AI_CONTEXT/00_START_HERE.md` and `AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md`. Never request more than 800 repository files in one AI context pull; if a candidate set is larger, split it deterministically. Do not trust silently discarded/truncated files.
 
 Read these in order before changing scientific or verification behavior:
+
+For UI-collected proof candidates, Enterprise proof-package requests, or Gemini-prepared formal contributions, also read `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md` and `ops/proof_submission_policy.json`. Submission/PR creation is not proof evidence; normal CACE qualification and explicit human review still apply.
 
 **Gemini / Google AI Studio:** begin with `GEMINI.md`. Gemini has two allowed modes: Presentation Builder and Rigorous Tool Builder. In Rigorous Tool Builder mode it may implement C++ kernels, tests, Lean proof attempts, and source-to-formal bindings under `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`; it still cannot self-promote proof/evidence. The browser layer remains presentation only and must not duplicate scientific/proof semantics in JavaScript/TypeScript/Node.
 

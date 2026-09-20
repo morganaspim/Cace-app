@@ -104,3 +104,15 @@ Never present the local estimate as the official bill.
 
 - https://base44.com/pricing
 - https://base44.com/terms-of-service
+
+
+## Account entitlement reads
+
+Account tier/benefit definitions live in `ops/base44_account_tiers.json`.
+
+The app should avoid repeated Base44 entitlement reads:
+
+- resolve/cache the current entitlement view at login/session start;
+- refresh on meaningful entitlement/account changes;
+- do not query Base44 on canvas events, scientific progress, proof polling, or worker heartbeats;
+- revalidate sensitive operations at Oracle/CACE rather than increasing Base44 polling frequency.

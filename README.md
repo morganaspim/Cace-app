@@ -15,11 +15,16 @@ The project deliberately separates software maturity from evidence strength. A n
 
 ## Start here
 
+- `BRANCH_LIFECYCLE.json` — canonical branch status registry; only ACTIVE branches are writable by agents
+- `docs/BRANCH_LIFECYCLE.md` — branch deprecation/freeze/archive policy and recovery rules
 - `GEMINI.md` — Gemini / Google AI Studio entrypoint; browser presentation must consume CACE's typed API/core rather than duplicate scientific/proof semantics
 - `docs/GEMINI_AI_STUDIO_HANDOFF.md` — explicit web integration topology, ownership matrix and migration batches
 - `docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md` — accepted product split: Gemini interface, Base44 commodity services, Oracle/CACE scientific authority
 - `docs/BASE44_CREDIT_POLICY.md` — free-tier monthly Base44 budget and hard-stop policy
 - `docs/ORACLE_ALWAYS_FREE_RESOURCE_POLICY.md` — free-VM CPU/RAM/storage/concurrency guardrails
+- `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md` — UI/Gemini proof candidates → GitHub draft PR → normal rigor → human review; Enterprise prove-first/sell-second path
+- `docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md` — Base44-facing Basic/Researcher/Enterprise benefits and UI entitlement rules
+- `ops/base44_account_tiers.json` — machine-readable account tier/benefit manifest
 - `CACE_AGENT_BOOTSTRAP.json` — single machine-readable repository handoff
 - `docs/BUILD_AND_TRUST_GUIDE.md` — unified build, rigor, security, bug-flush and provenance architecture
 - `docs/STATUS.md` — current implementation and qualification state
