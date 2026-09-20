@@ -16,6 +16,9 @@ Formal/source-to-formal work continues only through the fail-closed proof archit
 
 ## A — Proof, evidence, and regression truth baseline
 
+Gemini/Antigravity may also create new C++ rigorous tools, exact checkers, Lean proofs and source-to-formal bridges under `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`. If a proof cannot be finished, preserve the contribution as a validated proof-ready C++/Lean tool submission packet rather than abandoning the work.
+
+
 Purpose: make CACE incapable of overstating mathematical/scientific status.
 
 Includes:
@@ -109,6 +112,9 @@ Includes:
 
 ## F — Sandboxed Local AI / CACE-owned agent runtime
 
+The Local AI should be able to propose and build reusable CACE tools through the same rigorous contribution pipeline, subject to capability/approval policy. Accepted tools become additional typed capabilities available to later experiments.
+
+
 Purpose: create CACE's own provider-independent agentic AI.
 
 Includes:
@@ -126,6 +132,9 @@ Includes:
 Google Antigravity and Gemini are preferred builders/orchestration surfaces, not proof authorities and not mandatory runtime dependencies.
 
 ## G — Heartbeat, Grow, coordination, and distributed research
+
+Heartbeat includes a typed Agent Perception Packet carrying compact live node-state, residual/convergence, blocker, resource and canonical-evidence deltas. This is the agent's non-evidentiary sensory stream for following the experiment as the canvas evolves.
+
 
 Purpose: make long research tasks observable, resumable, and cheap to coordinate.
 
