@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "status": "implementation coordination only; not verification evidence",
+  "primary_environment": "Google AI Studio / Gemini",
+  "integration_mode": "web-presentation-against-cace-api",
+  "hard_boundary": {
+    "browser_owns": [
+      "React/TypeScript presentation",
+      "interaction and view state",
+      "drag/drop and graph-editing UX",
+      "2D/3D camera and presentation-only coordinate visualization",
+      "typed API client",
+      "rendering backend-provided claims and evidence"
+    ],
+    "backend_owns": [
+      "graph execution semantics",
+      "type/unit connection authority",
+      "scientific module semantics",
+      "certificate and verification state",
+      "claim/proof governance",
+      "source-to-formal linkage"
+    ],
+    "cpp_owns": [
+      "load-bearing scientific/exact/high-performance kernels",
+      "exact P1/RT0 runtime semantics where implemented"
+    ],
+    "lean_owns": [
+      "formal theorem source",
+      "proof endpoints",
+      "canonical qualification"
+    ],
+    "forbidden_in_js_ts_node": [
+      "alternate scientific solver/runtime",
+      "alternate exact FEM algebra",
+      "alternate proof engine",
+      "formal PASS synthesis",
+      "claim/proof promotion",
+      "qualification drift logic"
+    ]
+  },
+  "canonical_backend": "api/index.py",
+  "current_frontend_reference": [
+    "web/index.html",
+    "web/studio.css",
+    "web/studio.js"
+  ],
+  "endpoints": [
+    "GET /api/health",
+    "GET /api/modules",
+    "GET /api/claims",
+    "POST /api/connections/validate",
+    "POST /api/runs",
+    "GET /api/runs/{job_id}",
+    "POST /api/runs/{job_id}/{pause|resume|cancel}"
+  ],
+  "implementation_batches": [
+    {
+      "id": "GWEB-1",
+      "name": "typed client and React shell",
+      "qualification_sensitive": false,
+      "status": "READY"
+    },
+    {
+      "id": "GWEB-2",
+      "name": "graph editing feature parity",
+      "qualification_sensitive": false,
+      "status": "BLOCKED_BY_GWEB-1"
+    },
+    {
+      "id": "GWEB-3",
+      "name": "execution and evidence parity",
+      "qualification_sensitive": false,
+      "status": "BLOCKED_BY_GWEB-2"
+    },
+    {
+      "id": "GWEB-4",
+      "name": "advanced presentation-only coordinate/3D visualization",
+      "qualification_sensitive": false,
+      "status": "BLOCKED_BY_GWEB-3"
+    },
+    {
+      "id": "GWEB-5",
+      "name": "local AI and Research Notebook presentation",
+      "qualification_sensitive": false,
+      "status": "BLOCKED_BY_GWEB-4"
+    }
+  ],
+  "concurrent_work_do_not_mix": [
+    {
+      "pr": 42,
+      "branch": "proof/v3.41a-box-zero-boundary-core",
+      "concern": "formal proof/qualification"
+    },
+    {
+      "pr": 60,
+      "branch": "feature/cpp-fsl-exact-kernel",
+      "concern": "C++ exact P1/RT0 source-to-formal runtime foundation"
+    }
+  ],
+  "required_first_read": [
+    "GEMINI.md",
+    "CACE_AGENT_BOOTSTRAP.json",
+    "CACE_AI_BUILDER_CONTRACT.md",
+    "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+    "AGENTS.md",
+    "docs/CROSS_CHAT_HANDOFF.md"
+  ],
+  "first_task": "GWEB-1",
+  "first_task_instruction": "Create a typed TypeScript API client and React shell that consumes the existing FastAPI API without moving scientific/evidence semantics into the browser. Preserve the current web/ frontend until parity tests pass."
+}
