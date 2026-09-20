@@ -7,6 +7,8 @@
     "production_ready": false
   },
   "first_read": [
+    "docs/TYPED_EQUATION_DATA_WIZARD.md",
+    "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
     "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
     "schema/cace-agent-perception.schema.json",
     "collaboration/schema/cace-ai-tool-submission.schema.json",
@@ -63,7 +65,9 @@
     "ai_rigorous_tool_pipeline": "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
     "ai_tool_submission_schema": "collaboration/schema/cace-ai-tool-submission.schema.json",
     "agent_perception_schema": "schema/cace-agent-perception.schema.json",
-    "post_account_research_assistant_ux": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md"
+    "post_account_research_assistant_ux": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
+    "experiment_to_proof_discovery": "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
+    "typed_equation_data_wizard": "docs/TYPED_EQUATION_DATA_WIZARD.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -391,7 +395,9 @@
   "local_agent_runtime": {
     "self_improving_tool_loop": "observe -> specify -> C++ implement/test -> Lean attempt -> proof-ready handoff or qualification -> accepted reusable tool",
     "perception_schema": "schema/cace-agent-perception.schema.json",
-    "perception_evidence_authority": false
+    "perception_evidence_authority": false,
+    "proof_discovery": "experiment -> proof opportunity/theorem match -> Proof Candidate -> quarantine/qualification -> reusable tool/operator",
+    "group_reasoning_priority": "exact combinatorics/group actions/canonical representatives integrated with geometric ReasoningOperators when benchmarked useful"
   },
   "product_experience": {
     "vre_name": "CACE — Verified Research Environment",
@@ -399,5 +405,10 @@
     "post_account_entry": "Research Assistant welcome",
     "assistant_role": "persistent local-first research assistant across onboarding, canvas, notebook and daily work",
     "evidence_rule": "assistant explains and consumes evidence; it never creates proof/evidence authority"
+  },
+  "production_completeness": {
+    "fail_closed": true,
+    "rule": "No advertised production feature/module/domain is complete until its end-to-end workflow, interoperability, validation, evidence, Help/examples, persistence and regression path work together.",
+    "complex_input_requires_wizard_when_needed": true
   }
 }
