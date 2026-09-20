@@ -1,0 +1,63 @@
+{
+  "schema_version": "cace-ai-tool-submission-v1",
+  "submission_id": "tool:math.exact.example.0001",
+  "head_sha": "0000000000000000000000000000000000000000",
+  "agent": "gemini",
+  "track": "A",
+  "tool": {
+    "semantic_id": "math.exact.example",
+    "title": "Example exact tool submission",
+    "purpose": "Illustrate a proof-ready AI tool handoff without claiming proof.",
+    "assumptions": [
+      "Example only; replace with real mathematical assumptions."
+    ],
+    "failure_modes": [
+      "Example paths and theorem names are placeholders."
+    ],
+    "target_evidence": "FORMAL"
+  },
+  "cpp": {
+    "headers": [
+      "cpp/include/cace/math/example.hpp"
+    ],
+    "sources": [],
+    "tests": [
+      "cpp/tests/math/example.cpp"
+    ],
+    "bindings": []
+  },
+  "formal": {
+    "proof_state": "DRAFT",
+    "lean_files": [
+      "formal/cace_formal/CACEFormal/Example.lean"
+    ],
+    "theorem_names": [
+      "CACEFormal.example_correct"
+    ],
+    "source_to_formal_refs": [
+      "FSL-0"
+    ]
+  },
+  "verification": {
+    "unit_tests": [
+      "cace_example_smoke"
+    ],
+    "property_tests": [
+      "example property test"
+    ],
+    "adversarial_tests": [
+      "malformed input rejected"
+    ],
+    "exact_or_certificate_checks": [
+      "exact equality checker"
+    ]
+  },
+  "unresolved_obligations": [
+    "Replace example head_sha with the exact source commit.",
+    "Complete Lean proof and runtime-to-formal binding.",
+    "Run required proof gates and canonical qualification."
+  ],
+  "recommended_next_gate": "LEAN_QUARANTINE",
+  "promotion_authority": false,
+  "packet_sha256": "5adb3dea78b2600e630e8d8e3dd1d70d1ad5221fe2c6e9e150a4f3414639deaa"
+}
