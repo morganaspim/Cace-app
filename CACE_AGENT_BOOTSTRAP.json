@@ -7,6 +7,8 @@
     "production_ready": false
   },
   "first_read": [
+    "schema/cace-reasoning-operator.schema.json",
+    "docs/CACE_REASONING_OPERATOR_V1.md",
     "docs/TYPED_EQUATION_DATA_WIZARD.md",
     "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
     "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
@@ -67,7 +69,9 @@
     "agent_perception_schema": "schema/cace-agent-perception.schema.json",
     "post_account_research_assistant_ux": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
     "experiment_to_proof_discovery": "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
-    "typed_equation_data_wizard": "docs/TYPED_EQUATION_DATA_WIZARD.md"
+    "typed_equation_data_wizard": "docs/TYPED_EQUATION_DATA_WIZARD.md",
+    "reasoning_operator_runtime": "cace_studio/core/reasoning.py",
+    "reasoning_operator_schema": "schema/cace-reasoning-operator.schema.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -397,7 +401,14 @@
     "perception_schema": "schema/cace-agent-perception.schema.json",
     "perception_evidence_authority": false,
     "proof_discovery": "experiment -> proof opportunity/theorem match -> Proof Candidate -> quarantine/qualification -> reusable tool/operator",
-    "group_reasoning_priority": "exact combinatorics/group actions/canonical representatives integrated with geometric ReasoningOperators when benchmarked useful"
+    "group_reasoning_priority": "exact combinatorics/group actions/canonical representatives integrated with geometric ReasoningOperators when benchmarked useful",
+    "reasoning_operator_v1": {
+      "runtime": "cace_studio/core/reasoning.py",
+      "canonical_math_backend": "_cace_runtime / cpp/include/cace/math",
+      "evidence_authority": false,
+      "initial_focus": "exact permutations, finite groups, exterior algebra, affine/simplex geometry",
+      "benchmark": "scripts/benchmark_group_reasoning.py"
+    }
   },
   "product_experience": {
     "vre_name": "CACE — Verified Research Environment",
