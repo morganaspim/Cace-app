@@ -267,3 +267,41 @@ Every production-intended math module must have:
 ## Definition of a strong math toolbox
 
 A strong toolbox is reached when users can build meaningful mathematical pipelines without custom code, and each node states exactly what it computes and how strongly it is justified.
+
+
+## Combinatorial/group reasoning expansion
+
+Tier D is also a high-leverage AI reasoning substrate.
+
+Expand the canonical exact toolbox, in bounded tractable scope, toward:
+
+- permutation groups and composition;
+- finite explicit groups;
+- generators/relations for supported small classes;
+- group actions;
+- orbits/stabilizers;
+- canonical representatives;
+- small-group Cayley graphs/tables;
+- exact symmetry/invariance checks;
+- incidence/boundary combinatorics;
+- rewrite/normal-form systems.
+
+Connect these operations to the graded/geometry stack so group actions may operate on supported vectors, frames, cells, blades and graphs through explicit typed maps.
+
+Each accepted operation should be eligible to become a Local-AI `ReasoningOperator` with preconditions, invariants, inverse/composition metadata and linked exact/formal checkers.
+
+The intended benefit is not abstract module count. Canonical group structure can collapse symmetry-equivalent search states and turn long reasoning sequences into reusable operator compositions. Performance/efficiency claims require benchmarks.
+
+## Experiment-to-proof tool feedback
+
+The toolbox should consume reusable qualified results discovered through `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`.
+
+A successful new proof should be assessed for whether it deserves:
+- a canonical user-facing operation;
+- an exact checker;
+- a C++ kernel;
+- a canvas module;
+- a ReasoningOperator;
+- structured Help/examples.
+
+This is how the proof corpus becomes an increasingly useful computational/reasoning library rather than a disconnected archive.
