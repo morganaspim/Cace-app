@@ -537,3 +537,52 @@ Build the smallest useful version:
 11. regression tests proving verification state cannot be promoted by AI/heartbeat rules.
 
 Only after this baseline works should CACE experiment with representation-learning changes inside the local neural model.
+
+
+## 19. Combinatorial/group canonicalization for efficient reasoning
+
+Prioritize exact group/combinatorial operators as compact reasoning primitives.
+
+Useful patterns include:
+
+```text
+state
+ -> detect symmetry/group action
+ -> canonical representative
+ -> solve/reason once
+ -> transport result across orbit
+ -> checker/theorem validation
+```
+
+and:
+
+```text
+long transform sequence
+ -> identify generators
+ -> compose/normalize group element
+ -> execute one canonical action
+ -> verify invariant/equivariance
+```
+
+Candidate operator families:
+
+- permutation / compose / inverse;
+- orbit / stabilizer;
+- canonical representative;
+- group action;
+- coset for supported finite cases;
+- Cayley neighbor/action lookup;
+- incidence and boundary composition;
+- rewrite to normal form.
+
+Use only mathematically declared actions. Do not infer a symmetry group because an embedding "looks symmetric."
+
+Measure whether the representation reduces planning steps, token/context use, search states, latency or error rate relative to baselines.
+
+## 20. Proof discovery as curriculum growth
+
+The experiment-to-proof system in `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md` may propose new reusable operator motifs.
+
+Only after a mathematical operation has the appropriate exact/certified/formal support and engineering review should it enter the trusted operator curriculum as a validated operation.
+
+Unproved conjectures may remain research examples, never trusted operator rules.
