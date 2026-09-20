@@ -335,3 +335,35 @@ The wizard is part of module completeness when ordinary users would otherwise ne
 Suitable science modules should expose exact identities, invariants, residual relations, symmetry structure and theorem applicability metadata to the proof-discovery layer defined in `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`.
 
 This supports proof discovery without turning empirical behavior into proof.
+
+
+## Production language-primitive gate
+
+A production module must work as a real typed language primitive on the CACE
+canvas, not only as an isolated demo card.
+
+Required behavior:
+
+```text
+discover
+ -> understand
+ -> typed input/wizard
+ -> connect through canonical ports
+ -> validate
+ -> execute
+ -> verify
+ -> inspect/animate
+ -> persist/replay
+ -> compose into reusable subgraph
+ -> Help/demo
+ -> recover from failure
+```
+
+Representative end-to-end chains must be regression-tested. A module is not
+production-grade when its neighboring connections are placeholders, its data
+must be manually retyped into a bespoke representation, or the browser
+implements special-case scientific semantics that the API/core does not share.
+
+Reusable subgraphs should be promotable to higher-level modules with explicit
+input/output contracts so the canvas increasingly behaves like an intuitive
+scientific programming language.
