@@ -37,6 +37,7 @@ Read these first, in this order:
 19. `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`
 20. `gemini/CACE_GEMINI_TASK_STATE.json`
 21. `AI_REPO_MAP.json`
+22. `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`
 
 For Antigravity also read `.agents/AGENTS.md` and use the relevant skill under `.agents/skills/`.
 
