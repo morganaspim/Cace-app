@@ -619,3 +619,38 @@ symmetry-state canonicalization. All results carry
 This completes the schema/registry portion of the first implementation slice.
 The next curriculum work is procedural task generation, composition holdouts,
 mastery statistics, Tool-Bus integration and heartbeat-aware planning.
+
+
+## 22. Implemented curriculum engine v1
+
+The first executable curriculum layer is now implemented in:
+
+- `cace_studio/core/reasoning_curriculum.py`
+- `tests/test_reasoning_curriculum.py`
+
+Implemented capabilities:
+
+- immutable `ReasoningTask` and `ReasoningTaskOutcome` records;
+- deterministic operator-composition signatures and train/holdout assignment;
+- executable task evaluation through `ReasoningOperatorRegistry`;
+- paired baseline/intervention task evaluation;
+- per-skill mastery, pair-consistency, and transfer statistics;
+- deterministic frontier selection near a target competence level;
+- seeded exact permutation-action pair generation using the canonical native backend for expected outputs.
+
+The curriculum layer remains advisory. Every task, outcome, pair, and mastery
+record has `evidence_authority=false`. Curriculum accuracy, pair consistency,
+or transfer performance cannot promote mathematical/scientific evidence.
+
+The underlying RMK Lean bridge may be canonically qualified for its explicitly
+audited theorem surface, but that does not make curriculum scheduling,
+task-generation policy, model behavior, or arbitrary native runtime algorithms
+formal proof evidence.
+
+Next implementation priorities are:
+
+1. additional exact task generators for exterior, affine, simplex, and finite-group canonicalization operators;
+2. structured curriculum batches with generator-family holdouts;
+3. Tool-Bus execution/reporting integration;
+4. heartbeat-aware lesson scheduling;
+5. measured comparison of raw versus symmetry-canonicalized reasoning workloads.
