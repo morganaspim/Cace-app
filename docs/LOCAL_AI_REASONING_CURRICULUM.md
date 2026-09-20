@@ -619,3 +619,50 @@ symmetry-state canonicalization. All results carry
 This completes the schema/registry portion of the first implementation slice.
 The next curriculum work is procedural task generation, composition holdouts,
 mastery statistics, Tool-Bus integration and heartbeat-aware planning.
+
+
+## 22. Implemented curriculum engine v1
+
+The first executable curriculum layer is now implemented in:
+
+- `cace_studio/core/reasoning_curriculum.py`
+- `tests/test_reasoning_curriculum.py`
+
+Implemented capabilities:
+
+- immutable `ReasoningTask` and `ReasoningTaskOutcome` records;
+- deterministic operator-composition signatures and train/holdout assignment;
+- executable task evaluation through `ReasoningOperatorRegistry`;
+- paired baseline/intervention task evaluation;
+- per-skill mastery, pair-consistency, and transfer statistics;
+- deterministic frontier selection near a target competence level;
+- seeded exact permutation-action pair generation using the canonical native backend for expected outputs.
+
+The curriculum layer remains advisory. Every task, outcome, pair, and mastery
+record has `evidence_authority=false`. Curriculum accuracy, pair consistency,
+or transfer performance cannot promote mathematical/scientific evidence.
+
+The underlying RMK Lean bridge may be canonically qualified for its explicitly
+audited theorem surface, but that does not make curriculum scheduling,
+task-generation policy, model behavior, or arbitrary native runtime algorithms
+formal proof evidence.
+
+Implemented in the same curriculum batch:
+
+1. exact paired task generators for permutation action, finite-group coordinate canonicalization, exterior wedge, affine application, and simplex barycentric coordinates;
+2. deterministic multi-family batches with one entire generator family held out for transfer evaluation;
+3. an Agent Perception Packet adapter that converts heartbeat/change/residual/resource/research-interest state into non-evidentiary curriculum attention signals;
+4. deterministic heartbeat-aware lesson ranking layered on top of mastery statistics.
+
+The perception adapter consumes the existing
+`schema/cace-agent-perception.schema.json` contract. It does not create a
+parallel heartbeat format and rejects any packet that attempts to set
+`evidence_authority=true`.
+
+Remaining implementation priorities are:
+
+1. integrate task execution/reporting with the future concrete AgentController / typed CACE Tool Bus runtime once that class exists;
+2. persist/replay generated curriculum batches with generator-version and seed manifests;
+3. add measured raw-vs-symmetry-canonicalized workload benchmarks to the curriculum evaluation report;
+4. connect accepted Research Ideas / canvas node types to explicit skill IDs for automatic but reviewable lesson targeting;
+5. add model-provider training adapters only after the deterministic task/evaluation contracts are stable.
