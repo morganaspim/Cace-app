@@ -423,7 +423,9 @@ struct AssemblyObligations {
     std::vector<bool> equilibrium;
     std::vector<bool> boundary_admissible;
     std::vector<bool> interior_cancellation;
+    Rational global_pairing_sum;
     bool all_local_green = false;
+    bool orthogonality_sum_zero = false;
     bool ready_for_lean_assembly = false;
 };
 
@@ -444,6 +446,7 @@ inline AssemblyObligations exact_assembly_obligations(
     for (std::size_t cell = 0; cell < mesh.triangles.size(); ++cell) {
         const auto triangle = mesh.triangle(cell);
         out.cell_pairings.push_back(cell_pairing(triangle, primal[cell], flux[cell]));
+        out.global_pairing_sum += out.cell_pairings.back();
         out.cell_divergences.push_back(cell_divergence(triangle, primal[cell], flux[cell]));
         for (std::size_t slot = 0; slot < 3; ++slot) {
             out.local_face_pairings[cell][slot] =
@@ -474,11 +477,13 @@ inline AssemblyObligations exact_assembly_obligations(
         for (const bool value : values) if (!value) return false;
         return true;
     };
+    out.orthogonality_sum_zero = out.global_pairing_sum == Rational(0);
     out.ready_for_lean_assembly =
         out.all_local_green &&
         all_true(out.equilibrium) &&
         all_true(out.boundary_admissible) &&
-        all_true(out.interior_cancellation);
+        all_true(out.interior_cancellation) &&
+        out.orthogonality_sum_zero;
 
     return out;
 }
