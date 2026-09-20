@@ -31,6 +31,7 @@ int cace_exact_assembly_status(
     int cell_count,
     int* out_ready,
     int* out_local_green,
+    int* out_orthogonality_sum_zero,
     int* out_equilibrium_failures,
     int* out_boundary_failures,
     int* out_interior_failures);
@@ -99,14 +100,14 @@ int main() {
          1,1,1, 1,1,1, 1,1,1, 1,1,1,
     };
 
-    int ready=0, green=0, eqf=0, bdf=0, inf=0;
+    int ready=0, green=0, ortho=0, eqf=0, bdf=0, inf=0;
     if (cace_exact_assembly_status(
             mesh,pnum,pden,qnum,qden,4,
-            &ready,&green,&eqf,&bdf,&inf) != 0) {
+            &ready,&green,&ortho,&eqf,&bdf,&inf) != 0) {
         cace_exact_mesh_destroy(mesh);
         return fail(6, "assembly status call");
     }
-    if (!ready || !green || eqf!=0 || bdf!=0 || inf!=0) {
+    if (!ready || !green || !ortho || eqf!=0 || bdf!=0 || inf!=0) {
         cace_exact_mesh_destroy(mesh);
         return fail(7, "assembly status values");
     }
@@ -124,7 +125,7 @@ int main() {
     auto changed_qnum = std::array<std::int64_t,12>{
         1,0,1, 1,0,0, 1,0,0, 1,0,0
     };
-    ready=green=eqf=bdf=inf=0;
+    ready=green=ortho=eqf=bdf=inf=0;
     if (cace_exact_assembly_status(
             mesh,pnum,pden,changed_qnum.data(),qden,4,
             &ready,&green,&eqf,&bdf,&inf) != 0) {
