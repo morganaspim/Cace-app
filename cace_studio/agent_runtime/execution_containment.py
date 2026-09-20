@@ -134,6 +134,29 @@ class FileRunControlStore:
             else RunControlState.RUNNING.value
         )
 
+    def state_readonly(self, control_id: str) -> str:
+        """Read atomically replaced control state without taking a writable lock.
+
+        Intended for filesystem-sandboxed science workers. The parent remains
+        the only writer; atomic replace means readers either see the old or new
+        complete hashed envelope.
+        """
+        path = self._path(control_id)
+        if not path.exists():
+            return RunControlState.RUNNING.value
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        payload = validate_hashed_envelope(
+            raw,
+            schema_key="run_control_envelope_schema",
+            schema_value=1,
+            digest_key="run_control_sha256",
+            payload_key="control",
+        )
+        record = RunControlRecord.from_dict(payload)
+        if record.control_id != control_id:
+            raise ValueError("run-control filename/content mismatch")
+        return record.state.value
+
 
 @dataclass(frozen=True)
 class RunArtifactRecord:

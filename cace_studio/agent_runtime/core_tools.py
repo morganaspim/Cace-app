@@ -22,6 +22,7 @@ from .execution_containment import (
 from .canvas_mutation import FileCanvasPreviewStore, register_canvas_mutation_tools
 from .canvas_plan import FileCanvasPlanStore, register_canvas_plan_tools
 from .contracts import Capability, ToolContext, TypedTool
+from .linux_sandbox import SandboxRequirements
 from .perception import AgentNetworkMode
 from .tool_bus import ToolBus
 from .worker_sandbox import FileWorkerReceiptStore, ProcessScienceRunner
@@ -158,8 +159,13 @@ def register_core_tools(
     autonomy_recovery_inbox: FileRecoveryInbox | None = None,
     autonomy_use_process_sandbox: bool = False,
     autonomy_worker_receipt_store: FileWorkerReceiptStore | None = None,
+    autonomy_require_linux_hardening: bool = False,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
+    if autonomy_require_linux_hardening and not autonomy_use_process_sandbox:
+        raise ValueError(
+            "autonomy_require_linux_hardening requires autonomy_use_process_sandbox"
+        )
 
     native_runtime = NativeRuntime()
 
@@ -327,6 +333,12 @@ def register_core_tools(
                         registry=registry,
                         control_store=resolved_control_store,
                         receipt_store=resolved_receipt_store,
+                        sandbox_requirements=SandboxRequirements(
+                            require_network_namespace=autonomy_require_linux_hardening,
+                            require_seccomp_filter=autonomy_require_linux_hardening,
+                            require_filesystem_restriction=autonomy_require_linux_hardening,
+                            require_privilege_hardening=autonomy_require_linux_hardening,
+                        ),
                     )
                 register_autonomy_loop_tools(
                     bus,

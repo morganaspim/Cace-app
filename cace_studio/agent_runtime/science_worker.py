@@ -8,13 +8,17 @@ from pathlib import Path
 import sys
 from typing import Any, Mapping
 
-from cace_studio.app import build_registry
 from cace_studio.core.execution_control import ExecutionControl, ExecutionLimits
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.reproducibility import registry_contract_fingerprint
 from cace_studio.core.serialization import experiment_from_data
 
 from .execution_containment import FileRunControlStore
+from .linux_sandbox import (
+    SandboxRequirementError,
+    SandboxRequirements,
+    apply_linux_worker_sandbox,
+)
 from .worker_transport import run_result_to_data
 
 
@@ -64,6 +68,7 @@ def _require_mapping(value: Any, *, name: str) -> Mapping[str, Any]:
 
 
 def worker_main(argv: list[str] | None = None) -> int:
+    sandbox_report = None
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", required=True, type=Path)
     parser.add_argument("--result", required=True, type=Path)
@@ -77,6 +82,63 @@ def worker_main(argv: list[str] | None = None) -> int:
             raise ValueError("unsupported science worker request schema")
 
         limits = _require_mapping(request.get("limits", {}), name="limits")
+        requirements_raw = _require_mapping(
+            request.get("sandbox_requirements", {}),
+            name="sandbox_requirements",
+        )
+        requirements = SandboxRequirements.from_dict(requirements_raw)
+
+        control_root = Path(str(request["control_root"]))
+        job_dir = args.result.parent.resolve()
+        read_only_paths = [
+            Path.cwd(),
+            Path(__file__).resolve().parents[2],
+            Path(sys.prefix),
+            Path(sys.base_prefix),
+            control_root,
+            "/usr",
+            "/lib",
+            "/lib64",
+            "/etc",
+            "/proc",
+            "/dev",
+            "/sys",
+        ]
+        read_only_paths.extend(
+            Path(item)
+            for item in sys.path
+            if isinstance(item, str) and item.strip()
+        )
+        try:
+            sandbox_report = apply_linux_worker_sandbox(
+                parent_netns_inode=(
+                    int(request["parent_netns_inode"])
+                    if request.get("parent_netns_inode") is not None
+                    else None
+                ),
+                read_only_paths=read_only_paths,
+                read_write_paths=[job_dir],
+                requirements=requirements,
+            )
+        except SandboxRequirementError as exc:
+            args.result.write_text(
+                json.dumps(
+                    {
+                        "science_worker_result_schema": 1,
+                        "status": "error",
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                        "sandbox_capability_report": exc.report.to_dict(),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                    allow_nan=False,
+                ),
+                encoding="utf-8",
+            )
+            return 71
+
         enforcement = _apply_posix_limits(
             max_memory_bytes=(
                 int(limits["max_memory_bytes"])
@@ -89,6 +151,8 @@ def worker_main(argv: list[str] | None = None) -> int:
                 else None
             ),
         )
+
+        from cace_studio.app import build_registry
 
         registry = build_registry()
         actual_registry_sha = registry_contract_fingerprint(registry)
@@ -117,7 +181,6 @@ def worker_main(argv: list[str] | None = None) -> int:
             raise ValueError("target_node_ids must be an array")
         target_node_ids = tuple(str(item) for item in target_node_ids_raw)
 
-        control_root = Path(str(request["control_root"]))
         control_id = str(request["control_id"])
         control_store = FileRunControlStore(control_root)
         control = ExecutionControl(
@@ -138,7 +201,7 @@ def worker_main(argv: list[str] | None = None) -> int:
                     else None
                 ),
             ),
-            external_state_provider=lambda: control_store.state(control_id),
+            external_state_provider=lambda: control_store.state_readonly(control_id),
         )
         executor = GraphExecutor(
             registry,
@@ -166,6 +229,7 @@ def worker_main(argv: list[str] | None = None) -> int:
             "status": "ok",
             "registry_sha256": actual_registry_sha,
             "resource_enforcement": enforcement,
+            "sandbox_capability_report": sandbox_report.to_dict(),
             "run_result": run_result_to_data(result),
         }
         args.result.write_text(
@@ -188,6 +252,13 @@ def worker_main(argv: list[str] | None = None) -> int:
                         "status": "error",
                         "error_type": type(exc).__name__,
                         "error": str(exc),
+                        **(
+                            {
+                                "sandbox_capability_report": sandbox_report.to_dict()
+                            }
+                            if sandbox_report is not None
+                            else {}
+                        ),
                     },
                     sort_keys=True,
                     separators=(",", ":"),

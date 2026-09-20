@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 import json
 from pathlib import Path
@@ -42,11 +42,13 @@ from .execution_containment import (
     RecoveryInboxItem,
     RunControlState,
 )
+from .linux_sandbox import SandboxRequirements
 from .perception import AgentNetworkMode, AgentPerceptionTracker
 from .tool_bus import ApprovalCallback, ToolBus
 from .worker_sandbox import (
     ProcessSandboxLimits,
     ProcessScienceRunner,
+    ScienceWorkerError,
     ScienceWorkerTerminatedError,
 )
 from .workspace_store import FileExperimentWorkspace
@@ -74,6 +76,10 @@ class AutonomyLoopBudget:
     max_artifact_bytes_per_run: int = 134_217_728
     max_cpu_seconds_per_run: float = 300.0
     max_memory_bytes_per_run: int = 2_147_483_648
+    require_network_namespace: bool = False
+    require_seccomp_filter: bool = False
+    require_filesystem_restriction: bool = False
+    require_privilege_hardening: bool = False
 
     def __post_init__(self) -> None:
         for name in (
@@ -98,6 +104,14 @@ class AutonomyLoopBudget:
             or self.max_replans < 0
         ):
             raise ValueError("max_replans must be a non-negative integer")
+        for name in (
+            "require_network_namespace",
+            "require_seccomp_filter",
+            "require_filesystem_restriction",
+            "require_privilege_hardening",
+        ):
+            if not isinstance(getattr(self, name), bool):
+                raise TypeError(f"{name} must be boolean")
 
     def to_dict(self) -> dict[str, int]:
         return {
@@ -111,6 +125,10 @@ class AutonomyLoopBudget:
             "max_artifact_bytes_per_run": self.max_artifact_bytes_per_run,
             "max_cpu_seconds_per_run": self.max_cpu_seconds_per_run,
             "max_memory_bytes_per_run": self.max_memory_bytes_per_run,
+            "require_network_namespace": self.require_network_namespace,
+            "require_seccomp_filter": self.require_seccomp_filter,
+            "require_filesystem_restriction": self.require_filesystem_restriction,
+            "require_privilege_hardening": self.require_privilege_hardening,
         }
 
     @classmethod
@@ -135,6 +153,18 @@ class AutonomyLoopBudget:
             ),
             max_memory_bytes_per_run=int(
                 payload.get("max_memory_bytes_per_run", 2_147_483_648)
+            ),
+            require_network_namespace=bool(
+                payload.get("require_network_namespace", False)
+            ),
+            require_seccomp_filter=bool(
+                payload.get("require_seccomp_filter", False)
+            ),
+            require_filesystem_restriction=bool(
+                payload.get("require_filesystem_restriction", False)
+            ),
+            require_privilege_hardening=bool(
+                payload.get("require_privilege_hardening", False)
             ),
         )
 
@@ -827,6 +857,27 @@ class AutonomyLoopRuntime:
         if plan.workspace_id != self.workspace_store.workspace_id:
             raise AutonomyLoopError("initial autonomy plan belongs to another workspace")
         selected_budget = budget or AutonomyLoopBudget()
+        if self.process_science_runner is not None:
+            minimum = self.process_science_runner.sandbox_requirements
+            selected_budget = replace(
+                selected_budget,
+                require_network_namespace=(
+                    selected_budget.require_network_namespace
+                    or minimum.require_network_namespace
+                ),
+                require_seccomp_filter=(
+                    selected_budget.require_seccomp_filter
+                    or minimum.require_seccomp_filter
+                ),
+                require_filesystem_restriction=(
+                    selected_budget.require_filesystem_restriction
+                    or minimum.require_filesystem_restriction
+                ),
+                require_privilege_hardening=(
+                    selected_budget.require_privilege_hardening
+                    or minimum.require_privilege_hardening
+                ),
+            )
         if len(plan.ordered_steps) > selected_budget.max_plan_steps_per_cycle:
             raise AutonomyLoopError(
                 "initial autonomy plan exceeds max_plan_steps_per_cycle"
@@ -976,6 +1027,20 @@ class AutonomyLoopRuntime:
                     max_output_bytes=session.budget.max_output_bytes_per_run,
                 ),
                 worker_nonce=f"{session.session_id}:{cycle_index}",
+                sandbox_requirements=SandboxRequirements(
+                    require_network_namespace=(
+                        session.budget.require_network_namespace
+                    ),
+                    require_seccomp_filter=(
+                        session.budget.require_seccomp_filter
+                    ),
+                    require_filesystem_restriction=(
+                        session.budget.require_filesystem_restriction
+                    ),
+                    require_privilege_hardening=(
+                        session.budget.require_privilege_hardening
+                    ),
+                ),
             )
             return outcome.result, control_id, outcome.receipt.worker_id
 
@@ -1099,6 +1164,30 @@ class AutonomyLoopRuntime:
             )
             raise RuntimeError(
                 f"isolated science worker terminated; worker_receipt={exc.receipt.worker_id}"
+            ) from exc
+        except ScienceWorkerError as exc:
+            worker_receipt_id = (
+                exc.receipt.worker_id
+                if exc.receipt is not None
+                else ""
+            )
+            self.recovery_inbox.add(
+                session_id=session.session_id,
+                operation_id=context.operation_id,
+                category="science-worker-sandbox-failed",
+                message=(
+                    "The approved workspace plan committed, but the isolated "
+                    f"science worker could not satisfy its execution policy: {exc}; "
+                    f"worker_receipt={worker_receipt_id or 'unavailable'}"
+                ),
+            )
+            raise RuntimeError(
+                "isolated science worker failed before a completed science result"
+                + (
+                    f"; worker_receipt={worker_receipt_id}"
+                    if worker_receipt_id
+                    else ""
+                )
             ) from exc
         if not run_result.completed:
             interrupted_artifact = self.run_artifact_store.save(

@@ -28,17 +28,24 @@ from .durability import (
     validate_hashed_envelope,
 )
 from .execution_containment import FileRunControlStore, RunControlState
+from .linux_sandbox import SandboxRequirements
 from .worker_transport import run_result_from_data
 
 
 class ScienceWorkerError(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        receipt: "WorkerExecutionReceipt | None" = None,
+    ) -> None:
+        super().__init__(message)
+        self.receipt = receipt
 
 
 class ScienceWorkerTerminatedError(ScienceWorkerError):
     def __init__(self, message: str, *, receipt: "WorkerExecutionReceipt") -> None:
-        super().__init__(message)
-        self.receipt = receipt
+        super().__init__(message, receipt=receipt)
 
 
 @dataclass(frozen=True)
@@ -85,6 +92,7 @@ class WorkerExecutionReceipt:
     registry_sha256: str
     limits: Mapping[str, Any]
     resource_enforcement: Mapping[str, Any]
+    sandbox_capabilities: Mapping[str, Any]
     stderr_tail: str = ""
     proof_effect: str = "none"
     promotion_authority: bool = False
@@ -104,6 +112,7 @@ class WorkerExecutionReceipt:
             "registry_sha256": self.registry_sha256,
             "limits": dict(self.limits),
             "resource_enforcement": dict(self.resource_enforcement),
+            "sandbox_capabilities": dict(self.sandbox_capabilities),
             "stderr_tail": self.stderr_tail,
             "proof_effect": "none",
             "promotion_authority": False,
@@ -119,8 +128,15 @@ class WorkerExecutionReceipt:
             raise ValueError("worker receipt cannot carry proof authority")
         limits = payload.get("limits", {})
         enforcement = payload.get("resource_enforcement", {})
-        if not isinstance(limits, Mapping) or not isinstance(enforcement, Mapping):
-            raise ValueError("worker receipt limits/enforcement must be objects")
+        sandbox_capabilities = payload.get("sandbox_capabilities", {})
+        if (
+            not isinstance(limits, Mapping)
+            or not isinstance(enforcement, Mapping)
+            or not isinstance(sandbox_capabilities, Mapping)
+        ):
+            raise ValueError(
+                "worker receipt limits/enforcement/sandbox capabilities must be objects"
+            )
         return cls(
             worker_id=str(payload["worker_id"]),
             request_sha256=str(payload["request_sha256"]),
@@ -138,6 +154,7 @@ class WorkerExecutionReceipt:
             registry_sha256=str(payload.get("registry_sha256", "")),
             limits=dict(limits),
             resource_enforcement=dict(enforcement),
+            sandbox_capabilities=dict(sandbox_capabilities),
             stderr_tail=str(payload.get("stderr_tail", "")),
         )
 
@@ -220,6 +237,7 @@ class ProcessScienceRunner:
         python_executable: str | None = None,
         poll_seconds: float = 0.05,
         terminate_grace_seconds: float = 0.5,
+        sandbox_requirements: SandboxRequirements | None = None,
         clock=time.monotonic,
         wall_clock=time.time,
     ) -> None:
@@ -229,23 +247,37 @@ class ProcessScienceRunner:
         self.python_executable = python_executable or sys.executable
         self.poll_seconds = float(poll_seconds)
         self.terminate_grace_seconds = float(terminate_grace_seconds)
+        self.sandbox_requirements = (
+            sandbox_requirements or SandboxRequirements()
+        )
         self._clock = clock
         self._wall_clock = wall_clock
         if self.poll_seconds <= 0 or self.terminate_grace_seconds < 0:
             raise ValueError("invalid process science runner timing")
 
     @staticmethod
-    def _clean_environment() -> dict[str, str]:
-        env = dict(os.environ)
-        for key in tuple(env):
-            upper = key.upper()
-            if upper in {
-                "HTTP_PROXY",
-                "HTTPS_PROXY",
-                "ALL_PROXY",
-                "FTP_PROXY",
-            }:
-                env.pop(key, None)
+    def _clean_environment(job_dir: Path) -> dict[str, str]:
+        allowed = {
+            "PATH",
+            "PYTHONPATH",
+            "VIRTUAL_ENV",
+            "LD_LIBRARY_PATH",
+            "LANG",
+            "LC_ALL",
+            "CUDA_VISIBLE_DEVICES",
+            "OMP_NUM_THREADS",
+            "OPENBLAS_NUM_THREADS",
+            "MKL_NUM_THREADS",
+        }
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key in allowed
+        }
+        env["HOME"] = str(job_dir)
+        env["TMPDIR"] = str(job_dir)
+        env["XDG_CACHE_HOME"] = str(job_dir / ".cache")
+        env["PYTHONNOUSERSITE"] = "1"
         env["CACE_SCIENCE_WORKER"] = "1"
         env["CACE_NETWORK_MODE"] = "LOCAL_ZERO_CONTACT"
         return env
@@ -289,8 +321,19 @@ class ProcessScienceRunner:
         control_id: str,
         limits: ProcessSandboxLimits,
         worker_nonce: str,
+        sandbox_requirements: SandboxRequirements | None = None,
     ) -> ProcessScienceOutcome:
         expected_registry_sha = registry_contract_fingerprint(self.registry)
+        effective_requirements = (
+            sandbox_requirements or self.sandbox_requirements
+        )
+        parent_netns_inode = None
+        if sys.platform == "linux":
+            try:
+                parent_netns_inode = os.stat("/proc/self/ns/net").st_ino
+            except OSError:
+                parent_netns_inode = None
+
         request = {
             "science_worker_request_schema": 1,
             "experiment": experiment_to_data(experiment),
@@ -304,6 +347,8 @@ class ProcessScienceRunner:
             "expected_registry_sha256": expected_registry_sha,
             "control_root": str(self.control_store.root.resolve()),
             "control_id": control_id,
+            "parent_netns_inode": parent_netns_inode,
+            "sandbox_requirements": effective_requirements.to_dict(),
             "limits": limits.to_dict(),
         }
         request_sha = sha256_identity(request)
@@ -351,7 +396,7 @@ class ProcessScienceRunner:
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                env=self._clean_environment(),
+                env=self._clean_environment(job_dir),
                 start_new_session=(os.name == "posix"),
             )
             termination_reason = ""
@@ -403,8 +448,8 @@ class ProcessScienceRunner:
                         "parent_wall_deadline": True,
                         "parent_hard_cancel": True,
                         "posix_rlimit_requested": os.name == "posix",
-                        "network_isolation": "not-hard-enforced",
                     },
+                    sandbox_capabilities={},
                     stderr_tail=stderr_tail,
                 )
                 self.receipt_store.save(receipt)
@@ -435,8 +480,8 @@ class ProcessScienceRunner:
                         "parent_wall_deadline": True,
                         "parent_hard_cancel": True,
                         "posix_rlimit_requested": os.name == "posix",
-                        "network_isolation": "not-hard-enforced",
                     },
+                    sandbox_capabilities={},
                     stderr_tail=stderr_tail,
                 )
                 self.receipt_store.save(receipt)
@@ -462,14 +507,22 @@ class ProcessScienceRunner:
                     limits=limits.to_dict(),
                     resource_enforcement={
                         "worker_error": str(payload.get("error", ""))[:2048],
-                        "network_isolation": "not-hard-enforced",
                     },
+                    sandbox_capabilities=(
+                        dict(payload["sandbox_capability_report"])
+                        if isinstance(
+                            payload.get("sandbox_capability_report"),
+                            Mapping,
+                        )
+                        else {}
+                    ),
                     stderr_tail=stderr_tail,
                 )
                 self.receipt_store.save(receipt)
                 raise ScienceWorkerError(
                     "science worker failed: "
-                    f"{payload.get('error_type', 'Error')}: {payload.get('error', '')}"
+                    f"{payload.get('error_type', 'Error')}: {payload.get('error', '')}",
+                    receipt=receipt,
                 )
 
             actual_registry_sha = str(payload.get("registry_sha256", ""))
@@ -481,8 +534,17 @@ class ProcessScienceRunner:
             result = run_result_from_data(raw_result)
             result_sha = sha256_identity(dict(raw_result))
             enforcement = payload.get("resource_enforcement", {})
+            sandbox_capabilities = payload.get(
+                "sandbox_capability_report", {}
+            )
             if not isinstance(enforcement, Mapping):
-                raise ScienceWorkerError("worker resource_enforcement must be an object")
+                raise ScienceWorkerError(
+                    "worker resource_enforcement must be an object"
+                )
+            if not isinstance(sandbox_capabilities, Mapping):
+                raise ScienceWorkerError(
+                    "worker sandbox_capability_report must be an object"
+                )
             receipt = WorkerExecutionReceipt(
                 worker_id=worker_id,
                 request_sha256=request_sha,
@@ -499,8 +561,8 @@ class ProcessScienceRunner:
                     **dict(enforcement),
                     "parent_wall_deadline": True,
                     "parent_hard_cancel": True,
-                    "network_isolation": "not-hard-enforced",
                 },
+                sandbox_capabilities=dict(sandbox_capabilities),
                 stderr_tail=stderr_tail,
             )
             self.receipt_store.save(receipt)

@@ -89,6 +89,11 @@ from .execution_containment import (
     RunControlRecord,
     RunControlState,
 )
+from .linux_sandbox import (
+    SandboxCapabilityReport,
+    SandboxRequirementError,
+    SandboxRequirements,
+)
 from .operations import (
     FileOperationStore,
     OperationClaim,
@@ -216,6 +221,9 @@ __all__ = [
     "RunArtifactRecord",
     "RunControlRecord",
     "RunControlState",
+    "SandboxCapabilityReport",
+    "SandboxRequirementError",
+    "SandboxRequirements",
     "ScienceWorkerError",
     "ScienceWorkerTerminatedError",
     "ToolAuditRecord",

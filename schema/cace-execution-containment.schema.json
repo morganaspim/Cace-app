@@ -175,7 +175,8 @@
         "resource_enforcement",
         "stderr_tail",
         "proof_effect",
-        "promotion_authority"
+        "promotion_authority",
+        "sandbox_capabilities"
       ],
       "properties": {
         "worker_receipt_schema": {
@@ -240,6 +241,9 @@
         },
         "promotion_authority": {
           "const": false
+        },
+        "sandbox_capabilities": {
+          "type": "object"
         }
       }
     }

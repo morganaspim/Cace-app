@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from cace_studio.agent_runtime import FileRunControlStore, RunControlState
 from cace_studio.core.execution_control import ExecutionControl, ExecutionLimits
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, Node
@@ -134,3 +135,14 @@ def test_external_cancel_state_is_observed_at_checkpoint() -> None:
     state[0] = "cancelled"
     assert control.wait_until_runnable() is False
     assert control.stop_reason == "externally-cancelled"
+
+
+def test_readonly_run_control_state_tracks_atomic_parent_updates(tmp_path) -> None:
+    store = FileRunControlStore(tmp_path / "controls")
+    assert store.state_readonly("worker") == "running"
+
+    store.set_state("worker", RunControlState.PAUSED)
+    assert store.state_readonly("worker") == "paused"
+
+    store.set_state("worker", RunControlState.CANCELLED)
+    assert store.state_readonly("worker") == "cancelled"

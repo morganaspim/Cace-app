@@ -1254,3 +1254,164 @@ They do not create:
 - theorem qualification;
 - proof-ledger promotion; or
 - mathematical correctness.
+
+
+## v1.10 Linux namespace + syscall/filesystem sandbox hardening
+
+v1.10 hardens the v1.9 isolated science worker with Linux kernel controls and an explicit machine-readable capability report.
+
+The design is capability-reported and fail-closed: CACE never equates “attempted” with “active.” Every worker records whether each control is `active`, `unavailable`, `failed`, or `not-applicable`.
+
+### Hardening requirements are approval-bound
+
+`AutonomyLoopBudget` now also persists:
+
+- `require_network_namespace`;
+- `require_seccomp_filter`;
+- `require_filesystem_restriction`; and
+- `require_privilege_hardening`.
+
+These booleans are included in the exact autonomy-cycle approval payload.
+
+A process runner may also carry host-level minimum requirements. When a session is created, CACE ORs those minimums into the persisted session budget. A later worker call therefore cannot silently weaken the isolation policy that the human approved.
+
+`register_core_tools(..., autonomy_require_linux_hardening=True)` requires all four controls for process-backed autonomy.
+
+### Network namespace isolation
+
+On Linux, the worker first attempts a combined user + network namespace transition using `unshare(CLONE_NEWUSER | CLONE_NEWNET)`.
+
+The unprivileged UID/GID mapping is restricted to the worker's original host identity. The worker reports both the original host identity and the namespace identity.
+
+CACE compares the worker's `/proc/self/ns/net` inode to the parent network-namespace inode supplied in the immutable request.
+
+The network namespace is marked active only when those namespace identities differ.
+
+If the kernel, container policy, or host configuration disallows unprivileged namespaces, the capability is reported as unavailable/failed. A session that requires it stops before scientific registry construction or graph execution.
+
+### Privilege hardening
+
+The Linux worker applies and verifies:
+
+- `PR_SET_NO_NEW_PRIVS=1`;
+- `PR_GET_NO_NEW_PRIVS` confirmation;
+- `PR_SET_DUMPABLE=0`;
+- `PR_GET_DUMPABLE` confirmation; and
+- an explicit host-identity check.
+
+`privilege_hardening` is active only when the original host UID is non-root and `no_new_privs` is confirmed.
+
+A worker launched as host root does not receive a misleading “privilege hardened” status merely because it entered a user namespace.
+
+### Landlock filesystem restriction
+
+Where the Linux Landlock ABI is available, CACE builds an allowlist-oriented ruleset.
+
+Read access is granted only to the runtime/source/library trees needed for the Python scientific worker and the read-only run-control tree.
+
+Write access is granted only to the worker's private job directory, which contains its result file, temporary directory, HOME, and cache roots.
+
+The implementation queries the actual Landlock ABI and only includes rights available to that ABI:
+
+- base filesystem rights for ABI 1;
+- `LANDLOCK_ACCESS_FS_REFER` from ABI 2;
+- `LANDLOCK_ACCESS_FS_TRUNCATE` from ABI 3.
+
+After restriction, CACE performs an outside-directory write probe. The filesystem control is reported active only if that probe is denied.
+
+This is an access-control sandbox, not a claim that inaccessible paths have vanished from the namespace.
+
+### Read-only run-control polling
+
+v1.8/v1.9 run-control reads previously used the same advisory lock path as writers.
+
+v1.10 adds `FileRunControlStore.state_readonly(...)`.
+
+The sandboxed worker reads the atomically replaced, hash-validated control envelope without creating/touching a lock file. The parent remains the only process permitted to mutate pause/cancel state.
+
+This lets Landlock keep the run-control directory read-only inside the worker while retaining live cooperative pause/cancel polling.
+
+### seccomp syscall filtering
+
+When `libseccomp` is available, the worker installs a default-allow filter with explicit `EPERM` denials for high-risk syscall families that scientific modules do not require.
+
+The denied set includes network/socket operations, new process-image execution, namespace escape/creation after setup, ptrace, BPF/performance/keyring operations, and mount-related operations.
+
+After filter load, the worker probes creation of an Internet socket.
+
+The seccomp capability is active only when the socket syscall is actually denied.
+
+If `libseccomp` is unavailable, the report says unavailable rather than pretending that network/syscall filtering exists.
+
+### Environment minimization
+
+The parent now constructs a small worker environment instead of copying the full host environment.
+
+Only selected runtime variables are retained. Worker HOME/TMP/cache roots point into the private job directory, user-site imports are disabled, and common proxy/credential-style ambient variables are not propagated.
+
+### Capability report
+
+Every worker result/receipt can contain `cace-linux-sandbox capability report v1` with:
+
+- platform;
+- kernel release;
+- architecture;
+- original host UID/GID;
+- requested hardening requirements;
+- per-control status;
+- per-control active boolean;
+- verification/probe detail;
+- Landlock ABI/rules where active;
+- seccomp library/denied syscall list where active;
+- network namespace parent/child inode identities; and
+- `all_required_active`.
+
+The report remains runtime provenance:
+
+`proof_effect = "none"`
+
+`promotion_authority = false`
+
+### Fail-closed strict mode
+
+If any required control is inactive, the worker returns an error before canonical registry construction and before scientific graph execution.
+
+The parent persists a worker receipt containing the capability report.
+
+For autonomy, the already-committed workspace cycle becomes recovery-blocked and a `science-worker-sandbox-failed` attention item is created.
+
+The operator can therefore distinguish:
+
+- scientific failure;
+- resource termination; and
+- host sandbox-policy failure.
+
+### Honest platform behavior
+
+Linux-specific kernel controls are not asserted on unsupported platforms.
+
+The subprocess boundary, parent wall deadline, hard process termination, JSON transport, and v1.8/v1.9 artifact/recovery contracts remain available independently.
+
+Strict Linux hardening should be enabled only on a deployment expected to provide the required kernel features; if the host does not, the worker fails closed with its capability report instead of falling back invisibly.
+
+### Remaining hardening opportunities
+
+v1.10 does not claim a full container/VM boundary.
+
+Future layers may add:
+
+- dedicated service UID per worker;
+- cgroup v2 CPU/memory/PID quotas in addition to rlimits;
+- mount/PID/IPC namespaces;
+- read-only bind-mounted runtime image or OCI rootfs;
+- device/GPU allowlisting;
+- seccomp allowlist profiles generated per module family; and
+- signed sandbox-policy attestations.
+
+Those can reuse the same worker request, capability report, receipt, attention-inbox, and autonomy approval contracts.
+
+### Trust boundary
+
+Namespace identity, Landlock restrictions, seccomp probes, privilege flags, and capability reports are security/runtime evidence only.
+
+They do not create verifier PASS, FORMAL evidence, theorem qualification, proof-ledger promotion, or mathematical correctness.

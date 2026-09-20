@@ -17,7 +17,11 @@
         "max_output_bytes_per_run",
         "max_artifact_bytes_per_run",
         "max_cpu_seconds_per_run",
-        "max_memory_bytes_per_run"
+        "max_memory_bytes_per_run",
+        "require_network_namespace",
+        "require_seccomp_filter",
+        "require_filesystem_restriction",
+        "require_privilege_hardening"
       ],
       "properties": {
         "max_cycles": {
@@ -59,6 +63,18 @@
         "max_memory_bytes_per_run": {
           "type": "integer",
           "minimum": 1
+        },
+        "require_network_namespace": {
+          "type": "boolean"
+        },
+        "require_seccomp_filter": {
+          "type": "boolean"
+        },
+        "require_filesystem_restriction": {
+          "type": "boolean"
+        },
+        "require_privilege_hardening": {
+          "type": "boolean"
         }
       }
     },
