@@ -44,6 +44,11 @@ from .execution_containment import (
 )
 from .perception import AgentNetworkMode, AgentPerceptionTracker
 from .tool_bus import ApprovalCallback, ToolBus
+from .worker_sandbox import (
+    ProcessSandboxLimits,
+    ProcessScienceRunner,
+    ScienceWorkerTerminatedError,
+)
 from .workspace_store import FileExperimentWorkspace
 
 
@@ -67,6 +72,8 @@ class AutonomyLoopBudget:
     max_nodes_per_run: int = 1000
     max_output_bytes_per_run: int = 67_108_864
     max_artifact_bytes_per_run: int = 134_217_728
+    max_cpu_seconds_per_run: float = 300.0
+    max_memory_bytes_per_run: int = 2_147_483_648
 
     def __post_init__(self) -> None:
         for name in (
@@ -76,12 +83,15 @@ class AutonomyLoopBudget:
             "max_nodes_per_run",
             "max_output_bytes_per_run",
             "max_artifact_bytes_per_run",
+            "max_memory_bytes_per_run",
         ):
             value = getattr(self, name)
             if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
                 raise ValueError(f"{name} must be a positive integer")
         if self.max_wall_seconds_per_run <= 0:
             raise ValueError("max_wall_seconds_per_run must be positive")
+        if self.max_cpu_seconds_per_run <= 0:
+            raise ValueError("max_cpu_seconds_per_run must be positive")
         if (
             not isinstance(self.max_replans, int)
             or isinstance(self.max_replans, bool)
@@ -99,6 +109,8 @@ class AutonomyLoopBudget:
             "max_nodes_per_run": self.max_nodes_per_run,
             "max_output_bytes_per_run": self.max_output_bytes_per_run,
             "max_artifact_bytes_per_run": self.max_artifact_bytes_per_run,
+            "max_cpu_seconds_per_run": self.max_cpu_seconds_per_run,
+            "max_memory_bytes_per_run": self.max_memory_bytes_per_run,
         }
 
     @classmethod
@@ -117,6 +129,12 @@ class AutonomyLoopBudget:
             ),
             max_artifact_bytes_per_run=int(
                 payload.get("max_artifact_bytes_per_run", 134_217_728)
+            ),
+            max_cpu_seconds_per_run=float(
+                payload.get("max_cpu_seconds_per_run", 300.0)
+            ),
+            max_memory_bytes_per_run=int(
+                payload.get("max_memory_bytes_per_run", 2_147_483_648)
             ),
         )
 
@@ -421,6 +439,25 @@ class AutonomyAttentionResponse:
 
 
 @dataclass(frozen=True)
+class AutonomyWorkerReceiptRequest:
+    worker_receipt_id: str
+
+    def __post_init__(self) -> None:
+        if (
+            len(self.worker_receipt_id) != 64
+            or any(ch not in "0123456789abcdef" for ch in self.worker_receipt_id)
+        ):
+            raise ValueError("worker_receipt_id must be lowercase SHA-256")
+
+
+@dataclass(frozen=True)
+class AutonomyWorkerReceiptResponse:
+    receipt: dict[str, Any]
+    proof_effect: str = "none"
+    promotion_authority: bool = False
+
+
+@dataclass(frozen=True)
 class AutonomyAdvanceResponse:
     session_id: str
     operation_id: str
@@ -431,6 +468,7 @@ class AutonomyAdvanceResponse:
     science_run_id: str
     run_control_id: str
     run_artifact_id: str
+    worker_receipt_id: str
     science_completed: bool
     all_verifiers_passed: bool
     perception: dict[str, Any]
@@ -453,6 +491,7 @@ class AutonomyAdvanceResponse:
             "science_run_id": self.science_run_id,
             "run_control_id": self.run_control_id,
             "run_artifact_id": self.run_artifact_id,
+            "worker_receipt_id": self.worker_receipt_id,
             "science_completed": self.science_completed,
             "all_verifiers_passed": self.all_verifiers_passed,
             "perception": dict(self.perception),
@@ -484,6 +523,7 @@ class AutonomyAdvanceResponse:
             science_run_id=str(payload["science_run_id"]),
             run_control_id=str(payload.get("run_control_id", "")),
             run_artifact_id=str(payload.get("run_artifact_id", "")),
+            worker_receipt_id=str(payload.get("worker_receipt_id", "")),
             science_completed=bool(payload["science_completed"]),
             all_verifiers_passed=bool(payload["all_verifiers_passed"]),
             perception=dict(perception),
@@ -749,6 +789,7 @@ class AutonomyLoopRuntime:
         run_artifact_store: FileRunArtifactStore | None = None,
         run_control_store: FileRunControlStore | None = None,
         recovery_inbox: FileRecoveryInbox | None = None,
+        process_science_runner: ProcessScienceRunner | None = None,
     ) -> None:
         self.bus = bus
         self.registry = registry
@@ -767,6 +808,7 @@ class AutonomyLoopRuntime:
         self.recovery_inbox = recovery_inbox or FileRecoveryInbox(
             session_store.root / ".attention-inbox"
         )
+        self.process_science_runner = process_science_runner
         self._perception_trackers: dict[str, AgentPerceptionTracker] = {}
         self.executor = GraphExecutor(registry, gpu_enabled=gpu_enabled)
 
@@ -852,6 +894,20 @@ class AutonomyLoopRuntime:
             )
         )
 
+    def inspect_worker_receipt(
+        self,
+        request: AutonomyWorkerReceiptRequest,
+        _context: ToolContext,
+    ) -> AutonomyWorkerReceiptResponse:
+        if self.process_science_runner is None:
+            raise AutonomyLoopError("process science sandbox is not configured")
+        receipt = self.process_science_runner.receipt_store.load(
+            request.worker_receipt_id
+        )
+        if receipt is None:
+            raise AutonomyLoopError("unknown worker receipt")
+        return AutonomyWorkerReceiptResponse(receipt=receipt.to_dict())
+
     @staticmethod
     def control_id_for(session_id: str, cycle_index: int) -> str:
         return sha256_identity(
@@ -899,10 +955,30 @@ class AutonomyLoopRuntime:
         *,
         session: AutonomySessionRecord,
         cycle_index: int,
-    ) -> tuple[RunResult, str]:
+    ) -> tuple[RunResult, str, str]:
         external_inputs = dict(run_spec.external_inputs or {})
         control_id = self.control_id_for(session.session_id, cycle_index)
         self.run_control_store.ensure_running(control_id)
+
+        if self.process_science_runner is not None:
+            outcome = self.process_science_runner.run(
+                experiment=experiment,
+                target_node_ids=run_spec.target_node_ids,
+                external_inputs=external_inputs,
+                seed=run_spec.seed,
+                gpu_enabled=self.executor.gpu_enabled,
+                control_id=control_id,
+                limits=ProcessSandboxLimits(
+                    max_wall_seconds=session.budget.max_wall_seconds_per_run,
+                    max_cpu_seconds=session.budget.max_cpu_seconds_per_run,
+                    max_memory_bytes=session.budget.max_memory_bytes_per_run,
+                    max_nodes=session.budget.max_nodes_per_run,
+                    max_output_bytes=session.budget.max_output_bytes_per_run,
+                ),
+                worker_nonce=f"{session.session_id}:{cycle_index}",
+            )
+            return outcome.result, control_id, outcome.receipt.worker_id
+
         control = ExecutionControl(
             limits=ExecutionLimits(
                 max_wall_seconds=session.budget.max_wall_seconds_per_run,
@@ -928,7 +1004,7 @@ class AutonomyLoopRuntime:
                 seed=run_spec.seed,
                 control=control,
             )
-        return result, control_id
+        return result, control_id, ""
 
     @staticmethod
     def _receipt_for_operation(
@@ -1003,12 +1079,27 @@ class AutonomyLoopRuntime:
             )
 
         cycle_index = session.cycles_completed + 1
-        run_result, run_control_id = self._run_science(
-            experiment,
-            session.run_spec,
-            session=session,
-            cycle_index=cycle_index,
-        )
+        try:
+            run_result, run_control_id, worker_receipt_id = self._run_science(
+                experiment,
+                session.run_spec,
+                session=session,
+                cycle_index=cycle_index,
+            )
+        except ScienceWorkerTerminatedError as exc:
+            self.recovery_inbox.add(
+                session_id=session.session_id,
+                operation_id=context.operation_id,
+                category="science-worker-terminated",
+                message=(
+                    "The approved workspace plan committed, but the isolated "
+                    f"science worker terminated: {exc}; "
+                    f"worker_receipt={exc.receipt.worker_id}"
+                ),
+            )
+            raise RuntimeError(
+                f"isolated science worker terminated; worker_receipt={exc.receipt.worker_id}"
+            ) from exc
         if not run_result.completed:
             interrupted_artifact = self.run_artifact_store.save(
                 result=run_result,
@@ -1135,6 +1226,7 @@ class AutonomyLoopRuntime:
             science_run_id=run_summary.run_id,
             run_control_id=run_control_id,
             run_artifact_id=artifact.artifact_id,
+            worker_receipt_id=worker_receipt_id,
             science_completed=run_summary.completed,
             all_verifiers_passed=run_summary.all_verifiers_passed,
             perception=perception,
@@ -1270,6 +1362,7 @@ def register_autonomy_loop_tools(
     run_artifact_store: FileRunArtifactStore | None = None,
     run_control_store: FileRunControlStore | None = None,
     recovery_inbox: FileRecoveryInbox | None = None,
+    process_science_runner: ProcessScienceRunner | None = None,
 ) -> AutonomyLoopRuntime:
     runtime = AutonomyLoopRuntime(
         bus=bus,
@@ -1284,6 +1377,7 @@ def register_autonomy_loop_tools(
         run_artifact_store=run_artifact_store,
         run_control_store=run_control_store,
         recovery_inbox=recovery_inbox,
+        process_science_runner=process_science_runner,
     )
     bus.register(
         TypedTool(
@@ -1311,6 +1405,20 @@ def register_autonomy_loop_tools(
             handler=runtime.list_attention,
         )
     )
+    if runtime.process_science_runner is not None:
+        bus.register(
+            TypedTool(
+                name="cace.autonomy.inspect_worker_receipt",
+                description=(
+                    "Inspect one durable isolated-science worker receipt. "
+                    "Worker receipts are runtime provenance, not proof evidence."
+                ),
+                capability=Capability.READ_RUNTIME,
+                request_type=AutonomyWorkerReceiptRequest,
+                response_type=AutonomyWorkerReceiptResponse,
+                handler=runtime.inspect_worker_receipt,
+            )
+        )
     bus.register(
         TypedTool(
             name="cace.autonomy.advance",

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-science-worker.schema.json",
+  "title": "CACE Science Worker IPC v1",
+  "description": "Strict JSON request/result contract for isolated CACE science worker processes. Runtime transport only; no proof authority.",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "science_worker_request_schema",
+        "experiment",
+        "target_node_ids",
+        "external_inputs",
+        "seed",
+        "gpu_enabled",
+        "expected_registry_sha256",
+        "control_root",
+        "control_id",
+        "limits"
+      ],
+      "properties": {
+        "science_worker_request_schema": {"const": 1},
+        "experiment": {"type": "object"},
+        "target_node_ids": {"type": "array", "items": {"type": "string"}},
+        "external_inputs": {
+          "type": "object",
+          "additionalProperties": {"type": "object"}
+        },
+        "seed": {"type": "integer"},
+        "gpu_enabled": {"type": "boolean"},
+        "expected_registry_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "control_root": {"type": "string"},
+        "control_id": {"type": "string"},
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_wall_seconds",
+            "max_cpu_seconds",
+            "max_memory_bytes",
+            "max_nodes",
+            "max_output_bytes"
+          ],
+          "properties": {
+            "max_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+            "max_cpu_seconds": {"type": "number", "exclusiveMinimum": 0},
+            "max_memory_bytes": {"type": "integer", "minimum": 1},
+            "max_nodes": {"type": "integer", "minimum": 1},
+            "max_output_bytes": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "ok_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "science_worker_result_schema",
+        "status",
+        "registry_sha256",
+        "resource_enforcement",
+        "run_result"
+      ],
+      "properties": {
+        "science_worker_result_schema": {"const": 1},
+        "status": {"const": "ok"},
+        "registry_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "resource_enforcement": {"type": "object"},
+        "run_result": {"type": "object"}
+      }
+    },
+    "error_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "science_worker_result_schema",
+        "status",
+        "error_type",
+        "error"
+      ],
+      "properties": {
+        "science_worker_result_schema": {"const": 1},
+        "status": {"const": "error"},
+        "error_type": {"type": "string"},
+        "error": {"type": "string"}
+      }
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/request"},
+    {"$ref": "#/$defs/ok_result"},
+    {"$ref": "#/$defs/error_result"}
+  ]
+}

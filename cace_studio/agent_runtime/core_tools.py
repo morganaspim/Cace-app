@@ -24,6 +24,7 @@ from .canvas_plan import FileCanvasPlanStore, register_canvas_plan_tools
 from .contracts import Capability, ToolContext, TypedTool
 from .perception import AgentNetworkMode
 from .tool_bus import ToolBus
+from .worker_sandbox import FileWorkerReceiptStore, ProcessScienceRunner
 from .workspace_store import FileExperimentWorkspace
 
 
@@ -155,6 +156,8 @@ def register_core_tools(
     autonomy_run_artifact_store: FileRunArtifactStore | None = None,
     autonomy_run_control_store: FileRunControlStore | None = None,
     autonomy_recovery_inbox: FileRecoveryInbox | None = None,
+    autonomy_use_process_sandbox: bool = False,
+    autonomy_worker_receipt_store: FileWorkerReceiptStore | None = None,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
 
@@ -306,6 +309,25 @@ def register_core_tools(
                 workspace_store=canvas_workspace_store,
             )
             if autonomy_session_store is not None:
+                resolved_control_store = (
+                    autonomy_run_control_store
+                    or FileRunControlStore(
+                        autonomy_session_store.root / ".run-controls"
+                    )
+                )
+                process_runner = None
+                if autonomy_use_process_sandbox:
+                    resolved_receipt_store = (
+                        autonomy_worker_receipt_store
+                        or FileWorkerReceiptStore(
+                            autonomy_session_store.root / ".worker-receipts"
+                        )
+                    )
+                    process_runner = ProcessScienceRunner(
+                        registry=registry,
+                        control_store=resolved_control_store,
+                        receipt_store=resolved_receipt_store,
+                    )
                 register_autonomy_loop_tools(
                     bus,
                     registry=registry,
@@ -317,6 +339,7 @@ def register_core_tools(
                     network_mode=autonomy_network_mode,
                     gpu_enabled=gpu_enabled,
                     run_artifact_store=autonomy_run_artifact_store,
-                    run_control_store=autonomy_run_control_store,
+                    run_control_store=resolved_control_store,
                     recovery_inbox=autonomy_recovery_inbox,
+                    process_science_runner=process_runner,
                 )

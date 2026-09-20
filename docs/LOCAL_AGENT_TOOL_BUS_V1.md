@@ -1094,3 +1094,163 @@ They do not create:
 - theorem qualification;
 - proof-ledger promotion; or
 - mathematical correctness.
+
+
+## v1.9 isolated science worker process sandbox
+
+v1.9 adds a real OS process boundary underneath the v1.8 contained-autonomy contracts.
+
+### Separate scientific worker process
+
+`ProcessScienceRunner` launches scientific execution through:
+
+`python -m cace_studio.agent_runtime.science_worker`
+
+The worker receives a strict JSON request containing:
+
+- canonical serialized `Experiment`;
+- selected target nodes;
+- external inputs;
+- deterministic seed;
+- GPU flag;
+- expected canonical registry contract SHA-256;
+- durable run-control location/ID; and
+- explicit resource limits.
+
+The parent never sends arbitrary Python objects or executable serialization across the boundary.
+
+### Independent registry reconstruction and binding
+
+The child independently calls CACE's canonical `build_registry()`.
+
+Before graph execution, the child computes the registry contract fingerprint and requires exact equality with the parent-supplied fingerprint.
+
+A worker with a different module catalog/version/typed contract fails closed instead of running the experiment against drifted scientific code.
+
+### Strict JSON result transport
+
+The child converts `RunResult` into `cace-run-result transport v1` JSON.
+
+The parent validates and reconstructs:
+
+- outputs;
+- run certificates;
+- real `VerificationRecord` objects;
+- claim-decision metadata;
+- graph/scope identities;
+- seed/scope metadata; and
+- completion/interruption state.
+
+No pickle is loaded from the worker.
+
+The reconstructed `RunResult` then enters the existing canonical perception and durable run-artifact pipeline.
+
+### Hard parent wall deadline and cancellation
+
+The parent supervises the worker independently of CACE's cooperative module checkpoints.
+
+If:
+
+- the configured wall deadline expires; or
+- the durable run-control state becomes `cancelled`;
+
+the parent terminates the worker process group.
+
+After a short grace interval, the parent issues a hard kill if the process did not exit.
+
+This means a scientific module that hangs inside one module call can no longer hold the autonomy process indefinitely.
+
+### POSIX CPU and memory limits
+
+On POSIX/Linux workers, the child applies:
+
+- `RLIMIT_AS` for address-space memory; and
+- `RLIMIT_CPU` for CPU seconds.
+
+Core dumps are disabled best-effort.
+
+The parent records the actual enforcement mode returned by the child in the worker receipt.
+
+If `SIGXCPU` terminates the process before a JSON result is produced, the receipt classifies the attempt as `cpu-limit`.
+
+An unexplained `SIGKILL` without a result is recorded as `resource-kill-unknown` rather than incorrectly asserting whether CPU, memory, or an external actor caused it.
+
+### Platform boundary
+
+The hard parent wall deadline/cancel behavior is cross-platform through subprocess termination.
+
+`RLIMIT_AS` and `RLIMIT_CPU` are POSIX-specific. v1.9 does not falsely claim equivalent Windows Job Object enforcement.
+
+### Durable worker receipts
+
+Every worker attempt gets its own content-addressed receipt ID.
+
+A receipt records:
+
+- request SHA-256;
+- worker PID;
+- start/finish timestamps;
+- exit code;
+- outcome;
+- termination reason;
+- result SHA-256 when available;
+- canonical registry SHA-256;
+- requested limits;
+- actual resource-enforcement metadata; and
+- bounded stderr tail.
+
+Worker IDs are unique per attempt, so an explicitly retried operation does not overwrite evidence from an earlier terminated attempt.
+
+`cace.autonomy.inspect_worker_receipt` exposes one receipt read-only for the operator/recovery UI.
+
+### Autonomy integration
+
+`AutonomyLoopRuntime` accepts an optional `ProcessScienceRunner`.
+
+When configured, an approved cycle executes:
+
+`approved plan -> atomic workspace commit -> isolated worker -> JSON RunResult -> perception -> durable run artifact -> optional replan preview`
+
+The cycle response carries both:
+
+- `run_artifact_id`; and
+- `worker_receipt_id`.
+
+If the worker is hard-terminated after the approved workspace mutation, CACE creates a durable attention item and returns recovery-blocked.
+
+### Production switch
+
+`register_core_tools(..., autonomy_use_process_sandbox=True)` creates the process runner automatically and shares the autonomy run-control store with it.
+
+The process sandbox is explicit rather than silently changing custom/test registry behavior.
+
+### Expanded approval budgets
+
+The exact autonomy approval budget now also includes:
+
+- `max_cpu_seconds_per_run`; and
+- `max_memory_bytes_per_run`.
+
+These are bound alongside the existing wall/node/output/artifact limits.
+
+### Network boundary
+
+v1.9 removes common proxy environment variables and marks the worker `LOCAL_ZERO_CONTACT`, but it does **not** claim hard kernel-level network isolation.
+
+The worker receipt explicitly reports:
+
+`network_isolation = "not-hard-enforced"`
+
+A future Linux namespace/seccomp/container layer can hard-disable networking while preserving the v1.9 worker protocol.
+
+### Trust boundary
+
+Process isolation, rlimits, worker receipts, request hashes, and JSON transport remain runtime/provenance mechanisms.
+
+They do not create:
+
+- verifier PASS;
+- FORMAL evidence;
+- theorem qualification;
+- proof-ledger promotion; or
+- mathematical correctness.

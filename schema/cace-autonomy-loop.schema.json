@@ -15,7 +15,9 @@
         "max_wall_seconds_per_run",
         "max_nodes_per_run",
         "max_output_bytes_per_run",
-        "max_artifact_bytes_per_run"
+        "max_artifact_bytes_per_run",
+        "max_cpu_seconds_per_run",
+        "max_memory_bytes_per_run"
       ],
       "properties": {
         "max_cycles": {
@@ -47,6 +49,14 @@
           "minimum": 1
         },
         "max_artifact_bytes_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_cpu_seconds_per_run": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_memory_bytes_per_run": {
           "type": "integer",
           "minimum": 1
         }
@@ -134,7 +144,8 @@
         "proof_effect",
         "promotion_authority",
         "run_control_id",
-        "run_artifact_id"
+        "run_artifact_id",
+        "worker_receipt_id"
       ],
       "properties": {
         "session_id": {
@@ -204,6 +215,10 @@
           "type": "string"
         },
         "run_artifact_id": {
+          "type": "string",
+          "pattern": "^(?:|[0-9a-f]{64})$"
+        },
+        "worker_receipt_id": {
           "type": "string",
           "pattern": "^(?:|[0-9a-f]{64})$"
         }
@@ -332,6 +347,39 @@
           "const": false
         }
       }
+    },
+    "worker_receipt_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker_receipt_id"
+      ],
+      "properties": {
+        "worker_receipt_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "worker_receipt_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "receipt": {
+          "type": "object"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
     }
   },
   "oneOf": [
@@ -346,6 +394,12 @@
     },
     {
       "$ref": "#/$defs/attention_response"
+    },
+    {
+      "$ref": "#/$defs/worker_receipt_request"
+    },
+    {
+      "$ref": "#/$defs/worker_receipt_response"
     },
     {
       "$ref": "#/$defs/advance_response"
