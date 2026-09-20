@@ -145,7 +145,7 @@ def test_proof_promotion_and_multi_user_boundaries() -> None:
     assert gemini["proof_promotion_compatibility"]["coupling"] == "VERSIONED_TYPED_API_ONLY"
     assert gemini["proof_promotion_compatibility"]["breaking_external_change_requires_versioned_migration"] is True
     assert gemini["multi_user_sessions"]["status_until_backend_ready"] == "MULTI_USER_BACKEND_PENDING"
-    assert gemini["cloud_run_deployment"]["role"] == "STATELESS_WEB_SERVER_EDGE_ONLY"
+    assert gemini["cloud_run_deployment"]["role"] == "OPTIONAL_STATELESS_WEB_SERVER_EDGE_ONLY"
     assert gemini["cloud_run_deployment"]["scientific_authority_remains"] == "Oracle/CACE"
 
     multi = _load("ops/multi_user_session_policy.json")
