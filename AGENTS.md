@@ -4,6 +4,8 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 
 ## Start here
 
+**AI context budget:** first read `AI_CONTEXT/00_START_HERE.md` and `AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md`. Never request more than 800 repository files in one AI context pull; if a candidate set is larger, split it deterministically. Do not trust silently discarded/truncated files.
+
 Read these in order before changing scientific or verification behavior:
 
 **Gemini / Google AI Studio:** begin with `GEMINI.md` and `docs/GEMINI_AI_STUDIO_HANDOFF.md`. The browser layer is presentation only: it must consume CACE's typed API/core and must not duplicate scientific, exact-math, graph-execution, proof, evidence, or qualification semantics in JavaScript/TypeScript/Node.
