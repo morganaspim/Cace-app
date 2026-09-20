@@ -21,7 +21,13 @@
         "require_network_namespace",
         "require_seccomp_filter",
         "require_filesystem_restriction",
-        "require_privilege_hardening"
+        "require_privilege_hardening",
+        "max_pids_per_run",
+        "max_cpu_cores_per_run",
+        "require_cgroup_v2",
+        "require_mount_namespace",
+        "require_private_tmp",
+        "require_device_restrictions"
       ],
       "properties": {
         "max_cycles": {
@@ -74,6 +80,26 @@
           "type": "boolean"
         },
         "require_privilege_hardening": {
+          "type": "boolean"
+        },
+        "max_pids_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_cpu_cores_per_run": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "require_cgroup_v2": {
+          "type": "boolean"
+        },
+        "require_mount_namespace": {
+          "type": "boolean"
+        },
+        "require_private_tmp": {
+          "type": "boolean"
+        },
+        "require_device_restrictions": {
           "type": "boolean"
         }
       }

@@ -21,6 +21,7 @@ from cace_studio.core.reproducibility import (
 from cace_studio.core.serialization import experiment_to_data
 from cace_studio.core.registry import ModuleRegistry
 
+from .cgroup_v2 import CgroupV2Limits, CgroupV2Manager
 from .durability import (
     CrossProcessFileLock,
     atomic_write_json,
@@ -55,6 +56,8 @@ class ProcessSandboxLimits:
     max_memory_bytes: int
     max_nodes: int
     max_output_bytes: int
+    max_pids: int = 64
+    max_cpu_cores: float = 4.0
 
     def __post_init__(self) -> None:
         if self.max_wall_seconds <= 0:
@@ -67,6 +70,10 @@ class ProcessSandboxLimits:
             raise ValueError("max_nodes must be positive")
         if self.max_output_bytes <= 0:
             raise ValueError("max_output_bytes must be positive")
+        if self.max_pids <= 0:
+            raise ValueError("max_pids must be positive")
+        if self.max_cpu_cores <= 0:
+            raise ValueError("max_cpu_cores must be positive")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -75,6 +82,8 @@ class ProcessSandboxLimits:
             "max_memory_bytes": self.max_memory_bytes,
             "max_nodes": self.max_nodes,
             "max_output_bytes": self.max_output_bytes,
+            "max_pids": self.max_pids,
+            "max_cpu_cores": self.max_cpu_cores,
         }
 
 
@@ -238,6 +247,7 @@ class ProcessScienceRunner:
         poll_seconds: float = 0.05,
         terminate_grace_seconds: float = 0.5,
         sandbox_requirements: SandboxRequirements | None = None,
+        cgroup_manager: CgroupV2Manager | None = None,
         clock=time.monotonic,
         wall_clock=time.time,
     ) -> None:
@@ -250,6 +260,7 @@ class ProcessScienceRunner:
         self.sandbox_requirements = (
             sandbox_requirements or SandboxRequirements()
         )
+        self.cgroup_manager = cgroup_manager or CgroupV2Manager()
         self._clock = clock
         self._wall_clock = wall_clock
         if self.poll_seconds <= 0 or self.terminate_grace_seconds < 0:
@@ -274,8 +285,8 @@ class ProcessScienceRunner:
             for key, value in os.environ.items()
             if key in allowed
         }
-        env["HOME"] = str(job_dir)
-        env["TMPDIR"] = str(job_dir)
+        env["HOME"] = str(job_dir / "home")
+        env["TMPDIR"] = "/tmp"
         env["XDG_CACHE_HOME"] = str(job_dir / ".cache")
         env["PYTHONNOUSERSITE"] = "1"
         env["CACE_SCIENCE_WORKER"] = "1"
@@ -328,38 +339,36 @@ class ProcessScienceRunner:
             sandbox_requirements or self.sandbox_requirements
         )
         parent_netns_inode = None
+        parent_mntns_inode = None
         if sys.platform == "linux":
             try:
                 parent_netns_inode = os.stat("/proc/self/ns/net").st_ino
             except OSError:
-                parent_netns_inode = None
+                pass
+            try:
+                parent_mntns_inode = os.stat("/proc/self/ns/mnt").st_ino
+            except OSError:
+                pass
 
-        request = {
-            "science_worker_request_schema": 1,
-            "experiment": experiment_to_data(experiment),
-            "target_node_ids": list(target_node_ids),
-            "external_inputs": {
-                str(node_id): dict(values)
-                for node_id, values in external_inputs.items()
-            },
-            "seed": int(seed),
-            "gpu_enabled": bool(gpu_enabled),
-            "expected_registry_sha256": expected_registry_sha,
-            "control_root": str(self.control_store.root.resolve()),
-            "control_id": control_id,
-            "parent_netns_inode": parent_netns_inode,
-            "sandbox_requirements": effective_requirements.to_dict(),
-            "limits": limits.to_dict(),
-        }
-        request_sha = sha256_identity(request)
-        worker_id = sha256_identity(
+        attempt_uuid = str(uuid4())
+        cgroup_key = sha256_identity(
             {
-                "science_worker_identity_schema": 1,
-                "request_sha256": request_sha,
+                "science_cgroup_identity_schema": 1,
                 "worker_nonce": worker_nonce,
-                "attempt_uuid": str(uuid4()),
+                "attempt_uuid": attempt_uuid,
+                "registry_sha256": expected_registry_sha,
             }
         )
+        cgroup = self.cgroup_manager.prepare(
+            cgroup_key,
+            CgroupV2Limits(
+                max_memory_bytes=limits.max_memory_bytes,
+                max_pids=limits.max_pids,
+                max_cpu_cores=limits.max_cpu_cores,
+                max_cpu_seconds=limits.max_cpu_seconds,
+            ),
+        )
+
         started_unix = float(self._wall_clock())
         started_mono = float(self._clock())
         self.control_store.ensure_running(control_id)
@@ -367,12 +376,46 @@ class ProcessScienceRunner:
         jobs_root = self.receipt_store.root / ".jobs"
         jobs_root.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(
-            prefix=f"cace-worker-{worker_id[:12]}-",
+            prefix=f"cace-worker-{cgroup_key[:12]}-",
             dir=jobs_root,
         ) as tmp:
             job_dir = Path(tmp)
+            for child in ("tmp", "home", ".cache"):
+                (job_dir / child).mkdir(mode=0o700, exist_ok=True)
             request_path = job_dir / "request.json"
             result_path = job_dir / "result.json"
+            startup_gate = job_dir / "parent-ready"
+
+            request = {
+                "science_worker_request_schema": 1,
+                "experiment": experiment_to_data(experiment),
+                "target_node_ids": list(target_node_ids),
+                "external_inputs": {
+                    str(node_id): dict(values)
+                    for node_id, values in external_inputs.items()
+                },
+                "seed": int(seed),
+                "gpu_enabled": bool(gpu_enabled),
+                "expected_registry_sha256": expected_registry_sha,
+                "control_root": str(self.control_store.root.resolve()),
+                "control_id": control_id,
+                "parent_netns_inode": parent_netns_inode,
+                "parent_mntns_inode": parent_mntns_inode,
+                "startup_gate": str(startup_gate),
+                "expected_cgroup_path": cgroup.relative_path,
+                "cgroup_prepare_report": dict(cgroup.report),
+                "sandbox_requirements": effective_requirements.to_dict(),
+                "limits": limits.to_dict(),
+            }
+            request_sha = sha256_identity(request)
+            worker_id = sha256_identity(
+                {
+                    "science_worker_identity_schema": 1,
+                    "request_sha256": request_sha,
+                    "worker_nonce": worker_nonce,
+                    "attempt_uuid": attempt_uuid,
+                }
+            )
             request_path.write_text(
                 json.dumps(
                     request,
@@ -383,6 +426,7 @@ class ProcessScienceRunner:
                 ),
                 encoding="utf-8",
             )
+
             proc = subprocess.Popen(
                 [
                     self.python_executable,
@@ -399,16 +443,41 @@ class ProcessScienceRunner:
                 env=self._clean_environment(job_dir),
                 start_new_session=(os.name == "posix"),
             )
+
+            attach_report = cgroup.attach(proc.pid)
+            startup_gate.write_text(
+                json.dumps(
+                    {
+                        "parent_ready_schema": 1,
+                        "pid": proc.pid,
+                        "cgroup_attachment": attach_report,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+                encoding="utf-8",
+            )
+
             termination_reason = ""
             while proc.poll() is None:
                 state = self.control_store.state(control_id)
                 if state == RunControlState.CANCELLED.value:
                     termination_reason = "hard-cancel"
-                    self._kill_process_group(proc)
+                    if cgroup.active:
+                        cgroup.kill_tree()
+                    else:
+                        self._kill_process_group(proc)
+                    break
+                if cgroup.active and cgroup.cpu_budget_exceeded():
+                    termination_reason = "cgroup-cpu-budget"
+                    cgroup.kill_tree()
                     break
                 if float(self._clock()) - started_mono >= limits.max_wall_seconds:
                     termination_reason = "hard-wall-deadline"
-                    self._kill_process_group(proc)
+                    if cgroup.active:
+                        cgroup.kill_tree()
+                    else:
+                        self._kill_process_group(proc)
                     break
                 time.sleep(self.poll_seconds)
 
@@ -417,11 +486,18 @@ class ProcessScienceRunner:
                 while proc.poll() is None and float(self._clock()) < deadline:
                     time.sleep(min(self.poll_seconds, 0.05))
             if proc.poll() is None:
-                self._hard_kill_process_group(proc)
+                if cgroup.active:
+                    cgroup.kill_tree()
+                else:
+                    self._hard_kill_process_group(proc)
                 termination_reason = termination_reason or "hard-kill"
-            stdout, stderr = proc.communicate()
+
+            _stdout, stderr = proc.communicate()
             exit_code = proc.returncode
             stderr_tail = stderr.decode("utf-8", errors="replace")[-4096:]
+            cgroup_snapshot = cgroup.snapshot()
+            cgroup_cleanup = cgroup.cleanup()
+            cgroup_snapshot["cleanup"] = cgroup_cleanup
 
             payload: Mapping[str, Any] | None = None
             if result_path.exists():
@@ -431,6 +507,13 @@ class ProcessScienceRunner:
                 payload = raw
 
             finished_unix = float(self._wall_clock())
+            base_enforcement = {
+                "parent_wall_deadline": True,
+                "parent_hard_cancel": True,
+                "posix_rlimit_requested": os.name == "posix",
+                "cgroup_v2": cgroup_snapshot,
+            }
+
             if termination_reason:
                 receipt = WorkerExecutionReceipt(
                     worker_id=worker_id,
@@ -444,11 +527,7 @@ class ProcessScienceRunner:
                     result_sha256="",
                     registry_sha256=expected_registry_sha,
                     limits=limits.to_dict(),
-                    resource_enforcement={
-                        "parent_wall_deadline": True,
-                        "parent_hard_cancel": True,
-                        "posix_rlimit_requested": os.name == "posix",
-                    },
+                    resource_enforcement=base_enforcement,
                     sandbox_capabilities={},
                     stderr_tail=stderr_tail,
                 )
@@ -460,9 +539,20 @@ class ProcessScienceRunner:
 
             if payload is None:
                 no_result_reason = "worker-produced-no-result"
-                if os.name == "posix" and exit_code == -getattr(signal, "SIGXCPU", 24):
+                memory_events = cgroup_snapshot.get("usage", {}).get(
+                    "memory_events", {}
+                )
+                if int(memory_events.get("oom_kill", 0)) > 0:
+                    no_result_reason = "cgroup-memory-oom"
+                elif (
+                    os.name == "posix"
+                    and exit_code == -getattr(signal, "SIGXCPU", 24)
+                ):
                     no_result_reason = "cpu-limit"
-                elif os.name == "posix" and exit_code == -getattr(signal, "SIGKILL", 9):
+                elif (
+                    os.name == "posix"
+                    and exit_code == -getattr(signal, "SIGKILL", 9)
+                ):
                     no_result_reason = "resource-kill-unknown"
                 receipt = WorkerExecutionReceipt(
                     worker_id=worker_id,
@@ -476,11 +566,7 @@ class ProcessScienceRunner:
                     result_sha256="",
                     registry_sha256=expected_registry_sha,
                     limits=limits.to_dict(),
-                    resource_enforcement={
-                        "parent_wall_deadline": True,
-                        "parent_hard_cancel": True,
-                        "posix_rlimit_requested": os.name == "posix",
-                    },
+                    resource_enforcement=base_enforcement,
                     sandbox_capabilities={},
                     stderr_tail=stderr_tail,
                 )
@@ -492,6 +578,12 @@ class ProcessScienceRunner:
 
             if payload.get("science_worker_result_schema") != 1:
                 raise ScienceWorkerError("unsupported science worker result schema")
+
+            sandbox_capabilities = (
+                dict(payload["sandbox_capability_report"])
+                if isinstance(payload.get("sandbox_capability_report"), Mapping)
+                else {}
+            )
             if payload.get("status") != "ok":
                 receipt = WorkerExecutionReceipt(
                     worker_id=worker_id,
@@ -501,42 +593,38 @@ class ProcessScienceRunner:
                     pid=proc.pid,
                     exit_code=exit_code,
                     outcome="error",
-                    termination_reason=str(payload.get("error_type", "worker-error")),
+                    termination_reason=str(
+                        payload.get("error_type", "worker-error")
+                    ),
                     result_sha256=sha256_identity(dict(payload)),
                     registry_sha256=expected_registry_sha,
                     limits=limits.to_dict(),
                     resource_enforcement={
+                        **base_enforcement,
                         "worker_error": str(payload.get("error", ""))[:2048],
                     },
-                    sandbox_capabilities=(
-                        dict(payload["sandbox_capability_report"])
-                        if isinstance(
-                            payload.get("sandbox_capability_report"),
-                            Mapping,
-                        )
-                        else {}
-                    ),
+                    sandbox_capabilities=sandbox_capabilities,
                     stderr_tail=stderr_tail,
                 )
                 self.receipt_store.save(receipt)
                 raise ScienceWorkerError(
                     "science worker failed: "
-                    f"{payload.get('error_type', 'Error')}: {payload.get('error', '')}",
+                    f"{payload.get('error_type', 'Error')}: "
+                    f"{payload.get('error', '')}",
                     receipt=receipt,
                 )
 
             actual_registry_sha = str(payload.get("registry_sha256", ""))
             if actual_registry_sha != expected_registry_sha:
-                raise ScienceWorkerError("worker returned mismatched registry identity")
+                raise ScienceWorkerError(
+                    "worker returned mismatched registry identity"
+                )
             raw_result = payload.get("run_result")
             if not isinstance(raw_result, Mapping):
                 raise ScienceWorkerError("worker run_result must be an object")
             result = run_result_from_data(raw_result)
             result_sha = sha256_identity(dict(raw_result))
             enforcement = payload.get("resource_enforcement", {})
-            sandbox_capabilities = payload.get(
-                "sandbox_capability_report", {}
-            )
             if not isinstance(enforcement, Mapping):
                 raise ScienceWorkerError(
                     "worker resource_enforcement must be an object"
@@ -559,8 +647,7 @@ class ProcessScienceRunner:
                 limits=limits.to_dict(),
                 resource_enforcement={
                     **dict(enforcement),
-                    "parent_wall_deadline": True,
-                    "parent_hard_cancel": True,
+                    **base_enforcement,
                 },
                 sandbox_capabilities=dict(sandbox_capabilities),
                 stderr_tail=stderr_tail,

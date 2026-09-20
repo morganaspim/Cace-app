@@ -76,10 +76,16 @@ class AutonomyLoopBudget:
     max_artifact_bytes_per_run: int = 134_217_728
     max_cpu_seconds_per_run: float = 300.0
     max_memory_bytes_per_run: int = 2_147_483_648
+    max_pids_per_run: int = 64
+    max_cpu_cores_per_run: float = 4.0
     require_network_namespace: bool = False
     require_seccomp_filter: bool = False
     require_filesystem_restriction: bool = False
     require_privilege_hardening: bool = False
+    require_cgroup_v2: bool = False
+    require_mount_namespace: bool = False
+    require_private_tmp: bool = False
+    require_device_restrictions: bool = False
 
     def __post_init__(self) -> None:
         for name in (
@@ -90,6 +96,7 @@ class AutonomyLoopBudget:
             "max_output_bytes_per_run",
             "max_artifact_bytes_per_run",
             "max_memory_bytes_per_run",
+            "max_pids_per_run",
         ):
             value = getattr(self, name)
             if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
@@ -98,6 +105,8 @@ class AutonomyLoopBudget:
             raise ValueError("max_wall_seconds_per_run must be positive")
         if self.max_cpu_seconds_per_run <= 0:
             raise ValueError("max_cpu_seconds_per_run must be positive")
+        if self.max_cpu_cores_per_run <= 0:
+            raise ValueError("max_cpu_cores_per_run must be positive")
         if (
             not isinstance(self.max_replans, int)
             or isinstance(self.max_replans, bool)
@@ -109,11 +118,15 @@ class AutonomyLoopBudget:
             "require_seccomp_filter",
             "require_filesystem_restriction",
             "require_privilege_hardening",
+            "require_cgroup_v2",
+            "require_mount_namespace",
+            "require_private_tmp",
+            "require_device_restrictions",
         ):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError(f"{name} must be boolean")
 
-    def to_dict(self) -> dict[str, int]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "max_cycles": self.max_cycles,
             "max_science_runs": self.max_science_runs,
@@ -125,11 +138,32 @@ class AutonomyLoopBudget:
             "max_artifact_bytes_per_run": self.max_artifact_bytes_per_run,
             "max_cpu_seconds_per_run": self.max_cpu_seconds_per_run,
             "max_memory_bytes_per_run": self.max_memory_bytes_per_run,
+            "max_pids_per_run": self.max_pids_per_run,
+            "max_cpu_cores_per_run": self.max_cpu_cores_per_run,
             "require_network_namespace": self.require_network_namespace,
             "require_seccomp_filter": self.require_seccomp_filter,
             "require_filesystem_restriction": self.require_filesystem_restriction,
             "require_privilege_hardening": self.require_privilege_hardening,
+            "require_cgroup_v2": self.require_cgroup_v2,
+            "require_mount_namespace": self.require_mount_namespace,
+            "require_private_tmp": self.require_private_tmp,
+            "require_device_restrictions": self.require_device_restrictions,
         }
+
+    @classmethod
+    def strict_linux_sandbox(cls, **overrides: Any) -> "AutonomyLoopBudget":
+        values = {
+            "require_network_namespace": True,
+            "require_seccomp_filter": True,
+            "require_filesystem_restriction": True,
+            "require_privilege_hardening": True,
+            "require_cgroup_v2": True,
+            "require_mount_namespace": True,
+            "require_private_tmp": True,
+            "require_device_restrictions": True,
+            **overrides,
+        }
+        return cls(**values)
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "AutonomyLoopBudget":
@@ -154,6 +188,10 @@ class AutonomyLoopBudget:
             max_memory_bytes_per_run=int(
                 payload.get("max_memory_bytes_per_run", 2_147_483_648)
             ),
+            max_pids_per_run=int(payload.get("max_pids_per_run", 64)),
+            max_cpu_cores_per_run=float(
+                payload.get("max_cpu_cores_per_run", 4.0)
+            ),
             require_network_namespace=bool(
                 payload.get("require_network_namespace", False)
             ),
@@ -165,6 +203,18 @@ class AutonomyLoopBudget:
             ),
             require_privilege_hardening=bool(
                 payload.get("require_privilege_hardening", False)
+            ),
+            require_cgroup_v2=bool(
+                payload.get("require_cgroup_v2", False)
+            ),
+            require_mount_namespace=bool(
+                payload.get("require_mount_namespace", False)
+            ),
+            require_private_tmp=bool(
+                payload.get("require_private_tmp", False)
+            ),
+            require_device_restrictions=bool(
+                payload.get("require_device_restrictions", False)
             ),
         )
 
@@ -877,6 +927,22 @@ class AutonomyLoopRuntime:
                     selected_budget.require_privilege_hardening
                     or minimum.require_privilege_hardening
                 ),
+                require_cgroup_v2=(
+                    selected_budget.require_cgroup_v2
+                    or minimum.require_cgroup_v2
+                ),
+                require_mount_namespace=(
+                    selected_budget.require_mount_namespace
+                    or minimum.require_mount_namespace
+                ),
+                require_private_tmp=(
+                    selected_budget.require_private_tmp
+                    or minimum.require_private_tmp
+                ),
+                require_device_restrictions=(
+                    selected_budget.require_device_restrictions
+                    or minimum.require_device_restrictions
+                ),
             )
         if len(plan.ordered_steps) > selected_budget.max_plan_steps_per_cycle:
             raise AutonomyLoopError(
@@ -1025,6 +1091,8 @@ class AutonomyLoopRuntime:
                     max_memory_bytes=session.budget.max_memory_bytes_per_run,
                     max_nodes=session.budget.max_nodes_per_run,
                     max_output_bytes=session.budget.max_output_bytes_per_run,
+                    max_pids=session.budget.max_pids_per_run,
+                    max_cpu_cores=session.budget.max_cpu_cores_per_run,
                 ),
                 worker_nonce=f"{session.session_id}:{cycle_index}",
                 sandbox_requirements=SandboxRequirements(
@@ -1039,6 +1107,14 @@ class AutonomyLoopRuntime:
                     ),
                     require_privilege_hardening=(
                         session.budget.require_privilege_hardening
+                    ),
+                    require_cgroup_v2=session.budget.require_cgroup_v2,
+                    require_mount_namespace=(
+                        session.budget.require_mount_namespace
+                    ),
+                    require_private_tmp=session.budget.require_private_tmp,
+                    require_device_restrictions=(
+                        session.budget.require_device_restrictions
                     ),
                 ),
             )
@@ -1114,6 +1190,31 @@ class AutonomyLoopRuntime:
             raise AutonomyLoopError("autonomy cycle budget exhausted")
         if session.science_runs >= session.budget.max_science_runs:
             raise AutonomyLoopError("autonomy science-run budget exhausted")
+
+        required_sandbox = SandboxRequirements(
+            require_network_namespace=session.budget.require_network_namespace,
+            require_seccomp_filter=session.budget.require_seccomp_filter,
+            require_filesystem_restriction=(
+                session.budget.require_filesystem_restriction
+            ),
+            require_privilege_hardening=(
+                session.budget.require_privilege_hardening
+            ),
+            require_cgroup_v2=session.budget.require_cgroup_v2,
+            require_mount_namespace=session.budget.require_mount_namespace,
+            require_private_tmp=session.budget.require_private_tmp,
+            require_device_restrictions=(
+                session.budget.require_device_restrictions
+            ),
+        )
+        if (
+            any(required_sandbox.to_dict().values())
+            and self.process_science_runner is None
+        ):
+            raise AutonomyLoopError(
+                "autonomy session requires process-sandbox controls, "
+                "but no process science runner is configured"
+            )
 
         plan = self.plan_store.load(request.plan_id)
         if plan is None:

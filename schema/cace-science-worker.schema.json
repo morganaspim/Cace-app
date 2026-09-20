@@ -19,7 +19,11 @@
         "control_id",
         "limits",
         "parent_netns_inode",
-        "sandbox_requirements"
+        "sandbox_requirements",
+        "parent_mntns_inode",
+        "startup_gate",
+        "expected_cgroup_path",
+        "cgroup_prepare_report"
       ],
       "properties": {
         "science_worker_request_schema": {
@@ -64,7 +68,9 @@
             "max_cpu_seconds",
             "max_memory_bytes",
             "max_nodes",
-            "max_output_bytes"
+            "max_output_bytes",
+            "max_pids",
+            "max_cpu_cores"
           ],
           "properties": {
             "max_wall_seconds": {
@@ -86,6 +92,14 @@
             "max_output_bytes": {
               "type": "integer",
               "minimum": 1
+            },
+            "max_pids": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_cpu_cores": {
+              "type": "number",
+              "exclusiveMinimum": 0
             }
           }
         },
@@ -107,7 +121,11 @@
             "require_network_namespace",
             "require_seccomp_filter",
             "require_filesystem_restriction",
-            "require_privilege_hardening"
+            "require_privilege_hardening",
+            "require_cgroup_v2",
+            "require_mount_namespace",
+            "require_private_tmp",
+            "require_device_restrictions"
           ],
           "properties": {
             "require_network_namespace": {
@@ -121,8 +139,41 @@
             },
             "require_privilege_hardening": {
               "type": "boolean"
+            },
+            "require_cgroup_v2": {
+              "type": "boolean"
+            },
+            "require_mount_namespace": {
+              "type": "boolean"
+            },
+            "require_private_tmp": {
+              "type": "boolean"
+            },
+            "require_device_restrictions": {
+              "type": "boolean"
             }
           }
+        },
+        "parent_mntns_inode": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "startup_gate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_cgroup_path": {
+          "type": "string"
+        },
+        "cgroup_prepare_report": {
+          "type": "object"
         }
       }
     },

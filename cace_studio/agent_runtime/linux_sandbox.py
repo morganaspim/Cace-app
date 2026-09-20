@@ -25,6 +25,10 @@ class SandboxRequirements:
     require_seccomp_filter: bool = False
     require_filesystem_restriction: bool = False
     require_privilege_hardening: bool = False
+    require_cgroup_v2: bool = False
+    require_mount_namespace: bool = False
+    require_private_tmp: bool = False
+    require_device_restrictions: bool = False
 
     def to_dict(self) -> dict[str, bool]:
         return {
@@ -32,6 +36,10 @@ class SandboxRequirements:
             "require_seccomp_filter": self.require_seccomp_filter,
             "require_filesystem_restriction": self.require_filesystem_restriction,
             "require_privilege_hardening": self.require_privilege_hardening,
+            "require_cgroup_v2": self.require_cgroup_v2,
+            "require_mount_namespace": self.require_mount_namespace,
+            "require_private_tmp": self.require_private_tmp,
+            "require_device_restrictions": self.require_device_restrictions,
         }
 
     @classmethod
@@ -48,6 +56,18 @@ class SandboxRequirements:
             ),
             require_privilege_hardening=bool(
                 payload.get("require_privilege_hardening", False)
+            ),
+            require_cgroup_v2=bool(
+                payload.get("require_cgroup_v2", False)
+            ),
+            require_mount_namespace=bool(
+                payload.get("require_mount_namespace", False)
+            ),
+            require_private_tmp=bool(
+                payload.get("require_private_tmp", False)
+            ),
+            require_device_restrictions=bool(
+                payload.get("require_device_restrictions", False)
             ),
         )
 
@@ -252,6 +272,224 @@ def _attempt_network_user_namespace(
         child_inode=after,
     )
     return user, net
+
+
+def _mount(
+    source: str | None,
+    target: str | Path,
+    fstype: str | None,
+    flags: int,
+    data: str | None = None,
+) -> None:
+    libc = _libc()
+    libc.mount.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_ulong,
+        ctypes.c_char_p,
+    ]
+    libc.mount.restype = ctypes.c_int
+    rc = libc.mount(
+        source.encode() if source is not None else None,
+        os.fsencode(str(target)),
+        fstype.encode() if fstype is not None else None,
+        ctypes.c_ulong(flags),
+        data.encode() if data is not None else None,
+    )
+    if rc != 0:
+        err = ctypes.get_errno()
+        raise OSError(err, os.strerror(err), str(target))
+
+
+def _attempt_mount_namespace(
+    *,
+    parent_mntns_inode: int | None,
+    job_dir: Path,
+    gpu_enabled: bool,
+    tmpfs_bytes: int,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    if sys.platform != "linux":
+        unavailable = _control(
+            _STATUS_NOT_APPLICABLE,
+            active=False,
+            detail="Linux mount namespaces unavailable on this platform",
+        )
+        return unavailable, unavailable, unavailable
+
+    libc = _libc()
+    CLONE_NEWNS = 0x00020000
+    MS_BIND = 4096
+    MS_REC = 16384
+    MS_PRIVATE = 1 << 18
+    MS_NOSUID = 2
+    MS_NODEV = 4
+    MS_NOEXEC = 8
+
+    before = _namespace_inode("mnt")
+    rc = libc.unshare(CLONE_NEWNS)
+    if rc != 0:
+        err = ctypes.get_errno()
+        status = (
+            _STATUS_UNAVAILABLE
+            if err in {errno.EPERM, errno.EINVAL, errno.ENOSYS}
+            else _STATUS_FAILED
+        )
+        unavailable = _control(
+            status,
+            active=False,
+            detail=os.strerror(err),
+            errno=err,
+        )
+        return unavailable, unavailable, unavailable
+
+    after = _namespace_inode("mnt")
+    parent = parent_mntns_inode if parent_mntns_inode is not None else before
+    isolated = after is not None and parent is not None and after != parent
+    mount_ns = _control(
+        _STATUS_ACTIVE if isolated else _STATUS_FAILED,
+        active=isolated,
+        detail=(
+            "mount namespace inode differs from parent"
+            if isolated
+            else "mount namespace inode did not change"
+        ),
+        parent_inode=parent,
+        child_inode=after,
+    )
+    if not isolated:
+        unavailable = _control(
+            _STATUS_FAILED,
+            active=False,
+            detail="mount namespace verification failed",
+        )
+        return mount_ns, unavailable, unavailable
+
+    try:
+        _mount(None, "/", None, MS_REC | MS_PRIVATE)
+    except OSError as exc:
+        failed = _control(
+            _STATUS_FAILED,
+            active=False,
+            detail=f"failed to make mount propagation private: {exc}",
+        )
+        return mount_ns, failed, failed
+
+    tmp_dir = Path("/tmp")
+    private_tmp: dict[str, Any]
+    try:
+        before_dev = os.stat(tmp_dir).st_dev
+        _mount(
+            "tmpfs",
+            tmp_dir,
+            "tmpfs",
+            MS_NOSUID | MS_NODEV | MS_NOEXEC,
+            f"size={max(1_048_576, int(tmpfs_bytes))},mode=700",
+        )
+        after_dev = os.stat(tmp_dir).st_dev
+        active = before_dev != after_dev
+        private_tmp = _control(
+            _STATUS_ACTIVE if active else _STATUS_FAILED,
+            active=active,
+            detail=(
+                "private tmpfs mounted inside worker mount namespace"
+                if active
+                else "tmpfs mount did not change backing device"
+            ),
+            path=str(tmp_dir),
+            size_bytes=max(1_048_576, int(tmpfs_bytes)),
+            nosuid=True,
+            nodev=True,
+            noexec=True,
+        )
+    except OSError as exc:
+        private_tmp = _control(
+            _STATUS_FAILED,
+            active=False,
+            detail=f"{type(exc).__name__}: {exc}",
+            path=str(tmp_dir),
+        )
+
+    if gpu_enabled:
+        devices = _control(
+            _STATUS_UNAVAILABLE,
+            active=False,
+            detail=(
+                "minimal private /dev is not enabled for GPU runs; "
+                "GPU device allowlisting requires an explicit future profile"
+            ),
+            gpu_enabled=True,
+        )
+        return mount_ns, private_tmp, devices
+
+    dev_view = job_dir / "dev-view"
+    try:
+        dev_view.mkdir(parents=True, exist_ok=True)
+        allowed = ("null", "zero", "random", "urandom")
+        for name in allowed:
+            target = dev_view / name
+            target.touch(exist_ok=True)
+            _mount(f"/dev/{name}", target, None, MS_BIND)
+        for link, destination in (
+            ("fd", "/proc/self/fd"),
+            ("stdin", "/proc/self/fd/0"),
+            ("stdout", "/proc/self/fd/1"),
+            ("stderr", "/proc/self/fd/2"),
+        ):
+            path = dev_view / link
+            if not path.exists() and not path.is_symlink():
+                path.symlink_to(destination)
+        shm = dev_view / "shm"
+        shm.mkdir(exist_ok=True)
+        _mount(
+            "tmpfs",
+            shm,
+            "tmpfs",
+            MS_NOSUID | MS_NODEV | MS_NOEXEC,
+            "size=67108864,mode=1777",
+        )
+        _mount(str(dev_view), "/dev", None, MS_BIND | MS_REC)
+        with open("/dev/null", "wb", buffering=0) as handle:
+            handle.write(b"")
+        forbidden_absent = all(
+            not Path(path).exists()
+            for path in (
+                "/dev/kmsg",
+                "/dev/mem",
+                "/dev/port",
+                "/dev/dri",
+                "/dev/nvidia0",
+                "/dev/nvidiactl",
+            )
+        )
+        devices = _control(
+            _STATUS_ACTIVE if forbidden_absent else _STATUS_FAILED,
+            active=forbidden_absent,
+            detail=(
+                "private minimal /dev active"
+                if forbidden_absent
+                else "unexpected host device remained visible"
+            ),
+            allowed_devices=list(allowed),
+            private_shm=True,
+            blocked_probe_paths=[
+                "/dev/kmsg",
+                "/dev/mem",
+                "/dev/port",
+                "/dev/dri",
+                "/dev/nvidia0",
+                "/dev/nvidiactl",
+            ],
+            blocked_probe_success=forbidden_absent,
+        )
+    except OSError as exc:
+        devices = _control(
+            _STATUS_FAILED,
+            active=False,
+            detail=f"{type(exc).__name__}: {exc}",
+        )
+
+    return mount_ns, private_tmp, devices
 
 
 def _landlock_syscall_numbers() -> tuple[int, int, int]:
@@ -600,6 +838,10 @@ def _requirements_satisfied(
         "seccomp": requirements.require_seccomp_filter,
         "landlock": requirements.require_filesystem_restriction,
         "privilege_hardening": requirements.require_privilege_hardening,
+        "cgroup_v2": requirements.require_cgroup_v2,
+        "mount_namespace": requirements.require_mount_namespace,
+        "private_tmp": requirements.require_private_tmp,
+        "device_restrictions": requirements.require_device_restrictions,
     }
     missing = tuple(
         name
@@ -612,13 +854,21 @@ def _requirements_satisfied(
 def apply_linux_worker_sandbox(
     *,
     parent_netns_inode: int | None,
+    parent_mntns_inode: int | None,
     read_only_paths: Iterable[str | Path],
     read_write_paths: Iterable[str | Path],
     requirements: SandboxRequirements,
+    job_dir: str | Path,
+    gpu_enabled: bool = False,
+    tmpfs_bytes: int = 268_435_456,
+    external_controls: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> SandboxCapabilityReport:
     host_uid = os.geteuid() if hasattr(os, "geteuid") else -1
     host_gid = os.getegid() if hasattr(os, "getegid") else -1
-    controls: dict[str, dict[str, Any]] = {}
+    controls: dict[str, dict[str, Any]] = {
+        str(key): dict(value)
+        for key, value in dict(external_controls or {}).items()
+    }
 
     os.umask(0o077)
     userns, netns = _attempt_network_user_namespace(
@@ -628,6 +878,16 @@ def apply_linux_worker_sandbox(
     )
     controls["user_namespace"] = userns
     controls["network_namespace"] = netns
+
+    mount_ns, private_tmp, devices = _attempt_mount_namespace(
+        parent_mntns_inode=parent_mntns_inode,
+        job_dir=Path(job_dir).resolve(),
+        gpu_enabled=gpu_enabled,
+        tmpfs_bytes=tmpfs_bytes,
+    )
+    controls["mount_namespace"] = mount_ns
+    controls["private_tmp"] = private_tmp
+    controls["device_restrictions"] = devices
 
     no_new_privs = _set_no_new_privs()
     controls["no_new_privs"] = no_new_privs
@@ -651,7 +911,7 @@ def apply_linux_worker_sandbox(
         namespace_user_active=bool(userns.get("active", False)),
     )
 
-    probe_path = Path("/tmp") / f".cace-landlock-probe-{uuid4().hex}"
+    probe_path = Path("/var/tmp") / f".cace-landlock-probe-{uuid4().hex}"
     try:
         controls["landlock"] = _apply_landlock(
             read_only_paths=read_only_paths,

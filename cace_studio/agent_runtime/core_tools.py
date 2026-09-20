@@ -9,6 +9,7 @@ from cace_studio.core.native_runtime import NativeRuntime
 from cace_studio.core.registry import ModuleRegistry
 from cace_studio.core.reproducibility import experiment_fingerprint, registry_contract_fingerprint
 
+from .cgroup_v2 import CgroupV2Manager
 from .autonomy_loop import (
     FileAutonomySessionStore,
     ReplanProvider,
@@ -160,11 +161,16 @@ def register_core_tools(
     autonomy_use_process_sandbox: bool = False,
     autonomy_worker_receipt_store: FileWorkerReceiptStore | None = None,
     autonomy_require_linux_hardening: bool = False,
+    autonomy_require_linux_process_tree_hardening: bool = False,
+    autonomy_cgroup_root: str | None = None,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
-    if autonomy_require_linux_hardening and not autonomy_use_process_sandbox:
+    if (
+        autonomy_require_linux_hardening
+        or autonomy_require_linux_process_tree_hardening
+    ) and not autonomy_use_process_sandbox:
         raise ValueError(
-            "autonomy_require_linux_hardening requires autonomy_use_process_sandbox"
+            "Linux autonomy hardening requires autonomy_use_process_sandbox"
         )
 
     native_runtime = NativeRuntime()
@@ -329,15 +335,29 @@ def register_core_tools(
                             autonomy_session_store.root / ".worker-receipts"
                         )
                     )
+                    strict_tree = autonomy_require_linux_process_tree_hardening
                     process_runner = ProcessScienceRunner(
                         registry=registry,
                         control_store=resolved_control_store,
                         receipt_store=resolved_receipt_store,
+                        cgroup_manager=CgroupV2Manager(autonomy_cgroup_root),
                         sandbox_requirements=SandboxRequirements(
-                            require_network_namespace=autonomy_require_linux_hardening,
-                            require_seccomp_filter=autonomy_require_linux_hardening,
-                            require_filesystem_restriction=autonomy_require_linux_hardening,
-                            require_privilege_hardening=autonomy_require_linux_hardening,
+                            require_network_namespace=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_seccomp_filter=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_filesystem_restriction=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_privilege_hardening=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_cgroup_v2=strict_tree,
+                            require_mount_namespace=strict_tree,
+                            require_private_tmp=strict_tree,
+                            require_device_restrictions=strict_tree,
                         ),
                     )
                 register_autonomy_loop_tools(

@@ -98,13 +98,37 @@ def test_process_science_runner_executes_canonical_registry_in_child(tmp_path) -
         "privilege_hardening",
         "landlock",
         "seccomp",
+        "cgroup_v2",
+        "mount_namespace",
+        "private_tmp",
+        "device_restrictions",
     }
     assert report["requirements"] == {
         "require_network_namespace": False,
         "require_seccomp_filter": False,
         "require_filesystem_restriction": False,
         "require_privilege_hardening": False,
+        "require_cgroup_v2": False,
+        "require_mount_namespace": False,
+        "require_private_tmp": False,
+        "require_device_restrictions": False,
     }
+    cgroup = outcome.receipt.resource_enforcement["cgroup_v2"]
+    assert cgroup["status"] in {"active", "prepared", "failed", "unavailable", "not-applicable"}
+    if cgroup.get("active"):
+        assert cgroup["attachment"]["active"] is True
+        assert cgroup["usage"]["cpu_stat"]["usage_usec"] >= 0
+    mount_ns = report["controls"]["mount_namespace"]
+    if mount_ns["active"]:
+        assert mount_ns["parent_inode"] != mount_ns["child_inode"]
+    private_tmp = report["controls"]["private_tmp"]
+    if private_tmp["active"]:
+        assert private_tmp["path"] == "/tmp"
+        assert private_tmp["nodev"] is True
+        assert private_tmp["noexec"] is True
+    devices = report["controls"]["device_restrictions"]
+    if devices["active"]:
+        assert devices["blocked_probe_success"] is True
     if os.name == "posix":
         assert outcome.receipt.resource_enforcement["memory_limit"]["kind"] == (
             "RLIMIT_AS"
@@ -356,6 +380,10 @@ def test_strict_linux_hardening_is_active_or_fails_closed_with_capability_report
             "require_seccomp_filter": True,
             "require_filesystem_restriction": True,
             "require_privilege_hardening": True,
+            "require_cgroup_v2": False,
+            "require_mount_namespace": False,
+            "require_private_tmp": False,
+            "require_device_restrictions": False,
         }
         controls = report["controls"]
         assert any(
@@ -384,7 +412,7 @@ def test_linux_hardening_flag_requires_process_sandbox() -> None:
     bus = ToolBus(policy=CapabilityPolicy.zero_contact())
     with pytest.raises(
         ValueError,
-        match="autonomy_require_linux_hardening requires autonomy_use_process_sandbox",
+        match="Linux autonomy hardening requires autonomy_use_process_sandbox",
     ):
         register_core_tools(
             bus,
@@ -475,3 +503,149 @@ def test_process_runner_minimum_hardening_is_persisted_into_session_budget(tmp_p
     persisted = sessions.load(session.session_id)
     assert persisted is not None
     assert persisted.budget.to_dict() == session.budget.to_dict()
+
+
+def test_strict_v111_process_tree_hardening_is_active_or_fails_closed(tmp_path) -> None:
+    requirements = SandboxRequirements(
+        require_network_namespace=True,
+        require_seccomp_filter=True,
+        require_filesystem_restriction=True,
+        require_privilege_hardening=True,
+        require_cgroup_v2=True,
+        require_mount_namespace=True,
+        require_private_tmp=True,
+        require_device_restrictions=True,
+    )
+    runner = ProcessScienceRunner(
+        registry=build_registry(),
+        control_store=FileRunControlStore(tmp_path / "v111-controls"),
+        receipt_store=FileWorkerReceiptStore(tmp_path / "v111-receipts"),
+        poll_seconds=0.01,
+        terminate_grace_seconds=0.05,
+        sandbox_requirements=requirements,
+    )
+
+    try:
+        outcome = runner.run(
+            experiment=_experiment(),
+            target_node_ids=(),
+            external_inputs={},
+            seed=0,
+            gpu_enabled=False,
+            control_id="sandbox-v111-strict",
+            limits=ProcessSandboxLimits(
+                max_wall_seconds=30.0,
+                max_cpu_seconds=20.0,
+                max_memory_bytes=3_221_225_472,
+                max_nodes=10,
+                max_output_bytes=1_000_000,
+                max_pids=32,
+                max_cpu_cores=2.0,
+            ),
+            worker_nonce="v111-strict",
+        )
+    except ScienceWorkerError as exc:
+        assert exc.receipt is not None
+        report = exc.receipt.sandbox_capabilities
+        assert report["sandbox_capability_schema"] == 1
+        assert report["all_required_active"] is False
+        assert report["requirements"] == requirements.to_dict()
+        controls = report["controls"]
+        assert any(
+            not controls[name]["active"]
+            for name in (
+                "network_namespace",
+                "seccomp",
+                "landlock",
+                "privilege_hardening",
+                "cgroup_v2",
+                "mount_namespace",
+                "private_tmp",
+                "device_restrictions",
+            )
+        )
+    else:
+        report = outcome.receipt.sandbox_capabilities
+        assert report["all_required_active"] is True
+        assert report["requirements"] == requirements.to_dict()
+        for name in (
+            "network_namespace",
+            "seccomp",
+            "landlock",
+            "privilege_hardening",
+            "cgroup_v2",
+            "mount_namespace",
+            "private_tmp",
+            "device_restrictions",
+        ):
+            assert report["controls"][name]["active"] is True
+        cgroup = outcome.receipt.resource_enforcement["cgroup_v2"]
+        assert cgroup["active"] is True
+        assert cgroup["attachment"]["active"] is True
+        assert cgroup["limits"]["max_pids"] == 32
+        assert cgroup["limits"]["max_cpu_cores"] == 2.0
+
+
+def test_v111_strict_budget_enables_all_kernel_controls() -> None:
+    budget = AutonomyLoopBudget.strict_linux_sandbox(
+        max_pids_per_run=17,
+        max_cpu_cores_per_run=1.5,
+    )
+    assert budget.max_pids_per_run == 17
+    assert budget.max_cpu_cores_per_run == 1.5
+    assert budget.require_network_namespace is True
+    assert budget.require_seccomp_filter is True
+    assert budget.require_filesystem_restriction is True
+    assert budget.require_privilege_hardening is True
+    assert budget.require_cgroup_v2 is True
+    assert budget.require_mount_namespace is True
+    assert budget.require_private_tmp is True
+    assert budget.require_device_restrictions is True
+
+
+def test_process_tree_hardening_flag_requires_process_sandbox() -> None:
+    bus = ToolBus(policy=CapabilityPolicy.zero_contact())
+    with pytest.raises(
+        ValueError,
+        match="Linux autonomy hardening requires autonomy_use_process_sandbox",
+    ):
+        register_core_tools(
+            bus,
+            autonomy_require_linux_process_tree_hardening=True,
+            autonomy_use_process_sandbox=False,
+        )
+
+
+def test_gpu_run_cannot_claim_minimal_device_isolation(tmp_path) -> None:
+    runner = ProcessScienceRunner(
+        registry=build_registry(),
+        control_store=FileRunControlStore(tmp_path / "gpu-controls"),
+        receipt_store=FileWorkerReceiptStore(tmp_path / "gpu-receipts"),
+        poll_seconds=0.01,
+        terminate_grace_seconds=0.05,
+        sandbox_requirements=SandboxRequirements(
+            require_device_restrictions=True,
+        ),
+    )
+    with pytest.raises(ScienceWorkerError) as exc_info:
+        runner.run(
+            experiment=_experiment(),
+            target_node_ids=(),
+            external_inputs={},
+            seed=0,
+            gpu_enabled=True,
+            control_id="gpu-device-profile",
+            limits=ProcessSandboxLimits(
+                max_wall_seconds=30.0,
+                max_cpu_seconds=20.0,
+                max_memory_bytes=3_221_225_472,
+                max_nodes=10,
+                max_output_bytes=1_000_000,
+            ),
+            worker_nonce="gpu-device-profile",
+        )
+    receipt = exc_info.value.receipt
+    assert receipt is not None
+    report = receipt.sandbox_capabilities
+    assert report["requirements"]["require_device_restrictions"] is True
+    assert report["controls"]["device_restrictions"]["active"] is False

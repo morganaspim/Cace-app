@@ -29,6 +29,7 @@ from .autonomy_loop import (
     autonomy_cycle_approval_callback,
     register_autonomy_loop_tools,
 )
+from .cgroup_v2 import CgroupV2Handle, CgroupV2Limits, CgroupV2Manager
 from .contracts import (
     Capability,
     CapabilityPolicy,
@@ -187,6 +188,9 @@ __all__ = [
     "CanvasPreviewRecord",
     "CanvasPreviewRequest",
     "CanvasPreviewResponse",
+    "CgroupV2Handle",
+    "CgroupV2Limits",
+    "CgroupV2Manager",
     "Capability",
     "CapabilityPolicy",
     "CanonicalEvidenceState",

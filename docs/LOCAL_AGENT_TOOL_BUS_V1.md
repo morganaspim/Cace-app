@@ -1415,3 +1415,204 @@ Those can reuse the same worker request, capability report, receipt, attention-i
 Namespace identity, Landlock restrictions, seccomp probes, privilege flags, and capability reports are security/runtime evidence only.
 
 They do not create verifier PASS, FORMAL evidence, theorem qualification, proof-ledger promotion, or mathematical correctness.
+
+
+## v1.11 cgroup v2 + mount namespace + private device/temp containment
+
+v1.11 extends the isolated science worker from per-process containment to process-tree containment and stronger Linux filesystem/device isolation.
+
+### Parent-controlled cgroup v2 transaction
+
+Before scientific work is released, the parent attempts to create one delegated cgroup v2 leaf for the worker attempt.
+
+The leaf configures:
+
+- `memory.max` from `max_memory_bytes_per_run`;
+- `pids.max` from `max_pids_per_run`;
+- `cpu.max` from `max_cpu_cores_per_run`; and
+- `memory.oom.group=1` where supported.
+
+The worker is launched behind a private startup gate.
+
+The parent then:
+
+1. writes the worker PID to `cgroup.procs`;
+2. re-reads membership to verify attachment; and
+3. only then releases the startup gate.
+
+The child independently verifies `/proc/self/cgroup` matches the expected delegated cgroup before loading the canonical scientific registry.
+
+If the host does not delegate writable cgroup controllers, the capability is reported unavailable. A strict session requiring cgroup v2 fails before science executes.
+
+### Process-tree CPU accounting
+
+`cpu.max` limits instantaneous CPU parallelism for the entire worker tree.
+
+The parent also polls cgroup `cpu.stat usage_usec` against the approved `max_cpu_seconds_per_run` budget.
+
+If aggregate CPU usage crosses that budget, the entire cgroup is terminated.
+
+The existing per-process `RLIMIT_CPU` remains as defense in depth.
+
+### Process-tree memory accounting
+
+`memory.max` applies to the worker plus descendants/native helper processes in the cgroup.
+
+Receipts preserve:
+
+- `memory.current`;
+- `memory.peak` when supported;
+- `memory.events`; and
+- OOM-kill counts.
+
+A no-result worker exit with cgroup `oom_kill > 0` is classified as `cgroup-memory-oom`.
+
+### PID/process-tree limit
+
+`pids.max` constrains the number of tasks in the worker cgroup.
+
+Receipts preserve:
+
+- `pids.current`;
+- `pids.peak` when supported; and
+- `pids.events`.
+
+This limits fork/thread expansion from scientific/native code even when that code does not cooperate with the Python execution controller.
+
+### cgroup kill semantics
+
+For hard cancellation, wall timeout, aggregate CPU exhaustion, and cleanup, CACE prefers the cgroup v2 `cgroup.kill` interface when available.
+
+If `cgroup.kill` is unavailable, CACE falls back to repeatedly enumerating `cgroup.procs` and sending `SIGKILL`.
+
+This targets descendants that may no longer belong to the original process group.
+
+After the main worker exits, cleanup kills any surviving cgroup members before attempting to remove the leaf cgroup.
+
+### Mount namespace
+
+The worker attempts a separate Linux mount namespace after the user/network namespace setup and before seccomp is loaded.
+
+CACE verifies the worker mount-namespace inode differs from the parent's inode before reporting:
+
+`mount_namespace.active=true`
+
+Mount propagation is made private so worker mount changes do not propagate back to the host.
+
+### Private worker temp filesystem
+
+Inside an active mount namespace, CACE mounts a private `tmpfs` directly over the worker's `/tmp`.
+
+It is configured:
+
+- `nosuid`;
+- `nodev`;
+- `noexec`; and
+- with a size ceiling bounded by the run memory budget.
+
+The worker environment points `TMPDIR=/tmp`, so Python, native libraries, and tools that honor the conventional temp path all resolve into the private mount.
+
+The capability is reported active only after CACE verifies the temp mount is backed by a different device than the surrounding job directory.
+
+### Minimal private device view
+
+For non-GPU strict workers, CACE constructs a minimal private `/dev` containing only:
+
+- `/dev/null`;
+- `/dev/zero`;
+- `/dev/random`;
+- `/dev/urandom`;
+- standard fd/stdin/stdout/stderr links; and
+- a private tmpfs-backed `/dev/shm`.
+
+CACE probes that sensitive/host device paths such as `/dev/kmsg`, `/dev/mem`, `/dev/port`, DRM devices, and NVIDIA device nodes are absent.
+
+Only then is `device_restrictions.active=true`.
+
+For GPU-enabled runs, v1.11 deliberately reports this minimal-device profile unavailable. A strict device-restriction requirement therefore fails closed for GPU runs until a dedicated GPU allowlist/device-cgroup profile is implemented.
+
+### Inheritance by descendants/native code
+
+The containment stack is deliberately layered so descendants inherit it:
+
+- cgroup v2 accounts/kills the process tree;
+- mount/network/user namespaces are inherited;
+- Landlock restrictions are inherited;
+- seccomp filters are inherited;
+- `no_new_privs` is inherited; and
+- the minimal `/dev` view remains inside the mount namespace.
+
+This strengthens containment for native libraries and child processes, not just Python-level modules.
+
+### New durable autonomy limits
+
+`AutonomyLoopBudget` now also persists:
+
+- `max_pids_per_run`; and
+- `max_cpu_cores_per_run`.
+
+The following strict requirements are also approval-bound:
+
+- `require_cgroup_v2`;
+- `require_mount_namespace`;
+- `require_private_tmp`; and
+- `require_device_restrictions`.
+
+`AutonomyLoopBudget.strict_linux_sandbox(...)` enables all v1.10 and v1.11 strict controls.
+
+### Production registration
+
+The existing v1.10 flag:
+
+`autonomy_require_linux_hardening=True`
+
+continues to require the v1.10 namespace/seccomp/Landlock/privilege controls.
+
+v1.11 adds:
+
+`autonomy_require_linux_process_tree_hardening=True`
+
+which requires the complete v1.10 + v1.11 stack.
+
+A custom delegated cgroup path can be supplied with:
+
+`autonomy_cgroup_root=...`
+
+This is useful when the service manager delegates a writable cgroup subtree to CACE.
+
+### Capability reporting
+
+Each worker receipt now combines:
+
+- child sandbox capability evidence; and
+- parent cgroup accounting/enforcement evidence.
+
+The cgroup report includes controller availability, configuration, PID attachment verification, resource usage/events, kill method, and cleanup outcome.
+
+As before, a control is never called active merely because CACE attempted to enable it.
+
+### Remaining boundary
+
+v1.11 still does not claim VM/container-equivalent isolation.
+
+Notably:
+
+- cgroup controller delegation depends on the service manager/host;
+- mount namespace creation depends on Linux user-namespace and mount policy;
+- the minimal device profile currently excludes GPU operation;
+- no dedicated PID namespace is created yet; and
+- seccomp remains a focused deny policy rather than a tiny syscall allowlist.
+
+Strict production sessions expose these limitations by refusing to execute whenever a required capability is inactive.
+
+### Trust boundary
+
+cgroup accounting, namespace state, device visibility, mount state, process-tree kill receipts, and resource events are security/runtime provenance only.
+
+They do not create:
+
+- verifier PASS;
+- FORMAL evidence;
+- theorem qualification;
+- proof-ledger promotion; or
+- mathematical correctness.

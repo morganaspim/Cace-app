@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-cgroup-v2.schema.json",
+  "title": "CACE cgroup v2 Process-Tree Enforcement Report v1",
+  "description": "Runtime accounting/enforcement evidence for one isolated science worker cgroup. Engineering/security provenance only; no proof authority.",
+  "type": "object",
+  "required": [
+    "status",
+    "active",
+    "limits"
+  ],
+  "properties": {
+    "status": {
+      "enum": ["prepared", "active", "unavailable", "failed", "not-applicable"]
+    },
+    "active": {"type": "boolean"},
+    "root": {"type": "string"},
+    "path": {"type": "string"},
+    "relative_path": {"type": "string"},
+    "limits": {
+      "type": "object",
+      "required": [
+        "max_memory_bytes",
+        "max_pids",
+        "max_cpu_cores",
+        "max_cpu_seconds"
+      ],
+      "properties": {
+        "max_memory_bytes": {"type": "integer", "minimum": 1},
+        "max_pids": {"type": "integer", "minimum": 1},
+        "max_cpu_cores": {"type": "number", "exclusiveMinimum": 0},
+        "max_cpu_seconds": {"type": "number", "exclusiveMinimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "controllers": {"type": "object"},
+    "configured": {"type": "object"},
+    "cgroup_kill_available": {"type": "boolean"},
+    "attachment": {"type": "object"},
+    "usage": {"type": "object"},
+    "member_pids": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 1}
+    },
+    "cleanup": {"type": "object"},
+    "detail": {"type": "string"},
+    "errno": {"type": "integer"}
+  },
+  "additionalProperties": true
+}

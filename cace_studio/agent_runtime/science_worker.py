@@ -6,6 +6,7 @@ import math
 import os
 from pathlib import Path
 import sys
+import time
 from typing import Any, Mapping
 
 from cace_studio.core.execution_control import ExecutionControl, ExecutionLimits
@@ -13,6 +14,7 @@ from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.reproducibility import registry_contract_fingerprint
 from cace_studio.core.serialization import experiment_from_data
 
+from .cgroup_v2 import CgroupV2Manager
 from .execution_containment import FileRunControlStore
 from .linux_sandbox import (
     SandboxRequirementError,
@@ -88,6 +90,31 @@ def worker_main(argv: list[str] | None = None) -> int:
         )
         requirements = SandboxRequirements.from_dict(requirements_raw)
 
+        startup_gate = Path(str(request["startup_gate"]))
+        gate_deadline = time.monotonic() + min(
+            10.0,
+            max(1.0, float(limits.get("max_wall_seconds", 10.0))),
+        )
+        while not startup_gate.exists():
+            if time.monotonic() >= gate_deadline:
+                raise RuntimeError(
+                    "parent startup gate was not released before deadline"
+                )
+            time.sleep(0.01)
+        gate_payload = json.loads(startup_gate.read_text(encoding="utf-8"))
+        if (
+            not isinstance(gate_payload, Mapping)
+            or gate_payload.get("parent_ready_schema") != 1
+        ):
+            raise RuntimeError("invalid parent startup gate payload")
+
+        cgroup_control = CgroupV2Manager.verify_current_membership(
+            str(request.get("expected_cgroup_path", ""))
+        )
+        prepare_report = request.get("cgroup_prepare_report", {})
+        if isinstance(prepare_report, Mapping):
+            cgroup_control["prepare_report"] = dict(prepare_report)
+
         control_root = Path(str(request["control_root"]))
         job_dir = args.result.parent.resolve()
         read_only_paths = [
@@ -116,9 +143,21 @@ def worker_main(argv: list[str] | None = None) -> int:
                     if request.get("parent_netns_inode") is not None
                     else None
                 ),
+                parent_mntns_inode=(
+                    int(request["parent_mntns_inode"])
+                    if request.get("parent_mntns_inode") is not None
+                    else None
+                ),
                 read_only_paths=read_only_paths,
-                read_write_paths=[job_dir],
+                read_write_paths=[job_dir, "/tmp"],
                 requirements=requirements,
+                job_dir=job_dir,
+                gpu_enabled=bool(request.get("gpu_enabled", False)),
+                tmpfs_bytes=min(
+                    int(limits.get("max_memory_bytes", 268_435_456)),
+                    536_870_912,
+                ),
+                external_controls={"cgroup_v2": cgroup_control},
             )
         except SandboxRequirementError as exc:
             args.result.write_text(
