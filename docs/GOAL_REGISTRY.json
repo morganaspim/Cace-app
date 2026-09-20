@@ -991,6 +991,26 @@
         "Incomplete formal work can be preserved as a validated cace-ai-tool-submission-v1 packet with unresolved obligations and next gate.",
         "Accepted tools follow the ordinary CACE engineering/formal promotion ladder before production/formal presentation."
       ]
+    },
+    {
+      "id": "G068",
+      "category": "research_assistant_ux",
+      "priority": 68,
+      "intent_status": "required",
+      "title": "Research-assistant-first post-account onboarding and daily workspace",
+      "summary": "After account creation, greet the user with a local Research Assistant chat that can accept a natural-language experiment, recommend real demos relevant to the user's field, show full CACE capabilities, or resume recent work; then transition continuously into the scientific canvas with the assistant remaining available.",
+      "acceptance": [
+        "Newly entitled users land on a Research Assistant welcome experience instead of an unexplained empty canvas.",
+        "The assistant offers Describe an experiment, Show demos for my field, Explore full capabilities, and Open recent work when available.",
+        "Demo recommendations are grounded in structured real demo/module metadata rather than fabricated availability.",
+        "Natural-language intent can produce a previewable typed experiment graph with Minimal/Balanced/Exploratory variants and Build on Canvas.",
+        "The welcome chat persists as the Studio Research Assistant after the canvas opens.",
+        "CACE presents itself as a VRE/Verified Research Environment while exposing the actual evidence class of every result rather than implying all modules are formally verified.",
+        "Preferred product message is 'Explore rigorous math with AI that learns geometric reasoning,' with learning defined through local research memory, accepted tools, geometric representations, and validated workflows rather than AI-generated truth.",
+        "Returning users can use the assistant as a daily research workspace companion with recent experiments, Research Ideas, stale/blocked work, and suggested next steps.",
+        "Local/Zero Contact mode supports the experience without required cloud AI, and a no-AI fallback remains fully usable.",
+        "Heartbeat/perception gives the assistant contextual awareness of the running experiment without any evidence authority."
+      ]
     }
   ]
 }
