@@ -716,7 +716,8 @@
         "AI attention/research states are technically unable to set VERIFIED/PASS.",
         "Semantic hash changes propagate stale state through hard dependencies.",
         "Canvas overlay visualizes heartbeat activity separately from scientific evidence.",
-        "Heartbeat delta can be included in local-AI context packets without requiring full-canvas rereads."
+        "Heartbeat delta can be included in local-AI context packets without requiring full-canvas rereads.",
+        "A typed agent perception packet can carry compact residual/convergence/blocker/resource/evidence deltas so local AI can follow the live experiment without rereading the full canvas."
       ]
     },
     {
@@ -972,7 +973,23 @@
         "Local/Zero Contact mode requires no cloud/network dependency.",
         "Agent liveness, progress, checkpoint and verification states remain distinct.",
         "Heartbeat/checkpoint protocol supports monotonic sequencing, lease expiry and recovery.",
-        "AI/heartbeat state cannot create PASS, VERIFIED, FORMAL or proof-ledger promotion."
+        "AI/heartbeat state cannot create PASS, VERIFIED, FORMAL or proof-ledger promotion.",
+        "The local agent may propose/build reusable tools through the rigorous contribution pipeline, but accepted capability and evidence promotion remain independently governed."
+      ]
+    },
+    {
+      "id": "G067",
+      "category": "ai_rigorous_tooling",
+      "priority": 67,
+      "intent_status": "required",
+      "title": "AI-built C++ tools with formalization and proof-ready handoff",
+      "summary": "Allow Gemini, Antigravity and local agents to improve CACE by implementing canonical C++ tools, tests, exact/certified checkers, Lean proof attempts and runtime-to-formal bindings, with a machine-readable handoff whenever formal closure remains.",
+      "acceptance": [
+        "Gemini has an explicit Rigorous Tool Builder mode in repository-visible instructions.",
+        "New load-bearing math/science algorithms are implemented in C++ rather than duplicated in browser code.",
+        "AI may write Lean theorem statements/proofs but cannot self-promote FORMAL/PASS.",
+        "Incomplete formal work can be preserved as a validated cace-ai-tool-submission-v1 packet with unresolved obligations and next gate.",
+        "Accepted tools follow the ordinary CACE engineering/formal promotion ladder before production/formal presentation."
       ]
     }
   ]
