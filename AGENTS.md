@@ -6,6 +6,8 @@ CACE is a proprietary computational research environment owned by Emmanuel Spiro
 
 Read these in order before changing scientific or verification behavior:
 
+**Gemini / Google AI Studio:** begin with `GEMINI.md` and `docs/GEMINI_AI_STUDIO_HANDOFF.md`. The browser layer is presentation only: it must consume CACE's typed API/core and must not duplicate scientific, exact-math, graph-execution, proof, evidence, or qualification semantics in JavaScript/TypeScript/Node.
+
 AI code builders must additionally obey `CACE_AI_BUILDER_CONTRACT.md`. Any change that binds runtime objects to Lean hypotheses/endpoints must additionally obey `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`.
 
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.

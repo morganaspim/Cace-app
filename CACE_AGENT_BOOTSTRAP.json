@@ -7,6 +7,9 @@
     "production_ready": false
   },
   "first_read": [
+    "GEMINI.md",
+    "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+    "gemini/CACE_GEMINI_TASK_STATE.json",
     "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
     "CACE_AI_BUILDER_CONTRACT.md",
     "docs/CHAT_IDEA_LEDGER.md",
@@ -317,9 +320,14 @@
     }
   },
   "ai_builder": {
-    "primary_environment": "Gemini AI Code Studio",
+    "primary_environment": "Gemini / Google AI Studio",
     "contract": "CACE_AI_BUILDER_CONTRACT.md",
     "evidence_authority": false,
-    "formal_linkage_spec": "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md"
+    "formal_linkage_spec": "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
+    "gemini_entrypoint": "GEMINI.md",
+    "gemini_web_handoff": "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+    "gemini_task_state": "gemini/CACE_GEMINI_TASK_STATE.json",
+    "web_presentation_rule": "AI Studio/Gemini owns browser presentation and interaction; CACE Python API/core, C++ kernels, and Lean qualification remain the scientific/evidence authority. Do not duplicate scientific or proof semantics in JavaScript/TypeScript/Node.",
+    "optional_node_role": "development/static/proxy only; never alternate scientific backend"
   }
 }
