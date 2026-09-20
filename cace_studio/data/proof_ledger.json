@@ -50,6 +50,33 @@
       "release": "3.23.0-dev..3.38.0-dev",
       "status": "PASS",
       "workflow_run_id": 35450309270
+    },
+    {
+      "blockers": [],
+      "checks": [
+        "clean-tree",
+        "pinned-lean-toolchain",
+        "pinned-mathlib-commit",
+        "unfinished-token-guard",
+        "audited-root-build",
+        "kernel-axiom-audit",
+        "source-bundle-hash",
+        "exact-current-head",
+        "content-addressed-attestation"
+      ],
+      "claim_ids": [
+        "cace.rmk.runtime-formal-linkage-v1"
+      ],
+      "commit": "cf0829662f5a1939cc254f4ef251f8c750089760",
+      "current_head_qualified": true,
+      "proof_artifact_sha256": "b183c605c1cb25ba8089cbba7b5de7d290364a3cb68ebaedf1a695934a6e6620",
+      "proof_contract_id": "cace.proof.rmk.runtime-formal-linkage.v1",
+      "proof_contract_sha256": "fb01f0fad50893e6224bf8348ac84e4381b25d187846f8ebf21dfcbb08abd982",
+      "qualification_run_id": "35490840805",
+      "qualification_system": "github-actions",
+      "release": "3.36.0-dev RMK formal-linkage v1",
+      "status": "PASS",
+      "workflow_run_id": 35490840805
     }
   ],
   "policy": "Current-head FORMAL PASS requires a successful pinned proof build, kernel axiom audit, exact commit binding, exact proof-contract id/hash binding, Lean.Environment theorem-metadata binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",
