@@ -8,6 +8,9 @@
     "production_ready": false
   },
   "start_here": [
+    "GEMINI.md",
+    "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+    "gemini/CACE_GEMINI_TASK_STATE.json",
     "CACE_AGENT_BOOTSTRAP.json",
     "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
     "CACE_AI_BUILDER_CONTRACT.md",
@@ -270,5 +273,22 @@
     "current_nonclaim": "exact discrete P1/RT0 identities and qualified continuum theorems do not automatically prove arbitrary runtime FE fields satisfy continuum H1/H(div)/Green-pairing hypotheses",
     "obligation_range": "FSL-0..FSL-13",
     "promotion_rule": "unresolved runtime-to-formal bindings remain NOT_RUN/unresolved until explicit bridges and canonical qualification exist"
+  },
+  "gemini_ai_studio": {
+    "role": "preferred browser implementation environment",
+    "entrypoint": "GEMINI.md",
+    "handoff": "docs/GEMINI_AI_STUDIO_HANDOFF.md",
+    "task_state": "gemini/CACE_GEMINI_TASK_STATE.json",
+    "ownership": "web presentation, interaction, visualization, typed API client",
+    "forbidden_duplication": [
+      "scientific engine",
+      "GraphExecutor semantics",
+      "exact FEM/P1/RT0 semantics",
+      "certificate/evidence truth",
+      "claim/proof promotion",
+      "Lean theorem/qualification semantics"
+    ],
+    "backend_boundary": "api/index.py",
+    "rule": "When presentation needs missing scientific semantics, extend the typed Python API/core instead of recreating the rule in JavaScript/TypeScript/Node."
   }
 }
