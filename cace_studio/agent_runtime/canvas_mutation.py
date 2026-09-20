@@ -32,6 +32,7 @@ from .durability import (
     validate_hashed_envelope,
 )
 from .tool_bus import ApprovalCallback, ToolBus
+from .workspace_store import FileExperimentWorkspace, WorkspaceConflictError
 
 
 CanvasAction = Literal[
@@ -175,6 +176,9 @@ class CanvasPreviewResponse:
     diff_sha256: str
     semantic_change: bool
     diff: dict[str, Any]
+    workspace_id: str = ""
+    base_workspace_version: int = -1
+    target_workspace_version: int = -1
     proof_effect: str = "none"
     promotion_authority: bool = False
 
@@ -192,6 +196,9 @@ class CanvasCommitResponse:
     diff_sha256: str
     semantic_hash_verified: bool
     full_hash_verified: bool
+    workspace_id: str = ""
+    workspace_version: int = -1
+    workspace_parent_version: int = -1
     proof_effect: str = "none"
     promotion_authority: bool = False
 
@@ -207,6 +214,9 @@ class CanvasPreviewRecord:
     diff_sha256: str
     operations: tuple[CanvasMutationOperation, ...]
     diff: Mapping[str, Any]
+    workspace_id: str = ""
+    base_workspace_version: int = -1
+    target_workspace_version: int = -1
     proof_effect: str = "none"
     promotion_authority: bool = False
 
@@ -222,6 +232,13 @@ class CanvasPreviewRecord:
         ):
             if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
                 raise ValueError("canvas preview hashes must be lowercase SHA-256")
+        if self.workspace_id:
+            if self.base_workspace_version < 0:
+                raise ValueError("persisted canvas preview requires a non-negative base workspace version")
+            if self.target_workspace_version != self.base_workspace_version + 1:
+                raise ValueError("persisted canvas preview target version must equal base + 1")
+        elif self.base_workspace_version != -1 or self.target_workspace_version != -1:
+            raise ValueError("in-memory canvas preview cannot claim workspace versions")
         if self.proof_effect != "none" or self.promotion_authority:
             raise ValueError("canvas preview cannot carry proof authority")
 
@@ -235,6 +252,9 @@ class CanvasPreviewRecord:
             "target_full_sha256": self.target_full_sha256,
             "mutation_sha256": self.mutation_sha256,
             "diff_sha256": self.diff_sha256,
+            "workspace_id": self.workspace_id,
+            "base_workspace_version": self.base_workspace_version,
+            "target_workspace_version": self.target_workspace_version,
             "operations": [op.to_dict() for op in self.operations],
             "diff": dict(self.diff),
             "proof_effect": "none",
@@ -269,6 +289,9 @@ class CanvasPreviewRecord:
                 CanvasMutationOperation.from_dict(item) for item in operations
             ),
             diff=dict(diff),
+            workspace_id=str(payload.get("workspace_id", "")),
+            base_workspace_version=int(payload.get("base_workspace_version", -1)),
+            target_workspace_version=int(payload.get("target_workspace_version", -1)),
         )
 
     def approval_payload(self) -> dict[str, Any]:
@@ -281,6 +304,9 @@ class CanvasPreviewRecord:
             "target_full_sha256": self.target_full_sha256,
             "mutation_sha256": self.mutation_sha256,
             "diff_sha256": self.diff_sha256,
+            "workspace_id": self.workspace_id,
+            "base_workspace_version": self.base_workspace_version,
+            "target_workspace_version": self.target_workspace_version,
             "operations": [op.to_dict() for op in self.operations],
             "diff": dict(self.diff),
             "proof_effect": "none",
@@ -311,6 +337,9 @@ class FileCanvasPreviewStore:
                 "target_full_sha256": record.target_full_sha256,
                 "mutation_sha256": record.mutation_sha256,
                 "diff_sha256": record.diff_sha256,
+                "workspace_id": record.workspace_id,
+                "base_workspace_version": record.base_workspace_version,
+                "target_workspace_version": record.target_workspace_version,
             }
         )
         if expected_preview_id != record.preview_id:
@@ -329,6 +358,9 @@ class FileCanvasPreviewStore:
             "base_full_sha256": record.base_full_sha256,
             "target_semantic_sha256": record.target_semantic_sha256,
             "target_full_sha256": record.target_full_sha256,
+            "workspace_id": record.workspace_id,
+            "base_workspace_version": record.base_workspace_version,
+            "target_workspace_version": record.target_workspace_version,
         }
         for key, value in expected_fields.items():
             if diff.get(key) != value:
@@ -402,13 +434,31 @@ class CanvasMutationRuntime:
     def __init__(
         self,
         *,
+        bus: ToolBus,
         registry: ModuleRegistry,
         active_experiment: Experiment,
         preview_store: FileCanvasPreviewStore,
+        workspace_store: FileExperimentWorkspace | None = None,
     ) -> None:
+        self.bus = bus
         self.registry = registry
         self.active_experiment = active_experiment
         self.preview_store = preview_store
+        self.workspace_store = workspace_store
+        if self.workspace_store is not None:
+            if self.workspace_store.path.exists():
+                _record, persisted = self.workspace_store.load()
+                self._replace_active(persisted)
+            else:
+                self.workspace_store.initialize(self.active_experiment)
+
+    def _replace_active(self, source: Experiment) -> None:
+        self.active_experiment.schema_version = source.schema_version
+        self.active_experiment.name = source.name
+        self.active_experiment.nodes = deepcopy(source.nodes)
+        self.active_experiment.edges = deepcopy(source.edges)
+        self.active_experiment.metadata = deepcopy(source.metadata)
+        self.active_experiment.groups = deepcopy(source.groups)
 
     def _validate_params(self, experiment: Experiment) -> None:
         classes = {
@@ -538,7 +588,19 @@ class CanvasMutationRuntime:
         return [operation.to_dict() for operation in operations]
 
     def preview(self, request: CanvasPreviewRequest) -> CanvasPreviewResponse:
-        base = deepcopy(self.active_experiment)
+        workspace_id = ""
+        base_workspace_version = -1
+        target_workspace_version = -1
+        if self.workspace_store is not None:
+            workspace_record, persisted = self.workspace_store.load()
+            self._replace_active(persisted)
+            base = deepcopy(persisted)
+            workspace_id = workspace_record.workspace_id
+            base_workspace_version = workspace_record.version
+            target_workspace_version = workspace_record.version + 1
+        else:
+            base = deepcopy(self.active_experiment)
+
         base_semantic = experiment_fingerprint(base, include_layout=False)
         base_full = experiment_fingerprint(base, include_layout=True)
         candidate = self._apply(base, request.operations)
@@ -558,6 +620,9 @@ class CanvasMutationRuntime:
             "base_full_sha256": base_full,
             "target_semantic_sha256": target_semantic,
             "target_full_sha256": target_full,
+            "workspace_id": workspace_id,
+            "base_workspace_version": base_workspace_version,
+            "target_workspace_version": target_workspace_version,
             "operations": operations_payload,
             "drift": drift,
             "proof_effect": "none",
@@ -571,6 +636,9 @@ class CanvasMutationRuntime:
                 "target_full_sha256": target_full,
                 "mutation_sha256": mutation_sha,
                 "diff_sha256": diff_sha,
+                "workspace_id": workspace_id,
+                "base_workspace_version": base_workspace_version,
+                "target_workspace_version": target_workspace_version,
             }
         )
         record = CanvasPreviewRecord(
@@ -583,6 +651,9 @@ class CanvasMutationRuntime:
             diff_sha256=diff_sha,
             operations=request.operations,
             diff=diff,
+            workspace_id=workspace_id,
+            base_workspace_version=base_workspace_version,
+            target_workspace_version=target_workspace_version,
         )
         self.preview_store.save(record)
         return CanvasPreviewResponse(
@@ -596,6 +667,74 @@ class CanvasMutationRuntime:
             diff_sha256=diff_sha,
             semantic_change=base_semantic != target_semantic,
             diff=diff,
+            workspace_id=workspace_id,
+            base_workspace_version=base_workspace_version,
+            target_workspace_version=target_workspace_version,
+        )
+
+    def _candidate_diff(
+        self,
+        *,
+        before: Experiment,
+        candidate: Experiment,
+        record: CanvasPreviewRecord,
+    ) -> dict[str, Any]:
+        return {
+            "canvas_diff_schema": 1,
+            "base_semantic_sha256": record.base_semantic_sha256,
+            "base_full_sha256": record.base_full_sha256,
+            "target_semantic_sha256": experiment_fingerprint(candidate, include_layout=False),
+            "target_full_sha256": experiment_fingerprint(candidate, include_layout=True),
+            "workspace_id": record.workspace_id,
+            "base_workspace_version": record.base_workspace_version,
+            "target_workspace_version": record.target_workspace_version,
+            "operations": self._operations_payload(record.operations),
+            "drift": drift_report(before, candidate),
+            "proof_effect": "none",
+            "promotion_authority": False,
+        }
+
+    def _assert_context_lease(self, context: ToolContext, preview_id: str) -> None:
+        validator = self.bus.lease_validator
+        if validator is None:
+            raise CanvasMutationError("workspace commit requires a current lease validator")
+        validator(
+            ToolCall(
+                call_id=context.call_id,
+                tool_name=context.tool_name,
+                arguments={"preview_id": preview_id},
+                run_id=context.run_id,
+                operation_id=context.operation_id,
+                lease_id=context.lease_id,
+                lease_generation=context.lease_generation,
+            )
+        )
+
+    def _commit_response(
+        self,
+        *,
+        record: CanvasPreviewRecord,
+        context: ToolContext,
+        post_semantic: str,
+        post_full: str,
+        workspace_version: int = -1,
+        workspace_parent_version: int = -1,
+    ) -> CanvasCommitResponse:
+        return CanvasCommitResponse(
+            preview_id=record.preview_id,
+            operation_id=context.operation_id or "",
+            base_semantic_sha256=record.base_semantic_sha256,
+            base_full_sha256=record.base_full_sha256,
+            target_semantic_sha256=record.target_semantic_sha256,
+            target_full_sha256=record.target_full_sha256,
+            post_semantic_sha256=post_semantic,
+            post_full_sha256=post_full,
+            diff_sha256=record.diff_sha256,
+            semantic_hash_verified=post_semantic == record.target_semantic_sha256,
+            full_hash_verified=post_full == record.target_full_sha256,
+            workspace_id=record.workspace_id,
+            workspace_version=workspace_version,
+            workspace_parent_version=workspace_parent_version,
         )
 
     def commit(
@@ -609,12 +748,26 @@ class CanvasMutationRuntime:
         if not context.operation_id:
             raise CanvasMutationError("canvas commit requires operation_id")
 
-        current_semantic = experiment_fingerprint(
-            self.active_experiment, include_layout=False
-        )
-        current_full = experiment_fingerprint(
-            self.active_experiment, include_layout=True
-        )
+        if self.workspace_store is not None:
+            if record.workspace_id != self.workspace_store.workspace_id:
+                raise CanvasMutationError("preview belongs to a different persisted workspace")
+            try:
+                workspace_record, persisted = self.workspace_store.load()
+            except WorkspaceConflictError as exc:
+                raise CanvasMutationError(str(exc)) from exc
+            self._replace_active(persisted)
+            before = deepcopy(persisted)
+            if workspace_record.version != record.base_workspace_version:
+                raise CanvasMutationError(
+                    "persisted workspace version changed since preview; create a new preview"
+                )
+        else:
+            if record.workspace_id:
+                raise CanvasMutationError("persisted preview requires its workspace store")
+            before = deepcopy(self.active_experiment)
+
+        current_semantic = experiment_fingerprint(before, include_layout=False)
+        current_full = experiment_fingerprint(before, include_layout=True)
         if (
             current_semantic != record.base_semantic_sha256
             or current_full != record.base_full_sha256
@@ -623,21 +776,14 @@ class CanvasMutationRuntime:
                 "active experiment changed since preview; create a new preview"
             )
 
-        before = deepcopy(self.active_experiment)
         candidate = self._apply(before, record.operations)
         candidate_semantic = experiment_fingerprint(candidate, include_layout=False)
         candidate_full = experiment_fingerprint(candidate, include_layout=True)
-        candidate_diff = {
-            "canvas_diff_schema": 1,
-            "base_semantic_sha256": record.base_semantic_sha256,
-            "base_full_sha256": record.base_full_sha256,
-            "target_semantic_sha256": candidate_semantic,
-            "target_full_sha256": candidate_full,
-            "operations": self._operations_payload(record.operations),
-            "drift": drift_report(before, candidate),
-            "proof_effect": "none",
-            "promotion_authority": False,
-        }
+        candidate_diff = self._candidate_diff(
+            before=before,
+            candidate=candidate,
+            record=record,
+        )
         if (
             candidate_semantic != record.target_semantic_sha256
             or candidate_full != record.target_full_sha256
@@ -647,44 +793,116 @@ class CanvasMutationRuntime:
                 "recomputed canvas preview does not match approved target"
             )
 
-        self.active_experiment.schema_version = candidate.schema_version
-        self.active_experiment.name = candidate.name
-        self.active_experiment.nodes = deepcopy(candidate.nodes)
-        self.active_experiment.edges = deepcopy(candidate.edges)
-        self.active_experiment.metadata = deepcopy(candidate.metadata)
-        self.active_experiment.groups = deepcopy(candidate.groups)
+        if self.workspace_store is not None:
+            try:
+                persisted_record = self.workspace_store.commit(
+                    candidate=candidate,
+                    expected_version=record.base_workspace_version,
+                    expected_base_semantic_sha256=record.base_semantic_sha256,
+                    expected_base_full_sha256=record.base_full_sha256,
+                    target_semantic_sha256=record.target_semantic_sha256,
+                    target_full_sha256=record.target_full_sha256,
+                    preview_id=record.preview_id,
+                    operation_id=context.operation_id,
+                    run_id=context.run_id,
+                    lease_id=context.lease_id,
+                    lease_generation=context.lease_generation,
+                    assert_lease_current=lambda run_id, lease_id, generation: self._assert_context_lease(
+                        context,
+                        record.preview_id,
+                    ),
+                )
+                verified_record, verified_experiment = self.workspace_store.load()
+            except WorkspaceConflictError as exc:
+                raise CanvasMutationError(str(exc)) from exc
+            if verified_record.version != persisted_record.version:
+                raise RuntimeError("persisted workspace version changed immediately after commit")
+            self._replace_active(verified_experiment)
+            post_semantic = experiment_fingerprint(
+                self.active_experiment, include_layout=False
+            )
+            post_full = experiment_fingerprint(
+                self.active_experiment, include_layout=True
+            )
+            if (
+                post_semantic != record.target_semantic_sha256
+                or post_full != record.target_full_sha256
+            ):
+                raise RuntimeError(
+                    "persisted workspace re-load did not match approved target hashes"
+                )
+            return self._commit_response(
+                record=record,
+                context=context,
+                post_semantic=post_semantic,
+                post_full=post_full,
+                workspace_version=persisted_record.version,
+                workspace_parent_version=(
+                    persisted_record.parent_version
+                    if persisted_record.parent_version is not None
+                    else -1
+                ),
+            )
 
+        self._replace_active(candidate)
         post_semantic = experiment_fingerprint(
             self.active_experiment, include_layout=False
         )
         post_full = experiment_fingerprint(
             self.active_experiment, include_layout=True
         )
-        semantic_verified = post_semantic == record.target_semantic_sha256
-        full_verified = post_full == record.target_full_sha256
-        if not semantic_verified or not full_verified:
-            self.active_experiment.schema_version = before.schema_version
-            self.active_experiment.name = before.name
-            self.active_experiment.nodes = before.nodes
-            self.active_experiment.edges = before.edges
-            self.active_experiment.metadata = before.metadata
-            self.active_experiment.groups = before.groups
-            raise CanvasMutationError(
+        if (
+            post_semantic != record.target_semantic_sha256
+            or post_full != record.target_full_sha256
+        ):
+            self._replace_active(before)
+            raise RuntimeError(
                 "post-mutation experiment hash verification failed; mutation rolled back"
             )
+        return self._commit_response(
+            record=record,
+            context=context,
+            post_semantic=post_semantic,
+            post_full=post_full,
+        )
 
-        return CanvasCommitResponse(
-            preview_id=record.preview_id,
-            operation_id=context.operation_id,
-            base_semantic_sha256=record.base_semantic_sha256,
-            base_full_sha256=record.base_full_sha256,
-            target_semantic_sha256=record.target_semantic_sha256,
-            target_full_sha256=record.target_full_sha256,
-            post_semantic_sha256=post_semantic,
-            post_full_sha256=post_full,
-            diff_sha256=record.diff_sha256,
-            semantic_hash_verified=True,
-            full_hash_verified=True,
+    def recover_commit(
+        self,
+        request: CanvasCommitRequest,
+        context: ToolContext,
+    ) -> CanvasCommitResponse | None:
+        if self.workspace_store is None or not context.operation_id:
+            return None
+        record = self.preview_store.load(request.preview_id)
+        if record is None:
+            return None
+        if record.workspace_id != self.workspace_store.workspace_id:
+            return None
+        try:
+            receipt = self.workspace_store.reconcile(
+                operation_id=context.operation_id,
+                preview_id=record.preview_id,
+                target_semantic_sha256=record.target_semantic_sha256,
+                target_full_sha256=record.target_full_sha256,
+            )
+            if receipt is None:
+                return None
+            _current_record, current_experiment = self.workspace_store.load()
+        except WorkspaceConflictError:
+            return None
+
+        # Synchronize the process to the latest durable workspace state, but
+        # reconstruct the recovered result from the immutable historical receipt.
+        # A later workspace version must never be rolled back just to reconcile an
+        # earlier operation-ledger crash window.
+        self._replace_active(current_experiment)
+        return self._commit_response(
+            record=record,
+            context=context,
+            post_semantic=receipt.target_semantic_sha256,
+            post_full=receipt.target_full_sha256,
+            workspace_version=receipt.version,
+            workspace_parent_version=receipt.parent_version,
         )
 
 
@@ -694,11 +912,14 @@ def register_canvas_mutation_tools(
     registry: ModuleRegistry,
     active_experiment: Experiment,
     preview_store: FileCanvasPreviewStore,
+    workspace_store: FileExperimentWorkspace | None = None,
 ) -> CanvasMutationRuntime:
     runtime = CanvasMutationRuntime(
+        bus=bus,
         registry=registry,
         active_experiment=active_experiment,
         preview_store=preview_store,
+        workspace_store=workspace_store,
     )
 
     bus.register(
@@ -725,6 +946,7 @@ def register_canvas_mutation_tools(
             request_type=CanvasCommitRequest,
             response_type=CanvasCommitResponse,
             handler=runtime.commit,
+            recovery_handler=runtime.recover_commit,
             idempotency_required=True,
         )
     )

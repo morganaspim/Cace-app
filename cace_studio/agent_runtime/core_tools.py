@@ -12,6 +12,7 @@ from cace_studio.core.reproducibility import experiment_fingerprint, registry_co
 from .canvas_mutation import FileCanvasPreviewStore, register_canvas_mutation_tools
 from .contracts import Capability, ToolContext, TypedTool
 from .tool_bus import ToolBus
+from .workspace_store import FileExperimentWorkspace
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,7 @@ def register_core_tools(
     active_experiment: Experiment | None = None,
     gpu_enabled: bool = False,
     canvas_preview_store: FileCanvasPreviewStore | None = None,
+    canvas_workspace_store: FileExperimentWorkspace | None = None,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
 
@@ -273,4 +275,5 @@ def register_core_tools(
             registry=registry,
             active_experiment=active_experiment,
             preview_store=canvas_preview_store,
+            workspace_store=canvas_workspace_store,
         )

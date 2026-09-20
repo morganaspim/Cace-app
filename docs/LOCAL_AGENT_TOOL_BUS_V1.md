@@ -513,3 +513,162 @@ The next hardening layer for production multi-worker mutation is a workspace per
 `preview target hash -> lease generation -> operation ID -> persisted experiment version`.
 
 That can reuse the same typed preview, approval, fencing, and idempotency contracts rather than changing planner semantics.
+
+
+## v1.5 atomic persisted workspace mutation/versioning
+
+v1.5 extends the v1.4 preview/approval/fencing contract across application restarts and multiple CACE worker processes.
+
+### Canonical persisted workspace envelope
+
+`FileExperimentWorkspace` stores one workspace as one atomically replaced, content-hashed JSON envelope.
+
+The envelope binds:
+
+- canonical `.cace` experiment container data;
+- `workspace_id`;
+- monotonically increasing `version`;
+- exact `parent_version`;
+- `operation_id`;
+- approved `preview_id`;
+- `lease_id`;
+- lease fencing generation;
+- base semantic/full hashes; and
+- target semantic/full hashes.
+
+The experiment bytes and transaction metadata therefore cannot be committed as independently drifting files.
+
+The existing `core.serialization` implementation remains canonical. v1.5 factors its data-model conversion into `experiment_to_data(...)` and `experiment_from_data(...)`; the normal `save_experiment` / `load_experiment` functions use the same helpers.
+
+### Workspace version 0
+
+Initialization writes version `0` with:
+
+- no mutation operation;
+- no preview;
+- no lease identity;
+- base hash equal to target hash; and
+- the supplied experiment as the persisted source of truth.
+
+If a runtime starts against an existing workspace, the persisted experiment is loaded into the process's active `Experiment` rather than allowing a stale local copy to overwrite the workspace.
+
+### Preview binds N -> N+1
+
+When a canvas runtime has a workspace store, preview is created from the **persisted workspace state**, not merely the process-local object.
+
+The immutable preview additionally binds:
+
+- `workspace_id`;
+- `base_workspace_version = N`; and
+- `target_workspace_version = N + 1`.
+
+Those values are part of:
+
+- the deterministic diff;
+- the diff hash;
+- the content-addressed preview identity; and
+- the exact human approval payload.
+
+A preview created against workspace version `N` cannot later be committed against version `N+1`.
+
+### Transaction-bound fencing at atomic replace
+
+The generic Tool Bus still validates the current run/lease/generation before an approval-required consequential handler starts.
+
+The persisted workspace commit then performs a **second current-lease assertion while holding the workspace lock immediately before the atomic replace**.
+
+This closes the race where lease ownership could change between Tool Bus entry and durable workspace commit.
+
+### Atomic workspace commit
+
+A persisted canvas commit:
+
+1. loads and validates the approved immutable preview;
+2. loads the current persisted workspace;
+3. checks exact base workspace version and base semantic/full hashes;
+4. recomputes the candidate graph and deterministic diff;
+5. checks approved target semantic/full/diff hashes;
+6. obtains the workspace lock;
+7. re-checks workspace version/base hashes;
+8. re-checks the current durable lease fencing token;
+9. writes one new content-hashed workspace envelope with version `N+1`;
+10. atomically replaces the prior workspace state;
+11. re-loads the workspace file; and
+12. verifies operation identity, version, semantic hash, and full hash.
+
+Only after that durable verification does the process synchronize its active in-memory `Experiment` to the persisted workspace version.
+
+### Cross-worker optimistic concurrency
+
+Two workers may create previews against the same version `N`, but only the first valid commit can create `N+1`.
+
+Any later commit of a preview still bound to `N` is a deterministic safe precondition failure and does not mutate the workspace.
+
+### Crash reconciliation across the workspace / operation-ledger boundary
+
+The workspace envelope and operation ledger are intentionally separate durable systems. A crash may therefore happen after:
+
+`workspace N+1 committed`
+
+but before:
+
+`operation ledger -> committed`.
+
+To avoid replaying the mutation, `TypedTool` now supports an optional tool-specific `recovery_handler`.
+
+For `cace.canvas.commit_preview` the recovery handler is read-only with respect to durable mutation. When the Tool Bus encounters an existing `in_progress` transaction, it:
+
+1. keeps the handler from executing again;
+2. asks the canvas recovery handler whether the atomic workspace record already binds the same operation ID, preview ID, and target hashes;
+3. if no exact durable match exists, returns `recovery_blocked`;
+4. if an exact match exists, reconstructs the typed commit result from the persisted workspace;
+5. commits that result to the operation ledger; and
+6. returns the recovered result without applying the canvas mutation again.
+
+This closes the key crash window without claiming a distributed two-phase commit protocol.
+
+### Proof boundary
+
+Workspace versions, transaction IDs, hashes, approvals, and fencing generations remain engineering provenance/coordination state.
+
+They do not create:
+
+- verifier PASS;
+- FORMAL evidence;
+- theorem qualification;
+- proof-ledger promotion; or
+- mathematical correctness.
+
+Exact content identity is required for safe mutation, but remains distinct from proof.
+
+
+### Durable transaction receipt lineage
+
+The persisted workspace envelope also carries a compact immutable receipt for every committed workspace version.
+
+Each receipt binds:
+
+- workspace version and exact parent version;
+- commit timestamp;
+- operation ID;
+- preview ID;
+- lease ID and fencing generation;
+- base semantic/full hashes; and
+- target semantic/full hashes.
+
+The receipt sequence must be contiguous from version 1 through the current version, operation IDs must be unique, adjacent target/base hashes must form a valid chain, and the final receipt must exactly match the top-level current transaction metadata.
+
+Receipts do **not** duplicate old experiment snapshots. They retain only the transaction/version/hash identities required for durable reconciliation.
+
+This closes a deeper crash case:
+
+1. operation A durably commits workspace version 1;
+2. A's operation-ledger result is lost before finalization;
+3. operation B later commits workspace version 2;
+4. A is retried under a newer valid lease generation;
+5. the Tool Bus finds A still `in_progress`;
+6. the canvas recovery handler locates A's immutable version-1 receipt;
+7. A's typed result is reconstructed and its operation ledger is finalized;
+8. the active workspace stays at version 2.
+
+Recovery therefore never rolls the workspace backward merely to resolve an older idempotency record.

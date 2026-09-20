@@ -15,6 +15,7 @@ from .contracts import (
     ToolResult,
     ToolStatus,
     ToolPreconditionError,
+    ToolRecoveryHandler,
     TypedTool,
 )
 from .controller import (
@@ -68,6 +69,12 @@ from .recovery import (
     LeaseUnavailableError,
 )
 from .tool_bus import ToolBus
+from .workspace_store import (
+    FileExperimentWorkspace,
+    WorkspaceCommitReceipt,
+    WorkspaceConflictError,
+    WorkspaceVersionRecord,
+)
 
 __all__ = [
     "AgentBudget",
@@ -100,6 +107,7 @@ __all__ = [
     "FileAgentLeaseManager",
     "FileCanvasPreviewStore",
     "FileCheckpointStore",
+    "FileExperimentWorkspace",
     "FileOperationStore",
     "HashChainedAuditJournal",
     "LeaseUnavailableError",
@@ -119,7 +127,11 @@ __all__ = [
     "ToolResult",
     "ToolStatus",
     "ToolPreconditionError",
+    "ToolRecoveryHandler",
     "TypedTool",
+    "WorkspaceCommitReceipt",
+    "WorkspaceConflictError",
+    "WorkspaceVersionRecord",
     "canvas_preview_approval_callback",
     "operation_id_for",
     "register_canvas_mutation_tools",

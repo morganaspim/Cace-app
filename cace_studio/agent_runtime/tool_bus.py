@@ -338,15 +338,102 @@ class ToolBus:
                     error=f"idempotency conflict: {exc}",
                 )
             except OperationInProgressError as exc:
-                return self._record(
-                    call=call,
-                    tool=tool,
-                    status=ToolStatus.RECOVERY_BLOCKED,
-                    approved=approved,
-                    input_sha256=input_sha256,
-                    output_sha256=None,
-                    error=f"idempotency replay blocked: {exc}",
-                )
+                if tool.recovery_handler is None:
+                    return self._record(
+                        call=call,
+                        tool=tool,
+                        status=ToolStatus.RECOVERY_BLOCKED,
+                        approved=approved,
+                        input_sha256=input_sha256,
+                        output_sha256=None,
+                        error=f"idempotency replay blocked: {exc}",
+                    )
+                try:
+                    existing = self.operation_store.load(call.operation_id or "")
+                    if existing is None:
+                        raise RuntimeError("in-progress operation record disappeared")
+                    recovery_context = ToolContext(
+                        sequence=self._sequence,
+                        call_id=call.call_id,
+                        tool_name=tool.name,
+                        capability=tool.capability,
+                        run_id=call.run_id,
+                        operation_id=call.operation_id,
+                        lease_id=call.lease_id,
+                        lease_generation=call.lease_generation,
+                    )
+                    recovered_response = tool.recovery_handler(request, recovery_context)
+                    if recovered_response is None:
+                        raise OperationInProgressError(
+                            "no durable external commit matched the in-progress operation"
+                        )
+                    if not isinstance(recovered_response, tool.response_type):
+                        raise TypeError(
+                            "recovery handler returned "
+                            f"{type(recovered_response).__name__}; "
+                            f"expected {tool.response_type.__name__}"
+                        )
+                    recovered_output = to_plain(recovered_response)
+                    if not isinstance(recovered_output, dict):
+                        raise TypeError("recovered dataclass response did not encode to an object")
+                    recovered_output_sha256 = sha256_identity(recovered_output)
+                    original_result = ToolResult(
+                        call_id=existing.call_id,
+                        tool_name=tool.name,
+                        status=ToolStatus.OK,
+                        output=recovered_output,
+                        error="",
+                    )
+                    self.operation_store.commit(
+                        operation_id=call.operation_id or "",
+                        tool_name=tool.name,
+                        input_sha256=input_sha256,
+                        result=original_result,
+                    )
+                    replayed = ToolResult(
+                        call_id=call.call_id,
+                        tool_name=tool.name,
+                        status=ToolStatus.OK,
+                        output=recovered_output,
+                        error="",
+                    )
+                    self._audit.append(
+                        ToolAuditRecord(
+                            sequence=self._sequence,
+                            call_id=call.call_id,
+                            tool_name=tool.name,
+                            capability=tool.capability,
+                            status=ToolStatus.OK,
+                            approved=approved,
+                            input_sha256=input_sha256,
+                            output_sha256=recovered_output_sha256,
+                            error="",
+                        )
+                    )
+                    return replayed
+                except OperationInProgressError as recovery_exc:
+                    return self._record(
+                        call=call,
+                        tool=tool,
+                        status=ToolStatus.RECOVERY_BLOCKED,
+                        approved=approved,
+                        input_sha256=input_sha256,
+                        output_sha256=None,
+                        error=f"idempotency replay blocked: {recovery_exc}",
+                    )
+                except Exception as recovery_exc:
+                    return self._record(
+                        call=call,
+                        tool=tool,
+                        status=ToolStatus.RECOVERY_BLOCKED,
+                        approved=approved,
+                        input_sha256=input_sha256,
+                        output_sha256=None,
+                        error=(
+                            "idempotency reconciliation failed: "
+                            f"{type(recovery_exc).__name__}: {recovery_exc}"
+                        ),
+                    )
             except Exception as exc:
                 return self._record(
                     call=call,

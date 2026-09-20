@@ -241,6 +241,15 @@ class ToolHandler(Protocol[RequestT, ResponseT]):
         ...
 
 
+class ToolRecoveryHandler(Protocol[RequestT, ResponseT]):
+    def __call__(
+        self,
+        request: RequestT,
+        context: ToolContext,
+    ) -> ResponseT | None:
+        ...
+
+
 @dataclass(frozen=True)
 class TypedTool(Generic[RequestT, ResponseT]):
     name: str
@@ -250,6 +259,7 @@ class TypedTool(Generic[RequestT, ResponseT]):
     response_type: type[ResponseT]
     handler: ToolHandler[RequestT, ResponseT]
     idempotency_required: bool = False
+    recovery_handler: ToolRecoveryHandler[RequestT, ResponseT] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name.strip():
@@ -268,6 +278,8 @@ class TypedTool(Generic[RequestT, ResponseT]):
             raise TypeError("tool response_type must be a dataclass type")
         if not callable(self.handler):
             raise TypeError("tool handler must be callable")
+        if self.recovery_handler is not None and not callable(self.recovery_handler):
+            raise TypeError("tool recovery_handler must be callable or None")
         if not isinstance(self.idempotency_required, bool):
             raise TypeError("tool idempotency_required must be boolean")
 

@@ -95,6 +95,7 @@ jobs:
             tests/test_agent_recovery.py \
             tests/test_agent_perception.py \
             tests/test_canvas_mutation.py \
+            tests/test_workspace_mutation.py \
             tests/test_release_secrecy.py \
             tests/test_export_v330_environment_metadata.py \
             tests/test_continuum_attestation_v337.py \
