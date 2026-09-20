@@ -38,6 +38,8 @@ Read these first, in this order:
 20. `gemini/CACE_GEMINI_TASK_STATE.json`
 21. `AI_REPO_MAP.json`
 22. `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`
+23. `docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md`
+24. `docs/TYPED_EQUATION_DATA_WIZARD.md`
 
 For Antigravity also read `.agents/AGENTS.md` and use the relevant skill under `.agents/skills/`.
 
