@@ -9,6 +9,8 @@
   },
   "start_here": [
     "CACE_AGENT_BOOTSTRAP.json",
+    "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
+    "CACE_AI_BUILDER_CONTRACT.md",
     "docs/CHAT_IDEA_LEDGER.md",
     "docs/CROSS_CHAT_HANDOFF.md",
     "docs/BUILD_AND_TRUST_GUIDE.md",
@@ -256,5 +258,17 @@
     "purpose": "reduce user dispatches by compiling multiple quarantined theorem modules in one serialized exact-pin run",
     "qualification": false,
     "promotion_rule": "promote only after all intended targets pass; canonical exact-head qualification still required"
+  },
+  "ai_builder_governance": {
+    "primary_implementation_environment": "Gemini AI Code Studio",
+    "contract": "CACE_AI_BUILDER_CONTRACT.md",
+    "authority": "implementation governance only; AI output is never verification evidence",
+    "required_for_all_code_builders": true
+  },
+  "source_to_formal_linkage": {
+    "specification": "docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md",
+    "current_nonclaim": "exact discrete P1/RT0 identities and qualified continuum theorems do not automatically prove arbitrary runtime FE fields satisfy continuum H1/H(div)/Green-pairing hypotheses",
+    "obligation_range": "FSL-0..FSL-13",
+    "promotion_rule": "unresolved runtime-to-formal bindings remain NOT_RUN/unresolved until explicit bridges and canonical qualification exist"
   }
 }
