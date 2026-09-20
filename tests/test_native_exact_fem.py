@@ -59,6 +59,7 @@ def test_native_exact_fem_matches_formal_square_center_fixture():
     ]
     assert result["assembly"] == {
         "all_local_green": True,
+        "orthogonality_sum_zero": True,
         "equilibrium_failures": 0,
         "boundary_failures": 0,
         "interior_failures": 0,
@@ -90,3 +91,12 @@ def test_native_exact_fem_changed_flux_fails_admissibility_without_changing_gree
         + result["assembly"]["boundary_failures"]
         + result["assembly"]["interior_failures"]
     ) > 0
+
+
+@pytest.mark.parametrize("bad_id", [0.0, "0", False, 1.5])
+def test_native_exact_fem_rejects_coercible_triangle_ids(bad_id):
+    runtime = native_or_skip()
+    vertices, triangles, p1, rt0 = square_center_inputs()
+    triangles[0] = (bad_id, 1, 4)
+    with pytest.raises(ValueError, match="genuine integers"):
+        runtime.exact_fem_evaluate(vertices, triangles, p1, rt0)
