@@ -215,3 +215,49 @@ v1.1 still does not claim distributed exactly-once execution. Before approved mu
 - GUI recovery inspection and explicit retry/resolve actions;
 - crash/fault injection around every pre-call/post-call durability boundary;
 - retention/redaction policy for tool observations.
+
+
+## v1.2 canonical experiment perception
+
+The Local Agent can now receive a live, bounded `cace-agent-perception-v1` packet through an optional controller perception provider. This implements the existing contract in `schema/cace-agent-perception.schema.json`; it does not create a competing scientific heartbeat or evidence system.
+
+### Canonical evidence derivation
+
+`AgentPerceptionTracker` accepts an `Experiment` and, optionally, a real `RunResult`.
+
+Per-node canonical evidence state is derived only from real CACE `VerificationRecord` objects:
+
+- any canonical FAIL record -> `FAIL`;
+- non-empty all-PASS records -> `PASS`;
+- absent/mixed NOT_RUN records -> `NOT_RUN`;
+- a run whose recorded source semantic graph hash differs from the active experiment -> `STALE`.
+
+Fabricated mapping/dictionary objects presented as verification records are rejected.
+
+Heartbeat display state can mirror those canonical observations (`VERIFIED`, `FAILED`, `STALE`) or show non-evidentiary runtime attention states such as `ACTIVE`, `VERIFYING`, `BLOCKED`, and `DORMANT`. It never writes verification state.
+
+### Semantic change and compact sensory context
+
+Each node receives a content hash over its canonical node identity, module ID, parameters, and incident semantic edges. Layout/presentation coordinates are excluded.
+
+Successive packets expose:
+
+- a monotonic perception sequence;
+- semantic-change flags;
+- optional residual norm and improving/stable/worsening trend;
+- optional convergence progress;
+- bounded resource pressure;
+- bounded research-interest metadata;
+- upstream blocker references;
+- the active experiment semantic graph hash;
+- the originating run ID when one exists.
+
+Residual trends and research-interest values are coordination/navigation signals only. They are not verification evidence.
+
+### Controller boundary
+
+When a perception provider is configured, `AgentController` validates the packet's top-level v1 contract and requires `evidence_authority=false` before including it in `AgentTurnContext`.
+
+A configured perception provider that fails or returns a malformed/authoritative packet aborts the run. The planner is not silently given stale substitute context.
+
+Perception is read-only. v1.2 grants no new Tool Bus capability and no canvas-mutation authority.

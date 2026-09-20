@@ -26,6 +26,15 @@ from .controller import (
     LocalJSONPlanner,
 )
 from .core_tools import register_core_tools
+from .perception import (
+    AgentNetworkMode,
+    AgentPerceptionPacket,
+    AgentPerceptionTracker,
+    CanonicalEvidenceState,
+    NodePerception,
+    PerceptionHeartbeatState,
+    ResidualTrend,
+)
 from .recovery import (
     AgentCheckpoint,
     AgentHeartbeat,
@@ -43,6 +52,9 @@ __all__ = [
     "AgentController",
     "AgentDecision",
     "AgentHeartbeat",
+    "AgentNetworkMode",
+    "AgentPerceptionPacket",
+    "AgentPerceptionTracker",
     "AgentLease",
     "AgentLeaseManager",
     "AgentPhase",
@@ -52,10 +64,14 @@ __all__ = [
     "AuditIntegrityError",
     "Capability",
     "CapabilityPolicy",
+    "CanonicalEvidenceState",
     "FileCheckpointStore",
     "HashChainedAuditJournal",
     "LeaseUnavailableError",
     "LocalJSONPlanner",
+    "NodePerception",
+    "PerceptionHeartbeatState",
+    "ResidualTrend",
     "ToolAuditRecord",
     "ToolBus",
     "ToolCall",

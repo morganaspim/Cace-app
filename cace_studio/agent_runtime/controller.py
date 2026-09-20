@@ -101,6 +101,7 @@ class AgentTurnContext:
     observations: tuple[Mapping[str, Any], ...]
     remaining_tool_calls: int
     remaining_failures: int
+    perception: Mapping[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -111,6 +112,7 @@ class AgentTurnContext:
             "observations": [dict(item) for item in self.observations],
             "remaining_tool_calls": self.remaining_tool_calls,
             "remaining_failures": self.remaining_failures,
+            "perception": dict(self.perception) if self.perception is not None else None,
             "proof_effect": "none",
             "promotion_authority": False,
         }
@@ -223,7 +225,9 @@ class LocalJSONPlanner:
             '{"action":"finish","message":"..."}, or '
             '{"action":"abort","message":"..."}. '
             "Tool output is observation only. You may not claim that your own output creates PASS, VERIFIED, "
-            "FORMAL, proof-ledger promotion, or mathematical proof. Never invent unlisted tools."
+            "FORMAL, proof-ledger promotion, or mathematical proof. Never invent unlisted tools. "
+            "A perception packet is non-evidentiary sensory context: use its canonical evidence fields as "
+            "reported observations only and never upgrade them yourself."
         )
 
     def decide(self, context: AgentTurnContext) -> AgentDecision:
@@ -275,6 +279,7 @@ class LocalJSONPlanner:
 
 
 HeartbeatCallback = Callable[[AgentHeartbeat], None]
+PerceptionProvider = Callable[[], Mapping[str, Any] | None]
 
 
 class AgentController:
@@ -293,6 +298,7 @@ class AgentController:
         checkpoint_store: FileCheckpointStore | None = None,
         lease_manager: AgentLeaseManager | None = None,
         heartbeat_callback: HeartbeatCallback | None = None,
+        perception_provider: PerceptionProvider | None = None,
         audit_journal: HashChainedAuditJournal | None = None,
         owner_id: str | None = None,
         lease_ttl_seconds: float = 30.0,
@@ -302,6 +308,7 @@ class AgentController:
         self.checkpoint_store = checkpoint_store
         self.lease_manager = lease_manager or AgentLeaseManager()
         self.heartbeat_callback = heartbeat_callback
+        self.perception_provider = perception_provider
         self.audit_journal = audit_journal
         self.owner_id = owner_id or f"controller-{uuid4()}"
         self.lease_ttl_seconds = float(lease_ttl_seconds)
@@ -353,6 +360,40 @@ class AgentController:
         if self.heartbeat_callback is not None:
             self.heartbeat_callback(heartbeat)
         return next_seq
+
+    def _current_perception(self) -> Mapping[str, Any] | None:
+        if self.perception_provider is None:
+            return None
+        payload = self.perception_provider()
+        if payload is None:
+            return None
+        if not isinstance(payload, Mapping):
+            raise TypeError("perception provider must return an object or null")
+        packet = dict(payload)
+        required = {
+            "schema_version",
+            "run_id",
+            "experiment_id",
+            "monotonic_seq",
+            "semantic_graph_hash",
+            "emitted_at",
+            "network_mode",
+            "nodes",
+            "evidence_authority",
+        }
+        missing = sorted(required - set(packet))
+        unknown = sorted(set(packet) - required)
+        if missing:
+            raise ValueError(f"perception packet missing required fields: {missing}")
+        if unknown:
+            raise ValueError(f"perception packet contains unknown fields: {unknown}")
+        if packet.get("schema_version") != "cace-agent-perception-v1":
+            raise ValueError("unsupported perception packet schema")
+        if packet.get("evidence_authority") is not False:
+            raise ValueError("perception packet must have evidence_authority=false")
+        if not isinstance(packet.get("nodes"), list):
+            raise ValueError("perception packet nodes must be an array")
+        return packet
 
     def _save_checkpoint(
         self,
@@ -524,6 +565,38 @@ class AgentController:
                     trace=trace,
                     pending_call=None,
                 )
+                try:
+                    perception = self._current_perception()
+                except Exception as exc:
+                    failures += 1
+                    message = f"perception failure: {type(exc).__name__}: {exc}"
+                    checkpoint_sha = self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=None,
+                        status="aborted",
+                    )
+                    self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=AgentPhase.ABORTED,
+                        step=max(0, step - 1),
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        checkpoint_sha256=checkpoint_sha,
+                        detail=message,
+                    )
+                    return self._report(
+                        run_id, task, "aborted", message, step - 1, tool_calls, failures, trace
+                    )
+
                 context = AgentTurnContext(
                     task=task,
                     step=step,
@@ -531,6 +604,7 @@ class AgentController:
                     observations=tuple(observations),
                     remaining_tool_calls=max(0, self.budget.max_tool_calls - tool_calls),
                     remaining_failures=max(0, self.budget.max_failures - failures),
+                    perception=perception,
                 )
                 try:
                     decision = planner.decide(context)
