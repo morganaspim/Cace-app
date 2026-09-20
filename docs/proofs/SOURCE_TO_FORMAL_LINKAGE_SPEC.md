@@ -324,9 +324,10 @@ Suggested production/runtime additions:
 - `cpp/src/c_api.cpp` and/or the existing native binding layer
   - narrow ABI for exact objects/results;
   - no duplicate mathematical implementation in the binding.
-- `cace_studio/core/native_runtime.py`
-  - Python orchestration/marshalling only;
-  - serialization, provenance, and content hashing may live here;
+- `cace_studio/native_exact_fem.py`
+  - thin Python orchestration/marshalling wrapper over the C++ exact-FEM C ABI;
+  - intentionally lives outside the already-qualified `cace_studio/core/**` source region until FSL promotion;
+  - serialization, provenance, and content hashing may live in orchestration code;
   - it must not recompute the load-bearing FEM mathematics independently.
 - `cace_studio/modules/p1_rt0_formal_bridges.py`
   - fail-closed orchestration from C++ exact objects/results to generated Lean candidates and proof-gate metadata.
