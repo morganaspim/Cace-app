@@ -54,6 +54,7 @@ import CACEFormal.BoxGraphGreenPairing
 import CACEFormal.BoxPragerSynge
 import CACEFormal.BoxPragerSyngeEquilibrated
 import CACEFormal.ZeroBoundaryClosure
+import CACEFormal.BoxZeroBoundaryCore
 import CACEFormal.BoxClassicalAgreement
 import CACEFormal.SmoothBoxGreenAuto
 import CACEFormal.RegularizationClosure

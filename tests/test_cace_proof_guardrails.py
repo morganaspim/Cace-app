@@ -36,6 +36,7 @@ def test_promoted_formal_modules_leave_quarantine_and_enter_audited_root():
         "CACEFormal.HDivDensityReduction",
         "CACEFormal.BoxPragerSyngeEquilibrated",
         "CACEFormal.ZeroBoundaryClosure",
+        "CACEFormal.BoxZeroBoundaryCore",
     }
     assert imports.isdisjoint(quarantined)
     assert promoted.isdisjoint(quarantined)
@@ -51,6 +52,23 @@ def test_v340_zero_boundary_closure_is_promoted_after_standalone_pass():
 
     assert "CACEFormal.ZeroBoundaryClosure" not in quarantined
     assert "CACEFormal.ZeroBoundaryClosure" in imports
+
+
+
+
+def test_v341a_box_zero_boundary_core_is_promoted_after_standalone_pass():
+    guard = _guardrails()
+    config = guard.load_config()
+    root = ROOT / config["audited_root"]
+    imports = set(guard.parse_imports(root))
+    quarantined = set(config["quarantined_root_imports"])
+
+    assert "CACEFormal.BoxZeroBoundaryCore" not in quarantined
+    assert "CACEFormal.BoxZeroBoundaryCore" in imports
+    assert guard.module_to_path(
+        ROOT / config["module_root"],
+        "CACEFormal.BoxZeroBoundaryCore",
+    ).is_file()
 
 
 def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
@@ -76,6 +94,7 @@ def test_root_closure_contains_new_graded_geometry_and_promoted_hdiv_modules():
     assert "CACEFormal.HDivDensityReduction" in closure
     assert "CACEFormal.BoxPragerSyngeEquilibrated" in closure
     assert "CACEFormal.ZeroBoundaryClosure" in closure
+    assert "CACEFormal.BoxZeroBoundaryCore" in closure
     assert closure.isdisjoint(set(config["quarantined_root_imports"]))
 
 
@@ -292,6 +311,17 @@ def test_exact_pin_workflow_uses_behaviorally_tested_target_classifier():
     assert "scripts/cace_proof_guardrails.py classify-target" in workflow
     assert '--module "$module_name"' in workflow
     assert '--compile-root "$COMPILE_ROOT"' in workflow
+
+
+def test_canonical_qualification_reclaims_disposable_cache_without_weakening_disk_reserve():
+    workflow = (
+        ROOT / ".github" / "workflows" / "cace-formal-v336-theorem-metadata.yml"
+    ).read_text(encoding="utf-8")
+    assert "min_free_kb=$((5 * 1024 * 1024))" in workflow
+    assert "python -m pip cache purge" in workflow
+    assert '"$RUNNER_TEMP/uv-v337-bin/uv" cache clean' in workflow
+    assert "-name 'cace-v337-qualification.*' -user \"$(id -un)\"" in workflow
+    assert "Formal qualification requires 5 GiB plus source-staging headroom before copy" in workflow
 
 
 def test_exact_pin_workflow_collects_compile_failure_frontier():

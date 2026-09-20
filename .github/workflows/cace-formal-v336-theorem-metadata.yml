@@ -189,6 +189,20 @@ jobs:
         run: |
           set -euo pipefail
           min_free_kb=$((5 * 1024 * 1024))
+
+          # Reclaim only disposable runner-local caches before enforcing the
+          # unchanged 5 GiB qualification reserve. This must never delete proof
+          # evidence, pinned source, or validated persistent dependency/build
+          # caches. Repository-wide Actions serialization guarantees there is no
+          # concurrent CACE qualification using these owned /var/tmp worktrees.
+          find /var/tmp -maxdepth 1 -type d \
+            -name 'cace-v337-qualification.*' -user "$(id -un)" \
+            -print -exec rm -rf -- {} + || true
+          python -m pip cache purge >/dev/null 2>&1 || true
+          if [[ -x "$RUNNER_TEMP/uv-v337-bin/uv" ]]; then
+            "$RUNNER_TEMP/uv-v337-bin/uv" cache clean >/dev/null 2>&1 || true
+          fi
+
           formal_source_kb="$(du -sk formal/cace_formal | awk '{print $1}')"
           prune_target_kb=$((min_free_kb + formal_source_kb))
           formal_tree="$(git rev-parse "$CACE_EXPECTED_SHA:formal/cace_formal")"

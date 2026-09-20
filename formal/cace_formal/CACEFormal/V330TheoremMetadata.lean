@@ -63,7 +63,14 @@ private def endpoints : List Name := [
   ``CACEFormal.Continuum.topologicalClosure_le_zeroBoundarySubmodule,
   ``CACEFormal.Continuum.hasZeroBoundaryTrace_of_mem_topologicalClosure,
   ``CACEFormal.Continuum.boxHasZeroBoundaryTrace_of_mem_coreClosure,
-  ``CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure
+  ``CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure,
+  ``CACEFormal.Continuum.mem_BoxBoundaryVanishingSmoothScalar_iff,
+  ``CACEFormal.Continuum.scalarTimesVector_upperFace_eq_zero_of_boundaryVanishes,
+  ``CACEFormal.Continuum.scalarTimesVector_lowerFace_eq_zero_of_boundaryVanishes,
+  ``CACEFormal.Continuum.upperFaceFlux_scalarTimesVector_eq_zero_of_boundaryVanishes,
+  ``CACEFormal.Continuum.lowerFaceFlux_scalarTimesVector_eq_zero_of_boundaryVanishes,
+  ``CACEFormal.Continuum.smoothBoxNormalTrace_scalarTimesVector_eq_zero_of_boundaryVanishes,
+  ``CACEFormal.Continuum.smoothNormalFluxPairing_eq_zero_of_boundaryVanishes
 ]
 
 private def insertName (name : Name) (names : List Name) : List Name :=

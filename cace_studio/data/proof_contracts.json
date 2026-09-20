@@ -24,6 +24,7 @@
         "CACEFormal/HDivDensityReduction.lean",
         "CACEFormal/BoxPragerSyngeEquilibrated.lean",
         "CACEFormal/ZeroBoundaryClosure.lean",
+        "CACEFormal/BoxZeroBoundaryCore.lean",
         "CACEFormal/V330AxiomAudit.lean"
       ],
       "build_target": "CACEFormal.V330AxiomAudit",
@@ -81,7 +82,14 @@
         "CACEFormal.Continuum.topologicalClosure_le_zeroBoundarySubmodule",
         "CACEFormal.Continuum.hasZeroBoundaryTrace_of_mem_topologicalClosure",
         "CACEFormal.Continuum.boxHasZeroBoundaryTrace_of_mem_coreClosure",
-        "CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure"
+        "CACEFormal.Continuum.boxGraphPragerSynge_of_divergence_zero_of_mem_coreClosure",
+        "CACEFormal.Continuum.mem_BoxBoundaryVanishingSmoothScalar_iff",
+        "CACEFormal.Continuum.scalarTimesVector_upperFace_eq_zero_of_boundaryVanishes",
+        "CACEFormal.Continuum.scalarTimesVector_lowerFace_eq_zero_of_boundaryVanishes",
+        "CACEFormal.Continuum.upperFaceFlux_scalarTimesVector_eq_zero_of_boundaryVanishes",
+        "CACEFormal.Continuum.lowerFaceFlux_scalarTimesVector_eq_zero_of_boundaryVanishes",
+        "CACEFormal.Continuum.smoothBoxNormalTrace_scalarTimesVector_eq_zero_of_boundaryVanishes",
+        "CACEFormal.Continuum.smoothNormalFluxPairing_eq_zero_of_boundaryVanishes"
       ],
       "executable_bindings": [
         {
@@ -110,7 +118,7 @@
       "nonclaims": [
         "The H1/H(div) regularization criteria do not themselves construct the unconditional regularizers required for reverse graph inclusion.",
         "The audited whole-space H(div) density endpoint is restricted to the canonical L² Hilbert graph model on Euclidean space; it does not by itself construct bounded-domain trace/core density, boundary regularity, or every concrete PDE hypothesis.",
-        "The generic audited weak-Green and continuum Prager-Synge endpoints retain their explicit pairing, smooth-core, zero-boundary-trace, and cross-term hypotheses. The audited bounded-box equilibrated specialization discharges the cross-term identity only when the H(div) error has zero divergence coordinate. The audited zero-boundary closure endpoints can derive zero trace from membership in the graph-norm closure of a core whose members are independently certified to have zero trace; they do not construct such a core or prove arbitrary box H¹ fields have zero trace.",
+        "The generic audited weak-Green and continuum Prager-Synge endpoints retain their explicit pairing, smooth-core, zero-boundary-trace, and cross-term hypotheses. The audited bounded-box equilibrated specialization discharges the cross-term identity only when the H(div) error has zero divergence coordinate. The audited zero-boundary closure endpoints can derive zero trace from graph-norm closure membership. The audited BoxZeroBoundaryCore endpoints now construct an explicit smooth face-vanishing scalar core and prove zero classical product flux/normal-trace pairing for smooth vector fields, but they do not yet extend that cancellation to every closed-graph H(div) test, identify the closure with every classical H₀¹ presentation, or prove arbitrary box H¹ fields have zero trace.",
         "CACE does not establish external reproducer/reviewer identity or independence; those remain external trust boundaries.",
         "The executable binding certifies theorem-endpoint membership and qualified proof provenance only; it does not establish that runtime PDE inputs satisfy theorem hypotheses or that arbitrary numerical outputs are formally verified.",
         "The hasZeroBoundaryTrace_zero endpoint discharges only the exact zero test field; it does not certify arbitrary nonzero runtime fields, sampled boundary values, or finite-element traces."
