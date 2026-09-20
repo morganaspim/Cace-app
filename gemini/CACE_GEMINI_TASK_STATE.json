@@ -98,6 +98,7 @@
     }
   ],
   "required_first_read": [
+    "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
     "schema/cace-agent-perception.schema.json",
     "collaboration/schema/cace-ai-tool-submission.schema.json",
     "docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md",
@@ -189,6 +190,23 @@
   "agent_perception": {
     "schema": "schema/cace-agent-perception.schema.json",
     "purpose": "compact non-evidentiary live canvas state stream for local-AI attention/planning",
+    "evidence_authority": false
+  },
+  "product_experience": {
+    "specification": "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
+    "identity": "CACE — Verified Research Environment",
+    "message": "Explore rigorous math with AI that learns geometric reasoning.",
+    "default_post_account_flow": [
+      "Research Assistant welcome chat",
+      "Describe experiment / field demos / full capabilities / recent work",
+      "Grounded demo or typed graph proposal",
+      "Preview before mutation",
+      "Build on Canvas",
+      "Persistent Research Assistant in Studio"
+    ],
+    "daily_use": true,
+    "local_first": true,
+    "no_ai_fallback": true,
     "evidence_authority": false
   }
 }
