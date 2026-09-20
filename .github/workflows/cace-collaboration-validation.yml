@@ -7,9 +7,6 @@ on:
     # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
     paths:
       - 'collaboration/**'
-      - 'docs/**'
-      - 'cace_studio/**'
-      - 'api/**'
       - 'quality/**'
       - 'security/**'
       - 'scripts/**'
