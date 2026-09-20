@@ -8,6 +8,7 @@ from typing import Any, Callable, Mapping
 from uuid import uuid4
 
 from cace_studio.ai.provider import AIProvider
+from cace_studio.core.execution_control import ExecutionControl, ExecutionLimits
 from cace_studio.core.executor import GraphExecutor, RunResult
 from cace_studio.core.graph import Experiment
 from cace_studio.core.registry import ModuleRegistry
@@ -34,6 +35,13 @@ from .durability import (
     hashed_envelope,
     validate_hashed_envelope,
 )
+from .execution_containment import (
+    FileRecoveryInbox,
+    FileRunArtifactStore,
+    FileRunControlStore,
+    RecoveryInboxItem,
+    RunControlState,
+)
 from .perception import AgentNetworkMode, AgentPerceptionTracker
 from .tool_bus import ApprovalCallback, ToolBus
 from .workspace_store import FileExperimentWorkspace
@@ -55,16 +63,25 @@ class AutonomyLoopBudget:
     max_science_runs: int = 3
     max_replans: int = 2
     max_plan_steps_per_cycle: int = 20
+    max_wall_seconds_per_run: float = 300.0
+    max_nodes_per_run: int = 1000
+    max_output_bytes_per_run: int = 67_108_864
+    max_artifact_bytes_per_run: int = 134_217_728
 
     def __post_init__(self) -> None:
         for name in (
             "max_cycles",
             "max_science_runs",
             "max_plan_steps_per_cycle",
+            "max_nodes_per_run",
+            "max_output_bytes_per_run",
+            "max_artifact_bytes_per_run",
         ):
             value = getattr(self, name)
             if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
                 raise ValueError(f"{name} must be a positive integer")
+        if self.max_wall_seconds_per_run <= 0:
+            raise ValueError("max_wall_seconds_per_run must be positive")
         if (
             not isinstance(self.max_replans, int)
             or isinstance(self.max_replans, bool)
@@ -78,6 +95,10 @@ class AutonomyLoopBudget:
             "max_science_runs": self.max_science_runs,
             "max_replans": self.max_replans,
             "max_plan_steps_per_cycle": self.max_plan_steps_per_cycle,
+            "max_wall_seconds_per_run": self.max_wall_seconds_per_run,
+            "max_nodes_per_run": self.max_nodes_per_run,
+            "max_output_bytes_per_run": self.max_output_bytes_per_run,
+            "max_artifact_bytes_per_run": self.max_artifact_bytes_per_run,
         }
 
     @classmethod
@@ -87,6 +108,16 @@ class AutonomyLoopBudget:
             max_science_runs=int(payload["max_science_runs"]),
             max_replans=int(payload["max_replans"]),
             max_plan_steps_per_cycle=int(payload["max_plan_steps_per_cycle"]),
+            max_wall_seconds_per_run=float(
+                payload.get("max_wall_seconds_per_run", 300.0)
+            ),
+            max_nodes_per_run=int(payload.get("max_nodes_per_run", 1000)),
+            max_output_bytes_per_run=int(
+                payload.get("max_output_bytes_per_run", 67_108_864)
+            ),
+            max_artifact_bytes_per_run=int(
+                payload.get("max_artifact_bytes_per_run", 134_217_728)
+            ),
         )
 
 
@@ -378,6 +409,18 @@ class AutonomyInspectRequest:
 
 
 @dataclass(frozen=True)
+class AutonomyAttentionRequest:
+    session_id: str = ""
+
+
+@dataclass(frozen=True)
+class AutonomyAttentionResponse:
+    items: tuple[dict[str, Any], ...]
+    proof_effect: str = "none"
+    promotion_authority: bool = False
+
+
+@dataclass(frozen=True)
 class AutonomyAdvanceResponse:
     session_id: str
     operation_id: str
@@ -386,6 +429,8 @@ class AutonomyAdvanceResponse:
     workspace_id: str
     workspace_version: int
     science_run_id: str
+    run_control_id: str
+    run_artifact_id: str
     science_completed: bool
     all_verifiers_passed: bool
     perception: dict[str, Any]
@@ -406,6 +451,8 @@ class AutonomyAdvanceResponse:
             "workspace_id": self.workspace_id,
             "workspace_version": self.workspace_version,
             "science_run_id": self.science_run_id,
+            "run_control_id": self.run_control_id,
+            "run_artifact_id": self.run_artifact_id,
             "science_completed": self.science_completed,
             "all_verifiers_passed": self.all_verifiers_passed,
             "perception": dict(self.perception),
@@ -435,6 +482,8 @@ class AutonomyAdvanceResponse:
             workspace_id=str(payload["workspace_id"]),
             workspace_version=int(payload["workspace_version"]),
             science_run_id=str(payload["science_run_id"]),
+            run_control_id=str(payload.get("run_control_id", "")),
+            run_artifact_id=str(payload.get("run_artifact_id", "")),
             science_completed=bool(payload["science_completed"]),
             all_verifiers_passed=bool(payload["all_verifiers_passed"]),
             perception=dict(perception),
@@ -697,6 +746,9 @@ class AutonomyLoopRuntime:
         replan_provider: ReplanProvider | None = None,
         network_mode: AgentNetworkMode = AgentNetworkMode.LOCAL_ZERO_CONTACT,
         gpu_enabled: bool = False,
+        run_artifact_store: FileRunArtifactStore | None = None,
+        run_control_store: FileRunControlStore | None = None,
+        recovery_inbox: FileRecoveryInbox | None = None,
     ) -> None:
         self.bus = bus
         self.registry = registry
@@ -706,6 +758,15 @@ class AutonomyLoopRuntime:
         self.session_store = session_store
         self.replan_provider = replan_provider
         self.network_mode = network_mode
+        self.run_artifact_store = run_artifact_store or FileRunArtifactStore(
+            session_store.root / ".run-artifacts"
+        )
+        self.run_control_store = run_control_store or FileRunControlStore(
+            session_store.root / ".run-controls"
+        )
+        self.recovery_inbox = recovery_inbox or FileRecoveryInbox(
+            session_store.root / ".attention-inbox"
+        )
         self._perception_trackers: dict[str, AgentPerceptionTracker] = {}
         self.executor = GraphExecutor(registry, gpu_enabled=gpu_enabled)
 
@@ -778,22 +839,96 @@ class AutonomyLoopRuntime:
             raise AutonomyLoopError("unknown autonomy session")
         return self._inspect(record)
 
+    def list_attention(
+        self, request: AutonomyAttentionRequest, _context: ToolContext
+    ) -> AutonomyAttentionResponse:
+        session_id = request.session_id.strip() or None
+        if session_id is not None and self.session_store.load(session_id) is None:
+            raise AutonomyLoopError("unknown autonomy session")
+        return AutonomyAttentionResponse(
+            items=tuple(
+                item.to_dict()
+                for item in self.recovery_inbox.list_open(session_id=session_id)
+            )
+        )
+
+    @staticmethod
+    def control_id_for(session_id: str, cycle_index: int) -> str:
+        return sha256_identity(
+            {
+                "autonomy_run_control_schema": 1,
+                "session_id": session_id,
+                "cycle_index": cycle_index,
+            }
+        )
+
+    def pause_session(self, session_id: str) -> str:
+        session = self.session_store.load(session_id)
+        if session is None:
+            raise AutonomyLoopError("unknown autonomy session")
+        control_id = self.control_id_for(
+            session_id, session.cycles_completed + 1
+        )
+        self.run_control_store.set_state(control_id, RunControlState.PAUSED)
+        return control_id
+
+    def resume_session(self, session_id: str) -> str:
+        session = self.session_store.load(session_id)
+        if session is None:
+            raise AutonomyLoopError("unknown autonomy session")
+        control_id = self.control_id_for(
+            session_id, session.cycles_completed + 1
+        )
+        self.run_control_store.set_state(control_id, RunControlState.RUNNING)
+        return control_id
+
+    def cancel_session(self, session_id: str) -> str:
+        session = self.session_store.load(session_id)
+        if session is None:
+            raise AutonomyLoopError("unknown autonomy session")
+        control_id = self.control_id_for(
+            session_id, session.cycles_completed + 1
+        )
+        self.run_control_store.set_state(control_id, RunControlState.CANCELLED)
+        return control_id
+
     def _run_science(
-        self, experiment: Experiment, run_spec: AutonomyRunSpec
-    ) -> RunResult:
+        self,
+        experiment: Experiment,
+        run_spec: AutonomyRunSpec,
+        *,
+        session: AutonomySessionRecord,
+        cycle_index: int,
+    ) -> tuple[RunResult, str]:
         external_inputs = dict(run_spec.external_inputs or {})
+        control_id = self.control_id_for(session.session_id, cycle_index)
+        self.run_control_store.ensure_running(control_id)
+        control = ExecutionControl(
+            limits=ExecutionLimits(
+                max_wall_seconds=session.budget.max_wall_seconds_per_run,
+                max_nodes=session.budget.max_nodes_per_run,
+                max_output_bytes=session.budget.max_output_bytes_per_run,
+            ),
+            external_state_provider=lambda: self.run_control_store.state(
+                control_id
+            ),
+        )
         if run_spec.target_node_ids:
-            return self.executor.run_selected_upstream(
+            result = self.executor.run_selected_upstream(
                 experiment,
                 run_spec.target_node_ids,
                 external_inputs=external_inputs,
                 seed=run_spec.seed,
+                control=control,
             )
-        return self.executor.run(
-            experiment,
-            external_inputs=external_inputs,
-            seed=run_spec.seed,
-        )
+        else:
+            result = self.executor.run(
+                experiment,
+                external_inputs=external_inputs,
+                seed=run_spec.seed,
+                control=control,
+            )
+        return result, control_id
 
     @staticmethod
     def _receipt_for_operation(
@@ -867,11 +1002,37 @@ class AutonomyLoopRuntime:
                 "workspace changed between approved plan completion and science observation"
             )
 
-        run_result = self._run_science(experiment, session.run_spec)
+        cycle_index = session.cycles_completed + 1
+        run_result, run_control_id = self._run_science(
+            experiment,
+            session.run_spec,
+            session=session,
+            cycle_index=cycle_index,
+        )
         if not run_result.completed:
+            interrupted_artifact = self.run_artifact_store.save(
+                result=run_result,
+                experiment_name=experiment.name,
+                session_id=session.session_id,
+                cycle_index=cycle_index,
+                perception={},
+                max_bytes=session.budget.max_artifact_bytes_per_run,
+            )
+            self.recovery_inbox.add(
+                session_id=session.session_id,
+                operation_id=context.operation_id,
+                category="science-run-interrupted",
+                message=(
+                    "The approved workspace plan committed, but the bounded "
+                    "scientific run stopped before completion: "
+                    f"{run_result.interruption_reason or 'unknown interruption'}"
+                ),
+                run_artifact_id=interrupted_artifact.artifact_id,
+            )
             raise RuntimeError(
                 "autonomy science run did not complete: "
-                f"{run_result.interruption_reason or 'unknown interruption'}"
+                f"{run_result.interruption_reason or 'unknown interruption'}; "
+                f"artifact={interrupted_artifact.artifact_id}"
             )
         run_summary = AutonomyRunSummary.from_run_result(run_result)
         tracker = self._perception_trackers.setdefault(
@@ -883,7 +1044,31 @@ class AutonomyLoopRuntime:
             run_result=run_result,
         ).to_dict()
 
-        cycle_index = session.cycles_completed + 1
+        try:
+            artifact = self.run_artifact_store.save(
+                result=run_result,
+                experiment_name=experiment.name,
+                session_id=session.session_id,
+                cycle_index=cycle_index,
+                perception=perception,
+                max_bytes=session.budget.max_artifact_bytes_per_run,
+            )
+        except Exception as exc:
+            self.recovery_inbox.add(
+                session_id=session.session_id,
+                operation_id=context.operation_id,
+                category="run-artifact-persistence-failed",
+                message=(
+                    "The approved workspace plan and scientific run completed, "
+                    "but the durable run artifact could not be persisted: "
+                    f"{type(exc).__name__}: {exc}"
+                ),
+            )
+            raise RuntimeError(
+                "autonomy run artifact persistence failed after science execution: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+
         cycles_after = cycle_index
         science_after = session.science_runs + 1
         replans_after = session.replans
@@ -948,6 +1133,8 @@ class AutonomyLoopRuntime:
             workspace_id=workspace_record.workspace_id,
             workspace_version=workspace_record.version,
             science_run_id=run_summary.run_id,
+            run_control_id=run_control_id,
+            run_artifact_id=artifact.artifact_id,
             science_completed=run_summary.completed,
             all_verifiers_passed=run_summary.all_verifiers_passed,
             perception=perception,
@@ -1003,6 +1190,8 @@ class AutonomyLoopRuntime:
     ) -> AutonomyAdvanceResponse | None:
         session = self.session_store.load(request.session_id)
         if session is None or not context.operation_id:
+            return None
+        if self.recovery_inbox.find_open_by_operation(context.operation_id) is not None:
             return None
         prior = self._receipt_for_operation(session, context.operation_id)
         if prior is not None:
@@ -1078,6 +1267,9 @@ def register_autonomy_loop_tools(
     replan_provider: ReplanProvider | None = None,
     network_mode: AgentNetworkMode = AgentNetworkMode.LOCAL_ZERO_CONTACT,
     gpu_enabled: bool = False,
+    run_artifact_store: FileRunArtifactStore | None = None,
+    run_control_store: FileRunControlStore | None = None,
+    recovery_inbox: FileRecoveryInbox | None = None,
 ) -> AutonomyLoopRuntime:
     runtime = AutonomyLoopRuntime(
         bus=bus,
@@ -1089,6 +1281,9 @@ def register_autonomy_loop_tools(
         replan_provider=replan_provider,
         network_mode=network_mode,
         gpu_enabled=gpu_enabled,
+        run_artifact_store=run_artifact_store,
+        run_control_store=run_control_store,
+        recovery_inbox=recovery_inbox,
     )
     bus.register(
         TypedTool(
@@ -1101,6 +1296,19 @@ def register_autonomy_loop_tools(
             request_type=AutonomyInspectRequest,
             response_type=AutonomyInspectResponse,
             handler=runtime.inspect_session,
+        )
+    )
+    bus.register(
+        TypedTool(
+            name="cace.autonomy.list_attention",
+            description=(
+                "List unresolved autonomy recovery/attention items, optionally "
+                "for one session. Items are operational state, not proof evidence."
+            ),
+            capability=Capability.READ_RUNTIME,
+            request_type=AutonomyAttentionRequest,
+            response_type=AutonomyAttentionResponse,
+            handler=runtime.list_attention,
         )
     )
     bus.register(

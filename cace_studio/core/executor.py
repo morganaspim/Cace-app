@@ -154,7 +154,7 @@ class GraphExecutor:
         for node_id in order:
             if control is not None and not control.wait_until_runnable():
                 completed = False
-                interruption_reason = f"cancelled-before-node:{node_id}"
+                interruption_reason = control.interruption_reason("before", node_id)
                 break
 
             node = nodes[node_id]
@@ -174,6 +174,8 @@ class GraphExecutor:
                 raise ValidationError(f"{node_id}: undeclared outputs {sorted(unknown)}")
             out = {k: DeviceManager.to_host(v) for k, v in out.items()}
             outputs[node_id] = out
+            if control is not None:
+                control.record_node_output(out)
 
             attempted = unsafe_self_promotion_paths(out)
             decision = fail_closed_module_decision(module.metadata.category, module.proof_status, out)
@@ -212,7 +214,7 @@ class GraphExecutor:
 
             if control is not None and control.cancelled:
                 completed = False
-                interruption_reason = f"cancelled-after-node:{node_id}"
+                interruption_reason = control.interruption_reason("after", node_id)
                 break
 
         return RunResult(

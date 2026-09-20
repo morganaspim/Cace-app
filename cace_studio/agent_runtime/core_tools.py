@@ -14,6 +14,11 @@ from .autonomy_loop import (
     ReplanProvider,
     register_autonomy_loop_tools,
 )
+from .execution_containment import (
+    FileRecoveryInbox,
+    FileRunArtifactStore,
+    FileRunControlStore,
+)
 from .canvas_mutation import FileCanvasPreviewStore, register_canvas_mutation_tools
 from .canvas_plan import FileCanvasPlanStore, register_canvas_plan_tools
 from .contracts import Capability, ToolContext, TypedTool
@@ -147,6 +152,9 @@ def register_core_tools(
     autonomy_session_store: FileAutonomySessionStore | None = None,
     autonomy_replan_provider: ReplanProvider | None = None,
     autonomy_network_mode: AgentNetworkMode = AgentNetworkMode.LOCAL_ZERO_CONTACT,
+    autonomy_run_artifact_store: FileRunArtifactStore | None = None,
+    autonomy_run_control_store: FileRunControlStore | None = None,
+    autonomy_recovery_inbox: FileRecoveryInbox | None = None,
 ) -> None:
     """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
 
@@ -308,4 +316,7 @@ def register_core_tools(
                     replan_provider=autonomy_replan_provider,
                     network_mode=autonomy_network_mode,
                     gpu_enabled=gpu_enabled,
+                    run_artifact_store=autonomy_run_artifact_store,
+                    run_control_store=autonomy_run_control_store,
+                    recovery_inbox=autonomy_recovery_inbox,
                 )

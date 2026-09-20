@@ -8,6 +8,8 @@ from .audit import AuditIntegrityError, HashChainedAuditJournal
 from .autonomy_loop import (
     AutonomyAdvanceRequest,
     AutonomyAdvanceResponse,
+    AutonomyAttentionRequest,
+    AutonomyAttentionResponse,
     AutonomyCycleReceipt,
     AutonomyInspectRequest,
     AutonomyInspectResponse,
@@ -76,6 +78,15 @@ from .canvas_plan import (
 )
 from .core_tools import register_core_tools
 from .durable_lease import DurableAgentLease, FileAgentLeaseManager
+from .execution_containment import (
+    FileRecoveryInbox,
+    FileRunArtifactStore,
+    FileRunControlStore,
+    RecoveryInboxItem,
+    RunArtifactRecord,
+    RunControlRecord,
+    RunControlState,
+)
 from .operations import (
     FileOperationStore,
     OperationClaim,
@@ -128,6 +139,8 @@ __all__ = [
     "AuditIntegrityError",
     "AutonomyAdvanceRequest",
     "AutonomyAdvanceResponse",
+    "AutonomyAttentionRequest",
+    "AutonomyAttentionResponse",
     "AutonomyCycleReceipt",
     "AutonomyInspectRequest",
     "AutonomyInspectResponse",
@@ -167,6 +180,9 @@ __all__ = [
     "FileCheckpointStore",
     "FileExperimentWorkspace",
     "FileOperationStore",
+    "FileRecoveryInbox",
+    "FileRunArtifactStore",
+    "FileRunControlStore",
     "HashChainedAuditJournal",
     "LeaseUnavailableError",
     "LocalJSONPlanner",
@@ -178,7 +194,11 @@ __all__ = [
     "OperationRecord",
     "PerceptionHeartbeatState",
     "ReplanProvider",
+    "RecoveryInboxItem",
     "ResidualTrend",
+    "RunArtifactRecord",
+    "RunControlRecord",
+    "RunControlState",
     "ToolAuditRecord",
     "ToolBus",
     "ToolCall",

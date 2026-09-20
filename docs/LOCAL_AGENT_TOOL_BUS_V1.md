@@ -979,3 +979,118 @@ They do not create:
 - theorem qualification;
 - proof-ledger promotion; or
 - mathematical correctness.
+
+
+## v1.8 contained autonomous science execution + durable run artifacts
+
+v1.8 adds operational containment around the v1.7 autonomy loop without changing the proof/evidence TCB.
+
+### Cooperative execution limits
+
+CACE reuses the existing `ExecutionControl` checkpoint model and extends it with explicit per-run limits:
+
+- wall-clock seconds;
+- maximum completed nodes;
+- maximum accumulated output bytes; and
+- polling cadence for external pause/cancel state.
+
+These controls are enforced at module boundaries. CACE deliberately does not kill a Python thread inside arbitrary numerical code.
+
+A node-count ceiling stops **before** the next node once the exact allowed count has completed. Wall-time and output-byte overruns stop at the next safe checkpoint.
+
+### Durable pause / resume / cancel
+
+`FileRunControlStore` persists one state per deterministic autonomy run-control ID:
+
+- `running`;
+- `paused`; or
+- `cancelled`.
+
+An executor in another thread/process polls this state at module boundaries, so GUI/host controls survive restarts and cross-process handoff.
+
+### Durable scientific run artifacts
+
+Every completed autonomy science run is written to `FileRunArtifactStore` as a content-hashed envelope containing:
+
+- the canonical CACE run report;
+- graph/scope identities;
+- node certificates;
+- verification records;
+- claim-decision metadata;
+- outputs;
+- canonical perception packet;
+- report SHA-256;
+- perception SHA-256; and
+- total serialized byte count.
+
+Artifacts are bounded by `max_artifact_bytes_per_run`.
+
+Artifact identity and persistence are engineering provenance. They do not upgrade verification or proof authority.
+
+### Interrupted-run artifacts
+
+If pause/cancel/resource limits stop a run after the approved workspace mutation has already committed, CACE persists the partial `RunResult` as an artifact before returning a recovery-blocked outcome.
+
+That preserves:
+
+- which nodes ran;
+- partial outputs;
+- partial certificates/verification;
+- interruption reason; and
+- exact graph/scope identity.
+
+### Operator attention inbox
+
+`FileRecoveryInbox` stores durable attention records for conditions requiring explicit human/operator handling.
+
+Examples:
+
+- bounded science run interrupted;
+- run-artifact persistence failure.
+
+`cace.autonomy.list_attention` exposes unresolved items read-only for the GUI.
+
+An interrupted autonomy operation will not automatically rerun science while an unresolved inbox item exists for the same operation.
+
+The host/UI may inspect the stored run artifact, change run-control state, resolve the inbox item, and then explicitly retry.
+
+### New autonomy budgets
+
+`AutonomyLoopBudget` now also persists:
+
+- `max_wall_seconds_per_run`;
+- `max_nodes_per_run`;
+- `max_output_bytes_per_run`; and
+- `max_artifact_bytes_per_run`.
+
+These limits are included in the exact approval payload for each autonomy cycle.
+
+### Fail-closed artifact persistence
+
+If a scientific run completes but its durable artifact cannot be stored—for example because the artifact exceeds its configured byte cap—CACE creates an attention item and returns recovery-blocked rather than proceeding to replan with an unpersisted observation.
+
+### Deliberate remaining boundary
+
+v1.8 is **cooperative module-boundary containment**, not yet a hard OS-process sandbox.
+
+It does not forcibly preempt a single module that hangs indefinitely or exceeds native-process memory while inside that module.
+
+The next hardening layer is a worker-process executor with OS-enforced CPU/RAM/deadline limits and kill/restart semantics. That layer can reuse the same:
+
+- `ExecutionLimits`;
+- run-control store;
+- run-artifact format;
+- attention inbox; and
+- autonomy recovery contracts.
+
+### Trust boundary
+
+Pause/cancel state, resource limits, run artifacts, and attention records remain runtime/provenance state.
+
+They do not create:
+
+- verifier PASS;
+- FORMAL evidence;
+- theorem qualification;
+- proof-ledger promotion; or
+- mathematical correctness.
