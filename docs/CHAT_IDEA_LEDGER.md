@@ -105,6 +105,11 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I076 | research assistant onboarding | After account creation, CACE opens with a local Research Assistant chat asking what the user wants to investigate, offering field-relevant demos/full capabilities/recent work, then builds or previews a typed canvas while persisting as a daily research assistant; product identity is a VRE for interactive rigorous math with AI-assisted geometric reasoning. | G068 |
 
+| I077 | experiment-to-proof flywheel | Experiments should continuously surface applicable qualified theorem links and new proof candidates; successful reusable proofs feed back into C++/exact math tools, canvas modules and the AI operator library without ever treating numerical observation as proof. | G069 |
+| I078 | production completeness gate | A feature/domain counts as production-grade only when its full connected workflow works: discover/input/validate/connect/execute/evidence/results/persistence/help/failure/regression; no placeholder or browser-only semantics. | G070 |
+| I079 | equation data wizard | Provide guided typed equation/data entry with clean rendered mathematics, symbol/unit/domain validation, boundary/initial condition guidance, data mapping previews and conversational AI prefill over one canonical AST. | G071 |
+| I080 | group reasoning acceleration | Expand exact combinatorics and finite group actions, canonical representatives, orbits/stabilizers and symmetry-aware geometric mappings as reusable ReasoningOperators to reduce redundant AI search when benchmarks show real benefit. | G072 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
