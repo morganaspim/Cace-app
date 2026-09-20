@@ -33,10 +33,10 @@
       ],
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "qualification": {
-        "attested_commit": "5ffcc222593abe26716a532c1a5908a70f4f6f41",
+        "attested_commit": "06526572d9181f695aa88a35faac7b5b6c83785a",
         "current_head_qualified": true,
-        "proof_artifact_sha256": "7fda209883acc700dd14a3948ab98f0d97d37f1070172f1b02df0123acde7e2e",
-        "reason": "Canonical exact-head qualification run 35450309270 passed on merged main at 5ffcc222593abe26716a532c1a5908a70f4f6f41; the content-addressed qualification attestation is the proof artifact and independent source-bound verification passed.",
+        "proof_artifact_sha256": "e15921411b56c512979de841daa5f00f88407b3a6e8013f757f127a8079d3e2a",
+        "reason": "Canonical exact-head qualification run 35492924965 passed on merged main at 06526572d9181f695aa88a35faac7b5b6c83785a; the continuum attestation audited 40 theorem endpoints under Lean 4.32.1 / Mathlib 520045ab14e26149ee970e2e617ca04b09bde5d6 and passed the source-bound, kernel-audit, theorem-metadata, executable-binding, and content-addressed integrity gates.",
         "status": "PASS"
       },
       "scope": "Current development continuum chain; exact audited endpoints, conditional hypotheses, and static qualification requirements are defined by proof contract v3.",
@@ -53,10 +53,10 @@
       ],
       "proof_contract_id": "cace.proof.rmk.runtime-formal-linkage.v1",
       "qualification": {
-        "attested_commit": "cf0829662f5a1939cc254f4ef251f8c750089760",
+        "attested_commit": "06526572d9181f695aa88a35faac7b5b6c83785a",
         "current_head_qualified": true,
-        "proof_artifact_sha256": "b183c605c1cb25ba8089cbba7b5de7d290364a3cb68ebaedf1a695934a6e6620",
-        "reason": "Canonical exact-head qualification run 35490840805 passed on merged main at cf0829662f5a1939cc254f4ef251f8c750089760. The RMK qualification artifact kernel-audited 18 theorem endpoints under Lean 4.32.1 / Mathlib 520045ab14e26149ee970e2e617ca04b09bde5d6 and is bound to proof contract cace.proof.rmk.runtime-formal-linkage.v1.",
+        "proof_artifact_sha256": "cc4e8fb678e1ccfcba6d8aebedc6a399c3815d05ab8947c55e937ce93fdb1c69",
+        "reason": "Canonical exact-head qualification run 35492924965 passed on merged main at 06526572d9181f695aa88a35faac7b5b6c83785a. The RMK qualification artifact kernel-audited 18 theorem endpoints under Lean 4.32.1 / Mathlib 520045ab14e26149ee970e2e617ca04b09bde5d6 and is bound to proof contract cace.proof.rmk.runtime-formal-linkage.v1.",
         "status": "PASS"
       },
       "scope": "Two-dimensional exact-rational RMK Lean bridge theorem surface defined by cace.proof.rmk.runtime-formal-linkage.v1.",
