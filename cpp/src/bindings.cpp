@@ -10,6 +10,7 @@
 #include "cace/math/affine.hpp"
 #include "cace/math/geometry.hpp"
 #include "cace/math/exterior.hpp"
+#include "cace/math/combinatorics.hpp"
 
 namespace py = pybind11;
 
@@ -29,6 +30,8 @@ PYBIND11_MODULE(_cace_runtime, m) {
     using cace::math::ExactSimplex;
     using cace::math::ExactExterior;
     using cace::math::ExactPlaneRotor;
+    using cace::math::ExactPermutation;
+    using cace::math::FinitePermutationGroup;
     using cace::math::MathPacket;
     using cace::math::Rational;
 
@@ -239,6 +242,53 @@ PYBIND11_MODULE(_cace_runtime, m) {
         })
         .def("__eq__", [](const ExactPlaneRotor& a, const ExactPlaneRotor& b) { return a == b; }, py::is_operator());
 
+    m.def("binomial_checked", &cace::math::binomial_checked);
+    m.def("combinations", &cace::math::combinations,
+          py::arg("n"), py::arg("k"), py::arg("max_results") = 100000U);
+
+    py::class_<ExactPermutation>(m, "ExactPermutation")
+        .def(py::init<std::vector<std::size_t>>())
+        .def_property_readonly("degree", &ExactPermutation::degree)
+        .def_property_readonly("image", &ExactPermutation::image,
+             py::return_value_policy::reference_internal)
+        .def("apply_index", &ExactPermutation::apply_index)
+        .def("compose", &ExactPermutation::compose)
+        .def("inverse", &ExactPermutation::inverse)
+        .def("parity", &ExactPermutation::parity)
+        .def("act_coordinates", &ExactPermutation::act_coordinates)
+        .def("permutation_matrix", &ExactPermutation::permutation_matrix)
+        .def("conjugate_square_matrix", &ExactPermutation::conjugate_square_matrix)
+        .def("act_affine_coordinates", &ExactPermutation::act_affine_coordinates)
+        .def("act_exterior", &ExactPermutation::act_exterior)
+        .def("act_simplex_vertices", &ExactPermutation::act_simplex_vertices)
+        .def("canonical_text", &ExactPermutation::canonical_text)
+        .def("packet_hash", [](const ExactPermutation& value) {
+            return MathPacket::exact_permutation(value).semantic_hash();
+        })
+        .def_static("identity", &ExactPermutation::identity)
+        .def("__eq__", [](const ExactPermutation& a, const ExactPermutation& b) { return a == b; }, py::is_operator());
+
+    py::class_<FinitePermutationGroup>(m, "FinitePermutationGroup")
+        .def(py::init<std::size_t, std::vector<ExactPermutation>, std::size_t>(),
+             py::arg("degree"), py::arg("generators"), py::arg("max_elements") = 4096U)
+        .def_property_readonly("degree", &FinitePermutationGroup::degree)
+        .def_property_readonly("size", &FinitePermutationGroup::size)
+        .def_property_readonly("generators", &FinitePermutationGroup::generators,
+             py::return_value_policy::reference_internal)
+        .def_property_readonly("elements", &FinitePermutationGroup::elements,
+             py::return_value_policy::reference_internal)
+        .def("orbit", &FinitePermutationGroup::orbit)
+        .def("stabilizer", &FinitePermutationGroup::stabilizer)
+        .def("canonical_coordinate_representative",
+             &FinitePermutationGroup::canonical_coordinate_representative)
+        .def("canonical_exterior_representative",
+             &FinitePermutationGroup::canonical_exterior_representative)
+        .def("cayley_neighbors", &FinitePermutationGroup::cayley_neighbors)
+        .def("canonical_text", &FinitePermutationGroup::canonical_text)
+        .def("packet_hash", [](const FinitePermutationGroup& value) {
+            return MathPacket::finite_permutation_group(value).semantic_hash();
+        });
+
     py::class_<MathPacket>(m, "MathPacket")
         .def(py::init<>())
         .def_readwrite("schema_version", &MathPacket::schema_version)
@@ -258,7 +308,9 @@ PYBIND11_MODULE(_cace_runtime, m) {
         .def_static("from_exact_affine_map", &MathPacket::exact_affine_map)
         .def_static("from_exact_simplex", &MathPacket::exact_simplex)
         .def_static("from_exact_exterior", &MathPacket::exact_exterior)
-        .def_static("from_exact_plane_rotor", &MathPacket::exact_plane_rotor);
+        .def_static("from_exact_plane_rotor", &MathPacket::exact_plane_rotor)
+        .def_static("from_exact_permutation", &MathPacket::exact_permutation)
+        .def_static("from_finite_permutation_group", &MathPacket::finite_permutation_group);
 
     m.def("semantic_sha256", &cace::math::semantic_sha256);
 }
