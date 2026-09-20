@@ -40,16 +40,16 @@
       "claim_ids": [
         "cace.v330.continuum-proof-strengthening"
       ],
-      "commit": "5ffcc222593abe26716a532c1a5908a70f4f6f41",
+      "commit": "06526572d9181f695aa88a35faac7b5b6c83785a",
       "current_head_qualified": true,
-      "proof_artifact_sha256": "7fda209883acc700dd14a3948ab98f0d97d37f1070172f1b02df0123acde7e2e",
+      "proof_artifact_sha256": "e15921411b56c512979de841daa5f00f88407b3a6e8013f757f127a8079d3e2a",
       "proof_contract_id": "cace.proof.v330.continuum-proof-strengthening.v3",
       "proof_contract_sha256": "d01b54537ba49208666257277c16742eb99107be39f8e78b44cd74723182d977",
-      "qualification_run_id": "35450309270",
+      "qualification_run_id": "35492924965",
       "qualification_system": "github-actions",
       "release": "3.23.0-dev..3.38.0-dev",
       "status": "PASS",
-      "workflow_run_id": 35450309270
+      "workflow_run_id": 35492924965
     },
     {
       "blockers": [],
@@ -67,16 +67,16 @@
       "claim_ids": [
         "cace.rmk.runtime-formal-linkage-v1"
       ],
-      "commit": "cf0829662f5a1939cc254f4ef251f8c750089760",
+      "commit": "06526572d9181f695aa88a35faac7b5b6c83785a",
       "current_head_qualified": true,
-      "proof_artifact_sha256": "b183c605c1cb25ba8089cbba7b5de7d290364a3cb68ebaedf1a695934a6e6620",
+      "proof_artifact_sha256": "cc4e8fb678e1ccfcba6d8aebedc6a399c3815d05ab8947c55e937ce93fdb1c69",
       "proof_contract_id": "cace.proof.rmk.runtime-formal-linkage.v1",
       "proof_contract_sha256": "fb01f0fad50893e6224bf8348ac84e4381b25d187846f8ebf21dfcbb08abd982",
-      "qualification_run_id": "35490840805",
+      "qualification_run_id": "35492924965",
       "qualification_system": "github-actions",
       "release": "3.36.0-dev RMK formal-linkage v1",
       "status": "PASS",
-      "workflow_run_id": 35490840805
+      "workflow_run_id": 35492924965
     }
   ],
   "policy": "Current-head FORMAL PASS requires a successful pinned proof build, kernel axiom audit, exact commit binding, exact proof-contract id/hash binding, Lean.Environment theorem-metadata binding, SHA-256 proof artifact binding, and named qualification-system/run provenance. GitHub workflow metadata is optional unless GitHub Actions is the qualification system.",
