@@ -24,7 +24,11 @@
     "ops/base44_account_tiers.json",
     "ops/base44_free_tier_budget.json",
     "ops/pass_promotion_policy.json",
-    "ops/proof_submission_policy.json"
+    "ops/proof_submission_policy.json",
+    "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
+    "ops/proof_promotion_external_compatibility.json",
+    "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
+    "ops/multi_user_session_policy.json"
   ],
   "branch_policy": {
     "registry": "BRANCH_LIFECYCLE.json",
@@ -164,5 +168,28 @@
     "files changed",
     "whether any request exceeded this manifest"
   ],
-  "task_state": "base44/BASE44_TASK_STATE.json"
+  "task_state": "base44/BASE44_TASK_STATE.json",
+  "proof_promotion_compatibility": {
+    "policy": "ops/proof_promotion_external_compatibility.json",
+    "coupling": "STATUS_METADATA_ONLY",
+    "internal_proof_changes_should_require_base44_change": false,
+    "direct_internal_proof_dependencies_allowed": false,
+    "source_of_proof_ready_state": "Oracle/CACE"
+  },
+  "multi_user_boundary": {
+    "policy": "ops/multi_user_session_policy.json",
+    "responsibilities": [
+      "authenticate account identity",
+      "supply low-volume organization/team/workspace membership metadata",
+      "supply low-volume entitlement metadata"
+    ],
+    "forbidden": [
+      "presence heartbeats",
+      "workspace autosave",
+      "run progress or queue polling",
+      "worker state",
+      "proof polling"
+    ],
+    "polling_for_session_state": false
+  }
 }

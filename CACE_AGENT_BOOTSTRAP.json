@@ -13,6 +13,14 @@
     "base44/BASE44_TASK_STATE.json",
     "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
     "BRANCH_LIFECYCLE.json",
+    "ops/proof_promotion_external_compatibility.json",
+    "ops/cloud_run_cost_guard.json",
+    "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
+    "ops/cloud_run_edge_policy.json",
+    "docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md",
+    "ops/multi_user_session_policy.json",
+    "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md",
+    "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
     "docs/BRANCH_LIFECYCLE.md",
     "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
     "ops/base44_account_tiers.json",
@@ -107,7 +115,11 @@
     "external_builder_task_state": {
       "base44": "base44/BASE44_TASK_STATE.json",
       "gemini": "gemini/CACE_GEMINI_TASK_STATE.json"
-    }
+    },
+    "multi_user_session_policy": "ops/multi_user_session_policy.json",
+    "cloud_run_edge_policy": "ops/cloud_run_edge_policy.json",
+    "proof_promotion_external_compatibility": "ops/proof_promotion_external_compatibility.json",
+    "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
@@ -207,6 +219,10 @@
     "semantic_change_rule": "Any transform that changes computation must be an explicit typed graph operation and invalidate/recompute dependent evidence."
   },
   "hard_rules": [
+    "Paid Cloud Run is disabled by default; production enablement requires explicit operator approval, an operator-set budget, request-based billing, min=0/max=1 initial scaling, and no automatic deploy-on-push.",
+    "Canonical proof promotion must remain externally compatible with Gemini/Base44 through stable/versioned projections.",
+    "Cloud Run may scale only the stateless web/server edge; Oracle/CACE remains durable scientific/proof authority.",
+    "Multi-user browser concurrency must use server-authorized workspace/run isolation, optimistic workspace versions, durable idempotent run state, and a fair queue; browser disconnect never implies cancel.",
     "Connected Base44/Gemini builders must obey their external-builder connection manifests and BRANCH_LIFECYCLE.json before any write.",
     "Before repository writes, resolve the branch through BRANCH_LIFECYCLE.json; only ACTIVE is writable by default.",
     "Never weaken proof scope or negative tests merely to pass CI.",

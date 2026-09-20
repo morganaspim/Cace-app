@@ -62,3 +62,16 @@ Normal features must preserve the protected Enterprise proof-order reserve. Ente
 Base44 account/entitlement metadata may control ordinary UI access.
 
 It may never create scientific truth, verification PASS, FORMAL status, proof qualification, or proof-ready commercial status.
+
+
+## Proof-promotion compatibility
+
+Read `docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md`.
+
+A proof being strengthened or canonically promoted should require **no Base44 change** unless the versioned commercial/order interface itself changes. Base44 mirrors CACE-supplied order states only; it does not inspect Lean, proof ledgers, claim registries, proof artifacts, or qualification jobs.
+
+## Multi-user session boundary
+
+Read `ops/multi_user_session_policy.json`.
+
+Base44 supports multi-user CACE by supplying low-volume identity, organization/workspace membership, and entitlement metadata. Do not implement presence heartbeats, workspace autosave, run progress, queue polling, worker state, or proof polling in Base44.

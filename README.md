@@ -18,7 +18,15 @@ The project deliberately separates software maturity from evidence strength. A n
 - `BRANCH_LIFECYCLE.json` — canonical branch status registry; only ACTIVE branches are writable by agents
 - `BASE44.md` + `BASE44_CONNECTION_MANIFEST.json` — Base44 connection entrypoint, responsibilities, credit-aware build scope and strict repository permissions
 - `GEMINI_CONNECTION_MANIFEST.json` — Gemini/AI Studio build program, branch/file permissions and protected CACE boundaries
-- `docs/EXTERNAL_BUILDER_CONNECTIONS.md` — shared connection/permission escalation overview\n- `base44/BASE44_TASK_STATE.json` — minimum ordered Base44 service build plan\n- `gemini/CACE_GEMINI_TASK_STATE.json` — Gemini implementation prerequisites and live task state\n- `docs/BRANCH_LIFECYCLE.md` — branch deprecation/freeze/archive policy and recovery rules
+- `docs/EXTERNAL_BUILDER_CONNECTIONS.md` — shared connection/permission escalation overview
+- `docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md` — reconnectable concurrent-session UX, workspace isolation and fair queued science
+- `gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md` — required Oracle/CACE backend extensions before multi-user production readiness
+- `docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md` — AI Studio/GitHub → Cloud Run stateless edge while Oracle/CACE remains scientific authority
+- `ops/cloud_run_cost_guard.json` — fail-closed paid Cloud Run budget/scaling/deployment guard; disabled by default
+- `docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md` — proof promotion compatibility boundary for Gemini/Base44
+- `base44/BASE44_TASK_STATE.json` — minimum ordered Base44 service build plan
+- `gemini/CACE_GEMINI_TASK_STATE.json` — Gemini implementation prerequisites and live task state
+- `docs/BRANCH_LIFECYCLE.md` — branch deprecation/freeze/archive policy and recovery rules
 - `GEMINI.md` — Gemini / Google AI Studio entrypoint; browser presentation must consume CACE's typed API/core rather than duplicate scientific/proof semantics
 - `docs/GEMINI_AI_STUDIO_HANDOFF.md` — explicit web integration topology, ownership matrix and migration batches
 - `docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md` — accepted product split: Gemini interface, Base44 commodity services, Oracle/CACE scientific authority

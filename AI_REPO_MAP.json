@@ -14,6 +14,14 @@
     "base44/BASE44_TASK_STATE.json",
     "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
     "BRANCH_LIFECYCLE.json",
+    "ops/proof_promotion_external_compatibility.json",
+    "ops/cloud_run_cost_guard.json",
+    "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
+    "ops/cloud_run_edge_policy.json",
+    "docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md",
+    "ops/multi_user_session_policy.json",
+    "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md",
+    "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
     "docs/BRANCH_LIFECYCLE.md",
     "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
     "ops/base44_account_tiers.json",
@@ -70,7 +78,11 @@
     "external_builder_task_state": {
       "base44": "base44/BASE44_TASK_STATE.json",
       "gemini": "gemini/CACE_GEMINI_TASK_STATE.json"
-    }
+    },
+    "multi_user_session_policy": "ops/multi_user_session_policy.json",
+    "cloud_run_edge_policy": "ops/cloud_run_edge_policy.json",
+    "proof_promotion_external_compatibility": "ops/proof_promotion_external_compatibility.json",
+    "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json"
   },
   "repository_areas": [
     {
@@ -128,6 +140,8 @@
     "NOT_RUN"
   ],
   "hard_rules_for_agents": [
+    "Cloud Run is optional paid edge infrastructure and must remain disabled/cost-capped unless explicitly approved; never use it for scientific/proof authority.",
+    "Gemini multi-user/cloud-edge presentation must stay stateless/reconnectable and decoupled from proof internals; Oracle/CACE remains authority.",
     "Connected Base44/Gemini builders must obey their machine connection manifests; only ACTIVE branches are writable and protected CACE paths remain protected.",
     "Use only branches marked ACTIVE in BRANCH_LIFECYCLE.json for new work unless the user explicitly reactivates another branch.",
     "Never convert NOT_RUN or absent verification into PASS.",

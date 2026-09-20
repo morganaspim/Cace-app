@@ -116,7 +116,7 @@ def test_gemini_connection_owns_interface_not_science() -> None:
     assert "client-side formal PASS" in forbidden
 
     batch_ids = [item["id"] for item in manifest["build_program"]]
-    assert batch_ids == [f"GWEB-{index}" for index in range(1, 12)]
+    assert batch_ids == [f"GWEB-{index}" for index in range(1, 14)]
 
     exception = manifest["branch_policy"][
         "controlled_proof_submission_exception"
@@ -130,3 +130,46 @@ def test_connection_schema_and_entrypoints_are_present() -> None:
     assert (ROOT / "BASE44.md").is_file()
     assert (ROOT / "GEMINI.md").is_file()
     assert (ROOT / "base44/README.md").is_file()
+
+
+def test_proof_promotion_and_multi_user_boundaries() -> None:
+    proof_policy = _load("ops/proof_promotion_external_compatibility.json")
+    assert proof_policy["authority"]["external_builders_have_proof_authority"] is False
+
+    base44 = _load("BASE44_CONNECTION_MANIFEST.json")
+    assert base44["proof_promotion_compatibility"]["coupling"] == "STATUS_METADATA_ONLY"
+    assert base44["proof_promotion_compatibility"]["direct_internal_proof_dependencies_allowed"] is False
+    assert base44["multi_user_boundary"]["polling_for_session_state"] is False
+
+    gemini = _load("GEMINI_CONNECTION_MANIFEST.json")
+    assert gemini["proof_promotion_compatibility"]["coupling"] == "VERSIONED_TYPED_API_ONLY"
+    assert gemini["proof_promotion_compatibility"]["breaking_external_change_requires_versioned_migration"] is True
+    assert gemini["multi_user_sessions"]["status_until_backend_ready"] == "MULTI_USER_BACKEND_PENDING"
+    assert gemini["cloud_run_deployment"]["role"] == "STATELESS_WEB_SERVER_EDGE_ONLY"
+    assert gemini["cloud_run_deployment"]["scientific_authority_remains"] == "Oracle/CACE"
+
+    multi = _load("ops/multi_user_session_policy.json")
+    assert multi["browser_session"]["disconnect_cancels_run"] is False
+    assert multi["browser_session"]["reload_cancels_run"] is False
+    assert multi["run_queue"]["defaults"]["max_concurrent_heavy_science_workers"] == 1
+    assert multi["proof_effect"] == "none"
+
+    cloud = _load("ops/cloud_run_edge_policy.json")
+    assert cloud["authority"]["scientific"] is False
+    assert cloud["authority"]["proof"] is False
+    assert cloud["production_guardrails"]["min_instances"] == 0
+    assert cloud["production_guardrails"]["max_instances"] == 1
+    assert cloud["production_guardrails"]["billing_mode"] == "request_based"
+    assert cloud["production_guardrails"]["gpu"] is False
+    assert cloud["production_guardrails"]["continuous_deploy_default"] is False
+    assert cloud["multi_user"]["stateless_instances"] is True
+
+    cost = _load("ops/cloud_run_cost_guard.json")
+    assert cost["default_state"] == "DISABLED"
+    assert cost["enablement"]["production_enable_requires_explicit_operator_approval"] is True
+    assert cost["enablement"]["monthly_budget_must_be_set_before_production_enable"] is True
+    assert cost["runtime_limits"]["min_instances"] == 0
+    assert cost["runtime_limits"]["max_instances"] == 1
+    assert cost["runtime_limits"]["gpu"] is False
+    assert cost["deploy_policy"]["continuous_deploy_default"] is False
+    assert cost["deploy_policy"]["automatic_deploy_on_push"] is False

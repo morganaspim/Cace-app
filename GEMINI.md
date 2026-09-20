@@ -313,3 +313,62 @@ Gemini/Base44 must use `ops/pass_promotion_policy.json` for Tuesday/Saturday pas
 Do not hard-code promotional percentages or discounted prices in components. Resolve the active commercial day in `America/Phoenix`, show the normal and discounted price, and persist the applied promotion policy ID in invoice/order metadata.
 
 Enterprise proof-package administration may use the protected Base44 reserve defined in `ops/base44_free_tier_budget.json`, but proof/science execution remains Oracle/CACE.
+
+
+## Proof-promotion compatibility
+
+Read `docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md`.
+
+Canonical proof promotion is an Oracle/CACE/Lean concern. Gemini consumes only versioned typed claim/evidence projections. A newly canonized proof should normally appear as a data/status update, not require a frontend rewrite.
+
+Do not hard-code proof hashes, qualification run IDs, Lean paths, proof-ledger structure, or a fixed claim list.
+
+
+## Multi-user sessions
+
+Read:
+
+- `docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md`
+- `ops/multi_user_session_policy.json`
+- `gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md`
+
+Build concurrent-session UX around stable `workspace_id`, `workspace_version`, `run_id`, and `client_request_id`.
+
+Browser refresh/disconnect must not cancel runs. Use optimistic workspace concurrency, reconnectable run status, local draft buffering, and one event stream with polling fallback.
+
+Do not label production multi-user support ready until Oracle/CACE implements and passes the backend readiness requirements.
+
+## Cloud Run
+
+Read:
+
+- `docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md`
+- `ops/cloud_run_edge_policy.json`
+
+Cloud Run may host the stateless Gemini-built web/server edge. Oracle/CACE remains the durable/scientific authority.
+
+Do not choose the production Cloud Run service name or region without explicit operator approval.
+
+
+## Cloud Run cost guard
+
+Cloud Run is **disabled by default**.
+
+Read `ops/cloud_run_cost_guard.json` before any deployment.
+
+Default production guard:
+
+- request-based billing;
+- min instances = 0;
+- max instances = 1;
+- 1 vCPU / 512 MiB;
+- no GPU;
+- no always-on CPU;
+- no automatic deploy-on-push/PR;
+- continuous deployment disabled;
+- operator-set monthly budget required before production enablement;
+- explicit operator approval required for AI Studio direct deploy.
+
+Do not use Cloud Run merely for development convenience, single-user testing, static files, scientific/proof compute, or background polling.
+
+Do not raise scaling or billing settings without explicit operator approval.

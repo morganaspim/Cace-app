@@ -1,0 +1,64 @@
+{
+  "schema": "cace-proof-promotion-external-compatibility-v1",
+  "updated_at": "2026-09-20",
+  "objective": "Canonical proof promotion may evolve without breaking Gemini or Base44.",
+  "authority": {
+    "proof_authority": "Oracle/CACE + Lean canonical qualification",
+    "external_builders_have_proof_authority": false
+  },
+  "stable_external_surfaces": {
+    "gemini": {
+      "consume": [
+        "versioned typed CACE API projections",
+        "read-only claim/evidence/qualification views",
+        "PR_REVIEW_REQUIRED/operator attention metadata"
+      ],
+      "must_not_consume_directly": [
+        "formal/**",
+        "CACEFormal/**",
+        "cace_studio/data/proof_ledger.json",
+        "qualification workflow internals",
+        "Lean caches/artifacts"
+      ]
+    },
+    "base44": {
+      "consume": [
+        "low-volume commercial/order status metadata supplied by CACE",
+        "PROOF_READY_FOR_SALE only after CACE establishes it"
+      ],
+      "must_not_consume_directly": [
+        "Lean/formal sources",
+        "proof ledger",
+        "claim registry",
+        "proof artifacts",
+        "qualification workflow internals",
+        "CI telemetry"
+      ]
+    }
+  },
+  "compatibility_rules": [
+    "Internal proof promotion may change theorem source, proof contracts, ledger entries, qualification workflows/artifacts, or canonical hashes without requiring external-client changes when typed projections remain compatible.",
+    "Additive external fields are non-breaking.",
+    "Removing/renaming/retyping/changing meaning of an external field requires explicit version transition.",
+    "Unknown proof/evidence states must render conservatively and never map to PASS/FORMAL.",
+    "Gemini/Base44 must not hard-code proof artifact SHAs, qualification run IDs, or internal Lean paths.",
+    "Proof promotion never changes account entitlements, external-builder permissions, or Base44 credit policy."
+  ],
+  "enterprise_order_mapping": {
+    "source_authority": "CACE",
+    "rule": "Base44 mirrors CACE-supplied order status; it never computes proof promotion eligibility."
+  },
+  "breaking_change_gate": {
+    "required_for_external_break": true,
+    "requirements": [
+      "new explicit external schema/API version",
+      "migration note",
+      "Gemini compatibility test",
+      "Base44 compatibility test when applicable",
+      "backward-compatibility window or coordinated cutover",
+      "explicit user/ChatGPT review"
+    ]
+  },
+  "proof_effect": "none",
+  "promotion_authority": false
+}

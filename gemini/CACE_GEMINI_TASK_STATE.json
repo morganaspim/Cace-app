@@ -253,5 +253,28 @@
     "git": "ACTIVE branches only; no force-push, merge, or branch deletion"
   },
   "presentation_program_source": "GEMINI_CONNECTION_MANIFEST.json#build_program",
-  "connection_rule": "Read GEMINI_CONNECTION_MANIFEST.json before choosing files or beginning an implementation batch."
+  "connection_rule": "Read GEMINI_CONNECTION_MANIFEST.json before choosing files or beginning an implementation batch.",
+  "multi_user_session": {
+    "policy": "ops/multi_user_session_policy.json",
+    "contract": "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
+    "backend_request": "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md",
+    "production_status": "MULTI_USER_BACKEND_PENDING",
+    "ui_build_allowed": true,
+    "production_ready_requires_backend_gate": true
+  },
+  "cloud_run": {
+    "policy": "ops/cloud_run_edge_policy.json",
+    "cost_guard": "ops/cloud_run_cost_guard.json",
+    "contract": "docs/CLOUD_RUN_AI_STUDIO_DEPLOYMENT.md",
+    "role": "optional_stateless_web_server_edge",
+    "default_enabled": false,
+    "direct_deploy_requires_operator_approval": true,
+    "continuous_deploy_default": false,
+    "initial_max_instances": 1,
+    "min_instances": 0,
+    "billing_mode": "request_based",
+    "production_name_region": "UNSET_PENDING_OPERATOR_DECISION",
+    "monthly_budget": "REQUIRED_BEFORE_PRODUCTION_ENABLE"
+  },
+  "proof_promotion_compatibility": "ops/proof_promotion_external_compatibility.json"
 }
