@@ -595,3 +595,18 @@ Add negative tests proving:
 - artifact/PDF hash mismatch blocks delivery;
 - customer PDF cannot accidentally include files marked CACE Background IP;
 - a customer foreground assignment does not mutate ownership metadata for CACE Background IP.
+
+
+## 16. Post-account Research Assistant entry
+
+After account creation/verification and entitlement resolution, the account service should route the user to the product experience defined by `docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md`.
+
+The account boundary supplies only identity/session/entitlement data needed to enter CACE. It does not grant the Local AI access to password hashes, payment data, proof-runner credentials, or unrelated account secrets.
+
+Default destination:
+
+`Research Assistant welcome -> experiment/demo intent -> preview -> canvas -> persistent assistant`.
+
+The assistant should not require the user to permanently declare a scientific field. Field relevance may be inferred from the current voluntary conversation and, where the user permits workspace memory, from non-sensitive research preferences and prior CACE activity.
+
+Local/Zero Contact AI remains the preferred privacy-preserving assistant path. When no AI provider is available, the same entry screen must still expose deterministic demo browsing, Help, full capabilities, recent work, and an empty-canvas option.
