@@ -1,0 +1,111 @@
+{
+  "schema": "cace-coordinate-view-registry-v1",
+  "updated_at": "2026-09-20",
+  "semantic_rule": "All entries are presentation-only. Changing view_id cannot change experiment fingerprints, computation, evidence, certificates, or proof state.",
+  "views": [
+    {
+      "view_id": "cartesian.2d",
+      "title": "Cartesian 2D",
+      "family": "cartesian",
+      "projection": "cartesian",
+      "dimension": 2,
+      "renderer_status": "CORE_CONTRACT_READY",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "cartesian.3d",
+      "title": "Cartesian 3D",
+      "family": "cartesian",
+      "projection": "cartesian_3d",
+      "dimension": 3,
+      "renderer_status": "GEMINI_RENDERER_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "projected.nd_3d",
+      "title": "Projected N-D Geometry",
+      "family": "projection",
+      "projection": "nd_to_3d",
+      "dimension": "any",
+      "renderer_status": "GEMINI_RENDERER_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "hex.eisenstein",
+      "title": "Hexagonal / Eisenstein Lattice",
+      "family": "lattice",
+      "projection": "eisenstein_lattice",
+      "dimension": 2,
+      "renderer_status": "CORE_CONTRACT_READY",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "complex.i",
+      "title": "Complex Plane (i)",
+      "family": "complex",
+      "projection": "complex_plane",
+      "dimension": 2,
+      "renderer_status": "CORE_CONTRACT_READY",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "complex.omega",
+      "title": "Omega / Eisenstein Complex Lattice",
+      "family": "complex",
+      "projection": "omega_eisenstein",
+      "dimension": 2,
+      "renderer_status": "CORE_CONTRACT_READY",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "fractal.quadtree",
+      "title": "Hierarchical Quadtree Fractal",
+      "family": "fractal",
+      "projection": "fractal_quadtree",
+      "dimension": 2,
+      "renderer_status": "GEMINI_RENDERER_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "fractal.morton",
+      "title": "Morton / Z-order Fractal Address",
+      "family": "fractal",
+      "projection": "fractal_morton",
+      "dimension": 2,
+      "renderer_status": "GEMINI_RENDERER_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "fractal.base_2i_minus_1",
+      "title": "Complex Radix 2i−1",
+      "family": "fractal_complex_radix",
+      "projection": "complex_radix",
+      "base": "2i-1",
+      "dimension": 2,
+      "renderer_status": "GEMINI_RENDERER_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "fractal.base_omega_minus_2",
+      "title": "Complex Radix ω−2",
+      "family": "fractal_complex_radix",
+      "projection": "complex_radix",
+      "base": "omega-2",
+      "dimension": 2,
+      "renderer_status": "GEMINI_RENDERER_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    },
+    {
+      "view_id": "aperiodic.einstein_hat",
+      "title": "Einstein Hat Aperiodic Tiling",
+      "family": "aperiodic_monotile",
+      "projection": "einstein_hat_tile_mesh",
+      "dimension": 2,
+      "renderer_status": "GEMINI_TILE_MESH_REQUIRED",
+      "ui_visible_when_renderer_passes": true
+    }
+  ],
+  "ui_fail_closed_rule": "A coordinate view must not appear in the production selector until its renderer implementation and visual regression tests pass.",
+  "proof_effect": "none",
+  "promotion_authority": false
+}

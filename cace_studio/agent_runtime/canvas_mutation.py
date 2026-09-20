@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Literal, Mapping
 
+from cace_studio.core.capability_registry import CapabilityRegistryError, QualifiedCapabilityRegistry
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, ExperimentGroup, Node
 from cace_studio.core.module import ValidationError
@@ -439,12 +440,14 @@ class CanvasMutationRuntime:
         active_experiment: Experiment,
         preview_store: FileCanvasPreviewStore,
         workspace_store: FileExperimentWorkspace | None = None,
+        qualified_capabilities: QualifiedCapabilityRegistry | None = None,
     ) -> None:
         self.bus = bus
         self.registry = registry
         self.active_experiment = active_experiment
         self.preview_store = preview_store
         self.workspace_store = workspace_store
+        self.qualified_capabilities = qualified_capabilities
         if self.workspace_store is not None:
             if self.workspace_store.path.exists():
                 _record, persisted = self.workspace_store.load()
@@ -481,8 +484,10 @@ class CanvasMutationRuntime:
     def _validate_candidate(self, experiment: Experiment) -> None:
         self._validate_params(experiment)
         try:
-            GraphExecutor(self.registry)._validate_and_order(experiment)
-        except ValidationError as exc:
+            if self.qualified_capabilities is not None:
+                self.qualified_capabilities.validate_experiment(experiment, surface="ai")
+            GraphExecutor(self.registry).validate(experiment)
+        except (ValidationError, CapabilityRegistryError) as exc:
             raise CanvasMutationError(str(exc)) from exc
 
     @staticmethod
@@ -913,6 +918,7 @@ def register_canvas_mutation_tools(
     active_experiment: Experiment,
     preview_store: FileCanvasPreviewStore,
     workspace_store: FileExperimentWorkspace | None = None,
+    qualified_capabilities: QualifiedCapabilityRegistry | None = None,
 ) -> CanvasMutationRuntime:
     runtime = CanvasMutationRuntime(
         bus=bus,
@@ -920,6 +926,7 @@ def register_canvas_mutation_tools(
         active_experiment=active_experiment,
         preview_store=preview_store,
         workspace_store=workspace_store,
+        qualified_capabilities=qualified_capabilities,
     )
 
     bus.register(

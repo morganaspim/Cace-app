@@ -46,9 +46,12 @@
   ],
   "endpoints": [
     "GET /api/health",
-    "GET /api/modules",
+    "GET /api/capabilities",
+    "GET /api/capabilities/{module_id}",
+    "GET /api/modules (filtered compatibility endpoint)",
     "GET /api/claims",
     "POST /api/connections/validate",
+    "POST /api/graphs/validate",
     "POST /api/runs",
     "GET /api/runs/{job_id}",
     "POST /api/runs/{job_id}/{pause|resume|cancel}"
@@ -98,6 +101,7 @@
     }
   ],
   "required_first_read": [
+    "docs/QUALIFIED_CAPABILITY_REGISTRY.md",
     "docs/TYPED_EQUATION_DATA_WIZARD.md",
     "docs/EXPERIMENT_TO_PROOF_DISCOVERY_LOOP.md",
     "docs/POST_ACCOUNT_RESEARCH_ASSISTANT_UX.md",
@@ -261,8 +265,10 @@
     "production_status": "MULTI_USER_BACKEND_PENDING",
     "ui_build_allowed": true,
     "production_ready_requires_backend_gate": true,
-    "transport": "DIRECT_BROWSER_TO_ORACLE_CACE",
-    "cloud_run_used": false
+    "transport": "DIRECT_BROWSER_TO_PRODUCTION_CACE",
+    "cloud_run_used": false,
+    "oracle_used": false,
+    "oracle_role": "CI_AND_QUALIFICATION_ONLY"
   },
   "cloud_run": {
     "canonical_policy": "ops/cloud_run_payment_service_policy.json",
@@ -298,7 +304,7 @@
       "Cloud Run payment endpoint explicitly enabled",
       "server signing key configured",
       "Base44 server-only payment/entitlement writes",
-      "Oracle/CACE entitlement signature verification",
+      "Production CACE entitlement signature verification",
       "end-to-end test payment"
     ]
   },
@@ -315,5 +321,104 @@
       "G-CLOSE-6",
       "G-CLOSE-7"
     ]
+  },
+  "product_identity": {
+    "name": "CACE-KSEE",
+    "pronunciation": "Casey",
+    "entry_contract": "docs/CACE_KSEE_ENTRY_EXPERIENCE.md",
+    "copyright_notice": "© 2026 Emmanuel Spiro. All rights reserved."
+  },
+  "production_runtime": {
+    "provider": "TBD_NON_ORACLE",
+    "rule": "Oracle is CI/qualification only. Do not hard-code Oracle into browser/session/science transport.",
+    "architecture": "docs/architecture/ADR-002-ORACLE-CI-ONLY.md"
+  },
+  "entry_experience": {
+    "status": "READY_FOR_GEMINI_IMPLEMENTATION",
+    "contract": "docs/CACE_KSEE_ENTRY_EXPERIENCE.md",
+    "requirements": [
+      "cinematic original geometric/ASCII splash",
+      "Create account / Sign in / Learn about CACE-KSEE",
+      "Research Assistant onboarding",
+      "skippable canvas tour",
+      "Invite Collaborators button",
+      "safe high-level module help",
+      "copyright footer",
+      "reduced-motion support"
+    ]
+  },
+  "qualified_capability_registry": {
+    "status": "IMPLEMENTATION_BATCH_STAGED_FOR_CI",
+    "contract": "docs/QUALIFIED_CAPABILITY_REGISTRY.md",
+    "policy": "ops/qualified_capabilities.json",
+    "workflows": "ops/capability_workflows.json",
+    "manifest_builder": "scripts/build_capability_manifest.py",
+    "default": "HIDDEN_DENY",
+    "browser_static_module_catalog_forbidden": true,
+    "local_ai_same_gate": true
+  },
+  "local_ai_runtime": {
+    "status": "IMPLEMENTATION_BATCH_STAGED_FOR_CI",
+    "contract": "docs/LOCAL_AI_HYBRID_RUNTIME.md",
+    "provider": "cace_studio/ai/local.py",
+    "compact_ranker": "cace_studio/ai/compact_geometric_ranker.py",
+    "experiment_advisor": "cace_studio/agent_runtime/experiment_advisor.py",
+    "ranker_parameter_count": 385,
+    "ai_capability_gate": "ops/qualified_capabilities.json",
+    "canvas_mutation": "preview + approval + commit only",
+    "proof_effect": "none"
+  },
+  "coordinate_animation": {
+    "status": "CORE_EVENT_CONTRACT_STAGED_GEMINI_RENDERERS_REQUIRED",
+    "registry": "ops/coordinate_views.json",
+    "schema": "schema/cace-geometric-animation-event.schema.json",
+    "backend": "cace_studio/core/geometric_animation.py",
+    "required_views": [
+      "cartesian.2d",
+      "projected.nd_3d",
+      "cartesian.3d",
+      "hex.eisenstein",
+      "complex.i",
+      "complex.omega",
+      "fractal.quadtree",
+      "fractal.morton",
+      "fractal.base_2i_minus_1",
+      "fractal.base_omega_minus_2",
+      "aperiodic.einstein_hat"
+    ],
+    "visibility_rule": "hide any view until its actual browser renderer and visual regression tests pass"
+  },
+  "next_builder_focus": [
+    "consume GET /api/capabilities instead of a static module list",
+    "implement CACE-KSEE cinematic entry/account/assistant shell",
+    "implement Shapes & Matter toolbox from qualified capabilities",
+    "wire local AI proposal cards and Build on Canvas preview/approval",
+    "consume geometric animation events in 2D/3D/N-D projected views",
+    "implement and visually test all renderer-qualified coordinate views",
+    "activate Conway City only for authorized linked workspace heartbeat federation",
+    "add Invite Collaborators workspace action",
+    "keep proprietary science/proof logic off the browser"
+  ],
+  "shape_matter_toolbox": {
+    "status": "BACKEND_MODULES_STAGED_GEMINI_UI_REQUIRED",
+    "contract": "docs/MATTER_AND_SHAPE_TOOLBOX.md",
+    "qualified_modules": [
+      "geometry.circle",
+      "geometry.parabola",
+      "geometry.conic",
+      "geometry.hyperbola",
+      "geometry.sphere",
+      "geometry.hypercube",
+      "chemistry.atom",
+      "chemistry.bond",
+      "geometry.affine_transform_object"
+    ]
+  },
+  "conway_economic_city": {
+    "status": "FEDERATED_BACKEND_CONTRACT_STAGED_GEMINI_CITY_VIEW_REQUIRED",
+    "contract": "docs/CONWAY_ECONOMIC_CITY.md",
+    "activation": "2+ authorized linked workspaces with live federated heartbeats",
+    "real_money_or_crypto_authority": false,
+    "proof_effect": "none"
   }
 }

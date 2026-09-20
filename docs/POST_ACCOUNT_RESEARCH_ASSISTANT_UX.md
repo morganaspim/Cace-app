@@ -4,7 +4,7 @@ Status: product/UX implementation specification. This document is not scientific
 
 ## Product identity
 
-CACE should introduce itself as a **VRE — Verified Research Environment** for interactive rigorous mathematics and science.
+CACE-KSEE (pronounced **Casey**) should introduce itself as a **VRE — Verified Research Environment** for interactive rigorous mathematics and science. The pre-account splash/account flow is defined in `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`.
 
 Preferred core message:
 
@@ -225,7 +225,7 @@ Avoid:
 
 Headline:
 
-> **CACE — Verified Research Environment**
+> **CACE-KSEE — Verified Research Environment**
 
 Subheadline:
 
@@ -314,3 +314,24 @@ mesh refinement, solver progress and data flow.
 Animations must be projections of actual semantic state transitions. Turning
 animation off, using reduced-motion mode, or running headless must produce the
 same computation and evidence.
+
+
+## Collaboration entry point
+
+Once the user reaches an authorized workspace, the workspace chrome should expose
+an explicit **Invite Collaborators** action. Collaboration membership and role
+state come from the canonical linked-workspace service; canvas collaboration does
+not grant proof promotion, billing administration, code installation, or any
+other authority beyond the invited role.
+
+See `docs/CACE_KSEE_ENTRY_EXPERIENCE.md` and the canonical collaboration/session
+contracts for the detailed UI behavior.
+
+
+## Product ownership footer
+
+Splash/account/About/Help surfaces should display the subtle ownership notice:
+
+`© 2026 Emmanuel Spiro. All rights reserved.`
+
+This is an ownership notice, not a technical security control.

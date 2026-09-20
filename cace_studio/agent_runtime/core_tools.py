@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from cace_studio.core.capability_registry import QualifiedCapabilityRegistry
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Experiment
 from cace_studio.core.native_runtime import NativeRuntime
@@ -59,6 +60,7 @@ class RegistryListResponse:
     total_modules: int
     returned_modules: int
     modules: tuple[dict[str, Any], ...]
+    capability_surface: str = "engineering"
 
 
 @dataclass(frozen=True)
@@ -97,9 +99,13 @@ class RunActiveExperimentResponse:
     promotion_authority: bool = False
 
 
-def _registry_entry(cls: type) -> dict[str, Any]:
+def _registry_entry(
+    cls: type,
+    *,
+    qualified_capabilities: QualifiedCapabilityRegistry | None = None,
+) -> dict[str, Any]:
     metadata = cls.metadata
-    return {
+    payload = {
         "module_id": metadata.module_id,
         "name": metadata.name,
         "version": metadata.version,
@@ -141,12 +147,22 @@ def _registry_entry(cls: type) -> dict[str, Any]:
         "formal_artifact": cls.proof_status.formal_artifact,
         "evidence_note": "module metadata is descriptive and is not executed verification evidence",
     }
+    if qualified_capabilities is not None and qualified_capabilities.contains(metadata.module_id):
+        record = qualified_capabilities.record(metadata.module_id)
+        payload["capability_gates"] = dict(record["gates"])
+        payload["workflow_ids"] = list(record["workflow_ids"])
+        payload["public_help"] = dict(record["public_help"])
+        payload["capability_qualification_class"] = "engineering"
+        payload["proof_effect"] = "none"
+        payload["promotion_authority"] = False
+    return payload
 
 
 def register_core_tools(
     bus: ToolBus,
     *,
     registry: ModuleRegistry | None = None,
+    qualified_capabilities: QualifiedCapabilityRegistry | None = None,
     active_experiment: Experiment | None = None,
     gpu_enabled: bool = False,
     canvas_preview_store: FileCanvasPreviewStore | None = None,
@@ -173,6 +189,13 @@ def register_core_tools(
             "Linux autonomy hardening requires autonomy_use_process_sandbox"
         )
 
+    if (
+        qualified_capabilities is not None
+        and registry is not None
+        and qualified_capabilities.registry is not registry
+    ):
+        raise ValueError("qualified_capabilities must wrap the supplied registry")
+
     native_runtime = NativeRuntime()
 
     def native_status(_: EmptyRequest, __: ToolContext) -> NativeStatusResponse:
@@ -198,13 +221,25 @@ def register_core_tools(
 
     if registry is not None:
         def list_modules(request: RegistryListRequest, _: ToolContext) -> RegistryListResponse:
-            classes = sorted(registry.classes(), key=lambda item: item.metadata.module_id)
+            if qualified_capabilities is None:
+                classes = sorted(registry.classes(), key=lambda item: item.metadata.module_id)
+                capability_surface = "engineering"
+            else:
+                classes = qualified_capabilities.classes("ai")
+                capability_surface = "ai"
             selected = classes[: request.limit]
             return RegistryListResponse(
                 module_contract_sha256=registry_contract_fingerprint(registry),
                 total_modules=len(classes),
                 returned_modules=len(selected),
-                modules=tuple(_registry_entry(cls) for cls in selected),
+                modules=tuple(
+                    _registry_entry(
+                        cls,
+                        qualified_capabilities=qualified_capabilities,
+                    )
+                    for cls in selected
+                ),
+                capability_surface=capability_surface,
             )
 
         bus.register(
@@ -249,6 +284,8 @@ def register_core_tools(
         executor = GraphExecutor(registry, gpu_enabled=gpu_enabled)
 
         def run_active(request: RunActiveExperimentRequest, _: ToolContext) -> RunActiveExperimentResponse:
+            if qualified_capabilities is not None:
+                qualified_capabilities.validate_experiment(active_experiment, surface="ai")
             if request.target_node_ids:
                 result = executor.run_selected_upstream(
                     active_experiment,
@@ -310,6 +347,7 @@ def register_core_tools(
             active_experiment=active_experiment,
             preview_store=canvas_preview_store,
             workspace_store=canvas_workspace_store,
+            qualified_capabilities=qualified_capabilities,
         )
         if canvas_workspace_store is not None and canvas_plan_store is not None:
             plan_runtime = register_canvas_plan_tools(

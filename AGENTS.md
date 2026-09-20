@@ -106,3 +106,35 @@ Future immutable provenance uses content addresses, deterministic Merkle bundles
 ## Repository-only reconstruction requirement
 
 A repository-reading agent must be able to reconstruct the intended webapp, proof/evidence architecture, security boundaries, bug-flush process, provenance/log-retention policy, deployment shape, and acceptance criteria without private chat history. If that is not possible from `CACE_AGENT_BOOTSTRAP.json` and the documents it references, improve repository discoverability before relying on conversational context.
+
+
+## Third-party licensing and release compliance
+
+CACE source remains proprietary, but every distributed third-party component keeps
+its own license and notice obligations.
+
+Before adding or changing a dependency, bundled font, binary library, dataset,
+model, media asset, generated frontend dependency tree, or external code:
+
+1. update `ops/license_compliance_policy.json` if the dependency is direct or
+   requires a special distribution decision;
+2. run `python scripts/audit_license_compliance.py`;
+3. for an actual release environment, run
+   `python scripts/generate_third_party_notices.py --output-dir <release-license-dir>`;
+4. include the generated exact package license bundle in the released artifact;
+5. do not ship a dependency whose license is unknown, unreviewed copyleft, or
+   otherwise outside the approved release profile.
+
+The browser/server release profile excludes PySide6. A proprietary desktop build
+using PySide6 is release-blocked until the operator selects either a valid Qt
+commercial distribution path or a separately documented LGPLv3-compliant
+packaging path. Do not add GPL-only Qt modules or Qt WebEngine to a proprietary
+desktop release without an explicit license review.
+
+Testing/build/formal tools that are not shipped to users remain outside the
+product artifact, but their licenses must be preserved if they are ever
+redistributed.
+
+No company/product receives attribution merely because a public high-level idea
+was discussed. Attribution is tied to actual incorporated code, assets, data,
+documentation, or a license/contract that requires it.

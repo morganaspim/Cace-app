@@ -16,6 +16,7 @@ The project deliberately separates software maturity from evidence strength. A n
 ## Start here
 
 - `BRANCH_LIFECYCLE.json` — canonical branch status registry; only ACTIVE branches are writable by agents
+- `THIRD_PARTY_NOTICES.md` + `docs/LICENSE_COMPLIANCE.md` — third-party dependency/license inventory and fail-closed release compliance gate
 - `BASE44.md` + `BASE44_CONNECTION_MANIFEST.json` — Base44 connection entrypoint, responsibilities, credit-aware build scope and strict repository permissions
 - `GEMINI_CONNECTION_MANIFEST.json` — Gemini/AI Studio build program, branch/file permissions and protected CACE boundaries
 - `docs/EXTERNAL_BUILDER_CONNECTIONS.md` — shared connection/permission escalation overview

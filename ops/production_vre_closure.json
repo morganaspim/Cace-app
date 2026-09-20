@@ -36,12 +36,14 @@
       "id": "VRE-P0-03",
       "title": "Production/CI isolation",
       "owner": "operator+ChatGPT",
-      "status": "NOT_STARTED",
+      "status": "ARCHITECTURE_DECIDED_IMPLEMENTATION_PENDING",
       "requirements": [
-        "production CACE runtime must not share trust boundary with a self-hosted runner executing untrusted/user-submitted repository code",
-        "no production secrets on general CI runner",
-        "proof submission PRs cannot execute arbitrary code on a production host",
-        "separate network/service identities and least privilege"
+        "Oracle is CI/runner/qualification only",
+        "production CACE runtime uses a separate non-Oracle trust boundary",
+        "no production secrets or customer data on the Oracle runner",
+        "proof submission PRs cannot execute with production application credentials",
+        "separate network/service identities and least privilege",
+        "production host/provider is selected and deployment-tested before release"
       ]
     },
     {
@@ -135,7 +137,7 @@
         "do not put wallet seed/spend key in Cloud Run",
         "configure payment-service signing key",
         "Base44 server-only payment/entitlement writes",
-        "Oracle/CACE signed-entitlement verification",
+        "Production CACE signed-entitlement verification",
         "idempotency/underpay/overpay/expired quote tests",
         "promotion calendar tests",
         "end-to-end test payment",
@@ -160,6 +162,39 @@
         "proof/claim stale-state behavior",
         "no fabricated completion"
       ]
+    },
+    {
+      "id": "VRE-P0-11",
+      "title": "CACE-KSEE entry, collaboration, public-help, and ownership shell",
+      "owner": "Gemini presentation + CACE typed contracts",
+      "status": "SPECIFIED_READY_FOR_IMPLEMENTATION",
+      "requirements": [
+        "CACE-KSEE production branding and pronunciation",
+        "cinematic original splash with reduced-motion fallback",
+        "Create account / Sign in / Learn about CACE-KSEE",
+        "Research Assistant first-run introduction and canvas tour",
+        "Invite Collaborators button backed by canonical workspace membership",
+        "high-level module help with inputs/outputs/examples but no proprietary internals",
+        "© 2026 Emmanuel Spiro. All rights reserved. on appropriate public surfaces"
+      ],
+      "spec": "docs/CACE_KSEE_ENTRY_EXPERIENCE.md"
+    },
+    {
+      "id": "VRE-P0-12",
+      "title": "Production network transport and anti-exfiltration hardening",
+      "owner": "CACE/ChatGPT backend + deployment + Gemini bundle hygiene",
+      "status": "ARCHITECTURE_SPECIFIED_IMPLEMENTATION_PENDING",
+      "requirements": [
+        "HTTPS/TLS production edge and HSTS",
+        "secure session cookies/CSRF/CORS/CSP",
+        "server-side authn/authz and object-level authorization",
+        "rate/request-size limits",
+        "no proprietary scientific/proof source in browser bundle",
+        "release-secrecy scan on final artifact",
+        "CI/production credential and network isolation",
+        "security headers/TLS/authz negative tests before release"
+      ],
+      "policy": "security/network_transport_policy.json"
     }
   ],
   "p1": [
@@ -228,5 +263,11 @@
     "server-side tenant authorization",
     "payment verification authority",
     "entitlement signature authority"
-  ]
+  ],
+  "infrastructure_decision": {
+    "oracle": "CI_AND_QUALIFICATION_ONLY",
+    "production_cace_runtime": "SEPARATE_NON_ORACLE_HOST_TBD",
+    "cloud_run": "MONERO_PAYMENT_ONLY",
+    "base44": "LOW_VOLUME_ACCOUNT_MEMBERSHIP_ENTITLEMENT_METADATA"
+  }
 }

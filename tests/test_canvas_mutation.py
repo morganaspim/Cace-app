@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 import pytest
 
+from cace_studio.app import build_qualified_capabilities, build_registry
+
 from cace_studio.agent_runtime import (
     CapabilityPolicy,
     FileAgentLeaseManager,
@@ -316,3 +318,41 @@ def test_preview_uses_canonical_graph_validation(tmp_path) -> None:
     assert "missing port" in invalid.error
     assert len(experiment.nodes) == 1
     assert len(experiment.edges) == 0
+
+
+
+def test_canvas_preview_rejects_hidden_module_when_capability_gate_is_active(tmp_path) -> None:
+    registry = build_registry()
+    capabilities = build_qualified_capabilities(registry)
+    bus = ToolBus()
+    experiment = Experiment(
+        name="qualified-canvas",
+        nodes=[Node("src", "core.constant", {"value": 1})],
+    )
+    register_canvas_mutation_tools(
+        bus,
+        registry=registry,
+        qualified_capabilities=capabilities,
+        active_experiment=experiment,
+        preview_store=FileCanvasPreviewStore(tmp_path / "qualified-previews"),
+    )
+
+    preview = bus.invoke(
+        ToolCall(
+            "hidden-preview",
+            "cace.canvas.preview_mutation",
+            {
+                "operations": [
+                    {
+                        "action": "add_node",
+                        "node_id": "hidden",
+                        "module_id": "formal325.mesh_certificate_generator",
+                        "position": [0.0, 0.0],
+                    }
+                ]
+            },
+        )
+    )
+    assert preview.status is ToolStatus.ERROR
+    assert "unavailable on ai surface" in preview.error
+    assert [node.id for node in experiment.nodes] == ["src"]

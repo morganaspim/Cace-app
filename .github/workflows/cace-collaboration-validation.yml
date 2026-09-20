@@ -7,6 +7,9 @@ on:
     # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
     paths:
       - 'collaboration/**'
+      - 'docs/**'
+      - 'api/**'
+      - 'cace_studio/**'
       - 'quality/**'
       - 'security/**'
       - 'scripts/**'
@@ -83,6 +86,13 @@ jobs:
             tests/test_lean_source_sanity.py \
             tests/test_oci_mcp_policy.py \
             tests/test_cli.py \
+            tests/test_capability_registry.py \
+            tests/test_geometric_animation.py \
+            tests/test_conway_city.py \
+            tests/test_geometric_objects.py \
+            tests/test_experiment_advisor.py \
+            tests/test_compact_geometric_ranker.py \
+            tests/test_web_api.py \
             tests/test_claim_registry_v331.py \
             tests/test_qualification_drift_v331.py \
             tests/test_qualification_overlay_v337.py \
@@ -103,6 +113,7 @@ jobs:
             tests/test_worker_sandbox.py \
             tests/test_external_builder_connections.py \
             tests/test_commerce_payment_policies.py \
+            tests/test_license_compliance.py \
             tests/test_execution_control_v336.py \
             tests/test_release_secrecy.py \
             tests/test_export_v330_environment_metadata.py \
@@ -113,6 +124,10 @@ jobs:
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
             tests/test_qualification_promotion_v339.py
+          "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/audit_license_compliance.py
+          rm -rf license-audit
+          "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/generate_third_party_notices.py --root cace-studio --root fastapi --root cryptography --output-dir license-audit
+          "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/build_capability_manifest.py --source-commit "${{ github.event.pull_request.head.sha || github.sha }}" --output cace-capability-manifest.json
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
@@ -152,6 +167,7 @@ jobs:
           # execution state rather than source evidence and must not be swept into
           # this engineering summary.
           source_prefixes = (
+            'api/',
             'collaboration/',
             'quality/',
             'security/',
@@ -210,4 +226,6 @@ jobs:
           path: |
             collaboration-validation-summary.json
             collaboration-test-environment.txt
+            cace-capability-manifest.json
+            license-audit/**
           if-no-files-found: error

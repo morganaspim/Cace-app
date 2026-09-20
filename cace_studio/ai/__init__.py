@@ -5,6 +5,7 @@ verification and formal-evidence trusted computing base.
 """
 from .provider import AIProvider, LocalAIError, ProviderHealth
 from .local import create_local_provider, detect_local_providers
+from .compact_geometric_ranker import CompactGeometricRanker, GeometricCandidateFeatures, FEATURE_NAMES
 
 __all__ = [
     "AIProvider",
@@ -12,4 +13,7 @@ __all__ = [
     "ProviderHealth",
     "create_local_provider",
     "detect_local_providers",
+    "CompactGeometricRanker",
+    "GeometricCandidateFeatures",
+    "FEATURE_NAMES",
 ]

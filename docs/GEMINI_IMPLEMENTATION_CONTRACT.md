@@ -1,10 +1,10 @@
-# CACE Gemini Implementation Contract
+# CACE-KSEE Gemini Implementation Contract
 
 Status: implementation contract. Not scientific/proof evidence.
 
 ## Product role
 
-Gemini AI Studio Build Mode / Antigravity is the primary implementation environment for the CACE browser experience.
+Gemini AI Studio Build Mode / Antigravity is the primary implementation environment for the CACE-KSEE browser experience.
 
 Gemini builds the interface against typed contracts. It does not duplicate CACE scientific/proof authority.
 
@@ -19,7 +19,7 @@ Gemini-generated React/TypeScript
         +--> CACE typed API
                |
                v
-            Oracle VM
+            Production CACE backend
                |
                +--> Python orchestration
                +--> C++ kernels
@@ -96,7 +96,7 @@ Gemini must expose a small admin/status panel showing:
 
 The UI must not claim Base44's authoritative billing total unless the platform supplies that value through an official API. Local counters are estimates and must be labeled as such.
 
-## Oracle free-VM UX
+## Production CACE backend operations UX
 
 The admin/status surface should show CACE-returned:
 
@@ -113,7 +113,7 @@ Do not infer these from browser timing.
 
 If Base44 is unavailable or at HARD_STOP:
 
-- scientific execution remains Oracle/CACE-backed;
+- scientific execution remains Production CACE backend-backed;
 - transient UI state remains local;
 - non-critical metadata writes may queue locally;
 - no scientific truth migrates to Base44/browser state.
@@ -135,7 +135,7 @@ Batch low-volume metadata changes where practical.
 
 ## Security
 
-Never put Oracle credentials, proof-runner credentials, signing keys, or CACE secrets in Gemini-generated browser bundles or Base44 records.
+Never put production CACE credentials, proof-runner credentials, signing keys, or CACE secrets in Gemini-generated browser bundles or Base44 records.
 
 ## Required handoff after each Gemini batch
 
@@ -213,3 +213,32 @@ If promotions coincide, show both eligible SKUs independently; never stack disco
 For an active Enterprise proof-package order, the Base44 adapter may classify necessary low-volume order operations as `ENTERPRISE_ORDER_CRITICAL` and use the protected reserve defined in `ops/base44_free_tier_budget.json`.
 
 Do not move proof computation/CI/artifact storage into Base44 merely because an Enterprise order exists.
+
+
+## CACE-KSEE entry / branding / public-help contract
+
+Gemini must read `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`.
+
+Required browser behavior includes:
+
+- production-facing name **CACE-KSEE** (pronounced Casey);
+- original aerospace-clean geometric/ASCII/Conway-inspired splash;
+- Create account / Sign in / Learn about CACE-KSEE entry actions;
+- post-account Research Assistant introduction and skippable canvas tour;
+- exact **Invite Collaborators** workspace action;
+- high-level module documentation showing typed inputs, outputs, examples,
+  assumptions, limitations, and evidence without exposing proprietary internals;
+- subtle `© 2026 Emmanuel Spiro. All rights reserved.` footer on the appropriate
+  splash/account/About/Help surfaces;
+- reduced-motion support.
+
+Do not ship proprietary scientific/proof algorithms in the browser to make the UI
+feel self-contained. Missing semantics require a typed Production CACE backend
+endpoint, not a JavaScript reimplementation.
+
+## Oracle boundary
+
+Oracle is CI/runner/qualification only. Gemini must not configure production
+browser sessions, scientific execution, user workspaces, payments, or production
+secrets against Oracle. Production API origin is configurable and provider-neutral
+until the production runtime host is selected.

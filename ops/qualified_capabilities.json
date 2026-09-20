@@ -1,0 +1,649 @@
+{
+  "schema": "cace-qualified-capability-registry-v1",
+  "updated_at": "2026-09-20",
+  "authority": "CACE core/CI engineering capability gate; not mathematical proof evidence",
+  "default": "HIDDEN_DENY",
+  "lifecycle": [
+    "implemented",
+    "tested",
+    "qualified_engineering",
+    "registered",
+    "ui_visible",
+    "link_enabled",
+    "ai_callable"
+  ],
+  "required_gates_for_ui": [
+    "implemented",
+    "tested",
+    "qualified_engineering",
+    "registered"
+  ],
+  "required_gates_for_link": [
+    "implemented",
+    "tested",
+    "qualified_engineering",
+    "registered",
+    "ui_visible"
+  ],
+  "required_gates_for_ai": [
+    "implemented",
+    "tested",
+    "qualified_engineering",
+    "registered",
+    "api_runnable"
+  ],
+  "modules": [
+    {
+      "module_id": "core.constant",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "basic_arithmetic"
+      ],
+      "public_help": {
+        "summary": "Emit a user-selected scalar value for use by downstream modules.",
+        "input_notes": [],
+        "output_notes": [
+          "value: scalar number"
+        ],
+        "example": "Use two Constant modules as inputs to Add.",
+        "nonclaims": [
+          "This module does not verify a scientific theorem."
+        ]
+      }
+    },
+    {
+      "module_id": "core.add",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "basic_arithmetic"
+      ],
+      "public_help": {
+        "summary": "Add two scalar numeric inputs.",
+        "input_notes": [
+          "a: scalar number",
+          "b: scalar number"
+        ],
+        "output_notes": [
+          "sum: scalar number"
+        ],
+        "example": "Connect two Constant outputs to a and b.",
+        "nonclaims": [
+          "Numeric execution is not formal proof."
+        ]
+      }
+    },
+    {
+      "module_id": "science.grid1d",
+      "version": "0.1.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "quadratic_curvature"
+      ],
+      "public_help": {
+        "summary": "Create a uniformly spaced one-dimensional grid.",
+        "input_notes": [],
+        "output_notes": [
+          "x: numeric array"
+        ],
+        "example": "Feed x into Quadratic Field.",
+        "nonclaims": [
+          "Current module is a finite numerical grid generator."
+        ]
+      }
+    },
+    {
+      "module_id": "science.quadratic",
+      "version": "0.1.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "quadratic_curvature"
+      ],
+      "public_help": {
+        "summary": "Evaluate a quadratic field on an input array.",
+        "input_notes": [
+          "x: numeric array"
+        ],
+        "output_notes": [
+          "y: numeric array"
+        ],
+        "example": "Grid 1D → Quadratic Field.",
+        "nonclaims": [
+          "This evaluation is numerical and does not itself prove properties of the polynomial."
+        ]
+      }
+    },
+    {
+      "module_id": "science.second_derivative",
+      "version": "0.1.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "quadratic_curvature"
+      ],
+      "public_help": {
+        "summary": "Compute a centered finite-difference second derivative on a uniform grid.",
+        "input_notes": [
+          "x: uniformly spaced numeric array",
+          "y: numeric array with matching length"
+        ],
+        "output_notes": [
+          "x_interior: interior grid points",
+          "d2y: numerical second derivative"
+        ],
+        "example": "Grid 1D → Quadratic Field → Centered Second Derivative.",
+        "nonclaims": [
+          "Limited to uniform grids and the documented stencil accuracy."
+        ]
+      }
+    },
+    {
+      "module_id": "verify.constant_residual",
+      "version": "0.1.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "quadratic_curvature"
+      ],
+      "public_help": {
+        "summary": "Check whether an array stays within a tolerance of a target constant.",
+        "input_notes": [
+          "values: numeric array"
+        ],
+        "output_notes": [
+          "max_abs_residual: scalar residual",
+          "verified: boolean result"
+        ],
+        "example": "Use after a derivative or solver output when a constant reference is expected.",
+        "nonclaims": [
+          "The verifier establishes only the stated finite numerical residual condition."
+        ]
+      }
+    },
+    {
+      "module_id": "verify.interval_literal",
+      "version": "0.1.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "interval_square"
+      ],
+      "public_help": {
+        "summary": "Create a closed numerical interval from lower and upper endpoints.",
+        "input_notes": [],
+        "output_notes": [
+          "interval: closed interval"
+        ],
+        "example": "Interval → Interval Square.",
+        "nonclaims": [
+          "The interval is a numerical enclosure object, not a theorem by itself."
+        ]
+      }
+    },
+    {
+      "module_id": "verify.interval_square",
+      "version": "0.1.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "interval_square"
+      ],
+      "public_help": {
+        "summary": "Compute an outward-rounded enclosure of x² over a closed interval.",
+        "input_notes": [
+          "interval: finite ordered interval"
+        ],
+        "output_notes": [
+          "squared: interval enclosure"
+        ],
+        "example": "Create [-2,1], then square it to enclose [0,4].",
+        "nonclaims": [
+          "Current implementation is limited to finite binary64 endpoints and is not a full directed-rounding interval package."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.circle",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox"
+      ],
+      "public_help": {
+        "summary": "Create a 2D circle geometric object.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Circle → Affine Transform.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.parabola",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox"
+      ],
+      "public_help": {
+        "summary": "Create a 2D parabola geometric object.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Parabola → Affine Transform.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.conic",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox"
+      ],
+      "public_help": {
+        "summary": "Create a general implicit 2D conic.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Conic → Affine Transform.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.hyperbola",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox"
+      ],
+      "public_help": {
+        "summary": "Create a 2D hyperbola geometric object.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Hyperbola → Affine Transform.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.sphere",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox"
+      ],
+      "public_help": {
+        "summary": "Create a 3D sphere geometric object.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Sphere → Affine Transform.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.hypercube",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox"
+      ],
+      "public_help": {
+        "summary": "Create an n-dimensional hypercube vertex object.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Hypercube → Affine Transform with a matching-dimension matrix.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    },
+    {
+      "module_id": "chemistry.atom",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "molecule_geometry"
+      ],
+      "public_help": {
+        "summary": "Create an element-labelled atom as a 3D geometric object.",
+        "input_notes": [],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Two atoms → Bond.",
+        "nonclaims": [
+          "Geometric/simulation object only; no force-field, reaction, orbital, bond-energy, or quantum-chemistry claim."
+        ]
+      }
+    },
+    {
+      "module_id": "chemistry.bond",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "molecule_geometry"
+      ],
+      "public_help": {
+        "summary": "Join atom/molecule geometric objects with a bond graph edge.",
+        "input_notes": [
+          "left: geometric_object",
+          "right: geometric_object"
+        ],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Atom + Atom → Bond → Affine Transform.",
+        "nonclaims": [
+          "Geometric/simulation object only; no force-field, reaction, orbital, bond-energy, or quantum-chemistry claim."
+        ]
+      }
+    },
+    {
+      "module_id": "geometry.affine_transform_object",
+      "version": "1.0.0",
+      "gates": {
+        "implemented": true,
+        "tested": true,
+        "qualified_engineering": true,
+        "registered": true,
+        "ui_visible": true,
+        "link_enabled": true,
+        "ai_callable": true,
+        "api_runnable": true
+      },
+      "workflow_ids": [
+        "shape_toolbox",
+        "molecule_geometry"
+      ],
+      "public_help": {
+        "summary": "Apply an affine transform to a geometric object.",
+        "input_notes": [
+          "object: geometric_object"
+        ],
+        "output_notes": [
+          "object: geometric_object"
+        ],
+        "example": "Transform a qualified shape or molecular object.",
+        "nonclaims": [
+          "Mathematical/geometric object construction or transform; no physical claim unless a downstream qualified science module supplies one."
+        ]
+      }
+    }
+  ],
+  "proof_effect": "none",
+  "promotion_authority": false,
+  "tested_connections": [
+    {
+      "source_module_id": "core.constant",
+      "source_port": "value",
+      "target_module_id": "core.add",
+      "target_port": "a",
+      "workflow_id": "basic_arithmetic"
+    },
+    {
+      "source_module_id": "core.constant",
+      "source_port": "value",
+      "target_module_id": "core.add",
+      "target_port": "b",
+      "workflow_id": "basic_arithmetic"
+    },
+    {
+      "source_module_id": "science.grid1d",
+      "source_port": "x",
+      "target_module_id": "science.quadratic",
+      "target_port": "x",
+      "workflow_id": "quadratic_curvature"
+    },
+    {
+      "source_module_id": "science.grid1d",
+      "source_port": "x",
+      "target_module_id": "science.second_derivative",
+      "target_port": "x",
+      "workflow_id": "quadratic_curvature"
+    },
+    {
+      "source_module_id": "science.quadratic",
+      "source_port": "y",
+      "target_module_id": "science.second_derivative",
+      "target_port": "y",
+      "workflow_id": "quadratic_curvature"
+    },
+    {
+      "source_module_id": "science.second_derivative",
+      "source_port": "d2y",
+      "target_module_id": "verify.constant_residual",
+      "target_port": "values",
+      "workflow_id": "quadratic_curvature"
+    },
+    {
+      "source_module_id": "verify.interval_literal",
+      "source_port": "interval",
+      "target_module_id": "verify.interval_square",
+      "target_port": "interval",
+      "workflow_id": "interval_square"
+    },
+    {
+      "source_module_id": "geometry.circle",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "shape_toolbox"
+    },
+    {
+      "source_module_id": "geometry.parabola",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "shape_toolbox"
+    },
+    {
+      "source_module_id": "geometry.conic",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "shape_toolbox"
+    },
+    {
+      "source_module_id": "geometry.hyperbola",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "shape_toolbox"
+    },
+    {
+      "source_module_id": "geometry.sphere",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "shape_toolbox"
+    },
+    {
+      "source_module_id": "geometry.hypercube",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "shape_toolbox"
+    },
+    {
+      "source_module_id": "chemistry.atom",
+      "source_port": "object",
+      "target_module_id": "chemistry.bond",
+      "target_port": "left",
+      "workflow_id": "molecule_geometry"
+    },
+    {
+      "source_module_id": "chemistry.atom",
+      "source_port": "object",
+      "target_module_id": "chemistry.bond",
+      "target_port": "right",
+      "workflow_id": "molecule_geometry"
+    },
+    {
+      "source_module_id": "chemistry.bond",
+      "source_port": "object",
+      "target_module_id": "geometry.affine_transform_object",
+      "target_port": "object",
+      "workflow_id": "molecule_geometry"
+    }
+  ]
+}

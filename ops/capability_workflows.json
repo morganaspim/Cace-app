@@ -1,0 +1,379 @@
+{
+  "schema": "cace-capability-workflows-v1",
+  "updated_at": "2026-09-20",
+  "workflows": [
+    {
+      "workflow_id": "basic_arithmetic",
+      "title": "Two constants into scalar addition",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Capability Basic Arithmetic",
+        "nodes": [
+          {
+            "id": "a",
+            "module_id": "core.constant",
+            "params": {
+              "value": 2
+            }
+          },
+          {
+            "id": "b",
+            "module_id": "core.constant",
+            "params": {
+              "value": 3
+            }
+          },
+          {
+            "id": "sum",
+            "module_id": "core.add",
+            "params": {}
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "a",
+            "source_port": "value",
+            "target_node": "sum",
+            "target_port": "a"
+          },
+          {
+            "source_node": "b",
+            "source_port": "value",
+            "target_node": "sum",
+            "target_port": "b"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true,
+        "outputs": {
+          "sum.sum": 5
+        }
+      }
+    },
+    {
+      "workflow_id": "quadratic_curvature",
+      "title": "Grid to quadratic field to derivative residual check",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Capability Quadratic Curvature",
+        "nodes": [
+          {
+            "id": "grid",
+            "module_id": "science.grid1d",
+            "params": {
+              "start": -1,
+              "stop": 1,
+              "points": 101
+            }
+          },
+          {
+            "id": "field",
+            "module_id": "science.quadratic",
+            "params": {
+              "a": 1,
+              "b": 0,
+              "c": 0
+            }
+          },
+          {
+            "id": "d2",
+            "module_id": "science.second_derivative",
+            "params": {}
+          },
+          {
+            "id": "check",
+            "module_id": "verify.constant_residual",
+            "params": {
+              "target": 2,
+              "tolerance": 1e-9
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "grid",
+            "source_port": "x",
+            "target_node": "field",
+            "target_port": "x"
+          },
+          {
+            "source_node": "grid",
+            "source_port": "x",
+            "target_node": "d2",
+            "target_port": "x"
+          },
+          {
+            "source_node": "field",
+            "source_port": "y",
+            "target_node": "d2",
+            "target_port": "y"
+          },
+          {
+            "source_node": "d2",
+            "source_port": "d2y",
+            "target_node": "check",
+            "target_port": "values"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true,
+        "outputs": {
+          "check.verified": true
+        },
+        "numeric_upper_bounds": {
+          "check.max_abs_residual": 1e-9
+        }
+      }
+    },
+    {
+      "workflow_id": "interval_square",
+      "title": "Closed interval to outward square enclosure",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Capability Interval Square",
+        "nodes": [
+          {
+            "id": "interval",
+            "module_id": "verify.interval_literal",
+            "params": {
+              "lo": -2,
+              "hi": 1
+            }
+          },
+          {
+            "id": "square",
+            "module_id": "verify.interval_square",
+            "params": {}
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "interval",
+            "source_port": "interval",
+            "target_node": "square",
+            "target_port": "interval"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true,
+        "interval_contains": {
+          "square.squared": [
+            0,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "workflow_id": "shape_toolbox",
+      "title": "2D/3D/N-D shape toolbox and affine actions",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Shape Toolbox",
+        "nodes": [
+          {
+            "id": "circle",
+            "module_id": "geometry.circle",
+            "params": {
+              "radius": 2
+            }
+          },
+          {
+            "id": "circle_move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0],[0,1]]",
+              "translation_json": "[1,2]"
+            }
+          },
+          {
+            "id": "parabola",
+            "module_id": "geometry.parabola",
+            "params": {
+              "a": 0.5
+            }
+          },
+          {
+            "id": "parabola_move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0],[0,1]]",
+              "translation_json": "[1,2]"
+            }
+          },
+          {
+            "id": "conic",
+            "module_id": "geometry.conic",
+            "params": {}
+          },
+          {
+            "id": "conic_move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0],[0,1]]",
+              "translation_json": "[1,2]"
+            }
+          },
+          {
+            "id": "hyperbola",
+            "module_id": "geometry.hyperbola",
+            "params": {}
+          },
+          {
+            "id": "hyperbola_move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0],[0,1]]",
+              "translation_json": "[1,2]"
+            }
+          },
+          {
+            "id": "sphere",
+            "module_id": "geometry.sphere",
+            "params": {}
+          },
+          {
+            "id": "sphere_move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0,0],[0,1,0],[0,0,1]]",
+              "translation_json": "[1,2,3]"
+            }
+          },
+          {
+            "id": "cube4",
+            "module_id": "geometry.hypercube",
+            "params": {
+              "dimension": 4,
+              "half_extent": 1
+            }
+          },
+          {
+            "id": "cube4_move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]",
+              "translation_json": "[1,2,3,4]"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "circle",
+            "source_port": "object",
+            "target_node": "circle_move",
+            "target_port": "object"
+          },
+          {
+            "source_node": "parabola",
+            "source_port": "object",
+            "target_node": "parabola_move",
+            "target_port": "object"
+          },
+          {
+            "source_node": "conic",
+            "source_port": "object",
+            "target_node": "conic_move",
+            "target_port": "object"
+          },
+          {
+            "source_node": "hyperbola",
+            "source_port": "object",
+            "target_node": "hyperbola_move",
+            "target_port": "object"
+          },
+          {
+            "source_node": "sphere",
+            "source_port": "object",
+            "target_node": "sphere_move",
+            "target_port": "object"
+          },
+          {
+            "source_node": "cube4",
+            "source_port": "object",
+            "target_node": "cube4_move",
+            "target_port": "object"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true
+      }
+    },
+    {
+      "workflow_id": "molecule_geometry",
+      "title": "Atoms to bonded geometric molecule to transform",
+      "experiment": {
+        "schema_version": 1,
+        "name": "Molecule Geometry",
+        "nodes": [
+          {
+            "id": "c",
+            "module_id": "chemistry.atom",
+            "params": {
+              "atomic_number": 6,
+              "symbol": "C",
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "id": "o",
+            "module_id": "chemistry.atom",
+            "params": {
+              "atomic_number": 8,
+              "symbol": "O",
+              "x": 1.2,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "id": "bond",
+            "module_id": "chemistry.bond",
+            "params": {
+              "bond_order": 2
+            }
+          },
+          {
+            "id": "move",
+            "module_id": "geometry.affine_transform_object",
+            "params": {
+              "matrix_json": "[[1,0,0],[0,1,0],[0,0,1]]",
+              "translation_json": "[0,1,0]"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source_node": "c",
+            "source_port": "object",
+            "target_node": "bond",
+            "target_port": "left"
+          },
+          {
+            "source_node": "o",
+            "source_port": "object",
+            "target_node": "bond",
+            "target_port": "right"
+          },
+          {
+            "source_node": "bond",
+            "source_port": "object",
+            "target_node": "move",
+            "target_port": "object"
+          }
+        ]
+      },
+      "expected": {
+        "completed": true
+      }
+    }
+  ],
+  "proof_effect": "none",
+  "note": "These are executable engineering capability regressions. They do not promote formal mathematical claims."
+}

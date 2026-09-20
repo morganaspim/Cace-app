@@ -153,13 +153,17 @@
       "id": "G011",
       "category": "ai_research",
       "priority": 11,
-      "intent_status": "planned",
+      "intent_status": "required",
       "title": "Hybrid local neural + LLM assistant",
-      "summary": "Explore a computationally efficient local AI combining an LLM, lightweight neural component, and validated CACE-derived features/transforms.",
+      "summary": "Use a compact local LLM plus a tiny trainable geometric neural ranker and validated CACE reasoning/curriculum features to propose useful experiments without moving verification authority into AI.",
       "acceptance": [
         "Any efficiency claim is benchmarked.",
         "Model retrieval uses local project/module/proof metadata.",
-        "The model remains outside the trusted verification base."
+        "The model remains outside the trusted verification base.",
+        "Local LLM providers remain loopback-only and optional.",
+        "Compact neural ranker remains small enough for inexpensive local execution and is trained/evaluated on seeded geometric/compositional curriculum pairs.",
+        "AI proposals use only AI-callable Qualified Capability Registry entries and workflow-qualified connections.",
+        "AI can convert an approved proposal into Canvas preview operations but cannot mutate Canvas directly from model text."
       ]
     },
     {
@@ -297,12 +301,14 @@
       "category": "deployment",
       "priority": 22,
       "intent_status": "required",
-      "title": "Production browser deployment",
-      "summary": "Host the complete browser-facing Studio behind a stable HTTPS URL, with Oracle Cloud as an accepted target.",
+      "title": "Production browser deployment on isolated non-CI runtime",
+      "summary": "Host the complete browser-facing Studio behind a stable HTTPS URL on production infrastructure isolated from Oracle CI/runner jobs.",
       "acceptance": [
+        "Production CACE API/runtime is hosted separately from Oracle CI.",
         "FastAPI-compatible API and managed process are production-served behind a reverse proxy or equivalent.",
-        "Health/readiness and restart policy exist.",
-        "App is verified from outside the host."
+        "Health/readiness, restart policy, durable storage, and rollback exist.",
+        "App is verified from outside the production host.",
+        "No production application secrets or customer traffic are placed on the Oracle CI runner."
       ]
     },
     {
@@ -368,7 +374,8 @@
         "Coordinate view state is presentation metadata with its own fingerprint and is excluded from the semantic experiment fingerprint.",
         "Changing a view does not alter theorem hypotheses, numerical inputs, certificates, verification state, or proof status.",
         "Any coordinate transform intended to affect computation is represented as an explicit typed semantic module.",
-        "GUI exposes basis/grid/tile/axis/label controls and clearly marks non-semantic modes as VISUALIZATION ONLY."
+        "GUI exposes basis/grid/tile/axis/label controls and clearly marks non-semantic modes as VISUALIZATION ONLY.",
+        "AI/user geometric actions emit canonical presentation-only animation events whose semantic identity remains unchanged when the selected coordinate view changes."
       ]
     },
     {
@@ -382,7 +389,10 @@
         "Every view defines a mapping to canonical coordinates and documents ambiguity/non-invertibility.",
         "Hierarchical views can expose recursive tile addresses in addition to canonical coordinates.",
         "Aperiodic/substitution and fractal views remain visualization/research features unless separate mathematical claims are proved.",
-        "Novel view renderers report numerical stability and performance limits."
+        "Novel view renderers report numerical stability and performance limits.",
+        "Preserve explicit renderer targets for quadtree/Morton fractal, complex radix 2i−1, complex radix ω−2, and Einstein-hat aperiodic monotile views.",
+        "Production UI hides any coordinate renderer until its implementation and visual regression tests pass.",
+        "Einstein/aperiodic rendering must not substitute a random decorative tessellation for the actual selected monotile construction."
       ]
     },
     {
@@ -458,7 +468,8 @@
         "Typed canvas operations synchronize through a separate broker/relay.",
         "Room capabilities are authenticated, revocable, role-scoped, replay-protected, size/rate limited, and end-to-end encrypted where practical.",
         "Collaboration cannot install code/plugins or directly promote evidence.",
-        "Local work continues safely when network connectivity is lost."
+        "Local work continues safely when network connectivity is lost.",
+        "The browser workspace exposes an Invite Collaborators action that grants viewer/editor access through the canonical linked-workspace membership service without granting collaborators scientific or proof authority beyond their role."
       ]
     },
     {
@@ -702,8 +713,7 @@
         "AI output and reasoning metrics never promote formal or scientific verification state.",
         "Implementation is independently designed from public/general concepts and all third-party code/data has explicit compatible licensing.",
         "Reasoning curricula should exploit exact combinatorics, symmetry groups and group actions when they measurably reduce equivalent search states or improve compositional transfer."
-      ],
-      "inspiration": "Sophonic-AI-inspired at the high-level idea level; independently implemented by CACE with no implied affiliation or use of non-public methods."
+      ]
     },
     {
       "id": "G049",
@@ -948,7 +958,8 @@
         "Help answers purpose, theory/equations, inputs/outputs, units, assumptions, evidence strength, limitations, references, and failure causes.",
         "Each production-intended module has a minimal example and realistic example; important modules also have composition and failure examples.",
         "Examples are executable/versioned/tested and can be added directly to Canvas.",
-        "Long-term curated example library grows toward roughly 100 high-value demonstrations without confusing historical outputs with current evidence."
+        "Long-term curated example library grows toward roughly 100 high-value demonstrations without confusing historical outputs with current evidence.",
+        "Public/user Help content explains purpose, required typed inputs, outputs, parameters, assumptions, limitations, evidence level, connection examples, and runnable examples without disclosing proprietary implementation internals, source algorithms, private heuristics, or protected architecture."
       ]
     },
     {
@@ -1075,8 +1086,7 @@
         "Accepted tools expose ReasoningOperator metadata including preconditions, invariants, inverses/composition and failure domains.",
         "Efficiency improvements are benchmarked against suitable non-group/operator baselines rather than assumed.",
         "Exact/formal status follows the ordinary evidence pipeline; representational compression cannot weaken rigor."
-      ],
-      "inspiration": "Part of the Sophonic-AI-inspired geometric-reasoning/training direction; exact combinatorics/group-action implementation and evaluation remain independently designed in CACE."
+      ]
     },
     {
       "id": "G073",
@@ -1153,8 +1163,100 @@
         "Equivariant architectures are used only where a declared symmetry/action justifies them.",
         "Training holds out complete operator compositions and includes paired intervention/invariance evaluation.",
         "Benchmarks report correctness, transfer, search states, operator steps, tokens/context, latency, memory and verifier-closure rate.",
-        "No technique is called an optimization unless measured gains survive correctness/evidence-integrity checks.",
-        "The direction remains Sophonic-AI-inspired at the high-level conceptual level while implementation, datasets, objectives and evaluation are independently designed."
+        "No technique is called an optimization unless measured gains survive correctness/evidence-integrity checks."
+      ]
+    },
+    {
+      "id": "G078",
+      "category": "licensing_release",
+      "priority": 78,
+      "intent_status": "required",
+      "title": "Artifact-level third-party license compliance",
+      "summary": "Keep CACE proprietary while preserving every license/notice obligation for third-party software or assets actually shipped in a release, using exact artifact inventories rather than generic acknowledgements.",
+      "acceptance": [
+        "Every direct dependency is classified by scope and distribution policy.",
+        "Every release artifact generates an exact transitive dependency/license bundle from the environment used to build that artifact.",
+        "Unknown or review-required licenses fail closed rather than being silently shipped.",
+        "The normal browser/server profile excludes PySide6 and other special-copyleft desktop dependencies.",
+        "A PySide6 desktop release requires an explicit Qt commercial path or a separately documented LGPLv3-compliant packaging review.",
+        "New bundled fonts, native binaries, datasets, models, or externally sourced assets require explicit license review and provenance before release.",
+        "Voluntary inspiration acknowledgements are not treated as license obligations; attribution is retained only when required by incorporated material, contract, or license."
+      ]
+    },
+    {
+      "id": "G079",
+      "category": "product_identity",
+      "priority": 79,
+      "intent_status": "required",
+      "title": "CACE-KSEE production identity and cinematic entry experience",
+      "summary": "Use CACE-KSEE (pronounced Casey) as the production-facing product name, with an original aerospace-clean geometric/ASCII splash, account prompt, Research Assistant onboarding, and guided transition into the experiment canvas.",
+      "acceptance": [
+        "First-time visitors see an original animated splash before account/sign-in and canvas onboarding.",
+        "Animation uses presentation-only geometric/ASCII/Conway-inspired structures and does not copy third-party branding or trade dress.",
+        "Reduced-motion and low-power fallbacks are implemented.",
+        "After authentication the Research Assistant introduces the canvas and provides a skippable contextual tour.",
+        "Splash/About surfaces show © 2026 Emmanuel Spiro. All rights reserved."
+      ]
+    },
+    {
+      "id": "G080",
+      "category": "security",
+      "priority": 80,
+      "intent_status": "required",
+      "title": "Production transport and proprietary-code protection",
+      "summary": "Protect CACE-KSEE network traffic and proprietary implementation using authenticated HTTPS transport, server-side scientific authority, browser-bundle minimization, release secrecy scanning, least privilege, and CI/production isolation.",
+      "acceptance": [
+        "Authenticated/private browser traffic uses HTTPS with production TLS/security headers and secure session handling.",
+        "Passive packet capture cannot read protected payload content when TLS is correctly configured; residual metadata exposure is documented honestly.",
+        "Crown-jewel scientific/proof source is not shipped to the browser and is kept server-side whenever local execution does not require it.",
+        "Customer release artifacts pass source-secrecy scans and omit source maps, secrets, proof-development source, debug artifacts, and protected internal material.",
+        "Oracle is CI/qualification only and receives no production app secrets or customer traffic.",
+        "No claim is made that customer-executed code is impossible to reverse engineer."
+      ]
+    },
+    {
+      "id": "G081",
+      "category": "ai_visual_reasoning",
+      "priority": 81,
+      "intent_status": "required",
+      "title": "Visible geometric reasoning animation bridge",
+      "summary": "Make local-AI geometric selections/transforms visible as typed animations in the user's selected presentation coordinate system while preserving one canonical semantic operation.",
+      "acceptance": [
+        "Typed geometric action events cover point/region selection, translation, rotation, reflection, affine/rotor transforms, group actions, random-walk steps, relations and morphs.",
+        "Coordinate-view selection changes presentation only and cannot change experiment/evidence fingerprints.",
+        "Browser supports reduced-motion equivalents.",
+        "Every production-visible coordinate renderer has visual regression coverage.",
+        "Animation events carry no proof/evidence promotion authority."
+      ]
+    },
+    {
+      "id": "G082",
+      "category": "geometry_matter",
+      "priority": 82,
+      "intent_status": "required",
+      "title": "Qualified 2D/3D/N-D shapes and molecular geometric objects",
+      "summary": "Let users and local AI add circles, parabolas, conics, hyperbolas, spheres, hypercubes, atoms/elements and bonded molecular geometric objects to Canvas and apply qualified geometric actions to them.",
+      "acceptance": [
+        "Shape and matter items are real typed CACE modules, not frontend-only decorations.",
+        "Circle, parabola, conic, hyperbola, sphere, hypercube, atom, bond and affine transform participate in executable regression workflows.",
+        "Atom/molecule semantics remain explicitly geometric/simulation-only until additional chemistry engines are separately qualified.",
+        "3D objects render through tested 3D views and N-D objects through explicit tested projections.",
+        "Local AI can propose these objects only through the Qualified Capability Registry and preview/approval path."
+      ]
+    },
+    {
+      "id": "G083",
+      "category": "collaboration_ai",
+      "priority": 83,
+      "intent_status": "required",
+      "title": "Connected-workspace Conway Economic City",
+      "summary": "When authorized workspaces are linked, federate bounded local-agent heartbeat/resource state into a Conway-inspired city for coordination, scheduling and visualization without creating proof or financial authority.",
+      "acceptance": [
+        "City is inactive for a standalone or unlinked workspace and activates only with 2+ authorized members on the same collaboration link.",
+        "Federated packets are typed, monotonic, bounded and exclude arbitrary source/secrets/logs.",
+        "AI assistants may use city heartbeat context for complementary work, Grow coordination and resource scheduling.",
+        "Internal scheduler credits are bounded non-monetary simulation units and cannot alter evidence, roles, entitlements, payments or real money/crypto.",
+        "City snapshots always carry evidence_authority=false, proof_effect=none, promotion_authority=false."
       ]
     }
   ]

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace-ksee.local/schema/cace-geometric-animation-event-v1.json",
+  "title": "CACE-KSEE Geometric Animation Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "event_id",
+    "sequence",
+    "action",
+    "semantic_sha256",
+    "coordinate_view_id",
+    "projection",
+    "view_family",
+    "renderer_status",
+    "canonical_points",
+    "matrix",
+    "translation",
+    "labels",
+    "metadata",
+    "duration_ms",
+    "easing",
+    "presentation_only",
+    "evidence_authority",
+    "proof_effect",
+    "promotion_authority"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cace-geometric-animation-event-v1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "select_point",
+        "select_region",
+        "highlight_relation",
+        "translate",
+        "rotate",
+        "reflect",
+        "affine_transform",
+        "rotor_transform",
+        "group_action",
+        "random_walk_step",
+        "morph"
+      ]
+    },
+    "semantic_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "coordinate_view_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projection": {
+      "type": "string",
+      "minLength": 1
+    },
+    "view_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "renderer_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonical_points": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 8,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "matrix": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "translation": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60000
+    },
+    "easing": {
+      "type": "string",
+      "minLength": 1
+    },
+    "presentation_only": {
+      "const": true
+    },
+    "evidence_authority": {
+      "const": false
+    },
+    "proof_effect": {
+      "const": "none"
+    },
+    "promotion_authority": {
+      "const": false
+    }
+  }
+}

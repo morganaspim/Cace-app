@@ -777,3 +777,110 @@ A production feature/module/domain must close its end-to-end path:
 `discover -> input/wizard -> type/assumption validation -> connect -> execute -> verify -> inspect -> save/replay/export -> Help/troubleshoot -> regression`.
 
 All advertised features must be fleshed out and interoperable through canonical shared contracts. Placeholder modules, broken connections, duplicated browser-only semantics, undocumented inputs or missing representative end-to-end tests block production status.
+
+
+## Third-party licensing and distribution gate
+
+CACE's original source, documentation, proof architecture, workflows, and product
+design remain proprietary under the repository `LICENSE`. Third-party
+components are not absorbed into that proprietary license.
+
+Release engineering must use `ops/license_compliance_policy.json`,
+`scripts/audit_license_compliance.py`, and
+`scripts/generate_third_party_notices.py`.
+
+A release is not ready merely because the top-level dependencies have acceptable
+licenses. The exact artifact must carry an inventory and the license/notice files
+for the actual transitive packages and binary-wheel components it ships.
+
+The default browser/server profile is intentionally narrower than the developer
+environment: it ships the CACE service/runtime dependencies needed by that
+profile and excludes optional desktop GUI dependencies such as PySide6.
+
+A proprietary desktop release using PySide6 is a separate distribution profile
+and remains blocked until its Qt licensing mode and packaging obligations are
+explicitly reviewed. New fonts, native libraries, datasets, models, media, or
+frontend dependency trees are similarly fail-closed until inventoried.
+
+License/notice attribution follows incorporated material and actual contractual
+obligations. Public discussion of an idea by a third party, without incorporation
+of protected code/assets/data or a separate attribution obligation, is not by
+itself entered as a CACE third-party software credit.
+
+
+## CACE-KSEE production identity
+
+The production-facing product name is **CACE-KSEE** (pronounced **Casey**).
+Internal package/repository identifiers may remain CACE where renaming would add
+compatibility risk without user benefit.
+
+The public entry flow is defined in
+`docs/CACE_KSEE_ENTRY_EXPERIENCE.md` and includes:
+
+- an original aerospace-clean geometric/ASCII/Conway-inspired splash;
+- Create account / Sign in / Learn about CACE-KSEE;
+- Research Assistant onboarding before a blank canvas;
+- a skippable contextual canvas tour;
+- an explicit Invite Collaborators workspace action;
+- safe high-level module Help;
+- reduced-motion behavior;
+- `© 2026 Emmanuel Spiro. All rights reserved.` on appropriate surfaces.
+
+No third-party brand, animation, typography, or trade dress should be copied.
+
+## Qualified production capability registry
+
+The production UI and Local AI must use
+`docs/QUALIFIED_CAPABILITY_REGISTRY.md`.
+
+The engineering module registry is not a product palette. Production exposure is
+fail-closed and requires explicit tested capability promotion. The UI must not
+display a module merely because a Python class exists.
+
+Connection suggestions are also fail-closed: type/unit compatibility is necessary
+but not sufficient. The exact link pattern must be exercised by an approved
+workflow before Gemini offers it as a normal connection.
+
+Oracle CI produces the exact-head engineering capability manifest. That manifest
+does not create mathematical proof status.
+
+## Oracle CI-only infrastructure decision
+
+Oracle Cloud is reserved for CI/runner/qualification jobs only. See
+`docs/architecture/ADR-002-ORACLE-CI-ONLY.md`.
+
+The public CACE-KSEE application, production API, customer sessions/workspaces,
+customer scientific execution, production databases, payment runtime, and
+production application secrets must live outside the Oracle CI trust boundary.
+The production runtime provider remains a separate deployment decision.
+
+
+## Local hybrid AI and visible geometric reasoning
+
+The production assistant contract is `docs/LOCAL_AI_HYBRID_RUNTIME.md`.
+
+CACE-KSEE keeps language planning, geometric ranking, scientific execution and
+verification as separate layers:
+
+```text
+small local LLM
+  -> strict proposal JSON / Tool Bus
+  -> Qualified Capability Registry
+  -> canonical graph validation
+  -> compact geometric neural ranking
+  -> preview / approval
+  -> Canvas
+```
+
+The compact ranker is intentionally tiny (12→16→8→4→1, 385 parameters) and
+learns advisory preferences from geometric/compositional curriculum signals. It
+does not become part of the trusted proof base.
+
+Geometric reasoning actions emit canonical animation events. Coordinate selection
+is presentation-only. Requested view families include Cartesian, hex/Eisenstein,
+complex-i, omega/Eisenstein, multiple fractal/hierarchical/complex-radix views,
+and Einstein-hat aperiodic monotile rendering. A view remains hidden until its
+real renderer and visual regression tests pass.
+
+Gemini/Antigravity owns the browser renderer implementation against these typed
+contracts; it must not reimplement CACE scientific semantics in JavaScript.

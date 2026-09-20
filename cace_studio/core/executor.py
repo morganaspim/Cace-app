@@ -94,6 +94,10 @@ class GraphExecutor:
             raise ValidationError("experiment graph contains a cycle")
         return order
 
+    def validate(self, exp: Experiment) -> tuple[str, ...]:
+        """Validate graph structure/types/units without executing any module."""
+        return tuple(self._validate_and_order(exp))
+
     @staticmethod
     def _validated_scope(
         exp: Experiment,

@@ -1,7 +1,7 @@
 {
   "schema": "cace-multi-user-session-policy-v1",
   "updated_at": "2026-09-20",
-  "objective": "Support many concurrent authenticated users without browser disconnects cancelling work or user state leaking/blocking another user, while respecting Oracle Always Free compute constraints.",
+  "objective": "Support many concurrent authenticated users without browser disconnects cancelling work or user state leaking/blocking another user, while keeping the production runtime isolated from Oracle CI.",
   "authority_split": {
     "base44": [
       "authentication/account identity",
@@ -10,7 +10,14 @@
       "low-frequency membership/entitlement refresh"
     ],
     "cloud_run": "NOT_USED_FOR_MULTI_USER_SESSIONS",
-    "oracle_cace": [
+    "gemini_browser": [
+      "presentation",
+      "per-tab client state",
+      "reconnect UX",
+      "local draft buffering",
+      "typed API/event clients"
+    ],
+    "production_cace_backend": [
       "authenticated multi-user API/session control",
       "workspace authorization enforcement",
       "canonical workspace versions and experiment state",
@@ -18,13 +25,6 @@
       "run ownership/control",
       "scientific execution",
       "proof/evidence/security authority"
-    ],
-    "gemini_browser": [
-      "presentation",
-      "per-tab client state",
-      "reconnect UX",
-      "local draft buffering",
-      "typed API/event clients"
     ]
   },
   "identity_keys": {
@@ -66,7 +66,7 @@
       "allowed": true,
       "debounce_ms": 1500,
       "base44_used_for_autosave": false,
-      "target": "Oracle/CACE workspace API"
+      "target": "Production CACE workspace API"
     }
   },
   "run_queue": {
@@ -97,8 +97,8 @@
     "queue_position_is_advisory": true
   },
   "event_delivery": {
-    "preferred": "SSE from Oracle/CACE",
-    "fallback": "bounded polling to Oracle/CACE with exponential backoff and jitter",
+    "preferred": "SSE from Production CACE backend",
+    "fallback": "bounded polling to Production CACE backend with exponential backoff and jitter",
     "websocket_required": false,
     "one_stream_per_active_browser_session_max": true,
     "events_are_advisory": true,
@@ -109,8 +109,8 @@
     "network_interruption": "reconnect and refresh snapshots",
     "api_process_restart": "durable queue/completed metadata survives",
     "worker_failure": "FAILED or RECOVERY_REQUIRED; never invent completion",
-    "oracle_vm_restart": "restore durable workspace/queue state; interrupted runs use explicit recovery/restart semantics",
-    "duplicate_retry": "idempotency key reconciles same accepted mutation/run"
+    "duplicate_retry": "idempotency key reconciles same accepted mutation/run",
+    "production_backend_restart": "restore durable workspace/queue state; interrupted runs use explicit recovery/restart semantics"
   },
   "base44_credit_rules": [
     "No Base44 presence heartbeats.",
@@ -131,5 +131,12 @@
   },
   "proof_effect": "none",
   "promotion_authority": false,
-  "cloud_run_rule": "Cloud Run is excluded from multi-user session/workspace/run traffic; it is reserved for Monero payments only."
+  "cloud_run_rule": "Cloud Run is excluded from multi-user session/workspace/run traffic; it is reserved for Monero payments only.",
+  "oracle_ci_boundary": {
+    "role": "CI_AND_QUALIFICATION_ONLY",
+    "production_sessions": false,
+    "production_science": false,
+    "production_secrets": false,
+    "policy": "docs/architecture/ADR-002-ORACLE-CI-ONLY.md"
+  }
 }

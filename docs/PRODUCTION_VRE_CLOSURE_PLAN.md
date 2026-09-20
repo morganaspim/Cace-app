@@ -10,7 +10,7 @@ Canonical checklist: `ops/production_vre_closure.json`.
 
 1. Merge/freeze the current architecture baseline.
 2. Implement the durable authenticated multi-user workspace/run backend.
-3. Separate production runtime trust from CI/self-hosted runner trust.
+3. Enforce the accepted split: Oracle is CI/qualification only; production CACE runs on a separate non-Oracle trust boundary.
 4. Add tested backup/restore/disaster recovery.
 5. Add observability, rate limits, quotas and operational alerts.
 6. Build a scientific validation matrix for every production module.
@@ -70,10 +70,31 @@ Prefer separate hosts/identities. If only one free machine is available during d
 
 ## Oracle
 
-Oracle Always Free is useful, but constrained. The official Always Free documentation currently describes an A1 allocation equivalent to 2 OCPUs + 12 GB RAM total and 200 GB combined boot/block storage.
+Oracle is reserved for CI/runner/qualification work only under
+`docs/architecture/ADR-002-ORACLE-CI-ONLY.md`.
 
-That is enough for an alpha/small VRE with bounded jobs, not for unlimited concurrent science.
+It must not host the public CACE-KSEE web application, production API, customer
+sessions/workspaces, customer scientific execution, payment handling, production
+databases, or production application secrets.
 
-The production scheduler must therefore queue heavy jobs and preserve API responsiveness.
+The production CACE runtime host remains a separate deployment decision and must
+be selected, load-tested, secured, and backed up before release.
 
-See `docs/ORACLE_ALWAYS_FREE_RESOURCE_POLICY.md`.
+
+## CACE-KSEE entry experience
+
+The production shell is specified in `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`.
+
+Before calling the web product complete, implement the original cinematic splash,
+account/sign-in flow, Research Assistant onboarding, skippable canvas tour,
+Invite Collaborators action, safe high-level module Help, reduced-motion support,
+and ownership footer.
+
+## Network/source secrecy gate
+
+Transport requirements live in `security/network_transport_policy.json`.
+Source-secrecy requirements remain in
+`docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md`.
+
+Production readiness requires a real deployment scan/test. Architecture documents
+alone are not evidence that the deployed service is hardened.

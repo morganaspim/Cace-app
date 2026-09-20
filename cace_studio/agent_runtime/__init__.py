@@ -80,6 +80,13 @@ from .canvas_plan import (
     register_canvas_plan_tools,
 )
 from .core_tools import register_core_tools
+from .conway_city import (
+    ConwayCityError,
+    ConwayEconomicCity,
+    WorkspaceHeartbeatEnvelope,
+    WorkspaceResourceState,
+)
+from .experiment_advisor import ExperimentProposal, LocalExperimentAdvisor
 from .durable_lease import DurableAgentLease, FileAgentLeaseManager
 from .execution_containment import (
     FileRecoveryInbox,
@@ -194,6 +201,8 @@ __all__ = [
     "Capability",
     "CapabilityPolicy",
     "CanonicalEvidenceState",
+    "ConwayCityError",
+    "ConwayEconomicCity",
     "DurableAgentLease",
     "FileAgentLeaseManager",
     "FileAutonomySessionStore",
@@ -209,6 +218,8 @@ __all__ = [
     "HashChainedAuditJournal",
     "LeaseUnavailableError",
     "LocalJSONPlanner",
+    "ExperimentProposal",
+    "LocalExperimentAdvisor",
     "LocalJSONReplanProvider",
     "NodePerception",
     "OperationClaim",
@@ -244,6 +255,8 @@ __all__ = [
     "WorkspaceCommitReceipt",
     "WorkspaceConflictError",
     "WorkspaceVersionRecord",
+    "WorkspaceHeartbeatEnvelope",
+    "WorkspaceResourceState",
     "autonomy_cycle_approval_callback",
     "canvas_plan_approval_callback",
     "canvas_preview_approval_callback",

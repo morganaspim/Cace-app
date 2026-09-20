@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 import pytest
 
+from cace_studio.app import build_qualified_capabilities, build_registry
+
 from cace_studio.agent_runtime import (
     AgentBudget,
     AgentController,
@@ -471,3 +473,52 @@ def test_in_progress_operation_blocks_duplicate_execution(tmp_path) -> None:
     assert result.status is ToolStatus.RECOVERY_BLOCKED
     assert "already in progress" in result.error
     assert calls == []
+
+
+
+def test_qualified_capability_gate_filters_local_ai_catalog() -> None:
+    registry = build_registry()
+    capabilities = build_qualified_capabilities(registry)
+    experiment = Experiment(
+        name="qualified-agent",
+        nodes=[Node("n1", "core.constant", {"value": 4})],
+    )
+    bus = ToolBus()
+    register_core_tools(
+        bus,
+        registry=registry,
+        qualified_capabilities=capabilities,
+        active_experiment=experiment,
+    )
+
+    catalog = bus.invoke(
+        ToolCall("qualified-catalog", "cace.registry.list_modules", {"limit": 100})
+    )
+    assert catalog.status is ToolStatus.OK
+    assert catalog.output["capability_surface"] == "ai"
+    module_ids = {item["module_id"] for item in catalog.output["modules"]}
+    assert module_ids == set(capabilities.module_ids("ai"))
+    assert "formal325.mesh_certificate_generator" not in module_ids
+    assert all("capability_gates" in item for item in catalog.output["modules"])
+
+
+def test_qualified_capability_gate_rejects_hidden_module_execution_for_local_ai() -> None:
+    registry = build_registry()
+    capabilities = build_qualified_capabilities(registry)
+    experiment = Experiment(
+        name="hidden-agent",
+        nodes=[Node("n1", "formal325.mesh_certificate_generator")],
+    )
+    bus = ToolBus()
+    register_core_tools(
+        bus,
+        registry=registry,
+        qualified_capabilities=capabilities,
+        active_experiment=experiment,
+    )
+
+    result = bus.invoke(
+        ToolCall("hidden-run", "cace.experiment.run_active", {"seed": 0})
+    )
+    assert result.status is ToolStatus.ERROR
+    assert "unavailable on ai surface" in result.error

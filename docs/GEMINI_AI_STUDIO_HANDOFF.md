@@ -4,6 +4,9 @@
 
 Status: implementation handoff. **Not verification evidence.**
 
+Production entry/branding contract: `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`.
+Oracle CI-only architecture: `docs/architecture/ADR-002-ORACLE-CI-ONLY.md`.
+
 ## 1. Integration decision
 
 Google AI Studio / Gemini is the preferred implementation environment for the CACE browser experience.
@@ -36,7 +39,7 @@ React + TypeScript presentation
         |
         | typed scientific HTTP calls
         v
-CACE FastAPI boundary (api/index.py) on Oracle/CACE
+CACE FastAPI boundary (api/index.py) on the Production CACE backend
         |
         +----------------------+-----------------------+
         |                      |                       |
@@ -268,5 +271,26 @@ The Gemini integration is successful when:
 - C++ and Lean remain independently testable and authoritative;
 - Base44 monthly credit use remains bounded by `ops/base44_free_tier_budget.json`;
 - high-frequency scientific state never depends on Base44 availability;
-- Oracle/CACE resource limits remain explicit and observable;
+- Production CACE backend resource limits remain explicit and observable;
 - proof work and browser work can proceed concurrently on isolated branches.
+
+
+## CACE-KSEE shell requirements
+
+The production shell must:
+
+- identify the product as **CACE-KSEE** (pronounced Casey);
+- implement the original geometric/ASCII cinematic entry sequence in
+  `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`;
+- prompt Create account / Sign in before the normal first-run assistant flow;
+- expose an exact **Invite Collaborators** action for authorized workspaces;
+- generate public module Help from safe typed metadata: purpose, input/output
+  contracts, parameters, units, assumptions, limitations, evidence and examples;
+- never expose proprietary implementation source/algorithms merely to populate
+  Help;
+- show `© 2026 Emmanuel Spiro. All rights reserved.` on appropriate public
+  product surfaces;
+- support reduced motion and a fast no-animation entry path.
+
+Oracle is not a production endpoint. The browser uses a configurable Production
+CACE backend origin and must not hard-code Oracle host details.
