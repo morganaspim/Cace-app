@@ -78,24 +78,22 @@ int main() {
             return fail(10, "P1/RT0 cell pairing values differ from Lean fixture");
         }
         if (!obligations.all_local_green) return fail(11, "local Green identity");
-        if (!obligations.ready_for_lean_assembly) return fail(12, "exact assembly admissibility");
-
-        Rational global_pairing(0);
-        for (const auto& value : obligations.cell_pairings) global_pairing += value;
-        if (global_pairing != Rational(0)) return fail(13, "global orthogonality sum");
+        if (!obligations.orthogonality_sum_zero) return fail(12, "global orthogonality sum");
+        if (obligations.global_pairing_sum != Rational(0)) return fail(13, "global pairing exact value");
+        if (!obligations.ready_for_lean_assembly) return fail(14, "exact assembly admissibility");
 
         auto changed_flux = flux;
         changed_flux[0].radial = Rational(1);
         const auto changed = cace::exact::exact_assembly_obligations(mesh, primal, changed_flux);
         if (changed.ready_for_lean_assembly) {
-            return fail(14, "changed RT0 field must not inherit assembly admissibility");
+            return fail(15, "changed RT0 field must not inherit assembly admissibility");
         }
 
         const auto packet_a = cace::exact::canonical_packet_text(mesh, primal, flux);
         const auto packet_b = cace::exact::canonical_packet_text(mesh, primal, flux);
-        if (packet_a != packet_b) return fail(15, "canonical packet determinism");
+        if (packet_a != packet_b) return fail(16, "canonical packet determinism");
         const auto changed_packet = cace::exact::canonical_packet_text(mesh, primal, changed_flux);
-        if (packet_a == changed_packet) return fail(16, "mathematical field change must change canonical packet");
+        if (packet_a == changed_packet) return fail(17, "mathematical field change must change canonical packet");
 
         bool rejected_clockwise = false;
         try {
@@ -105,7 +103,7 @@ int main() {
         } catch (const std::invalid_argument&) {
             rejected_clockwise = true;
         }
-        if (!rejected_clockwise) return fail(17, "clockwise triangle rejection");
+        if (!rejected_clockwise) return fail(18, "clockwise triangle rejection");
 
         bool rejected_nonmanifold = false;
         try {
@@ -125,7 +123,7 @@ int main() {
         } catch (const std::invalid_argument&) {
             rejected_nonmanifold = true;
         }
-        if (!rejected_nonmanifold) return fail(18, "non-manifold edge rejection");
+        if (!rejected_nonmanifold) return fail(19, "non-manifold edge rejection");
 
         std::cout << "cace-exact-fem FSL-0..6 kernel PASS\n";
         return 0;
