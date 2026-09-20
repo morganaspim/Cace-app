@@ -2,12 +2,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Callable, Mapping, Protocol, Sequence
 from uuid import uuid4
 
 from cace_studio.ai.provider import AIProvider
 
+from .audit import HashChainedAuditJournal
 from .contracts import ToolCall, ToolDescriptor, ToolResult, ToolStatus
+from .recovery import (
+    AgentCheckpoint,
+    AgentHeartbeat,
+    AgentLease,
+    AgentLeaseManager,
+    AgentPhase,
+    FileCheckpointStore,
+    LeaseUnavailableError,
+)
 from .tool_bus import ToolBus
 
 
@@ -54,6 +64,34 @@ class AgentDecision:
     def abort(cls, message: str) -> "AgentDecision":
         return cls("abort", message=message)
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "action": self.action,
+            "tool_name": self.tool_name,
+            "arguments": dict(self.arguments or {}),
+            "message": self.message,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "AgentDecision":
+        if not isinstance(payload, Mapping):
+            raise ValueError("agent decision checkpoint value must be an object")
+        allowed = {"action", "tool_name", "arguments", "message"}
+        unknown = sorted(set(payload) - allowed)
+        if unknown:
+            raise ValueError(f"agent decision contains unknown fields: {unknown}")
+        action = payload.get("action")
+        if action == "tool":
+            arguments = payload.get("arguments", {})
+            if not isinstance(arguments, Mapping):
+                raise ValueError("checkpoint tool arguments must be an object")
+            return cls.tool(str(payload.get("tool_name", "")), dict(arguments))
+        if action == "finish":
+            return cls.finish(str(payload.get("message", "")))
+        if action == "abort":
+            return cls.abort(str(payload.get("message", "")))
+        raise ValueError("checkpoint agent action is invalid")
+
 
 @dataclass(frozen=True)
 class AgentTurnContext:
@@ -92,14 +130,43 @@ class AgentTraceEntry:
     def to_dict(self) -> dict[str, Any]:
         return {
             "step": self.step,
-            "decision": {
-                "action": self.decision.action,
-                "tool_name": self.decision.tool_name,
-                "arguments": dict(self.decision.arguments or {}),
-                "message": self.decision.message,
-            },
+            "decision": self.decision.to_dict(),
             "tool_result": self.tool_result.to_dict() if self.tool_result else None,
         }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "AgentTraceEntry":
+        if not isinstance(payload, Mapping):
+            raise ValueError("agent trace checkpoint value must be an object")
+        allowed = {"step", "decision", "tool_result"}
+        unknown = sorted(set(payload) - allowed)
+        if unknown:
+            raise ValueError(f"agent trace contains unknown fields: {unknown}")
+        decision_raw = payload.get("decision")
+        if not isinstance(decision_raw, Mapping):
+            raise ValueError("agent trace decision must be an object")
+        result_raw = payload.get("tool_result")
+        result = None
+        if result_raw is not None:
+            if not isinstance(result_raw, Mapping):
+                raise ValueError("agent trace tool_result must be an object or null")
+            if result_raw.get("tool_result_schema") != 1:
+                raise ValueError("unsupported tool_result checkpoint schema")
+            output = result_raw.get("output")
+            if output is not None and not isinstance(output, Mapping):
+                raise ValueError("checkpoint tool_result output must be an object or null")
+            result = ToolResult(
+                call_id=str(result_raw.get("call_id", "")),
+                tool_name=str(result_raw.get("tool_name", "")),
+                status=ToolStatus(str(result_raw.get("status", ""))),
+                output=dict(output) if output is not None else None,
+                error=str(result_raw.get("error", "")),
+            )
+        return cls(
+            step=int(payload["step"]),
+            decision=AgentDecision.from_dict(decision_raw),
+            tool_result=result,
+        )
 
 
 @dataclass(frozen=True)
@@ -207,12 +274,39 @@ class LocalJSONPlanner:
         raise ValueError("local planner action must be tool, finish, or abort")
 
 
-class AgentController:
-    """Bounded planner/action/observation runtime over a ToolBus."""
+HeartbeatCallback = Callable[[AgentHeartbeat], None]
 
-    def __init__(self, tool_bus: ToolBus, *, budget: AgentBudget | None = None) -> None:
+
+class AgentController:
+    """Bounded planner/action/observation runtime over a ToolBus.
+
+    Optional checkpoints support safe resume. If a checkpoint contains a pending
+    tool call, automatic replay is forbidden because the prior process may have
+    executed the call before it stopped.
+    """
+
+    def __init__(
+        self,
+        tool_bus: ToolBus,
+        *,
+        budget: AgentBudget | None = None,
+        checkpoint_store: FileCheckpointStore | None = None,
+        lease_manager: AgentLeaseManager | None = None,
+        heartbeat_callback: HeartbeatCallback | None = None,
+        audit_journal: HashChainedAuditJournal | None = None,
+        owner_id: str | None = None,
+        lease_ttl_seconds: float = 30.0,
+    ) -> None:
         self.tool_bus = tool_bus
         self.budget = budget or AgentBudget()
+        self.checkpoint_store = checkpoint_store
+        self.lease_manager = lease_manager or AgentLeaseManager()
+        self.heartbeat_callback = heartbeat_callback
+        self.audit_journal = audit_journal
+        self.owner_id = owner_id or f"controller-{uuid4()}"
+        self.lease_ttl_seconds = float(lease_ttl_seconds)
+        if self.lease_ttl_seconds <= 0:
+            raise ValueError("lease_ttl_seconds must be positive")
 
     @staticmethod
     def _bounded_observation(result: ToolResult, max_chars: int) -> Mapping[str, Any]:
@@ -231,88 +325,489 @@ class AgentController:
             "promotion_authority": False,
         }
 
-    def run(self, task: str, planner: AgentPlanner) -> AgentRunReport:
+    def _heartbeat(
+        self,
+        *,
+        run_id: str,
+        heartbeat_seq: int,
+        phase: AgentPhase,
+        step: int,
+        tool_calls: int,
+        failures: int,
+        lease: AgentLease,
+        checkpoint_sha256: str | None = None,
+        detail: str = "",
+    ) -> int:
+        next_seq = heartbeat_seq + 1
+        heartbeat = AgentHeartbeat(
+            run_id=run_id,
+            monotonic_seq=next_seq,
+            phase=phase,
+            step=max(0, step),
+            tool_calls=tool_calls,
+            failures=failures,
+            lease_id=lease.lease_id,
+            checkpoint_sha256=checkpoint_sha256,
+            detail=detail,
+        )
+        if self.heartbeat_callback is not None:
+            self.heartbeat_callback(heartbeat)
+        return next_seq
+
+    def _save_checkpoint(
+        self,
+        *,
+        run_id: str,
+        task: str,
+        next_step: int,
+        tool_calls: int,
+        failures: int,
+        heartbeat_seq: int,
+        observations: list[Mapping[str, Any]],
+        trace: list[AgentTraceEntry],
+        pending_call: Mapping[str, Any] | None,
+        status: str = "running",
+    ) -> str | None:
+        if self.checkpoint_store is None:
+            return None
+        return self.checkpoint_store.save(
+            AgentCheckpoint(
+                run_id=run_id,
+                task=task,
+                next_step=next_step,
+                tool_calls=tool_calls,
+                failures=failures,
+                heartbeat_seq=heartbeat_seq,
+                observations=tuple(dict(item) for item in observations),
+                trace=tuple(entry.to_dict() for entry in trace),
+                pending_call=dict(pending_call) if pending_call is not None else None,
+                status=status,
+            )
+        )
+
+    @staticmethod
+    def _report(
+        run_id: str,
+        task: str,
+        status: str,
+        message: str,
+        steps: int,
+        tool_calls: int,
+        failures: int,
+        trace: list[AgentTraceEntry],
+    ) -> AgentRunReport:
+        return AgentRunReport(
+            run_id, task, status, message, steps, tool_calls, failures, tuple(trace)
+        )
+
+    def run(
+        self,
+        task: str,
+        planner: AgentPlanner,
+        *,
+        resume_run_id: str | None = None,
+    ) -> AgentRunReport:
         if not isinstance(task, str) or not task.strip():
             raise ValueError("agent task must be a non-empty string")
+        task = task.strip()
+        if resume_run_id is not None and self.checkpoint_store is None:
+            raise ValueError("resume_run_id requires a checkpoint_store")
 
-        run_id = str(uuid4())
+        run_id = resume_run_id or str(uuid4())
+        start_step = 1
         trace: list[AgentTraceEntry] = []
         observations: list[Mapping[str, Any]] = []
         tool_calls = 0
         failures = 0
+        heartbeat_seq = 0
 
-        for step in range(1, self.budget.max_steps + 1):
-            context = AgentTurnContext(
-                task=task.strip(),
-                step=step,
-                tools=self.tool_bus.descriptors(),
-                observations=tuple(observations),
-                remaining_tool_calls=max(0, self.budget.max_tool_calls - tool_calls),
-                remaining_failures=max(0, self.budget.max_failures - failures),
-            )
-            try:
-                decision = planner.decide(context)
-            except Exception as exc:
-                message = f"planner failure: {type(exc).__name__}: {exc}"
-                return AgentRunReport(
-                    run_id, task.strip(), "aborted", message, step - 1, tool_calls, failures + 1, tuple(trace)
+        if resume_run_id is not None:
+            checkpoint = self.checkpoint_store.load(run_id) if self.checkpoint_store else None
+            if checkpoint is None:
+                raise ValueError(f"no checkpoint exists for run {run_id!r}")
+            if checkpoint.task != task:
+                raise ValueError("resume task does not match checkpoint task")
+            if checkpoint.status != "running":
+                raise ValueError(f"checkpoint is not resumable: status={checkpoint.status}")
+            start_step = checkpoint.next_step
+            tool_calls = checkpoint.tool_calls
+            failures = checkpoint.failures
+            heartbeat_seq = checkpoint.heartbeat_seq
+            observations = [dict(item) for item in checkpoint.observations]
+            trace = [AgentTraceEntry.from_dict(item) for item in checkpoint.trace]
+            if checkpoint.pending_call is not None:
+                lease = self.lease_manager.acquire(
+                    run_id, self.owner_id, ttl_seconds=self.lease_ttl_seconds
                 )
-
-            if decision.action == "finish":
-                trace.append(AgentTraceEntry(step, decision))
-                return AgentRunReport(
-                    run_id, task.strip(), "finished", decision.message, step, tool_calls, failures, tuple(trace)
-                )
-
-            if decision.action == "abort":
-                trace.append(AgentTraceEntry(step, decision))
-                return AgentRunReport(
-                    run_id, task.strip(), "aborted", decision.message, step, tool_calls, failures, tuple(trace)
-                )
-
-            if tool_calls >= self.budget.max_tool_calls:
-                return AgentRunReport(
-                    run_id,
-                    task.strip(),
-                    "budget_exhausted",
-                    "tool-call budget exhausted",
-                    step - 1,
-                    tool_calls,
-                    failures,
-                    tuple(trace),
-                )
-
-            tool_calls += 1
-            call = ToolCall(
-                call_id=f"{run_id}:{tool_calls}",
-                tool_name=decision.tool_name,
-                arguments=decision.arguments or {},
-            )
-            result = self.tool_bus.invoke(call)
-            trace.append(AgentTraceEntry(step, decision, result))
-            observations.append(self._bounded_observation(result, self.budget.max_observation_chars))
-
-            if result.status is not ToolStatus.OK:
-                failures += 1
-                if failures >= self.budget.max_failures:
-                    return AgentRunReport(
+                try:
+                    heartbeat_seq = self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=AgentPhase.RECOVERY_BLOCKED,
+                        step=max(0, start_step - 1),
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        detail="prior process stopped with a pending tool call; automatic replay is forbidden",
+                    )
+                    self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=start_step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=checkpoint.pending_call,
+                        status="recovery_blocked",
+                    )
+                    return self._report(
                         run_id,
-                        task.strip(),
-                        "aborted",
-                        "tool failure budget exhausted",
-                        step,
+                        task,
+                        "recovery_blocked",
+                        "checkpoint contains a pending tool call; inspect audit/checkpoint state before retrying",
+                        max(0, start_step - 1),
                         tool_calls,
                         failures,
-                        tuple(trace),
+                        trace,
+                    )
+                finally:
+                    self.lease_manager.release(lease)
+
+        lease = self.lease_manager.acquire(
+            run_id, self.owner_id, ttl_seconds=self.lease_ttl_seconds
+        )
+        try:
+            heartbeat_seq = self._heartbeat(
+                run_id=run_id,
+                heartbeat_seq=heartbeat_seq,
+                phase=AgentPhase.STARTING,
+                step=max(0, start_step - 1),
+                tool_calls=tool_calls,
+                failures=failures,
+                lease=lease,
+                detail="resuming durable checkpoint" if resume_run_id else "starting new local-agent run",
+            )
+            checkpoint_sha = self._save_checkpoint(
+                run_id=run_id,
+                task=task,
+                next_step=start_step,
+                tool_calls=tool_calls,
+                failures=failures,
+                heartbeat_seq=heartbeat_seq,
+                observations=observations,
+                trace=trace,
+                pending_call=None,
+            )
+
+            for step in range(start_step, self.budget.max_steps + 1):
+                lease = self.lease_manager.renew(lease)
+                heartbeat_seq = self._heartbeat(
+                    run_id=run_id,
+                    heartbeat_seq=heartbeat_seq,
+                    phase=AgentPhase.PLANNING,
+                    step=step,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    lease=lease,
+                    checkpoint_sha256=checkpoint_sha,
+                )
+                checkpoint_sha = self._save_checkpoint(
+                    run_id=run_id,
+                    task=task,
+                    next_step=step,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    heartbeat_seq=heartbeat_seq,
+                    observations=observations,
+                    trace=trace,
+                    pending_call=None,
+                )
+                context = AgentTurnContext(
+                    task=task,
+                    step=step,
+                    tools=self.tool_bus.descriptors(),
+                    observations=tuple(observations),
+                    remaining_tool_calls=max(0, self.budget.max_tool_calls - tool_calls),
+                    remaining_failures=max(0, self.budget.max_failures - failures),
+                )
+                try:
+                    decision = planner.decide(context)
+                except Exception as exc:
+                    failures += 1
+                    message = f"planner failure: {type(exc).__name__}: {exc}"
+                    checkpoint_sha = self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=None,
+                        status="aborted",
+                    )
+                    self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=AgentPhase.ABORTED,
+                        step=max(0, step - 1),
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        checkpoint_sha256=checkpoint_sha,
+                        detail=message,
+                    )
+                    return self._report(
+                        run_id, task, "aborted", message, step - 1, tool_calls, failures, trace
                     )
 
-        return AgentRunReport(
-            run_id,
-            task.strip(),
-            "budget_exhausted",
-            "step budget exhausted",
-            self.budget.max_steps,
-            tool_calls,
-            failures,
-            tuple(trace),
-        )
+                if decision.action in {"finish", "abort"}:
+                    trace.append(AgentTraceEntry(step, decision))
+                    status = "finished" if decision.action == "finish" else "aborted"
+                    phase = AgentPhase.FINISHED if decision.action == "finish" else AgentPhase.ABORTED
+                    checkpoint_sha = self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=step + 1,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=None,
+                        status=status,
+                    )
+                    self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=phase,
+                        step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        checkpoint_sha256=checkpoint_sha,
+                        detail=decision.message,
+                    )
+                    return self._report(
+                        run_id, task, status, decision.message, step, tool_calls, failures, trace
+                    )
+
+                if tool_calls >= self.budget.max_tool_calls:
+                    checkpoint_sha = self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=None,
+                        status="budget_exhausted",
+                    )
+                    self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=AgentPhase.BUDGET_EXHAUSTED,
+                        step=max(0, step - 1),
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        checkpoint_sha256=checkpoint_sha,
+                        detail="tool-call budget exhausted",
+                    )
+                    return self._report(
+                        run_id, task, "budget_exhausted", "tool-call budget exhausted",
+                        step - 1, tool_calls, failures, trace
+                    )
+
+                # Revalidate ownership immediately before an executable action.
+                # This prevents slow planner/model latency from carrying an expired
+                # lease into a Tool Bus invocation.
+                lease = self.lease_manager.renew(lease)
+                tool_calls += 1
+                call = ToolCall(
+                    call_id=f"{run_id}:{tool_calls}",
+                    tool_name=decision.tool_name,
+                    arguments=decision.arguments or {},
+                )
+                pending_call = {
+                    "call_id": call.call_id,
+                    "tool_name": call.tool_name,
+                    "arguments": dict(call.arguments),
+                    "step": step,
+                }
+                checkpoint_sha = self._save_checkpoint(
+                    run_id=run_id,
+                    task=task,
+                    next_step=step,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    heartbeat_seq=heartbeat_seq,
+                    observations=observations,
+                    trace=trace,
+                    pending_call=pending_call,
+                )
+                heartbeat_seq = self._heartbeat(
+                    run_id=run_id,
+                    heartbeat_seq=heartbeat_seq,
+                    phase=AgentPhase.ACTING,
+                    step=step,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    lease=lease,
+                    checkpoint_sha256=checkpoint_sha,
+                    detail=f"calling {call.tool_name}",
+                )
+                checkpoint_sha = self._save_checkpoint(
+                    run_id=run_id,
+                    task=task,
+                    next_step=step,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    heartbeat_seq=heartbeat_seq,
+                    observations=observations,
+                    trace=trace,
+                    pending_call=pending_call,
+                )
+
+                result = self.tool_bus.invoke(call)
+                trace.append(AgentTraceEntry(step, decision, result))
+
+                if self.audit_journal is not None:
+                    try:
+                        if not self.tool_bus.audit_records:
+                            raise RuntimeError("Tool Bus returned without an audit record")
+                        latest_audit = self.tool_bus.audit_records[-1]
+                        if latest_audit.call_id != call.call_id:
+                            raise RuntimeError("Tool Bus audit tail does not match completed call")
+                        self.audit_journal.append(latest_audit)
+                    except Exception as exc:
+                        failures += 1
+                        message = (
+                            "tool completed but durable audit persistence failed; "
+                            f"automatic continuation is blocked: {type(exc).__name__}: {exc}"
+                        )
+                        checkpoint_sha = self._save_checkpoint(
+                            run_id=run_id,
+                            task=task,
+                            next_step=step,
+                            tool_calls=tool_calls,
+                            failures=failures,
+                            heartbeat_seq=heartbeat_seq,
+                            observations=observations,
+                            trace=trace,
+                            pending_call=pending_call,
+                            status="recovery_blocked",
+                        )
+                        self._heartbeat(
+                            run_id=run_id,
+                            heartbeat_seq=heartbeat_seq,
+                            phase=AgentPhase.RECOVERY_BLOCKED,
+                            step=step,
+                            tool_calls=tool_calls,
+                            failures=failures,
+                            lease=lease,
+                            checkpoint_sha256=checkpoint_sha,
+                            detail=message,
+                        )
+                        return self._report(
+                            run_id, task, "recovery_blocked", message,
+                            step, tool_calls, failures, trace
+                        )
+
+                observations.append(
+                    self._bounded_observation(result, self.budget.max_observation_chars)
+                )
+                if result.status is not ToolStatus.OK:
+                    failures += 1
+
+                heartbeat_seq = self._heartbeat(
+                    run_id=run_id,
+                    heartbeat_seq=heartbeat_seq,
+                    phase=AgentPhase.CHECKPOINTED,
+                    step=step,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    lease=lease,
+                    checkpoint_sha256=checkpoint_sha,
+                    detail=f"completed {call.tool_name} with status {result.status.value}",
+                )
+                checkpoint_sha = self._save_checkpoint(
+                    run_id=run_id,
+                    task=task,
+                    next_step=step + 1,
+                    tool_calls=tool_calls,
+                    failures=failures,
+                    heartbeat_seq=heartbeat_seq,
+                    observations=observations,
+                    trace=trace,
+                    pending_call=None,
+                )
+
+                if failures >= self.budget.max_failures:
+                    checkpoint_sha = self._save_checkpoint(
+                        run_id=run_id,
+                        task=task,
+                        next_step=step + 1,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        heartbeat_seq=heartbeat_seq,
+                        observations=observations,
+                        trace=trace,
+                        pending_call=None,
+                        status="aborted",
+                    )
+                    self._heartbeat(
+                        run_id=run_id,
+                        heartbeat_seq=heartbeat_seq,
+                        phase=AgentPhase.ABORTED,
+                        step=step,
+                        tool_calls=tool_calls,
+                        failures=failures,
+                        lease=lease,
+                        checkpoint_sha256=checkpoint_sha,
+                        detail="tool failure budget exhausted",
+                    )
+                    return self._report(
+                        run_id, task, "aborted", "tool failure budget exhausted",
+                        step, tool_calls, failures, trace
+                    )
+
+            checkpoint_sha = self._save_checkpoint(
+                run_id=run_id,
+                task=task,
+                next_step=self.budget.max_steps + 1,
+                tool_calls=tool_calls,
+                failures=failures,
+                heartbeat_seq=heartbeat_seq,
+                observations=observations,
+                trace=trace,
+                pending_call=None,
+                status="budget_exhausted",
+            )
+            self._heartbeat(
+                run_id=run_id,
+                heartbeat_seq=heartbeat_seq,
+                phase=AgentPhase.BUDGET_EXHAUSTED,
+                step=self.budget.max_steps,
+                tool_calls=tool_calls,
+                failures=failures,
+                lease=lease,
+                checkpoint_sha256=checkpoint_sha,
+                detail="step budget exhausted",
+            )
+            return self._report(
+                run_id, task, "budget_exhausted", "step budget exhausted",
+                self.budget.max_steps, tool_calls, failures, trace
+            )
+        except LeaseUnavailableError as exc:
+            return self._report(
+                run_id, task, "aborted", f"lease failure: {exc}",
+                max(0, start_step - 1), tool_calls, failures + 1, trace
+            )
+        finally:
+            self.lease_manager.release(lease)

@@ -140,3 +140,78 @@ Still required before high-autonomy production use:
 - the local planner accepts only strict JSON and only planner-visible tools.
 
 No Lean/canonical proof qualification is required merely because this non-proof runtime layer exists. If a later tool binds runtime objects to formal hypotheses or changes qualification-sensitive paths, that change must follow the normal source-to-formal and exact-current-head qualification gates.
+
+
+## v1.1 durable audit and recovery
+
+The runtime now has an optional recovery layer that remains outside scientific/proof authority.
+
+### Hash-chained local audit journal
+
+`HashChainedAuditJournal` persists Tool Bus audit records as append-only JSONL with:
+
+- per-entry SHA-256 identity;
+- a previous-entry hash link;
+- explicit session identity;
+- fsync before returning from append;
+- verification on reopen;
+- tamper detection for ordering or content changes.
+
+The journal is engineering/provenance evidence only. Its hash chain cannot create verification PASS, FORMAL status, or proof-ledger promotion.
+
+### Atomic checkpoints
+
+`FileCheckpointStore` stores a content-hashed `AgentCheckpoint` in a trusted host-configured directory. Writes use same-directory exclusive temp files, fsync, and atomic replacement.
+
+Checkpoint state includes:
+
+- run/task identity;
+- next planner step;
+- consumed tool/failure budgets;
+- monotonic heartbeat sequence;
+- bounded observations;
+- typed trace serialization;
+- an optional pending tool call;
+- terminal/running state.
+
+The model never selects the checkpoint path.
+
+### Fail-closed replay rule
+
+Before invoking a tool, the controller durably checkpoints that call as pending. The pending marker is cleared only after the call result has been handled and the post-call checkpoint is written.
+
+If a restarted controller finds a pending call, it returns `recovery_blocked` and does **not** replay the call automatically. This is intentionally conservative because the prior process may have executed the operation before stopping.
+
+The same rule is used when a configured durable audit journal fails after a tool returns: continuation stops with the pending call preserved for inspection.
+
+### Process-local leases
+
+`AgentLeaseManager` prevents two controllers in the same local runtime from owning one run simultaneously. It uses monotonic time and expiring generations.
+
+Leases are deliberately process-local in v1.1. Restart clears stale ownership; the durable checkpoint remains the recovery authority. Cross-process/distributed leases remain later work.
+
+The controller renews its lease immediately before committing a pending tool action, so planner/model latency cannot carry an already-expired lease into execution. v1.1 does **not** claim distributed exactly-once behavior for a tool call that itself runs longer than the lease TTL. Until mutation-specific transactions/idempotency and stronger worker coordination exist, the configured TTL must exceed the expected maximum duration of an individual tool call.
+
+### Agent liveness heartbeat
+
+The controller can emit `AgentHeartbeat` records with monotonic sequence, phase, step, resource-budget counters, lease identity, and checkpoint digest.
+
+Agent heartbeat is coordination metadata only:
+
+- `evidence_authority = false`
+- `proof_effect = "none"`
+- `promotion_authority = false`
+
+This is intentionally separate from the canvas/scientific heartbeat. Later integration may feed canvas deltas into planner context, but liveness/checkpoint state cannot create canonical verification state.
+
+### Remaining recovery hardening
+
+v1.1 still does not claim distributed exactly-once execution. Before approved mutation tools become high-autonomy production capabilities, CACE still needs:
+
+- mutation-specific transactional/idempotency contracts;
+- OS/process sandbox quotas;
+- independent durable storage/mirroring policy for audit/checkpoint bundles;
+- cross-process lease/worker coordination if multiple workers are enabled;
+- GUI recovery inspection and explicit retry/resolve actions;
+- crash/fault injection around every pre-call/post-call durability boundary;
+- retention/redaction policy for tool observations.

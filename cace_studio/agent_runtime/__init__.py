@@ -4,6 +4,7 @@ This package is intentionally outside the CACE verification/proof trusted comput
 base. Agent output and successful tool calls are observations/orchestration only.
 """
 
+from .audit import AuditIntegrityError, HashChainedAuditJournal
 from .contracts import (
     Capability,
     CapabilityPolicy,
@@ -25,17 +26,35 @@ from .controller import (
     LocalJSONPlanner,
 )
 from .core_tools import register_core_tools
+from .recovery import (
+    AgentCheckpoint,
+    AgentHeartbeat,
+    AgentLease,
+    AgentLeaseManager,
+    AgentPhase,
+    FileCheckpointStore,
+    LeaseUnavailableError,
+)
 from .tool_bus import ToolBus
 
 __all__ = [
     "AgentBudget",
+    "AgentCheckpoint",
     "AgentController",
     "AgentDecision",
+    "AgentHeartbeat",
+    "AgentLease",
+    "AgentLeaseManager",
+    "AgentPhase",
     "AgentPlanner",
     "AgentRunReport",
     "AgentTurnContext",
+    "AuditIntegrityError",
     "Capability",
     "CapabilityPolicy",
+    "FileCheckpointStore",
+    "HashChainedAuditJournal",
+    "LeaseUnavailableError",
     "LocalJSONPlanner",
     "ToolAuditRecord",
     "ToolBus",
