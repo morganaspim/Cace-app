@@ -103,6 +103,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I074 | composable science modules | Upgrade scientific modules into full-featured typed/unit-aware components that share canonical objects and link naturally across geometry, PDE/FEM, mechanics, EM, molecular, materials, protein, data/statistics, signals and research physics. | G063 |
 | I075 | module help and examples | Treat Help and examples as part of the module contract: theory/equations, assumptions, evidence, limitations, connection suggestions, troubleshooting, minimal/realistic/composition/failure examples, and Add-to-Canvas workflows. | G064 |
 
+| I076 | research assistant onboarding | After account creation, CACE opens with a local Research Assistant chat asking what the user wants to investigate, offering field-relevant demos/full capabilities/recent work, then builds or previews a typed canvas while persisting as a daily research assistant; product identity is a VRE for interactive rigorous math with AI-assisted geometric reasoning. | G068 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
