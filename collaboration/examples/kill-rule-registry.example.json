@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "policy": "Example only, not scanned. Every rule binds one claim to one observable that makes it false, registered before the outcome exists.",
+  "kill_rules": [
+    {
+      "kill_rule_id": "example-0001",
+      "claim_id": "CLAIM-EXAMPLE-0001",
+      "head_sha": "0000000000000000000000000000000000000000",
+      "falsifier": "The stated metric crosses the threshold in the stated direction over the sample window.",
+      "observable": {
+        "metric": "example_metric",
+        "unit": "ratio",
+        "comparison": "<",
+        "threshold": 0.5,
+        "sample_window": "declared in the test procedure"
+      },
+      "test": {
+        "procedure": "Run the named command and read the metric from the artifact.",
+        "command_or_artifact": "make example-check",
+        "required_evidence_class": "ENGINEERING_VERIFIED"
+      },
+      "cost_stack": {
+        "description": "Costs applied before the metric is read.",
+        "cost_model": "fees + slippage, doubled as a sensitivity check",
+        "doubled_cost_net_move_pct": 4.0,
+        "declared": true
+      },
+      "verdict_bands": [
+        {"band": "DIES", "condition": "metric < 0.5 net of cost"},
+        {"band": "SURVIVES_BOUNDED", "condition": "0.5 <= metric < 1.0 and doubling cost moves net < 10%"},
+        {"band": "SURVIVES", "condition": "metric >= 1.0, bounded only"}
+      ],
+      "pre_registered_at": "2026-09-21T00:00:00Z",
+      "status": "PRE_REGISTERED"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+name: cace-kill-rule-check
+
+# Read-only. Branch-only. No secrets, no network calls, nothing reaches main.
+# Re-checks every registered claim against its own pre-registered falsifier and
+# exits non-zero when a claim has no named way to die.
+
+on:
+  push:
+    branches:
+      - 'sui/**'
+    paths:
+      - 'collaboration/records/kill_rules/**'
+      - 'collaboration/claims/**'
+      - 'ci/kill_rule_check.py'
+      - '.github/workflows/cace-kill-rule-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kill-rule-check:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    steps:
+      - name: Checkout (no credentials persisted)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Falsifier check
+        run: python3 ci/kill_rule_check.py --root .
