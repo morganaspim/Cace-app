@@ -7,11 +7,16 @@ Python core so the web UI cannot invent a second semantics.
 from __future__ import annotations
 
 from dataclasses import asdict
+import hashlib
+import json
 import os
 from pathlib import Path
+import re
 import threading
 import time
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
 from fastapi import Body, FastAPI, HTTPException
@@ -19,6 +24,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from cace_studio.app import build_registry
+from cace_studio.core.module import ValidationError
 from cace_studio.core.execution_control import ExecutionControl
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, ExperimentGroup, Node
@@ -47,6 +53,8 @@ _registry = build_registry()
 _jobs_lock = threading.RLock()
 _jobs: dict[str, dict[str, Any]] = {}
 
+_UNIPROT_RE = re.compile(r"^[A-Z0-9]{1,12}$")
+
 
 def _module_payload(cls) -> dict[str, Any]:
     metadata = asdict(cls.metadata)
@@ -59,6 +67,91 @@ def _module_payload(cls) -> dict[str, Any]:
         "declared_proof_status": cls.proof_status.to_dict(),
         "supports_gpu": bool(cls.supports_gpu),
     }
+
+
+def _stable_hash(value: Any) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), default=repr)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _client_port_payload(port) -> dict[str, Any]:
+    payload = asdict(port)
+    payload["type"] = port.type_name
+    return payload
+
+
+def _client_parameter_payload(parameter) -> dict[str, Any]:
+    payload = asdict(parameter)
+    payload["type"] = parameter.type_name
+    return payload
+
+
+def _proof_evidence_level(proof: dict[str, Any]) -> str:
+    evidence = set(proof.get("evidence") or [])
+    for level in (
+        "formally-verified",
+        "interval-certified",
+        "symbolic",
+        "numerical",
+        "experimental",
+    ):
+        if level in evidence:
+            return level
+    return "unverified"
+
+
+def _capability_payload(cls) -> dict[str, Any]:
+    payload = _module_payload(cls)
+    proof = dict(payload["declared_proof_status"])
+    proof["evidence_level"] = _proof_evidence_level(proof)
+    proof["is_verified"] = False
+    proof["proof_note"] = (
+        "Declared module metadata is not formal qualification evidence. Exact-head "
+        "qualification requires the CACE provenance and proof pipeline."
+    )
+    payload["inputs"] = [_client_port_payload(port) for port in cls.inputs]
+    payload["outputs"] = [_client_port_payload(port) for port in cls.outputs]
+    payload["parameters"] = [_client_parameter_payload(parameter) for parameter in cls.parameters]
+    payload["declared_proof_status"] = proof
+    return payload
+
+
+def _capability_classes() -> list[type]:
+    return sorted(
+        _registry.classes(),
+        key=lambda cls: (cls.metadata.category, cls.metadata.name, cls.metadata.module_id),
+    )
+
+
+def _capabilities_payload() -> dict[str, Any]:
+    modules = [_capability_payload(cls) for cls in _capability_classes()]
+    registry_identity = [
+        {
+            "module_id": item["metadata"]["module_id"],
+            "version": item["metadata"]["version"],
+            "inputs": item["inputs"],
+            "outputs": item["outputs"],
+            "parameters": item["parameters"],
+        }
+        for item in modules
+    ]
+    return {
+        "schema": 1,
+        "metadata_is_verification_evidence": False,
+        "capability_policy_hash": _stable_hash(
+            {"source": "cace-app-python-registry", "modules": registry_identity}
+        ),
+        "registry_contract_hash": _stable_hash({"modules": registry_identity}),
+        "modules": modules,
+    }
+
+
+def _fetch_json_url(url: str, *, timeout: float = 15.0) -> Any:
+    request = Request(url, headers={"Accept": "application/json", "User-Agent": "CACE-Studio/3.36"})
+    with urlopen(request, timeout=timeout) as response:
+        if response.status != 200:
+            raise ValueError(f"upstream returned HTTP {response.status}")
+        return json.loads(response.read(2_000_000).decode("utf-8"))
 
 
 def _require_mapping(value: Any, label: str) -> dict[str, Any]:
@@ -260,15 +353,24 @@ def health() -> dict[str, str]:
 
 @app.get("/api/modules")
 def modules() -> dict[str, Any]:
-    classes = sorted(
-        _registry.classes(),
-        key=lambda cls: (cls.metadata.category, cls.metadata.name, cls.metadata.module_id),
-    )
     return {
         "schema": 1,
         "metadata_is_verification_evidence": False,
-        "modules": [_module_payload(cls) for cls in classes],
+        "modules": [_module_payload(cls) for cls in _capability_classes()],
     }
+
+
+@app.get("/api/capabilities")
+def capabilities() -> dict[str, Any]:
+    return _capabilities_payload()
+
+
+@app.get("/api/capabilities/{module_id:path}")
+def capability(module_id: str) -> dict[str, Any]:
+    for item in _capabilities_payload()["modules"]:
+        if item["metadata"]["module_id"] == module_id:
+            return item
+    raise HTTPException(status_code=404, detail="unknown module capability")
 
 
 @app.get("/api/claims")
@@ -278,6 +380,45 @@ def claims() -> dict[str, Any]:
         "schema": 1,
         "proof_effect": "none",
         "claims": [view.to_dict() for view in explorer.all_claims()],
+    }
+
+
+@app.get("/api/alphafold/{accession}")
+def alphafold_prediction(accession: str) -> dict[str, Any]:
+    normalized = accession.strip().upper()
+    if not _UNIPROT_RE.fullmatch(normalized):
+        raise HTTPException(status_code=400, detail="accession must look like a UniProt accession")
+    url = f"https://alphafold.ebi.ac.uk/api/prediction/{normalized}"
+    try:
+        payload = _fetch_json_url(url)
+    except HTTPError as exc:
+        if exc.code == 404:
+            raise HTTPException(status_code=404, detail="AlphaFold prediction not found") from exc
+        raise HTTPException(status_code=502, detail=f"AlphaFold upstream HTTP {exc.code}") from exc
+    except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=502, detail=f"AlphaFold lookup failed: {exc}") from exc
+
+    predictions = payload if isinstance(payload, list) else [payload]
+    if not predictions:
+        raise HTTPException(status_code=404, detail="AlphaFold prediction not found")
+    first = predictions[0]
+    return {
+        "schema": "cace-alphafold-prediction-v1",
+        "authority": "AlphaFold Protein Structure Database / EMBL-EBI",
+        "accession": normalized,
+        "prediction_count": len(predictions),
+        "entry": first,
+        "urls": {
+            "api": url,
+            "entry": f"https://alphafold.ebi.ac.uk/entry/{normalized}",
+            "cif": first.get("cifUrl"),
+            "pdb": first.get("pdbUrl"),
+            "pae": first.get("paeDocUrl"),
+        },
+        "evidence_note": (
+            "AlphaFold predictions are imported as attributed protein-structure objects. "
+            "They are not CACE proof evidence unless later checked by canonical CACE tools."
+        ),
     }
 
 
@@ -301,6 +442,28 @@ def validate_connection(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         return {"valid": reason is None, "reason": reason}
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/graphs/validate")
+def validate_graph(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        experiment = _experiment_from_payload(payload.get("experiment"))
+        order = GraphExecutor(_registry)._validate_and_order(experiment)
+        return {
+            "valid": True,
+            "reason": None,
+            "node_count": len(experiment.nodes),
+            "edge_count": len(experiment.edges),
+            "topological_order": order,
+            "disallowed_modules": [],
+        }
+    except (KeyError, TypeError, ValueError, ValidationError) as exc:
+        return {
+            "valid": False,
+            "reason": str(exc),
+            "node_count": 0,
+            "edge_count": 0,
+        }
 
 
 @app.post("/api/runs")
