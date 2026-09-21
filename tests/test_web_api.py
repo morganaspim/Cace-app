@@ -136,3 +136,23 @@ def test_async_browser_run_job_reaches_terminal_state():
     assert current["result"]["completed"] is True
     assert current["result"]["seed"] == 7
     assert current["result"]["experiment"] == "Browser Smoke"
+
+
+
+def test_local_ai_status_defaults_to_disabled(monkeypatch):
+    monkeypatch.setattr(web, "LOCAL_AI_ENABLED", False)
+    result = web.local_ai_status()
+    assert result["schema"] == "cace-local-ai-status-v1"
+    assert result["enabled"] is False
+    assert result["provider_health"] == "disabled"
+    assert result["boundary"]["ai_network_mode"] == "LOCAL_ZERO_CONTACT"
+    assert result["boundary"]["internet_access"] is False
+
+
+def test_local_ai_recompile_plan_is_plan_only():
+    plan = web.local_ai_recompile_plan()
+    assert plan["schema"] == "cace-ai-recompile-plan-v1"
+    assert plan["status"] == "plan-only"
+    assert plan["recompile_is_automatic"] is False
+    assert plan["ranked_training_sources"]
+    assert "automatic proof promotion" in plan["forbidden"]
