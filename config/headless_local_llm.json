@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "role": "cace-local-research-assistant",
+  "trust_role": "untrusted-informal-reasoner",
+  "provider": "llama-cpp",
+  "llm_endpoint": "http://127.0.0.1:8080/v1",
+  "cace_api_endpoint": "http://127.0.0.1:8765",
+  "model": {
+    "repo_id": "Qwen/Qwen3.5-4B",
+    "revision": "a7b0d22b993d71000cf2eadfb37222a67cee521e",
+    "quantization": "Q4_K_M",
+    "architecture": "Qwen3_5ForConditionalGeneration",
+    "frozen_base": true,
+    "weights_in_git": false
+  },
+  "llama_cpp": {
+    "tag": "v0.4.1",
+    "commit": "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "alias": "Qwen/Qwen3.5-4B"
+  },
+  "headless_cace": {
+    "host": "127.0.0.1",
+    "port": 8765,
+    "app": "api.index:app"
+  },
+  "safety": {
+    "public_bind_forbidden": true,
+    "download_at_runtime_forbidden": true,
+    "external_model_api_forbidden": true,
+    "llama_cpp_agent_mode_enabled": false,
+    "llm_may_mark_verified": false,
+    "llm_may_promote_claims": false,
+    "llm_may_modify_proof_ledger": false,
+    "llm_may_expand_authority": false
+  }
+}
