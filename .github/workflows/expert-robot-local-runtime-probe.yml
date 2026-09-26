@@ -154,8 +154,8 @@ jobs:
       - name: Upload observation artifact
         uses: actions/upload-artifact@v4
         with:
-          name: local-runtime-probe-36271408975
-          path: /home/runner/_work/_temp/local-runtime-probe/result.json
+          name: local-runtime-probe-36271902154
+          path: /home/runner/work/_temp/local-runtime-probe/result.json
           if-no-files-found: error
           retention-days: 1
 
