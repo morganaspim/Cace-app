@@ -1,0 +1,208 @@
+name: Expert Robot Local Runtime Probe
+
+on:
+  push:
+    branches:
+      - "expert-robot/headless-local-llm"
+    paths:
+      - "bridge/local-runtime-probe-request.json"
+      - ".github/workflows/expert-robot-local-runtime-probe.yml"
+
+concurrency:
+  group: expert-robot-local-runtime-probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      request_id: 
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Inspect local model/runtime inventory
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          request_id="$(python3 -c 'import json; print(json.load(open("bridge/local-runtime-probe-request.json"))["request_id"])')"
+          echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
+          out="$RUNNER_TEMP/local-runtime-probe"
+          mkdir -p "$out"
+
+          python3 - "$out/result.json" "$request_id" <<'PY'
+          import json
+          import os
+          import pathlib
+          import platform
+          import shutil
+          import subprocess
+          import sys
+
+          output = pathlib.Path(sys.argv[1])
+          request_id = sys.argv[2]
+
+          roots = []
+          for raw in (
+              "/opt",
+              "/srv",
+              "/var/lib/cace-cache",
+              os.environ.get("HOME", ""),
+              "/mnt",
+              "/models",
+              "/workspace",
+          ):
+              if raw:
+                  path = pathlib.Path(raw)
+                  if path.exists() and str(path) not in {str(x) for x in roots}:
+                      roots.append(path)
+
+          llama_candidates = []
+          gguf_candidates = []
+          max_results = 80
+
+          def add_unique(bucket, item):
+              if item not in bucket and len(bucket) < max_results:
+                  bucket.append(item)
+
+          direct = shutil.which("llama-server")
+          if direct:
+              add_unique(llama_candidates, direct)
+
+          for root in roots:
+              root_depth = len(root.parts)
+              for current, dirs, files in os.walk(root, topdown=True, followlinks=False):
+                  cur = pathlib.Path(current)
+                  depth = len(cur.parts) - root_depth
+                  if depth >= 5:
+                      dirs[:] = []
+                  dirs[:] = [
+                      d for d in dirs
+                      if d not in {".git", ".cache/pip", "node_modules", "__pycache__"}
+                  ]
+                  for name in files:
+                      p = cur / name
+                      lname = name.lower()
+                      if name == "llama-server":
+                          add_unique(llama_candidates, str(p))
+                      elif lname.endswith(".gguf"):
+                          try:
+                              st = p.stat()
+                          except OSError:
+                              continue
+                          add_unique(gguf_candidates, {
+                              "path": str(p),
+                              "size_bytes": st.st_size,
+                              "name": name,
+                          })
+                  if len(llama_candidates) >= max_results and len(gguf_candidates) >= max_results:
+                      break
+
+          llama = None
+          if llama_candidates:
+              path = llama_candidates[0]
+              version = ""
+              executable = os.access(path, os.X_OK)
+              if executable:
+                  try:
+                      result = subprocess.run(
+                          [path, "--version"],
+                          text=True,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT,
+                          timeout=15,
+                          check=False,
+                      )
+                      version = (result.stdout or "").strip()[-2000:]
+                  except Exception as exc:
+                      version = f"version probe failed: {exc}"
+              llama = {
+                  "path": path,
+                  "executable": executable,
+                  "version_output": version,
+              }
+
+          payload = {
+              "schema_version": 1,
+              "request_id": request_id,
+              "status": "observed",
+              "authority": "observation-only",
+              "promotion_authority": False,
+              "network_probe_performed": False,
+              "download_performed": False,
+              "machine": platform.node(),
+              "architecture": platform.machine(),
+              "llama_server": llama,
+              "llama_server_candidates": llama_candidates,
+              "gguf_candidates": gguf_candidates,
+          }
+          output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps({
+              "request_id": request_id,
+              "architecture": payload["architecture"],
+              "llama_server_found": llama is not None,
+              "gguf_count": len(gguf_candidates),
+          }, indent=2))
+          PY
+
+      - name: Upload observation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-runtime-probe-36271408975
+          path: /home/runner/_work/_temp/local-runtime-probe/result.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: expert-robot/headless-local-llm
+          persist-credentials: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: local-runtime-probe-*
+          path: "$RUNNER_TEMP/probe"
+          merge-multiple: true
+
+      - name: Validate and publish observation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$RUNNER_TEMP/probe/result.json"
+          python3 - "$RUNNER_TEMP/probe/result.json" <<'PY'
+          import json, re, sys
+          p=json.load(open(sys.argv[1], encoding="utf-8"))
+          assert p["schema_version"] == 1
+          assert re.fullmatch(r"runtime-discovery-[0-9]+", p["request_id"])
+          assert p["status"] == "observed"
+          assert p["authority"] == "observation-only"
+          assert p["promotion_authority"] is False
+          assert p["network_probe_performed"] is False
+          assert p["download_performed"] is False
+          PY
+
+          mkdir -p bridge
+          cp "$RUNNER_TEMP/probe/result.json" bridge/local-runtime-probe-result.json
+          git config user.name "cace-runtime-observer"
+          git config user.email "noreply@github.com"
+          git add bridge/local-runtime-probe-result.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Record local CACE runtime observation"
+          git push origin HEAD:expert-robot/headless-local-llm

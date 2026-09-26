@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "request_id": "runtime-discovery-36271408975",
+  "authority": "observation-only",
+  "promotion_authority": false,
+  "network_probe": false,
+  "download_allowed": false
+}

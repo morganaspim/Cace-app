@@ -1,0 +1,45 @@
+name: Expert Robot Actions Marker
+
+on:
+  push:
+    branches:
+      - "expert-robot/headless-local-llm"
+    paths:
+      - "bridge/actions-marker-request.json"
+      - ".github/workflows/expert-robot-actions-marker.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  mark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: expert-robot/headless-local-llm
+          persist-credentials: true
+
+      - name: Publish branch-actions marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          request_id="$(python3 -c 'import json; print(json.load(open("bridge/actions-marker-request.json"))["request_id"])')"
+          python3 - "$request_id" > bridge/actions-marker-result.json <<'PY'
+          import json, sys
+          print(json.dumps({
+              "schema_version": 1,
+              "request_id": sys.argv[1],
+              "status": "actions-triggered",
+              "runner": "github-hosted",
+          }, indent=2))
+          PY
+          git config user.name "cace-actions-marker"
+          git config user.email "noreply@github.com"
+          git add bridge/actions-marker-result.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Confirm CACE branch Actions trigger"
+          git push origin HEAD:expert-robot/headless-local-llm
