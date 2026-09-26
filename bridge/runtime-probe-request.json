@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "request_id": "runtime-discovery-36272330343",
+  "base_sha": "79f446997f0abd801a7d0fcbd29cc0f0abfae033",
+  "original_workflow_sha256": "e18572269d97fb0a761260c4bf1c0cb73b700b2f16faaee6d489693ab6d70eab",
+  "authority": "observation-only",
+  "promotion_authority": false,
+  "network_probe": false,
+  "download_allowed": false,
+  "workflow_restore_required": true
+}

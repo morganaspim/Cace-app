@@ -1,0 +1,127 @@
+name: CACE Python regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [executor/cace-regression-locked]
+    paths:
+      - '.github/workflows/cace-python-regression.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+jobs:
+  regression:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Establish exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          printf '%s\n' "$GITHUB_SHA" > regression-exact-head.txt
+          printf 'exact_head=%s\n' "$GITHUB_SHA"
+      - name: Enforce repository-wide CACE Actions serialization
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/cace_actions_serialization_guard.py --current-run-id "${GITHUB_RUN_ID}"
+      - name: Enforce repository-wide CACE Actions policy
+        run: python scripts/audit_cace_actions_policy.py
+      - name: Validate collaboration record structure and hashes
+        run: python scripts/verify_collaboration_records.py
+      - name: Validate collaboration lifecycle
+        run: python scripts/validate_collaboration_lifecycle.py
+      - name: Ensure native C++ toolchain on durable runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v c++ >/dev/null 2>&1; then c++ --version; exit 0; fi
+          run_root() { if command -v sudo >/dev/null 2>&1; then sudo "$@"; else "$@"; fi; }
+          if command -v dnf >/dev/null 2>&1; then run_root dnf -y install gcc-c++
+          elif command -v yum >/dev/null 2>&1; then run_root yum -y install gcc-c++
+          elif command -v microdnf >/dev/null 2>&1; then run_root microdnf install -y gcc-c++
+          elif command -v apt-get >/dev/null 2>&1; then run_root apt-get update; run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y g++
+          else echo 'No supported package manager found for C++ compiler bootstrap.' >&2; exit 1; fi
+          command -v c++; c++ --version
+      - name: Isolated Python and full regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/0.12.13/install.sh | env UV_INSTALL_DIR="$RUNNER_TEMP/cace-uv" UV_NO_MODIFY_PATH=1 sh
+          "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-regression"
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip install -e '.[test]' cmake
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip freeze > regression-environment.txt
+          echo "$RUNNER_TEMP/cace-regression/bin" >> "$GITHUB_PATH"
+      - name: Repository bug sweep
+        id: bug_sweep
+        continue-on-error: true
+        run: python scripts/check_bug_sweep.py --output bug-sweep.json
+      - name: Native C++ build and smoke test
+        run: cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release && cmake --build cpp/build --parallel 2 && ctest --test-dir cpp/build --output-on-failure
+      - name: Generate deterministic AI navigation indexes
+        run: python scripts/generate_ai_indexes.py && python scripts/generate_ai_indexes.py --check
+      - name: Full Python regression with native library available
+        id: python_tests
+        continue-on-error: true
+        run: python -m pytest --junitxml=regression-results.xml
+      - name: Qualification drift audit
+        id: qualification_drift
+        continue-on-error: true
+        run: python scripts/check_qualification_drift.py --output qualification-drift.json
+      - name: Core regression acceptance gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail; failed=0
+          [[ "${{ steps.bug_sweep.outcome }}" == success ]] || failed=1
+          [[ "${{ steps.python_tests.outcome }}" == success ]] || failed=1
+          [[ "${{ steps.qualification_drift.outcome }}" == success ]] || failed=1
+          exit "$failed"
+      - name: Build Python wheel and check installed interfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/cace-regression/bin/python" -m pip wheel --no-deps . -w dist
+          "$RUNNER_TEMP/cace-uv/uv" venv --seed --python 3.13.15 "$RUNNER_TEMP/cace-wheel"
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m cace_studio.cli registry > "$GITHUB_WORKSPACE/wheel-registry.json"
+          "$RUNNER_TEMP/cace-wheel/bin/cace-attest" --help > "$GITHUB_WORKSPACE/wheel-attest-help.txt"
+      - name: Check installed optional attestation extra
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/cace-wheel/bin/python" -m pip install 'cryptography>=50.0.1,<51'
+          key_root="$RUNNER_TEMP/cace-wheel-attestation-smoke"; rm -rf -- "$key_root"; mkdir -p "$key_root"
+          "$RUNNER_TEMP/cace-wheel/bin/cace-attest" keygen --private-key "$key_root/verifier.key" --public-key "$key_root/verifier.pub" > "$GITHUB_WORKSPACE/wheel-attest-keygen.json"
+          test -s "$key_root/verifier.key"; test -s "$key_root/verifier.pub"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: cace-regression-evidence
+          path: |
+            regression-exact-head.txt
+            bug-sweep.json
+            regression-results.xml
+            regression-environment.txt
+            wheel-registry.json
+            wheel-attest-help.txt
+            wheel-attest-keygen.json
+            qualification-drift.json
+            MODULE_CATALOG.json
+            CLAIM_CATALOG.json
+            PROOF_DEPENDENCY_GRAPH.json
+            SOURCE_INDEX.json
+            generated/CACE_SOURCE_CONTEXT.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success()
+        with:
+          name: cace-python-wheel
+          path: dist/*.whl
