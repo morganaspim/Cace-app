@@ -66,6 +66,14 @@ python3 python/cace_headless.py chat "What can CACE help us verify?"
 python3 python/cace_headless.py modules
 python3 python/cace_headless.py claims
 python3 python/cace_headless.py research-turn "Propose the next exact geometry experiment."
+python3 python/cace_headless.py smoke-run
+python3 python/cace_headless.py e2e-smoke
 ```
 
 `research-turn` supplies high-level CACE context to the LLM but does not execute any proposed action automatically.
+
+## Acceptance smoke
+
+`smoke-run` submits the same empty experiment shape used by CACE's own web API tests. It exercises the canonical executor and run-report path with no nodes, no proof mutation, GPU disabled, and `proof_effect: none`.
+
+`e2e-smoke` additionally checks the local model endpoint, requests one short untrusted assistant response, then performs the empty CACE run. A successful assistant response is never treated as verification evidence.

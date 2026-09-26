@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config" / "headless_local_llm.json"
 LAUNCHER = ROOT / "scripts" / "run_cace_headless_local.sh"
+PROVISION = ROOT / "config" / "model_provision_policy.json"
 
 
 def main() -> int:
@@ -19,6 +20,16 @@ def main() -> int:
     assert payload["model"]["repo_id"] == "Qwen/Qwen3.5-4B"
     assert payload["model"]["revision"] == "a7b0d22b993d71000cf2eadfb37222a67cee521e"
     assert payload["llama_cpp"]["commit"] == "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4"
+
+    provision = json.loads(PROVISION.read_text(encoding="utf-8"))
+    assert provision["schema_version"] == 1
+    assert provision["source"]["repository"] == "Qwen/Qwen3.5-4B"
+    assert provision["source"]["revision"] == "a7b0d22b993d71000cf2eadfb37222a67cee521e"
+    assert provision["source"]["license"] == "Apache-2.0"
+    assert provision["converter"]["commit"] == "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4"
+    assert provision["converter"]["target_quantization"] == "Q4_K_M"
+    assert provision["artifact_policy"]["third_party_quantization_default_allowed"] is False
+    assert provision["phases"]["runtime"]["network_allowed"] is False
 
     safety = payload["safety"]
     assert safety["public_bind_forbidden"] is True
