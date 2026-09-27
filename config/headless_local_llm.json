@@ -33,6 +33,9 @@
     "llm_may_mark_verified": false,
     "llm_may_promote_claims": false,
     "llm_may_modify_proof_ledger": false,
-    "llm_may_expand_authority": false
+    "llm_may_expand_authority": false,
+    "llm_may_execute_typed_cace_calls": false,
+    "model_sha256_required_at_runtime": true,
+    "llama_server_sha256_required_at_runtime": true
   }
 }

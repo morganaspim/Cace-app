@@ -4,7 +4,10 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  CACE_MODEL_GGUF=/abs/path/model.gguf [CACE_LLAMA_SERVER_BIN=/abs/path/llama-server] \
+  CACE_MODEL_GGUF=/abs/path/model.gguf \
+  CACE_MODEL_GGUF_SHA256=<64-lowercase-hex> \
+  CACE_LLAMA_SERVER_BIN=/abs/path/llama-server \
+  CACE_LLAMA_SERVER_SHA256=<64-lowercase-hex> \
     scripts/run_cace_headless_local.sh
 
 Optional environment:
@@ -38,12 +41,34 @@ if [[ ! -f "$model" ]]; then
   exit 2
 fi
 
+expected_model_sha="${CACE_MODEL_GGUF_SHA256:-}"
+if ! [[ "$expected_model_sha" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "CACE_MODEL_GGUF_SHA256 is required and must be 64 lowercase hex characters." >&2
+  exit 2
+fi
+actual_model_sha="$(sha256sum "$model" | awk '{print $1}')"
+if [[ "$actual_model_sha" != "$expected_model_sha" ]]; then
+  echo "CACE model SHA-256 mismatch." >&2
+  exit 2
+fi
+
 llama_bin="${CACE_LLAMA_SERVER_BIN:-}"
 if [[ -z "$llama_bin" ]]; then
   llama_bin="$(command -v llama-server || true)"
 fi
 if [[ -z "$llama_bin" || ! -x "$llama_bin" ]]; then
   echo "llama-server not found. Set CACE_LLAMA_SERVER_BIN to the pinned local binary." >&2
+  exit 2
+fi
+
+expected_llama_sha="${CACE_LLAMA_SERVER_SHA256:-}"
+if ! [[ "$expected_llama_sha" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "CACE_LLAMA_SERVER_SHA256 is required and must be 64 lowercase hex characters." >&2
+  exit 2
+fi
+actual_llama_sha="$(sha256sum "$llama_bin" | awk '{print $1}')"
+if [[ "$actual_llama_sha" != "$expected_llama_sha" ]]; then
+  echo "llama-server SHA-256 mismatch." >&2
   exit 2
 fi
 
@@ -64,8 +89,8 @@ fi
 
 log_dir="${CACE_HEADLESS_LOG_DIR:-runtime/headless}"
 mkdir -p "$log_dir"
-model_sha="$(sha256sum "$model" | awk '{print $1}')"
-printf '%s\n' "$model_sha" > "$log_dir/model.sha256"
+printf '%s\n' "$actual_model_sha" > "$log_dir/model.sha256"
+printf '%s\n' "$actual_llama_sha" > "$log_dir/llama-server.sha256"
 
 llama_args=(
   -m "$model"

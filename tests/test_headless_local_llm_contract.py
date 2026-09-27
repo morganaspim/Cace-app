@@ -18,17 +18,33 @@ def main() -> int:
     assert payload["llm_endpoint"] == "http://127.0.0.1:8080/v1"
     assert payload["cace_api_endpoint"] == "http://127.0.0.1:8765"
     assert payload["model"]["repo_id"] == "Qwen/Qwen3.5-4B"
-    assert payload["model"]["revision"] == "a7b0d22b993d71000cf2eadfb37222a67cee521e"
-    assert payload["llama_cpp"]["commit"] == "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4"
-
+    assert (
+        payload["model"]["revision"]
+        == "a7b0d22b993d71000cf2eadfb37222a67cee521e"
+    )
+    assert (
+        payload["llama_cpp"]["commit"]
+        == "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4"
+    )
     provision = json.loads(PROVISION.read_text(encoding="utf-8"))
     assert provision["schema_version"] == 1
     assert provision["source"]["repository"] == "Qwen/Qwen3.5-4B"
-    assert provision["source"]["revision"] == "a7b0d22b993d71000cf2eadfb37222a67cee521e"
+    assert (
+        provision["source"]["revision"]
+        == "a7b0d22b993d71000cf2eadfb37222a67cee521e"
+    )
     assert provision["source"]["license"] == "Apache-2.0"
-    assert provision["converter"]["commit"] == "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4"
+    assert (
+        provision["converter"]["commit"]
+        == "b29c606e28a01b1bc8c1351026a0fa6e616bf6c4"
+    )
     assert provision["converter"]["target_quantization"] == "Q4_K_M"
-    assert provision["artifact_policy"]["third_party_quantization_default_allowed"] is False
+    assert (
+        provision["artifact_policy"][
+            "third_party_quantization_default_allowed"
+        ]
+        is False
+    )
     assert provision["phases"]["runtime"]["network_allowed"] is False
 
     safety = payload["safety"]
@@ -36,10 +52,13 @@ def main() -> int:
     assert safety["download_at_runtime_forbidden"] is True
     assert safety["external_model_api_forbidden"] is True
     assert safety["llama_cpp_agent_mode_enabled"] is False
+    assert safety["llm_may_execute_typed_cace_calls"] is False
     assert safety["llm_may_mark_verified"] is False
     assert safety["llm_may_promote_claims"] is False
     assert safety["llm_may_modify_proof_ledger"] is False
     assert safety["llm_may_expand_authority"] is False
+    assert safety["model_sha256_required_at_runtime"] is True
+    assert safety["llama_server_sha256_required_at_runtime"] is True
 
     script = LAUNCHER.read_text(encoding="utf-8")
     assert "--host 127.0.0.1" in script
@@ -47,7 +66,12 @@ def main() -> int:
     assert "--port 8765" in script
     assert "--alias Qwen/Qwen3.5-4B" in script
     assert "CACE_MODEL_GGUF is required" in script
-    assert "sha256sum" in script
+    assert "CACE_MODEL_GGUF_SHA256 is required" in script
+    assert "CACE_LLAMA_SERVER_SHA256 is required" in script
+    assert 'actual_model_sha="$(sha256sum "$model"' in script
+    assert 'actual_llama_sha="$(sha256sum "$llama_bin"' in script
+    assert "CACE model SHA-256 mismatch" in script
+    assert "llama-server SHA-256 mismatch" in script
 
     forbidden = (
         "0.0.0.0",
@@ -59,7 +83,9 @@ def main() -> int:
         "git clone",
     )
     for marker in forbidden:
-        assert marker not in script, f"forbidden headless runtime marker: {marker}"
+        assert marker not in script, (
+            f"forbidden headless runtime marker: {marker}"
+        )
 
     print("CACE headless local LLM contract: PASS")
     return 0
