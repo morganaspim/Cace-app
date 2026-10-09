@@ -9,3 +9,5 @@ Reject unfinished CACE proof source; test rejection of an invalid upper certific
 Only after standalone success move the module to the audited root allowlist and compile root and audits.
 Runtime source-to-formal object identity remains an explicit theorem hypothesis; arbitrary Python/C++ data is not promoted.
 Canonical public claim promotion stays separate and requires the existing qualification gate.
+
+Standalone gate passed on Avrea run 37964075374 at CACE source 6739fa312c0b75f05212af565b5a9514c2373114. All seven targets compiled and used only propext, Classical.choice, Quot.sound. This commit adds audited-root reachability and a Lean.Environment metadata exporter. Full-root qualification must still run at this new exact commit. No canonical runtime claim is promoted by this document.

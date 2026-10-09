@@ -69,3 +69,5 @@ import CACEFormal.HDivDensityReduction
 import CACEFormal.Generated.DiscreteInstance
 import CACEFormal.Generated.V323MeshCertificate
 import CACEFormal.Generated.V324AssemblyInstance
+
+import CACEFormal.CertifiedIntervalBounds

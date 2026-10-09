@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "lean_toolchain": "leanprover/lean4:v4.32.1",
+  "mathlib_commit": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+  "leancert_commit": "8a0104b8a8472e3c4695791c0671d89a37ae404f",
+  "module": "CACEFormal.CertifiedIntervalBounds",
+  "standalone_source_commit": "6739fa312c0b75f05212af565b5a9514c2373114",
+  "standalone_run": 37964075374,
+  "canonical_runtime_claim_promoted": false
+}
