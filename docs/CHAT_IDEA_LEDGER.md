@@ -137,3 +137,8 @@ When searching for additional older ideas, prioritize these Library files:
 - prior exact-continuation/remaining-plan handoffs
 
 If a future chat recovers a meritorious idea that is not represented above or in the goal registry, append it with a new stable I-ID rather than overwriting history.
+
+
+## External checked interval proof intake — 2026-10-09
+
+G062 / A-B-I: reuse a pinned compatible LeanCert soundness layer for explicit residual and SPD energy enclosure hypotheses. Quarantine, kernel axiom audit, audited-root integration, and canonical qualification remain distinct gates. Runtime data needs an exact expression bridge. Latest LeanCert v4.34.1 smoke passed separately on Avrea run 37962666734; it does not qualify this compatible candidate.
