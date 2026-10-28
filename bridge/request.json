@@ -1,0 +1,12 @@
+{
+  "schema_version": 2,
+  "request_id": "expert-robot-40619321477-8e62a4e505a584052a29ae917239f0b79f661dbb",
+  "expert_robot_commit": "8e62a4e505a584052a29ae917239f0b79f661dbb",
+  "archive_size_bytes": 264494,
+  "archive_sha256": "7e5ac2a17aa4a31aa85844f7e5363cce04225dc46b4fde848bae33b7a8dd251b",
+  "source_branch": "feat/residual-lean-audit-20261027",
+  "return_repository": "Mannyspiro/expert-robot",
+  "requested_lane": "cace-oci-aarch64",
+  "authority": "qualification-only",
+  "monetary_cost": "free"
+}
