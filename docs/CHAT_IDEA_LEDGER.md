@@ -123,6 +123,11 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I090 | Historical occult and anomalous-claims epistemic atlas | Interpret historical traditions and mysteries in cultural context; separate original testimony, source provenance, metaphor, counterfactual simulation, unresolved anomaly and experimentally supported explanation. | G079 |
 | I091 | AI pioneers and historical-critical learning across disciplines | Use original historical problems, documented rather than invented pioneer motives, first-principles reconstruction, Feynman teach-back, strongest skeptic counterexample and measurable held-out learning performance. | G079 |
 
+| I092 | requirements-first investigative engineering | Require a typed task EngineeringSpec (scope, inputs, constraints, output, falsification and acceptance tests, capability registry, permissions and rollback) before autonomous planning. | G080 |
+| I093 | evidence-dependent abductive hypothesis atlas | Preserve observed-versus-inferred records, source genealogy and copy dependence, ranked rival mechanisms plus OTHER_UNMODELED, negative controls and uncertainty without invented truth probabilities. | G080 |
+| I094 | contextual logical-lens overlays | Route inquiry through deductive, inductive, abductive, mathematical, Bayesian/fuzzy, geospatial, historical, cultural, ethical, power, engineering, source-bias and fallacy lenses; overlays allocate attention but cannot alter canonical evidence or permissions. | G080 |
+| I095 | project-only skill and case-based math memory | Package an installable skill with user-source project intent, math formula meanings, historical-pioneer and Feynman teach-back examples, incomplete-source notices, branch-aware source pointers and reviewable corrections; distinguish portable ChatGPT prompt from actual account configuration. | G081 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
