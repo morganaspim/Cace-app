@@ -26,7 +26,9 @@ jobs:
         run: python -m pytest -q --junitxml=pytest-results.xml
       - name: Generate scientific result record
         working-directory: research/iteration40
-        run: python free_runner_physics.py > result.json
+        run: |
+          python free_runner_physics.py > result.json
+          python vaidya_horizons.py > horizon_results.json
       - name: Publish evidence artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -34,6 +36,7 @@ jobs:
           name: merlin-iteration40-${{ github.sha }}
           path: |
             research/iteration40/result.json
+            research/iteration40/horizon_results.json
             research/iteration40/pytest-results.xml
           retention-days: 7
           if-no-files-found: warn
