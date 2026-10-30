@@ -472,3 +472,17 @@ Science-module direction:
 - approximately 100 curated high-value examples as a long-term target.
 
 This program is architecture/implementation intent only and does not alter existing proof qualification state.
+
+## Addendum — October 30, 2026: M.E.R.L.I.N. v15 investigative advisory
+
+**This is a navigation snapshot, NOT verified science, repository release or formal qualification.** Confirm live commit/Actions before any decision. PR #81 https://github.com/morganaspim/Cace-app/pull/81 remains draft, not merged, on branch research/merlin-ideonomy-20261030. Last inspected head: ef9a7fb91c197f23f4ab9439cc4a5455afd1fc92; three Vercel checks reported PENDING, and the pull-request workflow-run lookup returned an empty list. Absence of such runs is not evidence that other CI passed or failed. Later source changes may supersede this SHA.
+
+Current research branch includes G078–G081, I088–I096, an agent-discoverable project investigation skill, Ideonomy and project-only partial context summaries, cace_studio/ai/investigation.py and tests/test_ai_investigation_v15.py, plus docs/research/MERLIN_INVESTIGATION_ADVISORY_V15.md.
+
+Local test-driven development verified 56 v14+v15 tests and 24 prior v13 intent tests in separate environments. A first inherited-test run failed because tests were launched with the wrong package root; it was corrected by running them in the prior_intent_v13 directory, without weakening assertions. A subsequent restriction-audit test exposed mistaken trust in an arbitrary receipt string; the implementation was revised to require a separately trusted list of authenticated receipts. The candidate source and tests were matched to the review branch byte-for-byte using Git blob hashes. These are engineering checks only.
+
+**Next gates:** (1) ensure exact-head CI/test execution in the repository; (2) inspect and sandbox the read-only capability bus, because a Python handler's declared effect is NOT enforcement; (3) benchmark on held-out investigations against a minimal baseline; (4) connect approved advisory code to the canonical CACE Research Notebook and typed API; (5) preserve proof/evidence nonpromotion and no automatic runner or device control. Do not merge automatically.
+
+**Censorship epistemics:** Record specific observable restrictions with their own source, timestamp and authenticated provider receipt when available. A 404, refusal, missing tool, inaccessible repository, missing data or generic API error does not prove suppression or the reason for it. Reframe research lawfully where possible; no bypassing security or service permissions. An IterationLedger proposes only bounded changed-evidence or changed-action replanning and grants no execution authority.
+
+The raw entire MCFC–CACE chat archive has NOT been verified as fully exported. Chat/context summaries and skill notes are partial, source-scoped memory; project goals/idea ledger and current checked-in source remain distinct authorities.
