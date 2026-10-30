@@ -130,6 +130,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I096 | auditable research failure and bounded revision | Preserve a blockage taxonomy that distinguishes generic failures from authenticated policy restrictions, plus a change-aware bounded iteration ledger that records observed progress, prevents unchanged retries and never grants proof, censorship attribution or external-action authority. | G080 |
 
+| I097 | controlled in-memory scientific snapshot inquiry | Introduce a host-created field-allowlisted in-memory record broker with bounded select/count/group operations, explicit plan-time and execute-time dataset permission checks, copied inputs, scoped CI coverage, and no model-supplied executable code; declare small-cell suppression insufficient for formal differential privacy and host grants independent of model-authored permissions. | G080, G081 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
