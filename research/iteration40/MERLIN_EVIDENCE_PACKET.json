@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "project": "MCFC-CACE/MERLIN",
+  "iteration": 40,
+  "sources": {
+    "research_branch": "research/iteration40-merlin-free-runner-20261029",
+    "research_commit": "5ca29debe18e92ff2cfeda97349d764d0d88c4f4",
+    "github_repository": "morganaspim/Cace-app"
+  },
+  "verification": [
+    {
+      "id": "ellis_exact_cauchy",
+      "class": "NUMERICAL_HOSTED",
+      "status": "PASS",
+      "tests_in_same_job": 9,
+      "github_run": 41016137638,
+      "code_commit": "5ca29debe18e92ff2cfeda97349d764d0d88c4f4",
+      "limitation": "Static exact boundaries; no independent nonlinear ghost perturbation"
+    },
+    {
+      "id": "vaidya_exact_dynamic",
+      "class": "EXACT_SYMBOLIC_AND_NUMERICAL_HOSTED",
+      "status": "PASS",
+      "github_run": 41016137638,
+      "limitation": "Specified future-stationary null-dust spacetime; not a ghost-scalar wormhole"
+    },
+    {
+      "id": "nonlinear_ghost_study",
+      "class": "LOCAL_NUMERICAL",
+      "status": "PASS_31_TESTS",
+      "limitation": "Finite characteristic domain; perturbed Cauchy boundaries reference-conditioned"
+    },
+    {
+      "id": "ellis_vaidya_lean_algebra",
+      "class": "LEAN_KERNEL_CONDITIONAL",
+      "status": "PASS",
+      "github_run": 41012250071,
+      "code_commit": "7c9645339e1c954b370f5c0b9987261baba25dc5",
+      "number_of_theorems": 9,
+      "trusted_axiom_audit": "NOT_RUN",
+      "limitation": "No continuum PDE proof; no source-to-formal runtime binding"
+    }
+  ],
+  "claims": {
+    "fully_independent_nonlinear_perturbation": false,
+    "global_event_horizon_in_ghost_wormhole_proved": false,
+    "stable_traversable_wormhole_proved": false,
+    "theory_of_everything_proved": false,
+    "glyph_hardware_verified": false,
+    "live_merlin_ingestion_completed": false,
+    "cace_proof_promotion": false
+  },
+  "next_gate": "Independent nonlinear perturbed Einstein-matter initial/boundary formulation; exact-head kernel audit; mass/horizon convergence and published model comparison."
+}
