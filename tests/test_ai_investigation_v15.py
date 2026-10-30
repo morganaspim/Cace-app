@@ -6,7 +6,7 @@ import unittest
 
 from cace_studio.ai.investigation import (
     Blockage, BlockageKind, ClaimStatus, EngineeringSpec, Evidence, Hypothesis,
-    Investigator, Outcome, PlanState, ResearchError, Tool,
+    Investigator, Outcome, PlanState, ResearchError, Tool, IterationLedger,
     evaluate_hypotheses, audit_blockage, choose_lenses,
 )
 
@@ -153,6 +153,41 @@ class BlockageTransparencyTests(unittest.TestCase):
         report = audit_blockage(Blockage(BlockageKind.CONTENT_RESTRICTION,
                  "Explicit classification", "policy-42"))
         self.assertFalse(report["intent_or_motive_established"])
+
+
+
+class IterationLearningTests(unittest.TestCase):
+    def test_continue_only_when_new_observation_or_reframed_action(self):
+        ledger = IterationLedger(max_attempts=3)
+        a = ledger.propose("source-check", "a" * 64, "Initial 404 observed")
+        self.assertEqual(a.status, "CONTINUE_WITH_REVIEW")
+        self.assertFalse(a.evidence_authority)
+        stale = ledger.propose("source-check", "a" * 64, "Same observation, new words")
+        self.assertEqual(stale.status, "HOLD_NO_NEW_OBSERVATION")
+        self.assertEqual(len(ledger.records), 1)
+        b = ledger.propose("alternate-archive", "a" * 64, "Different authorized source checked")
+        self.assertEqual(b.status, "CONTINUE_WITH_REVIEW")
+        c = ledger.propose("source-check", "b" * 64, "New screenshot from independent archive")
+        self.assertEqual(c.status, "CONTINUE_WITH_REVIEW")
+        self.assertEqual(len(ledger.records), 3)
+        exhausted = ledger.propose("third-source", "c" * 64, "Fourth test proposed")
+        self.assertEqual(exhausted.status, "STOP_BUDGET")
+
+    def test_invalid_or_nontraceable_iteration_record_rejected(self):
+        ledger = IterationLedger(max_attempts=1)
+        for action, digest, note in ((" ", "a" * 64, "progress"),
+                                     ("check", "not-a-hash", "progress"),
+                                     ("check", "b" * 64, " ")):
+            with self.assertRaises(ResearchError):
+                ledger.propose(action, digest, note)
+        with self.assertRaises(ResearchError): IterationLedger(max_attempts=0)
+
+    def test_an_attempt_is_never_a_proof_or_an_execution_authority(self):
+        ledger = IterationLedger(max_attempts=2)
+        r = ledger.propose("local-test", "0" * 64, "Hypothesis rejected by negative control")
+        self.assertEqual(r.proof_status, "NOT_RUN")
+        self.assertEqual(r.hardware_status, "NOT_MEASURED")
+        self.assertEqual(r.authorization_status, "NONE_GRANTED")
 
 
 if __name__ == '__main__': unittest.main()
