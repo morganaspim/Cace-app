@@ -1,0 +1,39 @@
+name: MERLIN MCFC-CACE Iteration 40 Hosted Research Gates
+on:
+  push:
+    branches:
+      - research/iteration40-merlin-free-runner-20261029
+    paths:
+      - 'research/iteration40/**'
+      - '.github/workflows/merlin-iteration40-free-runner.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  physics-benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install scientific dependencies
+        run: |
+          python -m pip install 'numpy>=2,<3' 'scipy>=1.14,<2' 'sympy>=1.13,<2' 'pytest>=8,<10'
+      - name: Run analytic-boundary and Vaidya tests
+        working-directory: research/iteration40
+        run: python -m pytest -q --junitxml=pytest-results.xml
+      - name: Generate scientific result record
+        working-directory: research/iteration40
+        run: python free_runner_physics.py > result.json
+      - name: Publish evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merlin-iteration40-${{ github.sha }}
+          path: |
+            research/iteration40/result.json
+            research/iteration40/pytest-results.xml
+          retention-days: 7
+          if-no-files-found: warn
