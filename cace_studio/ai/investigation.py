@@ -355,3 +355,52 @@ class Investigator:
             summary = "result received (not verified)" if result is not None else "empty result (not verified)"
             receipts.append(Receipt(step.tool_id, step.capability, "ADVISORY_RESULT", summary))
         return ResearchResult(Outcome.COMPLETED_ADVISORY, receipts=tuple(receipts))
+
+
+
+@dataclass(frozen=True)
+class IterationDecision:
+    action_id: str
+    state_fingerprint: str
+    learning_note: str
+    status: str
+    evidence_authority: bool = False
+    proof_status: str = "NOT_RUN"
+    hardware_status: str = "NOT_MEASURED"
+    authorization_status: str = "NONE_GRANTED"
+
+
+class IterationLedger:
+    """Bounded *proposals* for continuing research after an observed change.
+
+    Fingerprints are caller-supplied identifiers, NOT trusted evidence digests.
+    An accepted note marks a new inquiry attempt, NOT learned scientific truth.
+    This class cannot run an agent, loop in the background, or approve actions.
+    """
+
+    def __init__(self, *, max_attempts: int = 8) -> None:
+        if not isinstance(max_attempts, int) or not 1 <= max_attempts <= 32:
+            raise ResearchError("max_attempts must be between 1 and 32")
+        self.max_attempts = max_attempts
+        self._records: list[IterationDecision] = []
+        self._seen: set[tuple[str, str]] = set()
+
+    @property
+    def records(self) -> tuple[IterationDecision, ...]:
+        return tuple(self._records)
+
+    def propose(self, action_id: str, state_fingerprint: str, learning_note: str) -> IterationDecision:
+        _require_text(action_id, "action id", limit=128)
+        _require_text(learning_note, "learning note", limit=2048)
+        if not isinstance(state_fingerprint, str) or len(state_fingerprint) != 64 or any(c not in "0123456789abcdef" for c in state_fingerprint):
+            raise ResearchError("state fingerprint must have lowercase SHA-256 format")
+        base = dict(action_id=action_id, state_fingerprint=state_fingerprint, learning_note=learning_note)
+        if len(self._records) >= self.max_attempts:
+            return IterationDecision(**base, status="STOP_BUDGET")
+        key = (action_id, state_fingerprint)
+        if key in self._seen:
+            return IterationDecision(**base, status="HOLD_NO_NEW_OBSERVATION")
+        self._seen.add(key)
+        record = IterationDecision(**base, status="CONTINUE_WITH_REVIEW")
+        self._records.append(record)
+        return record
