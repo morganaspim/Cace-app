@@ -240,5 +240,4 @@ class PermissionGateTests(unittest.TestCase):
                  required_permission="unspecified_external_network")
 
 
-
 if __name__ == '__main__': unittest.main()
