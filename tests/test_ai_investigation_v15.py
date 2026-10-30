@@ -155,7 +155,6 @@ class BlockageTransparencyTests(unittest.TestCase):
         self.assertFalse(report["intent_or_motive_established"])
 
 
-
 class IterationLearningTests(unittest.TestCase):
     def test_continue_only_when_new_observation_or_reframed_action(self):
         ledger = IterationLedger(max_attempts=3)
