@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import math
 import re
+import hashlib
+import json
 from typing import Any, Mapping, Sequence
 
 class BrokerError(ValueError):
@@ -36,7 +38,7 @@ def _value(value: Any) -> Any:
 
 
 def _matches(row: dict[str, Any], where: Mapping[str, Any]) -> bool:
-    return all(type(row.get(k)) is type(v) and row.get(k) == v for k,v in where.items())
+    return all(k in row and type(row[k]) is type(v) and row[k] == v for k,v in where.items())
 
 class SnapshotBroker:
     """Host-created immutable-snapshot query API. Not an OS-level security boundary."""
@@ -70,6 +72,24 @@ class SnapshotBroker:
                 output.append({field:_value(v) for field,v in row.items()})
             self._data[name]=tuple(output)
             self._fields[name]=frozenset(fields)
+
+    def snapshot_sha256(self, dataset: str) -> str:
+        """Content identity of the currently held immutable scalar snapshot.
+
+        A matching hash is not proof of sensor authenticity, independence,
+        correctness or authorization.
+        """
+        _identifier(dataset, 'dataset')
+        if dataset not in self._data:
+            raise BrokerError('unknown dataset')
+        payload = {
+            'schema': sorted(self._fields[dataset]),
+            'records': list(self._data[dataset]),
+            'schema_version': 1,
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(',', ':'),
+                             allow_nan=False, ensure_ascii=False).encode('utf-8')
+        return hashlib.sha256(encoded).hexdigest()
 
     def _check(self,dataset:str,fields: Sequence[str],where:Mapping[str, Any]|None):
         _identifier(dataset,'dataset')

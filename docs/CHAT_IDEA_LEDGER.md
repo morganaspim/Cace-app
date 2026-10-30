@@ -143,6 +143,9 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I104 | discrete moving mesh geometric conservation controls | For an affine dynamic chart x=M(t)q+b(t), verify Jacobian, induced metric and geometric conservation identity ∂t det(M)=div_q(det(M) M^-1 partial_t F); test singularities, finite differences and model-vs-physical dynamics. | G083, G084 |
 | I105 | independently testable council-guided classical benchmark | Use the original six-role M.E.R.L.I.N. local council to generate falsifiable frame test proposals and negative controls, but keep character dialogue non-evidentiary; require source-origin independent test logs before adoption. | G080, G081, G084 |
 
+| I106 | one-shot host-issued least-privilege source snapshots | Bind advisory tool selection to host-owned session/dataset/fields/filter rights, short-lived single-use opaque query capabilities, revocation and snapshot content identity; eliminate inference of permissions from the council's self-reported EngineeringSpec, and keep returns advisory. | G080, G085 |
+| I107 | null-vs-missing evidence distinction | Missing schema keys must not match explicitly null values in exact equality filters; register the regression as a broader data-integrity and source-observation failure class without asserting sensor correctness or differential privacy. | G085 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

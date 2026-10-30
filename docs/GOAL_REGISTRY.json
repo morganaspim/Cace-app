@@ -1265,6 +1265,21 @@
         "All numerical results are model-relative; generated council observations and synthetic sample values do not grant physical, Lean or production evidence authority.",
         "Research code is test-driven, review-only, isolated from canonical C++/Lean semantics and included in scoped PR CI; broader exact-head regression and release remain separate."
       ]
+    },
+    {
+      "id": "G085",
+      "category": "ai_security",
+      "priority": 85,
+      "intent_status": "required",
+      "title": "Host-issued one-shot dataset capabilities for M.E.R.L.I.N. investigation",
+      "summary": "Separate authenticated host-defined dataset/session grants from model-authored EngineeringSpec permissions; bind one-use fixed source-snapshot queries with TTL, revocation, least-privilege fields and provenance while keeping AI outside evidence/proof authority.",
+      "acceptance": [
+        "Host-issued opaque tokens bind to a valid session, dataset identity and fixed query; guessing, replay, cross-session use, expiry and revocation fail closed.",
+        "Source identity and content SHA-256 are preserved as provenance only, not scientific correctness or independent source validation.",
+        "Query field/filter/operation/output limits are host-defined; arbitrary model-generated query language and code execution are unavailable.",
+        "Existing snapshot broker distinguishes absent keys from explicit null in equality filtering, with a permanent regression.",
+        "Selected exact-commit PR tests and canonical bug sweep pass; authenticated principal/session integration, isolation and full CACE release qualification remain separately reviewed."
+      ]
     }
   ]
 }
