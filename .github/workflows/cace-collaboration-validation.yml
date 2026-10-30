@@ -99,7 +99,9 @@ jobs:
             tests/test_rmk_formal_qualification.py \
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
-            tests/test_qualification_promotion_v339.py
+            tests/test_qualification_promotion_v339.py \
+            tests/test_ai_investigation_v15.py \
+            tests/test_ai_snapshot_broker_v16.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
