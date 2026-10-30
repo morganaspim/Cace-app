@@ -1,0 +1,27 @@
+name: MCFC Iteration 38 Lean kernel pilot
+on:
+  push:
+    branches:
+      - research/iteration38-lean-check-20261029
+  pull_request:
+    paths:
+      - 'research/iteration38_lean/**'
+      - '.github/workflows/mcfc-iteration38-lean-kernel.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lean-kernel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: research/iteration38_lean
+          use-mathlib-cache: 'true'
+          test: 'false'
+      - name: Check named formal statements
+        working-directory: research/iteration38_lean
+        run: |
+          lake env lean ExactIdentities.lean
+          if grep -E -n '^[[:space:]]*(sorry|admit|axiom)[[:space:]]' ExactIdentities.lean; then exit 1; fi
