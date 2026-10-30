@@ -1200,7 +1200,10 @@
         "Contextual lenses and council personas control attention and critique only, not verification or external permissions.",
         "Compare performance and cost on held-out cases with an independently reviewed baseline.",
         "Classify tool, evidence, access, cost, explicit-content-policy and authorization blockages using observed receipts; never infer censorship or hidden intent from generic failures.",
-        "Use bounded changed-state/changed-action replan proposals; prevent identical unproductive repetitions and never grant autonomous external execution from the loop."
+        "Use bounded changed-state/changed-action replan proposals; prevent identical unproductive repetitions and never grant autonomous external execution from the loop.",
+        "Host-owned read-only scientific snapshot tools require explicit typed permissions, schema field allowlists, size bounds and immutable in-memory snapshots; a model-provided permission string is not an authenticated user grant.",
+        "Read-only adapters reject dynamic Python code, unknown operations and unbounded queries, and must be benchmarked against a minimal baseline without claiming a real security sandbox.",
+        "PR exact-commit CI must exercise the scoped investigation and snapshot tests before reporting the engineering gate as passed; broader proof/production gates remain independent."
       ]
     },
     {
