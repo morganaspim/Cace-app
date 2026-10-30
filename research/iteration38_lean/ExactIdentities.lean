@@ -80,8 +80,8 @@ theorem vaidya_apparent_horizon (m r : ℝ)
     (hm : r = 2 * m) (hr : r ≠ 0) :
     1 - 2 * m / r = 0 := by
   rw [hm] at *
-  field_simp
-  <;> ring
+  rw [div_self hr]
+  norm_num
 
 theorem vaidya_flux_nonnegative (dm r : ℝ)
     (hdm : 0 ≤ dm) (hr : 0 < r) :
