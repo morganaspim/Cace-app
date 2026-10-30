@@ -215,3 +215,17 @@ def test_group_count_typed_scalar_keys_are_not_conflated():
         v=s.consume('ok',s.issue('ok',HostQuery('d','group_count',('k',)))).value
         assert v[True]==3
         assert v[None]==3
+
+
+def test_raw_ipc_cannot_self_assert_approved_session(service):
+    s, _ = service
+    forged = {'kind':'issue', 'session':'session-1', 'query':{
+        'dataset':'records','operation':'count','fields':(), 'where':{}, 'limit':None
+    }, 'ttl':30}
+    with pytest.raises(ServiceDenied):
+        s._rpc(forged)
+    with pytest.raises(ServiceDenied):
+        s._rpc({'kind':'revoke', 'session':'session-1'})
+    # Failed forging did not revoke real host session.
+    assert s.consume('credential-one',s.issue('credential-one',
+             HostQuery('records','count'))).value == 3
