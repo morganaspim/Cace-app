@@ -128,6 +128,8 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I094 | contextual logical-lens overlays | Route inquiry through deductive, inductive, abductive, mathematical, Bayesian/fuzzy, geospatial, historical, cultural, ethical, power, engineering, source-bias and fallacy lenses; overlays allocate attention but cannot alter canonical evidence or permissions. | G080 |
 | I095 | project-only skill and case-based math memory | Package an installable skill with user-source project intent, math formula meanings, historical-pioneer and Feynman teach-back examples, incomplete-source notices, branch-aware source pointers and reviewable corrections; distinguish portable ChatGPT prompt from actual account configuration. | G081 |
 
+| I096 | auditable research failure and bounded revision | Preserve a blockage taxonomy that distinguishes generic failures from authenticated policy restrictions, plus a change-aware bounded iteration ledger that records observed progress, prevents unchanged retries and never grants proof, censorship attribution or external-action authority. | G080 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
