@@ -67,7 +67,7 @@ class ToolRoutingTests(unittest.TestCase):
         self.agent.register(Tool("slow", "analyze", "read_only", 2.0, lambda d: self.calls.append("slow") or {"ok": True}))
         self.agent.register(Tool("fast", "analyze", "read_only", 0.5, lambda d: self.calls.append("fast") or {"ok": True}))
         self.spec = EngineeringSpec(goal="Investigate anomaly", domain="physics",
-                                    acceptance=("Source check",),max_steps=3,max_cost=3.0)
+                                    acceptance=("Source check",),permissions=("local_read",),max_steps=3,max_cost=3.0)
 
     def test_picks_lowest_cost_registered_tool(self):
         plan = self.agent.plan(self.spec, ("analyze",))
@@ -187,6 +187,37 @@ class IterationLearningTests(unittest.TestCase):
         self.assertEqual(r.proof_status, "NOT_RUN")
         self.assertEqual(r.hardware_status, "NOT_MEASURED")
         self.assertEqual(r.authorization_status, "NONE_GRANTED")
+
+
+
+class PermissionGateTests(unittest.TestCase):
+    def test_read_tool_requires_explicit_permission_in_spec(self):
+        calls = []
+        agent = Investigator()
+        agent.register(Tool("r", "read_records", "read_only", 0.1,
+                            lambda ctx: calls.append("called")))
+        missing = EngineeringSpec("Inspect records", "history", ("Compare sources",),
+                                  permissions=())
+        p = agent.plan(missing, ("read_records",))
+        self.assertEqual(p.state, PlanState.BLOCKED)
+        self.assertEqual(p.blockages[0].kind, BlockageKind.AUTHORIZATION_REQUIRED)
+        self.assertEqual(agent.execute(p, {}).outcome, Outcome.BLOCKED)
+        self.assertEqual(calls, [])
+
+    def test_named_tool_permission_cannot_be_inferred_from_other_permission(self):
+        calls = []
+        agent = Investigator()
+        agent.register(Tool("db", "records", "read_only", 0.1,
+                            lambda ctx: calls.append("read"), required_permission="project_dataset_read"))
+        wrong = EngineeringSpec("Inspect records", "history", ("Compare sources",),
+                                permissions=("local_read",))
+        self.assertEqual(agent.plan(wrong, ("records",)).state, PlanState.BLOCKED)
+        correct = EngineeringSpec("Inspect records", "history", ("Compare sources",),
+                                  permissions=("project_dataset_read",))
+        p = agent.plan(correct, ("records",))
+        self.assertEqual(p.state, PlanState.READY)
+        self.assertEqual(agent.execute(p, {}).outcome, Outcome.COMPLETED_ADVISORY)
+        self.assertEqual(calls, ["read"])
 
 
 if __name__ == '__main__': unittest.main()
