@@ -777,3 +777,11 @@ A production feature/module/domain must close its end-to-end path:
 `discover -> input/wizard -> type/assumption validation -> connect -> execute -> verify -> inspect -> save/replay/export -> Help/troubleshoot -> regression`.
 
 All advertised features must be fleshed out and interoperable through canonical shared contracts. Placeholder modules, broken connections, duplicated browser-only semantics, undocumented inputs or missing representative end-to-end tests block production status.
+
+## Research-only extension: Ideonomy, product innovation and historical case studies (G078–G079)
+
+This proposed MCFC–CACE/M.E.R.L.I.N. research extension (Ideonomy, source-linked cross-domain recombination, existing-product alternative uses, AI historical case studies, esoteric history and anomalous observations) is intentionally exploratory. The authoritative idea details are in `docs/research/MERLIN_IDEONOMY_RESEARCH_V1.md` and the append-only ledger I088–I091. 
+
+**Intent:** the research notebook may propose typed, bounded idea combinations and tests. Scientific source provenance, mathematical verification and external-action authority remain distinct. Novelty, narrative persuasion, prestige, market interest and software tests do not promote generated hypotheses to verified claims.
+
+**Acceptance:** candidate diversity/quality against simple baselines; independent source-to-claim checks; false-certainty and failure modes; human-review gates; no shadow proof backend, autonomous deployment or direct remote runner execution from untrusted generated material. This appendix does not change the existing dependency order: Rigorous Math Kernel v1 → Proof-backed Math Toolbox → Science Modules → Help/Examples → browser Studio refinement.
