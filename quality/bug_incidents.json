@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "policy": "This is the active bug queue, NOT a replacement for quality/bug_classes.json. OPEN incidents block pre-PR gates; a GUARDED closure must link an existing canonical GUARDED class, a reproducer test, root cause, and sibling sweep. This registry is workflow metadata, not proof evidence.",
+  "incidents": []
+}

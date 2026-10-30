@@ -39,3 +39,11 @@ Antigravity never has promotion authority. Canonical qualification is separate.
 ## Canvas perception
 
 Use `schema/cace-agent-perception.schema.json` for the compact live experimental state stream. It may guide attention/planning but never evidence promotion.
+
+## MCFC–CACE project investigation skill (research)
+
+For MCFC–CACE project goal interpretation, project-only source recall, case-study mathematics and abductive scientific inquiry, see `.agents/skills/merlin-project-investigator/SKILL.md` and its partial-context reference. This skill is advisory; first perform the usual Tier-0 source loading and engineering specifications. It adds no proof promotion, runtime authority, runner access, or permissions. The CACE rigorous-tool-builder skill and all evidence/qualification rules remain authoritative.
+
+## Project-only M.E.R.L.I.N. pre-PR fail-fast coding rule
+
+For **every MCFC–CACE software change** created by ChatGPT or M.E.R.L.I.N., load `.agents/skills/merlin-failfast-bugflush/SKILL.md`, write engineering requirements before coding, use RED–GREEN–REFACTOR, and clear bug families permanently. Before opening/pushing a PR, run `python -m scripts.cace_prepr_gate --base-ref origin/main --change-kind feature --profile quick` (select the truthful change kind). Do not waive failures by renaming tests or altering proof/security gates. Follow `docs/PRE_PR_FAIL_FAST_AND_BUG_CLEARING.md`. No other user project inherits this rule automatically.

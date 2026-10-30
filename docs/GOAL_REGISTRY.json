@@ -1156,6 +1156,160 @@
         "No technique is called an optimization unless measured gains survive correctness/evidence-integrity checks.",
         "The direction remains Sophonic-AI-inspired at the high-level conceptual level while implementation, datasets, objectives and evaluation are independently designed."
       ]
+    },
+    {
+      "id": "G078",
+      "category": "research_ideation",
+      "priority": 78,
+      "intent_status": "research",
+      "title": "Source-grounded Ideonomy product and scientific idea combinatorics",
+      "summary": "Investigate existing product capabilities and cross-domain idea combinations using explicit source provenance, constraint-aware operators and falsifiable baselines. Generated novelty is never automatically a scientific fact, formal proof, safe product or commercialization approval.",
+      "acceptance": [
+        "Typed bounded/lazy idea generator handles product and research atoms; no unsupported runtime/evidence authority.",
+        "For every candidate, preserve source pointers, mechanism, target job, limitations, strongest rival, negative control, test and uncertainty.",
+        "Compare coherent, independently validated useful discoveries against random cross-product and expert/single-model baselines at matched budget.",
+        "Novelty/heuristic scheduling scores are NOT calibrated probabilities; unsafe or unapproved actions fail closed.",
+        "No automatic publication, model training, hardware control, proof promotion or commerce authorization."
+      ]
+    },
+    {
+      "id": "G079",
+      "category": "historical_multidisciplinary_research",
+      "priority": 79,
+      "intent_status": "research",
+      "title": "Case-study AI history, historical esotericism and unexplained-mystery research",
+      "summary": "Study original historical sources, cultural meanings, contested mysteries, AI pioneers and possible-world counterfactuals using Feynman-style reconstruction; separate historical fact, fictional lore, interpretation, and scientific hypotheses.",
+      "acceptance": [
+        "Every claim tracks primary or contextual source, time, provenance and scope; historical motives are labelled interpretations unless documented.",
+        "Cultural and esoteric traditions are represented without stereotyping or treating metaphor as proof of a physical mechanism.",
+        "Mystery inquiries compare mundane and extraordinary explanations with measurable discriminating tests and unknown states.",
+        "Research cases undergo counterexample, independent literature and versioned-archive review before any factual promotion."
+      ]
+    },
+    {
+      "id": "G080",
+      "category": "research_reasoning",
+      "priority": 80,
+      "intent_status": "research",
+      "title": "Requirements-first independent abductive investigation and source-aware lens routing",
+      "summary": "Every consequential research task begins with an explicit engineering specification, provenance-aware observational ledger, rival hypotheses including unknown alternatives, discriminating tests, and typed tool/lens selection; maintain a benchmarkable simple baseline.",
+      "acceptance": [
+        "Project-scope, objective, inputs, permissions, outputs and measurable acceptance tests are recorded before tool/action planning.",
+        "Multiple plausible explanations and an explicit unmodeled alternative survive unless conclusively ruled out within stated assumptions.",
+        "Source-origin duplicates, contrary evidence and uncalibrated heuristic scores cannot be misrepresented as independent fact or probability.",
+        "Contextual lenses and council personas control attention and critique only, not verification or external permissions.",
+        "Compare performance and cost on held-out cases with an independently reviewed baseline.",
+        "Classify tool, evidence, access, cost, explicit-content-policy and authorization blockages using observed receipts; never infer censorship or hidden intent from generic failures.",
+        "Use bounded changed-state/changed-action replan proposals; prevent identical unproductive repetitions and never grant autonomous external execution from the loop.",
+        "Host-owned read-only scientific snapshot tools require explicit typed permissions, schema field allowlists, size bounds and immutable in-memory snapshots; a model-provided permission string is not an authenticated user grant.",
+        "Read-only adapters reject dynamic Python code, unknown operations and unbounded queries, and must be benchmarked against a minimal baseline without claiming a real security sandbox.",
+        "PR exact-commit CI must exercise the scoped investigation and snapshot tests before reporting the engineering gate as passed; broader proof/production gates remain independent."
+      ]
+    },
+    {
+      "id": "G081",
+      "category": "project_memory_and_learning",
+      "priority": 81,
+      "intent_status": "research",
+      "title": "Portable MCFC–CACE project-only investigative skill and historical-critical learning corpus",
+      "summary": "Enable reproducible context loading for connected CACE agents and permitted ChatGPT Project instructions using a skill with contextual math explanations, historical cases, user intentions, source links, gaps and a truthful partial-archive notice.",
+      "acceptance": [
+        "A complete skill and reference library can be discovered from repository agent instructions and is explicitly versioned.",
+        "The project-only context handoff distinguishes canonical repo records, user directives, historic reports, fictional episodes and independently verified evidence.",
+        "The complete raw project-chat archive is not claimed unless verified, nor are unrelated account/private data imported.",
+        "Each domain uses primary-source historical case, first-principles reconstruction, simple explain-back and test-driven skeptical review.",
+        "External deployment, CI proof qualification and autonomous runner access are separately authorized and evidenced."
+      ]
+    },
+    {
+      "id": "G082",
+      "category": "engineering_reliability",
+      "priority": 82,
+      "intent_status": "required",
+      "title": "Project-only fail-fast pre-PR coding and permanent bug-family clearing",
+      "summary": "Every ChatGPT/M.E.R.L.I.N. MCFC–CACE code contribution starts with engineering specifications and red-green-refactor tests; use a bounded diff-based pre-PR gate, track open defect incidents, link closure to canonical content-addressed guarded bug classes and preserve independent CACE qualification.",
+      "acceptance": [
+        "Before PR, detect exact branch/working/untracked change scope; fail closed on invalid base, unsafe paths, syntax/JSON errors, missing related regression tests, open defects and oversized test sets.",
+        "Run changed targeted tests and existing canonical bug sweep through fixed bounded commands; output structured failure codes and next actions, never manufacturing formal or release PASS.",
+        "Bug fixes document a reproducer, root cause, related-instance sweep and a canonical content-addressed GUARDED bug-class record before closure.",
+        "Provide opt-in repository-local pre-push enforcement, project-only agent skill and CI regression tests; do not imply that bypassable hooks replace independent branch protection.",
+        "Full Python/native/Lean qualification, security review, verified permissions and production deployment remain separate acceptance gates."
+      ]
+    },
+    {
+      "id": "G083",
+      "category": "math_research",
+      "priority": 83,
+      "intent_status": "research",
+      "title": "Multi-frame living coordinate atlas and quantum relational mathematics research",
+      "summary": "Develop experimental typed atlases linking classical static/moving coordinate charts, scalar/tensor and quantum-wave amplitude representations, and physically quantum-controlled frame toy models with strict gauge/physical separation. Connect via transition laws, source-linked falsifiable tests and canonical CACE tools only after review.",
+      "acceptance": [
+        "Define chart domains, singularities, periodic identifications, time-varying transformations, inverses and cocycles; reject inconsistent three-chart paths and unbounded computations.",
+        "Preserve pullback metric, Jacobian, scalar-field gradients and coordinate probability measure across time-dependent charts; distinguish moving-mesh transport from physical dynamics.",
+        "Treat physical quantum control as distinct from passive basis/coordinate relabeling; compare relational observables and unitary transformations against original quantum-reference-frame research.",
+        "Any synthetic result must have a verified calculation under explicit model assumptions; no numerical/AI output grants physical or Lean verification.",
+        "Use benchmark baselines and a held-out evaluation for chart utility, runtime cost and physical predictions before any production or general-intelligence claim."
+      ]
+    },
+    {
+      "id": "G084",
+      "category": "classical_reference_frames",
+      "priority": 84,
+      "intent_status": "research",
+      "title": "Classical reference-frame dynamics and evolving mesh benchmark baseline",
+      "summary": "Establish tested Galilean, accelerated, rotating, and affine moving-grid representations with sourced physical kinematics, coordinate cocycles, metric/Jacobian identities, finite-difference controls and a non-canonical research interface before speculative quantum or evolving-geometry integration.",
+      "acceptance": [
+        "Classical reference frames implement relative/inertial forward and inverse kinematics, including Coriolis, Euler, centrifugal and origin acceleration terms with declared SI units.",
+        "Three-frame cocycle and randomized inverse transformations hold within declared numerical tolerance, with domain singularities rejected.",
+        "A moving affine frame exposes metric determinant, Jacobian rate and geometric conservation identity; expanding mesh volume is not falsely described as mass conservation.",
+        "All numerical results are model-relative; generated council observations and synthetic sample values do not grant physical, Lean or production evidence authority.",
+        "Research code is test-driven, review-only, isolated from canonical C++/Lean semantics and included in scoped PR CI; broader exact-head regression and release remain separate."
+      ]
+    },
+    {
+      "id": "G085",
+      "category": "ai_security",
+      "priority": 85,
+      "intent_status": "required",
+      "title": "Host-issued one-shot dataset capabilities for M.E.R.L.I.N. investigation",
+      "summary": "Separate authenticated host-defined dataset/session grants from model-authored EngineeringSpec permissions; bind one-use fixed source-snapshot queries with TTL, revocation, least-privilege fields and provenance while keeping AI outside evidence/proof authority.",
+      "acceptance": [
+        "Host-issued opaque tokens bind to a valid session, dataset identity and fixed query; guessing, replay, cross-session use, expiry and revocation fail closed.",
+        "Source identity and content SHA-256 are preserved as provenance only, not scientific correctness or independent source validation.",
+        "Query field/filter/operation/output limits are host-defined; arbitrary model-generated query language and code execution are unavailable.",
+        "Existing snapshot broker distinguishes absent keys from explicit null in equality filtering, with a permanent regression.",
+        "Selected exact-commit PR tests and canonical bug sweep pass; authenticated principal/session integration, isolation and full CACE release qualification remain separately reviewed."
+      ]
+    },
+    {
+      "id": "G086",
+      "category": "ai_agent_runtime",
+      "priority": 86,
+      "intent_status": "research",
+      "title": "M.E.R.L.I.N. authenticated-IPC process research broker",
+      "summary": "Spawned process implementing fixed bounded JSON snapshot operations with host-derived session identity, one-shot tokens, private signed worker commands, immutable row scopes and bounded aggregate queries; advisory only.",
+      "acceptance": [
+        "Approved owner and source snapshots live within a distinct worker process with no exposed Python eval, shell, file read or general network API.",
+        "Every privileged worker command needs host-authenticated HMAC, preventing self-asserted session and direct raw IPC forgery at the exposed protocol boundary.",
+        "Real session credentials resolve via the host callback on issue and consume; query row scope, field/operation rights, expiry, revocation and concurrent one-shot use fail closed.",
+        "Tests cover forged IPC, malformed input, privacy budgets, worker failure, typed grouping, output authority and source provenance.",
+        "Scoped local tests and exact-head PR CI pass; authenticated production identity and operating-system sandbox are not claimed."
+      ]
+    },
+    {
+      "id": "G087",
+      "category": "runtime_security",
+      "priority": 87,
+      "intent_status": "required",
+      "title": "Production principal integration and OS-isolated research worker",
+      "summary": "Connect CACE account/session identities and independently audited dataset access, separate host/model permissions, enforce OS isolation, privacy safeguards, no-egress resource limits and source-safe logging.",
+      "acceptance": [
+        "Use actual CACE identity-provider-issued and revocable principals for grants, not a test callback or model-issued string.",
+        "Run worker under restricted OS identity, no network egress, limited privileges and resources; independent penetration tests cover process escape and secret disclosure.",
+        "Verify multi-tenant owner filters, column scopes, dynamic role changes, query differencing, aggregate disclosure and malicious replay through an independent security review.",
+        "Preserve source identity and consent while excluding raw bearer tokens, HMAC secrets, personal data and private prompts from logs and model context.",
+        "Require current-head full native/Python regression, qualification-drift and separate Lean proof checks before production merge or release."
+      ]
     }
   ]
 }
