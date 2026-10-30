@@ -219,4 +219,26 @@ class PermissionGateTests(unittest.TestCase):
         self.assertEqual(calls, ["read"])
 
 
+    def test_authorized_tool_over_cheaper_unapproved_option(self):
+        calls = []
+        agent = Investigator()
+        agent.register(Tool("cheap-but-not-authorized", "summary", "read_only", 0.01,
+                            lambda ctx: calls.append("unapproved"),
+                            required_permission="project_dataset_read"))
+        agent.register(Tool("permitted", "summary", "read_only", 0.2,
+                            lambda ctx: calls.append("permitted")))
+        spec = EngineeringSpec("Summarize local data", "ai", ("Local comparison",),
+                               permissions=("local_read",), max_cost=1)
+        plan = agent.plan(spec, ("summary",))
+        self.assertEqual(plan.steps[0].tool_id, "permitted")
+        self.assertEqual(agent.execute(plan, {}).outcome, Outcome.COMPLETED_ADVISORY)
+        self.assertEqual(calls, ["permitted"])
+
+    def test_unrecognized_tool_permission_is_not_accepted(self):
+        with self.assertRaises(ResearchError):
+            Tool("bad", "fetch", "read_only", 0.1, lambda d: None,
+                 required_permission="unspecified_external_network")
+
+
+
 if __name__ == '__main__': unittest.main()
