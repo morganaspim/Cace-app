@@ -218,7 +218,6 @@ class PermissionGateTests(unittest.TestCase):
         self.assertEqual(agent.execute(p, {}).outcome, Outcome.COMPLETED_ADVISORY)
         self.assertEqual(calls, ["read"])
 
-
     def test_authorized_tool_over_cheaper_unapproved_option(self):
         calls = []
         agent = Investigator()
