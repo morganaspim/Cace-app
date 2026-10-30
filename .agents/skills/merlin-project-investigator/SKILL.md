@@ -38,3 +38,11 @@ Require specs, 2+ alternatives + unknown, duplicated-source detection, uncertain
 When a tool blocks, record the actual error class, source/time/receipt, confidence in the diagnosis and authorized next alternative. A 404, missing tool, refusal, closed dataset or network timeout does not by itself establish censorship or malicious intent. An explicit provider restriction requires its receipt, and a receipt only becomes authenticated when separately verified by a trusted host; even then motive is not established. Do not bypass access controls, covertly scrape, or reinterpret policy restrictions as authorization.
 
 After a failed step, change the hypothesis, authorized method or observed evidence before proposing another attempt. Reject unchanged replay, enforce finite budget and record the specific learning, new gate and stop reason. Follow docs/research/MERLIN_INVESTIGATION_ADVISORY_V15.md. The advisory Python reference is cace_studio/ai/investigation.py and its local regression tests; registered read-only callbacks are metadata, not a true security sandbox. Tool invocation requires a separate trusted capability broker.
+
+## v16 research data access and permission check
+
+Advisory intent planning now requires each registered tool to name a declared `local_read` or `project_dataset_read` permission, which the plan and executor check. This label is a **necessary but not sufficient** gate: the trusted session host must actually authenticate the user's dataset rights and isolate any execution boundary. Never accept the model's own permission string as a proof of authorization.
+
+For host-selected scalar research data use `cace_studio/ai/snapshot_broker.py`: immutable copied input, approved fields, fixed and bounded equality filter/select/count/group count, no supplied arbitrary code. The `tool_for_snapshot` adapter requires `project_dataset_read`. Do not treat record counts as population estimates without valid sampling design. Suppressing small groups does not confer differential privacy. The broker, all model outputs and citations remain advisory, never verification or runner permission.
+
+Iterate only on new observations or changed authorized actions, cap resources and review regressions against a strong simple baseline. The targeted PR workflow is not the full Python/Lean/security qualification gate.
