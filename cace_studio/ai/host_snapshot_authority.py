@@ -179,10 +179,10 @@ class HostSnapshotAuthority:
             raise AccessDenied('invalid capability TTL')
         rights = self._rights.get(session_id, {})
         right = rights.get(query.dataset)
-        if right is None or query.operation not in right.operations:
+        if right is None or type(query.operation) is not str or query.operation not in right.operations:
             raise AccessDenied('no host-issued right for query')
         fields = query.fields
-        if not isinstance(fields, tuple) or len(fields) != len(set(fields)) or len(fields) > 64:
+        if not isinstance(fields, tuple) or len(fields) > 64 or any(type(x) is not str for x in fields) or len(fields) != len(set(fields)):
             raise AccessDenied('invalid query fields')
         if any(not isinstance(x, str) for x in fields) or not set(fields) <= right.fields:
             raise AccessDenied('query fields are not permitted')
@@ -196,7 +196,7 @@ class HostSnapshotAuthority:
             raise AccessDenied('select limit exceeds host policy')
         if query.operation != 'select' and query.limit is not None:
             raise AccessDenied('aggregate query does not support a row limit')
-        where = query.where or {}
+        where = {} if query.where is None else query.where
         if not isinstance(where, Mapping) or len(where) > 16:
             raise AccessDenied('filter requires a bounded mapping')
         if not all(isinstance(k, str) for k in where) or not set(where) <= right.filter_fields:
