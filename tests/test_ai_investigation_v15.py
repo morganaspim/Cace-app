@@ -1,0 +1,158 @@
+"""Advisory-only regression cases: no model, network, canonical verifier or physical device."""
+from __future__ import annotations
+
+from dataclasses import replace
+import unittest
+
+from cace_studio.ai.investigation import (
+    Blockage, BlockageKind, ClaimStatus, EngineeringSpec, Evidence, Hypothesis,
+    Investigator, Outcome, PlanState, ResearchError, Tool,
+    evaluate_hypotheses, audit_blockage, choose_lenses,
+)
+
+
+class SpecAndEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        self.spec = EngineeringSpec(
+            goal="Distinguish a source artifact from an actual signal",
+            domain="signal", acceptance=("Independently check a second measurement",),
+            inputs=("observation set A",), permissions=("local_read",),
+            max_steps=4, max_cost=4.0)
+
+    def test_spec_requires_goal_acceptance_and_bounded_budget(self):
+        for changes in ({"goal": " "}, {"acceptance": ()}, {"max_steps": 0},
+                        {"max_steps": 200}, {"max_cost": -1}, {"domain": ""}):
+            with self.assertRaises(ResearchError):
+                Investigator().plan(replace(self.spec, **changes), ("analyze",))
+
+    def test_unsupported_permission_does_not_grant_external_action(self):
+        with self.assertRaises(ResearchError):
+            Tool("send", "message", "external_send", 0.1, lambda d: "sent")
+
+    def test_hypothesis_comparison_preserves_unmodeled_and_source_dependence(self):
+        observations = [
+            Evidence("e1", "peak20", True, "s1", "instrument-A", "observed"),
+            Evidence("e2", "peak20", True, "s2", "instrument-A", "reported"),
+            Evidence("e3", "peak20", False, "s3", "instrument-B", "observed"),
+        ]
+        models = [
+            Hypothesis("h-real", "A persistent 20 Hz oscillator", {"peak20": True}),
+            Hypothesis("h-noise", "A periodic artifact", {"peak20": False}),
+        ]
+        ratings = evaluate_hypotheses(observations, models)
+        self.assertEqual([x.hypothesis_id for x in ratings][-1], "OTHER_UNMODELED")
+        self.assertEqual(ratings[0].ranking_kind, "HEURISTIC_NOT_PROBABILITY")
+        self.assertEqual(ratings[0].support, 1)
+        self.assertEqual(ratings[0].contradiction, 1)
+        self.assertEqual(ratings[0].unresolved, 0)
+        self.assertTrue(all(x.claim_status != ClaimStatus.VERIFIED for x in ratings))
+
+    def test_duplicate_source_id_with_conflicting_contents_is_rejected(self):
+        rows = [Evidence("e1", "peak", True, "src1", "family1", "observed"),
+                Evidence("e1", "peak", False, "src1", "family1", "observed")]
+        with self.assertRaises(ResearchError):
+            evaluate_hypotheses(rows, [Hypothesis("h1", "A", {"peak": True})])
+
+    def test_mandatory_lenses_cannot_be_opted_out(self):
+        lenses = choose_lenses("history", preferred=("causal",))
+        self.assertTrue({"source_audit", "counterexample", "consent_privacy", "historical", "causal"}.issubset(lenses))
+        self.assertEqual(len(lenses), len(set(lenses)))
+        with self.assertRaises(ResearchError): choose_lenses("physics", preferred=("clairvoyance",))
+
+
+class ToolRoutingTests(unittest.TestCase):
+    def setUp(self):
+        self.calls = []
+        self.agent = Investigator()
+        self.agent.register(Tool("slow", "analyze", "read_only", 2.0, lambda d: self.calls.append("slow") or {"ok": True}))
+        self.agent.register(Tool("fast", "analyze", "read_only", 0.5, lambda d: self.calls.append("fast") or {"ok": True}))
+        self.spec = EngineeringSpec(goal="Investigate anomaly", domain="physics",
+                                    acceptance=("Source check",),max_steps=3,max_cost=3.0)
+
+    def test_picks_lowest_cost_registered_tool(self):
+        plan = self.agent.plan(self.spec, ("analyze",))
+        self.assertEqual(plan.state, PlanState.READY)
+        self.assertEqual(plan.steps[0].tool_id, "fast")
+        self.assertFalse(plan.evidence_authority)
+        self.assertEqual(plan.proof_status, "NOT_RUN")
+        result = self.agent.execute(plan, {"input": "x"})
+        self.assertEqual(result.outcome, Outcome.COMPLETED_ADVISORY)
+        self.assertEqual(self.calls, ["fast"])
+        self.assertEqual(result.receipts[0].tool_id, "fast")
+
+    def test_missing_tool_blocks_entire_plan_without_running_partial_work(self):
+        plan = self.agent.plan(self.spec, ("analyze", "nonexistent"))
+        self.assertEqual(plan.state, PlanState.BLOCKED)
+        result = self.agent.execute(plan, {"input": 1})
+        self.assertEqual(result.outcome, Outcome.BLOCKED)
+        self.assertEqual(self.calls, [])
+        self.assertEqual(result.blockages[0].kind, BlockageKind.TOOL_UNAVAILABLE)
+
+    def test_budget_block_prevents_tool_execution(self):
+        plan = self.agent.plan(replace(self.spec, max_cost=0.1), ("analyze",))
+        self.assertEqual(plan.state, PlanState.BLOCKED)
+        self.assertEqual(self.agent.execute(plan, {}).outcome, Outcome.BLOCKED)
+        self.assertFalse(self.calls)
+
+    def test_tampered_plan_is_not_executed(self):
+        from dataclasses import replace as dc_replace
+        p = self.agent.plan(self.spec, ("analyze",))
+        tampered = dc_replace(p, intent="Send email")
+        result = self.agent.execute(tampered, {})
+        self.assertEqual(result.outcome, Outcome.BLOCKED)
+        self.assertEqual(result.blockages[0].kind, BlockageKind.PLAN_TAMPERED)
+        self.assertFalse(self.calls)
+
+    def test_tool_exception_captured_as_a_failure_without_automatic_retry(self):
+        agent = Investigator()
+        agent.register(Tool("bad", "analyze", "read_only", 0.1, lambda x: 1 / 0))
+        p = agent.plan(self.spec, ("analyze",))
+        res = agent.execute(p, {})
+        self.assertEqual(res.outcome, Outcome.FAILED)
+        self.assertEqual(res.blockages[0].kind, BlockageKind.TOOL_ERROR)
+        self.assertNotIn("ZeroDivisionError", str(res.receipts))
+
+    def test_repeated_execution_is_blocked_to_prevent_loops(self):
+        p = self.agent.plan(self.spec, ("analyze",))
+        self.assertEqual(self.agent.execute(p, {}).outcome, Outcome.COMPLETED_ADVISORY)
+        second = self.agent.execute(p, {})
+        self.assertEqual(second.outcome, Outcome.BLOCKED)
+        self.assertEqual(second.blockages[0].kind, BlockageKind.REPEATED_PLAN)
+        self.assertEqual(self.calls, ["fast"])
+
+    def test_bad_tool_ids_duplicate_and_cost_invalid(self):
+        with self.assertRaises(ResearchError):
+            self.agent.register(Tool("fast", "same", "read_only", 2, lambda d: None))
+        with self.assertRaises(ResearchError):
+            Tool("bad", "analyze", "read_only", float("nan"), lambda d: None)
+        with self.assertRaises(ResearchError):
+            self.agent.plan(self.spec, ("analyze",) * 5)
+
+
+class BlockageTransparencyTests(unittest.TestCase):
+    def test_no_inference_of_censorship_from_failure(self):
+        for kind in (BlockageKind.TOOL_UNAVAILABLE, BlockageKind.TOOL_ERROR,
+                     BlockageKind.SOURCE_UNREACHABLE, BlockageKind.EVIDENCE_INSUFFICIENT):
+            report = audit_blockage(Blockage(kind, "tool unavailable", "source-abc"))
+            self.assertFalse(report["content_restriction_confirmed"])
+            self.assertEqual(report["interpretation"], "CAUSE_NOT_ESTABLISHED")
+
+    def test_explicit_content_restriction_receipt_is_required(self):
+        with self.assertRaises(ResearchError):
+            audit_blockage(Blockage(BlockageKind.CONTENT_RESTRICTION, "denied", ""))
+        blockage = Blockage(BlockageKind.CONTENT_RESTRICTION,
+                 "Documented provider restriction", "provider-policy-receipt-17")
+        unverified = audit_blockage(blockage)
+        self.assertFalse(unverified["content_restriction_confirmed"])
+        self.assertEqual(unverified["interpretation"], "EXPLICIT_RESTRICTION_REPORTED_NOT_AUTHENTICATED")
+        report = audit_blockage(blockage, trusted_receipts=frozenset({"provider-policy-receipt-17"}))
+        self.assertTrue(report["content_restriction_confirmed"])
+        self.assertEqual(report["interpretation"], "EXPLICIT_RESTRICTION_OBSERVED_SCOPE_LIMITED")
+
+    def test_blockage_audit_never_infers_deliberate_motive(self):
+        report = audit_blockage(Blockage(BlockageKind.CONTENT_RESTRICTION,
+                 "Explicit classification", "policy-42"))
+        self.assertFalse(report["intent_or_motive_established"])
+
+
+if __name__ == '__main__': unittest.main()
