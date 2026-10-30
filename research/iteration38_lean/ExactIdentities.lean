@@ -1,9 +1,9 @@
+import Mathlib
 /-!
 MCFC-CACE iteration 38. Conditional algebraic proof obligations.
 This file is NOT a proof of Einstein PDE existence, wormhole stability,
 horizon formation, or the validity of exotic matter.
 -/
-import Mathlib
 namespace MCFC
 
 theorem ellis_sq_positive (x b : ℝ) (hb : 0 < b) : 0 < x ^ 2 + b ^ 2 := by
