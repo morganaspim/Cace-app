@@ -39,3 +39,7 @@ Antigravity never has promotion authority. Canonical qualification is separate.
 ## Canvas perception
 
 Use `schema/cace-agent-perception.schema.json` for the compact live experimental state stream. It may guide attention/planning but never evidence promotion.
+
+## MCFC–CACE project investigation skill (research)
+
+For MCFC–CACE project goal interpretation, project-only source recall, case-study mathematics and abductive scientific inquiry, see `.agents/skills/merlin-project-investigator/SKILL.md` and its partial-context reference. This skill is advisory; first perform the usual Tier-0 source loading and engineering specifications. It adds no proof promotion, runtime authority, runner access, or permissions. The CACE rigorous-tool-builder skill and all evidence/qualification rules remain authoritative.
