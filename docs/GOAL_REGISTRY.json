@@ -1235,6 +1235,21 @@
         "Provide opt-in repository-local pre-push enforcement, project-only agent skill and CI regression tests; do not imply that bypassable hooks replace independent branch protection.",
         "Full Python/native/Lean qualification, security review, verified permissions and production deployment remain separate acceptance gates."
       ]
+    },
+    {
+      "id": "G083",
+      "category": "math_research",
+      "priority": 83,
+      "intent_status": "research",
+      "title": "Multi-frame living coordinate atlas and quantum relational mathematics research",
+      "summary": "Develop experimental typed atlases linking classical static/moving coordinate charts, scalar/tensor and quantum-wave amplitude representations, and physically quantum-controlled frame toy models with strict gauge/physical separation. Connect via transition laws, source-linked falsifiable tests and canonical CACE tools only after review.",
+      "acceptance": [
+        "Define chart domains, singularities, periodic identifications, time-varying transformations, inverses and cocycles; reject inconsistent three-chart paths and unbounded computations.",
+        "Preserve pullback metric, Jacobian, scalar-field gradients and coordinate probability measure across time-dependent charts; distinguish moving-mesh transport from physical dynamics.",
+        "Treat physical quantum control as distinct from passive basis/coordinate relabeling; compare relational observables and unitary transformations against original quantum-reference-frame research.",
+        "Any synthetic result must have a verified calculation under explicit model assumptions; no numerical/AI output grants physical or Lean verification.",
+        "Use benchmark baselines and a held-out evaluation for chart utility, runtime cost and physical predictions before any production or general-intelligence claim."
+      ]
     }
   ]
 }

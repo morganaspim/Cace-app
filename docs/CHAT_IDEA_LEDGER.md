@@ -135,6 +135,10 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I098 | project-only pre-PR fail-fast engineering gate | Require an engineering specification and red/green/refactor, scan exact Git delta including untracked work, reject syntax/JSON errors, invalid paths, missing related tests, unresolved bug incidents and unsupported scope; run bounded targeted tests plus canonical bug sweep and classify PASS_QUICK_ONLY separately from full CACE qualification. | G082 |
 | I099 | permanent bug-family closure and independent regression authority | Record each confirmed defect with reproducer, root cause, sibling sweep, content-addressed canonical guarded bug class and structural anti-recurrence check; project-only optional pre-push hook, CI test coverage, nonbypassable proof/security conditions and a separate full merge/release gate. | G082 |
 
+| I100 | multi-frame living math atlas | Couple Cartesian, polar, log-polar and evolving spiral-shear representations through typed transition maps, Jacobians, pullback metrics, moving-mesh time derivatives and cocycle/measure consistency; preserve singularities and physical-vs-coordinate-change semantics. | G083 |
+| I101 | quantum reference-frame relational geometry | Study coherent quantum-controlled reference choices and gauge-equivalent frame changes alongside covariant observables, phase/half-density transformations and explicit independently testable predictions; a two-qubit controlled-unitary example is not itself a complete QRF or quantum-spacetime result. | G083 |
+| I102 | fiber-bundle tensor network coordinate coupling | Investigate a typed spatial atlas with attached quantum-state fibers, unitary transition/connection maps and optional tensor-network compression or higher-dimensional representations; benchmark gauge covariance, conservation, numerical cost and accuracy against conventional methods. | G083 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
