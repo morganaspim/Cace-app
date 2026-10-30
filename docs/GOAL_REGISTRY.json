@@ -1156,6 +1156,35 @@
         "No technique is called an optimization unless measured gains survive correctness/evidence-integrity checks.",
         "The direction remains Sophonic-AI-inspired at the high-level conceptual level while implementation, datasets, objectives and evaluation are independently designed."
       ]
+    },
+    {
+      "id": "G078",
+      "category": "research_ideation",
+      "priority": 78,
+      "intent_status": "research",
+      "title": "Source-grounded Ideonomy product and scientific idea combinatorics",
+      "summary": "Investigate existing product capabilities and cross-domain idea combinations using explicit source provenance, constraint-aware operators and falsifiable baselines. Generated novelty is never automatically a scientific fact, formal proof, safe product or commercialization approval.",
+      "acceptance": [
+        "Typed bounded/lazy idea generator handles product and research atoms; no unsupported runtime/evidence authority.",
+        "For every candidate, preserve source pointers, mechanism, target job, limitations, strongest rival, negative control, test and uncertainty.",
+        "Compare coherent, independently validated useful discoveries against random cross-product and expert/single-model baselines at matched budget.",
+        "Novelty/heuristic scheduling scores are NOT calibrated probabilities; unsafe or unapproved actions fail closed.",
+        "No automatic publication, model training, hardware control, proof promotion or commerce authorization."
+      ]
+    },
+    {
+      "id": "G079",
+      "category": "historical_multidisciplinary_research",
+      "priority": 79,
+      "intent_status": "research",
+      "title": "Case-study AI history, historical esotericism and unexplained-mystery research",
+      "summary": "Study original historical sources, cultural meanings, contested mysteries, AI pioneers and possible-world counterfactuals using Feynman-style reconstruction; separate historical fact, fictional lore, interpretation, and scientific hypotheses.",
+      "acceptance": [
+        "Every claim tracks primary or contextual source, time, provenance and scope; historical motives are labelled interpretations unless documented.",
+        "Cultural and esoteric traditions are represented without stereotyping or treating metaphor as proof of a physical mechanism.",
+        "Mystery inquiries compare mundane and extraordinary explanations with measurable discriminating tests and unknown states.",
+        "Research cases undergo counterexample, independent literature and versioned-archive review before any factual promotion."
+      ]
     }
   ]
 }
