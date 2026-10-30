@@ -357,7 +357,6 @@ class Investigator:
         return ResearchResult(Outcome.COMPLETED_ADVISORY, receipts=tuple(receipts))
 
 
-
 @dataclass(frozen=True)
 class IterationDecision:
     action_id: str
