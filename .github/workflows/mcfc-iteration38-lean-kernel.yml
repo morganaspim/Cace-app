@@ -26,6 +26,8 @@ jobs:
         with:
           lake-package-directory: research/iteration38_lean
           use-mathlib-cache: 'true'
+          use-github-cache: 'false'
+          build: 'false'
           test: 'false'
       - name: Check named formal statements
         working-directory: research/iteration38_lean
