@@ -102,7 +102,8 @@ jobs:
             tests/test_qualification_promotion_v339.py \
             tests/test_ai_investigation_v15.py \
             tests/test_ai_snapshot_broker_v16.py \
-            tests/test_prepr_gate.py
+            tests/test_prepr_gate.py \
+            tests/test_merlin_frames_v23.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor

@@ -1250,6 +1250,21 @@
         "Any synthetic result must have a verified calculation under explicit model assumptions; no numerical/AI output grants physical or Lean verification.",
         "Use benchmark baselines and a held-out evaluation for chart utility, runtime cost and physical predictions before any production or general-intelligence claim."
       ]
+    },
+    {
+      "id": "G084",
+      "category": "classical_reference_frames",
+      "priority": 84,
+      "intent_status": "research",
+      "title": "Classical reference-frame dynamics and evolving mesh benchmark baseline",
+      "summary": "Establish tested Galilean, accelerated, rotating, and affine moving-grid representations with sourced physical kinematics, coordinate cocycles, metric/Jacobian identities, finite-difference controls and a non-canonical research interface before speculative quantum or evolving-geometry integration.",
+      "acceptance": [
+        "Classical reference frames implement relative/inertial forward and inverse kinematics, including Coriolis, Euler, centrifugal and origin acceleration terms with declared SI units.",
+        "Three-frame cocycle and randomized inverse transformations hold within declared numerical tolerance, with domain singularities rejected.",
+        "A moving affine frame exposes metric determinant, Jacobian rate and geometric conservation identity; expanding mesh volume is not falsely described as mass conservation.",
+        "All numerical results are model-relative; generated council observations and synthetic sample values do not grant physical, Lean or production evidence authority.",
+        "Research code is test-driven, review-only, isolated from canonical C++/Lean semantics and included in scoped PR CI; broader exact-head regression and release remain separate."
+      ]
     }
   ]
 }

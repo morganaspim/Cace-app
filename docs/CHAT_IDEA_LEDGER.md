@@ -139,6 +139,10 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I101 | quantum reference-frame relational geometry | Study coherent quantum-controlled reference choices and gauge-equivalent frame changes alongside covariant observables, phase/half-density transformations and explicit independently testable predictions; a two-qubit controlled-unitary example is not itself a complete QRF or quantum-spacetime result. | G083 |
 | I102 | fiber-bundle tensor network coordinate coupling | Investigate a typed spatial atlas with attached quantum-state fibers, unitary transition/connection maps and optional tensor-network compression or higher-dimensional representations; benchmark gauge covariance, conservation, numerical cost and accuracy against conventional methods. | G083 |
 
+| I103 | classical Galilean and rotating reference-frame dynamics | Combine translationally accelerating and angularly accelerating 2D classical frames with explicit inverse maps, inertial/Coriolis/Euler/centrifugal accelerations, units and observable invariants to serve as a rigorous baseline for quantum reference-frame comparisons. | G083, G084 |
+| I104 | discrete moving mesh geometric conservation controls | For an affine dynamic chart x=M(t)q+b(t), verify Jacobian, induced metric and geometric conservation identity ∂t det(M)=div_q(det(M) M^-1 partial_t F); test singularities, finite differences and model-vs-physical dynamics. | G083, G084 |
+| I105 | independently testable council-guided classical benchmark | Use the original six-role M.E.R.L.I.N. local council to generate falsifiable frame test proposals and negative controls, but keep character dialogue non-evidentiary; require source-origin independent test logs before adoption. | G080, G081, G084 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
