@@ -132,6 +132,9 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 
 | I097 | controlled in-memory scientific snapshot inquiry | Introduce a host-created field-allowlisted in-memory record broker with bounded select/count/group operations, explicit plan-time and execute-time dataset permission checks, copied inputs, scoped CI coverage, and no model-supplied executable code; declare small-cell suppression insufficient for formal differential privacy and host grants independent of model-authored permissions. | G080, G081 |
 
+| I098 | project-only pre-PR fail-fast engineering gate | Require an engineering specification and red/green/refactor, scan exact Git delta including untracked work, reject syntax/JSON errors, invalid paths, missing related tests, unresolved bug incidents and unsupported scope; run bounded targeted tests plus canonical bug sweep and classify PASS_QUICK_ONLY separately from full CACE qualification. | G082 |
+| I099 | permanent bug-family closure and independent regression authority | Record each confirmed defect with reproducer, root cause, sibling sweep, content-addressed canonical guarded bug class and structural anti-recurrence check; project-only optional pre-push hook, CI test coverage, nonbypassable proof/security conditions and a separate full merge/release gate. | G082 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

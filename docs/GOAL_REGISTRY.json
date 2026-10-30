@@ -1220,6 +1220,21 @@
         "Each domain uses primary-source historical case, first-principles reconstruction, simple explain-back and test-driven skeptical review.",
         "External deployment, CI proof qualification and autonomous runner access are separately authorized and evidenced."
       ]
+    },
+    {
+      "id": "G082",
+      "category": "engineering_reliability",
+      "priority": 82,
+      "intent_status": "required",
+      "title": "Project-only fail-fast pre-PR coding and permanent bug-family clearing",
+      "summary": "Every ChatGPT/M.E.R.L.I.N. MCFC–CACE code contribution starts with engineering specifications and red-green-refactor tests; use a bounded diff-based pre-PR gate, track open defect incidents, link closure to canonical content-addressed guarded bug classes and preserve independent CACE qualification.",
+      "acceptance": [
+        "Before PR, detect exact branch/working/untracked change scope; fail closed on invalid base, unsafe paths, syntax/JSON errors, missing related regression tests, open defects and oversized test sets.",
+        "Run changed targeted tests and existing canonical bug sweep through fixed bounded commands; output structured failure codes and next actions, never manufacturing formal or release PASS.",
+        "Bug fixes document a reproducer, root cause, related-instance sweep and a canonical content-addressed GUARDED bug-class record before closure.",
+        "Provide opt-in repository-local pre-push enforcement, project-only agent skill and CI regression tests; do not imply that bypassable hooks replace independent branch protection.",
+        "Full Python/native/Lean qualification, security review, verified permissions and production deployment remain separate acceptance gates."
+      ]
     }
   ]
 }

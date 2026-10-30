@@ -1,0 +1,8 @@
+#!/bin/sh
+# MCFC-CACE repo-only opt-in pre-push gate. Does not approve formal proof or deployment.
+set -eu
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+kind="${CACE_CHANGE_KIND:-feature}"
+base="${CACE_BASE_REF:-origin/main}"
+exec python -m scripts.cace_prepr_gate --base-ref "$base" --change-kind "$kind" --profile quick
