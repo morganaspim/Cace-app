@@ -229,12 +229,15 @@ class Tool:
     effect: str
     cost: float
     handler: Callable[[Mapping[str, Any]], Any]
+    required_permission: str = "local_read"
 
     def __post_init__(self) -> None:
         _require_text(self.tool_id, "tool id", limit=128)
         _require_text(self.capability, "capability", limit=128)
         if self.effect != "read_only":
             raise ResearchError("only registered read-only local tools are supported")
+        if self.required_permission not in {"local_read", "project_dataset_read"}:
+            raise ResearchError("unknown or unsupported tool permission")
         if isinstance(self.cost, bool) or not isinstance(self.cost, (float, int)) or not math.isfinite(self.cost) or self.cost < 0:
             raise ResearchError("cost must be finite and nonnegative")
         if not callable(self.handler):
@@ -246,6 +249,7 @@ class ToolStep:
     tool_id: str
     capability: str
     cost: float
+    required_permission: str
 
 
 @dataclass(frozen=True)
@@ -312,9 +316,14 @@ class Investigator:
             if not options:
                 blockages.append(Blockage(BlockageKind.TOOL_UNAVAILABLE, f"no registered tool for {capability}"))
                 continue
-            tool = options[0]
+            permitted = [tool for tool in options if tool.required_permission in spec.permissions]
+            if not permitted:
+                blockages.append(Blockage(BlockageKind.AUTHORIZATION_REQUIRED,
+                                          f"missing declared permission for {capability}"))
+                continue
+            tool = permitted[0]
             cost += tool.cost
-            steps.append(ToolStep(tool.tool_id, capability, tool.cost))
+            steps.append(ToolStep(tool.tool_id, capability, tool.cost, tool.required_permission))
         if cost > spec.max_cost:
             blockages.append(Blockage(BlockageKind.RESOURCE_LIMIT, "declared tool cost exceeds engineering budget"))
         state = PlanState.BLOCKED if blockages else PlanState.READY
@@ -346,6 +355,10 @@ class Investigator:
             tool = self._tools.get(step.tool_id)
             if tool is None or tool.capability != step.capability or tool.effect != "read_only":
                 return ResearchResult(Outcome.BLOCKED, receipts=tuple(receipts), blockages=(Blockage(BlockageKind.TOOL_UNAVAILABLE, "registered tool changed or disappeared"),))
+            if (tool.required_permission != step.required_permission or
+                    tool.required_permission not in plan.permissions):
+                return ResearchResult(Outcome.BLOCKED, receipts=tuple(receipts), blockages=(
+                    Blockage(BlockageKind.AUTHORIZATION_REQUIRED, "tool permission not present in original plan"),))
             try:
                 result = tool.handler(context)
             except Exception:
