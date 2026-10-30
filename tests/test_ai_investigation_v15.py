@@ -219,5 +219,4 @@ class PermissionGateTests(unittest.TestCase):
         self.assertEqual(agent.execute(p, {}).outcome, Outcome.COMPLETED_ADVISORY)
         self.assertEqual(calls, ["read"])
 
-
 if __name__ == '__main__': unittest.main()
