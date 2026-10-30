@@ -1198,7 +1198,9 @@
         "Multiple plausible explanations and an explicit unmodeled alternative survive unless conclusively ruled out within stated assumptions.",
         "Source-origin duplicates, contrary evidence and uncalibrated heuristic scores cannot be misrepresented as independent fact or probability.",
         "Contextual lenses and council personas control attention and critique only, not verification or external permissions.",
-        "Compare performance and cost on held-out cases with an independently reviewed baseline."
+        "Compare performance and cost on held-out cases with an independently reviewed baseline.",
+        "Classify tool, evidence, access, cost, explicit-content-policy and authorization blockages using observed receipts; never infer censorship or hidden intent from generic failures.",
+        "Use bounded changed-state/changed-action replan proposals; prevent identical unproductive repetitions and never grant autonomous external execution from the loop."
       ]
     },
     {
