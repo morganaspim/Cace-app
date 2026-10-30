@@ -79,11 +79,38 @@ def _safe_relative(root: Path, name: str) -> Path:
 
 
 def _runtime(path: str) -> bool:
-    return (path.startswith(('cace_studio/','scripts/','cpp/','formal/','ops/','security/')) or
-            path.startswith('.github/workflows/') or path in {'pyproject.toml','CMakeLists.txt'})
+    return (path.startswith(('cace_studio/','scripts/','cpp/','formal/','ops/','security/',
+                             'api/','web/','ci/','gemini/','ios_companion/','ios/','mobile/',
+                             'quality/')) or path.startswith('.github/workflows/') or
+            path in {'pyproject.toml','CMakeLists.txt','Dockerfile'} or
+            PurePosixPath(path).suffix.lower() in {'.swift','.kt','.rs','.ts','.tsx',
+                         '.js','.jsx','.c','.cc','.cpp','.h','.hpp','.lean','.sql'})
+
+
+def _specialized_gates(changed: Sequence[str]) -> list[str]:
+    """Make out-of-scope toolchain gates visible without faking their results."""
+    pending=set()
+    for name in changed:
+        suffix=PurePosixPath(name).suffix.lower()
+        if suffix=='.swift': pending.add('swift_build_and_device_tests')
+        if suffix in {'.cpp','.cc','.c','.h','.hpp'}: pending.add('native_cpp_build_ctest_sanitizers')
+        if suffix=='.lean': pending.add('exact_head_pinned_lean_qualification')
+        if name.startswith('web/') or suffix in {'.js','.jsx','.ts','.tsx','.css','.html'}:
+            pending.add('web_build_browser_e2e_and_accessibility')
+        if suffix in {'.yml','.yaml'} or name.startswith('.github/workflows/'):
+            pending.add('workflow_policy_and_gha_validation')
+        if suffix=='.sh':pending.add('shell_syntax_lint_and_execution_regression')
+        if suffix=='.sql':pending.add('migration_and_data_integrity_tests')
+        if name.endswith('Dockerfile'):pending.add('container_build_and_security_scan')
+        if suffix in {'.rs','.kt'}:pending.add('native_package_compilation_and_tests')
+    return sorted(pending)
 
 
 def _related_test(src: str, tests: tuple[str, ...]) -> bool:
+    if src.startswith('quality/') and src.endswith('.json'):
+        # Registry metadata is guarded by the canonical bug sweep; for bugfixes
+        # the incident closure independently requires a changed reproducer.
+        return bool(tests)
     if src.startswith(('cpp/','formal/')):
         return any(t.startswith(('tests/','cpp/tests/','formal/cace_formal/')) for t in tests)
     if src.startswith('.github/workflows/'):
@@ -225,10 +252,12 @@ def assess(root: Path,changed_files:Sequence[str],*,change_kind:str='feature') -
     return {'schema_version':SCHEMA_VERSION,'project':'MCFC-CACE','status':'BLOCKED' if issues else 'PASS_STATIC_ONLY',
             'change_kind':change_kind,'changed_files':list(changed),'changed_file_count':len(changed),
             'changed_tests':list(tests),'local_content_fingerprint_sha256':hashlib.sha256(payload).hexdigest(),
+            'outstanding_specialized_gates':_specialized_gates(changed),
             'issues':issues,'qualification_status':'NOT_RUN','production_release_status':'NOT_RUN',
             'limits':['Static + targeted checks are not full Python/native/Lean/security qualification',
                       'Local content hashes are not authenticated evidence',
-                      'Existing canonical bug-class hash validation remains required']}
+                      'Existing canonical bug-class hash validation remains required',
+                      'outstanding_specialized_gates MUST be validated separately before merge/release']}
 
 
 def run_quick_checks(root:Path,report:dict[str,Any],*,timeout:int=120)->dict[str,Any]:

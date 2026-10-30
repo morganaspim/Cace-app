@@ -21,6 +21,7 @@ Before writing code, state the precise intent, source-of-truth types, inputs/out
 4. For each discovered bug, identify its *family*. Sweep siblings; register a permanent guard. Record an `OPEN` incident, and only close it by referencing a canonical `GUARDED` bug class and a live regression test.
 5. Run `python -m scripts.cace_prepr_gate --base-ref origin/main --change-kind <feature|bugfix|refactor|docs|test|infrastructure> --profile quick`. No `PASS_QUICK_ONLY`, no PR submission. An `inspect` run is non-executing and insufficient.
 6. Inspect the output issues with codes, exact files, failure evidence and next actions. Do not claim success from a missing baseline, unrun command, manual attestation, generated text, or an omitted test.
+   Always inspect `outstanding_specialized_gates`: a quick Python gate cannot compile Swift/iOS code, validate web browsers, run C++ native sanitizers, or certify Lean proofs. Run applicable toolchain tests separately before claiming PR readiness.
 7. Independently validate exact-head CI and full CACE native, formal, security and qualification gates before merge/release when applicable. Local quick pass is neither scientific truth nor release approval.
 
 ## M.E.R.L.I.N. council roles

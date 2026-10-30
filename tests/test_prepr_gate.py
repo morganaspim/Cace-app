@@ -162,3 +162,26 @@ def test_unknown_change_kind_and_targeted_file_cap_fail_closed(tmp_path):
         tests.append(rel)
     report=assess(root,['cace_studio/ai/agent.py',*tests,'tests/test_agent.py'],change_kind='feature')
     assert 'TEST_BUDGET_EXCEEDED' in codes(report)
+
+
+def test_failfast_scope_includes_web_api_mobile_and_native(tmp_path):
+    root=fixture(tmp_path)
+    for rel in ('web/studio.js','api/index.py','ios_companion/LocalModelService.swift','cpp/src/solver.cpp'):
+        p=root/rel
+        p.parent.mkdir(parents=True,exist_ok=True)
+        p.write_text('value=1\n')
+        result=assess(root,[rel],change_kind='feature')
+        assert 'TEST_DELTA_MISSING' in codes(result), rel
+
+
+def test_unsupported_native_language_gate_is_exposed_not_claimed_as_passed(tmp_path):
+    root=fixture(tmp_path)
+    p=root/'ios_companion/LocalModelService.swift'
+    p.parent.mkdir(exist_ok=True)
+    p.write_text('struct Hello {}\n')
+    t=root/'tests/test_LocalModelService.py'
+    t.write_text('def test_local_model_service(): assert True\n')
+    result=assess(root,['ios_companion/LocalModelService.swift','tests/test_LocalModelService.py'],change_kind='feature')
+    assert result['status']=='PASS_STATIC_ONLY'
+    assert 'swift_build_and_device_tests' in result['outstanding_specialized_gates']
+    assert result['qualification_status']=='NOT_RUN'

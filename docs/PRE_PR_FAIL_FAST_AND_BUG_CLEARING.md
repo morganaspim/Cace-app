@@ -20,6 +20,7 @@ No code change is complete until the before/after behavior is supported by tests
 4. Load `quality/bug_incidents.json`; unresolved `OPEN` bug records block. A `GUARDED` bug closure must reference a real changed reproducer test, an explicit root cause/sibling sweep and an existing canonical `GUARDED` class in `quality/bug_classes.json`.
 5. Run changed tests through bounded `python -m pytest` with no shell. Reuse the existing `python -m scripts.check_bug_sweep --output ...` so canonical bug classes/guards, registry hashes, source links, JSON and proof-contract conflicts are also checked.
 6. Record a deterministic local source-file hash manifest, each failing gate and suggested repair. The only successful outputs are `PASS_STATIC_ONLY` for inspection or `PASS_QUICK_ONLY` after bounded tests and bug sweep, **never** `FORMAL` or full CI qualification.
+7. Treat Python, CACE API, browser JavaScript, CI workflows, native C/C++, Lean, Swift/iPhone, and other relevant software paths as runtime changes. The gate explicitly reports `outstanding_specialized_gates` for Swift device builds, native C++/CTest/sanitizers, exact-head Lean qualification, web/browser end-to-end and accessibility, workflow validation, shell, database migration and container scanning where appropriate. These gates must be run independently; a `PASS_QUICK_ONLY` is **not** their PASS.
 
 Default command, from a full Git checkout with `origin/main` available:
 
