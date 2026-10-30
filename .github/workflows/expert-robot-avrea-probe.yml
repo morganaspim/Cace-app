@@ -1,0 +1,58 @@
+name: Expert Robot Avrea ARM64 connectivity probe
+on:
+  push:
+    branches:
+      - executor/expert-robot-avrea-probe-20261029
+    paths:
+      - '.github/workflows/expert-robot-avrea-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  avrea-expert-robot-probe:
+    runs-on: avrea-ubuntu-latest-arm-2-vcpu
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Expert Robot bridge snapshot
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify native ARM64 Avrea runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "runner_name=${RUNNER_NAME}"
+          echo "runner_os=${RUNNER_OS}"
+          echo "runner_arch=${RUNNER_ARCH}"
+          test "${RUNNER_ARCH}" = "ARM64"
+          uname -a
+          nproc
+          free -h
+      - name: Check Expert Robot source-envelope integrity only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import re
+          import tarfile
+
+          request = json.loads(pathlib.Path('bridge/request.json').read_text())
+          archive = pathlib.Path('bridge/expert-robot-source.tar.gz')
+          assert request['schema_version'] == 2
+          assert re.fullmatch(r'[0-9a-f]{40}', request['expert_robot_commit'])
+          assert re.fullmatch(r'[0-9a-f]{64}', request['archive_sha256'])
+          assert archive.stat().st_size == request['archive_size_bytes']
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == request['archive_sha256']
+          with tarfile.open(archive, 'r:gz') as handle:
+              for member in handle.getmembers():
+                  p = pathlib.PurePosixPath(member.name)
+                  assert not p.is_absolute() and '..' not in p.parts
+                  assert member.isfile() or member.isdir()
+          print('EXPERT_ROBOT_AVREA_ARM64_PROBE_PASS')
+          print('source_commit:', request['expert_robot_commit'])
+          print('envelope_sha256:', request['archive_sha256'])
+          print('authority: research-only, not qualification')
+          PY
