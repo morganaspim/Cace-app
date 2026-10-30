@@ -189,7 +189,6 @@ class IterationLearningTests(unittest.TestCase):
         self.assertEqual(r.authorization_status, "NONE_GRANTED")
 
 
-
 class PermissionGateTests(unittest.TestCase):
     def test_read_tool_requires_explicit_permission_in_spec(self):
         calls = []
@@ -218,5 +217,6 @@ class PermissionGateTests(unittest.TestCase):
         self.assertEqual(p.state, PlanState.READY)
         self.assertEqual(agent.execute(p, {}).outcome, Outcome.COMPLETED_ADVISORY)
         self.assertEqual(calls, ["read"])
+
 
 if __name__ == '__main__': unittest.main()
