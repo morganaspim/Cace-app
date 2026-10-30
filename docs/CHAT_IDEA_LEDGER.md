@@ -146,6 +146,11 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I106 | one-shot host-issued least-privilege source snapshots | Bind advisory tool selection to host-owned session/dataset/fields/filter rights, short-lived single-use opaque query capabilities, revocation and snapshot content identity; eliminate inference of permissions from the council's self-reported EngineeringSpec, and keep returns advisory. | G080, G085 |
 | I107 | null-vs-missing evidence distinction | Missing schema keys must not match explicitly null values in exact equality filters; register the regression as a broader data-integrity and source-observation failure class without asserting sensor correctness or differential privacy. | G085 |
 
+| I108 | spawned fixed-query M.E.R.L.I.N. research process | Keep approved scalar snapshots and one-use host-issued access inside a distinct worker process accepting only bounded authenticated JSON IPC commands; separate model dialogue from proof and privileges. | G085, G086 |
+| I109 | immutable row scopes and bounded query differencing | Enforce host-required per-session owner filters and a finite aggregate request budget; test row bypass and repeated count queries while acknowledging that this is not differential privacy. | G086, G087 |
+| I110 | signed worker messages against session identity spoofing | A local RED regression demonstrated raw IPC can self-assert a valid session; fix with a process-shared host HMAC covering every worker command, and retain regression tests without claiming full sandbox safety. | G082, G086, G087 |
+| I111 | production host and OS attestation boundary | Finish real CACE identity-provider access, OS privilege drop, no-egress/ulimits, independent multi-tenant privacy review and full exact-head regression before making M.E.R.L.I.N. research-data features available to users. | G085, G086, G087 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:

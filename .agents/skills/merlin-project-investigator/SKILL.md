@@ -52,3 +52,7 @@ For any multi-frame physics or 'living geometry' request, start with classical G
 
 ## Host-issued query authorization (v24)
 For any private or sensitive source, do not equate `EngineeringSpec.permissions` or character assertions with access rights. The trusted CACE host must authenticate the principal, authorize a fixed source/dataset query, and issue a short-lived, one-use capability that never enters an untrusted model's prompt. Use the host-owned adapter and source-digest receipt only in a protected service context. See `docs/research/MERLIN_HOST_SNAPSHOT_CAPABILITY_V24.md`; never claim its in-memory Python process is a security sandbox, a privacy proof or an independent scientific verifier.
+
+## v25 process-brokered source access
+
+Use the tested spawned-process ProcessSnapshotService only from trusted CACE host code. The injected authenticator in tests is NOT an actual CACE login service. Keep the façade, signed private IPC, HMAC key, one-use bearer tokens and raw data inaccessible to the model. Required owner predicates and field scopes must be enforced by host policy; an aggregate-request cap is not differential privacy. The worker remains ordinary Python with no OS seccomp/no-egress sandbox; require independent security and full qualification before production. Source observations remain ADVISORY_SNAPSHOT_ONLY, proof_status NOT_RUN. See docs/research/MERLIN_PROCESS_SNAPSHOT_V25.md.

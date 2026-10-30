@@ -1280,6 +1280,36 @@
         "Existing snapshot broker distinguishes absent keys from explicit null in equality filtering, with a permanent regression.",
         "Selected exact-commit PR tests and canonical bug sweep pass; authenticated principal/session integration, isolation and full CACE release qualification remain separately reviewed."
       ]
+    },
+    {
+      "id": "G086",
+      "category": "ai_agent_runtime",
+      "priority": 86,
+      "intent_status": "research",
+      "title": "M.E.R.L.I.N. authenticated-IPC process research broker",
+      "summary": "Spawned process implementing fixed bounded JSON snapshot operations with host-derived session identity, one-shot tokens, private signed worker commands, immutable row scopes and bounded aggregate queries; advisory only.",
+      "acceptance": [
+        "Approved owner and source snapshots live within a distinct worker process with no exposed Python eval, shell, file read or general network API.",
+        "Every privileged worker command needs host-authenticated HMAC, preventing self-asserted session and direct raw IPC forgery at the exposed protocol boundary.",
+        "Real session credentials resolve via the host callback on issue and consume; query row scope, field/operation rights, expiry, revocation and concurrent one-shot use fail closed.",
+        "Tests cover forged IPC, malformed input, privacy budgets, worker failure, typed grouping, output authority and source provenance.",
+        "Scoped local tests and exact-head PR CI pass; authenticated production identity and operating-system sandbox are not claimed."
+      ]
+    },
+    {
+      "id": "G087",
+      "category": "runtime_security",
+      "priority": 87,
+      "intent_status": "required",
+      "title": "Production principal integration and OS-isolated research worker",
+      "summary": "Connect CACE account/session identities and independently audited dataset access, separate host/model permissions, enforce OS isolation, privacy safeguards, no-egress resource limits and source-safe logging.",
+      "acceptance": [
+        "Use actual CACE identity-provider-issued and revocable principals for grants, not a test callback or model-issued string.",
+        "Run worker under restricted OS identity, no network egress, limited privileges and resources; independent penetration tests cover process escape and secret disclosure.",
+        "Verify multi-tenant owner filters, column scopes, dynamic role changes, query differencing, aggregate disclosure and malicious replay through an independent security review.",
+        "Preserve source identity and consent while excluding raw bearer tokens, HMAC secrets, personal data and private prompts from logs and model context.",
+        "Require current-head full native/Python regression, qualification-drift and separate Lean proof checks before production merge or release."
+      ]
     }
   ]
 }

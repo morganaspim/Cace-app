@@ -131,6 +131,16 @@ Includes:
 
 Google Antigravity and Gemini are preferred builders/orchestration surfaces, not proof authorities and not mandatory runtime dependencies.
 
+### M.E.R.L.I.N. source-access v25 implementation order
+
+1. Confirm selected v25 tests and bug sweep in exact-commit CI; a prior green commit is not enough.
+2. Integrate real CACE authenticated principal/session rights with the host resolver and cross-tenant row/field policy.
+3. Add enforceable low-privilege no-egress OS worker sandbox, bounded CPU/memory and secret isolation. The v25 spawn/HMAC prototype is not a sandbox.
+4. Independently test query differencing, group-count leakage, token replay, revocation and malicious-model routes.
+5. Add typed source observations to canonical Research Notebook and specialist council without permitting AI proof promotion.
+6. Complete full Python/native/qualification-drift and pinned Lean gates through the approved release process.
+
+
 ## G — Heartbeat, Grow, coordination, and distributed research
 
 Heartbeat includes a typed Agent Perception Packet carrying compact live node-state, residual/convergence, blocker, resource and canonical-evidence deltas. This is the agent's non-evidentiary sensory stream for following the experiment as the canvas evolves.
