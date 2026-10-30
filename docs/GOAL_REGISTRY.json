@@ -1185,6 +1185,36 @@
         "Mystery inquiries compare mundane and extraordinary explanations with measurable discriminating tests and unknown states.",
         "Research cases undergo counterexample, independent literature and versioned-archive review before any factual promotion."
       ]
+    },
+    {
+      "id": "G080",
+      "category": "research_reasoning",
+      "priority": 80,
+      "intent_status": "research",
+      "title": "Requirements-first independent abductive investigation and source-aware lens routing",
+      "summary": "Every consequential research task begins with an explicit engineering specification, provenance-aware observational ledger, rival hypotheses including unknown alternatives, discriminating tests, and typed tool/lens selection; maintain a benchmarkable simple baseline.",
+      "acceptance": [
+        "Project-scope, objective, inputs, permissions, outputs and measurable acceptance tests are recorded before tool/action planning.",
+        "Multiple plausible explanations and an explicit unmodeled alternative survive unless conclusively ruled out within stated assumptions.",
+        "Source-origin duplicates, contrary evidence and uncalibrated heuristic scores cannot be misrepresented as independent fact or probability.",
+        "Contextual lenses and council personas control attention and critique only, not verification or external permissions.",
+        "Compare performance and cost on held-out cases with an independently reviewed baseline."
+      ]
+    },
+    {
+      "id": "G081",
+      "category": "project_memory_and_learning",
+      "priority": 81,
+      "intent_status": "research",
+      "title": "Portable MCFC–CACE project-only investigative skill and historical-critical learning corpus",
+      "summary": "Enable reproducible context loading for connected CACE agents and permitted ChatGPT Project instructions using a skill with contextual math explanations, historical cases, user intentions, source links, gaps and a truthful partial-archive notice.",
+      "acceptance": [
+        "A complete skill and reference library can be discovered from repository agent instructions and is explicitly versioned.",
+        "The project-only context handoff distinguishes canonical repo records, user directives, historic reports, fictional episodes and independently verified evidence.",
+        "The complete raw project-chat archive is not claimed unless verified, nor are unrelated account/private data imported.",
+        "Each domain uses primary-source historical case, first-principles reconstruction, simple explain-back and test-driven skeptical review.",
+        "External deployment, CI proof qualification and autonomous runner access are separately authorized and evidenced."
+      ]
     }
   ]
 }
