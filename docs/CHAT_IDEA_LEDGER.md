@@ -118,6 +118,11 @@ Purpose: preserve meritorious ideas from chats, prior handoffs, and historical C
 | I085 | independent math workbench | Build formula cards, beautiful typed equations, variable/data workspace, plots, notebooks, demos and tool discovery using CACE-owned design; external numerical-workbench products are only high-level inspiration. | G075 |
 | I086 | top-10 grounded next actions | Local AI should continuously rank up to ten real next actions for the active canvas from blockers, compatible modules, evidence state, ideas and costs, and convert unavailable actions into Tool Requests. | G076 |
 | I087 | benchmark-driven math-guided neural optimization | Use symmetry canonicalization, executable operator programs, equivariance, sparse geometry, curriculum/holdouts, canonical caches and verifier-guided distillation; keep only measured improvements. | G077 |
+| I088 | MIT Ideonomy source-grounded combination matrices | Generate typed product/phenomenon × operator × job questions from existing documented objects, retaining alternative uses, limitations, test plans and source lineage; scale lazily, not by pretending all generated combinations are useful. | G078 |
+| I089 | Invention casebook and prior-art falsification | Study real existing products, alternative use claims, TRIZ, jobs-to-be-done and patents as research prompts; require supplier specifications, safety checks, customer observations and competing baselines before commercialization. | G078 |
+| I090 | Historical occult and anomalous-claims epistemic atlas | Interpret historical traditions and mysteries in cultural context; separate original testimony, source provenance, metaphor, counterfactual simulation, unresolved anomaly and experimentally supported explanation. | G079 |
+| I091 | AI pioneers and historical-critical learning across disciplines | Use original historical problems, documented rather than invented pioneer motives, first-principles reconstruction, Feynman teach-back, strongest skeptic counterexample and measurable held-out learning performance. | G079 |
+
 ## Current theorem idea inventory
 
 The exact ranked list of 50 theorem candidates and selected top 20 is intentionally not duplicated here. Its canonical planning document is:
