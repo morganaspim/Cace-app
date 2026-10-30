@@ -209,6 +209,7 @@ def test_snapshot_mutation_after_issuance_is_detected(sample):
     with pytest.raises(AccessDenied): auth.consume("session-1", token)
     with pytest.raises(AccessDenied): auth.consume("session-1", token)
 
+
 def test_non_mapping_empty_filter_must_not_expand_to_unfiltered_query(sample):
     _, auth, _ = sample
     with pytest.raises(AccessDenied):
