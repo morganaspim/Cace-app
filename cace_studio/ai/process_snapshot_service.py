@@ -12,6 +12,9 @@ verification status can be promoted by this service.
 from __future__ import annotations
 
 from dataclasses import asdict
+from hashlib import sha256
+import hmac
+import secrets
 from math import isfinite
 import json
 import multiprocessing as mp
@@ -46,6 +49,11 @@ def _json(value: Any) -> bytes:
 
 def _decode(data: bytes) -> Any:
     return json.loads(data, parse_constant=lambda _: (_ for _ in ()).throw(ValueError('invalid number')))
+
+
+def _mac(key: bytes, command: Mapping[str, Any]) -> str:
+    message = {name: value for name, value in command.items() if name != 'mac'}
+    return hmac.new(key, _json(message), sha256).hexdigest()
 
 
 def _typed_key(value: Any) -> dict[str, Any]:
@@ -120,7 +128,8 @@ def _worker(conn: Connection, datasets: Mapping[str, Sequence[Mapping[str, Any]]
             schemas: Mapping[str, Sequence[str]], rights: Mapping[str, tuple[DatasetRight, ...]],
             sources: Mapping[str, SourceDescriptor],
             required_where: Mapping[str, Mapping[str, Mapping[str, Any]]],
-            max_aggregate_issues_per_session: int) -> None:
+            max_aggregate_issues_per_session: int,
+            worker_auth_key: bytes) -> None:
     """Worker receives only fixed, JSON-framed commands from its trusted parent."""
     try:
         broker = SnapshotBroker(datasets, schemas, max_output=256)
@@ -152,6 +161,12 @@ def _worker(conn: Connection, datasets: Mapping[str, Sequence[Mapping[str, Any]]
                 request = _decode(packet)
                 if not isinstance(request, dict) or not isinstance(request.get('kind'), str):
                     raise ServiceDenied('unsupported request')
+                supplied_mac = request.get('mac')
+                if not isinstance(supplied_mac, str) or not hmac.compare_digest(
+                    supplied_mac, _mac(worker_auth_key, request)
+                ):
+                    raise ServiceDenied('unauthenticated worker command')
+                request.pop('mac')
                 kind = request['kind']
                 if kind == 'stop' and set(request) == {'kind'}:
                     conn.send_bytes(_json({'status':'OK'}))
@@ -234,6 +249,7 @@ class ProcessSnapshotService:
             raise ValueError('host row-scope registry must be a mapping')
         self._authenticate = authenticate
         self._timeout = float(timeout)
+        self._auth_key = secrets.token_bytes(32)
         self._lock = threading.RLock()
         self._closed = False
         ctx = mp.get_context('spawn')
@@ -241,7 +257,7 @@ class ProcessSnapshotService:
         self._proc = ctx.Process(target=_worker,
                                  args=(child,datasets,schemas,rights,sources,
                                        required_where if required_where is not None else {},
-                                       max_aggregate_issues_per_session),
+                                       max_aggregate_issues_per_session, self._auth_key),
                                  daemon=True, name='cace-research-snapshot-worker')
         try:
             self._proc.start()
@@ -266,6 +282,12 @@ class ProcessSnapshotService:
         if not isinstance(session,str) or not (0 < len(session) <= 128) or any(ord(c)<32 for c in session):
             raise ServiceDenied('not authorized')
         return session
+
+    def _signed(self, command: dict[str, Any]) -> dict[str, Any]:
+        """Only trusted host methods call this; never an agent tool."""
+        if 'mac' in command:
+            raise ServiceDenied('duplicate command authentication field')
+        return {**command, 'mac': _mac(self._auth_key, command)}
 
     def _rpc(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
@@ -298,19 +320,19 @@ class ProcessSnapshotService:
         session = self._session(credential)
         if not isinstance(query, HostQuery):
             raise ServiceDenied('fixed host query required')
-        return self._rpc({'kind':'issue', 'session':session, 'query':{
+        return self._rpc(self._signed({'kind':'issue', 'session':session, 'query':{
             'dataset':query.dataset, 'operation':query.operation,
             'fields':query.fields, 'where':query.where, 'limit':query.limit},
-            'ttl':ttl_seconds})['token']
+            'ttl':ttl_seconds}))['token']
 
     def consume(self, credential: str, token: str) -> AuthorizedObservation:
         session = self._session(credential)
-        result = self._rpc({'kind':'consume', 'session':session, 'token':token})
+        result = self._rpc(self._signed({'kind':'consume', 'session':session, 'token':token}))
         return _unpack_observation(result['observation'])
 
     def revoke_session(self, session_id: str) -> None:
         """Privileged host-only revocation; not exposed on model tool bus."""
-        self._rpc({'kind':'revoke', 'session':session_id})
+        self._rpc(self._signed({'kind':'revoke', 'session':session_id}))
 
     def close(self) -> None:
         with self._lock:
@@ -319,7 +341,7 @@ class ProcessSnapshotService:
             self._closed = True
             if self._proc.is_alive():
                 try:
-                    self._conn.send_bytes(_json({'kind':'stop'}))
+                    self._conn.send_bytes(_json(self._signed({'kind':'stop'})))
                     if self._conn.poll(min(self._timeout,1.0)):
                         self._conn.recv_bytes(256)
                 except (OSError, EOFError, ValueError):
