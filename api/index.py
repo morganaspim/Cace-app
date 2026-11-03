@@ -7,11 +7,16 @@ Python core so the web UI cannot invent a second semantics.
 from __future__ import annotations
 
 from dataclasses import asdict
+import hashlib
+import json
 import os
 from pathlib import Path
+import re
 import threading
 import time
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
 from fastapi import Body, FastAPI, HTTPException
@@ -19,6 +24,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from cace_studio.app import build_registry
+from cace_studio.core.module import ValidationError
 from cace_studio.core.execution_control import ExecutionControl
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, ExperimentGroup, Node
@@ -47,6 +53,8 @@ _registry = build_registry()
 _jobs_lock = threading.RLock()
 _jobs: dict[str, dict[str, Any]] = {}
 
+_UNIPROT_RE = re.compile(r"^[A-Z0-9]{1,12}$")
+
 
 def _module_payload(cls) -> dict[str, Any]:
     metadata = asdict(cls.metadata)
@@ -58,6 +66,286 @@ def _module_payload(cls) -> dict[str, Any]:
         "parameters": [asdict(parameter) for parameter in cls.parameters],
         "declared_proof_status": cls.proof_status.to_dict(),
         "supports_gpu": bool(cls.supports_gpu),
+    }
+
+
+def _stable_hash(value: Any) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), default=repr)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _client_port_payload(port) -> dict[str, Any]:
+    payload = asdict(port)
+    payload["type"] = port.type_name
+    return payload
+
+
+def _client_parameter_payload(parameter) -> dict[str, Any]:
+    payload = asdict(parameter)
+    payload["type"] = parameter.type_name
+    return payload
+
+
+def _proof_evidence_level(proof: dict[str, Any]) -> str:
+    evidence = set(proof.get("evidence") or [])
+    for level in (
+        "formally-verified",
+        "interval-certified",
+        "symbolic",
+        "numerical",
+        "experimental",
+    ):
+        if level in evidence:
+            return level
+    return "unverified"
+
+
+def _capability_payload(cls) -> dict[str, Any]:
+    payload = _module_payload(cls)
+    proof = dict(payload["declared_proof_status"])
+    proof["evidence_level"] = _proof_evidence_level(proof)
+    proof["is_verified"] = False
+    proof["proof_note"] = (
+        "Declared module metadata is not formal qualification evidence. Exact-head "
+        "qualification requires the CACE provenance and proof pipeline."
+    )
+    payload["inputs"] = [_client_port_payload(port) for port in cls.inputs]
+    payload["outputs"] = [_client_port_payload(port) for port in cls.outputs]
+    payload["parameters"] = [_client_parameter_payload(parameter) for parameter in cls.parameters]
+    payload["declared_proof_status"] = proof
+    return payload
+
+
+def _capability_classes() -> list[type]:
+    return sorted(
+        _registry.classes(),
+        key=lambda cls: (cls.metadata.category, cls.metadata.name, cls.metadata.module_id),
+    )
+
+
+def _capabilities_payload() -> dict[str, Any]:
+    modules = [_capability_payload(cls) for cls in _capability_classes()]
+    registry_identity = [
+        {
+            "module_id": item["metadata"]["module_id"],
+            "version": item["metadata"]["version"],
+            "inputs": item["inputs"],
+            "outputs": item["outputs"],
+            "parameters": item["parameters"],
+        }
+        for item in modules
+    ]
+    return {
+        "schema": 1,
+        "metadata_is_verification_evidence": False,
+        "capability_policy_hash": _stable_hash(
+            {"source": "cace-app-python-registry", "modules": registry_identity}
+        ),
+        "registry_contract_hash": _stable_hash({"modules": registry_identity}),
+        "modules": modules,
+    }
+
+
+def _fetch_json_url(url: str, *, timeout: float = 15.0) -> Any:
+    request = Request(url, headers={"Accept": "application/json", "User-Agent": "CACE-Studio/3.36"})
+    with urlopen(request, timeout=timeout) as response:
+        if response.status != 200:
+            raise ValueError(f"upstream returned HTTP {response.status}")
+        return json.loads(response.read(2_000_000).decode("utf-8"))
+
+
+
+LOCAL_AI_MODELS = {
+    "assistant": {
+        "model": os.getenv("CACE_AI_GRANITE_MODEL", "granite3.3:2b-instruct"),
+        "role": "conversation, routing, explanations",
+        "capability": "chat",
+    },
+    "reasoner": {
+        "model": os.getenv("CACE_AI_PHI_MODEL", "phi4-mini-reasoning"),
+        "role": "mathematics, science, geometry, proof obligations",
+        "capability": "reasoning",
+    },
+    "vision": {
+        "model": os.getenv("CACE_AI_QWEN_MODEL", "qwen3.5:4b"),
+        "role": "visual and spatial geometry interpretation",
+        "capability": "vision",
+    },
+}
+LOCAL_AI_PROVIDER = os.getenv("CACE_AI_PROVIDER", "ollama").strip().lower()
+LOCAL_AI_BASE_URL = os.getenv("CACE_AI_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+LOCAL_AI_ENABLED = os.getenv("CACE_AI_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _post_json_url(url: str, payload: dict[str, Any], *, timeout: float = 60.0) -> Any:
+    encoded = json.dumps(payload).encode("utf-8")
+    request = Request(
+        url,
+        data=encoded,
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "CACE-Studio/3.36"},
+        method="POST",
+    )
+    with urlopen(request, timeout=timeout) as response:
+        if response.status < 200 or response.status >= 300:
+            raise ValueError(f"upstream returned HTTP {response.status}")
+        return json.loads(response.read(8_000_000).decode("utf-8"))
+
+
+def _local_ai_network_boundary() -> dict[str, Any]:
+    return {
+        "ai_network_mode": "LOCAL_ZERO_CONTACT",
+        "internet_access": False,
+        "allowed_provider_hosts": ["127.0.0.1", "localhost"],
+        "remote_api_imports_are_gui_backend_only": True,
+        "evidence_authority": False,
+    }
+
+
+def _local_ai_status_payload() -> dict[str, Any]:
+    status: dict[str, Any] = {
+        "schema": "cace-local-ai-status-v1",
+        "enabled": LOCAL_AI_ENABLED,
+        "provider": LOCAL_AI_PROVIDER,
+        "base_url": LOCAL_AI_BASE_URL if LOCAL_AI_ENABLED else None,
+        "roles": LOCAL_AI_MODELS,
+        "boundary": _local_ai_network_boundary(),
+        "provider_health": "disabled",
+        "available_models": [],
+        "message": "Set CACE_AI_ENABLED=1 and run a local provider such as Ollama to enable real local inference.",
+    }
+    if not LOCAL_AI_ENABLED:
+        return status
+    if not (LOCAL_AI_BASE_URL.startswith("http://127.0.0.1") or LOCAL_AI_BASE_URL.startswith("http://localhost")):
+        status["provider_health"] = "blocked"
+        status["message"] = "Local AI provider URL must be localhost/127.0.0.1."
+        return status
+    try:
+        if LOCAL_AI_PROVIDER == "ollama":
+            payload = _fetch_json_url(f"{LOCAL_AI_BASE_URL}/api/tags", timeout=3.0)
+            status["available_models"] = [item.get("name") for item in payload.get("models", []) if isinstance(item, dict)]
+            status["provider_health"] = "ready"
+            status["message"] = "Local Ollama provider reachable."
+        else:
+            payload = _fetch_json_url(f"{LOCAL_AI_BASE_URL}/v1/models", timeout=3.0)
+            status["available_models"] = [item.get("id") for item in payload.get("data", []) if isinstance(item, dict)]
+            status["provider_health"] = "ready"
+            status["message"] = "Local OpenAI-compatible provider reachable."
+    except Exception as exc:
+        status["provider_health"] = "unreachable"
+        status["message"] = f"Local provider not reachable: {exc}"
+    return status
+
+
+def _classify_ai_task(message: str, has_image: bool = False) -> str:
+    lower = message.lower()
+    if has_image or any(word in lower for word in ("image", "mesh", "see", "screenshot", "diagram")):
+        return "vision"
+    if any(word in lower for word in ("prove", "proof", "derive", "equation", "geometry", "pde", "fem", "field", "quantum", "molecule", "metamaterial")):
+        return "reasoner"
+    return "assistant"
+
+
+def _local_ai_generate(role: str, message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    status = _local_ai_status_payload()
+    if not status["enabled"] or status["provider_health"] != "ready":
+        return {
+            "schema": "cace-local-ai-response-v1",
+            "status": "unavailable",
+            "role": role,
+            "model": LOCAL_AI_MODELS[role]["model"],
+            "response": status["message"],
+            "route_trace": ["Granite/router", "provider unavailable"],
+            "boundary": _local_ai_network_boundary(),
+        }
+    model = LOCAL_AI_MODELS[role]["model"]
+    system = (
+        "You are a local CACE research assistant. You have no internet access. "
+        "You may observe, reason, plan, and explain, but you cannot verify, certify, promote evidence, "
+        "or override CACE validation. Prefer structured tool plans and identify proof obligations."
+    )
+    prompt = f"{system}\n\nContext JSON:\n{json.dumps(context or {}, sort_keys=True, default=repr)[:12000]}\n\nUser task:\n{message}"
+    try:
+        if LOCAL_AI_PROVIDER == "ollama":
+            payload = _post_json_url(
+                f"{LOCAL_AI_BASE_URL}/api/generate",
+                {"model": model, "prompt": prompt, "stream": False},
+                timeout=120.0,
+            )
+            response = str(payload.get("response", ""))
+        else:
+            payload = _post_json_url(
+                f"{LOCAL_AI_BASE_URL}/v1/chat/completions",
+                {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": message}], "stream": False},
+                timeout=120.0,
+            )
+            response = str(payload.get("choices", [{}])[0].get("message", {}).get("content", ""))
+        return {
+            "schema": "cace-local-ai-response-v1",
+            "status": "ok",
+            "role": role,
+            "model": model,
+            "response": response,
+            "route_trace": ["Granite/router", role, "CACE boundary applied"],
+            "boundary": _local_ai_network_boundary(),
+        }
+    except Exception as exc:
+        return {
+            "schema": "cace-local-ai-response-v1",
+            "status": "failed",
+            "role": role,
+            "model": model,
+            "response": f"Local inference failed: {exc}",
+            "route_trace": ["Granite/router", role, "provider error"],
+            "boundary": _local_ai_network_boundary(),
+        }
+
+
+def _proof_recompile_plan() -> dict[str, Any]:
+    claims_payload = claims()
+    capability_payload = _capabilities_payload()
+    verified_like = [
+        claim for claim in claims_payload.get("claims", [])
+        if claim.get("qualification", {}).get("status") in {"PASS", "HISTORICAL_PASS"}
+    ]
+    modules = capability_payload.get("modules", [])
+    proof_rank = sorted(
+        [
+            {
+                "module_id": item["metadata"]["module_id"],
+                "name": item["metadata"]["name"],
+                "evidence_level": item["declared_proof_status"].get("evidence_level", "unverified"),
+                "optimization_use": "train/evaluate tool-use, graph planning, proof-obligation extraction",
+            }
+            for item in modules
+        ],
+        key=lambda item: (item["evidence_level"] == "unverified", item["module_id"]),
+    )[:24]
+    return {
+        "schema": "cace-ai-recompile-plan-v1",
+        "status": "plan-only",
+        "button_label": "Recompile AI with latest proofs",
+        "recompile_is_automatic": False,
+        "reason": "Model rebuilding must be explicit, benchmarked, and reviewed. This endpoint prepares the local proof/tool dataset plan only.",
+        "inputs": {
+            "qualified_claim_count": len(verified_like),
+            "capability_count": len(modules),
+            "network_mode": "LOCAL_ZERO_CONTACT",
+        },
+        "ranked_training_sources": proof_rank,
+        "pipeline": [
+            "collect exact-head CACE claims and module contracts",
+            "generate local structured tool-use traces",
+            "benchmark Granite routing, Phi reasoning, Qwen geometry perception",
+            "fine-tune or adapter-train only after baseline metrics exist",
+            "run regression/equivalence tests and Lean/CACE proof gates",
+            "promote no model output unless CACE validation independently passes",
+        ],
+        "forbidden": [
+            "internet access by the AI group",
+            "automatic proof promotion",
+            "silent self-modifying code deployment",
+            "claims about God, aliens, multiverse, or reality beyond validated evidence",
+        ],
     }
 
 
@@ -260,15 +548,24 @@ def health() -> dict[str, str]:
 
 @app.get("/api/modules")
 def modules() -> dict[str, Any]:
-    classes = sorted(
-        _registry.classes(),
-        key=lambda cls: (cls.metadata.category, cls.metadata.name, cls.metadata.module_id),
-    )
     return {
         "schema": 1,
         "metadata_is_verification_evidence": False,
-        "modules": [_module_payload(cls) for cls in classes],
+        "modules": [_module_payload(cls) for cls in _capability_classes()],
     }
+
+
+@app.get("/api/capabilities")
+def capabilities() -> dict[str, Any]:
+    return _capabilities_payload()
+
+
+@app.get("/api/capabilities/{module_id:path}")
+def capability(module_id: str) -> dict[str, Any]:
+    for item in _capabilities_payload()["modules"]:
+        if item["metadata"]["module_id"] == module_id:
+            return item
+    raise HTTPException(status_code=404, detail="unknown module capability")
 
 
 @app.get("/api/claims")
@@ -278,6 +575,69 @@ def claims() -> dict[str, Any]:
         "schema": 1,
         "proof_effect": "none",
         "claims": [view.to_dict() for view in explorer.all_claims()],
+    }
+
+
+
+
+@app.get("/api/ai/status")
+def local_ai_status() -> dict[str, Any]:
+    return _local_ai_status_payload()
+
+
+@app.post("/api/ai/chat")
+def local_ai_chat(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    message = str(payload.get("message", "")).strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+    role = payload.get("role") or _classify_ai_task(message, bool(payload.get("image")))
+    if role not in LOCAL_AI_MODELS:
+        raise HTTPException(status_code=400, detail="role must be assistant, reasoner, or vision")
+    context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+    return _local_ai_generate(str(role), message, context)
+
+
+@app.post("/api/ai/recompile-plan")
+def local_ai_recompile_plan() -> dict[str, Any]:
+    return _proof_recompile_plan()
+
+
+@app.get("/api/alphafold/{accession}")
+def alphafold_prediction(accession: str) -> dict[str, Any]:
+    normalized = accession.strip().upper()
+    if not _UNIPROT_RE.fullmatch(normalized):
+        raise HTTPException(status_code=400, detail="accession must look like a UniProt accession")
+    url = f"https://alphafold.ebi.ac.uk/api/prediction/{normalized}"
+    try:
+        payload = _fetch_json_url(url)
+    except HTTPError as exc:
+        if exc.code == 404:
+            raise HTTPException(status_code=404, detail="AlphaFold prediction not found") from exc
+        raise HTTPException(status_code=502, detail=f"AlphaFold upstream HTTP {exc.code}") from exc
+    except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=502, detail=f"AlphaFold lookup failed: {exc}") from exc
+
+    predictions = payload if isinstance(payload, list) else [payload]
+    if not predictions:
+        raise HTTPException(status_code=404, detail="AlphaFold prediction not found")
+    first = predictions[0]
+    return {
+        "schema": "cace-alphafold-prediction-v1",
+        "authority": "AlphaFold Protein Structure Database / EMBL-EBI",
+        "accession": normalized,
+        "prediction_count": len(predictions),
+        "entry": first,
+        "urls": {
+            "api": url,
+            "entry": f"https://alphafold.ebi.ac.uk/entry/{normalized}",
+            "cif": first.get("cifUrl"),
+            "pdb": first.get("pdbUrl"),
+            "pae": first.get("paeDocUrl"),
+        },
+        "evidence_note": (
+            "AlphaFold predictions are imported as attributed protein-structure objects. "
+            "They are not CACE proof evidence unless later checked by canonical CACE tools."
+        ),
     }
 
 
@@ -301,6 +661,28 @@ def validate_connection(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         return {"valid": reason is None, "reason": reason}
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/graphs/validate")
+def validate_graph(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        experiment = _experiment_from_payload(payload.get("experiment"))
+        order = GraphExecutor(_registry)._validate_and_order(experiment)
+        return {
+            "valid": True,
+            "reason": None,
+            "node_count": len(experiment.nodes),
+            "edge_count": len(experiment.edges),
+            "topological_order": order,
+            "disallowed_modules": [],
+        }
+    except (KeyError, TypeError, ValueError, ValidationError) as exc:
+        return {
+            "valid": False,
+            "reason": str(exc),
+            "node_count": 0,
+            "edge_count": 0,
+        }
 
 
 @app.post("/api/runs")

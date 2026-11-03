@@ -259,6 +259,12 @@ The preview should show modules, edges, parameters, assumptions, expected output
 
 AI is a research assistant, not a verifier.
 
+The canonical local-AI architecture is the three-model stack in
+`docs/LOCAL_AI_THREE_MODEL_ARCHITECTURE.md`: Granite communicates and routes,
+Phi reasons, Qwen sees, and CACE computes, validates, certifies and verifies.
+This replaces generic local-AI planning text wherever the two conflict. Do not
+run all models for every message, and do not treat AI agreement as evidence.
+
 ### 8.1 User experience
 
 Users should be able to select and configure a supported local AI provider from the GUI with no coding. AI must have an obvious OFF state.
