@@ -21,6 +21,9 @@ class StudioSettings:
     ai_provider: str = "ollama"
     ai_endpoint: str = "http://127.0.0.1:11434"
     ai_model: str = ""
+    allow_superintelligence_class_ai: bool = False
+    ai_max_compute_credits: float = 20.0
+    latent_observer_replicas: int = 2
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "StudioSettings":
@@ -38,6 +41,21 @@ class StudioSettings:
         settings = cls(**values)
         if settings.assistant_mode not in AI_MODES:
             settings.assistant_mode = "researcher"
+        try:
+            settings.ai_max_compute_credits = min(
+                1000.0, max(0.0, float(settings.ai_max_compute_credits))
+            )
+        except (TypeError, ValueError):
+            settings.ai_max_compute_credits = 20.0
+        try:
+            settings.latent_observer_replicas = min(
+                8, max(2, int(settings.latent_observer_replicas))
+            )
+        except (TypeError, ValueError):
+            settings.latent_observer_replicas = 2
+        settings.allow_superintelligence_class_ai = bool(
+            settings.allow_superintelligence_class_ai
+        )
         return settings
 
     def save(self, path: str | Path | None = None) -> Path:

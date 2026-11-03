@@ -1,0 +1,33 @@
+services:
+  observer-a:
+    build:
+      context: ../..
+      dockerfile: deploy/latent-observer/Dockerfile
+    network_mode: "none"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      CACE_OBSERVER_ID: observer-a
+      CACE_OBSERVER_INPUT: /input
+      CACE_OBSERVER_ARCHIVE: /archive
+    volumes:
+      - ./input:/input:ro
+      - ./archive-a:/archive
+    tmpfs: ["/tmp"]
+  observer-b:
+    build:
+      context: ../..
+      dockerfile: deploy/latent-observer/Dockerfile
+    network_mode: "none"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      CACE_OBSERVER_ID: observer-b
+      CACE_OBSERVER_INPUT: /input
+      CACE_OBSERVER_ARCHIVE: /archive
+    volumes:
+      - ./input:/input:ro
+      - ./archive-b:/archive
+    tmpfs: ["/tmp"]

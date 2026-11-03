@@ -1,0 +1,132 @@
+{
+  "schema": "cace.open-problem-catalog.v1",
+  "catalog_id": "clay-millennium-2026-09-19",
+  "authority": "Clay Mathematics Institute",
+  "verified_at": "2026-09-19",
+  "entries": [
+    {
+      "problem_id": "clay.bsd",
+      "title": "Birch and Swinnerton-Dyer Conjecture",
+      "domain": "mathematics",
+      "status": "open",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Relates arithmetic information from an elliptic curve's L-function to the rank of its rational points.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/birch-and-swinnerton-dyer-conjecture/"
+      ],
+      "last_verified": "2026-09-19",
+      "tags": [
+        "number theory",
+        "elliptic curves"
+      ]
+    },
+    {
+      "problem_id": "clay.hodge",
+      "title": "Hodge Conjecture",
+      "domain": "mathematics",
+      "status": "open",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Asks which rational cohomology classes on projective algebraic varieties arise from algebraic cycles.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/hodge-conjecture/"
+      ],
+      "last_verified": "2026-09-19",
+      "tags": [
+        "algebraic geometry",
+        "topology"
+      ]
+    },
+    {
+      "problem_id": "clay.p-vs-np",
+      "title": "P vs NP",
+      "domain": "theoretical computer science",
+      "status": "open",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Asks whether every problem whose proposed solutions can be checked efficiently can also be solved efficiently.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/p-vs-np/"
+      ],
+      "last_verified": "2026-09-19",
+      "tags": [
+        "complexity",
+        "algorithms"
+      ]
+    },
+    {
+      "problem_id": "clay.riemann",
+      "title": "Riemann Hypothesis",
+      "domain": "mathematics",
+      "status": "open",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Asserts that the nontrivial zeros of the Riemann zeta function have real part one half.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/riemann-hypothesis/"
+      ],
+      "last_verified": "2026-09-19",
+      "tags": [
+        "number theory",
+        "zeta function"
+      ]
+    },
+    {
+      "problem_id": "clay.yang-mills",
+      "title": "Yang-Mills and the Mass Gap",
+      "domain": "mathematical physics",
+      "status": "open",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Seeks a rigorous quantum Yang-Mills theory in four dimensions with a positive mass gap.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/yang-mills-the-maths-gap/"
+      ],
+      "last_verified": "2026-09-19",
+      "tags": [
+        "quantum field theory",
+        "gauge theory"
+      ]
+    },
+    {
+      "problem_id": "clay.navier-stokes",
+      "title": "Navier-Stokes Existence and Smoothness",
+      "domain": "mathematics / fluid dynamics",
+      "status": "active-review",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Concerns existence and smoothness of three-dimensional incompressible Navier-Stokes solutions.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/navier-stokes-equation/",
+        "https://www.claymath.org/news/navier-stokes-announcement/",
+        "https://www.claymath.org/millennium-problems/rules/"
+      ],
+      "last_verified": "2026-09-19",
+      "status_note": "Clay announced on 2026-09-11 that the problem has apparently been settled, while the official problem page still marks it Active and the prize process remains pending.",
+      "tags": [
+        "PDE",
+        "fluid dynamics",
+        "active review"
+      ]
+    },
+    {
+      "problem_id": "clay.poincare",
+      "title": "Poincare Conjecture",
+      "domain": "mathematics",
+      "status": "solved",
+      "collection": "Millennium Prize Problems",
+      "authority": "Clay Mathematics Institute",
+      "summary": "Characterizes the three-sphere among closed simply connected three-manifolds; solved by Grigori Perelman.",
+      "source_urls": [
+        "https://www.claymath.org/millennium/poincare-conjecture/"
+      ],
+      "last_verified": "2026-09-19",
+      "tags": [
+        "topology",
+        "geometry",
+        "historical"
+      ]
+    }
+  ]
+}

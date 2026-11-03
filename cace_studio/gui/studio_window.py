@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QThreadPool, Qt
+from hashlib import sha256
+import json
+from uuid import uuid4
+
+from PySide6.QtCore import QPointF, QThreadPool, QTimer, Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QFormLayout, QInputDialog
 
@@ -12,6 +16,14 @@ from cace_studio.core.graph_edit import (
     copy_graph_fragment,
     paste_graph_fragment,
 )
+from cace_studio.ai.heartbeat_context import build_heartbeat_context_packet
+from cace_studio.ai.protein_play import (
+    ProteinHeartbeatPlayEngine,
+    discover_protein_outputs,
+)
+from cace_studio.core.compute_economy import ComputeCreditEconomy, sample_host_headroom
+from cace_studio.core.graph import Node
+from cace_studio.core.heartbeat import AIHeartbeatUpdate, CanvasHeartbeatEngine
 from cace_studio.core.graph_groups import (
     create_group,
     group_node_ids,
@@ -24,6 +36,8 @@ from .group_overlay import GroupOverlayManager
 from .main_window import MainWindow
 from .minimap import MiniMapView
 from .proof_explorer import ProofExplorerWidget
+from .open_problems import OpenProblemsWidget
+from .protein_playground import ProteinPlaygroundWidget
 
 
 class StudioMainWindow(MainWindow):
@@ -68,7 +82,254 @@ class StudioMainWindow(MainWindow):
             Qt.RightDockWidgetArea,
         )
         self.proof_explorer.show_all_claims()
+        self._install_research_controls()
         self._sync_execution_actions()
+
+    def _install_research_controls(self) -> None:
+        self._canvas_heartbeat = CanvasHeartbeatEngine()
+        self._compute_economy = ComputeCreditEconomy()
+        self.open_problems = OpenProblemsWidget(
+            self._import_open_problem,
+            self._play_open_problem,
+            self,
+        )
+        self.open_problems_dock = self._dock(
+            "Open Problems",
+            self.open_problems,
+            Qt.LeftDockWidgetArea,
+        )
+        self._protein_play_engines = {}
+        self.protein_playground = ProteinPlaygroundWidget(
+            self._protein_sources,
+            self._play_protein,
+            self._import_alphafold_api,
+            self,
+        )
+        self.protein_playground_dock = self._dock(
+            "Protein Playground",
+            self.protein_playground,
+            Qt.RightDockWidgetArea,
+        )
+        self._economy_timer = QTimer(self)
+        self._economy_timer.setInterval(2_000)
+        self._economy_timer.timeout.connect(self._economy_tick)
+        self._economy_timer.start()
+        self._economy_tick()
+
+    def _protein_sources(self):
+        return discover_protein_outputs(self.last_result)
+
+    def _import_alphafold_api(self, accession: str) -> str:
+        accession = str(accession).strip()
+        allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-")
+        if not 2 <= len(accession) <= 64 or any(char not in allowed for char in accession):
+            raise ValueError("UniProt accession must be a simple canonical identifier")
+        if not self.registry.contains("protein.alphafold_api_import"):
+            raise RuntimeError(
+                "This build does not yet contain the molecular-science AlphaFold DB API "
+                "module. Integrate the molecular/materials science module branch first."
+            )
+        if self._execution_control is not None:
+            raise RuntimeError("wait for the active graph execution to finish before importing")
+
+        self._record_history()
+        node_id = f"alphafold_{uuid4().hex[:8]}"
+        position = (
+            80.0 + 35.0 * (len(self.experiment.nodes) % 8),
+            110.0 + 25.0 * (len(self.experiment.nodes) % 5),
+        )
+        item = self.canvas.add_module(
+            "protein.alphafold_api_import",
+            QPointF(*position),
+            notify=False,
+            node_id=node_id,
+        )
+        self.experiment.nodes.append(
+            Node(
+                id=node_id,
+                module_id="protein.alphafold_api_import",
+                params={
+                    "uniprot_accession": accession,
+                    "prediction_index": 0,
+                    "timeout_seconds": 15.0,
+                },
+                position=position,
+            )
+        )
+        self._invalidate_run_evidence("AlphaFold DB API protein source imported")
+        self._autosave_tick()
+        self.minimap.schedule_refresh()
+        self.scene.clearSelection()
+        item.setSelected(True)
+        self._selected(item)
+        self.console.append(
+            f"AlphaFold DB API import requested for {accession} as {node_id}. "
+            "Starting Selected + Upstream execution; retrieved data retain source/license attribution."
+        )
+        self.run_selected_upstream()
+        return node_id
+
+    def _play_protein(self, node_id: str):
+        sources = dict(self._protein_sources())
+        view = sources.get(node_id)
+        if view is None:
+            raise ValueError(
+                "protein output is not present in the currently attached run"
+            )
+        cached = self._protein_play_engines.get(node_id)
+        if cached is None or cached.view.semantic_sha256 != view.semantic_sha256:
+            cached = ProteinHeartbeatPlayEngine(view, seed=0)
+            self._protein_play_engines[node_id] = cached
+        step = cached.step()
+
+        previous = self._canvas_heartbeat.frame
+        verification = (
+            dict(self.last_result.verification)
+            if self.last_result is not None
+            else {}
+        )
+        frame = self._canvas_heartbeat.advance(
+            self.experiment,
+            semantic_hashes=self._semantic_hashes(),
+            verification=verification,
+            inputs_ready_nodes=tuple(node.id for node in self.experiment.nodes),
+            ai_updates=(
+                AIHeartbeatUpdate(
+                    node_id,
+                    0.8,
+                    "user requested Protein Play",
+                ),
+            ),
+        )
+        self.canvas.apply_heartbeat_frame(frame)
+        canvas_packet = build_heartbeat_context_packet(
+            self.experiment,
+            frame,
+            previous,
+            max_nodes=64,
+        )
+        wallet = self._compute_economy.wallets.get(node_id)
+        credits = wallet.credits if wallet is not None else 0.0
+        context = "\n\n".join(
+            (
+                step.context,
+                "SOURCE CANVAS HEARTBEAT",
+                canvas_packet.to_prompt_text(),
+                (
+                    f"Internal research compute credits for the source node: {credits:.2f}. "
+                    "Autonomous follow-up experiments should use bounded compute bids."
+                ),
+            )
+        )
+        accepted = self.assistant.ask_context(context, label="protein-play")
+        self.console.append(
+            f"Protein Play: node {node_id}; residue and canvas heartbeat attention updated. "
+            "The source structure was not mutated and AI output is non-evidentiary."
+        )
+        return accepted, step
+
+    def _semantic_hashes(self) -> dict[str, str]:
+        hashes = {}
+        for node in self.experiment.nodes:
+            payload = json.dumps(
+                {"module_id": node.module_id, "params": node.params},
+                sort_keys=True,
+                separators=(",", ":"),
+                default=repr,
+            )
+            hashes[node.id] = sha256(payload.encode("utf-8")).hexdigest()
+        return hashes
+
+    def _economy_tick(self) -> None:
+        tick = self._compute_economy.tick(
+            (node.id for node in self.experiment.nodes),
+            sample_host_headroom(),
+        )
+        self.canvas.apply_compute_wallets(tick.wallet_credits)
+        self.economy_status.setText(
+            f"Heartbeat economy: treasury={tick.treasury:.2f} internal credits; "
+            f"last mint={tick.minted:.2f}. Credits are non-monetary and non-evidentiary."
+        )
+
+    def _import_open_problem(self, problem) -> str:
+        for node in self.experiment.nodes:
+            if (
+                node.module_id == "research.open_problem"
+                and node.params.get("problem_id") == problem.problem_id
+            ):
+                return node.id
+        self._record_history()
+        node_id = f"problem_{uuid4().hex[:8]}"
+        position = (60.0 + 30.0 * (len(self.experiment.nodes) % 8), 60.0)
+        item = self.canvas.add_module(
+            "research.open_problem",
+            QPointF(*position),
+            notify=False,
+            node_id=node_id,
+        )
+        self.experiment.nodes.append(
+            Node(
+                id=node_id,
+                module_id="research.open_problem",
+                params=problem.to_module_params(),
+                position=position,
+            )
+        )
+        self._invalidate_run_evidence("open problem imported")
+        self._autosave_tick()
+        self.minimap.schedule_refresh()
+        self.scene.clearSelection()
+        item.setSelected(True)
+        self._selected(item)
+        return node_id
+
+    def _play_open_problem(self, problem) -> bool:
+        node_id = self._import_open_problem(problem)
+        previous = self._canvas_heartbeat.frame
+        verification = (
+            dict(self.last_result.verification)
+            if self.last_result is not None
+            else {}
+        )
+        frame = self._canvas_heartbeat.advance(
+            self.experiment,
+            semantic_hashes=self._semantic_hashes(),
+            verification=verification,
+            inputs_ready_nodes=tuple(node.id for node in self.experiment.nodes),
+            ai_updates=(
+                AIHeartbeatUpdate(
+                    node_id,
+                    0.8,
+                    f"user requested Play for {problem.problem_id}",
+                ),
+            ),
+        )
+        self.canvas.apply_heartbeat_frame(frame)
+        packet = build_heartbeat_context_packet(
+            self.experiment,
+            frame,
+            previous,
+            max_nodes=64,
+        )
+        wallet = self._compute_economy.wallets.get(node_id)
+        credits = wallet.credits if wallet is not None else 0.0
+        context = "\n\n".join(
+            (
+                problem.ai_context(),
+                packet.to_prompt_text(),
+                (
+                    f"Internal research compute credits for this node: {credits:.2f}. "
+                    "User-triggered Play is allowed independently; autonomous follow-up "
+                    "experiments should bid against the spare-compute economy."
+                ),
+            )
+        )
+        accepted = self.assistant.ask_context(context, label="open-problem-play")
+        self.console.append(
+            f"Open Problem Play: {problem.title}; heartbeat attention raised on {node_id}. "
+            "This is research navigation only and cannot mark the problem solved."
+        )
+        return accepted
 
     def _menu_named(self, title: str):
         target = title.replace("&", "")
@@ -441,6 +702,8 @@ class StudioMainWindow(MainWindow):
                 return
 
             self.last_result = result
+            if hasattr(self, "protein_playground"):
+                self.protein_playground.refresh_sources()
             if not result.completed:
                 status = f"INCOMPLETE ({result.interruption_reason or 'interrupted'})"
             else:
@@ -565,6 +828,10 @@ class StudioMainWindow(MainWindow):
         super().new_file()
         self._graph_clipboard = None
         self._paste_generation = 0
+        if hasattr(self, "_protein_play_engines"):
+            self._protein_play_engines.clear()
+        if hasattr(self, "protein_playground"):
+            self.protein_playground.refresh_sources()
         self._group_overlays.sync(self.experiment.groups)
         self.minimap.schedule_refresh()
         self._refresh_proof_explorer()
