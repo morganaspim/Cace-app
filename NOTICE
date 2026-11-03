@@ -10,3 +10,10 @@ prior written authorization from Emmanuel Spiro.
 
 Third-party and open-source components remain governed by their own licenses,
 copyright notices, and attribution requirements.
+
+Third-party software, libraries, formal tooling, and other external materials are
+not relicensed by the CACE proprietary license. When a CACE distribution
+contains third-party components, their applicable notices and license texts must
+be preserved in the distribution-specific third-party license bundle generated
+under the policy documented in THIRD_PARTY_NOTICES.md and
+docs/LICENSE_COMPLIANCE.md.

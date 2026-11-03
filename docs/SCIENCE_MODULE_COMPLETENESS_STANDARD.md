@@ -367,3 +367,30 @@ implements special-case scientific semantics that the API/core does not share.
 Reusable subgraphs should be promotable to higher-level modules with explicit
 input/output contracts so the canvas increasingly behaves like an intuitive
 scientific programming language.
+
+
+## Public Help / proprietary boundary
+
+User-facing Help is a contract view, not a source-code browser.
+
+For each production-visible module, public Help should explain:
+
+- purpose;
+- typed inputs and required/optional status;
+- typed outputs;
+- units/dimensions;
+- parameters;
+- assumptions and validity domain;
+- evidence/maturity;
+- limitations/nonclaims;
+- compatible workflow-qualified neighbors;
+- minimal, compositional, and failure examples;
+- troubleshooting.
+
+Public Help must not disclose proprietary implementation source, private algorithms,
+internal proof-search strategies, protected native-core details, private API
+internals, security bypass details, or internal heuristics merely to explain how a
+module works.
+
+Gemini should consume the safe public-help metadata supplied by the Qualified
+Capability Registry rather than scrape protected source for user documentation.

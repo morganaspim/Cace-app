@@ -1,0 +1,20 @@
+{
+  "schema": "cace-cloud-run-nonpayment-disabled-v1",
+  "updated_at": "2026-09-20",
+  "status": "DEPRECATED_COMPATIBILITY_ALIAS",
+  "canonical_policy": "ops/cloud_run_payment_service_policy.json",
+  "rule": "Cloud Run must not be used as the CACE web/server edge. Its only approved production responsibility is Monero payment coordination.",
+  "disabled_uses": [
+    "web hosting",
+    "general API edge",
+    "multi-user session edge",
+    "SSE/event fanout",
+    "Oracle proxy",
+    "science",
+    "proofs",
+    "telemetry",
+    "AI inference"
+  ],
+  "proof_effect": "none",
+  "promotion_authority": false
+}

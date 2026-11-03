@@ -178,6 +178,35 @@ The highest-value theorem/proof machinery should remain off customer hardware wh
 
 See `docs/SOURCE_SECRECY_AND_ANTI_REVERSE_ENGINEERING.md`.
 
+## 2.3 Production transport and packet-inspection boundary
+
+Canonical machine policy: `security/network_transport_policy.json`.
+
+Private/authenticated browser traffic must use HTTPS. Prefer TLS 1.3 and require a
+production TLS/security-header configuration appropriate to the deployment.
+Session credentials must use secure browser handling, authorization is repeated
+server-side, CORS is allowlisted, and CSP must block unapproved executable
+origins.
+
+Correct TLS prevents a passive network observer from reading protected application
+payloads when the endpoints and trust chain are not compromised. It does not hide
+all network metadata: endpoints, timing, volume, packet sizes, and some name
+resolution/SNI information may remain observable depending on the deployment.
+
+Do not claim that traffic is invisible, that TLS protects a compromised endpoint,
+or that code executing on customer-controlled hardware is impossible to reverse
+engineer.
+
+The strongest proprietary-code protection for the browser product is architectural:
+do not ship crown-jewel scientific/proof implementation to the browser. Keep
+presentation downloadable; keep protected computation behind authenticated typed
+server APIs whenever local execution is not required.
+
+Oracle Cloud is CI/qualification only under
+`docs/architecture/ADR-002-ORACLE-CI-ONLY.md`. Production app credentials,
+customer sessions, customer workspace data, and production scientific execution
+must not share the Oracle CI trust boundary.
+
 ## 3. Protected assets
 
 Protect at least:
@@ -293,7 +322,7 @@ Preferred handling:
 
 Recommended production shape:
 
-`Browser -> HTTPS reverse proxy -> API -> job/runtime service -> durable storage`
+`Browser -> HTTPS production edge -> Production CACE API -> isolated runtime/workers -> durable storage`
 
 Formal qualification is separate:
 

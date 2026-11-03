@@ -1,0 +1,304 @@
+{
+  "schema": "cace-branch-lifecycle-v1",
+  "updated_at": "2026-09-20",
+  "default_status": "REVIEW_REQUIRED",
+  "precedence": [
+    "explicit_branches",
+    "patterns",
+    "default_status"
+  ],
+  "statuses": {
+    "ACTIVE": {
+      "writable": true,
+      "meaning": "Current assigned development branch. Agents may commit/push here for the assigned task."
+    },
+    "INTEGRATION": {
+      "writable": false,
+      "meaning": "Canonical integration/base branch. Do not commit directly unless the user explicitly instructs it."
+    },
+    "FROZEN": {
+      "writable": false,
+      "meaning": "Preserved open/in-flight work. Read/compare only unless the user explicitly reactivates this branch."
+    },
+    "DEPRECATED": {
+      "writable": false,
+      "meaning": "Superseded branch. Do not checkout as a work base, commit to it, open new work from it, or merge from it without explicit recovery instructions."
+    },
+    "ARCHIVED": {
+      "writable": false,
+      "meaning": "Historical snapshot/evidence branch. Read-only historical reference."
+    },
+    "REVIEW_REQUIRED": {
+      "writable": false,
+      "meaning": "Unclassified branch. Treat as non-writable until its lifecycle status is explicitly added to this registry."
+    }
+  },
+  "agent_rules": [
+    "Branch existence is not permission to use it.",
+    "Before editing, resolve the intended branch through this registry.",
+    "Only status ACTIVE is writable by default.",
+    "INTEGRATION, FROZEN, DEPRECATED, ARCHIVED, and REVIEW_REQUIRED are non-writable.",
+    "Never branch new work from DEPRECATED or ARCHIVED state.",
+    "FROZEN may be inspected or compared but not extended unless explicitly reactivated.",
+    "If conversational instructions conflict with an old branch name, prefer the newest explicit user instruction and update this registry.",
+    "When a PR is merged/abandoned/superseded, update this registry in the same cleanup batch.",
+    "Proof-submission branches under submission/proof/** are review artifacts and default to FROZEN after creation."
+  ],
+  "explicit_branches": {
+    "feature/local-agent-tool-bus-v1": {
+      "status": "ACTIVE",
+      "reason": "Current CACE Local Agent / sandbox / architecture work; PR #79.",
+      "pr": 79
+    },
+    "main": {
+      "status": "INTEGRATION",
+      "reason": "Canonical integration branch. Use as merge/base authority, not a direct agent work branch."
+    },
+    "architecture/base44-github-sync-contract": {
+      "status": "DEPRECATED",
+      "reason": "Superseded by ADR-001 and the Gemini/Base44/Oracle architecture contract on PR #79.",
+      "superseded_by": "feature/local-agent-tool-bus-v1",
+      "former_pr": 53
+    },
+    "docs/gemini-ai-studio-explicit-boundary": {
+      "status": "DEPRECATED",
+      "reason": "Superseded by GEMINI.md, docs/GEMINI_AI_STUDIO_HANDOFF.md, and ADR-001 on PR #79.",
+      "superseded_by": "feature/local-agent-tool-bus-v1"
+    },
+    "fix/vercel-python-entrypoint": {
+      "status": "DEPRECATED",
+      "reason": "Vercel deployment path was retired from the active architecture.",
+      "superseded_by": "Oracle/CACE deployment architecture"
+    },
+    "candidate/v336-consolidated": {
+      "status": "DEPRECATED",
+      "reason": "Historical candidate branch; current integration/proof state moved beyond this candidate."
+    },
+    "chatgpt/ksee-production-main-20260916": {
+      "status": "DEPRECATED",
+      "reason": "Historical ChatGPT staging branch from 2026-09-16; not a current CACE work base."
+    },
+    "chatgpt/ksee-web-release-20260916": {
+      "status": "DEPRECATED",
+      "reason": "Historical web-release staging branch from 2026-09-16; not current architecture."
+    },
+    "chatgpt/upload-compile-check-20260916": {
+      "status": "DEPRECATED",
+      "reason": "Historical compile-check staging branch; do not extend."
+    },
+    "backup/v3.29-premerge-2026-09-14": {
+      "status": "ARCHIVED",
+      "reason": "Historical pre-merge backup snapshot."
+    }
+  },
+  "frozen_open_pr_heads": [
+    {
+      "branch": "feature/cpp-fsl-exact-kernel",
+      "status": "FROZEN",
+      "pr": 60,
+      "base": "main",
+      "title": "Draft: move FSL exact mesh/P1/RT0 runtime into C++",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/fsl-exact-assembly-checker-v1",
+      "status": "FROZEN",
+      "pr": 59,
+      "base": "feature/fsl-runtime-binding-v1",
+      "title": "FSL: exact full-RT0 assembly premise checker",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "proof/fsl-runtime-binding-fixture",
+      "status": "FROZEN",
+      "pr": 58,
+      "base": "feature/fsl-runtime-binding-v1",
+      "title": "Proof preflight: compile generated P1/RT0 runtime binding fixture",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/fsl-runtime-binding-v1",
+      "status": "FROZEN",
+      "pr": 55,
+      "base": "docs/rigorous-builder-foundation-v1",
+      "title": "FSL: exact runtime packet and P1/RT0 Lean source binding",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "planning/master-ideas-roadmap-2026-09-19",
+      "status": "FROZEN",
+      "pr": 52,
+      "base": "feature/network-account-agent-bootstrap",
+      "title": "Planning: master CACE idea roadmap and dependency timeline",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/network-account-agent-bootstrap",
+      "status": "FROZEN",
+      "pr": 51,
+      "base": "main",
+      "title": "Production builder: Build Lite, accounts, pairing, and hardened web boundary",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/research-control-economy-open-problems",
+      "status": "FROZEN",
+      "pr": 50,
+      "base": "main",
+      "title": "Research controls: compute economy, open-problem Play, and AI capability gate",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/open-problems-toolkit",
+      "status": "FROZEN",
+      "pr": 49,
+      "base": "feature/local-ai-reasoning-heartbeat",
+      "title": "Research: open problems toolkit with canvas import and AI Play",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/molecular-materials-physics",
+      "status": "FROZEN",
+      "pr": 48,
+      "base": "main",
+      "title": "Science: molecular, protein folding, materials, and physics canvas modules",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "proof/v3.41a-box-zero-boundary-core",
+      "status": "FROZEN",
+      "pr": 42,
+      "base": "proof/v3.40-zero-boundary-closure",
+      "title": "Draft: v3.41A construct smooth box zero-boundary core",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "proof/v3.40-zero-boundary-closure",
+      "status": "FROZEN",
+      "pr": 34,
+      "base": "proof/v3.39-box-prager-synge-equilibrated",
+      "title": "Draft: v3.40 close zero-boundary trace under graph-norm limits",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "proof/v3.39-box-prager-synge-equilibrated",
+      "status": "FROZEN",
+      "pr": 33,
+      "base": "main",
+      "title": "Draft: v3.39 derive equilibrated box Prager-Synge cross term",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/local-hybrid-research-ai",
+      "status": "FROZEN",
+      "pr": 30,
+      "base": "main",
+      "title": "Local hybrid research AI, Grow memory, research notebook, and proposal comparison",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "feature/local-hybrid-ai",
+      "status": "FROZEN",
+      "pr": 29,
+      "base": "formal/low-cost-transform-combinatorics",
+      "title": "AI: local hybrid mathematical planner and neural ranker",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "formal/low-cost-transform-combinatorics",
+      "status": "FROZEN",
+      "pr": 28,
+      "base": "main",
+      "title": "Formalize low-cost geometry transform combinatorics",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "executor/cace-p1-rt0-green-bridge",
+      "status": "FROZEN",
+      "pr": 27,
+      "base": "main",
+      "title": "proof: exact P1/RT0 discrete Green checker",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "rank5/kernel-assumption-dag",
+      "status": "FROZEN",
+      "pr": 24,
+      "base": "rank9/zero-boundary-trace-bridge-v343",
+      "title": "Rank 5: kernel-derived theorem and assumption DAG",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "implement/cace-ai-collaboration-ledger",
+      "status": "FROZEN",
+      "pr": 15,
+      "base": "main",
+      "title": "Implement/cace ai collaboration ledger",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "chatgpt/distributional-graph-closure-20260916",
+      "status": "FROZEN",
+      "pr": 11,
+      "base": "main",
+      "title": "formal: expose distributional graph closure frontier",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "KSEE-GOOG-Almost-production",
+      "status": "FROZEN",
+      "pr": 10,
+      "base": "main",
+      "title": "Add files via upload",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "executor/cace-proof-governance-hardening",
+      "status": "FROZEN",
+      "pr": 9,
+      "base": "main",
+      "title": "Integrate qualified Rank-4 proof-governance hardening",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    },
+    {
+      "branch": "roadmap/v3.23-v3.25",
+      "status": "FROZEN",
+      "pr": 2,
+      "base": "main",
+      "title": "v3.23–v3.25: general MeshCertificate, RT0/P1 assembly, Studio certificate generator",
+      "rule": "Read/compare only unless the user explicitly assigns this PR/branch as current work."
+    }
+  ],
+  "patterns": [
+    {
+      "pattern": "submission/proof/**",
+      "status": "FROZEN",
+      "reason": "Proof-submission branches are controlled review artifacts. After the submission commit/draft PR is created, general agents may inspect but must not extend them unless explicitly reactivated for review fixes."
+    },
+    {
+      "pattern": "backup/**",
+      "status": "ARCHIVED",
+      "reason": "Backup branches are historical snapshots."
+    },
+    {
+      "pattern": "release/**",
+      "status": "ARCHIVED",
+      "reason": "Release/qualification snapshots are historical references unless explicitly reactivated."
+    },
+    {
+      "pattern": "candidate/**",
+      "status": "DEPRECATED",
+      "reason": "Candidate branches are not current work bases after their evaluation window."
+    },
+    {
+      "pattern": "executor/*-stage*",
+      "status": "DEPRECATED",
+      "reason": "Executor stage branches are one-off proof/repair staging branches and must not be reused."
+    }
+  ],
+  "notes": [
+    "Open PR does not imply writable: most open PR heads are FROZEN to prevent accidental continuation of stale parallel work.",
+    "Explicit branch entries override pattern matches.",
+    "This registry intentionally fails closed: unknown branches are REVIEW_REQUIRED."
+  ]
+}

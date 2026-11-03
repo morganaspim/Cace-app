@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,8 +7,8 @@ name = "cace-studio"
 version = "3.36.0.dev1"
 description = "CACE Studio verified computational research environment — confidential and proprietary to Emmanuel Spiro"
 requires-python = ">=3.11"
-license = {text = "Proprietary - Copyright © 2026 Emmanuel Spiro. All rights reserved."}
-classifiers = ["License :: Other/Proprietary License"]
+license = "LicenseRef-CACE-Proprietary"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]
 dependencies = ["numpy>=2.0", "fastapi>=0.141.1"]
 
 [project.optional-dependencies]

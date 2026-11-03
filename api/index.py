@@ -1,12 +1,15 @@
-"""Browser and API boundary for CACE Studio.
+"""Browser and API boundary for CACE-KSEE.
 
-The browser shell edits experiment graphs only. Scientific execution, typed/unit
-connection validation, verification, and proof/claim truth remain in the canonical
-Python core so the web UI cannot invent a second semantics.
+The browser edits experiment graphs and renders typed capability metadata only.
+Scientific execution, graph/type/unit validation, verification, and proof/claim
+truth remain in the canonical CACE core.
+
+The engineering ModuleRegistry may contain experimental/research modules that are
+not product-ready.  Public discovery/execution is therefore fail-closed through
+QualifiedCapabilityRegistry.
 """
 from __future__ import annotations
 
-from dataclasses import asdict
 import os
 from pathlib import Path
 import threading
@@ -18,13 +21,14 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from cace_studio.app import build_registry
+from cace_studio.app import build_qualified_capabilities, build_registry
+from cace_studio.core.capability_registry import CapabilityRegistryError
 from cace_studio.core.execution_control import ExecutionControl
 from cace_studio.core.executor import GraphExecutor
 from cace_studio.core.graph import Edge, Experiment, ExperimentGroup, Node
 from cace_studio.core.proof_explorer import ProofExplorer
 from cace_studio.core.report import run_report
-from cace_studio.core.types import port_connection_error
+from cace_studio.core.reproducibility import experiment_fingerprint
 
 
 FORMAL_BASELINE_SHA = "7091548766deef4301ac8d62d3445d95945662e7"
@@ -32,10 +36,11 @@ FORMAL_QUALIFICATION_RUN_ID = "35280458500"
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
 
 app = FastAPI(
-    title="CACE Studio",
+    title="CACE-KSEE",
     description=(
-        "Browser-facing CACE graph editor and execution API. Browser metadata is "
-        "not verification evidence; run evidence is emitted by the canonical core."
+        "Browser-facing CACE-KSEE graph editor and execution API. Browser metadata "
+        "and engineering capability qualification are not mathematical proof "
+        "evidence; run evidence is emitted by the canonical core."
     ),
 )
 
@@ -44,21 +49,9 @@ if WEB_ROOT.is_dir():
 
 
 _registry = build_registry()
+_capabilities = build_qualified_capabilities(_registry)
 _jobs_lock = threading.RLock()
 _jobs: dict[str, dict[str, Any]] = {}
-
-
-def _module_payload(cls) -> dict[str, Any]:
-    metadata = asdict(cls.metadata)
-    metadata["maturity"] = cls.metadata.maturity.value
-    return {
-        "metadata": metadata,
-        "inputs": [asdict(port) for port in cls.inputs],
-        "outputs": [asdict(port) for port in cls.outputs],
-        "parameters": [asdict(parameter) for parameter in cls.parameters],
-        "declared_proof_status": cls.proof_status.to_dict(),
-        "supports_gpu": bool(cls.supports_gpu),
-    }
 
 
 def _require_mapping(value: Any, label: str) -> dict[str, Any]:
@@ -170,7 +163,8 @@ def _trim_jobs() -> None:
             return
         completed = sorted(
             (
-                job for job in _jobs.values()
+                job
+                for job in _jobs.values()
                 if job["status"] in {"completed", "cancelled", "failed"}
             ),
             key=lambda job: float(job.get("finished_at") or job["created_at"]),
@@ -193,7 +187,11 @@ def _execute_job(
         job["started_at"] = time.time()
         control: ExecutionControl = job["control"]
     try:
+        # Defense in depth: a job accepted by the browser API remains constrained
+        # even if queued state is mutated before the worker starts.
+        _capabilities.validate_experiment(experiment, surface="api")
         executor = GraphExecutor(_registry, gpu_enabled=gpu_enabled)
+        executor.validate(experiment)
         if target_node_ids:
             result = executor.run_selected_upstream(
                 experiment,
@@ -236,15 +234,19 @@ def studio_alias() -> FileResponse:
 @app.get("/api")
 def home() -> dict[str, Any]:
     return {
-        "service": "CACE Studio",
+        "service": "CACE-KSEE",
+        "product_pronunciation": "Casey",
         "status": "ok",
         "surface": "browser",
         "formal_baseline_commit": FORMAL_BASELINE_SHA,
         "formal_qualification_run_id": FORMAL_QUALIFICATION_RUN_ID,
         "deployed_source_commit": os.getenv("CACE_DEPLOYED_SHA", "unknown"),
+        "capability_policy_sha256": _capabilities.policy_sha256,
+        "full_registry_contract_sha256": _capabilities.full_registry_contract_sha256,
         "proof_note": (
-            "The browser shell is application code. Formal claims remain bounded by "
-            "the canonical proof contract and the exact qualified baseline."
+            "The browser shell and engineering capability manifest are application "
+            "state. Formal claims remain bounded by the canonical proof contract "
+            "and exact qualified proof provenance."
         ),
     }
 
@@ -252,22 +254,40 @@ def home() -> dict[str, Any]:
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {
-        "service": "CACE Studio",
+        "service": "CACE-KSEE",
         "status": "ok",
         "surface": "browser",
     }
 
 
+@app.get("/api/capabilities")
+def capabilities(surface: str = "ui") -> dict[str, Any]:
+    try:
+        return _capabilities.payload(surface)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/capabilities/{module_id}")
+def capability(module_id: str) -> dict[str, Any]:
+    try:
+        _capabilities.require(module_id, "ui")
+        return _capabilities.module_payload(module_id)
+    except (KeyError, CapabilityRegistryError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/api/modules")
 def modules() -> dict[str, Any]:
-    classes = sorted(
-        _registry.classes(),
-        key=lambda cls: (cls.metadata.category, cls.metadata.name, cls.metadata.module_id),
-    )
+    """Compatibility catalog: only production UI-visible capabilities are returned."""
+    payload = _capabilities.payload("ui")
     return {
-        "schema": 1,
+        "schema": 2,
+        "deprecated_in_favor_of": "/api/capabilities",
         "metadata_is_verification_evidence": False,
-        "modules": [_module_payload(cls) for cls in classes],
+        "default_hidden": True,
+        "capability_policy_sha256": payload["capability_policy_sha256"],
+        "modules": payload["modules"],
     }
 
 
@@ -284,22 +304,41 @@ def claims() -> dict[str, Any]:
 @app.post("/api/connections/validate")
 def validate_connection(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
-        source_module = _registry.create(str(payload["source_module_id"]))
-        target_module = _registry.create(str(payload["target_module_id"]))
+        source_module_id = str(payload["source_module_id"])
+        target_module_id = str(payload["target_module_id"])
         source_port_name = str(payload["source_port"])
         target_port_name = str(payload["target_port"])
-        source_ports = {port.name: port for port in source_module.outputs}
-        target_ports = {port.name: port for port in target_module.inputs}
-        if source_port_name not in source_ports:
-            raise ValueError(f"unknown output port: {source_port_name}")
-        if target_port_name not in target_ports:
-            raise ValueError(f"unknown input port: {target_port_name}")
-        reason = port_connection_error(
-            source_ports[source_port_name],
-            target_ports[target_port_name],
+        reason = _capabilities.connection_error(
+            source_module_id,
+            source_port_name,
+            target_module_id,
+            target_port_name,
         )
-        return {"valid": reason is None, "reason": reason}
-    except (KeyError, ValueError) as exc:
+        return {
+            "valid": reason is None,
+            "reason": reason,
+            "authority": "CACE backend",
+        }
+    except (KeyError, ValueError, CapabilityRegistryError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/graphs/validate")
+def validate_graph(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        experiment = _experiment_from_payload(payload.get("experiment"))
+        _capabilities.validate_experiment(experiment, surface="api")
+        order = GraphExecutor(_registry).validate(experiment)
+        return {
+            "valid": True,
+            "execution_order": list(order),
+            "semantic_experiment_sha256": experiment_fingerprint(
+                experiment, include_layout=False
+            ),
+            "capability_policy_sha256": _capabilities.policy_sha256,
+            "proof_effect": "none",
+        }
+    except (KeyError, TypeError, ValueError, CapabilityRegistryError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -307,13 +346,19 @@ def validate_connection(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
 def start_run(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
         experiment = _experiment_from_payload(payload.get("experiment"))
+        _capabilities.validate_experiment(experiment, surface="api")
+        GraphExecutor(_registry).validate(experiment)
         seed = int(payload.get("seed", 0))
-        target_node_ids = tuple(str(node_id) for node_id in payload.get("target_node_ids", []))
-        unknown_targets = sorted(set(target_node_ids) - {node.id for node in experiment.nodes})
+        target_node_ids = tuple(
+            str(node_id) for node_id in payload.get("target_node_ids", [])
+        )
+        unknown_targets = sorted(
+            set(target_node_ids) - {node.id for node in experiment.nodes}
+        )
         if unknown_targets:
             raise ValueError(f"unknown target node ids: {unknown_targets}")
         gpu_enabled = bool(payload.get("gpu_enabled", False))
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, CapabilityRegistryError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     job_id = str(uuid4())

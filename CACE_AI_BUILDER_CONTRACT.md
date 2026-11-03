@@ -298,3 +298,12 @@ Fast code generation is useful. Trust is earned only through CACE's independent 
 Agent/canvas perception packets conforming to `schema/cace-agent-perception.schema.json` may guide attention, scheduling, experiment proposals and recovery. They may expose canonical evidence state snapshots read from authoritative subsystems, but they cannot author or promote those states.
 
 Use heartbeat/perception to make the AI responsive to the evolving experiment, not to bypass certificates, checkers, theorem hypotheses, or qualification.
+
+
+## 16. UI-collected proof submissions
+
+AI builders may package proof candidates collected in the CACE UI and prepare a draft GitHub contribution under `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`.
+
+The generated branch/PR is a review artifact, not proof evidence. Passing ordinary tests or preflight does not permit the AI to promote a claim.
+
+When the contribution reaches the human review gate, the operator must receive enough exact-head/CI/proof information to review the PR. ChatGPT may assist that review, but canonical promotion still requires the normal CACE proof pipeline and explicit repository action.

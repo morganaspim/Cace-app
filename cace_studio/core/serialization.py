@@ -30,9 +30,10 @@ def _validate_groups(exp: Experiment) -> None:
         grouped_nodes.update(group.node_ids)
 
 
-def save_experiment(exp: Experiment, path: str | Path) -> None:
+def experiment_to_data(exp: Experiment) -> dict:
+    """Encode an Experiment using the canonical .cace container data model."""
     _validate_groups(exp)
-    data = {
+    return {
         "schema_version": CURRENT_SCHEMA,
         "graph_schema_version": exp.schema_version,
         "name": exp.name,
@@ -56,14 +57,12 @@ def save_experiment(exp: Experiment, path: str | Path) -> None:
         ],
         "metadata": exp.metadata,
     }
-    Path(path).write_text(
-        json.dumps(data, indent=2, sort_keys=True) + "\n\n",
-        encoding="utf-8",
-    )
 
 
-def load_experiment(path: str | Path) -> Experiment:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+def experiment_from_data(data: dict) -> Experiment:
+    """Decode canonical .cace container data into an Experiment."""
+    if not isinstance(data, dict):
+        raise ValueError("experiment container must be an object")
     container_schema = data.get("schema_version")
     if container_schema not in SUPPORTED_SCHEMAS:
         raise ValueError(f"unsupported experiment schema: {container_schema}")
@@ -102,3 +101,16 @@ def load_experiment(path: str | Path) -> Experiment:
     )
     _validate_groups(exp)
     return exp
+
+
+def save_experiment(exp: Experiment, path: str | Path) -> None:
+    data = experiment_to_data(exp)
+    Path(path).write_text(
+        json.dumps(data, indent=2, sort_keys=True) + "\n\n",
+        encoding="utf-8",
+    )
+
+
+def load_experiment(path: str | Path) -> Experiment:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return experiment_from_data(data)

@@ -1,0 +1,69 @@
+{
+  "schema": "cace-proof-submission-policy-v1",
+  "authority": false,
+  "promotion_authority": false,
+  "github": {
+    "branch_prefix": "submission/proof/",
+    "initial_pr_state": "draft",
+    "post_submission_branch_status": "FROZEN",
+    "operator_attention_event": "PR_REVIEW_REQUIRED"
+  },
+  "paths": {
+    "research_improvement": {
+      "enabled": true,
+      "enterprise_required": false,
+      "purchase_required": false
+    },
+    "enterprise_proof_package": {
+      "enabled": true,
+      "enterprise_required": true,
+      "commercial_rule": "prove_first_sell_second",
+      "sale_gate": "PROOF_READY_FOR_SALE"
+    }
+  },
+  "allowed_gemini_actions": [
+    "normalize_submission_packet",
+    "draft_lean_source",
+    "draft_tests",
+    "draft_source_to_formal_notes",
+    "prepare_repository_patch",
+    "prepare_draft_pr_description"
+  ],
+  "forbidden_gemini_actions": [
+    "set_formal_pass",
+    "promote_claim",
+    "edit_proof_ledger_truth_to_match_submission",
+    "weaken_theorem_or_negative_test",
+    "replace_unresolved_obligation_with_axiom_or_sorry"
+  ],
+  "required_review_pipeline": [
+    "source_sanity",
+    "unfinished_token_rejection",
+    "relevant_python_cpp_tests",
+    "source_to_formal_checks_if_applicable",
+    "exact_pin_lean_preflight",
+    "kernel_axiom_theorem_metadata_audit",
+    "audited_root_compile_if_required",
+    "canonical_exact_head_qualification_if_promoting",
+    "provenance_and_drift_check",
+    "human_review"
+  ],
+  "states": [
+    "COLLECTED",
+    "PACKAGED",
+    "GITHUB_DRAFT",
+    "CI_PREFLIGHT",
+    "CHANGES_REQUIRED",
+    "HUMAN_REVIEW_REQUIRED",
+    "QUALIFICATION_PENDING",
+    "QUALIFIED",
+    "REJECTED",
+    "WITHDRAWN",
+    "DELIVERABILITY_REVIEW",
+    "PROOF_READY_FOR_SALE",
+    "CONTRACT_PENDING",
+    "PAYMENT_PENDING",
+    "DELIVERY_READY",
+    "DELIVERED"
+  ]
+}

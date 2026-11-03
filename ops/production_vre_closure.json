@@ -1,0 +1,273 @@
+{
+  "schema": "cace-production-vre-closure-v1",
+  "updated_at": "2026-09-20",
+  "goal": "Production-grade, rigorous, multi-user virtual research environment for scientific work.",
+  "release_gate": "All P0 items complete; all required P1 items complete or explicitly deferred with documented limitation.",
+  "p0": [
+    {
+      "id": "VRE-P0-01",
+      "title": "Merge and freeze current architecture baseline",
+      "owner": "operator+ChatGPT",
+      "status": "READY",
+      "tasks": [
+        "review/merge PR #79 after final exact-head checks",
+        "mark superseded architecture branches deprecated/frozen",
+        "create release candidate branch/tag only after merge"
+      ]
+    },
+    {
+      "id": "VRE-P0-02",
+      "title": "Durable authenticated multi-user backend",
+      "owner": "CACE/ChatGPT protected backend; Gemini consumes typed API",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "server-validated principal and organization context",
+        "durable workspace store",
+        "optimistic workspace versions",
+        "idempotent mutations/run creation",
+        "durable fair run queue",
+        "owner/operator-authorized run control",
+        "reconnectable run snapshots/events",
+        "tenant isolation tests"
+      ],
+      "spec": "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md"
+    },
+    {
+      "id": "VRE-P0-03",
+      "title": "Production/CI isolation",
+      "owner": "operator+ChatGPT",
+      "status": "ARCHITECTURE_DECIDED_IMPLEMENTATION_PENDING",
+      "requirements": [
+        "Oracle is CI/runner/qualification only",
+        "production CACE runtime uses a separate non-Oracle trust boundary",
+        "no production secrets or customer data on the Oracle runner",
+        "proof submission PRs cannot execute with production application credentials",
+        "separate network/service identities and least privilege",
+        "production host/provider is selected and deployment-tested before release"
+      ]
+    },
+    {
+      "id": "VRE-P0-04",
+      "title": "Backup, restore, and disaster recovery",
+      "owner": "CACE/ChatGPT",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "versioned workspace/run metadata backup",
+        "proof/evidence artifact retention policy",
+        "restore drill",
+        "documented RPO/RTO targets",
+        "VM-loss recreation from Git/config",
+        "no proof/evidence deletion merely to relieve storage pressure"
+      ]
+    },
+    {
+      "id": "VRE-P0-05",
+      "title": "Observability, rate limits, quotas, health",
+      "owner": "CACE/ChatGPT backend + Gemini admin UI",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "structured logs",
+        "metrics for API/queue/workers/storage",
+        "health/readiness endpoints",
+        "per-principal request/run quotas",
+        "queue depth/latency",
+        "storage pressure",
+        "alerts",
+        "admin status UI"
+      ]
+    },
+    {
+      "id": "VRE-P0-06",
+      "title": "Scientific validation matrix",
+      "owner": "CACE/ChatGPT scientific core; Gemini documentation/presentation",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "reference problems per production scientific module",
+        "manufactured-solution tests where applicable",
+        "mesh/time-step convergence tests",
+        "unit/dimensional consistency tests",
+        "invariant/conservation checks where applicable",
+        "cross-backend CPU/GPU tolerance policy",
+        "known-answer datasets and expected error envelopes",
+        "negative-domain/assumption tests",
+        "module limitations and validity domains"
+      ]
+    },
+    {
+      "id": "VRE-P0-07",
+      "title": "Reproducibility and provenance bundle",
+      "owner": "CACE/ChatGPT",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "source commit",
+        "module versions",
+        "parameters",
+        "input hashes",
+        "environment/toolchain identity",
+        "random seeds",
+        "runtime/backend identity",
+        "verification records",
+        "artifact hashes",
+        "export/import replay test"
+      ]
+    },
+    {
+      "id": "VRE-P0-08",
+      "title": "Security and software supply chain",
+      "owner": "CACE/ChatGPT",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "secret scanning",
+        "dependency pinning/audit",
+        "SBOM generation",
+        "signed/reproducible release artifacts where practical",
+        "container/image provenance if containers are used",
+        "sandbox/cgroup regression",
+        "least-privilege service identities",
+        "key rotation/revocation procedure"
+      ]
+    },
+    {
+      "id": "VRE-P0-09",
+      "title": "Monero payment production gate",
+      "owner": "operator+ChatGPT backend; Gemini checkout UI; Base44 ledger",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "select persistent Monero verifier",
+        "do not put wallet seed/spend key in Cloud Run",
+        "configure payment-service signing key",
+        "Base44 server-only payment/entitlement writes",
+        "Production CACE signed-entitlement verification",
+        "idempotency/underpay/overpay/expired quote tests",
+        "promotion calendar tests",
+        "end-to-end test payment",
+        "accounting/export record"
+      ],
+      "cloud_run_role": "MONERO_PAYMENT_ONLY"
+    },
+    {
+      "id": "VRE-P0-10",
+      "title": "Load, recovery, and interruption tests",
+      "owner": "CACE/ChatGPT backend + Gemini browser harness",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "multiple concurrent browser sessions",
+        "queued heavy runs",
+        "browser refresh/network loss",
+        "API restart",
+        "worker crash",
+        "storage pressure",
+        "duplicate retries",
+        "stale workspace conflicts",
+        "proof/claim stale-state behavior",
+        "no fabricated completion"
+      ]
+    },
+    {
+      "id": "VRE-P0-11",
+      "title": "CACE-KSEE entry, collaboration, public-help, and ownership shell",
+      "owner": "Gemini presentation + CACE typed contracts",
+      "status": "SPECIFIED_READY_FOR_IMPLEMENTATION",
+      "requirements": [
+        "CACE-KSEE production branding and pronunciation",
+        "cinematic original splash with reduced-motion fallback",
+        "Create account / Sign in / Learn about CACE-KSEE",
+        "Research Assistant first-run introduction and canvas tour",
+        "Invite Collaborators button backed by canonical workspace membership",
+        "high-level module help with inputs/outputs/examples but no proprietary internals",
+        "© 2026 Emmanuel Spiro. All rights reserved. on appropriate public surfaces"
+      ],
+      "spec": "docs/CACE_KSEE_ENTRY_EXPERIENCE.md"
+    },
+    {
+      "id": "VRE-P0-12",
+      "title": "Production network transport and anti-exfiltration hardening",
+      "owner": "CACE/ChatGPT backend + deployment + Gemini bundle hygiene",
+      "status": "ARCHITECTURE_SPECIFIED_IMPLEMENTATION_PENDING",
+      "requirements": [
+        "HTTPS/TLS production edge and HSTS",
+        "secure session cookies/CSRF/CORS/CSP",
+        "server-side authn/authz and object-level authorization",
+        "rate/request-size limits",
+        "no proprietary scientific/proof source in browser bundle",
+        "release-secrecy scan on final artifact",
+        "CI/production credential and network isolation",
+        "security headers/TLS/authz negative tests before release"
+      ],
+      "policy": "security/network_transport_policy.json"
+    }
+  ],
+  "p1": [
+    {
+      "id": "VRE-P1-01",
+      "title": "Module help/examples and scientific UX",
+      "owner": "Gemini",
+      "status": "READY_AFTER_TYPED_METADATA",
+      "requirements": [
+        "searchable module help",
+        "assumptions/units/validity domains",
+        "example graphs",
+        "expected outputs",
+        "failure interpretation",
+        "evidence/proof explanation"
+      ]
+    },
+    {
+      "id": "VRE-P1-02",
+      "title": "Accessibility and cross-browser QA",
+      "owner": "Gemini",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "VRE-P1-03",
+      "title": "Export/print/reporting",
+      "owner": "Gemini + CACE typed export",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "VRE-P1-04",
+      "title": "Operational runbooks",
+      "owner": "ChatGPT/operator",
+      "status": "NOT_STARTED",
+      "requirements": [
+        "deploy",
+        "rollback",
+        "restore",
+        "rotate keys",
+        "recover worker",
+        "drain queue",
+        "storage emergency",
+        "incident response"
+      ]
+    }
+  ],
+  "gemini_can_own": [
+    "webapp/** implementation",
+    "typed CACE API clients",
+    "multi-user/reconnect/conflict UX",
+    "run/queue/evidence/proof presentation",
+    "Base44 account UI/adapter",
+    "Monero checkout UI",
+    "module/help/example presentation",
+    "admin health/queue/storage dashboards",
+    "browser/load/reconnect test harnesses",
+    "accessibility/cross-browser work",
+    "API extension requests under gemini/requests/**"
+  ],
+  "gemini_must_not_own": [
+    "scientific kernel truth",
+    "GraphExecutor semantics",
+    "Lean/proof authority",
+    "claim promotion",
+    "sandbox/security authority",
+    "server-side tenant authorization",
+    "payment verification authority",
+    "entitlement signature authority"
+  ],
+  "infrastructure_decision": {
+    "oracle": "CI_AND_QUALIFICATION_ONLY",
+    "production_cace_runtime": "SEPARATE_NON_ORACLE_HOST_TBD",
+    "cloud_run": "MONERO_PAYMENT_ONLY",
+    "base44": "LOW_VOLUME_ACCOUNT_MEMBERSHIP_ENTITLEMENT_METADATA"
+  }
+}

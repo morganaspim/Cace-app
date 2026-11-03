@@ -8,6 +8,34 @@
     "production_ready": false
   },
   "start_here": [
+    "GEMINI_CONNECTION_MANIFEST.json",
+    "BASE44_CONNECTION_MANIFEST.json",
+    "BASE44.md",
+    "base44/BASE44_TASK_STATE.json",
+    "docs/EXTERNAL_BUILDER_CONNECTIONS.md",
+    "ops/production_vre_closure.json",
+    "docs/PRODUCTION_VRE_CLOSURE_PLAN.md",
+    "BRANCH_LIFECYCLE.json",
+    "ops/proof_promotion_external_compatibility.json",
+    "ops/cloud_run_edge_policy.json",
+    "ops/cloud_run_payment_service_policy.json",
+    "docs/CLOUD_RUN_MONERO_PAYMENT_DEPLOYMENT.md",
+    "ops/cloud_run_cost_guard.json",
+    "schema/cace-payment-entitlement-grant.schema.json",
+    "gemini/requests/MONERO_PAYMENT_ENTITLEMENT_API.md",
+    "ops/monero_payment_policy.json",
+    "docs/MONERO_PAYMENT_CLOUD_RUN_CONTRACT.md",
+    "docs/PROOF_PROMOTION_EXTERNAL_COMPATIBILITY.md",
+    "ops/multi_user_session_policy.json",
+    "gemini/requests/MULTI_USER_CONCURRENT_SESSION_API.md",
+    "docs/GEMINI_MULTI_USER_SESSION_CONTRACT.md",
+    "docs/BRANCH_LIFECYCLE.md",
+    "docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md",
+    "ops/base44_account_tiers.json",
+    "ops/base44_free_tier_budget.json",
+    "ops/pass_promotion_policy.json",
+    "ops/proof_submission_policy.json",
+    "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
     "GEMINI.md",
     "docs/GEMINI_AI_STUDIO_HANDOFF.md",
     "gemini/CACE_GEMINI_TASK_STATE.json",
@@ -44,7 +72,28 @@
     "module_registry": "cace_studio/app.py",
     "headless_cli": "cace_studio/cli.py",
     "native_runtime": "cpp/",
-    "tests": "tests/"
+    "tests": "tests/",
+    "branch_lifecycle": "BRANCH_LIFECYCLE.json",
+    "proof_submission_workflow": "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md",
+    "base44_account_tiers": "ops/base44_account_tiers.json",
+    "pass_promotion_policy": "ops/pass_promotion_policy.json",
+    "base44_credit_budget": "ops/base44_free_tier_budget.json",
+    "external_builder_connections": {
+      "base44": "BASE44_CONNECTION_MANIFEST.json",
+      "gemini": "GEMINI_CONNECTION_MANIFEST.json"
+    },
+    "external_builder_task_state": {
+      "base44": "base44/BASE44_TASK_STATE.json",
+      "gemini": "gemini/CACE_GEMINI_TASK_STATE.json"
+    },
+    "multi_user_session_policy": "ops/multi_user_session_policy.json",
+    "cloud_run_edge_policy": "ops/cloud_run_edge_policy.json",
+    "proof_promotion_external_compatibility": "ops/proof_promotion_external_compatibility.json",
+    "cloud_run_cost_guard": "ops/cloud_run_cost_guard.json",
+    "monero_payment_policy": "ops/monero_payment_policy.json",
+    "payment_entitlement_schema": "schema/cace-payment-entitlement-grant.schema.json",
+    "cloud_run_payment_service_policy": "ops/cloud_run_payment_service_policy.json",
+    "production_vre_closure": "ops/production_vre_closure.json"
   },
   "repository_areas": [
     {
@@ -102,6 +151,12 @@
     "NOT_RUN"
   ],
   "hard_rules_for_agents": [
+    "Production VRE readiness is governed by ops/production_vre_closure.json; all P0 gates must close before a production-grade claim.",
+    "Cloud Run is payment-only: Monero order/payment/entitlement coordination only; never use it for web hosting, sessions, general API edge, SSE/events, science, proofs, telemetry, or AI.",
+    "Gemini multi-user presentation talks directly to Oracle/CACE; Base44 supplies low-volume identity/entitlements; Cloud Run is not in the session/run path.",
+    "Monero payment unlock is server-verified and signed; promotion pricing is server-computed; Base44 only mirrors low-volume payment/entitlement metadata.",
+    "Connected Base44/Gemini builders must obey their machine connection manifests; only ACTIVE branches are writable and protected CACE paths remain protected.",
+    "Use only branches marked ACTIVE in BRANCH_LIFECYCLE.json for new work unless the user explicitly reactivates another branch.",
     "Never convert NOT_RUN or absent verification into PASS.",
     "Never infer a continuum theorem from numerical tests.",
     "Never treat GPU/CPU agreement as mathematical proof.",
@@ -109,7 +164,10 @@
     "Preserve theorem hypotheses and explicit unresolved obligations.",
     "AI output is never verification evidence.",
     "Check exact-commit workflow evidence before saying current source is formally qualified or production-ready.",
-    "Do not claim famous open problems are solved without genuinely complete proof and appropriate external review."
+    "Do not claim famous open problems are solved without genuinely complete proof and appropriate external review.",
+    "Treat UI/Gemini proof submissions and GitHub draft PRs as non-evidentiary until the normal CACE qualification and human-review gates pass.",
+    "Use the Base44 account-tier manifest for product entitlements; Base44 account gating never creates scientific/proof authority.",
+    "Tuesday/Saturday pass-sale pricing comes from ops/pass_promotion_policy.json; Enterprise proof-order Base44 reserve is protected for order administration only."
   ],
   "current_primary_gate": {
     "status_source": "docs/STATUS.md",

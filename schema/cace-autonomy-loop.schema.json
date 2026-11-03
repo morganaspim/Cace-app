@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-autonomy-loop.schema.json",
+  "title": "CACE Bounded Autonomy Loop v1",
+  "description": "Plan -> Execute -> Observe -> Replan orchestration contracts. Engineering/runtime coordination only; no proof authority.",
+  "$defs": {
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_cycles",
+        "max_science_runs",
+        "max_replans",
+        "max_plan_steps_per_cycle",
+        "max_wall_seconds_per_run",
+        "max_nodes_per_run",
+        "max_output_bytes_per_run",
+        "max_artifact_bytes_per_run",
+        "max_cpu_seconds_per_run",
+        "max_memory_bytes_per_run",
+        "require_network_namespace",
+        "require_seccomp_filter",
+        "require_filesystem_restriction",
+        "require_privilege_hardening",
+        "max_pids_per_run",
+        "max_cpu_cores_per_run",
+        "require_cgroup_v2",
+        "require_mount_namespace",
+        "require_private_tmp",
+        "require_device_restrictions"
+      ],
+      "properties": {
+        "max_cycles": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_science_runs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_replans": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_plan_steps_per_cycle": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_wall_seconds_per_run": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_nodes_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_output_bytes_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_artifact_bytes_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_cpu_seconds_per_run": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_memory_bytes_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "require_network_namespace": {
+          "type": "boolean"
+        },
+        "require_seccomp_filter": {
+          "type": "boolean"
+        },
+        "require_filesystem_restriction": {
+          "type": "boolean"
+        },
+        "require_privilege_hardening": {
+          "type": "boolean"
+        },
+        "max_pids_per_run": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_cpu_cores_per_run": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "require_cgroup_v2": {
+          "type": "boolean"
+        },
+        "require_mount_namespace": {
+          "type": "boolean"
+        },
+        "require_private_tmp": {
+          "type": "boolean"
+        },
+        "require_device_restrictions": {
+          "type": "boolean"
+        }
+      }
+    },
+    "run_spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_node_ids",
+        "external_inputs",
+        "seed"
+      ],
+      "properties": {
+        "target_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "external_inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "seed": {
+          "type": "integer"
+        }
+      }
+    },
+    "advance_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "plan_id"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "inspect_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "advance_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "operation_id",
+        "cycle_index",
+        "executed_plan_id",
+        "workspace_id",
+        "workspace_version",
+        "science_run_id",
+        "science_completed",
+        "all_verifiers_passed",
+        "perception",
+        "next_plan_id",
+        "stage",
+        "cycles_remaining",
+        "science_runs_remaining",
+        "replans_remaining",
+        "proof_effect",
+        "promotion_authority",
+        "run_control_id",
+        "run_artifact_id",
+        "worker_receipt_id"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cycle_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "executed_plan_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "workspace_id": {
+          "type": "string"
+        },
+        "workspace_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "science_run_id": {
+          "type": "string"
+        },
+        "science_completed": {
+          "type": "boolean"
+        },
+        "all_verifiers_passed": {
+          "type": "boolean"
+        },
+        "perception": {
+          "type": "object"
+        },
+        "next_plan_id": {
+          "type": "string",
+          "pattern": "^(?:|[0-9a-f]{64})$"
+        },
+        "stage": {
+          "enum": [
+            "WAITING_PLAN_APPROVAL",
+            "FINISHED",
+            "BLOCKED"
+          ]
+        },
+        "cycles_remaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "science_runs_remaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replans_remaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        },
+        "run_control_id": {
+          "type": "string"
+        },
+        "run_artifact_id": {
+          "type": "string",
+          "pattern": "^(?:|[0-9a-f]{64})$"
+        },
+        "worker_receipt_id": {
+          "type": "string",
+          "pattern": "^(?:|[0-9a-f]{64})$"
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "autonomy_session_schema",
+        "session_id",
+        "objective",
+        "workspace_id",
+        "pending_plan_id",
+        "stage",
+        "run_spec",
+        "budget",
+        "cycles_completed",
+        "science_runs",
+        "replans",
+        "latest_perception",
+        "receipts",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "autonomy_session_schema": {
+          "const": 1
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "objective": {
+          "type": "string",
+          "maxLength": 16384
+        },
+        "workspace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pending_plan_id": {
+          "type": "string",
+          "pattern": "^(?:|[0-9a-f]{64})$"
+        },
+        "stage": {
+          "enum": [
+            "WAITING_PLAN_APPROVAL",
+            "FINISHED",
+            "BLOCKED"
+          ]
+        },
+        "run_spec": {
+          "$ref": "#/$defs/run_spec"
+        },
+        "budget": {
+          "$ref": "#/$defs/budget"
+        },
+        "cycles_completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "science_runs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replans": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latest_perception": {
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipts": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    },
+    "attention_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    },
+    "attention_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    },
+    "worker_receipt_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker_receipt_id"
+      ],
+      "properties": {
+        "worker_receipt_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "worker_receipt_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "receipt": {
+          "type": "object"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/advance_request"
+    },
+    {
+      "$ref": "#/$defs/inspect_request"
+    },
+    {
+      "$ref": "#/$defs/attention_request"
+    },
+    {
+      "$ref": "#/$defs/attention_response"
+    },
+    {
+      "$ref": "#/$defs/worker_receipt_request"
+    },
+    {
+      "$ref": "#/$defs/worker_receipt_response"
+    },
+    {
+      "$ref": "#/$defs/advance_response"
+    },
+    {
+      "$ref": "#/$defs/session"
+    }
+  ]
+}

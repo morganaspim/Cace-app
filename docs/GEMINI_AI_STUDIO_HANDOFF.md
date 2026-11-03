@@ -4,6 +4,9 @@
 
 Status: implementation handoff. **Not verification evidence.**
 
+Production entry/branding contract: `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`.
+Oracle CI-only architecture: `docs/architecture/ADR-002-ORACLE-CI-ONLY.md`.
+
 ## 1. Integration decision
 
 Google AI Studio / Gemini is the preferred implementation environment for the CACE browser experience.
@@ -14,6 +17,14 @@ The integration contract is intentionally asymmetric:
 
 The browser is a view/controller. It is not a second scientific runtime.
 
+## 1.1 Commodity-service boundary
+
+Base44 is the optional low-volume commodity application-services layer for authentication/user-management integration, workspace/collaboration metadata, preferences, notes/tags, and similarly low-frequency app state.
+
+Base44 is explicitly **not** the scientific backend, event bus, AI inference plane, telemetry system, run/proof polling path, artifact store, or evidence authority. See `docs/architecture/ADR-001-GEMINI-BASE44-ORACLE-CACE.md` and `docs/BASE44_CREDIT_POLICY.md`.
+
+All Base44 calls should be isolated behind one typed adapter so credit-consuming features can be rate-limited or disabled without touching scientific execution.
+
 ## 2. Target topology
 
 ```text
@@ -23,9 +34,12 @@ Google AI Studio / Gemini
         v
 React + TypeScript presentation
         |
-        | typed HTTP calls
+        +--> Base44 typed adapter
+        |      low-volume commodity app services only
+        |
+        | typed scientific HTTP calls
         v
-CACE FastAPI boundary (api/index.py)
+CACE FastAPI boundary (api/index.py) on the Production CACE backend
         |
         +----------------------+-----------------------+
         |                      |                       |
@@ -255,4 +269,28 @@ The Gemini integration is successful when:
 - no browser implementation can manufacture scientific/proof success;
 - the web UI can be replaced or evolved without forking CACE's scientific semantics;
 - C++ and Lean remain independently testable and authoritative;
+- Base44 monthly credit use remains bounded by `ops/base44_free_tier_budget.json`;
+- high-frequency scientific state never depends on Base44 availability;
+- Production CACE backend resource limits remain explicit and observable;
 - proof work and browser work can proceed concurrently on isolated branches.
+
+
+## CACE-KSEE shell requirements
+
+The production shell must:
+
+- identify the product as **CACE-KSEE** (pronounced Casey);
+- implement the original geometric/ASCII cinematic entry sequence in
+  `docs/CACE_KSEE_ENTRY_EXPERIENCE.md`;
+- prompt Create account / Sign in before the normal first-run assistant flow;
+- expose an exact **Invite Collaborators** action for authorized workspaces;
+- generate public module Help from safe typed metadata: purpose, input/output
+  contracts, parameters, units, assumptions, limitations, evidence and examples;
+- never expose proprietary implementation source/algorithms merely to populate
+  Help;
+- show `© 2026 Emmanuel Spiro. All rights reserved.` on appropriate public
+  product surfaces;
+- support reduced motion and a fast no-animation entry path.
+
+Oracle is not a production endpoint. The browser uses a configurable Production
+CACE backend origin and must not hard-code Oracle host details.

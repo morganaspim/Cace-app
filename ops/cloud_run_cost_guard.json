@@ -1,0 +1,103 @@
+{
+  "schema": "cace-cloud-run-cost-guard-v2",
+  "updated_at": "2026-09-20",
+  "objective": "Permit paid Cloud Run only for Monero payment coordination and keep all other CACE workloads off Cloud Run.",
+  "default_state": "DISABLED",
+  "enablement": {
+    "production_enable_requires_explicit_operator_approval": true,
+    "activation_reason_required": true,
+    "monthly_budget_usd": null,
+    "monthly_budget_must_be_set_before_production_enable": true,
+    "billing_budget_alerts_required": true,
+    "suggested_alert_fractions": [
+      0.5,
+      0.75,
+      0.9,
+      1
+    ],
+    "note": "Google Cloud billing budgets/alerts are monitoring controls, not a guaranteed hard spending cap."
+  },
+  "allowed_activation_reasons": [
+    "server-side Monero checkout/payment verification and signed entitlement issuance"
+  ],
+  "not_sufficient_reasons": [
+    "web hosting",
+    "multi-user sessions",
+    "general API proxying",
+    "SSE/event fanout",
+    "development convenience",
+    "every commit",
+    "single-user testing",
+    "static files",
+    "scientific computation",
+    "proof computation",
+    "background polling"
+  ],
+  "runtime_limits": {
+    "billing_mode": "request_based",
+    "min_instances": 0,
+    "max_instances": 1,
+    "container_concurrency": 80,
+    "vcpu": 1,
+    "memory_mib": 512,
+    "gpu": false,
+    "cpu_always_allocated": false,
+    "background_workers": false,
+    "sticky_sessions": false
+  },
+  "deploy_policy": {
+    "continuous_deploy_default": false,
+    "automatic_deploy_on_push": false,
+    "automatic_deploy_on_pr": false,
+    "reviewed_manual_deploy_default": true,
+    "github_remains_source_of_truth": true,
+    "ai_studio_direct_deploy_requires_operator_approval": true,
+    "cloud_build_runs_only_for_approved_payment_service_deployments": true
+  },
+  "artifact_registry_policy": {
+    "avoid_build_per_commit": true,
+    "retain_only_recent_reviewed_images": true,
+    "recommended_max_retained_app_images": 3,
+    "cleanup_old_unreferenced_images": true,
+    "note": "Cloud Build and Artifact Registry have pricing separate from Cloud Run."
+  },
+  "traffic_policy": {
+    "only_payment_routes_allowed": true,
+    "general_cace_routes_allowed": false,
+    "scientific_artifact_proxying": false,
+    "science_telemetry": false,
+    "proof_artifact_proxying": false,
+    "oracle_api_proxying": false
+  },
+  "emergency_controls": {
+    "operator_can_disable_service": true,
+    "operator_can_set_max_instances_to_one": true,
+    "stop_optional_cloud_run_use_at_budget_alert_fraction": 0.75,
+    "hard_application_policy_at_budget_alert_fraction": 0.9,
+    "action_at_hard_application_policy": "disable optional Cloud Run routes/deployments and preserve only explicitly approved critical edge traffic",
+    "never_silently_raise_max_instances": true,
+    "never_silently_switch_to_instance_based_billing": true,
+    "never_silently_enable_gpu": true
+  },
+  "observability": {
+    "show_cloud_run_cost_guard_in_admin_ui": true,
+    "show_enabled_disabled_state": true,
+    "show_configured_budget_if_available": true,
+    "show_instance_cap": true,
+    "show_last_deployment_reason": true,
+    "do_not_claim_hard_spend_cap": true
+  },
+  "proof_effect": "none",
+  "promotion_authority": false,
+  "payment_exception": {
+    "classification": "MONERO_PAYMENT_CRITICAL",
+    "permitted": true,
+    "still_requires_explicit_production_enable": true,
+    "still_requires_monthly_budget": true,
+    "min_instances": 0,
+    "max_instances": 1,
+    "background_polling": false,
+    "wallet_custody": false,
+    "canonical_service_policy": "ops/cloud_run_payment_service_policy.json"
+  }
+}

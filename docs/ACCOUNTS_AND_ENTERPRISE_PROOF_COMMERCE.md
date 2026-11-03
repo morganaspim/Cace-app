@@ -610,3 +610,78 @@ Default destination:
 The assistant should not require the user to permanently declare a scientific field. Field relevance may be inferred from the current voluntary conversation and, where the user permits workspace memory, from non-sensitive research preferences and prior CACE activity.
 
 Local/Zero Contact AI remains the preferred privacy-preserving assistant path. When no AI provider is available, the same entry screen must still expose deterministic demo browsing, Help, full capabilities, recent work, and an empty-canvas option.
+
+
+## Proof candidates collected in the UI and GitHub review
+
+CACE may collect proof candidates directly from a workspace/canvas.
+
+When Gemini is enabled, it may help convert a candidate into a typed proof contribution, Lean draft, tests, and a draft GitHub PR. This does not create proof evidence.
+
+The canonical workflow is defined in:
+
+- `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md`
+- `ops/proof_submission_policy.json`
+
+### General CACE-improvement submissions
+
+A non-commercial research submission may be sent to GitHub for project review. The generated PR goes through the normal CACE rigor gates. When it reaches the human gate, CACE surfaces a `PR_REVIEW_REQUIRED` operator item so the repository owner can inspect the exact PR/head/checks with ChatGPT and decide whether to merge or request changes.
+
+### Enterprise full-rigor proof requests
+
+If an Enterprise user requests a purchasable proof package, CACE freezes the requested result/scope and may use Gemini to prepare the internal proof contribution/PR.
+
+The proof PR then goes through the same normal rigor checks and human review. The customer is not asked to complete purchase of a finished proof until the result has passed canonical qualification and deliverability/IP review and is explicitly marked `PROOF_READY_FOR_SALE`.
+
+Thus Gemini/GitHub act as implementation/review surfaces, while Oracle/CACE + Lean qualification remain the proof authority and the existing rule remains **prove first, sell second**.
+
+
+## Base44 account entitlement mirror
+
+The Base44-facing machine-readable tier/benefit contract is:
+
+- `ops/base44_account_tiers.json`
+- `docs/BASE44_ACCOUNT_ENTITLEMENT_CONTRACT.md`
+
+Base44 may mirror low-volume account/tier/entitlement metadata and use it for ordinary UI gating.
+
+The manifest is a product-entitlement configuration surface, not mathematical evidence. Oracle/CACE remains authoritative for scientific execution, security enforcement, proof qualification, and Enterprise proof-package proof-ready status.
+
+Tier/benefit changes should update the Base44 manifest and this account architecture in the same product-policy change.
+
+
+## Recurring pass promotion
+
+Canonical policy: `ops/pass_promotion_policy.json`.
+
+All promotion eligibility is computed in `America/Phoenix`.
+
+- **Every Tuesday:** 1-day pass, 75% off for Basic/Researcher/Enterprise.
+- **Every 14 days on Saturday, starting 2026-09-26:** 1-week pass; Basic 50% off, Researcher 60% off, Enterprise 75% off.
+- **Every 3 calendar months, starting 2026-12-20:** 1-month pass, 45% off for all tiers.
+- **Every 3 years, starting 2027-01-01:** 1-year pass, 50% off for all tiers for exactly one 24-hour America/Phoenix calendar day. The order and first verified payment sighting must both occur inside that sale window; confirmations may complete afterward.
+
+Current promotional targets:
+
+| Promotion | Basic | Researcher | Enterprise |
+|---|---:|---:|---:|
+| Tuesday 1-day | $1.25 | $3.75 | $24.75 |
+| Alternating Saturday 1-week | $7.50 | $19.60 | $99.75 |
+| Quarterly 1-month | $21.45 | $81.95 | $824.45 |
+| Triennial 1-year | $99.50 | $499.50 | $4,999.50 |
+
+The checkout server—not the browser—determines whether a promotion is active and the final price.
+
+If two promotion schedules coincide, each remains scoped to its own SKU duration; discounts do not stack.
+
+The recurring promotion never discounts the Basic perpetual multithread unlock, Enterprise Full-Rigor Proof Package, or separately quoted Enterprise services.
+
+## Base44 use during Enterprise proof orders
+
+For an active Enterprise Full-Rigor Proof Package order, Base44 credits should be used for the low-volume customer/account/order workflow when helpful.
+
+A protected monthly reserve is defined in `ops/base44_free_tier_budget.json`.
+
+This includes order/SOW/contract/payment/delivery status and related notifications, but not scientific execution or formal verification itself.
+
+Oracle/CACE + GitHub/Lean remain authoritative for the actual proof.

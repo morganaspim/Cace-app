@@ -1,0 +1,242 @@
+{
+  "schema": "cace-base44-account-tiers-v1",
+  "updated_at": "2026-09-20",
+  "authority": {
+    "kind": "product_entitlement_configuration",
+    "scientific_evidence_authority": false,
+    "proof_promotion_authority": false,
+    "source_documents": [
+      "docs/ACCOUNTS_AND_ENTERPRISE_PROOF_COMMERCE.md",
+      "docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md"
+    ]
+  },
+  "base44_role": {
+    "store_low_volume_account_and_entitlement_metadata": true,
+    "may_gate_ui_features": true,
+    "may_issue_authoritative_scientific_or_proof_state": false,
+    "may_store_authoritative_proof_artifacts": false,
+    "may_promote_claims": false
+  },
+  "common_benefits": {
+    "gpu_acceleration_toggle": true,
+    "cuda_toggle_rule": "show/enable only when a compatible NVIDIA CUDA backend is actually detected",
+    "proof_candidate_submission_for_cace_improvement": true,
+    "proof_candidate_submission_rule": "submission is review-only and never proof evidence until normal CACE qualification and human review",
+    "scientific_authority": "Oracle/CACE"
+  },
+  "tiers": {
+    "Basic": {
+      "display_name": "Basic",
+      "intended_use": [
+        "personal learning",
+        "evaluation",
+        "noncommercial exploration"
+      ],
+      "commercial_use": false,
+      "first_time_intro_hours": 24,
+      "automatic_enterprise_evaluation": false,
+      "target_prices_usd": {
+        "day": 4.99,
+        "week": 14.99,
+        "month": 39,
+        "year": 199
+      },
+      "benefits": {
+        "gpu_acceleration": true,
+        "cuda_if_detected": true,
+        "cpu_multithreading_included": false,
+        "cpu_multithreading_optional_unlock": {
+          "available": true,
+          "one_time_price_usd": 15,
+          "entitlement_id": "feature.cpu_multithread.basic.perpetual.v1",
+          "persists_across_pass_expiration": true,
+          "usable_only_with_otherwise_valid_basic_access": true
+        },
+        "submit_proof_candidate_for_project_review": true,
+        "request_purchasable_full_rigor_proof_package": false,
+        "enterprise_commercial_rights": false
+      },
+      "recurring_sale_prices_usd": {
+        "Tuesday": {
+          "day": 1.25
+        },
+        "Alternating_Saturday": {
+          "week": 7.5
+        },
+        "Quarterly_Month": {
+          "month": 21.45
+        },
+        "Triennial_Year": {
+          "year": 99.5
+        }
+      }
+    },
+    "Researcher": {
+      "display_name": "Researcher",
+      "intended_use": [
+        "academic research",
+        "nonprofit research",
+        "independent scientific research",
+        "other noncommercial research under applicable license"
+      ],
+      "commercial_use": false,
+      "first_time_intro_hours": 48,
+      "automatic_enterprise_evaluation": false,
+      "target_prices_usd": {
+        "day": 14.99,
+        "week": 49,
+        "month": 149,
+        "year": 999
+      },
+      "benefits": {
+        "gpu_acceleration": true,
+        "cuda_if_detected": true,
+        "cpu_multithreading_included": true,
+        "submit_proof_candidate_for_project_review": true,
+        "request_purchasable_full_rigor_proof_package": false,
+        "enterprise_commercial_rights": false
+      },
+      "recurring_sale_prices_usd": {
+        "Tuesday": {
+          "day": 3.75
+        },
+        "Alternating_Saturday": {
+          "week": 19.6
+        },
+        "Quarterly_Month": {
+          "month": 81.95
+        },
+        "Triennial_Year": {
+          "year": 499.5
+        }
+      }
+    },
+    "Enterprise": {
+      "display_name": "Enterprise",
+      "intended_use": [
+        "business/commercial engineering",
+        "product development",
+        "commercial scientific discovery",
+        "client work",
+        "revenue-generating activity"
+      ],
+      "commercial_use": true,
+      "first_time_intro_hours": 0,
+      "automatic_enterprise_evaluation": false,
+      "enterprise_evaluation_rule": "may be issued separately under a sales/evaluation entitlement",
+      "target_prices_usd_per_named_user_or_seat": {
+        "day": 99,
+        "week": 399,
+        "month": 1499,
+        "year": 9999
+      },
+      "benefits": {
+        "gpu_acceleration": true,
+        "cuda_if_detected": true,
+        "cpu_multithreading_included": true,
+        "submit_proof_candidate_for_project_review": true,
+        "request_purchasable_full_rigor_proof_package": true,
+        "enterprise_commercial_rights": true,
+        "proof_package_commercial_rule": "prove_first_sell_second",
+        "proof_package_sale_gate": "PROOF_READY_FOR_SALE",
+        "optional_quoted_services": [
+          "enterprise compute",
+          "private relay/storage",
+          "dedicated support",
+          "private deployment",
+          "large seat counts"
+        ]
+      },
+      "recurring_sale_prices_usd_per_named_user_or_seat": {
+        "Tuesday": {
+          "day": 24.75
+        },
+        "Alternating_Saturday": {
+          "week": 99.75
+        },
+        "Quarterly_Month": {
+          "month": 824.45
+        },
+        "Triennial_Year": {
+          "year": 4999.5
+        }
+      }
+    }
+  },
+  "ui_rules": [
+    "Render tier benefits from this manifest rather than hard-coding them across components.",
+    "Base44 may gate ordinary product UI from entitlement metadata, but Oracle/CACE revalidates scientific execution/security/proof authority.",
+    "Do not hide general proof-candidate contribution from Basic or Researcher users.",
+    "Show purchasable Full-Rigor Proof Package only for Enterprise entitlements.",
+    "Purchasing compute/account benefits never changes proof status.",
+    "Target prices are commercial configuration, not proof-sensitive constants, and may change prospectively.",
+    "Every Tuesday in America/Phoenix, the 1-day pass is 75% off for Basic, Researcher, and Enterprise.",
+    "Every 14 days on Saturday starting 2026-09-26, the 1-week pass is discounted: Basic 50%, Researcher 60%, Enterprise 75%.",
+    "Every 3 calendar months starting 2026-12-20, the 1-month pass is 45% off for Basic, Researcher, and Enterprise.",
+    "The server computes promotion eligibility and final price; clients may not supply authoritative promotion state.",
+    "Every 3 years starting 2027-01-01, the 1-year pass is 50% off for all tiers for exactly one 24-hour America/Phoenix day.",
+    "The triennial year-pass promotion requires order creation and first verified payment sighting inside that 24-hour window; confirmations may finish afterward."
+  ],
+  "recurring_pass_promotion": {
+    "policy_id": "tuesday_day_alt_saturday_week_quarterly_month_triennial_year_v5",
+    "timezone": "America/Phoenix",
+    "tuesday": {
+      "cadence": "weekly",
+      "eligible_product": "day_pass",
+      "discount_percent_by_tier": {
+        "Basic": 75,
+        "Researcher": 75,
+        "Enterprise": 75
+      }
+    },
+    "saturday": {
+      "cadence": "every_14_days",
+      "anchor_sale_date": "2026-09-26",
+      "eligible_product": "week_pass",
+      "discount_percent_by_tier": {
+        "Basic": 50,
+        "Researcher": 60,
+        "Enterprise": 75
+      }
+    },
+    "quarterly_month": {
+      "cadence": "every_3_months",
+      "anchor_sale_date": "2026-12-20",
+      "eligible_product": "month_pass",
+      "discount_percent_by_tier": {
+        "Basic": 45,
+        "Researcher": 45,
+        "Enterprise": 45
+      }
+    },
+    "year_discounted": "only_during_triennial_24_hour_sale",
+    "server_side_catalog_and_price_enforcement": true,
+    "stacking_allowed": false,
+    "rounding": {
+      "currency": "USD",
+      "decimals": 2,
+      "mode": "ROUND_HALF_UP"
+    },
+    "exclusions": [
+      "year_pass",
+      "Basic perpetual CPU multithread unlock",
+      "Enterprise Full-Rigor Proof Package",
+      "separately quoted enterprise services"
+    ],
+    "triennial_year": {
+      "cadence": "every_3_years",
+      "anchor_sale_date": "2027-01-01",
+      "active_local_window": {
+        "start": "00:00:00",
+        "end": "23:59:59.999"
+      },
+      "eligible_product": "year_pass",
+      "discount_percent_by_tier": {
+        "Basic": 50,
+        "Researcher": 50,
+        "Enterprise": 50
+      },
+      "purchase_window_rule": "Order creation and first verified payment sighting must be within the 24-hour sale window."
+    }
+  }
+}

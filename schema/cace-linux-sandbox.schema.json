@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-linux-sandbox.schema.json",
+  "title": "CACE Linux Worker Sandbox Capability Report v1",
+  "description": "Runtime capability evidence for isolated science workers. Reports actual active/unavailable/failed controls; creates no proof authority.",
+  "$defs": {
+    "control": {
+      "type": "object",
+      "required": [
+        "status",
+        "active",
+        "detail"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "active",
+            "unavailable",
+            "failed",
+            "not-applicable"
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_network_namespace",
+        "require_seccomp_filter",
+        "require_filesystem_restriction",
+        "require_privilege_hardening",
+        "require_cgroup_v2",
+        "require_mount_namespace",
+        "require_private_tmp",
+        "require_device_restrictions"
+      ],
+      "properties": {
+        "require_network_namespace": {
+          "type": "boolean"
+        },
+        "require_seccomp_filter": {
+          "type": "boolean"
+        },
+        "require_filesystem_restriction": {
+          "type": "boolean"
+        },
+        "require_privilege_hardening": {
+          "type": "boolean"
+        },
+        "require_cgroup_v2": {
+          "type": "boolean"
+        },
+        "require_mount_namespace": {
+          "type": "boolean"
+        },
+        "require_private_tmp": {
+          "type": "boolean"
+        },
+        "require_device_restrictions": {
+          "type": "boolean"
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sandbox_capability_schema",
+        "platform",
+        "kernel_release",
+        "architecture",
+        "host_uid_before",
+        "host_gid_before",
+        "controls",
+        "requirements",
+        "all_required_active",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "sandbox_capability_schema": {
+          "const": 1
+        },
+        "platform": {
+          "type": "string"
+        },
+        "kernel_release": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "host_uid_before": {
+          "type": "integer"
+        },
+        "host_gid_before": {
+          "type": "integer"
+        },
+        "controls": {
+          "type": "object",
+          "required": [
+            "user_namespace",
+            "network_namespace",
+            "no_new_privs",
+            "dumpability",
+            "privilege_hardening",
+            "landlock",
+            "seccomp",
+            "cgroup_v2",
+            "mount_namespace",
+            "private_tmp",
+            "device_restrictions"
+          ],
+          "properties": {
+            "user_namespace": {
+              "$ref": "#/$defs/control"
+            },
+            "network_namespace": {
+              "$ref": "#/$defs/control"
+            },
+            "no_new_privs": {
+              "$ref": "#/$defs/control"
+            },
+            "dumpability": {
+              "$ref": "#/$defs/control"
+            },
+            "privilege_hardening": {
+              "$ref": "#/$defs/control"
+            },
+            "landlock": {
+              "$ref": "#/$defs/control"
+            },
+            "seccomp": {
+              "$ref": "#/$defs/control"
+            },
+            "cgroup_v2": {
+              "$ref": "#/$defs/control"
+            },
+            "mount_namespace": {
+              "$ref": "#/$defs/control"
+            },
+            "private_tmp": {
+              "$ref": "#/$defs/control"
+            },
+            "device_restrictions": {
+              "$ref": "#/$defs/control"
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/control"
+          }
+        },
+        "requirements": {
+          "$ref": "#/$defs/requirements"
+        },
+        "all_required_active": {
+          "type": "boolean"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/report"
+}

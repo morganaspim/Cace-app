@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-execution-containment.schema.json",
+  "title": "CACE Execution Containment v1",
+  "description": "Durable cooperative run controls, run artifacts, and operator-attention records. Engineering/runtime state only; no proof authority.",
+  "$defs": {
+    "run_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_control_schema",
+        "control_id",
+        "state",
+        "updated_unix",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "run_control_schema": {
+          "const": 1
+        },
+        "control_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "state": {
+          "enum": [
+            "running",
+            "paused",
+            "cancelled"
+          ]
+        },
+        "updated_unix": {
+          "type": "number"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    },
+    "run_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_artifact_schema",
+        "artifact_id",
+        "session_id",
+        "cycle_index",
+        "run_id",
+        "report_sha256",
+        "perception_sha256",
+        "byte_count",
+        "report",
+        "perception",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "run_artifact_schema": {
+          "const": 1
+        },
+        "artifact_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "cycle_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "perception_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "byte_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "report": {
+          "type": "object"
+        },
+        "perception": {
+          "type": "object"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    },
+    "attention_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recovery_inbox_schema",
+        "item_id",
+        "session_id",
+        "operation_id",
+        "category",
+        "message",
+        "run_artifact_id",
+        "created_unix",
+        "resolved",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "recovery_inbox_schema": {
+          "const": 1
+        },
+        "item_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "run_artifact_id": {
+          "type": "string"
+        },
+        "created_unix": {
+          "type": "number"
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    },
+    "worker_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker_receipt_schema",
+        "worker_id",
+        "request_sha256",
+        "started_unix",
+        "finished_unix",
+        "pid",
+        "exit_code",
+        "outcome",
+        "termination_reason",
+        "result_sha256",
+        "registry_sha256",
+        "limits",
+        "resource_enforcement",
+        "stderr_tail",
+        "proof_effect",
+        "promotion_authority",
+        "sandbox_capabilities"
+      ],
+      "properties": {
+        "worker_receipt_schema": {
+          "const": 1
+        },
+        "worker_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "started_unix": {
+          "type": "number"
+        },
+        "finished_unix": {
+          "type": "number"
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exit_code": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "terminated",
+            "crashed",
+            "error"
+          ]
+        },
+        "termination_reason": {
+          "type": "string"
+        },
+        "result_sha256": {
+          "type": "string"
+        },
+        "registry_sha256": {
+          "type": "string"
+        },
+        "limits": {
+          "type": "object"
+        },
+        "resource_enforcement": {
+          "type": "object"
+        },
+        "stderr_tail": {
+          "type": "string"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        },
+        "sandbox_capabilities": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/run_control"
+    },
+    {
+      "$ref": "#/$defs/run_artifact"
+    },
+    {
+      "$ref": "#/$defs/attention_item"
+    },
+    {
+      "$ref": "#/$defs/worker_receipt"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schema": "cace-base44-credit-budget-v1",
+  "last_reviewed": "2026-09-20",
+  "plan": "Free",
+  "platform_allowance_snapshot": {
+    "message_credits_monthly": 25,
+    "integration_credits_monthly": 100
+  },
+  "cace_budget": {
+    "message_target_monthly": 15,
+    "message_hard_budget_monthly": 18,
+    "integration_target_monthly": 60,
+    "integration_hard_budget_monthly": 75
+  },
+  "zones": {
+    "green_max_fraction_of_platform_allowance": 0.5,
+    "yellow_max_fraction_of_platform_allowance": 0.65,
+    "red_max_fraction_of_platform_allowance": 0.75,
+    "hard_stop_fraction_of_platform_allowance": 0.75
+  },
+  "forbidden_high_frequency_uses": [
+    "canvas_events",
+    "science_runs",
+    "run_polling",
+    "worker_telemetry",
+    "proof_polling",
+    "agent_turns",
+    "llm_inference",
+    "scientific_artifacts",
+    "proof_artifacts",
+    "runtime_logs"
+  ],
+  "policy": {
+    "optional_integrations_default_enabled": false,
+    "silent_paid_upgrade_allowed": false,
+    "queue_noncritical_metadata_when_hard_stopped": true,
+    "enterprise_proof_order_priority": "ENTERPRISE_ORDER_CRITICAL",
+    "enterprise_order_can_use_protected_reserve": true,
+    "enterprise_order_cannot_bypass_platform_allowance": true
+  },
+  "enterprise_proof_order_credit_reserve": {
+    "enabled": true,
+    "purpose": "Protect Base44 capacity for active Enterprise Full-Rigor Proof Package order/account workflow.",
+    "message_credits_reserved": 5,
+    "integration_credits_reserved": 20,
+    "normal_features_may_not_consume_reserve": true,
+    "allowed_when_normal_policy_zone_is_hard_stop": true,
+    "hard_ceiling": "Never exceed the platform-reported monthly allowance or silently purchase paid credits.",
+    "eligible_operations": [
+      "create_or_update_proof_order_metadata",
+      "enterprise_order_status_transition_metadata",
+      "statement_of_work_metadata",
+      "contract_signature_status_metadata",
+      "payment_or_credit_approval_metadata",
+      "customer_delivery_status_metadata",
+      "operator_notification_for_enterprise_proof_order"
+    ],
+    "forbidden_even_for_enterprise_orders": [
+      "scientific_execution",
+      "Lean_or_proof_runner_execution",
+      "high_frequency_CI_polling",
+      "proof_artifact_storage",
+      "worker_telemetry",
+      "raw_scientific_data"
+    ]
+  }
+}

@@ -1,0 +1,415 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from cace_studio.core.capability_registry import QualifiedCapabilityRegistry
+from cace_studio.core.executor import GraphExecutor
+from cace_studio.core.graph import Experiment
+from cace_studio.core.native_runtime import NativeRuntime
+from cace_studio.core.registry import ModuleRegistry
+from cace_studio.core.reproducibility import experiment_fingerprint, registry_contract_fingerprint
+
+from .cgroup_v2 import CgroupV2Manager
+from .autonomy_loop import (
+    FileAutonomySessionStore,
+    ReplanProvider,
+    register_autonomy_loop_tools,
+)
+from .execution_containment import (
+    FileRecoveryInbox,
+    FileRunArtifactStore,
+    FileRunControlStore,
+)
+from .canvas_mutation import FileCanvasPreviewStore, register_canvas_mutation_tools
+from .canvas_plan import FileCanvasPlanStore, register_canvas_plan_tools
+from .contracts import Capability, ToolContext, TypedTool
+from .linux_sandbox import SandboxRequirements
+from .perception import AgentNetworkMode
+from .tool_bus import ToolBus
+from .worker_sandbox import FileWorkerReceiptStore, ProcessScienceRunner
+from .workspace_store import FileExperimentWorkspace
+
+
+@dataclass(frozen=True)
+class EmptyRequest:
+    pass
+
+
+@dataclass(frozen=True)
+class NativeStatusResponse:
+    available: bool
+    backend: str
+    version: str
+    path: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class RegistryListRequest:
+    limit: int = 200
+
+    def __post_init__(self) -> None:
+        if self.limit <= 0 or self.limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
+
+
+@dataclass(frozen=True)
+class RegistryListResponse:
+    module_contract_sha256: str
+    total_modules: int
+    returned_modules: int
+    modules: tuple[dict[str, Any], ...]
+    capability_surface: str = "engineering"
+
+
+@dataclass(frozen=True)
+class ActiveExperimentResponse:
+    name: str
+    semantic_experiment_sha256: str
+    full_experiment_sha256: str
+    node_count: int
+    edge_count: int
+    group_count: int
+    node_ids: tuple[str, ...]
+    module_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class RunActiveExperimentRequest:
+    target_node_ids: tuple[str, ...] = ()
+    external_inputs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    seed: int = 0
+
+
+@dataclass(frozen=True)
+class RunActiveExperimentResponse:
+    run_id: str
+    completed: bool
+    interruption_reason: str
+    run_scope: str
+    semantic_experiment_sha256: str
+    source_semantic_experiment_sha256: str
+    execution_scope_sha256: str
+    all_verifiers_passed: bool
+    node_output_ports: dict[str, tuple[str, ...]]
+    verification_states: dict[str, tuple[str, ...]]
+    public_resolution_claim_allowed: bool
+    proof_effect: str = "none"
+    promotion_authority: bool = False
+
+
+def _registry_entry(
+    cls: type,
+    *,
+    qualified_capabilities: QualifiedCapabilityRegistry | None = None,
+) -> dict[str, Any]:
+    metadata = cls.metadata
+    payload = {
+        "module_id": metadata.module_id,
+        "name": metadata.name,
+        "version": metadata.version,
+        "category": metadata.category,
+        "description": metadata.description,
+        "maturity": metadata.maturity.value,
+        "assumptions": list(metadata.assumptions),
+        "inputs": [
+            {
+                "name": item.name,
+                "type_name": item.type_name,
+                "required": item.required,
+                "unit": item.unit,
+            }
+            for item in cls.inputs
+        ],
+        "outputs": [
+            {
+                "name": item.name,
+                "type_name": item.type_name,
+                "required": item.required,
+                "unit": item.unit,
+            }
+            for item in cls.outputs
+        ],
+        "parameters": [
+            {
+                "name": item.name,
+                "type_name": item.type_name,
+                "default": item.default,
+                "description": item.description,
+                "unit": item.unit,
+            }
+            for item in cls.parameters
+        ],
+        "supports_gpu": bool(cls.supports_gpu),
+        "declared_evidence": sorted(item.value for item in cls.proof_status.evidence),
+        "limitations": list(cls.proof_status.limitations),
+        "formal_artifact": cls.proof_status.formal_artifact,
+        "evidence_note": "module metadata is descriptive and is not executed verification evidence",
+    }
+    if qualified_capabilities is not None and qualified_capabilities.contains(metadata.module_id):
+        record = qualified_capabilities.record(metadata.module_id)
+        payload["capability_gates"] = dict(record["gates"])
+        payload["workflow_ids"] = list(record["workflow_ids"])
+        payload["public_help"] = dict(record["public_help"])
+        payload["capability_qualification_class"] = "engineering"
+        payload["proof_effect"] = "none"
+        payload["promotion_authority"] = False
+    return payload
+
+
+def register_core_tools(
+    bus: ToolBus,
+    *,
+    registry: ModuleRegistry | None = None,
+    qualified_capabilities: QualifiedCapabilityRegistry | None = None,
+    active_experiment: Experiment | None = None,
+    gpu_enabled: bool = False,
+    canvas_preview_store: FileCanvasPreviewStore | None = None,
+    canvas_workspace_store: FileExperimentWorkspace | None = None,
+    canvas_plan_store: FileCanvasPlanStore | None = None,
+    autonomy_session_store: FileAutonomySessionStore | None = None,
+    autonomy_replan_provider: ReplanProvider | None = None,
+    autonomy_network_mode: AgentNetworkMode = AgentNetworkMode.LOCAL_ZERO_CONTACT,
+    autonomy_run_artifact_store: FileRunArtifactStore | None = None,
+    autonomy_run_control_store: FileRunControlStore | None = None,
+    autonomy_recovery_inbox: FileRecoveryInbox | None = None,
+    autonomy_use_process_sandbox: bool = False,
+    autonomy_worker_receipt_store: FileWorkerReceiptStore | None = None,
+    autonomy_require_linux_hardening: bool = False,
+    autonomy_require_linux_process_tree_hardening: bool = False,
+    autonomy_cgroup_root: str | None = None,
+) -> None:
+    """Register non-proof-authoritative tools backed by canonical CACE core APIs."""
+    if (
+        autonomy_require_linux_hardening
+        or autonomy_require_linux_process_tree_hardening
+    ) and not autonomy_use_process_sandbox:
+        raise ValueError(
+            "Linux autonomy hardening requires autonomy_use_process_sandbox"
+        )
+
+    if (
+        qualified_capabilities is not None
+        and registry is not None
+        and qualified_capabilities.registry is not registry
+    ):
+        raise ValueError("qualified_capabilities must wrap the supplied registry")
+
+    native_runtime = NativeRuntime()
+
+    def native_status(_: EmptyRequest, __: ToolContext) -> NativeStatusResponse:
+        status = native_runtime.status
+        return NativeStatusResponse(
+            available=status.available,
+            backend=status.backend,
+            version=status.version,
+            path=status.path,
+            reason=status.reason,
+        )
+
+    bus.register(
+        TypedTool(
+            name="cace.runtime.native_status",
+            description="Inspect the currently available CACE native runtime backend without mutating it.",
+            capability=Capability.READ_RUNTIME,
+            request_type=EmptyRequest,
+            response_type=NativeStatusResponse,
+            handler=native_status,
+        )
+    )
+
+    if registry is not None:
+        def list_modules(request: RegistryListRequest, _: ToolContext) -> RegistryListResponse:
+            if qualified_capabilities is None:
+                classes = sorted(registry.classes(), key=lambda item: item.metadata.module_id)
+                capability_surface = "engineering"
+            else:
+                classes = qualified_capabilities.classes("ai")
+                capability_surface = "ai"
+            selected = classes[: request.limit]
+            return RegistryListResponse(
+                module_contract_sha256=registry_contract_fingerprint(registry),
+                total_modules=len(classes),
+                returned_modules=len(selected),
+                modules=tuple(
+                    _registry_entry(
+                        cls,
+                        qualified_capabilities=qualified_capabilities,
+                    )
+                    for cls in selected
+                ),
+                capability_surface=capability_surface,
+            )
+
+        bus.register(
+            TypedTool(
+                name="cace.registry.list_modules",
+                description=(
+                    "List canonical registered CACE modules and typed contracts. "
+                    "Declared evidence metadata is not executed proof evidence."
+                ),
+                capability=Capability.READ_CATALOG,
+                request_type=RegistryListRequest,
+                response_type=RegistryListResponse,
+                handler=list_modules,
+            )
+        )
+
+    if active_experiment is not None:
+        def describe_active(_: EmptyRequest, __: ToolContext) -> ActiveExperimentResponse:
+            return ActiveExperimentResponse(
+                name=active_experiment.name,
+                semantic_experiment_sha256=experiment_fingerprint(active_experiment, include_layout=False),
+                full_experiment_sha256=experiment_fingerprint(active_experiment, include_layout=True),
+                node_count=len(active_experiment.nodes),
+                edge_count=len(active_experiment.edges),
+                group_count=len(active_experiment.groups),
+                node_ids=tuple(node.id for node in active_experiment.nodes),
+                module_ids=tuple(sorted({node.module_id for node in active_experiment.nodes})),
+            )
+
+        bus.register(
+            TypedTool(
+                name="cace.experiment.describe_active",
+                description="Describe the active experiment using canonical CACE semantic/full fingerprints.",
+                capability=Capability.READ_EXPERIMENT,
+                request_type=EmptyRequest,
+                response_type=ActiveExperimentResponse,
+                handler=describe_active,
+            )
+        )
+
+    if registry is not None and active_experiment is not None:
+        executor = GraphExecutor(registry, gpu_enabled=gpu_enabled)
+
+        def run_active(request: RunActiveExperimentRequest, _: ToolContext) -> RunActiveExperimentResponse:
+            if qualified_capabilities is not None:
+                qualified_capabilities.validate_experiment(active_experiment, surface="ai")
+            if request.target_node_ids:
+                result = executor.run_selected_upstream(
+                    active_experiment,
+                    request.target_node_ids,
+                    external_inputs=request.external_inputs,
+                    seed=request.seed,
+                )
+            else:
+                result = executor.run(
+                    active_experiment,
+                    external_inputs=request.external_inputs,
+                    seed=request.seed,
+                )
+
+            verification_states = {
+                node_id: tuple(record.state.value for record in records)
+                for node_id, records in result.verification.items()
+            }
+            node_output_ports = {
+                node_id: tuple(sorted(outputs))
+                for node_id, outputs in result.outputs.items()
+            }
+            return RunActiveExperimentResponse(
+                run_id=result.run_id,
+                completed=result.completed,
+                interruption_reason=result.interruption_reason,
+                run_scope=result.run_scope,
+                semantic_experiment_sha256=result.semantic_experiment_sha256,
+                source_semantic_experiment_sha256=result.source_semantic_experiment_sha256,
+                execution_scope_sha256=result.execution_scope_sha256,
+                all_verifiers_passed=result.all_verifiers_passed,
+                node_output_ports=node_output_ports,
+                verification_states=verification_states,
+                public_resolution_claim_allowed=result.any_public_resolution_claim_allowed,
+            )
+
+        bus.register(
+            TypedTool(
+                name="cace.experiment.run_active",
+                description=(
+                    "Execute the already-active experiment, or a selected-upstream scope, "
+                    "through the canonical GraphExecutor. This tool cannot edit the graph or promote proof state."
+                ),
+                capability=Capability.RUN_SCIENCE,
+                request_type=RunActiveExperimentRequest,
+                response_type=RunActiveExperimentResponse,
+                handler=run_active,
+            )
+        )
+
+    if (
+        registry is not None
+        and active_experiment is not None
+        and canvas_preview_store is not None
+    ):
+        canvas_runtime = register_canvas_mutation_tools(
+            bus,
+            registry=registry,
+            active_experiment=active_experiment,
+            preview_store=canvas_preview_store,
+            workspace_store=canvas_workspace_store,
+            qualified_capabilities=qualified_capabilities,
+        )
+        if canvas_workspace_store is not None and canvas_plan_store is not None:
+            plan_runtime = register_canvas_plan_tools(
+                bus,
+                canvas_runtime=canvas_runtime,
+                registry=registry,
+                preview_store=canvas_preview_store,
+                plan_store=canvas_plan_store,
+                workspace_store=canvas_workspace_store,
+            )
+            if autonomy_session_store is not None:
+                resolved_control_store = (
+                    autonomy_run_control_store
+                    or FileRunControlStore(
+                        autonomy_session_store.root / ".run-controls"
+                    )
+                )
+                process_runner = None
+                if autonomy_use_process_sandbox:
+                    resolved_receipt_store = (
+                        autonomy_worker_receipt_store
+                        or FileWorkerReceiptStore(
+                            autonomy_session_store.root / ".worker-receipts"
+                        )
+                    )
+                    strict_tree = autonomy_require_linux_process_tree_hardening
+                    process_runner = ProcessScienceRunner(
+                        registry=registry,
+                        control_store=resolved_control_store,
+                        receipt_store=resolved_receipt_store,
+                        cgroup_manager=CgroupV2Manager(autonomy_cgroup_root),
+                        sandbox_requirements=SandboxRequirements(
+                            require_network_namespace=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_seccomp_filter=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_filesystem_restriction=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_privilege_hardening=(
+                                autonomy_require_linux_hardening or strict_tree
+                            ),
+                            require_cgroup_v2=strict_tree,
+                            require_mount_namespace=strict_tree,
+                            require_private_tmp=strict_tree,
+                            require_device_restrictions=strict_tree,
+                        ),
+                    )
+                register_autonomy_loop_tools(
+                    bus,
+                    registry=registry,
+                    plan_runtime=plan_runtime,
+                    plan_store=canvas_plan_store,
+                    workspace_store=canvas_workspace_store,
+                    session_store=autonomy_session_store,
+                    replan_provider=autonomy_replan_provider,
+                    network_mode=autonomy_network_mode,
+                    gpu_enabled=gpu_enabled,
+                    run_artifact_store=autonomy_run_artifact_store,
+                    run_control_store=resolved_control_store,
+                    recovery_inbox=autonomy_recovery_inbox,
+                    process_science_runner=process_runner,
+                )

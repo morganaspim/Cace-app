@@ -2,11 +2,33 @@
 
 CACE is a proprietary computational research environment owned by Emmanuel Spiro. Read `LICENSE` and `NOTICE`. AI assistance is optional; the runtime and verification path must not require an AI service.
 
+## Branch lifecycle — read before any repository write
+
+Before checking out, creating, rebasing, committing to, or branching from any Git branch, read:
+
+- `BRANCH_LIFECYCLE.json` — canonical machine-readable branch status registry;
+- `docs/BRANCH_LIFECYCLE.md` — human policy and recovery rules.
+
+**Only branches with status `ACTIVE` are writable by default.** Branch existence, historical CI success, or an open PR does not make a branch current. `INTEGRATION`, `FROZEN`, `DEPRECATED`, `ARCHIVED`, and `REVIEW_REQUIRED` are non-writable unless the user explicitly reactivates/assigns them.
+
+If a requested branch is not ACTIVE, do not guess. Inspect live GitHub/PR state and update the lifecycle registry before doing new work.
+
+## External builder connection gates
+
+Connected external builders must read their own machine manifest before doing any work:
+
+- **Base44:** `BASE44.md` + `BASE44_CONNECTION_MANIFEST.json`
+- **Gemini / Google AI Studio Build Mode / Antigravity:** `GEMINI.md` + `GEMINI_CONNECTION_MANIFEST.json`
+
+These manifests are fail-closed permission contracts. Base44 is confined to commodity application services and direct repository writes under `base44/**`. Gemini is the primary interface builder and may directly write only its default frontend/state areas unless the user/ChatGPT grants a temporary task-specific exception. Both must obey `BRANCH_LIFECYCLE.json`.
+
 ## Start here
 
 **AI context budget:** first read `AI_CONTEXT/00_START_HERE.md` and `AI_CONTEXT/IMPLEMENTATION_PLAN_A_I.md`. Never request more than 800 repository files in one AI context pull; if a candidate set is larger, split it deterministically. Do not trust silently discarded/truncated files.
 
 Read these in order before changing scientific or verification behavior:
+
+For UI-collected proof candidates, Enterprise proof-package requests, or Gemini-prepared formal contributions, also read `docs/PROOF_SUBMISSION_REVIEW_WORKFLOW.md` and `ops/proof_submission_policy.json`. Submission/PR creation is not proof evidence; normal CACE qualification and explicit human review still apply.
 
 **Gemini / Google AI Studio:** begin with `GEMINI.md`. Gemini has two allowed modes: Presentation Builder and Rigorous Tool Builder. In Rigorous Tool Builder mode it may implement C++ kernels, tests, Lean proof attempts, and source-to-formal bindings under `docs/AI_RIGOROUS_TOOL_CONTRIBUTION_PIPELINE.md`; it still cannot self-promote proof/evidence. The browser layer remains presentation only and must not duplicate scientific/proof semantics in JavaScript/TypeScript/Node.
 
@@ -84,3 +106,35 @@ Future immutable provenance uses content addresses, deterministic Merkle bundles
 ## Repository-only reconstruction requirement
 
 A repository-reading agent must be able to reconstruct the intended webapp, proof/evidence architecture, security boundaries, bug-flush process, provenance/log-retention policy, deployment shape, and acceptance criteria without private chat history. If that is not possible from `CACE_AGENT_BOOTSTRAP.json` and the documents it references, improve repository discoverability before relying on conversational context.
+
+
+## Third-party licensing and release compliance
+
+CACE source remains proprietary, but every distributed third-party component keeps
+its own license and notice obligations.
+
+Before adding or changing a dependency, bundled font, binary library, dataset,
+model, media asset, generated frontend dependency tree, or external code:
+
+1. update `ops/license_compliance_policy.json` if the dependency is direct or
+   requires a special distribution decision;
+2. run `python scripts/audit_license_compliance.py`;
+3. for an actual release environment, run
+   `python scripts/generate_third_party_notices.py --output-dir <release-license-dir>`;
+4. include the generated exact package license bundle in the released artifact;
+5. do not ship a dependency whose license is unknown, unreviewed copyleft, or
+   otherwise outside the approved release profile.
+
+The browser/server release profile excludes PySide6. A proprietary desktop build
+using PySide6 is release-blocked until the operator selects either a valid Qt
+commercial distribution path or a separately documented LGPLv3-compliant
+packaging path. Do not add GPL-only Qt modules or Qt WebEngine to a proprietary
+desktop release without an explicit license review.
+
+Testing/build/formal tools that are not shipped to users remain outside the
+product artifact, but their licenses must be preserved if they are ever
+redistributed.
+
+No company/product receives attribution merely because a public high-level idea
+was discussed. Attribution is tied to actual incorporated code, assets, data,
+documentation, or a license/contract that requires it.

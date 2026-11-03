@@ -1,0 +1,193 @@
+{
+  "schema": "cace-license-compliance-policy-v1",
+  "updated_at": "2026-09-20",
+  "first_party": {
+    "package": "cace-studio",
+    "license_expression": "LicenseRef-CACE-Proprietary",
+    "license_file": "LICENSE",
+    "notice_file": "NOTICE",
+    "third_party_summary": "THIRD_PARTY_NOTICES.md"
+  },
+  "release_principles": [
+    "Third-party licenses are preserved and are not overridden by the CACE proprietary license.",
+    "Release compliance is evaluated against the exact shipped artifact, not only top-level source dependencies.",
+    "Unknown, strong-copyleft, or special distribution terms fail closed pending explicit review.",
+    "Voluntary idea/inspiration acknowledgements are not license obligations."
+  ],
+  "profiles": {
+    "server_browser": {
+      "status": "APPROVABLE_AFTER_EXACT_NOTICE_BUNDLE",
+      "roots": [
+        "cace-studio"
+      ],
+      "excludes_by_default": [
+        "PySide6",
+        "matplotlib",
+        "pytest",
+        "hypothesis",
+        "Lean 4",
+        "mathlib"
+      ],
+      "required_commands": [
+        "python scripts/audit_license_compliance.py",
+        "python scripts/generate_third_party_notices.py --output-dir <artifact>/licenses"
+      ]
+    },
+    "attestation": {
+      "status": "APPROVABLE_AFTER_EXACT_NOTICE_BUNDLE",
+      "additional_roots": [
+        "cryptography"
+      ]
+    },
+    "desktop_gui": {
+      "status": "MANUAL_QT_LICENSE_GATE",
+      "additional_roots": [
+        "PySide6",
+        "matplotlib"
+      ],
+      "approved_paths": [
+        "Qt commercial distribution entitlement + commercial Qt for Python packages",
+        "separately documented LGPLv3-compliant packaging review for the exact deployment method"
+      ],
+      "prohibited_without_explicit_review": [
+        "GPL-only Qt modules",
+        "Qt WebEngine / Chromium-bearing distribution",
+        "static or frozen packaging that prevents required LGPL replacement/relinking rights"
+      ]
+    },
+    "formal_ci": {
+      "status": "CI_ONLY_NOT_PRODUCT_DISTRIBUTION",
+      "tools": [
+        "Lean 4",
+        "mathlib"
+      ],
+      "host": "Oracle CI runner only"
+    },
+    "tests": {
+      "status": "DEVELOPMENT_ONLY_NOT_PRODUCT_DISTRIBUTION",
+      "tools": [
+        "pytest",
+        "hypothesis",
+        "matplotlib",
+        "cryptography"
+      ]
+    }
+  },
+  "python_direct_dependencies": {
+    "numpy": {
+      "scopes": [
+        "runtime"
+      ],
+      "license": "BSD-3-Clause",
+      "decision": "approved_permissive"
+    },
+    "fastapi": {
+      "scopes": [
+        "runtime"
+      ],
+      "license": "MIT",
+      "decision": "approved_permissive"
+    },
+    "pyside6": {
+      "scopes": [
+        "gui"
+      ],
+      "license": "Qt-Commercial OR LGPL-3.0-only OR GPL-3.0-only",
+      "decision": "manual_review_required"
+    },
+    "matplotlib": {
+      "scopes": [
+        "gui",
+        "test"
+      ],
+      "license": "Matplotlib/PSF-BSD-compatible",
+      "decision": "approved_with_exact_notices"
+    },
+    "cryptography": {
+      "scopes": [
+        "attest",
+        "test"
+      ],
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "decision": "approved_permissive"
+    },
+    "pytest": {
+      "scopes": [
+        "test"
+      ],
+      "license": "MIT",
+      "decision": "development_only"
+    },
+    "hypothesis": {
+      "scopes": [
+        "test"
+      ],
+      "license": "MPL-2.0",
+      "decision": "development_only_review_if_redistributed"
+    }
+  },
+  "formal_dependencies": {
+    "Lean 4": {
+      "version_source": "formal/cace_formal/lean-toolchain",
+      "license": "Apache-2.0",
+      "distribution": "ci_only"
+    },
+    "mathlib": {
+      "version_source": "formal/cace_formal/lakefile.lean",
+      "license": "Apache-2.0",
+      "distribution": "ci_only"
+    }
+  },
+  "release_license_classification": {
+    "permissive_markers": [
+      "MIT",
+      "BSD",
+      "Apache",
+      "PSF",
+      "ISC",
+      "Zlib",
+      "Python Software Foundation"
+    ],
+    "review_markers": [
+      "AGPL",
+      "GPL",
+      "LGPL",
+      "MPL",
+      "EPL",
+      "CDDL",
+      "SSPL",
+      "Business Source",
+      "Commons Clause"
+    ],
+    "rule": "Review markers do not imply incompatibility; they require a profile-specific human/legal distribution decision before release."
+  },
+  "bundled_material_gate": {
+    "unreviewed_extensions": [
+      ".dll",
+      ".so",
+      ".dylib",
+      ".node",
+      ".wasm",
+      ".whl",
+      ".jar",
+      ".exe",
+      ".ttf",
+      ".otf",
+      ".woff",
+      ".woff2",
+      ".pdb",
+      ".cif",
+      ".parquet"
+    ],
+    "reviewed_files": [],
+    "rule": "A tracked file with one of these extensions fails source audit unless explicitly reviewed and recorded here."
+  },
+  "frontend_gate": {
+    "rule": "When a production webapp package manifest/lockfile is added, its exact npm dependency tree must receive an artifact-level license inventory before release.",
+    "current_status": "NO_WEBAPP_PACKAGE_MANIFEST_PRESENT_AT_POLICY_CREATION"
+  },
+  "bundled_interpreter_gate": {
+    "rule": "If a future standalone artifact bundles Python or other language runtimes/standard libraries, their exact license files must be included in the generated artifact notice bundle.",
+    "current_status": "NO_BUNDLED_PYTHON_RUNTIME_DECLARED"
+  }
+}

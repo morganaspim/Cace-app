@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cace.local/schema/cace-workspace-version.schema.json",
+  "title": "CACE Persisted Workspace Version v1",
+  "description": "Atomic persisted workspace envelope binding one canonical experiment version to operation, preview, and fencing identities. This is engineering state, not proof evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workspace_version_schema",
+    "workspace_id",
+    "version",
+    "parent_version",
+    "committed_unix",
+    "operation_id",
+    "preview_id",
+    "lease_id",
+    "lease_generation",
+    "base_semantic_sha256",
+    "base_full_sha256",
+    "target_semantic_sha256",
+    "target_full_sha256",
+    "experiment",
+    "history",
+    "proof_effect",
+    "promotion_authority"
+  ],
+  "properties": {
+    "workspace_version_schema": {
+      "const": 1
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,128}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "parent_version": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "committed_unix": {
+      "type": "number"
+    },
+    "operation_id": {
+      "type": "string"
+    },
+    "preview_id": {
+      "type": "string"
+    },
+    "lease_id": {
+      "type": "string"
+    },
+    "lease_generation": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "base_semantic_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "base_full_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_semantic_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target_full_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "experiment": {
+      "type": "object"
+    },
+    "proof_effect": {
+      "const": "none"
+    },
+    "promotion_authority": {
+      "const": false
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workspace_receipt"
+      }
+    }
+  },
+  "$defs": {
+    "workspace_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_receipt_schema",
+        "version",
+        "parent_version",
+        "committed_unix",
+        "operation_id",
+        "preview_id",
+        "lease_id",
+        "lease_generation",
+        "base_semantic_sha256",
+        "base_full_sha256",
+        "target_semantic_sha256",
+        "target_full_sha256",
+        "proof_effect",
+        "promotion_authority"
+      ],
+      "properties": {
+        "workspace_receipt_schema": {
+          "const": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parent_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "committed_unix": {
+          "type": "number"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preview_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lease_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lease_generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "base_semantic_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "base_full_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "target_semantic_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "target_full_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "proof_effect": {
+          "const": "none"
+        },
+        "promotion_authority": {
+          "const": false
+        }
+      }
+    }
+  }
+}

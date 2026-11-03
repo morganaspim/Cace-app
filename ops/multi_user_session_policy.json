@@ -1,0 +1,142 @@
+{
+  "schema": "cace-multi-user-session-policy-v1",
+  "updated_at": "2026-09-20",
+  "objective": "Support many concurrent authenticated users without browser disconnects cancelling work or user state leaking/blocking another user, while keeping the production runtime isolated from Oracle CI.",
+  "authority_split": {
+    "base44": [
+      "authentication/account identity",
+      "organization/team/workspace-membership metadata",
+      "account entitlements",
+      "low-frequency membership/entitlement refresh"
+    ],
+    "cloud_run": "NOT_USED_FOR_MULTI_USER_SESSIONS",
+    "gemini_browser": [
+      "presentation",
+      "per-tab client state",
+      "reconnect UX",
+      "local draft buffering",
+      "typed API/event clients"
+    ],
+    "production_cace_backend": [
+      "authenticated multi-user API/session control",
+      "workspace authorization enforcement",
+      "canonical workspace versions and experiment state",
+      "durable scientific run queue",
+      "run ownership/control",
+      "scientific execution",
+      "proof/evidence/security authority"
+    ]
+  },
+  "identity_keys": {
+    "principal_id": "opaque authenticated CACE principal",
+    "organization_id": "optional tenant scope",
+    "workspace_id": "stable server-issued workspace ID",
+    "workspace_version": "monotonic optimistic-concurrency version",
+    "browser_session_id": "short-lived browser session ID",
+    "client_instance_id": "per-tab/per-window UUID",
+    "run_id": "stable server-issued scientific run ID",
+    "client_request_id": "client-generated idempotency key"
+  },
+  "isolation_rules": [
+    "Every workspace/run/control request is authorized server-side.",
+    "A principal cannot enumerate/read/mutate another unauthorized tenant workspace/run.",
+    "Browser entitlement/role claims are not authoritative until server-validated.",
+    "No process-global active experiment/current user state for multi-user requests.",
+    "Proof/scientific artifacts remain scoped to authorized workspace/run."
+  ],
+  "browser_session": {
+    "sticky_server_session_required": false,
+    "run_lifetime_independent_of_browser_session": true,
+    "disconnect_cancels_run": false,
+    "reload_cancels_run": false,
+    "close_tab_cancels_run": false,
+    "reconnect_using": [
+      "workspace_id",
+      "run_id"
+    ],
+    "local_draft_storage": "IndexedDB keyed by principal/workspace/client instance",
+    "cross_tab_coordination": "BroadcastChannel when available; server remains source of truth"
+  },
+  "workspace_concurrency": {
+    "model": "optimistic_concurrency",
+    "save_requires_expected_version": true,
+    "conflict_behavior": "typed version conflict; never silently overwrite",
+    "merge_behavior": "Gemini may offer rebase/merge UI; Oracle/CACE validates final graph",
+    "autosave": {
+      "allowed": true,
+      "debounce_ms": 1500,
+      "base44_used_for_autosave": false,
+      "target": "Production CACE workspace API"
+    }
+  },
+  "run_queue": {
+    "durable_metadata_required": true,
+    "run_uses_immutable_workspace_snapshot": true,
+    "scheduling": "fair_round_robin_by_principal_then_fifo",
+    "defaults": {
+      "max_concurrent_heavy_science_workers": 1,
+      "max_queued_runs_global": 32,
+      "max_queued_runs_per_principal": 4,
+      "interactive_api_reserved": true
+    },
+    "states": [
+      "QUEUED",
+      "STARTING",
+      "RUNNING",
+      "PAUSING",
+      "PAUSED",
+      "RESUMING",
+      "CANCEL_REQUESTED",
+      "CANCELLED",
+      "COMPLETED",
+      "FAILED",
+      "RECOVERY_REQUIRED"
+    ],
+    "idempotent_create": true,
+    "control_requires_owner_or_authorized_operator": true,
+    "queue_position_is_advisory": true
+  },
+  "event_delivery": {
+    "preferred": "SSE from Production CACE backend",
+    "fallback": "bounded polling to Production CACE backend with exponential backoff and jitter",
+    "websocket_required": false,
+    "one_stream_per_active_browser_session_max": true,
+    "events_are_advisory": true,
+    "snapshot_endpoint_is_authoritative": true
+  },
+  "failure_recovery": {
+    "browser_disconnect": "run continues",
+    "network_interruption": "reconnect and refresh snapshots",
+    "api_process_restart": "durable queue/completed metadata survives",
+    "worker_failure": "FAILED or RECOVERY_REQUIRED; never invent completion",
+    "duplicate_retry": "idempotency key reconciles same accepted mutation/run",
+    "production_backend_restart": "restore durable workspace/queue state; interrupted runs use explicit recovery/restart semantics"
+  },
+  "base44_credit_rules": [
+    "No Base44 presence heartbeats.",
+    "No Base44 workspace autosave.",
+    "No Base44 run progress/queue polling.",
+    "Cache membership/entitlements at session bootstrap and refresh only on meaningful changes."
+  ],
+  "frontend_readiness_gate": {
+    "may_label_multi_user_ready_only_if": [
+      "authenticated workspace scoping exists",
+      "optimistic workspace versioning exists",
+      "run creation is idempotent",
+      "run status is durable/reconnectable",
+      "run control is server-authorized",
+      "queue is durable and interactive API remains responsive"
+    ],
+    "otherwise_label": "MULTI_USER_BACKEND_PENDING"
+  },
+  "proof_effect": "none",
+  "promotion_authority": false,
+  "cloud_run_rule": "Cloud Run is excluded from multi-user session/workspace/run traffic; it is reserved for Monero payments only.",
+  "oracle_ci_boundary": {
+    "role": "CI_AND_QUALIFICATION_ONLY",
+    "production_sessions": false,
+    "production_science": false,
+    "production_secrets": false,
+    "policy": "docs/architecture/ADR-002-ORACLE-CI-ONLY.md"
+  }
+}
