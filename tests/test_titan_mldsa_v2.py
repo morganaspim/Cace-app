@@ -48,7 +48,7 @@ def test_mldsa65_sign_verify_and_tamper_rejection() -> None:
         public_key = keygen.generate_keypair()
         secret_key = keygen.export_secret_key()
     envelope = sign_ml_dsa65(statement_for(public_key), secret_key, public_key)
-    assert verify_ml_dsa65(envelope, trusted_verifier_id="cace-titan-smoke-verifier") == public_key_id(public_key)
+    assert verify_ml_dsa65(envelope, trusted_verifier_id="cace-titan-smoke-verifier", trusted_key_id=public_key_id(public_key)) == public_key_id(public_key)
     changed = dict(envelope)
     changed["statement"] = dict(envelope["statement"])
     changed["statement"]["claim_id"] = "titan:test:tampered"
@@ -118,7 +118,8 @@ def test_cace_pqc_cli_keygen_sign_verify(tmp_path: Path) -> None:
     assert signed.returncode == 0, signed.stderr
     verified = subprocess.run(
         [sys.executable, "-m", "cace_studio.attest_cli", "pqc-verify",
-         str(attestation_path), "--trusted-verifier-id", "cace-titan-cli-test"],
+         str(attestation_path), "--trusted-verifier-id", "cace-titan-cli-test",
+         "--trusted-key-id", public_key_id(public_key)],
         capture_output=True, text=True, check=False,
     )
     assert verified.returncode == 0, verified.stderr
