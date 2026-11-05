@@ -7,6 +7,9 @@ from pathlib import Path
 import re
 import sys
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from cace_studio.core.evidence_ledger import bundle_from_payload, verify_bundle
 
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
