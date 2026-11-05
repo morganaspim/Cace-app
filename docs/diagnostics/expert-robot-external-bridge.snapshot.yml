@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: external-free-runner-bridge-${{ github.ref_name }}
@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Prepare deploy key
         id: key
@@ -161,7 +161,8 @@ jobs:
 
           git config user.name "expert-robot-dispatcher"
           git config user.email "noreply@github.com"
-          git add bridge/request.json bridge/expert-robot-source.tar.gz
+          # Stage removal of the previous bridge-branch result as well as the new request.
+          git add bridge/request.json bridge/expert-robot-source.tar.gz bridge/result.json bridge/result.log
           git commit -m "Dispatch Expert Robot request: $REQUEST_ID"
 
           # Preserve concurrent CACE result commits. Rebase and fast-forward only;
@@ -190,7 +191,7 @@ jobs:
         shell: bash
         env:
           RUNNER_REPO_SSH: git@github.com:morganaspim/Cace-app.git
-          BRIDGE_BRANCH: ${{ steps.install.outputs.bridge_branch }}
+          RESULT_BRANCH: cace-result/${{ steps.package.outputs.request_id }}
           REQUEST_ID: ${{ steps.package.outputs.request_id }}
         run: |
           set -euo pipefail
@@ -206,13 +207,13 @@ jobs:
           found=false
           for _ in $(seq 1 120); do
             GIT_SSH_COMMAND='ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new' \
-              git -C "$poll" fetch -q --force origin "$BRIDGE_BRANCH:refs/remotes/origin/bridge"
+              git -C "$poll" fetch -q --force origin "refs/heads/$RESULT_BRANCH:refs/remotes/origin/result" 2>/dev/null || true
 
-            if git -C "$poll" show refs/remotes/origin/bridge:bridge/result.json > "$evidence/result.json" 2>/dev/null; then
+            if git -C "$poll" show refs/remotes/origin/result:bridge/result.json > "$evidence/result.json" 2>/dev/null; then
               got="$(python3 -c 'import json; print(json.load(open("'"$evidence"'/result.json"))["request_id"])' 2>/dev/null || true)"
               if [ "$got" = "$REQUEST_ID" ]; then
-                git -C "$poll" show refs/remotes/origin/bridge:bridge/result.log > "$evidence/result.log" 2>/dev/null || true
-                git -C "$poll" show refs/remotes/origin/bridge:bridge/request.json > "$evidence/request.json"
+                git -C "$poll" show refs/remotes/origin/result:bridge/result.log > "$evidence/result.log" 2>/dev/null || true
+                git -C "$poll" show refs/remotes/origin/result:bridge/request.json > "$evidence/request.json"
                 python3 - "$evidence/result.json" "$evidence/result.log" "$REQUEST_ID" "$GITHUB_SHA" <<'PY'
           import hashlib
           import json
@@ -369,9 +370,21 @@ jobs:
           git config user.name "expert-robot-evidence-return"
           git config user.email "noreply@github.com"
           git commit -m "Persist CACE evidence: $REQUEST_ID"
-          git fetch origin "$GITHUB_REF_NAME"
-          git rebase "origin/$GITHUB_REF_NAME"
-          git push origin "HEAD:$GITHUB_REF_NAME"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin "$GITHUB_REF_NAME"
+            git rebase "origin/$GITHUB_REF_NAME"
+            if git push origin "HEAD:$GITHUB_REF_NAME"; then
+              echo "evidence_persisted=true attempt=$attempt"
+              exit 0
+            fi
+            echo "Evidence commit raced with a newer branch commit; retry=$attempt" >&2
+            git rebase --abort || true
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::Could not persist CACE evidence after five fast-forward-safe attempts."
+              exit 1
+            fi
+            sleep "$attempt"
+          done
 
       - name: Remove key material
         if: always()
