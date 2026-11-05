@@ -122,6 +122,11 @@ def sign_ml_dsa65(statement: Mapping[str, Any], secret_key: bytes, public_key: b
     try:
         with oqs.Signature(ALGORITHM, secret_key=secret_key) as signer:
             signature = signer.sign(message)
+        with oqs.Signature(ALGORITHM) as verifier:
+            if not verifier.verify(message, signature, public_key):
+                raise PQCAttestationError("provided ML-DSA secret and public keys do not match")
+    except PQCAttestationError:
+        raise
     except Exception as exc:
         raise PQCAttestationError(f"ML-DSA signing failed: {type(exc).__name__}") from exc
     return {
