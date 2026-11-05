@@ -1,0 +1,27 @@
+request_id=expert-robot-42064793913-1-121b142f7b9d1dc53a3c745f80cd4b70f0065a52
+expert_robot_commit=121b142f7b9d1dc53a3c745f80cd4b70f0065a52
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       136Mi       7.0Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+Traceback (most recent call last):
+  File "/opt/actions-runner/_work/_temp/expert-robot-42064853128/tests/known_failure_regression_smoke.py", line 85, in <module>
+    assert "CACE's canonical workflow" in external
+AssertionError
+exit_code=1
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+CACE return bridge guardrails: PASS
+exit_code=0
+=== shell syntax ===
+exit_code=0
