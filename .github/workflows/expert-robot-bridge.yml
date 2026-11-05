@@ -244,14 +244,18 @@ jobs:
 
           cd "$GITHUB_WORKSPACE"
 
-          python3 - "$request_id" "$source_sha" "$overall" > bridge/result.json <<'PY'
+          python3 - "$request_id" "$source_sha" "$overall" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$GITHUB_WORKFLOW" "$GITHUB_REPOSITORY" <<'PY' > bridge/result.json
+          import hashlib
           import json
           import platform
           import sys
+          from pathlib import Path
 
           rc = int(sys.argv[3])
+          log_path = Path("bridge/result.log")
+          log_sha256 = hashlib.sha256(log_path.read_bytes()).hexdigest()
           print(json.dumps({
-              "schema_version": 2,
+              "schema_version": 3,
               "request_id": sys.argv[1],
               "expert_robot_commit": sys.argv[2],
               "status": "pass" if rc == 0 else "fail",
@@ -264,6 +268,14 @@ jobs:
               "qualification_lane": "formal-static-arm64",
               "lean_toolchain": "leanprover/lean4:v4.34.0",
               "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
+              "cace_repository": sys.argv[9],
+              "cace_commit": sys.argv[6],
+              "cace_workflow_id": 367390621,
+              "cace_workflow_name": sys.argv[8],
+              "cace_workflow_ref": sys.argv[7],
+              "cace_workflow_run_id": int(sys.argv[4]),
+              "cace_run_attempt": int(sys.argv[5]),
+              "result_log_sha256": log_sha256,
               "cxx_required": False,
               "self_hosted_contents_write": False,
               "monetary_cost": "free",
@@ -327,6 +339,26 @@ jobs:
           test "$got" = "$expected"
           test "$got_sha" = "$expected_sha"
 
+          python3 - "$result" "$log" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$GITHUB_REPOSITORY" <<'PY'
+          import hashlib
+          import json
+          import sys
+          from pathlib import Path
+
+          result = json.loads(Path(sys.argv[1]).read_text())
+          log = Path(sys.argv[2])
+          assert result["schema_version"] == 3
+          assert result["status"] in ("pass", "fail")
+          assert isinstance(result["exit_code"], int)
+          assert result["cace_repository"] == sys.argv[7]
+          assert result["cace_commit"] == sys.argv[5]
+          assert result["cace_workflow_run_id"] == int(sys.argv[3])
+          assert result["cace_run_attempt"] == int(sys.argv[4])
+          assert result["cace_workflow_ref"] == sys.argv[6]
+          assert result["cace_workflow_id"] == 367390621
+          assert result["result_log_sha256"] == hashlib.sha256(log.read_bytes()).hexdigest()
+          PY
+
           if [ -f "$log" ]; then
             size="$(stat -c %s "$log")"
             test "$size" -le $((1024 * 1024))
@@ -335,6 +367,10 @@ jobs:
           echo "request_id=$expected" >> "$GITHUB_OUTPUT"
           echo "source_sha=$expected_sha" >> "$GITHUB_OUTPUT"
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "cace_run_id=$GITHUB_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "cace_run_attempt=$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+          echo "cace_commit=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "cace_workflow_id=367390621" >> "$GITHUB_OUTPUT"
 
       - name: Publish result inside Cace-app bridge branch
         shell: bash
@@ -409,6 +445,11 @@ jobs:
           KEY_FILE: ${{ steps.reverse-key.outputs.key_file }}
           REQUEST_ID: ${{ steps.result.outputs.request_id }}
           SOURCE_SHA: ${{ steps.result.outputs.source_sha }}
+          RESULT_STATUS: ${{ steps.result.outputs.status }}
+          CACE_RUN_ID: ${{ steps.result.outputs.cace_run_id }}
+          CACE_RUN_ATTEMPT: ${{ steps.result.outputs.cace_run_attempt }}
+          CACE_COMMIT: ${{ steps.result.outputs.cace_commit }}
+          CACE_WORKFLOW_ID: ${{ steps.result.outputs.cace_workflow_id }}
           EXPERT_ROBOT_REPO_SSH: git@github.com:Mannyspiro/expert-robot.git
         run: |
           set -euo pipefail
@@ -445,13 +486,18 @@ jobs:
           import sys
 
           print(json.dumps({
-              "schema_version": 1,
+              "schema_version": 2,
               "request_id": sys.argv[1],
-              "status": "pass",
+              "status": "${{ steps.result.outputs.status }}",
               "expert_robot_commit": sys.argv[2],
               "base_branch": sys.argv[3],
               "source_branch": sys.argv[3],
               "evidence_dir": sys.argv[4],
+              "cace_repository": "morganaspim/Cace-app",
+              "cace_commit": "${{ steps.result.outputs.cace_commit }}",
+              "cace_workflow_id": int("${{ steps.result.outputs.cace_workflow_id }}"),
+              "cace_workflow_run_id": int("${{ steps.result.outputs.cace_run_id }}"),
+              "cace_run_attempt": int("${{ steps.result.outputs.cace_run_attempt }}"),
               "authority": "qualification-only",
               "promotion_authority": False,
               "monetary_cost": "free",
