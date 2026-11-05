@@ -79,14 +79,25 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$HOME/.local/bin:$PATH"
-          uv venv --seed --python 3.12.11 $WORK_DIR/venv
-          $WORK_DIR/venv/bin/python -m pip install "hatchling==1.27.0" "pytest==8.4.2"
+          if [ ! -d "$WORK_DIR/venv" ]; then
+            uv venv --seed --python 3.12.11 "$WORK_DIR/venv"
+          fi
+          if [ ! -d "$WORK_DIR/liboqs-python/.git" ]; then
+            git clone --filter=blob:none https://github.com/open-quantum-safe/liboqs-python.git "$WORK_DIR/liboqs-python"
+            git -C "$WORK_DIR/liboqs-python" checkout --detach 64c76ad0a80d6c69f2003219eb27b253782a3d68
+          fi
           OQS_PYTHON_TAG_SHA="$(git ls-remote https://github.com/open-quantum-safe/liboqs-python.git refs/tags/0.16.0.2 | awk '{print $1}')"
           test "$OQS_PYTHON_TAG_SHA" = "64c76ad0a80d6c69f2003219eb27b253782a3d68"
-          git clone --filter=blob:none https://github.com/open-quantum-safe/liboqs-python.git $WORK_DIR/liboqs-python
-          git -C $WORK_DIR/liboqs-python checkout --detach 64c76ad0a80d6c69f2003219eb27b253782a3d68
-          test "$(git -C $WORK_DIR/liboqs-python rev-parse HEAD)" = "$OQS_PYTHON_TAG_SHA"
-          OQS_INSTALL_PATH=$WORK_DIR/liboqs-install LD_LIBRARY_PATH=$WORK_DIR/liboqs-install/lib $WORK_DIR/venv/bin/python -m pip install --no-deps --no-build-isolation $WORK_DIR/liboqs-python
+          test "$(git -C "$WORK_DIR/liboqs-python" rev-parse HEAD)" = "$OQS_PYTHON_TAG_SHA"
+          if "$WORK_DIR/venv/bin/python" -c 'import importlib.metadata, oqs, pytest; assert importlib.metadata.version("liboqs-python") == "0.16.0.2"; assert oqs.oqs_version() == "0.16.0"' >/dev/null 2>&1; then
+            echo "Reusing verified pinned liboqs-python environment"
+          else
+            "$WORK_DIR/venv/bin/python" -m pip install "hatchling==1.27.0" "pytest==8.4.2"
+            export LD_LIBRARY_PATH="$WORK_DIR/liboqs-install/lib"
+            export OQS_INSTALL_PATH="$WORK_DIR/liboqs-install"
+            "$WORK_DIR/venv/bin/python" -m pip install --no-deps --no-build-isolation "$WORK_DIR/liboqs-python"
+          fi
+
       - name: Verify provider version and run CACE receipt tests
         id: run-tests
         shell: bash
