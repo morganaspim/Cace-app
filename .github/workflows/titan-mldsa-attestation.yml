@@ -16,17 +16,29 @@ permissions:
   contents: read
 
 concurrency:
-  group: titan-mldsa-attestation-v2
+  group: titan-mldsa-attestation-v2-oci
   cancel-in-progress: true
 
 jobs:
   mldsa-v2:
-    runs-on: avrea-ubuntu-latest-8-vcpu
+    runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Verify independent CACE OCI runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(hostname)" = "cace-oci-a1"
+          test "$(uname -m)" = "aarch64"
+          echo "runner=$RUNNER_NAME"
+          python3 --version
+          cmake --version | head -1
+          gcc --version | head -1
+          ninja --version
+
       - name: Install pinned native provider
         shell: bash
         run: |
