@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$HOME/.local/bin:$PATH"
-          uv venv --python 3.12.11 $WORK_DIR/venv
+          uv venv --seed --python 3.12.11 $WORK_DIR/venv
           $WORK_DIR/venv/bin/python -m pip install "hatchling==1.27.0" "pytest==8.4.2"
           OQS_PYTHON_TAG_SHA="$(git ls-remote https://github.com/open-quantum-safe/liboqs-python.git refs/tags/0.16.0.2 | awk '{print $1}')"
           test "$OQS_PYTHON_TAG_SHA" = "64c76ad0a80d6c69f2003219eb27b253782a3d68"
