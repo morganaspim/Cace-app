@@ -51,6 +51,12 @@ jobs:
           fi
           echo "WORK_DIR=$WORK_DIR" >> "$GITHUB_ENV"
           echo "Selected provider work directory: $WORK_DIR"
+          for candidate in /tmp/cace-pqc-*; do
+            [ -e "$candidate" ] || continue
+            [ "$candidate" = "$WORK_DIR" ] || rm -rf "$candidate"
+          done
+          rm -rf "$HOME/.cache/pip"
+          df -h .
           if command -v dnf >/dev/null 2>&1; then
             sudo dnf install -y openssl-devel
           elif command -v yum >/dev/null 2>&1; then
