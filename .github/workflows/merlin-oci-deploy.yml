@@ -202,7 +202,9 @@ jobs:
           tls_ready=false
           if getent ahostsv4 "$PUBLIC_HOST" | grep -q "129.146.160.46"; then
             if [ ! -x /opt/merlin/acme/acme.sh ]; then
-              curl -fsSL https://get.acme.sh | sudo sh -s -- --home /opt/merlin/acme --config-home /var/lib/merlin/acme-config --cert-home /var/lib/merlin/acme-certs --no-cron
+              if ! curl -fsSL https://get.acme.sh | sudo sh -s -- --home /opt/merlin/acme --config-home /var/lib/merlin/acme-config --cert-home /var/lib/merlin/acme-certs --no-cron; then
+                echo "ACME client installation failed; retain read-only HTTP preview."
+              fi
             fi
             if sudo /opt/merlin/acme/acme.sh --issue --server letsencrypt -d "$PUBLIC_HOST" -w /var/www/merlin-acme --keylength ec-256; then
               sudo /opt/merlin/acme/acme.sh --install-cert -d "$PUBLIC_HOST" --ecc \
