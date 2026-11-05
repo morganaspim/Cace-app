@@ -41,10 +41,61 @@ jobs:
           set -euo pipefail
           python3 -m pip install --user "pytest==8.3.5"
       - name: Recompute CACE bundle and all artifact digests
+        id: verify
         shell: bash
         env:
           PYTHONPATH: .
         run: |
           set -euo pipefail
           export PATH="$HOME/.local/bin:$PATH"
+          set +e
           python3 -m pytest -q tests/test_titan_bundle_verifier.py tests/test_titan_avrea_evidence.py
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: Record independent CACE verification result
+        if: always()
+        shell: bash
+        env:
+          TEST_EXIT_CODE: ${{ steps.verify.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          rc=os.environ.get("TEST_EXIT_CODE")
+          report={
+            "schema_version":1,
+            "evidence_type":"cace-independent-titan-avrea-verification",
+            "cace_repository":"morganaspim/Cace-app",
+            "cace_commit":os.environ.get("GITHUB_SHA"),
+            "workflow_run_id":os.environ.get("GITHUB_RUN_ID"),
+            "workflow_run_attempt":os.environ.get("GITHUB_RUN_ATTEMPT"),
+            "runner_name":os.environ.get("RUNNER_NAME"),
+            "runner_host":"cace-oci-a1",
+            "architecture":"aarch64",
+            "source_repository":"Mannyspiro/expert-robot",
+            "source_workflow_run_id":42087925099,
+            "source_commit_sha":"0f3ca6ae38d4ac745855c49509bf6992694cb522",
+            "source_workflow_artifact_sha256":"466c1d227bb13ae8ec1d8b51fd9d3722c76df2934fd1dd2e200b0b391f2b643d",
+            "provider_commit":"5a1a854b0dc9f2141bdc771c555ee60c37950183",
+            "vector_source_commit":"b121fee031dc65d32c96f4109a42a10dacbe2076",
+            "cace_bundle_verification":"pass" if rc=="0" else ("fail" if rc else "not_completed"),
+            "test_exit_code":int(rc) if rc and rc.isdigit() else None,
+            "artifact_count":4,
+            "proof_effect":"none",
+            "signature_status":"not_checked",
+            "qualification_status":"research_only",
+            "promotion_authority":False
+          }
+          pathlib.Path("cace-titan-independent-verification.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+          PY
+
+      - name: Upload CACE verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cace-titan-independent-verification-${{ github.run_id }}
+          path: cace-titan-independent-verification.json
+          if-no-files-found: warn
+          retention-days: 30
