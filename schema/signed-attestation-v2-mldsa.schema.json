@@ -29,7 +29,7 @@
       "const": "sha256/cace-canonical-json-v1"
     },
     "domain_separator": {
-      "const": "CACE:TITAN:SIGNED-ATTESTATION:v2\\u0000"
+      "const": "CACE:TITAN:SIGNED-ATTESTATION:v2\u0000"
     },
     "statement_sha256": {
       "type": "string",
