@@ -48,11 +48,14 @@ def test_cace_independently_verifies_actual_avrea_acvp_bundle() -> None:
         assert "runner=avrea-" in provenance
 
         evidence = json.loads((root / "titan-pqc-acvp-evidence.json").read_text())
-        assert evidence["workflow"]["commit_sha"] == EXPECTED_SOURCE_COMMIT
+        assert evidence["titan_source_commit"] == EXPECTED_SOURCE_COMMIT
         assert evidence["provider"]["commit"] == EXPECTED_PROVIDER_COMMIT
         assert evidence["vectors"]["commit"] == EXPECTED_VECTOR_COMMIT
         assert evidence["test_result"] == "pass"
         assert evidence["test_counts"] == {"tests": 54, "passed": 54, "skipped": 0, "failed": 0}
+        assert evidence["suite_results"]["FIPS203"]["passed"] == 9
+        assert evidence["suite_results"]["FIPS204"]["passed"] == 9
+        assert evidence["suite_results"]["FIPS205"]["passed"] == 36
         assert evidence["junit_sha256"] == hashlib.sha256((root / "titan-acvp-junit.xml").read_bytes()).hexdigest()
         assert evidence["test_log_sha256"] == hashlib.sha256((root / "titan-acvp-test.log").read_bytes()).hexdigest()
 
