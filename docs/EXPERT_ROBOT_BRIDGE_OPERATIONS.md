@@ -8,7 +8,9 @@ This page documents the CACE half of the Merlin / Expert Robot execution bridge 
 
 - CACE repository: `morganaspim/Cace-app`.
 - Persistent source and policy branch: `main`.
-- Generated bridge/transport branch: `executor/expert-robot-bridge`.
+- Canonical workflow/base branch: `executor/expert-robot-bridge`.
+- Per-attempt request branches: `cace-request/<request-id>`.
+- Per-request result branches: `cace-result/<request-id>`. 
 - Upstream dispatcher/source repository: `Mannyspiro/expert-robot`.
 - Upstream source branch currently used by the integration: `feat/hermes-routing-eval-avrea-discovery-20261105`.
 - Canonical generator for the CACE bridge workflow: `Mannyspiro/expert-robot/.github/workflows/external-free-runner-bridge.yml`, inside the literal `BRIDGE_YAML` heredoc. A new request regenerates the bridge branch from the CACE default branch. Do not make durable policy or documentation edits only on the generated branch.
@@ -39,13 +41,13 @@ The OCI worker is not the result publisher and is not given the Expert Robot rev
 
 ## 3. Request and qualification lifecycle
 
-1. Expert Robot's Avrea hosted Actions dispatcher packages a bounded source archive and pushes `bridge/request.json`, the archive, and a generated workflow to `executor/expert-robot-bridge`.
+1. Expert Robot's Avrea hosted Actions dispatcher packages a bounded source archive and creates a unique `cace-request/<request-id>` branch from `executor/expert-robot-bridge`. It pushes `bridge/request.json` and the source archive only; the canonical CACE workflow is inherited from the base branch.
 2. Request schema v2 binds request ID, full Expert Robot commit SHA, source branch, return repository, requested lane and qualification-only authority.
 3. The CACE workflow validates request/source identity and archive members. It rejects absolute paths, traversal, symbolic/hard links, devices and FIFOs.
 4. It scans the Lean source for selected proof escapes and checks the exact Lean/Mathlib revisions.
 5. It executes the bounded static/formal qualification checks and records log output and runner identity.
 6. It emits result schema v3 with `pass` or `fail`, integer exit code, request ID, Expert Robot commit, CACE repository/commit/workflow ID/ref/run/attempt, runner labels/machine/architecture, Lean/Mathlib pins, log SHA-256/size, and `authority=qualification-only`, `promotion_authority=false`.
-7. The publisher validates the result and publishes it to the CACE bridge branch. It then attempts the optional reverse deploy-key path.
+7. The publisher validates the result and publishes it to `cace-result/<request-id>`. It then attempts the optional reverse deploy-key path.
 
 A failed qualification is a valid result. Preserve the failure envelope and log. The publisher should fail only for a malformed or mismatched envelope, missing artifact, or publication/transport failure—not simply because the qualification status is `fail`.
 
@@ -112,6 +114,7 @@ For envelope failures, compare the producer's schema/version/field types with th
 - Fetch the current CACE branch and exact workflow file before making a change.
 - Read the root `AGENTS.md` instructions and the linked trust documents.
 - Do not use `executor/expert-robot-bridge` as a persistent documentation branch.
+- Treat `executor/expert-robot-bridge` as the immutable workflow/base branch; use unique `cace-request/<request-id>` branches for incoming requests and `cace-result/<request-id>` for returned evidence. Do not rebase or delete evidence on a shared request branch.
 - Do not run unbounded commands on the self-hosted runner or bypass the workflow.
 - Do not change Lean/Mathlib pins or delete caches just to get a green run.
 - Do not claim a test ran unless the Actions job step is completed and its logs show execution.
