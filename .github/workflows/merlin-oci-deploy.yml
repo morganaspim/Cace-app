@@ -80,7 +80,7 @@ jobs:
       - name: Install isolated Merlin release and run local smoke tests
         shell: bash
         env:
-          REQUEST_ID: \${{ steps.validate.outputs.request_id }}
+          REQUEST_ID: ${{ steps.validate.outputs.request_id }}
         run: |
           set -euo pipefail
           app_user="$(id -un)"
@@ -265,8 +265,8 @@ jobs:
         shell: bash
         env:
           PUBLIC_HOST: merlin.129.146.160.46.nip.io
-          TLS_READY: \${{ steps.web.outputs.tls_ready }}
-          DEPLOYMENT_URL: \${{ steps.web.outputs.deployment_url }}
+          TLS_READY: ${{ steps.web.outputs.tls_ready }}
+          DEPLOYMENT_URL: ${{ steps.web.outputs.deployment_url }}
         run: |
           set -euo pipefail
           if [ "$TLS_READY" = true ]; then base="https://$PUBLIC_HOST"; else base="http://$PUBLIC_HOST"; fi
@@ -285,11 +285,11 @@ jobs:
         if: always() && steps.validate.outputs.request_id != ''
         shell: bash
         env:
-          REQUEST_ID: \${{ steps.validate.outputs.request_id }}
-          SOURCE_SHA: \${{ steps.validate.outputs.expert_robot_commit }}
-          DEPLOYMENT_URL: \${{ steps.public.outputs.deployment_url }}
-          TLS_READY: \${{ steps.web.outputs.tls_ready }}
-          PUBLIC_PASS: \${{ steps.public.outcome == 'success' }}
+          REQUEST_ID: ${{ steps.validate.outputs.request_id }}
+          SOURCE_SHA: ${{ steps.validate.outputs.expert_robot_commit }}
+          DEPLOYMENT_URL: ${{ steps.public.outputs.deployment_url }}
+          TLS_READY: ${{ steps.web.outputs.tls_ready }}
+          PUBLIC_PASS: ${{ steps.public.outcome == 'success' }}
         run: |
           set -euo pipefail
           result_branch="merlin-deploy-result/$REQUEST_ID"
