@@ -1,0 +1,12 @@
+{
+  "schema_version": 3,
+  "request_id": "expert-robot-42071028804-1-874465e9055ec78896f227e9513a9cea04f9726c",
+  "expert_robot_commit": "874465e9055ec78896f227e9513a9cea04f9726c",
+  "archive_size_bytes": 980047,
+  "source_branch": "repair/cace-bridge-request-isolation-20261105",
+  "source_archive_sha256": "489cc7e64249f95c02a07d74622f48adab4b2af7826c962024aa5af097c9a77f",
+  "return_repository": "Mannyspiro/expert-robot",
+  "requested_lane": "cace-oci-aarch64",
+  "authority": "qualification-only",
+  "monetary_cost": "free"
+}
