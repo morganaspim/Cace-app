@@ -123,3 +123,16 @@ For envelope failures, compare the producer's schema/version/field types with th
 - Do not merge, deploy, promote claims, or expand authority without explicit approval.
 
 The durable operational guide in Expert Robot is the canonical cross-repository runbook. This page records the CACE-specific boundary and trust rules; it must remain consistent with the live generated workflow.
+
+
+## Latest observed per-request execution (2026-11-05)
+
+- Request branch: `cace-request/expert-robot-42065066165-1-0e51da50bcdfa1854f99cb3bb303f19c4f94fe1a`.
+- Result branch: `cace-result/expert-robot-42065066165-1-0e51da50bcdfa1854f99cb3bb303f19c4f94fe1a`.
+- CACE workflow run: `42065140582`, workflow ID `367390621`, workflow commit `1be01133e7e500b16b5a68cb834298a776df3deb`.
+- The OCI runner `cace-oci-a1` completed archive safety, formal source safety, compute policy, known-failure regression, formal dependency lock, CACE return bridge and shell syntax checks.
+- The qualification result was `fail`, exit code `50`, because only `1,146,284 KB` was free on the 30 GB root filesystem; the pinned Lean install gate requires `2,097,152 KB`. No Lean toolchain installation or Lean theorem/axiom audit was performed in this run.
+- The result artifact was ID `13434445988`, SHA-256 `1d9a659868937176a3ef129724ad6bb7346054f60bee9e7cc0affefc87777df6`. The Expert Robot consumer validated and persisted the result and log under its `.cace/evidence/<request-id>/` directory.
+- The return manifest reports `signature_status=missing`: SHA-256 integrity and GitHub workflow/run binding were checked, but Ed25519 signer trust is not established. Do not call this a signed attestation or a passing qualification.
+
+The next CACE runner task is read-only disk diagnosis of the OCI root filesystem and CACE-owned cache locations. Do not delete unrelated files or caches to make the Lean gate pass. Any cleanup must be scoped to identified CACE-owned temporary/cache content and verified after the fact.
