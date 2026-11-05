@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "request_id": "expert-robot-42063248427-8e096d0fe44c14a72ea3fbb51cfecb24de9419d5",
-  "expert_robot_commit": "8e096d0fe44c14a72ea3fbb51cfecb24de9419d5",
-  "archive_size_bytes": 952552,
-  "source_branch": "feat/hermes-routing-eval-avrea-discovery-20261105",
+  "request_id": "expert-robot-42069022315-1-a9773aaf017843854a7ee0bd6b82461e47961cb6",
+  "expert_robot_commit": "a9773aaf017843854a7ee0bd6b82461e47961cb6",
+  "archive_size_bytes": 968837,
+  "source_branch": "repair/merlin-full-integration-20261105",
   "return_repository": "Mannyspiro/expert-robot",
   "requested_lane": "cace-oci-aarch64",
   "authority": "qualification-only",
