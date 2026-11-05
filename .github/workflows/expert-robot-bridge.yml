@@ -374,6 +374,17 @@ jobs:
           }, indent=2))
           PY
 
+      - name: Clean up executable Lean tmpfs mount
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$RUNNER_TEMP/expert-robot-$GITHUB_RUN_ID/lean-tmpfs"
+          if mountpoint -q "$target"; then
+            sudo -n umount "$target"
+          fi
+          rmdir "$target" 2>/dev/null || true
+
       - name: Upload read-only runner evidence
         if: always()
         uses: actions/upload-artifact@v4
