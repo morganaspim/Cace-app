@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "request_id": "expert-robot-42063228005-b63ffddb143c73e20c183e7c09e8eef191bb0af4",
-  "expert_robot_commit": "b63ffddb143c73e20c183e7c09e8eef191bb0af4",
-  "archive_size_bytes": 952598,
+  "request_id": "expert-robot-42063248427-8e096d0fe44c14a72ea3fbb51cfecb24de9419d5",
+  "expert_robot_commit": "8e096d0fe44c14a72ea3fbb51cfecb24de9419d5",
+  "archive_size_bytes": 952552,
   "source_branch": "feat/hermes-routing-eval-avrea-discovery-20261105",
   "return_repository": "Mannyspiro/expert-robot",
   "requested_lane": "cace-oci-aarch64",
