@@ -14,9 +14,9 @@ import zipfile
 from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
 
 
-FIXTURE = Path(__file__).parent / "fixtures" / "titan-avrea-42087925099"
-EXPECTED_ZIP_SHA256 = "466c1d227bb13ae8ec1d8b51fd9d3722c76df2934fd1dd2e200b0b391f2b643d"
-EXPECTED_SOURCE_COMMIT = "0f3ca6ae38d4ac745855c49509bf6992694cb522"
+FIXTURE = Path(__file__).parent / "fixtures" / "titan-avrea-42090360334"
+EXPECTED_ZIP_SHA256 = "0cd2040e9a426079bda9311937e55da9ae8b57d832908ff42f2e2c41c8d02eb6"
+EXPECTED_SOURCE_COMMIT = "8e40cb034864f80e58aef7602c4cc4dd1e41ed57"
 EXPECTED_PROVIDER_COMMIT = "5a1a854b0dc9f2141bdc771c555ee60c37950183"
 EXPECTED_VECTOR_COMMIT = "b121fee031dc65d32c96f4109a42a10dacbe2076"
 
@@ -48,8 +48,11 @@ def test_cace_independently_verifies_actual_avrea_acvp_bundle() -> None:
         assert "runner=avrea-" in provenance
 
         evidence = json.loads((root / "titan-pqc-acvp-evidence.json").read_text())
-        assert evidence["titan_source_commit"] == EXPECTED_SOURCE_COMMIT
+        assert evidence["workflow"]["commit_sha"] == EXPECTED_SOURCE_COMMIT
         assert evidence["provider"]["commit"] == EXPECTED_PROVIDER_COMMIT
+        assert evidence["vectors"]["commit"] == EXPECTED_VECTOR_COMMIT
+        assert evidence["test_result"] == "pass"
+        assert evidence["test_counts"] == {"tests": 54, "passed": 54, "skipped": 0, "failed": 0}
         assert evidence["junit_sha256"] == hashlib.sha256((root / "titan-acvp-junit.xml").read_bytes()).hexdigest()
         assert evidence["test_log_sha256"] == hashlib.sha256((root / "titan-acvp-test.log").read_bytes()).hexdigest()
 
@@ -96,12 +99,12 @@ def test_cace_independently_verifies_actual_avrea_acvp_bundle() -> None:
             bindings={
                 "source_repository": "Mannyspiro/expert-robot",
                 "source_commit_sha": EXPECTED_SOURCE_COMMIT,
-                "workflow_run_id": 42087925099,
+                "workflow_run_id": 42090360334,
                 "provider_commit": EXPECTED_PROVIDER_COMMIT,
                 "vector_source_commit": EXPECTED_VECTOR_COMMIT,
                 "verification_scope": "NIST ACVP projection vectors: FIPS203=9/9, FIPS204=9/9, FIPS205=36/36; zero failures",
                 "workflow_conclusion": "success",
-                "runner_identity": "avrea-exe-01a1ad0a03cf77e7bac1f83fbf3d1b43",
+                "runner_identity": "avrea-exe-01a1ad1a42ce7487a97f7485b68e7978",
                 "original_workflow_artifact_sha256": EXPECTED_ZIP_SHA256,
                 "test_counts": {"FIPS203_passed": 9, "FIPS204_passed": 9, "FIPS205_passed": 36, "failed": 0},
                 "proof_effect": "none",
