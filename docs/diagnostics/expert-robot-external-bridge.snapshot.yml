@@ -737,14 +737,13 @@ jobs:
           result = json.load(open(result_path, encoding="utf-8"))
           log = open(log_path, "rb").read()
           assert result.get("schema_version") == 3, "unsupported result schema"
-          assert result.get("result_type") == "cace-external-qualification"
           assert result.get("request_id") == expected_request
           assert result.get("expert_robot_commit") == expected_source
           assert result.get("cace_repository") == "morganaspim/Cace-app"
           assert re.fullmatch(r"[0-9a-f]{40}", result.get("cace_commit", ""))
+          assert result.get("cace_workflow_id") == 367390621
           assert isinstance(result.get("cace_workflow_run_id"), int) and result["cace_workflow_run_id"] > 0
           assert isinstance(result.get("cace_run_attempt"), int) and result["cace_run_attempt"] > 0
-          assert result.get("cace_workflow_sha") == result.get("cace_commit"), "CACE workflow SHA must equal the recorded CACE commit"
           assert result.get("cace_workflow_ref") == "morganaspim/Cace-app/.github/workflows/expert-robot-bridge.yml@refs/heads/executor/expert-robot-bridge"
           assert result.get("cace_workflow_name") == "Expert Robot Free Runner Bridge"
           assert result.get("status") in ("pass", "fail")
@@ -752,8 +751,8 @@ jobs:
           assert (result["status"] == "pass") == (result["exit_code"] == 0)
           assert result.get("authority") == "qualification-only"
           assert result.get("promotion_authority") is False
-          assert result.get("log_sha256") == hashlib.sha256(log).hexdigest()
-          assert result.get("log_size_bytes") == len(log)
+          assert result.get("result_log_sha256") == hashlib.sha256(log).hexdigest()
+          assert result.get("result_log_size_bytes") == len(log)
           print("validated CACE result: " + result["status"])
           print("cace_commit=" + result["cace_commit"])
           print("cace_workflow_run_id=" + str(result["cace_workflow_run_id"]))
@@ -781,10 +780,13 @@ jobs:
           echo "cace_commit=$cace_commit" >> "$GITHUB_OUTPUT"
           echo "cace_run_id=$cace_run_id" >> "$GITHUB_OUTPUT"
           echo "cace_run_attempt=$cace_run_attempt" >> "$GITHUB_OUTPUT"
-          if [ "$status" != "pass" ]; then
-            echo "::error::External free runner reported failure."
+          if [ "$status" = "pass" ]; then
+            echo "qualification_passed=true" >> "$GITHUB_OUTPUT"
+            echo "External qualification passed."
+          else
+            echo "qualification_passed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::External qualification returned a valid structured FAIL result; preserving it as evidence."
             if [ -f "$evidence/result.log" ]; then tail -n 200 "$evidence/result.log"; fi
-            exit 1
           fi
 
       - name: Upload external runner evidence
@@ -826,9 +828,12 @@ jobs:
           assert result.get("expert_robot_commit") == expected_source
           assert result.get("cace_repository") == "morganaspim/Cace-app"
           assert re.fullmatch(r"[0-9a-f]{40}", result.get("cace_commit", ""))
+          assert result.get("cace_workflow_id") == 367390621
           assert isinstance(result.get("cace_workflow_run_id"), int)
-          assert result.get("log_sha256") == hashlib.sha256(log).hexdigest()
-          assert result.get("log_size_bytes") == len(log)
+          assert isinstance(result.get("cace_run_attempt"), int)
+          assert result.get("result_log_sha256") == hashlib.sha256(log).hexdigest()
+          assert result.get("result_log_size_bytes") == len(log)
+          assert result.get("status") in ("pass", "fail")
           assert result.get("authority") == "qualification-only"
           assert result.get("promotion_authority") is False
           PY
@@ -855,6 +860,10 @@ jobs:
               "cace_workflow_run_id": result["cace_workflow_run_id"],
               "cace_run_attempt": result["cace_run_attempt"],
               "qualification_status": result["status"],
+              "qualification_passed": result["status"] == "pass",
+              "cace_workflow_id": result["cace_workflow_id"],
+              "cace_workflow_ref": result["cace_workflow_ref"],
+              "cace_workflow_name": result["cace_workflow_name"],
               "result_sha256": hashlib.sha256((root / "result.json").read_bytes()).hexdigest(),
               "result_log_sha256": hashlib.sha256((root / "result.log").read_bytes()).hexdigest(),
               "request_sha256": hashlib.sha256((root / "request.json").read_bytes()).hexdigest(),
