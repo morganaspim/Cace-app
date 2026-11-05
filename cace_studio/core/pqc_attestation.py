@@ -13,7 +13,8 @@ SCHEMA = "cace-signed-attestation-v2"
 STATEMENT_SCHEMA = "cace-attestation-statement-v2"
 ALGORITHM = "ML-DSA-65"
 CANONICALIZATION = "sha256/cace-canonical-json-v1"
-DOMAIN = b"CACE:TITAN:SIGNED-ATTESTATION:v2\\0"
+DOMAIN_SEPARATOR = "CACE:TITAN:SIGNED-ATTESTATION:v2\0"
+DOMAIN = DOMAIN_SEPARATOR.encode("ascii")
 PROOF_EFFECT = "none"
 STATEMENT_KEYS = {
     "schema", "signature_algorithm", "proof_effect", "verifier_id",
@@ -109,7 +110,7 @@ def sign_ml_dsa65(statement: Mapping[str, Any], secret_key: bytes, public_key: b
         "signature_algorithm": ALGORITHM,
         "proof_effect": PROOF_EFFECT,
         "canonicalization": CANONICALIZATION,
-        "domain_separator": "CACE:TITAN:SIGNED-ATTESTATION:v2\\0",
+        "domain_separator": DOMAIN_SEPARATOR,
         "statement_sha256": hashlib.sha256(message).hexdigest(),
         "statement": dict(statement),
         "public_key_b64": base64.b64encode(public_key).decode("ascii"),
@@ -125,7 +126,7 @@ def verify_ml_dsa65(envelope: Mapping[str, Any], *, trusted_verifier_id: str | N
         raise PQCAttestationError("unsupported envelope schema or signature algorithm")
     if envelope["proof_effect"] != PROOF_EFFECT or envelope["canonicalization"] != CANONICALIZATION:
         raise PQCAttestationError("unsupported proof effect or canonicalization")
-    if envelope["domain_separator"] != "CACE:TITAN:SIGNED-ATTESTATION:v2\\0":
+    if envelope["domain_separator"] != DOMAIN_SEPARATOR:
         raise PQCAttestationError("domain separator mismatch")
     statement = envelope["statement"]
     if not isinstance(statement, Mapping):
