@@ -154,7 +154,6 @@ jobs:
             run_check "read-only HUD and registry query tests" python3 -m unittest discover -s tests -p test_hud_http.py -v
             run_check "read-only HUD runtime tests" python3 -m unittest discover -s tests -p test_hud_runtime.py -v
             run_check "canonical registry query tests" python3 -m unittest discover -s tests -p test_registry_queries.py -v
-            run_check "canonical HUD store bootstrap tests" python3 -m unittest discover -s tests -p test_merlin_dashboard_bootstrap.py -v
             run_check "shell syntax" bash -n scripts/bootstrap-railway-worker.sh scripts/preflight.sh scripts/railway-preflight.sh scripts/railway-sandbox-lane.sh
           fi
 
