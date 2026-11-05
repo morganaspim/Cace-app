@@ -244,7 +244,7 @@ jobs:
 
           cd "$GITHUB_WORKSPACE"
 
-          python3 - "$request_id" "$source_sha" "$overall" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$GITHUB_WORKFLOW" "$GITHUB_REPOSITORY" <<'PY' > bridge/result.json
+          python3 - "$request_id" "$source_sha" "$overall" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$GITHUB_WORKFLOW" "$GITHUB_REPOSITORY" "$GITHUB_WORKFLOW_SHA" <<'PY' > bridge/result.json
           import hashlib
           import json
           import platform
@@ -270,6 +270,7 @@ jobs:
               "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
               "cace_repository": sys.argv[9],
               "cace_commit": sys.argv[6],
+              "cace_workflow_sha": sys.argv[10],
               "cace_workflow_id": 367390621,
               "cace_workflow_name": sys.argv[8],
               "cace_workflow_ref": sys.argv[7],
@@ -340,7 +341,7 @@ jobs:
           test "$got" = "$expected"
           test "$got_sha" = "$expected_sha"
 
-          python3 - "$result" "$log" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$GITHUB_REPOSITORY" <<'PY'
+          python3 - "$result" "$log" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$GITHUB_REPOSITORY" "$GITHUB_WORKFLOW_SHA" <<'PY'
           import hashlib
           import json
           import sys
@@ -353,6 +354,7 @@ jobs:
           assert isinstance(result["exit_code"], int)
           assert result["cace_repository"] == sys.argv[7]
           assert result["cace_commit"] == sys.argv[5]
+          assert result["cace_workflow_sha"] == sys.argv[8]
           assert result["cace_workflow_run_id"] == int(sys.argv[3])
           assert result["cace_run_attempt"] == int(sys.argv[4])
           assert result["cace_workflow_ref"] == sys.argv[6]
