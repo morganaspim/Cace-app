@@ -49,6 +49,8 @@ def test_mldsa65_sign_verify_and_tamper_rejection() -> None:
         secret_key = keygen.export_secret_key()
     envelope = sign_ml_dsa65(statement_for(public_key), secret_key, public_key)
     assert verify_ml_dsa65(envelope, trusted_verifier_id="cace-titan-smoke-verifier", trusted_key_id=public_key_id(public_key)) == public_key_id(public_key)
+    with pytest.raises(PQCAttestationError):
+        verify_ml_dsa65(envelope, trusted_key_id="ml-dsa-65:" + "0" * 64)
     changed = dict(envelope)
     changed["statement"] = dict(envelope["statement"])
     changed["statement"]["claim_id"] = "titan:test:tampered"
