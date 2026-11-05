@@ -9,6 +9,7 @@ on:
       - "schema/signed-attestation-v2-mldsa.schema.json"
       - "tests/test_titan_mldsa_v2.py"
       - "tests/test_titan_bundle_verifier.py"
+      - "tests/test_titan_avrea_mldsa_receipt.py"
       - ".github/workflows/titan-mldsa-attestation.yml"
   workflow_dispatch:
 
@@ -69,7 +70,7 @@ jobs:
           print("liboqs-python", oqs.oqs_python_version(), "liboqs", oqs.oqs_version())
           PY
           set +e
-          PYTHONPATH=. /tmp/cace-pqc-venv/bin/python -m pytest -q tests/test_titan_mldsa_v2.py tests/test_titan_bundle_verifier.py
+          PYTHONPATH=. /tmp/cace-pqc-venv/bin/python -m pytest -q tests/test_titan_mldsa_v2.py tests/test_titan_bundle_verifier.py tests/test_titan_avrea_mldsa_receipt.py
           rc=$?
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
           exit "$rc"
