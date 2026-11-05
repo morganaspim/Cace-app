@@ -97,7 +97,7 @@ def test_actual_avrea_bundle_ml_dsa65_receipt_roundtrip() -> None:
         },
     }
     envelope = sign_ml_dsa65(statement, secret_key, public_key)
-    assert verify_ml_dsa65(envelope, trusted_verifier_id="cace-titan-avrea-ephemeral-test") == public_key_id(public_key)
+    assert verify_ml_dsa65(envelope, trusted_verifier_id="cace-titan-avrea-ephemeral-test", trusted_key_id=public_key_id(public_key)) == public_key_id(public_key)
     changed = dict(envelope)
     changed["statement"] = dict(envelope["statement"])
     changed["statement"]["bundle_sha256"] = "0" * 64
