@@ -1,0 +1,30 @@
+request_id=expert-robot-42060935848-97b9bfcd7e74a1ea5d4a989182fa7befbba873d4
+expert_robot_commit=97b9bfcd7e74a1ea5d4a989182fa7befbba873d4
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       135Mi       7.0Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+Traceback (most recent call last):
+  File "/opt/actions-runner/_work/_temp/expert-robot-42061280669/tests/known_failure_regression_smoke.py", line 74, in <module>
+    assert '"qualification_lane": "formal-static-arm64"' in external
+AssertionError
+exit_code=1
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+Traceback (most recent call last):
+  File "/opt/actions-runner/_work/_temp/expert-robot-42061280669/tests/cace_return_bridge_smoke.py", line 16, in <module>
+    assert raw not in external
+AssertionError
+exit_code=1
+=== shell syntax ===
+exit_code=0
