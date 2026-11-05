@@ -314,7 +314,7 @@ jobs:
             echo "::warning::TLS issuance failed; the bounded council-preparation endpoint is also exposed over HTTP. Do not submit secrets or private research."
           fi
 
-      - name: Verify public routing and read-only policy
+      - name: Verify public routing and bounded council preparation
         id: public
         shell: bash
         env:
@@ -331,7 +331,16 @@ jobs:
           curl --fail --silent --show-error "$base/api/hud/graph" | python3 -c 'import json,sys; assert json.load(sys.stdin)["schema_version"]=="1.0"'
           code="$(curl --silent --output /dev/null --write-out '%{http_code}' -X POST "$base/api/hud/graph")"
           test "$code" = "403"
-          echo "MERLIN_PUBLIC_HTTP_PASS url=$DEPLOYMENT_URL"
+          curl --fail --silent --show-error -X POST -H "Content-Type: application/json" \
+            --data '{"question":"Automated deployment qualification: identify assumptions and falsifiers.","context":"Non-sensitive smoke test only.","verbosity":"concise"}' \
+            "$base/api/council/prepare" > "$RUNNER_TEMP/merlin-council-smoke.json"
+          python3 - "$RUNNER_TEMP/merlin-council-smoke.json" <<'PY'
+          import json,sys
+          result=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert len(result.get("packets",[])) == 6
+          assert result.get("promotion_authorized") is False
+          PY
+          echo "MERLIN_PUBLIC_HTTP_AND_COUNCIL_PASS url=$DEPLOYMENT_URL"
           echo "deployment_url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
           echo "tls_ready=$TLS_READY" >> "$GITHUB_OUTPUT"
 
@@ -344,13 +353,19 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.public.outputs.deployment_url }}
           TLS_READY: ${{ steps.web.outputs.tls_ready }}
           PUBLIC_PASS: ${{ steps.public.outcome == 'success' }}
+          EVIDENCE_SOURCE_SHA: ${{ steps.validate.outputs.evidence_source_commit }}
+          EVIDENCE_RUN_ID: ${{ steps.validate.outputs.evidence_run_id }}
+          EVIDENCE_ARTIFACT_ID: ${{ steps.validate.outputs.evidence_artifact_id }}
+          EVIDENCE_ARTIFACT_SHA: ${{ steps.validate.outputs.evidence_artifact_sha256 }}
+          EVIDENCE_IMPORT_PATH: /var/lib/merlin/data/merlin-evidence-import.json
         run: |
           set -euo pipefail
           result_branch="merlin-deploy-result/$REQUEST_ID"
           result_file="$RUNNER_TEMP/merlin-deploy-result.json"
-          python3 - "$result_file" "$REQUEST_ID" "$SOURCE_SHA" "$DEPLOYMENT_URL" "$TLS_READY" "$PUBLIC_PASS" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" <<'PY'
-          import json, pathlib, sys
-          out, request_id, source_sha, url, tls, public_pass, run_id, attempt, cace_sha = sys.argv[1:]
+          python3 - "$result_file" "$REQUEST_ID" "$SOURCE_SHA" "$DEPLOYMENT_URL" "$TLS_READY" "$PUBLIC_PASS" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" "$EVIDENCE_SOURCE_SHA" "$EVIDENCE_RUN_ID" "$EVIDENCE_ARTIFACT_ID" "$EVIDENCE_ARTIFACT_SHA" "$EVIDENCE_IMPORT_PATH" <<'PY'
+          import hashlib, json, pathlib, sys
+          out, request_id, source_sha, url, tls, public_pass, run_id, attempt, cace_sha, evidence_source, evidence_run, evidence_artifact, evidence_artifact_sha, evidence_path = sys.argv[1:]
+          evidence=json.load(open(evidence_path,encoding="utf-8"))
           result = {
               "schema_version": 1,
               "request_id": request_id,
@@ -358,7 +373,16 @@ jobs:
               "status": "pass" if public_pass == "true" else "fail",
               "deployment_url": url or None,
               "tls_ready": tls == "true",
-              "public_read_only": True,
+              "public_read_only": False,
+              "public_bounded_actions": ["council.prepare"],
+              "evidence_import_status": evidence.get("status"),
+              "evidence_import_sha256": hashlib.sha256(pathlib.Path(evidence_path).read_bytes()).hexdigest(),
+              "graph_snapshot_sha256": evidence.get("graph_snapshot_sha256"),
+              "evidence_source_commit": evidence_source,
+              "evidence_workflow_run_id": int(evidence_run),
+              "evidence_artifact_id": int(evidence_artifact),
+              "evidence_artifact_sha256": evidence_artifact_sha,
+              "independent_cace_verification": False,
               "cace_repository": "morganaspim/Cace-app",
               "cace_commit": cace_sha,
               "cace_workflow_run_id": int(run_id),
