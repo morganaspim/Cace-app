@@ -2,7 +2,9 @@ name: Expert Robot Free Runner Bridge
 
 on:
   push:
-    branches: ["executor/expert-robot-bridge"]
+    branches:
+      - "executor/expert-robot-bridge"
+      - "cace-request/**"
     paths:
       - "bridge/request.json"
       - "bridge/expert-robot-source.tar.gz"
