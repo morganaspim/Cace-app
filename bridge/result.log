@@ -1,0 +1,374 @@
+request_id=expert-robot-42071028804-2-874465e9055ec78896f227e9513a9cea04f9726c
+expert_robot_commit=874465e9055ec78896f227e9513a9cea04f9726c
+request/archive binding: PASS sha256=d4e1d02aa764608ba066683d98bf0e3ca13f7ebdc879e139439fb8f245611357
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       138Mi       7.1Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+known failure regression guardrails: PASS
+exit_code=0
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+CACE return bridge guardrails: PASS
+exit_code=0
+=== Hermes proof orchestrator tests ===
+
+----------------------------------------------------------------------
+Ran 0 tests in 0.000s
+
+OK
+exit_code=0
+=== Hermes-to-Lean proof-search boundary tests ===
+test_all_stage_handlers_record_verified_artifacts_and_graph_edges (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_handler_rejects_untyped_or_empty_executor_output (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_proof_search_routes_exact_claim_source_through_lean_then_cace (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_registration_fails_closed_when_an_engine_is_missing (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_standard_composition_registers_builtin_numerical_and_electrical_engines (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_unconfigured_lean_dispatch_ignores_executor_compilation_claim (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.527s
+
+OK
+exit_code=0
+=== Engineering IR and SPICE export tests ===
+test_detects_unknown_endpoint_and_pin_assigned_twice (test_engineering_ir.EngineeringIRTests) ... ok
+test_detects_voltage_and_current_rating_exceedance (test_engineering_ir.EngineeringIRTests) ... ok
+test_explicit_component_specs_export_deterministic_spice_netlist (test_engineering_ir.EngineeringIRTests) ... ok
+test_invalid_projects_cannot_export (test_engineering_ir.EngineeringIRTests) ... ok
+test_spice_export_rejects_injected_values_and_unknown_refs (test_engineering_ir.EngineeringIRTests) ... ok
+test_valid_project_exports_netlist_and_openscad (test_engineering_ir.EngineeringIRTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+OK
+exit_code=0
+=== bounded ngspice adapter contract tests ===
+test_accepts_simple_passive_operating_point_netlist (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_rejects_shell_control_and_external_file_directives (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_requires_analysis_and_end (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_run_enforces_address_space_limit_with_prlimit (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_run_refuses_to_claim_memory_bounded_execution_without_prlimit (test_ngspice_engine.NgspiceEngineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.004s
+
+OK
+exit_code=0
+=== FreeCAD macro and canonical import tests ===
+test_bundle_contains_macro_and_validated_netlist (test_freecad_bridge.FreeCADBridgeTests) ... ok
+test_invalid_project_is_rejected (test_freecad_bridge.FreeCADBridgeTests) ... ok
+test_macro_preserves_centered_geometry_and_pin_markers (test_freecad_bridge.FreeCADBridgeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+exit_code=0
+=== FreeCAD document registration tests ===
+test_imported_document_is_registered_and_linked_to_cad_workspace_graph (test_freecad_document_bridge.FreeCADDocumentBridgeTests) ... ok
+test_macro_imports_document_and_exports_bounded_assembly_mesh (test_freecad_document_bridge.FreeCADDocumentBridgeTests) ... ok
+test_rejects_unsupported_document_format_and_unbounded_limits (test_freecad_document_bridge.FreeCADDocumentBridgeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.069s
+
+OK
+exit_code=0
+=== read-only HUD and registry query tests ===
+test_dashboard_is_a_read_only_html_view (test_hud_http.HudActivityWSGITests) ... ok
+test_dashboard_rejects_mutating_methods (test_hud_http.HudActivityWSGITests) ... ok
+test_endpoint_is_get_only (test_hud_http.HudActivityWSGITests) ... ok
+test_get_returns_live_schema_and_no_store (test_hud_http.HudActivityWSGITests) ... ok
+test_graph_routes_require_injected_read_api (test_hud_http.HudActivityWSGITests) ... ok
+test_graph_snapshot_route_returns_canonical_snapshot (test_hud_http.HudActivityWSGITests) ... ok
+test_node_route_returns_node_and_typed_neighbors (test_hud_http.HudActivityWSGITests) ... ok
+test_unknown_path_is_not_found (test_hud_http.HudActivityWSGITests) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK
+exit_code=0
+=== read-only HUD runtime tests ===
+test_activity_get_does_not_acknowledge_outbox_events (test_hud_runtime.HudRuntimeTests) ... ok
+test_mount_preserves_host_routes (test_hud_runtime.HudRuntimeTests) ... ok
+test_mounted_dashboard_serves_read_only_browser_view (test_hud_runtime.HudRuntimeTests) ... ok
+test_optional_hypothesis_and_outbox_views_are_explicit (test_hud_runtime.HudRuntimeTests) ... ok
+test_project_and_outbox_queries_use_canonical_stores (test_hud_runtime.HudRuntimeTests) ... ok
+test_runtime_injects_canonical_graph_and_typed_workspace (test_hud_runtime.HudRuntimeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.382s
+
+OK
+exit_code=0
+=== canonical registry query tests ===
+test_hypothesis_and_graph_queries_are_read_only_views (test_registry_queries.MerlinReadAPITests) ... ok
+test_outbox_status_and_project_snapshot (test_registry_queries.MerlinReadAPITests) ... ok
+test_pagination_bounds (test_registry_queries.MerlinReadAPITests) ... ok
+test_project_and_artifact_queries_verify_content_address (test_registry_queries.MerlinReadAPITests) ... ok
+test_project_index_is_bounded_and_uses_canonical_registry (test_registry_queries.MerlinReadAPITests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.443s
+
+OK
+exit_code=0
+=== shell syntax ===
+exit_code=0
+=== exact-pin Lean root + axiom audit ===
+Lean workspace: tmpfs (5579960 KiB free; 9642704 KiB MemAvailable)
+Lean workspace: tmpfs (5579960 KiB free; 9642704 KiB MemAvailable)
+info: downloading installer
+Disk before Lean install:
+Disk before Lean install:
+Filesystem                  Size  Used Avail Use% Mounted on
+tmpfs                       5.4G   12M  5.4G   1% /dev/shm
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+Filesystem                  Size  Used Avail Use% Mounted on
+tmpfs                       5.4G   12M  5.4G   1% /dev/shm
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+CACE runner disk usage diagnostics (read-only):
+CACE runner disk usage diagnostics (read-only):
+--- /dev/shm/cace-lean-42071678654/cache ---
+--- /dev/shm/cace-lean-42071678654/cache ---
+0	/dev/shm/cace-lean-42071678654/cache/elan/toolchains
+12M	/dev/shm/cace-lean-42071678654/cache
+12M	/dev/shm/cace-lean-42071678654/cache/elan
+12M	/dev/shm/cace-lean-42071678654/cache/elan/bin
+0	/dev/shm/cace-lean-42071678654/cache/elan/toolchains
+12M	/dev/shm/cace-lean-42071678654/cache
+12M	/dev/shm/cace-lean-42071678654/cache/elan
+12M	/dev/shm/cace-lean-42071678654/cache/elan/bin
+--- /dev/shm/cace-lean-42071678654/cache/elan ---
+--- /dev/shm/cace-lean-42071678654/cache/elan ---
+0	/dev/shm/cace-lean-42071678654/cache/elan/toolchains
+12M	/dev/shm/cace-lean-42071678654/cache/elan
+12M	/dev/shm/cace-lean-42071678654/cache/elan/bin
+0	/dev/shm/cace-lean-42071678654/cache/elan/toolchains
+12M	/dev/shm/cace-lean-42071678654/cache/elan
+12M	/dev/shm/cace-lean-42071678654/cache/elan/bin
+--- /opt/actions-runner/_work/_temp ---
+--- /opt/actions-runner/_work/_temp ---
+4.0K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/schemas
+12K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/cad
+12K	/opt/actions-runner/_work/_temp/_github_workflow
+20K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/web
+20K	/opt/actions-runner/_work/_temp/_runner_file_commands
+36K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/research
+44K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/ui
+64K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/merlin
+84K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/formal
+160K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/scripts
+164K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/config
+196K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/.github
+292K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/artifacts
+332K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/.cace
+840K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/cpp
+996K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/tests
+1.1M	/opt/actions-runner/_work/_temp/expert-robot-42071678654/python
+1.3M	/opt/actions-runner/_work/_temp/expert-robot-42071678654/docs
+5.5M	/opt/actions-runner/_work/_temp/expert-robot-42071678654
+5.6M	/opt/actions-runner/_work/_temp
+4.0K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/schemas
+12K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/cad
+12K	/opt/actions-runner/_work/_temp/_github_workflow
+20K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/web
+20K	/opt/actions-runner/_work/_temp/_runner_file_commands
+36K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/research
+44K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/ui
+64K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/merlin
+84K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/formal
+160K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/scripts
+164K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/config
+196K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/.github
+292K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/artifacts
+332K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/.cace
+840K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/cpp
+996K	/opt/actions-runner/_work/_temp/expert-robot-42071678654/tests
+1.1M	/opt/actions-runner/_work/_temp/expert-robot-42071678654/python
+1.3M	/opt/actions-runner/_work/_temp/expert-robot-42071678654/docs
+5.5M	/opt/actions-runner/_work/_temp/expert-robot-42071678654
+5.6M	/opt/actions-runner/_work/_temp
+--- /opt/actions-runner/_work/_tool ---
+--- /opt/actions-runner/_work/_tool ---
+197M	/opt/actions-runner/_work/_tool
+197M	/opt/actions-runner/_work/_tool/node
+197M	/opt/actions-runner/_work/_tool/node/22.23.2
+197M	/opt/actions-runner/_work/_tool
+197M	/opt/actions-runner/_work/_tool/node
+197M	/opt/actions-runner/_work/_tool/node/22.23.2
+--- /opt/actions-runner/_work/Cace-app/Cace-app ---
+--- /opt/actions-runner/_work/Cace-app/Cace-app ---
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/tests
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/schema
+40K	/opt/actions-runner/_work/Cace-app/Cace-app/collaboration
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops/oci_mcp
+68K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/hooks
+80K	/opt/actions-runner/_work/Cace-app/Cace-app/web
+96K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/gui
+132K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/include
+140K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflows
+144K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/proofs
+200K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp
+212K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflow-archive
+272K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/adr
+332K	/opt/actions-runner/_work/Cace-app/Cace-app/scripts
+352K	/opt/actions-runner/_work/Cace-app/Cace-app/.github
+416K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/core
+588K	/opt/actions-runner/_work/Cace-app/Cace-app/formal/cace_formal
+624K	/opt/actions-runner/_work/Cace-app/Cace-app/formal
+736K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/refs
+976K	/opt/actions-runner/_work/Cace-app/Cace-app/bridge
+984K	/opt/actions-runner/_work/Cace-app/Cace-app/docs
+1016K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/logs
+1.7M	/opt/actions-runner/_work/Cace-app/Cace-app/tests
+1.9M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/modules
+2.4M	/opt/actions-runner/_work/Cace-app/Cace-app/examples
+2.5M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio
+170M	/opt/actions-runner/_work/Cace-app/Cace-app/.git/objects
+172M	/opt/actions-runner/_work/Cace-app/Cace-app/.git
+182M	/opt/actions-runner/_work/Cace-app/Cace-app
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/tests
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/schema
+40K	/opt/actions-runner/_work/Cace-app/Cace-app/collaboration
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops/oci_mcp
+68K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/hooks
+80K	/opt/actions-runner/_work/Cace-app/Cace-app/web
+96K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/gui
+132K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/include
+140K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflows
+144K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/proofs
+200K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp
+212K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflow-archive
+272K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/adr
+332K	/opt/actions-runner/_work/Cace-app/Cace-app/scripts
+352K	/opt/actions-runner/_work/Cace-app/Cace-app/.github
+416K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/core
+588K	/opt/actions-runner/_work/Cace-app/Cace-app/formal/cace_formal
+624K	/opt/actions-runner/_work/Cace-app/Cace-app/formal
+736K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/refs
+976K	/opt/actions-runner/_work/Cace-app/Cace-app/bridge
+984K	/opt/actions-runner/_work/Cace-app/Cace-app/docs
+1016K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/logs
+1.7M	/opt/actions-runner/_work/Cace-app/Cace-app/tests
+1.9M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/modules
+2.4M	/opt/actions-runner/_work/Cace-app/Cace-app/examples
+2.5M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio
+170M	/opt/actions-runner/_work/Cace-app/Cace-app/.git/objects
+172M	/opt/actions-runner/_work/Cace-app/Cace-app/.git
+182M	/opt/actions-runner/_work/Cace-app/Cace-app
+Filesystem and tmpfs availability:
+Filesystem and tmpfs availability:
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+tmpfs                       5.4G   12M  5.4G   1% /dev/shm
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+tmpfs                       5.4G   12M  5.4G   1% /dev/shm
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+/dev/shm tmpfs  tmpfs  rw,nosuid,nodev,noexec,seclabel,inode64
+/dev/shm tmpfs  tmpfs  rw,nosuid,nodev,noexec,seclabel,inode64
+Installed CACE Lean toolchains:
+Installed CACE Lean toolchains:
+/opt/actions-runner/_work/_temp/91780197-f437-42d6-bfaa-0bcfed6a81a4.sh: line 220: /dev/shm/cace-lean-42071678654/cache/elan/bin/elan: Permission denied
+/opt/actions-runner/_work/_temp/91780197-f437-42d6-bfaa-0bcfed6a81a4.sh: line 220: /dev/shm/cace-lean-42071678654/cache/elan/bin/elan: Permission denied
+Top-level root disk usage (read-only):
+Top-level root disk usage (read-only):
+0	/usr/games
+0	/usr/src
+0	/var/account
+0	/var/adm
+0	/var/crash
+0	/var/db
+0	/var/empty
+0	/var/ftp
+0	/var/games
+0	/var/kerberos
+0	/var/local
+0	/var/nis
+0	/var/opt
+0	/var/preserve
+0	/var/yp
+4.0K	/var/tmp
+12K	/var/spool
+5.5M	/usr/local
+6.6M	/tmp/pytest-of-opc
+7.3M	/tmp
+26M	/usr/include
+72M	/usr/sbin
+147M	/var/log
+153M	/usr/bin
+258M	/opt/rh
+309M	/opt/cace-web
+339M	/opt/unified-monitoring-agent
+384M	/opt/cace-oci-mcp
+555M	/usr/libexec
+665M	/usr/share
+1.1G	/usr/lib64
+1.3G	/var/cache
+1.9G	/opt/actions-runner
+1.9G	/usr/lib
+3.2G	/opt
+3.7G	/home
+3.7G	/home/opc
+4.3G	/usr
+19G	/var/lib
+20G	/var
+0	/usr/games
+0	/usr/src
+0	/var/account
+0	/var/adm
+0	/var/crash
+0	/var/db
+0	/var/empty
+0	/var/ftp
+0	/var/games
+0	/var/kerberos
+0	/var/local
+0	/var/nis
+0	/var/opt
+0	/var/preserve
+0	/var/yp
+4.0K	/var/tmp
+12K	/var/spool
+5.5M	/usr/local
+6.6M	/tmp/pytest-of-opc
+7.3M	/tmp
+26M	/usr/include
+72M	/usr/sbin
+147M	/var/log
+153M	/usr/bin
+258M	/opt/rh
+309M	/opt/cace-web
+339M	/opt/unified-monitoring-agent
+384M	/opt/cace-oci-mcp
+555M	/usr/libexec
+665M	/usr/share
+1.1G	/usr/lib64
+1.3G	/var/cache
+1.9G	/opt/actions-runner
+1.9G	/usr/lib
+3.2G	/opt
+3.7G	/home
+3.7G	/home/opc
+4.3G	/usr
+19G	/var/lib
+20G	/var
+/opt/actions-runner/_work/_temp/91780197-f437-42d6-bfaa-0bcfed6a81a4.sh: line 229: /dev/shm/cace-lean-42071678654/cache/elan/bin/elan: Permission denied
+exit_code=126
