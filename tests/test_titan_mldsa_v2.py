@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
 import base64
 
 import pytest
@@ -62,3 +68,54 @@ def test_mldsa65_rejects_short_public_key() -> None:
     with oqs.Signature("ML-DSA-65") as verifier:
         with pytest.raises(ValueError):
             verifier.verify(b"message", b"bad", public_key[:8])
+
+def test_cace_pqc_cli_keygen_sign_verify(tmp_path: Path) -> None:
+    private_key = tmp_path / "verifier.sk"
+    public_key = tmp_path / "verifier.pk"
+    keygen = subprocess.run(
+        [sys.executable, "-m", "cace_studio.attest_cli", "pqc-keygen",
+         "--private-key", str(private_key), "--public-key", str(public_key)],
+        capture_output=True, text=True, check=False,
+    )
+    assert keygen.returncode == 0, keygen.stderr
+    assert private_key.exists() and public_key.exists()
+    assert private_key.stat().st_mode & 0o077 == 0
+
+    artifact_bytes = b"titan CLI evidence fixture"
+    artifact = EvidenceArtifact.from_bytes(
+        "titan-fixture", artifact_bytes, role="execution-manifest",
+        media_type="application/octet-stream", path="fixture.bin",
+    )
+    bundle = EvidenceBundle(artifacts=(artifact,), bindings={"fixture": True})
+    bundle_doc = {
+        "cli_schema": 1, "command": "titan-bundle", "proof_effect": "none",
+        "bundle_sha256": bundle.bundle_sha256, "bundle": bundle.payload(),
+    }
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text(json.dumps(bundle_doc), encoding="utf-8")
+    bindings_path = tmp_path / "bindings.json"
+    bindings_path.write_text(json.dumps({
+        "source_repository": "Mannyspiro/expert-robot",
+        "source_commit_sha": "a" * 40,
+        "workflow_run_id": 42,
+        "provider_commit": "b" * 40,
+        "vector_source_commit": "c" * 40,
+        "verification_scope": "CLI smoke test only",
+    }), encoding="utf-8")
+    attestation_path = tmp_path / "attestation.json"
+    signed = subprocess.run(
+        [sys.executable, "-m", "cace_studio.attest_cli", "pqc-sign",
+         "--bundle", str(bundle_path), "--private-key", str(private_key),
+         "--public-key", str(public_key), "--bindings", str(bindings_path),
+         "--verifier-id", "cace-titan-cli-test", "--claim-id", "titan:cli:test",
+         "--output", str(attestation_path)],
+        capture_output=True, text=True, check=False,
+    )
+    assert signed.returncode == 0, signed.stderr
+    verified = subprocess.run(
+        [sys.executable, "-m", "cace_studio.attest_cli", "pqc-verify",
+         str(attestation_path), "--trusted-verifier-id", "cace-titan-cli-test"],
+        capture_output=True, text=True, check=False,
+    )
+    assert verified.returncode == 0, verified.stderr
+    assert json.loads(verified.stdout)["valid"] is True
