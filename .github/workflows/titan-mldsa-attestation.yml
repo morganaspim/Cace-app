@@ -48,6 +48,7 @@ jobs:
           git -C /tmp/liboqs-python checkout --detach 64c76ad0a80d6c69f2003219eb27b253782a3d68
           OQS_INSTALL_PATH=/tmp/liboqs-install LD_LIBRARY_PATH=/tmp/liboqs-install/lib /tmp/cace-pqc-venv/bin/python -m pip install --no-deps --no-build-isolation /tmp/liboqs-python
       - name: Verify provider version and run CACE receipt tests
+        id: run-tests
         shell: bash
         env:
           LD_LIBRARY_PATH: /tmp/liboqs-install/lib
@@ -61,4 +62,60 @@ jobs:
           assert "ML-DSA-65" in oqs.get_enabled_sig_mechanisms()
           print("liboqs-python", oqs.oqs_python_version(), "liboqs", oqs.oqs_version())
           PY
+          set +e
           PYTHONPATH=. /tmp/cace-pqc-venv/bin/python -m pytest -q tests/test_titan_mldsa_v2.py tests/test_titan_bundle_verifier.py
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: Record ML-DSA provider and CACE test evidence
+        if: always()
+        shell: bash
+        env:
+          TEST_EXIT_CODE: ${{ steps.run-tests.outputs.exit_code }}
+          LD_LIBRARY_PATH: /tmp/liboqs-install/lib
+          OQS_INSTALL_PATH: /tmp/liboqs-install
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          def git(path):
+              try: return subprocess.check_output(["git","-C",path,"rev-parse","HEAD"],text=True).strip()
+              except Exception: return None
+          try:
+              import importlib.metadata
+              pyver=importlib.metadata.version("liboqs-python")
+          except Exception:
+              pyver=None
+          try:
+              import oqs
+              libver=oqs.oqs_version()
+          except Exception:
+              libver=None
+          rc=os.environ.get("TEST_EXIT_CODE")
+          report={
+            "schema_version":1,
+            "evidence_type":"cace-titan-mldsa-v2",
+            "workflow_run_id":os.environ.get("GITHUB_RUN_ID"),
+            "workflow_run_attempt":os.environ.get("GITHUB_RUN_ATTEMPT"),
+            "cace_source_commit":os.environ.get("GITHUB_SHA"),
+            "provider":{"repository":"https://github.com/open-quantum-safe/liboqs","version":libver,"commit":git("/tmp/liboqs")},
+            "python_binding":{"repository":"https://github.com/open-quantum-safe/liboqs-python","version":pyver,"commit":git("/tmp/liboqs-python")},
+            "test_exit_code":int(rc) if rc and rc.isdigit() else None,
+            "test_result":"pass" if rc=="0" else ("fail" if rc else "not_completed"),
+            "signature_algorithm":"ML-DSA-65",
+            "proof_effect":"none",
+            "fips_140_validation_claim":False,
+            "production_eligible":False
+          }
+          pathlib.Path("titan-mldsa-v2-evidence.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+          PY
+
+      - name: Upload ML-DSA test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: titan-mldsa-v2-${{ github.run_id }}
+          path: titan-mldsa-v2-evidence.json
+          if-no-files-found: warn
+          retention-days: 30
