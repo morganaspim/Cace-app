@@ -100,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
         if blocked is not None:
             return blocked
     elif command.startswith("pqc-"):
+        if command == "pqc-keygen":
+            blocked = _preflight_keygen(args)
+            if blocked is not None:
+                return blocked
         blocked = _preflight_pqc()
         if blocked is not None:
             return blocked
