@@ -135,6 +135,27 @@ def main(argv: list[str] | None = None) -> int:
         help="Explicit approved verifier-key binding; repeat for each verifier",
     )
 
+    pqc_keygen = sub.add_parser("pqc-keygen", help="Generate an ML-DSA-65 verifier keypair")
+    pqc_keygen.add_argument("--private-key", type=Path, required=True)
+    pqc_keygen.add_argument("--public-key", type=Path, required=True)
+    pqc_keygen.add_argument("--force", action="store_true")
+
+    pqc_sign = sub.add_parser("pqc-sign", help="Sign a CACE evidence bundle with ML-DSA-65")
+    pqc_sign.add_argument("--bundle", type=Path, required=True)
+    pqc_sign.add_argument("--private-key", type=Path, required=True)
+    pqc_sign.add_argument("--public-key", type=Path, required=True)
+    pqc_sign.add_argument("--bindings", type=Path, required=True)
+    pqc_sign.add_argument("--verifier-id", required=True)
+    pqc_sign.add_argument("--claim-id", required=True)
+    pqc_sign.add_argument("--purpose", choices=["artifact-integrity", "independent-reproduction"], default="independent-reproduction")
+    pqc_sign.add_argument("--created-at-utc")
+    pqc_sign.add_argument("--output", type=Path, required=True)
+    pqc_sign.add_argument("--force", action="store_true")
+
+    pqc_verify = sub.add_parser("pqc-verify", help="Verify one ML-DSA-65 CACE attestation")
+    pqc_verify.add_argument("attestation", type=Path)
+    pqc_verify.add_argument("--trusted-verifier-id")
+
     args = parser.parse_args(argv)
     try:
         if args.command == "keygen":
@@ -149,6 +170,23 @@ def main(argv: list[str] | None = None) -> int:
                 "private_key_path": str(args.private_key),
                 "public_key_path": str(args.public_key),
                 "note": "Keep the private key secret. Key possession does not establish mathematical truth.",
+            }
+            status = 0
+        elif args.command == "pqc-keygen":
+            from .core.pqc_attestation import _provider, public_key_id
+            oqs = _provider()
+            with oqs.Signature("ML-DSA-65") as keygen:
+                public_key = keygen.generate_keypair()
+                secret_key = keygen.export_secret_key()
+            _write_bytes(args.private_key, secret_key, force=args.force, mode=0o600)
+            _write_bytes(args.public_key, public_key, force=args.force, mode=0o644)
+            payload = {
+                "cli_schema": 1, "command": "pqc-keygen", "proof_effect": "none",
+                "signature_algorithm": "ML-DSA-65",
+                "verifier_key_id": public_key_id(public_key),
+                "private_key_path": str(args.private_key),
+                "public_key_path": str(args.public_key),
+                "note": "Keep the private key outside Git and CI artifacts; key possession does not establish claim correctness.",
             }
             status = 0
         elif args.command == "sign":
@@ -188,6 +226,54 @@ def main(argv: list[str] | None = None) -> int:
                 "verifier_key_id": statement.verifier_key_id,
                 "statement_sha256": statement.statement_sha256,
                 "bundle_sha256": bundle.bundle_sha256,
+            }
+            status = 0
+        elif args.command == "pqc-sign":
+            from .core.pqc_attestation import public_key_id, sign_ml_dsa65
+            bundle = _load_bundle(args.bundle)
+            secret_key = args.private_key.read_bytes()
+            public_key = args.public_key.read_bytes()
+            bindings = _read_json(args.bindings)
+            if not isinstance(bindings, dict):
+                raise ValueError("bindings file must contain a JSON object")
+            statement = {
+                "schema": "cace-attestation-statement-v2",
+                "signature_algorithm": "ML-DSA-65",
+                "proof_effect": "none",
+                "verifier_id": args.verifier_id,
+                "verifier_key_id": public_key_id(public_key),
+                "claim_id": args.claim_id,
+                "bundle_sha256": bundle.bundle_sha256,
+                "created_at_utc": args.created_at_utc or _created_at(),
+                "purpose": args.purpose,
+                "bindings": bindings,
+            }
+            envelope = sign_ml_dsa65(statement, secret_key, public_key)
+            document = {"cli_schema": 1, "command": "pqc-sign", "proof_effect": "none", "attestation": envelope}
+            _write_text(args.output, _render(document), force=args.force)
+            payload = {
+                "cli_schema": 1, "command": "pqc-sign", "proof_effect": "none",
+                "output": str(args.output), "verifier_key_id": statement["verifier_key_id"],
+                "statement_sha256": envelope["statement_sha256"], "bundle_sha256": bundle.bundle_sha256,
+            }
+            status = 0
+        elif args.command == "pqc-verify":
+            from .core.pqc_attestation import verify_ml_dsa65
+            document = _read_json(args.attestation)
+            if isinstance(document, dict) and "attestation" in document:
+                if document.get("proof_effect") != "none":
+                    raise ValueError("attestation document proof_effect must be none")
+                envelope = document["attestation"]
+            else:
+                envelope = document
+            key_id = verify_ml_dsa65(envelope, trusted_verifier_id=args.trusted_verifier_id)
+            payload = {
+                "cli_schema": 1, "command": "pqc-verify", "proof_effect": "none",
+                "valid": True, "signature_algorithm": "ML-DSA-65",
+                "verifier_key_id": key_id, "claim_id": envelope["statement"]["claim_id"],
+                "bundle_sha256": envelope["statement"]["bundle_sha256"],
+                "statement_sha256": envelope["statement_sha256"],
+                "note": "Signature validity authenticates provenance; it does not prove the claim.",
             }
             status = 0
         elif args.command == "verify":
