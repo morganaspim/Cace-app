@@ -8,7 +8,8 @@ This page documents the CACE half of the Merlin / Expert Robot execution bridge 
 
 - CACE repository: `morganaspim/Cace-app`.
 - Persistent source and policy branch: `main`.
-- Canonical workflow/base branch: `executor/expert-robot-bridge`.
+- Canonical workflow source branch: `executor/expert-robot-bridge`.
+- Current isolated diagnostic base: `repair/oci-disk-diagnostics-20261105` (derived from the canonical workflow branch).
 - Per-attempt request branches: `cace-request/<request-id>`.
 - Per-request result branches: `cace-result/<request-id>`. 
 - Upstream dispatcher/source repository: `Mannyspiro/expert-robot`.
@@ -41,7 +42,7 @@ The OCI worker is not the result publisher and is not given the Expert Robot rev
 
 ## 3. Request and qualification lifecycle
 
-1. Expert Robot's Avrea hosted Actions dispatcher packages a bounded source archive and creates a unique `cace-request/<request-id>` branch from `executor/expert-robot-bridge`. It pushes `bridge/request.json` and the source archive only; the canonical CACE workflow is inherited from the base branch.
+1. Expert Robot's Avrea hosted Actions dispatcher packages a bounded source archive and creates a unique `cace-request/<request-id>` branch from `executor/expert-robot-bridge`. It pushes `bridge/request.json` and the source archive only; the CACE workflow is inherited from the selected base branch. Current diagnostic requests use `repair/oci-disk-diagnostics-20261105`, which adds read-only disk-usage reporting before the Lean installation gate.
 2. Request schema v2 binds request ID, full Expert Robot commit SHA, source branch, return repository, requested lane and qualification-only authority.
 3. The CACE workflow validates request/source identity and archive members. It rejects absolute paths, traversal, symbolic/hard links, devices and FIFOs.
 4. It scans the Lean source for selected proof escapes and checks the exact Lean/Mathlib revisions.
