@@ -180,64 +180,43 @@ jobs:
             test "$mathlib_commit" = "5ed2965256430c3649e86755f9576b54eca72435"
             grep -F 'rev = "v4.34.0"' "$formal_dir/lakefile.toml" >/dev/null
 
-            # Prefer a bounded, per-run tmpfs workspace when it has enough
-            # capacity. The existing 4.32.1 installation on the root volume is
-            # shared with other work and is deliberately left untouched.
-            tmpfs_root=""
-            tmpfs_type="$(findmnt -no FSTYPE /dev/shm 2>/dev/null || true)"
-            tmpfs_free_kb="$(df -Pk /dev/shm 2>/dev/null | awk 'NR==2 {print $4}')"
-            mem_available_kb="$(awk '/MemAvailable:/ {print int($2)}' /proc/meminfo)"
-            if [ "$tmpfs_type" = "tmpfs" ] \
-               && [ "${tmpfs_free_kb:-0}" -ge 4718592 ] \
-               && [ "${mem_available_kb:-0}" -ge 6291456 ]; then
-              tmpfs_root="/dev/shm/cace-lean-$GITHUB_RUN_ID"
-              mkdir -p "$tmpfs_root"
+            # Mount a private, executable tmpfs for this one qualification run.
+            # /dev/shm is noexec on this OCI host, so it cannot run Lean binaries.
+            # This avoids deleting the shared Lean 4.32.1 installation.
+            tmpfs_root="/mnt/cace-lean-$GITHUB_RUN_ID"
+            tmpfs_mounted=false
+            mkdir -p "$tmpfs_root"
+            if sudo -n mount -t tmpfs -o size=5G,mode=0755,exec tmpfs "$tmpfs_root"; then
+              tmpfs_mounted=true
+              trap 'sudo -n umount "$tmpfs_root" >/dev/null 2>&1 || true; rmdir "$tmpfs_root" 2>/dev/null || true' EXIT
               cp -a "$formal_dir" "$tmpfs_root/formal"
               formal_dir="$tmpfs_root/formal"
               persistent_root="$tmpfs_root/cache"
               mkdir -p "$persistent_root"
               export ELAN_HOME="$tmpfs_root/elan"
-              # lean_exact_pin_check runs in a subshell via run_check, so this
-              # cleanup executes on both success and failure without touching
-              # any pre-existing runner cache.
-              trap 'rm -rf -- "$tmpfs_root"' EXIT
-              echo "Lean workspace: tmpfs ($tmpfs_free_kb KiB free; $mem_available_kb KiB MemAvailable)" | tee -a "$log"
+              echo "Lean workspace: executable tmpfs mounted at $tmpfs_root" | tee -a "$log"
             else
+              rmdir "$tmpfs_root" 2>/dev/null || true
               persistent_root="/var/lib/cace-cache/expert-robot"
               if ! mkdir -p "$persistent_root" 2>/dev/null; then
                 persistent_root="$HOME/.cache/expert-robot"
                 mkdir -p "$persistent_root"
               fi
               export ELAN_HOME="/var/lib/cace-cache/elan"
+              echo "Executable tmpfs mount unavailable; using existing runner disk" | tee -a "$log"
             fi
 
-            if [ -n "$tmpfs_root" ]; then
-              # /dev/shm is mounted noexec on this OCI runner. Keep the small
-              # elan launcher executable on the root volume, but point ELAN_HOME
-              # at tmpfs so the large Lean toolchain lives there.
-              ELAN_BIN="/var/lib/cace-cache/elan/bin/elan"
-              if [ ! -x "$ELAN_BIN" ]; then
-                export ELAN_HOME="/var/lib/cace-cache/elan"
-                if [ ! -x "$ELAN_HOME/bin/elan" ]; then
-                  curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-                    | sh -s -- -y --default-toolchain none
-                fi
-                ELAN_BIN="$ELAN_HOME/bin/elan"
-              fi
-              export ELAN_HOME="$tmpfs_root/elan-home"
-              export PATH="$(dirname "$ELAN_BIN"):$PATH"
-            else
-              export ELAN_HOME="/var/lib/cace-cache/elan"
-              if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+            if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+              if [ "$tmpfs_mounted" != "true" ]; then
                 export ELAN_HOME="$persistent_root/elan"
-                if [ ! -x "$ELAN_HOME/bin/elan" ]; then
-                  curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-                    | sh -s -- -y --default-toolchain none
-                fi
               fi
-              ELAN_BIN="$ELAN_HOME/bin/elan"
-              export PATH="$ELAN_HOME/bin:$PATH"
+              if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+                curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+                  | sh -s -- -y --default-toolchain none
+              fi
             fi
+            ELAN_BIN="$ELAN_HOME/bin/elan"
+            export PATH="$ELAN_HOME/bin:$PATH"
 
             # Recover only incomplete Lean installations left by interrupted runs.
             toolchains_dir="$ELAN_HOME/toolchains"
