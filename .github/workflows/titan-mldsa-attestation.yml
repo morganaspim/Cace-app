@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: titan-mldsa-attestation-v2
+  cancel-in-progress: true
+
 jobs:
   mldsa-v2:
     runs-on: avrea-ubuntu-latest-8-vcpu
