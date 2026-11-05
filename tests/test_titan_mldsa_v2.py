@@ -123,3 +123,12 @@ def test_cace_pqc_cli_keygen_sign_verify(tmp_path: Path) -> None:
     )
     assert verified.returncode == 0, verified.stderr
     assert json.loads(verified.stdout)["valid"] is True
+
+def test_mldsa65_rejects_mismatched_keypair() -> None:
+    with oqs.Signature("ML-DSA-65") as first:
+        public_a = first.generate_keypair()
+    with oqs.Signature("ML-DSA-65") as second:
+        second.generate_keypair()
+        secret_b = second.export_secret_key()
+    with pytest.raises(PQCAttestationError):
+        sign_ml_dsa65(statement_for(public_a), secret_b, public_a)
