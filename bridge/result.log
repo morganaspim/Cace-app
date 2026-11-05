@@ -1,0 +1,27 @@
+request_id=expert-robot-42065958023-1-447cf55417792ef5ba627a41676e65db97230774
+expert_robot_commit=447cf55417792ef5ba627a41676e65db97230774
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       136Mi       7.0Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+known failure regression guardrails: PASS
+exit_code=0
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+Traceback (most recent call last):
+  File "/opt/actions-runner/_work/_temp/expert-robot-42066029504/tests/cace_return_bridge_smoke.py", line 19, in <module>
+    assert 'BRIDGE_BASE_BRANCH: executor/expert-robot-bridge' in external
+AssertionError
+exit_code=1
+=== shell syntax ===
+exit_code=0
