@@ -41,4 +41,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$(go env GOPATH)/bin/actionlint" docs/diagnostics/expert-robot-external-bridge.snapshot.yml
+          "$(go env GOPATH)/bin/actionlint" -ignore 'label "avrea-ubuntu-latest-8-vcpu" is unknown' docs/diagnostics/expert-robot-external-bridge.snapshot.yml
