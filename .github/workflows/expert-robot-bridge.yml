@@ -183,7 +183,7 @@ jobs:
             # Mount a private, executable tmpfs for this one qualification run.
             # /dev/shm is noexec on this OCI host, so it cannot run Lean binaries.
             # This avoids deleting the shared Lean 4.32.1 installation.
-            tmpfs_root="/mnt/cace-lean-$GITHUB_RUN_ID"
+            tmpfs_root="$RUNNER_TEMP/cace-lean-$GITHUB_RUN_ID"
             tmpfs_mounted=false
             mkdir -p "$tmpfs_root"
             if sudo -n mount -t tmpfs -o size=5G,mode=0755,exec tmpfs "$tmpfs_root"; then
