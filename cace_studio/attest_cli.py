@@ -156,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
     pqc_verify = sub.add_parser("pqc-verify", help="Verify one ML-DSA-65 CACE attestation")
     pqc_verify.add_argument("attestation", type=Path)
     pqc_verify.add_argument("--trusted-verifier-id")
+    pqc_verify.add_argument("--trusted-key-id")
 
     args = parser.parse_args(argv)
     try:
@@ -278,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
                 envelope = document["attestation"]
             else:
                 envelope = document
-            key_id = verify_ml_dsa65(envelope, trusted_verifier_id=args.trusted_verifier_id)
+            key_id = verify_ml_dsa65(envelope, trusted_verifier_id=args.trusted_verifier_id, trusted_key_id=args.trusted_key_id)
             payload = {
                 "cli_schema": 1, "command": "pqc-verify", "proof_effect": "none",
                 "valid": True, "signature_algorithm": "ML-DSA-65",
