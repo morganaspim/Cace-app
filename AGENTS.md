@@ -13,22 +13,23 @@ Read these in order before changing scientific or verification behavior:
 AI code builders must additionally obey `CACE_AI_BUILDER_CONTRACT.md`. Rigorous tool contributions use `collaboration/schema/cace-ai-tool-submission.schema.json`; live Local-AI canvas perception uses `schema/cace-agent-perception.schema.json`. Any change that binds runtime objects to Lean hypotheses/endpoints must additionally obey `docs/proofs/SOURCE_TO_FORMAL_LINKAGE_SPEC.md`.
 
 1. `CACE_AGENT_BOOTSTRAP.json` — single-entry machine-readable build/trust handoff.
-2. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
-3. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
-4. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
-5. `docs/STATUS.md` — current source/qualification state.
-6. `docs/ARCHITECTURE.md` — subsystem boundaries and trusted-computing-base model.
-7. `docs/SECURITY_ARCHITECTURE.md` — trust zones, threats, isolation and secrets policy.
-8. `docs/CONSTITUTION.md` — non-negotiable project rules.
-9. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
-10. `docs/BUG_FLUSH_ARCHITECTURE.md` — permanent defect-class prevention loop.
-11. `docs/PROVENANCE_ATTESTATION.md` — content identity, independent logs and evidence preservation.
-12. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
-13. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
-14. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
-15. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
-16. `AI_REPO_MAP.json` — machine-readable navigation.
-17. The relevant release/proof-scope file for the feature being changed.
+2. `docs/EXPERT_ROBOT_BRIDGE_OPERATIONS.md` — CACE OCI runner, generated bridge branch, request/result contract, reverse-key boundary and AI runbook.
+3. `docs/CROSS_CHAT_HANDOFF.md` — cross-chat continuity, latest preserved frontier, and refresh protocol.
+4. `docs/CHAT_IDEA_LEDGER.md` — append-only chat-derived research/product idea memory.
+5. `docs/BUILD_AND_TRUST_GUIDE.md` — unified product, rigor, security, bug-flush, provenance and build architecture.
+6. `docs/STATUS.md` — current source/qualification state.
+7. `docs/ARCHITECTURE.md` — subsystem boundaries and trusted-computing-base model.
+8. `docs/SECURITY_ARCHITECTURE.md` — trust zones, threats, isolation and secrets policy.
+9. `docs/CONSTITUTION.md` — non-negotiable project rules.
+10. `docs/CLAIMS.md` — claim registry, proof ledger and fail-closed promotion policy.
+11. `docs/BUG_FLUSH_ARCHITECTURE.md` — permanent defect-class prevention loop.
+12. `docs/PROVENANCE_ATTESTATION.md` — content identity, independent logs and evidence preservation.
+13. `docs/ROADMAP.md` — dependency-ordered implementation milestones.
+14. `docs/MASTER_BUILD_SPEC.md` — consolidated durable product goals and acceptance criteria.
+15. `docs/GOAL_REGISTRY.json` — machine-readable goal registry for agents/tools.
+16. `docs/AI_QUICKSTART.md` — headless commands and JSON interfaces.
+17. `AI_REPO_MAP.json` — machine-readable navigation.
+18. The relevant release/proof-scope file for the feature being changed.
 
 Always inspect exact-commit Actions evidence before describing current source as formally qualified or production-ready. Historical reports, release notes and example outputs are snapshots, not inherited current-head evidence.
 
