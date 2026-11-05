@@ -93,6 +93,10 @@ jobs:
         shell: bash
         env:
           REQUEST_ID: ${{ steps.validate.outputs.request_id }}
+          EVIDENCE_SOURCE_SHA: ${{ steps.validate.outputs.evidence_source_commit }}
+          EVIDENCE_RUN_ID: ${{ steps.validate.outputs.evidence_run_id }}
+          EVIDENCE_ARTIFACT_ID: ${{ steps.validate.outputs.evidence_artifact_id }}
+          EVIDENCE_ARTIFACT_SHA: ${{ steps.validate.outputs.evidence_artifact_sha256 }}
         run: |
           set -euo pipefail
           app_user="$(id -un)"
@@ -111,11 +115,24 @@ jobs:
           test -f "$release/python/merlin/app.py"
           test -f "$release/ui/merlin-hud/index.html"
           test -f "$release/scripts/init_merlin_dashboard_stores.py"
-          PYTHONPATH="$release/python" "$python_bin" -m compileall -q "$release/python/merlin" "$release/scripts/init_merlin_dashboard_stores.py"
+          test -f "$release/scripts/import_merlin_engineering_evidence.py"
+          PYTHONPATH="$release/python" "$python_bin" -m compileall -q "$release/python/merlin" "$release/scripts/init_merlin_dashboard_stores.py" "$release/scripts/import_merlin_engineering_evidence.py"
           PYTHONPATH="$release/python" "$python_bin" "$release/scripts/init_merlin_dashboard_stores.py" \
             --data-dir "$data" --project-id merlin-main --project-name "Merlin Research Workbench" \
             > "$RUNNER_TEMP/merlin-bootstrap.json"
           python3 -m json.tool "$RUNNER_TEMP/merlin-bootstrap.json" >/dev/null
+
+          evidence_dir="$RUNNER_TEMP/merlin-evidence"
+          mkdir -p "$evidence_dir"
+          tar -xzf bridge/merlin-evidence.tar.gz --no-same-owner -C "$evidence_dir"
+          PYTHONPATH="$release/python" "$python_bin" "$release/scripts/import_merlin_engineering_evidence.py" \
+            --evidence-dir "$evidence_dir" --data-dir "$data" \
+            --source-commit "$EVIDENCE_SOURCE_SHA" --run-id "$EVIDENCE_RUN_ID" \
+            --artifact-id "$EVIDENCE_ARTIFACT_ID" --artifact-sha256 "$EVIDENCE_ARTIFACT_SHA" \
+            > "$RUNNER_TEMP/merlin-evidence-import.json"
+          python3 -m json.tool "$RUNNER_TEMP/merlin-evidence-import.json" >/dev/null
+          sudo cp "$RUNNER_TEMP/merlin-evidence-import.json" "$data/merlin-evidence-import.json"
+          sudo chown "$app_user:$app_group" "$data/merlin-evidence-import.json"
 
           test_port=18765
           test_home="$RUNNER_TEMP/merlin-smoke-home"
@@ -137,7 +154,7 @@ jobs:
           test "$healthy" = 1
           curl -fsS "http://127.0.0.1:$test_port/hud" | grep -q "MERLIN"
           curl -fsS "http://127.0.0.1:$test_port/api/hud/activity" | python3 -c 'import json,sys; assert json.load(sys.stdin)["schema"]=="merlin-hud-activity/1"'
-          curl -fsS "http://127.0.0.1:$test_port/api/hud/graph" | python3 -c 'import json,sys; assert json.load(sys.stdin)["schema_version"]=="1.0"'
+          curl -fsS "http://127.0.0.1:$test_port/api/hud/graph" | python3 -c 'import json,sys; d=json.load(sys.stdin); types={n["node_type"] for n in d["nodes"]}; assert d["schema_version"]=="1.0"; assert {"freecad_assembly","electrical_net","simulation_result"} <= types; assert len(d["nodes"]) >= 8' # python3 -c 'import json,sys; assert json.load(sys.stdin)["schema_version"]=="1.0"'
           curl -fsS "http://127.0.0.1:$test_port/api/capabilities" | python3 -c 'import json,sys; assert json.load(sys.stdin)["schema"]=="merlin-capabilities/1"'
           echo "MERLIN_LOCAL_API_AND_HUD_PASS"
           cleanup
@@ -161,7 +178,7 @@ jobs:
           Environment=MERLIN_OUTBOX_DB_PATH=$data/event-outbox.sqlite3
           Environment=MERLIN_HYPOTHESES_DB_PATH=$data/hypotheses.sqlite3
           Environment=MERLIN_DB_PATH=$data/events.sqlite3
-          Environment=MERLIN_PROJECT_ID=merlin-main
+          Environment=MERLIN_PROJECT_ID=merlin-engineering-smoke
           ExecStart=$python_bin -m merlin.app --port 8765 --db $data/events.sqlite3
           Restart=on-failure
           RestartSec=3
