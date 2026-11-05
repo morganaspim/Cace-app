@@ -276,6 +276,7 @@ jobs:
               "cace_workflow_run_id": int(sys.argv[4]),
               "cace_run_attempt": int(sys.argv[5]),
               "result_log_sha256": log_sha256,
+              "result_log_size_bytes": log_path.stat().st_size,
               "cxx_required": False,
               "self_hosted_contents_write": False,
               "monetary_cost": "free",
