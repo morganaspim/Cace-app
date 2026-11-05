@@ -1,6 +1,6 @@
 # Titan ML-DSA v2 Attestation
 
-**Status:** implementation present; actual Avrea evidence bundle independently verified by CACE; ML-DSA end-to-end receipt workflow in progress.
+**Status:** implementation present; actual Avrea evidence bundle independently verified by CACE; final ML-DSA receipt test is blocked by CACE OCI runner disk exhaustion.
 
 ## Profile
 
@@ -33,11 +33,11 @@ Private signing keys must remain outside Git and CI artifacts. The test workflow
 - NIST ACVP source: ACVP-Server tag `v1.1.0.41`, commit `b121fee031dc65d32c96f4109a42a10dacbe2076`. The tag commit is pinned, but its GitHub commit is unsigned.
 - Avrea run `42090360334`: 54 selected standardized ACVP tests passed, with zero failures: FIPS 203 ML-KEM 9/9, FIPS 204 ML-DSA 9/9, FIPS 205 SLH-DSA 36/36.
 - CACE OCI run `42091465065`: the `cace-oci-a1` runner independently reconstituted the exact Avrea workflow archive and verified its original archive digest and four extracted evidence artifacts.
-- The actual Avrea archive is also included in the ML-DSA receipt test fixture. The current CACE ML-DSA workflow run is `42092942992` on the independent `cace-oci-a1` runner.
+- The actual Avrea archive is also included in the ML-DSA receipt test fixture. The CACE ML-DSA workflow's native provider and Python binding installation succeeded on `cace-oci-a1` in run `42092942992`. Its CLI sign/verify subprocess emitted a valid attestation (`valid: true`), but the test harness failed to parse JSON because the provider printed an informational startup line to stdout. The implementation now redirects provider chatter to stderr. Subsequent OCI attempts were blocked by the runner's full disk before a clean test rerun could complete.
 
 ## Remaining qualification gates
 
-- Complete the OCI ML-DSA receipt roundtrip and CLI test workflow.
+- Reclaim disk on `cace-oci-a1`, then rerun the ML-DSA receipt roundtrip and CLI test workflow.
 - Review the profile independently and test against a second vetted ML-DSA implementation.
 - Define production trust policy, key rotation, revocation and signer custody.
 - Keep NIST ACVP vector testing distinct from FIPS 140 module validation.
