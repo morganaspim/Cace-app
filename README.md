@@ -27,6 +27,7 @@ The project deliberately separates software maturity from evidence strength. A n
 - `docs/BUG_FLUSH_ARCHITECTURE.md` — defect-class prevention and permanent guardrail loop
 - `docs/ROADMAP.md` — v3.31 through v4.0 dependency-ordered roadmap
 - `docs/AI_QUICKSTART.md` — headless usage for tools and AI agents
+- `docs/EXPERT_ROBOT_BRIDGE_OPERATIONS.md` — cross-repository Expert Robot bridge, OCI runner, result envelope and AI operating runbook
 - `AGENTS.md` — repository instructions for coding/research agents
 - `AI_REPO_MAP.json` — machine-readable repository navigation
 - `docs/PROVENANCE_ATTESTATION.md` — later-phase immutable provenance/distributed-attestation design
