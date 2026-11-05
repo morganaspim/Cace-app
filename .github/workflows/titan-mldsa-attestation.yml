@@ -68,11 +68,10 @@ jobs:
       - name: Verify provider version and run CACE receipt tests
         id: run-tests
         shell: bash
-        env:
-          LD_LIBRARY_PATH: ${{ env.WORK_DIR }}/liboqs-install/lib
-          OQS_INSTALL_PATH: ${{ env.WORK_DIR }}/liboqs-install
         run: |
           set -euo pipefail
+          export LD_LIBRARY_PATH="$WORK_DIR/liboqs-install/lib"
+          export OQS_INSTALL_PATH="$WORK_DIR/liboqs-install"
           $WORK_DIR/venv/bin/python - <<'PY'
           import oqs
           assert oqs.oqs_python_version() == "0.16.0.2", oqs.oqs_python_version()
@@ -91,10 +90,10 @@ jobs:
         shell: bash
         env:
           TEST_EXIT_CODE: ${{ steps.run-tests.outputs.exit_code }}
-          LD_LIBRARY_PATH: ${{ env.WORK_DIR }}/liboqs-install/lib
-          OQS_INSTALL_PATH: ${{ env.WORK_DIR }}/liboqs-install
         run: |
           set -euo pipefail
+          export LD_LIBRARY_PATH="$WORK_DIR/liboqs-install/lib"
+          export OQS_INSTALL_PATH="$WORK_DIR/liboqs-install"
           $WORK_DIR/venv/bin/python - <<'PY'
           import json, os, pathlib, subprocess
           def git(path):
