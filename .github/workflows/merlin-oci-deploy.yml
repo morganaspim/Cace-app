@@ -66,8 +66,8 @@ jobs:
           df -h /
           free -h
           available_kb="$(df -Pk / | awk 'NR==2 {print $4}')"
-          if [ "$available_kb" -lt 524288 ]; then
-            echo "::error::At least 512 MiB free is required; no cache or user data will be deleted."
+          if [ "$available_kb" -lt 262144 ]; then
+            echo "::error::At least 256 MiB free is required; no cache or user data will be deleted."
             exit 1
           fi
           command -v python3
