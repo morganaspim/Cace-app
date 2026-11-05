@@ -1,0 +1,166 @@
+request_id=expert-robot-42065974770-1-9b6c57d91e92cbaeb16680831b37a5dae7a8b3c4
+expert_robot_commit=9b6c57d91e92cbaeb16680831b37a5dae7a8b3c4
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       136Mi       7.0Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+known failure regression guardrails: PASS
+exit_code=0
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+CACE return bridge guardrails: PASS
+exit_code=0
+=== shell syntax ===
+exit_code=0
+=== exact-pin Lean root + axiom audit ===
+Disk before Lean install:
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+CACE runner disk usage diagnostics (read-only):
+Disk before Lean install:
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+CACE runner disk usage diagnostics (read-only):
+--- /var/lib/cace-cache/expert-robot ---
+--- /var/lib/cace-cache/expert-robot ---
+0	/var/lib/cace-cache/expert-robot
+0	/var/lib/cace-cache/expert-robot
+--- /var/lib/cace-cache/elan ---
+--- /var/lib/cace-cache/elan ---
+0	/var/lib/cace-cache/elan/tmp
+12M	/var/lib/cace-cache/elan/bin
+2.8G	/var/lib/cace-cache/elan/toolchains
+2.8G	/var/lib/cace-cache/elan/toolchains/leanprover--lean4---v4.32.1
+2.9G	/var/lib/cace-cache/elan
+0	/var/lib/cace-cache/elan/tmp
+12M	/var/lib/cace-cache/elan/bin
+2.8G	/var/lib/cace-cache/elan/toolchains
+2.8G	/var/lib/cace-cache/elan/toolchains/leanprover--lean4---v4.32.1
+2.9G	/var/lib/cace-cache/elan
+--- /opt/actions-runner/_work/_temp ---
+--- /opt/actions-runner/_work/_temp ---
+4.0K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/schemas
+12K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/cad
+12K	/opt/actions-runner/_work/_temp/_github_workflow
+20K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/web
+20K	/opt/actions-runner/_work/_temp/_runner_file_commands
+36K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/research
+44K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/ui
+60K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/merlin
+84K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/formal
+124K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/.cace
+152K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/scripts
+164K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/config
+188K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/.github
+292K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/artifacts
+840K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/cpp
+900K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/python
+920K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/tests
+1.2M	/opt/actions-runner/_work/_temp/expert-robot-42066210507/docs
+5.0M	/opt/actions-runner/_work/_temp/expert-robot-42066210507
+5.1M	/opt/actions-runner/_work/_temp
+4.0K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/schemas
+12K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/cad
+12K	/opt/actions-runner/_work/_temp/_github_workflow
+20K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/web
+20K	/opt/actions-runner/_work/_temp/_runner_file_commands
+36K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/research
+44K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/ui
+60K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/merlin
+84K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/formal
+124K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/.cace
+152K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/scripts
+164K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/config
+188K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/.github
+292K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/artifacts
+840K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/cpp
+900K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/python
+920K	/opt/actions-runner/_work/_temp/expert-robot-42066210507/tests
+1.2M	/opt/actions-runner/_work/_temp/expert-robot-42066210507/docs
+5.0M	/opt/actions-runner/_work/_temp/expert-robot-42066210507
+5.1M	/opt/actions-runner/_work/_temp
+--- /opt/actions-runner/_work/_tool ---
+--- /opt/actions-runner/_work/_tool ---
+197M	/opt/actions-runner/_work/_tool
+197M	/opt/actions-runner/_work/_tool/node
+197M	/opt/actions-runner/_work/_tool/node/22.23.2
+197M	/opt/actions-runner/_work/_tool
+197M	/opt/actions-runner/_work/_tool/node
+197M	/opt/actions-runner/_work/_tool/node/22.23.2
+--- /opt/actions-runner/_work/Cace-app/Cace-app ---
+--- /opt/actions-runner/_work/Cace-app/Cace-app ---
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/tests
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/schema
+40K	/opt/actions-runner/_work/Cace-app/Cace-app/collaboration
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops/oci_mcp
+68K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/hooks
+80K	/opt/actions-runner/_work/Cace-app/Cace-app/web
+96K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/gui
+132K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/include
+136K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflows
+144K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/proofs
+200K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp
+212K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflow-archive
+272K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/adr
+332K	/opt/actions-runner/_work/Cace-app/Cace-app/scripts
+348K	/opt/actions-runner/_work/Cace-app/Cace-app/.github
+416K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/core
+588K	/opt/actions-runner/_work/Cace-app/Cace-app/formal/cace_formal
+624K	/opt/actions-runner/_work/Cace-app/Cace-app/formal
+664K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/refs
+948K	/opt/actions-runner/_work/Cace-app/Cace-app/bridge
+948K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/logs
+984K	/opt/actions-runner/_work/Cace-app/Cace-app/docs
+1.7M	/opt/actions-runner/_work/Cace-app/Cace-app/tests
+1.9M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/modules
+2.4M	/opt/actions-runner/_work/Cace-app/Cace-app/examples
+2.5M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio
+153M	/opt/actions-runner/_work/Cace-app/Cace-app/.git/objects
+154M	/opt/actions-runner/_work/Cace-app/Cace-app/.git
+165M	/opt/actions-runner/_work/Cace-app/Cace-app
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/tests
+36K	/opt/actions-runner/_work/Cace-app/Cace-app/schema
+40K	/opt/actions-runner/_work/Cace-app/Cace-app/collaboration
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops
+48K	/opt/actions-runner/_work/Cace-app/Cace-app/ops/oci_mcp
+68K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/hooks
+80K	/opt/actions-runner/_work/Cace-app/Cace-app/web
+96K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/gui
+132K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp/include
+136K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflows
+144K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/proofs
+200K	/opt/actions-runner/_work/Cace-app/Cace-app/cpp
+212K	/opt/actions-runner/_work/Cace-app/Cace-app/.github/workflow-archive
+272K	/opt/actions-runner/_work/Cace-app/Cace-app/docs/adr
+332K	/opt/actions-runner/_work/Cace-app/Cace-app/scripts
+348K	/opt/actions-runner/_work/Cace-app/Cace-app/.github
+416K	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/core
+588K	/opt/actions-runner/_work/Cace-app/Cace-app/formal/cace_formal
+624K	/opt/actions-runner/_work/Cace-app/Cace-app/formal
+664K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/refs
+948K	/opt/actions-runner/_work/Cace-app/Cace-app/bridge
+948K	/opt/actions-runner/_work/Cace-app/Cace-app/.git/logs
+984K	/opt/actions-runner/_work/Cace-app/Cace-app/docs
+1.7M	/opt/actions-runner/_work/Cace-app/Cace-app/tests
+1.9M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio/modules
+2.4M	/opt/actions-runner/_work/Cace-app/Cace-app/examples
+2.5M	/opt/actions-runner/_work/Cace-app/Cace-app/cace_studio
+153M	/opt/actions-runner/_work/Cace-app/Cace-app/.git/objects
+154M	/opt/actions-runner/_work/Cace-app/Cace-app/.git
+165M	/opt/actions-runner/_work/Cace-app/Cace-app
+insufficient disk space for pinned Lean toolchain: available_kb=1143544, required_kb=2097152
+insufficient disk space for pinned Lean toolchain: available_kb=1143544, required_kb=2097152
+exit_code=50
