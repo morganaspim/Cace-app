@@ -40,7 +40,7 @@ jobs:
             [ -d "$candidate/venv" ] || continue
             [ "$(git -C "$candidate/liboqs" rev-parse HEAD)" = "5a1a854b0dc9f2141bdc771c555ee60c37950183" ] || continue
             [ "$(git -C "$candidate/liboqs-python" rev-parse HEAD)" = "64c76ad0a80d6c69f2003219eb27b253782a3d68" ] || continue
-            if "$candidate/venv/bin/python" -c 'import importlib.metadata, oqs; assert importlib.metadata.version("liboqs-python") == "0.16.0.2"; assert oqs.oqs_version() == "0.16.0"' >/dev/null 2>&1; then
+            if LD_LIBRARY_PATH="$candidate/liboqs-install/lib" OQS_INSTALL_PATH="$candidate/liboqs-install" "$candidate/venv/bin/python" -c 'import importlib.metadata, oqs; assert importlib.metadata.version("liboqs-python") == "0.16.0.2"; assert oqs.oqs_version() == "0.16.0"' >/dev/null 2>&1; then
               WORK_DIR="$candidate"
               break
             fi
