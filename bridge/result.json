@@ -1,0 +1,33 @@
+{
+  "schema_version": 3,
+  "request_id": "expert-robot-42065066165-1-0e51da50bcdfa1854f99cb3bb303f19c4f94fe1a",
+  "expert_robot_commit": "0e51da50bcdfa1854f99cb3bb303f19c4f94fe1a",
+  "status": "fail",
+  "exit_code": 50,
+  "runner_labels": [
+    "self-hosted",
+    "cace",
+    "oci",
+    "aarch64"
+  ],
+  "machine": "cace-oci-a1",
+  "architecture": "aarch64",
+  "authority": "qualification-only",
+  "promotion_authority": false,
+  "qualification_lane": "formal-static-arm64",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
+  "cace_repository": "morganaspim/Cace-app",
+  "cace_commit": "1be01133e7e500b16b5a68cb834298a776df3deb",
+  "cace_workflow_sha": "1be01133e7e500b16b5a68cb834298a776df3deb",
+  "cace_workflow_id": 367390621,
+  "cace_workflow_name": "Expert Robot Free Runner Bridge",
+  "cace_workflow_ref": "morganaspim/Cace-app/.github/workflows/expert-robot-bridge.yml@refs/heads/cace-request/expert-robot-42065066165-1-0e51da50bcdfa1854f99cb3bb303f19c4f94fe1a",
+  "cace_workflow_run_id": 42065140582,
+  "cace_run_attempt": 1,
+  "result_log_sha256": "3f3f981f53f5c00693f7439402cd7c615c5a9cc22ce4097c72e96957c34d3609",
+  "result_log_size_bytes": 1518,
+  "cxx_required": false,
+  "self_hosted_contents_write": false,
+  "monetary_cost": "free"
+}
