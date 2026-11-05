@@ -61,9 +61,9 @@ def test_cace_independently_verifies_actual_avrea_acvp_bundle() -> None:
         }
         for case in xml_root.iter("testcase"):
             name = case.attrib.get("name", "")
-            suite = "FIPS203" if "ML-KEM" in name else (
-                "FIPS204" if "ML-DSA" in name else (
-                    "FIPS205" if "SLH_DSA" in name else None
+            suite = "FIPS203" if "[ML-KEM-" in name else (
+                "FIPS204" if "[ML-DSA-" in name else (
+                    "FIPS205" if "[SLH_DSA_PURE_" in name else None
                 )
             )
             if suite is None:
