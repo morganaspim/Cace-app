@@ -1,0 +1,36 @@
+request_id=expert-robot-42063248427-8e096d0fe44c14a72ea3fbb51cfecb24de9419d5
+expert_robot_commit=8e096d0fe44c14a72ea3fbb51cfecb24de9419d5
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       135Mi       7.0Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+known failure regression guardrails: PASS
+exit_code=0
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+CACE return bridge guardrails: PASS
+exit_code=0
+=== shell syntax ===
+exit_code=0
+=== exact-pin Lean root + axiom audit ===
+Disk before Lean install:
+Disk before Lean install:
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+/dev/mapper/ocivolume-root   30G   29G  1.1G  97% /
+insufficient disk space for pinned Lean toolchain: available_kb=1152204, required_kb=2097152
+insufficient disk space for pinned Lean toolchain: available_kb=1152204, required_kb=2097152
+exit_code=50
