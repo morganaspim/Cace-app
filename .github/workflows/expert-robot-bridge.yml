@@ -273,28 +273,38 @@ jobs:
             mkdir -p .lake
             rm -rf .lake/packages
 
-            exec 9>"$cache_lock"
-            flock -w 900 9
-
-            if [ -d "$package_cache/mathlib/.git" ] &&
-               [ "$(git -C "$package_cache/mathlib" rev-parse HEAD)" = "$mathlib_commit" ]; then
-              cp -a --reflink=auto "$package_cache" .lake/packages 2>/dev/null \
-                || cp -a "$package_cache" .lake/packages
-              echo "EXPERT_ROBOT_MATHLIB_CACHE_HIT $cache_key"
-            else
-              echo "EXPERT_ROBOT_MATHLIB_CACHE_MISS $cache_key"
+            if [ "$tmpfs_mounted" = "true" ]; then
+              # The formal workspace already lives on this run's ephemeral
+              # tmpfs. Populate .lake/packages in place instead of duplicating
+              # the large package tree into a second cache directory.
+              echo "EXPERT_ROBOT_MATHLIB_EPHEMERAL_CACHE $cache_key"
               MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
               test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$mathlib_commit"
               lake exe cache get
+            else
+              exec 9>"$cache_lock"
+              flock -w 900 9
 
-              temp_cache="$cache_root/packages.tmp-$GITHUB_RUN_ID"
-              rm -rf "$temp_cache" "$package_cache"
-              cp -a --reflink=auto .lake/packages "$temp_cache" 2>/dev/null \
-                || cp -a .lake/packages "$temp_cache"
-              mv "$temp_cache" "$package_cache"
+              if [ -d "$package_cache/mathlib/.git" ] &&
+                 [ "$(git -C "$package_cache/mathlib" rev-parse HEAD)" = "$mathlib_commit" ]; then
+                cp -a --reflink=auto "$package_cache" .lake/packages 2>/dev/null \
+                  || cp -a "$package_cache" .lake/packages
+                echo "EXPERT_ROBOT_MATHLIB_CACHE_HIT $cache_key"
+              else
+                echo "EXPERT_ROBOT_MATHLIB_CACHE_MISS $cache_key"
+                MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+                test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$mathlib_commit"
+                lake exe cache get
+
+                temp_cache="$cache_root/packages.tmp-$GITHUB_RUN_ID"
+                rm -rf "$temp_cache" "$package_cache"
+                cp -a --reflink=auto .lake/packages "$temp_cache" 2>/dev/null \
+                  || cp -a .lake/packages "$temp_cache"
+                mv "$temp_cache" "$package_cache"
+              fi
+
+              flock -u 9
             fi
-
-            flock -u 9
 
             test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$mathlib_commit"
             manifest_after="$(sha256sum lake-manifest.json | awk '{print $1}')"
