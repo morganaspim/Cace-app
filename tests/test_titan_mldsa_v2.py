@@ -82,6 +82,9 @@ def test_cace_pqc_cli_keygen_sign_verify(tmp_path: Path) -> None:
     assert private_key.stat().st_mode & 0o077 == 0
 
     artifact_bytes = b"titan CLI evidence fixture"
+    artifact_root = tmp_path / "artifact-root"
+    artifact_root.mkdir()
+    (artifact_root / "fixture.bin").write_bytes(artifact_bytes)
     artifact = EvidenceArtifact.from_bytes(
         "titan-fixture", artifact_bytes, role="execution-manifest",
         media_type="application/octet-stream", path="fixture.bin",
@@ -105,8 +108,9 @@ def test_cace_pqc_cli_keygen_sign_verify(tmp_path: Path) -> None:
     attestation_path = tmp_path / "attestation.json"
     signed = subprocess.run(
         [sys.executable, "-m", "cace_studio.attest_cli", "pqc-sign",
-         "--bundle", str(bundle_path), "--private-key", str(private_key),
-         "--public-key", str(public_key), "--bindings", str(bindings_path),
+         "--bundle", str(bundle_path), "--artifact-root", str(artifact_root),
+         "--private-key", str(private_key), "--public-key", str(public_key),
+         "--bindings", str(bindings_path),
          "--verifier-id", "cace-titan-cli-test", "--claim-id", "titan:cli:test",
          "--output", str(attestation_path)],
         capture_output=True, text=True, check=False,
