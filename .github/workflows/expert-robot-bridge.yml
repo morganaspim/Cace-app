@@ -188,7 +188,7 @@ jobs:
             mkdir -p "$tmpfs_root"
             if sudo -n mount -t tmpfs -o "size=5G,mode=0755,uid=$(id -u),gid=$(id -g),exec" tmpfs "$tmpfs_root"; then
               tmpfs_mounted=true
-              trap 'sudo -n umount "$tmpfs_root" >/dev/null 2>&1 || true; rmdir "$tmpfs_root" 2>/dev/null || true' EXIT
+              trap 'cd "$work" 2>/dev/null || true; sudo -n umount "$tmpfs_root" >/dev/null 2>&1 || true; rmdir "$tmpfs_root" 2>/dev/null || true' EXIT
               cp -a "$formal_dir" "$tmpfs_root/formal"
               formal_dir="$tmpfs_root/formal"
               persistent_root="$tmpfs_root/cache"
@@ -304,6 +304,7 @@ jobs:
               fi
 
               flock -u 9
+              exec 9>&-
             fi
 
             test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$mathlib_commit"
