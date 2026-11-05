@@ -1,0 +1,454 @@
+name: Expert Robot Free Runner Bridge
+
+on:
+  push:
+    branches: ["executor/expert-robot-bridge"]
+    paths:
+      - "bridge/request.json"
+      - "bridge/expert-robot-source.tar.gz"
+      - ".github/workflows/expert-robot-bridge.yml"
+
+concurrency:
+  group: expert-robot-free-runner-bridge
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate and run bounded Expert Robot formal checks
+        shell: bash
+        run: |
+          set -u
+
+          request_id="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["request_id"])')"
+          source_sha="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["expert_robot_commit"])')"
+          work="$RUNNER_TEMP/expert-robot-$GITHUB_RUN_ID"
+          log="$GITHUB_WORKSPACE/bridge/result.log"
+          rm -rf "$work"
+          mkdir -p "$work"
+          : > "$log"
+
+          overall=0
+
+          record_failure() {
+            code="$1"
+            if [ "$overall" -eq 0 ]; then
+              overall="$code"
+            fi
+          }
+
+          run_check() {
+            name="$1"
+            shift
+            echo "=== $name ===" | tee -a "$log"
+            "$@" 2>&1 | tee -a "$log"
+            rc=${PIPESTATUS[0]}
+            if [ "$rc" -ne 0 ]; then
+              record_failure "$rc"
+            fi
+            echo "exit_code=$rc" | tee -a "$log"
+            return 0
+          }
+
+          echo "request_id=$request_id" | tee -a "$log"
+          echo "expert_robot_commit=$source_sha" | tee -a "$log"
+          echo "runner=$(hostname)" | tee -a "$log"
+          uname -a | tee -a "$log" || true
+          nproc | tee -a "$log" || true
+          free -h | tee -a "$log" || true
+
+          # Reject path traversal, links, devices, and other archive
+          # members that could escape the temporary extraction root.
+          python3 - bridge/expert-robot-source.tar.gz <<'PY' | tee -a "$log"
+          import pathlib
+          import sys
+          import tarfile
+
+          archive = pathlib.Path(sys.argv[1])
+          with tarfile.open(archive, "r:gz") as tf:
+              for member in tf.getmembers():
+                  path = pathlib.PurePosixPath(member.name)
+                  if path.is_absolute() or ".." in path.parts:
+                      raise SystemExit(f"unsafe archive path: {member.name}")
+                  if member.issym() or member.islnk() or member.isdev() or member.isfifo():
+                      raise SystemExit(f"unsafe archive member type: {member.name}")
+          print("archive safety: PASS")
+          PY
+          if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+            record_failure 40
+          else
+            tar -xzf bridge/expert-robot-source.tar.gz -C "$work"
+          fi
+
+          if [ "$overall" -eq 0 ]; then
+            cd "$work"
+
+            # Reject proof escapes and compile-time command seams before
+            # invoking Lean on the self-hosted machine.
+            python3 - <<'PY' 2>&1 | tee -a "$log"
+          import pathlib
+          import re
+
+          root = pathlib.Path("formal/MathAI")
+          forbidden = [
+              ("sorry", re.compile(r"(?<![A-Za-z0-9_])sorry(?![A-Za-z0-9_])")),
+              ("admit", re.compile(r"(?<![A-Za-z0-9_])admit(?![A-Za-z0-9_])")),
+              ("axiom declaration", re.compile(r"(?m)^\s*axiom\s+")),
+              ("unsafe declaration", re.compile(r"(?m)^\s*unsafe\s+")),
+              ("run_cmd", re.compile(r"(?<![A-Za-z0-9_])run_cmd(?![A-Za-z0-9_])")),
+          ]
+          failures = []
+          for path in sorted(root.rglob("*.lean")):
+              text = path.read_text(encoding="utf-8")
+              for label, pattern in forbidden:
+                  if pattern.search(text):
+                      failures.append(f"{path}: forbidden {label}")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          if pathlib.Path("formal/lakefile.lean").exists():
+              raise SystemExit("executable formal/lakefile.lean is forbidden in external runner lane")
+          print("formal source safety: PASS")
+          PY
+            if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+              record_failure 41
+            fi
+          fi
+
+          if [ "$overall" -eq 0 ]; then
+            run_check "compute policy" python3 tests/compute_policy_smoke.py
+            run_check "known failure regression guardrails" python3 tests/known_failure_regression_smoke.py
+            run_check "formal dependency lock" python3 tests/formal_dependency_lock_smoke.py
+            run_check "CACE return bridge guardrails" python3 tests/cace_return_bridge_smoke.py
+            run_check "shell syntax" bash -n scripts/bootstrap-railway-worker.sh scripts/preflight.sh scripts/railway-preflight.sh scripts/railway-sandbox-lane.sh
+          fi
+
+          lean_exact_pin_check() {
+            set -euo pipefail
+
+            formal_dir="$work/formal"
+            toolchain="$(cat "$formal_dir/lean-toolchain")"
+            mathlib_commit="$(
+              python3 - "$formal_dir/lake-manifest.json" <<'PY'
+          import json
+          import sys
+
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          package = next(
+              item for item in manifest.get("packages", [])
+              if item.get("name") == "mathlib"
+          )
+          print(package["rev"])
+          PY
+            )"
+
+            test "$toolchain" = "leanprover/lean4:v4.34.0"
+            test "$mathlib_commit" = "5ed2965256430c3649e86755f9576b54eca72435"
+            grep -F 'rev = "v4.34.0"' "$formal_dir/lakefile.toml" >/dev/null
+
+            persistent_root="/var/lib/cace-cache/expert-robot"
+            if ! mkdir -p "$persistent_root" 2>/dev/null; then
+              persistent_root="$HOME/.cache/expert-robot"
+              mkdir -p "$persistent_root"
+            fi
+
+            export ELAN_HOME="/var/lib/cace-cache/elan"
+            if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+              export ELAN_HOME="$persistent_root/elan"
+              if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+                curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+                  | sh -s -- -y --default-toolchain none
+              fi
+            fi
+            export PATH="$ELAN_HOME/bin:$PATH"
+
+            # Recover only incomplete Lean installations left by interrupted runs.
+            toolchains_dir="$ELAN_HOME/toolchains"
+            mkdir -p "$toolchains_dir"
+            rm -rf -- "$toolchains_dir/leanprover--lean4---v4.34.tmp"
+            echo "Disk before Lean install:" | tee -a "$log"
+            df -h "$ELAN_HOME" "$RUNNER_TEMP" | tee -a "$log" || true
+            free_kb="$(df -Pk "$ELAN_HOME" | awk 'NR==2 {print $4}')"
+            if [ -z "$free_kb" ] || [ "$free_kb" -lt 2097152 ]; then
+              echo "insufficient disk space for pinned Lean toolchain: available_kb=${free_kb:-unknown}, required_kb=2097152" | tee -a "$log"
+              return 50
+            fi
+            elan toolchain install "$toolchain"
+
+            cache_key="v4.34.0-$mathlib_commit"
+            cache_root="$persistent_root/mathlib/$cache_key"
+            package_cache="$cache_root/packages"
+            cache_lock="$cache_root.lock"
+            mkdir -p "$cache_root"
+            # Remove only abandoned temporary copies for this exact pinned cache.
+            find "$cache_root" -maxdepth 1 -mindepth 1 -type d -name 'packages.tmp-*' -prune -exec rm -rf -- {} +
+            echo "Disk before Mathlib dependency/cache work:" | tee -a "$log"
+            df -h "$cache_root" | tee -a "$log" || true
+
+            cd "$formal_dir"
+            manifest_before="$(sha256sum lake-manifest.json | awk '{print $1}')"
+
+            mkdir -p .lake
+            rm -rf .lake/packages
+
+            exec 9>"$cache_lock"
+            flock -w 900 9
+
+            if [ -d "$package_cache/mathlib/.git" ] &&
+               [ "$(git -C "$package_cache/mathlib" rev-parse HEAD)" = "$mathlib_commit" ]; then
+              cp -a --reflink=auto "$package_cache" .lake/packages 2>/dev/null \
+                || cp -a "$package_cache" .lake/packages
+              echo "EXPERT_ROBOT_MATHLIB_CACHE_HIT $cache_key"
+            else
+              echo "EXPERT_ROBOT_MATHLIB_CACHE_MISS $cache_key"
+              MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+              test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$mathlib_commit"
+              lake exe cache get
+
+              temp_cache="$cache_root/packages.tmp-$GITHUB_RUN_ID"
+              rm -rf "$temp_cache" "$package_cache"
+              cp -a --reflink=auto .lake/packages "$temp_cache" 2>/dev/null \
+                || cp -a .lake/packages "$temp_cache"
+              mv "$temp_cache" "$package_cache"
+            fi
+
+            flock -u 9
+
+            test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$mathlib_commit"
+            manifest_after="$(sha256sum lake-manifest.json | awk '{print $1}')"
+            test "$manifest_before" = "$manifest_after"
+
+            lean --version
+            lake --version
+            lake env lean MathAI.lean
+            lake env lean MathAI/Audit.lean
+          }
+
+          if [ "$overall" -eq 0 ]; then
+            run_check "exact-pin Lean root + axiom audit" lean_exact_pin_check
+          fi
+
+          cd "$GITHUB_WORKSPACE"
+
+          python3 - "$request_id" "$source_sha" "$overall" > bridge/result.json <<'PY'
+          import json
+          import platform
+          import sys
+
+          rc = int(sys.argv[3])
+          print(json.dumps({
+              "schema_version": 2,
+              "request_id": sys.argv[1],
+              "expert_robot_commit": sys.argv[2],
+              "status": "pass" if rc == 0 else "fail",
+              "exit_code": rc,
+              "runner_labels": ["self-hosted", "cace", "oci", "aarch64"],
+              "machine": platform.node(),
+              "architecture": platform.machine(),
+              "authority": "qualification-only",
+              "promotion_authority": False,
+              "qualification_lane": "formal-static-arm64",
+              "lean_toolchain": "leanprover/lean4:v4.34.0",
+              "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
+              "cxx_required": False,
+              "self_hosted_contents_write": False,
+              "monetary_cost": "free",
+          }, indent=2))
+          PY
+
+      - name: Upload read-only runner evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expert-robot-bridge-result-42054029936
+          path: |
+            bridge/result.json
+            bridge/result.log
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Enforce qualification result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f bridge/result.json
+          status="$(python3 -c 'import json; print(json.load(open("bridge/result.json"))["status"])')"
+          test "$status" = "pass"
+
+  publish-result:
+    if: always()
+    needs: qualify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download qualification evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: expert-robot-bridge-result-42054029936
+          path: "${{ runner.temp }}/expert-robot-bridge-result"
+
+      - name: Validate result envelope
+        id: result
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["request_id"])')"
+          expected_sha="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["expert_robot_commit"])')"
+          result="$RUNNER_TEMP/expert-robot-bridge-result/result.json"
+          log="$RUNNER_TEMP/expert-robot-bridge-result/result.log"
+
+          test -f "$result"
+          got="$(python3 -c 'import json; print(json.load(open("'"$result"'"))["request_id"])')"
+          got_sha="$(python3 -c 'import json; print(json.load(open("'"$result"'"))["expert_robot_commit"])')"
+          status="$(python3 -c 'import json; print(json.load(open("'"$result"'"))["status"])')"
+
+          test "$got" = "$expected"
+          test "$got_sha" = "$expected_sha"
+
+          if [ -f "$log" ]; then
+            size="$(stat -c %s "$log")"
+            test "$size" -le $((1024 * 1024))
+          fi
+
+          echo "request_id=$expected" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Publish result inside Cace-app bridge branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          result="$RUNNER_TEMP/expert-robot-bridge-result/result.json"
+          log="$RUNNER_TEMP/expert-robot-bridge-result/result.log"
+          expected="${{ steps.result.outputs.request_id }}"
+
+          mkdir -p bridge
+          cp "$result" bridge/result.json
+          if [ -f "$log" ]; then
+            cp "$log" bridge/result.log
+          fi
+
+          git config user.name "expert-robot-result-publisher"
+          git config user.email "noreply@github.com"
+          git add bridge/result.json bridge/result.log
+          git commit -m "Expert Robot runner result: $expected" || true
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Prepare Expert Robot reverse deploy key
+        if: ${{ steps.result.outputs.status == 'pass' }}
+        id: reverse-key
+        shell: bash
+        env:
+          EXPERT_ROBOT_SSH_PRIVATE_KEY: ${{ secrets.EXPERT_ROBOT_SSH_PRIVATE_KEY }}
+          EXPERT_ROBOT_DEPLOY_KEY: ${{ secrets.EXPERT_ROBOT_DEPLOY_KEY }}
+          CACE_TO_EXPERT_ROBOT_SSH_KEY: ${{ secrets.CACE_TO_EXPERT_ROBOT_SSH_KEY }}
+          EXPERT_ROBOT_DEPLOY_PRIVATE_KEY: ${{ secrets.EXPERT_ROBOT_DEPLOY_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          key="${EXPERT_ROBOT_SSH_PRIVATE_KEY:-}"
+          if [ -z "$key" ]; then key="${EXPERT_ROBOT_DEPLOY_KEY:-}"; fi
+          if [ -z "$key" ]; then key="${CACE_TO_EXPERT_ROBOT_SSH_KEY:-}"; fi
+          if [ -z "$key" ]; then key="${EXPERT_ROBOT_DEPLOY_PRIVATE_KEY:-}"; fi
+
+          if [ -z "$key" ]; then
+            echo "::error::No supported Expert Robot reverse deploy-key secret is configured."
+            echo "::error::Supported names: EXPERT_ROBOT_SSH_PRIVATE_KEY, EXPERT_ROBOT_DEPLOY_KEY, CACE_TO_EXPERT_ROBOT_SSH_KEY, EXPERT_ROBOT_DEPLOY_PRIVATE_KEY"
+            exit 1
+          fi
+
+          umask 077
+          key_file="$RUNNER_TEMP/expert_robot_reverse_key"
+          printf '%s\n' "$key" > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keygen -y -f "$key_file" > "$RUNNER_TEMP/expert_robot_reverse_key.pub"
+
+          echo "key_file=$key_file" >> "$GITHUB_OUTPUT"
+
+      - name: Return passed evidence to Expert Robot
+        if: ${{ steps.result.outputs.status == 'pass' }}
+        shell: bash
+        env:
+          KEY_FILE: ${{ steps.reverse-key.outputs.key_file }}
+          REQUEST_ID: ${{ steps.result.outputs.request_id }}
+          SOURCE_SHA: ${{ steps.result.outputs.source_sha }}
+          EXPERT_ROBOT_REPO_SSH: git@github.com:Mannyspiro/expert-robot.git
+        run: |
+          set -euo pipefail
+
+          source_branch="$(
+            python3 -c 'import json; print(json.load(open("bridge/request.json"))["source_branch"])'
+          )"
+          return_repo="$(
+            python3 -c 'import json; print(json.load(open("bridge/request.json"))["return_repository"])'
+          )"
+          test "$return_repo" = "Mannyspiro/expert-robot"
+
+          work="$RUNNER_TEMP/expert-robot-return"
+          evidence_dir=".cace/evidence/$REQUEST_ID"
+          return_branch="cace-return/$REQUEST_ID"
+          rm -rf "$work"
+
+          GIT_SSH_COMMAND="ssh -i $KEY_FILE -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+            git clone "$EXPERT_ROBOT_REPO_SSH" "$work"
+
+          cd "$work"
+          git fetch origin "$source_branch"
+          git checkout -B "$return_branch" "origin/$source_branch"
+
+          mkdir -p "$evidence_dir"
+          cp "$RUNNER_TEMP/expert-robot-bridge-result/result.json" "$evidence_dir/result.json"
+          if [ -f "$RUNNER_TEMP/expert-robot-bridge-result/result.log" ]; then
+            cp "$RUNNER_TEMP/expert-robot-bridge-result/result.log" "$evidence_dir/result.log"
+          fi
+          cp "$GITHUB_WORKSPACE/bridge/request.json" "$evidence_dir/request.json"
+
+          python3 - "$REQUEST_ID" "$SOURCE_SHA" "$source_branch" "$evidence_dir" > .cace-return.json <<'PY'
+          import json
+          import sys
+
+          print(json.dumps({
+              "schema_version": 1,
+              "request_id": sys.argv[1],
+              "status": "pass",
+              "expert_robot_commit": sys.argv[2],
+              "base_branch": sys.argv[3],
+              "source_branch": sys.argv[3],
+              "evidence_dir": sys.argv[4],
+              "authority": "qualification-only",
+              "promotion_authority": False,
+              "monetary_cost": "free",
+          }, indent=2))
+          PY
+
+          git config user.name "cace-expert-robot-return"
+          git config user.email "noreply@github.com"
+          git add .cace-return.json "$evidence_dir"
+          git commit -m "Return CACE qualification evidence: $REQUEST_ID"
+
+          GIT_SSH_COMMAND="ssh -i $KEY_FILE -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+            git push --force-with-lease origin "HEAD:$return_branch"
+
+      - name: Remove reverse deploy key
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "$RUNNER_TEMP/expert_robot_reverse_key" "$RUNNER_TEMP/expert_robot_reverse_key.pub"
