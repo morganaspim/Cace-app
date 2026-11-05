@@ -50,8 +50,14 @@ jobs:
             name="$1"
             shift
             echo "=== $name ===" | tee -a "$log"
-            "$@" 2>&1 | tee -a "$log"
+
+            # Isolate checks whose internals enable errexit. A nonzero result
+            # must not terminate this dispatcher before result.json is written.
+            set +e
+            ( "$@" ) 2>&1 | tee -a "$log"
             rc=${PIPESTATUS[0]}
+            set +e
+
             if [ "$rc" -ne 0 ]; then
               record_failure "$rc"
             fi
@@ -352,7 +358,7 @@ jobs:
           git push origin "HEAD:$GITHUB_REF_NAME"
 
       - name: Prepare Expert Robot reverse deploy key
-        if: ${{ steps.result.outputs.status == 'pass' }}
+        if: ${{ steps.result.outcome == 'success' }}
         id: reverse-key
         shell: bash
         env:
