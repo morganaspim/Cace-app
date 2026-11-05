@@ -136,6 +136,15 @@ jobs:
             run_check "known failure regression guardrails" python3 tests/known_failure_regression_smoke.py
             run_check "formal dependency lock" python3 tests/formal_dependency_lock_smoke.py
             run_check "CACE return bridge guardrails" python3 tests/cace_return_bridge_smoke.py
+            run_check "Hermes proof orchestrator tests" python3 -m unittest discover -s tests -p test_hermes_proof_orchestrator.py -v
+            run_check "Hermes-to-Lean proof-search boundary tests" python3 -m unittest discover -s tests -p test_hermes_stage_handlers.py -v
+            run_check "Engineering IR and SPICE export tests" python3 -m unittest discover -s tests -p test_engineering_ir.py -v
+            run_check "bounded ngspice adapter contract tests" python3 -m unittest discover -s tests -p test_ngspice_engine.py -v
+            run_check "FreeCAD macro and canonical import tests" python3 -m unittest discover -s tests -p test_freecad_bridge.py -v
+            run_check "FreeCAD document registration tests" python3 -m unittest discover -s tests -p test_freecad_document_bridge.py -v
+            run_check "read-only HUD and registry query tests" python3 -m unittest discover -s tests -p test_hud_http.py -v
+            run_check "read-only HUD runtime tests" python3 -m unittest discover -s tests -p test_hud_runtime.py -v
+            run_check "canonical registry query tests" python3 -m unittest discover -s tests -p test_registry_queries.py -v
             run_check "shell syntax" bash -n scripts/bootstrap-railway-worker.sh scripts/preflight.sh scripts/railway-preflight.sh scripts/railway-sandbox-lane.sh
           fi
 
