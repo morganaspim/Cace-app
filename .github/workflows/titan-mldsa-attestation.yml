@@ -32,9 +32,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          WORK_DIR="/tmp/cace-pqc-${GITHUB_RUN_ID}"
-          mkdir -p "$WORK_DIR"
+          WORK_DIR=""
+          for candidate in /tmp/cace-pqc-*; do
+            [ -d "$candidate/liboqs-install/lib" ] || continue
+            [ -d "$candidate/liboqs/.git" ] || continue
+            [ -d "$candidate/liboqs-python/.git" ] || continue
+            [ -d "$candidate/venv" ] || continue
+            [ "$(git -C "$candidate/liboqs" rev-parse HEAD)" = "5a1a854b0dc9f2141bdc771c555ee60c37950183" ] || continue
+            [ "$(git -C "$candidate/liboqs-python" rev-parse HEAD)" = "64c76ad0a80d6c69f2003219eb27b253782a3d68" ] || continue
+            if "$candidate/venv/bin/python" -c 'import importlib.metadata, oqs; assert importlib.metadata.version("liboqs-python") == "0.16.0.2"; assert oqs.oqs_version() == "0.16.0"' >/dev/null 2>&1; then
+              WORK_DIR="$candidate"
+              break
+            fi
+          done
+          if [ -z "$WORK_DIR" ]; then
+            WORK_DIR="/tmp/cace-pqc-${GITHUB_RUN_ID}"
+            mkdir -p "$WORK_DIR"
+          fi
           echo "WORK_DIR=$WORK_DIR" >> "$GITHUB_ENV"
+          echo "Selected provider work directory: $WORK_DIR"
           if command -v dnf >/dev/null 2>&1; then
             sudo dnf install -y openssl-devel
           elif command -v yum >/dev/null 2>&1; then
