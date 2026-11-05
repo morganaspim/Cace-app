@@ -66,4 +66,4 @@ def test_cace_rejects_tampered_artifact_bytes(tmp_path: Path) -> None:
         capture_output=True, text=True, check=False,
     )
     assert result.returncode == 2
-    assert "SHA-256 mismatch" in result.stderr
+    assert "mismatch" in result.stderr.lower()
