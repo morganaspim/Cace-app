@@ -67,8 +67,8 @@ jobs:
         id: run-tests
         shell: bash
         env:
-          LD_LIBRARY_PATH: $WORK_DIR/liboqs-install/lib
-          OQS_INSTALL_PATH: $WORK_DIR/liboqs-install
+          LD_LIBRARY_PATH: ${{ env.WORK_DIR }}/liboqs-install/lib
+          OQS_INSTALL_PATH: ${{ env.WORK_DIR }}/liboqs-install
         run: |
           set -euo pipefail
           $WORK_DIR/venv/bin/python - <<'PY'
@@ -89,8 +89,8 @@ jobs:
         shell: bash
         env:
           TEST_EXIT_CODE: ${{ steps.run-tests.outputs.exit_code }}
-          LD_LIBRARY_PATH: $WORK_DIR/liboqs-install/lib
-          OQS_INSTALL_PATH: $WORK_DIR/liboqs-install
+          LD_LIBRARY_PATH: ${{ env.WORK_DIR }}/liboqs-install/lib
+          OQS_INSTALL_PATH: ${{ env.WORK_DIR }}/liboqs-install
         run: |
           set -euo pipefail
           $WORK_DIR/venv/bin/python - <<'PY'
@@ -115,8 +115,8 @@ jobs:
             "workflow_run_id":os.environ.get("GITHUB_RUN_ID"),
             "workflow_run_attempt":os.environ.get("GITHUB_RUN_ATTEMPT"),
             "cace_source_commit":os.environ.get("GITHUB_SHA"),
-            "provider":{"repository":"https://github.com/open-quantum-safe/liboqs","version":libver,"commit":git("$WORK_DIR/liboqs")},
-            "python_binding":{"repository":"https://github.com/open-quantum-safe/liboqs-python","version":pyver,"commit":git("$WORK_DIR/liboqs-python")},
+            "provider":{"repository":"https://github.com/open-quantum-safe/liboqs","version":libver,"commit":git(os.path.join(os.environ["WORK_DIR"],"liboqs"))},
+            "python_binding":{"repository":"https://github.com/open-quantum-safe/liboqs-python","version":pyver,"commit":git(os.path.join(os.environ["WORK_DIR"],"liboqs-python"))},
             "test_exit_code":int(rc) if rc and rc.isdigit() else None,
             "test_result":"pass" if rc=="0" else ("fail" if rc else "not_completed"),
             "signature_algorithm":"ML-DSA-65",
