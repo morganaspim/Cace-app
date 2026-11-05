@@ -31,33 +31,45 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - bridge/merlin-request.json bridge/merlin-source.tar.gz <<'PY'
+          test -s bridge/merlin-request.json
+          test -s bridge/merlin-source.tar.gz
+          test -s bridge/merlin-evidence.tar.gz
+          python3 - bridge/merlin-request.json bridge/merlin-source.tar.gz bridge/merlin-evidence.tar.gz <<'PY'
           import hashlib, json, pathlib, re, sys, tarfile
-          req_path, archive_path = map(pathlib.Path, sys.argv[1:])
+          req_path, source_path, evidence_path = map(pathlib.Path, sys.argv[1:])
           req = json.loads(req_path.read_text())
-          raw = archive_path.read_bytes()
+          source_raw, evidence_raw = source_path.read_bytes(), evidence_path.read_bytes()
           assert req.get("schema_version") == 1
           assert re.fullmatch(r"merlin-deploy-[0-9]+-[0-9a-f]{40}", req.get("request_id", ""))
           assert re.fullmatch(r"[0-9a-f]{40}", req.get("expert_robot_commit", ""))
           assert req.get("authority") == "qualification-only"
           assert req.get("promotion_authority") is False
           assert req.get("public_host") == "merlin.129.146.160.46.nip.io"
-          assert req.get("exposure") == "read-only"
-          assert req.get("archive_sha256") == hashlib.sha256(raw).hexdigest()
-          assert req.get("archive_size_bytes") == len(raw)
-          expanded = 0
-          with tarfile.open(archive_path, "r:gz") as archive:
-              for member in archive.getmembers():
-                  p = pathlib.PurePosixPath(member.name)
-                  assert not p.is_absolute() and ".." not in p.parts
-                  assert not (member.issym() or member.islnk() or member.isdev() or member.isfifo())
-                  expanded += max(0, member.size)
-                  assert expanded <= 100 * 1024 * 1024
-          print("MERLIN_DEPLOY_REQUEST_VALID")
+          assert req.get("exposure") == "bounded-interactive"
+          assert req.get("archive_sha256") == hashlib.sha256(source_raw).hexdigest()
+          assert req.get("archive_size_bytes") == len(source_raw)
+          assert req.get("evidence_run_id") == 42069240351
+          assert req.get("evidence_source_commit") == "51f0c8a8977a3095e2719d6759c91397c2e23352"
+          assert req.get("evidence_artifact_id") == 13433224922
+          assert req.get("evidence_artifact_sha256") == "14fe49cca132007ce4f1fd9e1e3507bb82f5c7e693f556916c4ea35786a374e8"
+          assert req.get("evidence_archive_sha256") == hashlib.sha256(evidence_raw).hexdigest()
+          assert req.get("evidence_archive_size_bytes") == len(evidence_raw)
+          for archive_path, limit in ((source_path, 100*1024*1024), (evidence_path, 20*1024*1024)):
+              expanded = 0
+              with tarfile.open(archive_path, "r:gz") as archive:
+                  for member in archive.getmembers():
+                      p = pathlib.PurePosixPath(member.name)
+                      assert not p.is_absolute() and ".." not in p.parts
+                      assert not (member.issym() or member.islnk() or member.isdev() or member.isfifo())
+                      expanded += max(0, member.size)
+                      assert expanded <= limit
+          print("MERLIN_DEPLOY_AND_EVIDENCE_REQUEST_VALID")
           print(req["request_id"], req["expert_robot_commit"])
           PY
-          echo "request_id=$(python3 -c 'import json; print(json.load(open("bridge/merlin-request.json"))["request_id"])')" >> "$GITHUB_OUTPUT"
-          echo "expert_robot_commit=$(python3 -c 'import json; print(json.load(open("bridge/merlin-request.json"))["expert_robot_commit"])')" >> "$GITHUB_OUTPUT"
+          for field in request_id expert_robot_commit evidence_source_commit evidence_run_id evidence_artifact_id evidence_artifact_sha256 evidence_archive_sha256; do
+            value="$(python3 -c 'import json,sys; print(json.load(open("bridge/merlin-request.json"))[sys.argv[1]])' "$field")"
+            echo "$field=$value" >> "$GITHUB_OUTPUT"
+          done
 
       - name: Check OCI capacity and existing Nginx
         shell: bash
