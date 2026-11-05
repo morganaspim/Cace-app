@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "request_id": "expert-robot-42054029936-e9e0e4312d61db3a758bbcae6c46dd144649fc55",
+  "expert_robot_commit": "e9e0e4312d61db3a758bbcae6c46dd144649fc55",
+  "status": "fail",
+  "exit_code": 50,
+  "runner_labels": [
+    "self-hosted",
+    "cace",
+    "oci",
+    "aarch64"
+  ],
+  "machine": "cace-oci-a1",
+  "architecture": "aarch64",
+  "authority": "qualification-only",
+  "promotion_authority": false,
+  "qualification_lane": "formal-static-arm64",
+  "lean_toolchain": "leanprover/lean4:v4.34.0",
+  "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
+  "cxx_required": false,
+  "self_hosted_contents_write": false,
+  "monetary_cost": "free"
+}
