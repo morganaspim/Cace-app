@@ -268,16 +268,6 @@ jobs:
               server_name $PUBLIC_HOST;
               client_max_body_size 64k;
               location ^~ /.well-known/acme-challenge/ { root /var/www/merlin-acme; }
-              location = /api/council/prepare {
-                  limit_except POST { deny all; }
-                  limit_req zone=merlin_write burst=5 nodelay;
-                  proxy_pass http://127.0.0.1:8765;
-                  proxy_http_version 1.1;
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-              }
               location / { return 301 https://\$host\$request_uri; }
           }
           server {
@@ -321,7 +311,7 @@ jobs:
           else
             echo "tls_ready=false" >> "$GITHUB_OUTPUT"
             echo "deployment_url=http://$PUBLIC_HOST/hud" >> "$GITHUB_OUTPUT"
-            echo "::warning::TLS issuance failed; the public HUD is GET-only over HTTP. Do not submit secrets or private research."
+            echo "::warning::TLS issuance failed; the bounded council-preparation endpoint is also exposed over HTTP. Do not submit secrets or private research."
           fi
 
       - name: Verify public routing and read-only policy
