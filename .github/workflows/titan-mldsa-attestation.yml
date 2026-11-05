@@ -51,7 +51,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m venv /tmp/cace-pqc-venv
+          export PATH="$HOME/.local/bin:$PATH"
+          uv venv --python 3.12.11 /tmp/cace-pqc-venv
           /tmp/cace-pqc-venv/bin/python -m pip install "hatchling==1.27.0" "pytest==8.4.2"
           OQS_PYTHON_TAG_SHA="$(git ls-remote https://github.com/open-quantum-safe/liboqs-python.git refs/tags/0.16.0.2 | awk '{print $1}')"
           test "$OQS_PYTHON_TAG_SHA" = "64c76ad0a80d6c69f2003219eb27b253782a3d68"
