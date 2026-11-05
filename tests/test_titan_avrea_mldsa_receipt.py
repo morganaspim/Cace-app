@@ -14,9 +14,9 @@ import oqs
 from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle, verify_bundle
 from cace_studio.core.pqc_attestation import public_key_id, sign_ml_dsa65, verify_ml_dsa65
 
-FIXTURE = Path(__file__).parent / "fixtures" / "titan-avrea-42087925099"
-ZIP_SHA256 = "466c1d227bb13ae8ec1d8b51fd9d3722c76df2934fd1dd2e200b0b391f2b643d"
-SOURCE_COMMIT = "0f3ca6ae38d4ac745855c49509bf6992694cb522"
+FIXTURE = Path(__file__).parent / "fixtures" / "titan-avrea-42090360334"
+ZIP_SHA256 = "0cd2040e9a426079bda9311937e55da9ae8b57d832908ff42f2e2c41c8d02eb6"
+SOURCE_COMMIT = "8e40cb034864f80e58aef7602c4cc4dd1e41ed57"
 PROVIDER_COMMIT = "5a1a854b0dc9f2141bdc771c555ee60c37950183"
 VECTOR_COMMIT = "b121fee031dc65d32c96f4109a42a10dacbe2076"
 
@@ -62,7 +62,7 @@ def test_actual_avrea_bundle_ml_dsa65_receipt_roundtrip() -> None:
         bindings={
             "source_repository": "Mannyspiro/expert-robot",
             "source_commit_sha": SOURCE_COMMIT,
-            "workflow_run_id": 42087925099,
+            "workflow_run_id": 42090360334,
             "provider_commit": PROVIDER_COMMIT,
             "vector_source_commit": VECTOR_COMMIT,
             "verification_scope": "FIPS203=9/9, FIPS204=9/9, FIPS205=36/36; zero failures",
