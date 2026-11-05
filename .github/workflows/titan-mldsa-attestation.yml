@@ -33,8 +33,11 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends cmake ninja-build gcc g++ git python3 python3-venv
+          LIBOQS_TAG_SHA="$(git ls-remote https://github.com/open-quantum-safe/liboqs.git refs/tags/0.16.0 | awk '{print $1}')"
+          test "$LIBOQS_TAG_SHA" = "5a1a854b0dc9f2141bdc771c555ee60c37950183"
           git clone --filter=blob:none https://github.com/open-quantum-safe/liboqs.git /tmp/liboqs
           git -C /tmp/liboqs checkout --detach 5a1a854b0dc9f2141bdc771c555ee60c37950183
+          test "$(git -C /tmp/liboqs rev-parse HEAD)" = "$LIBOQS_TAG_SHA"
           cmake -S /tmp/liboqs -B /tmp/liboqs/build -GNinja -DCMAKE_BUILD_TYPE=Release -DOQS_ALGS_ENABLED=STD -DBUILD_SHARED_LIBS=ON -DOQS_BUILD_ONLY_LIB=ON -DCMAKE_INSTALL_PREFIX=/tmp/liboqs-install
           cmake --build /tmp/liboqs/build --parallel 4
           cmake --install /tmp/liboqs/build
@@ -44,8 +47,11 @@ jobs:
           set -euo pipefail
           python3 -m venv /tmp/cace-pqc-venv
           /tmp/cace-pqc-venv/bin/python -m pip install "hatchling==1.27.0" "pytest==8.4.2"
+          OQS_PYTHON_TAG_SHA="$(git ls-remote https://github.com/open-quantum-safe/liboqs-python.git refs/tags/0.16.0.2 | awk '{print $1}')"
+          test "$OQS_PYTHON_TAG_SHA" = "64c76ad0a80d6c69f2003219eb27b253782a3d68"
           git clone --filter=blob:none https://github.com/open-quantum-safe/liboqs-python.git /tmp/liboqs-python
           git -C /tmp/liboqs-python checkout --detach 64c76ad0a80d6c69f2003219eb27b253782a3d68
+          test "$(git -C /tmp/liboqs-python rev-parse HEAD)" = "$OQS_PYTHON_TAG_SHA"
           OQS_INSTALL_PATH=/tmp/liboqs-install LD_LIBRARY_PATH=/tmp/liboqs-install/lib /tmp/cace-pqc-venv/bin/python -m pip install --no-deps --no-build-isolation /tmp/liboqs-python
       - name: Verify provider version and run CACE receipt tests
         id: run-tests
