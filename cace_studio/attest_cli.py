@@ -142,6 +142,7 @@ def main(argv: list[str] | None = None) -> int:
 
     pqc_sign = sub.add_parser("pqc-sign", help="Sign a CACE evidence bundle with ML-DSA-65")
     pqc_sign.add_argument("--bundle", type=Path, required=True)
+    pqc_sign.add_argument("--artifact-root", type=Path, required=True)
     pqc_sign.add_argument("--private-key", type=Path, required=True)
     pqc_sign.add_argument("--public-key", type=Path, required=True)
     pqc_sign.add_argument("--bindings", type=Path, required=True)
@@ -231,6 +232,17 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "pqc-sign":
             from .core.pqc_attestation import public_key_id, sign_ml_dsa65
             bundle = _load_bundle(args.bundle)
+            artifact_bytes = {}
+            artifact_root = args.artifact_root.resolve()
+            for artifact in bundle.artifacts:
+                relative = Path(artifact.path or "")
+                if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+                    raise ValueError(f"unsafe or missing artifact path: {artifact.artifact_id}")
+                target = (artifact_root / relative).resolve()
+                if artifact_root not in target.parents:
+                    raise ValueError(f"artifact escapes artifact root: {artifact.artifact_id}")
+                artifact_bytes[artifact.artifact_id] = target.read_bytes()
+            verify_bundle(bundle, artifact_bytes=artifact_bytes)
             secret_key = args.private_key.read_bytes()
             public_key = args.public_key.read_bytes()
             bindings = _read_json(args.bindings)
