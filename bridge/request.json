@@ -1,0 +1,11 @@
+{
+  "schema_version": 2,
+  "request_id": "expert-robot-42069453180-1-dd7d261ae2d4cc8bd6563d1a2b0380b1b78d8c21",
+  "expert_robot_commit": "dd7d261ae2d4cc8bd6563d1a2b0380b1b78d8c21",
+  "archive_size_bytes": 971601,
+  "source_branch": "repair/merlin-full-integration-20261105",
+  "return_repository": "Mannyspiro/expert-robot",
+  "requested_lane": "cace-oci-aarch64",
+  "authority": "qualification-only",
+  "monetary_cost": "free"
+}
