@@ -85,6 +85,10 @@ jobs:
           set -euo pipefail
           app_user="$(id -un)"
           app_group="$(id -gn)"
+          python_bin="$(find /opt/cace-web/python -type f -path '*/bin/python3.13' -perm -u+x 2>/dev/null | head -n 1)"
+          if [ -z "$python_bin" ] && command -v python3.13 >/dev/null 2>&1; then python_bin="$(command -v python3.13)"; fi
+          if [ -z "$python_bin" ]; then echo "::error::Pinned Python 3.13 runtime from the existing CACE deployment is unavailable."; exit 1; fi
+          "$python_bin" -c 'import sys; assert sys.version_info >= (3,10)'
           root="/opt/merlin"
           release="$root/releases/$REQUEST_ID"
           data="/var/lib/merlin/data"
@@ -95,8 +99,8 @@ jobs:
           test -f "$release/python/merlin/app.py"
           test -f "$release/ui/merlin-hud/index.html"
           test -f "$release/scripts/init_merlin_dashboard_stores.py"
-          PYTHONPATH="$release/python" python3 -m compileall -q "$release/python/merlin" "$release/scripts/init_merlin_dashboard_stores.py"
-          PYTHONPATH="$release/python" python3 "$release/scripts/init_merlin_dashboard_stores.py" \
+          PYTHONPATH="$release/python" "$python_bin" -m compileall -q "$release/python/merlin" "$release/scripts/init_merlin_dashboard_stores.py"
+          PYTHONPATH="$release/python" "$python_bin" "$release/scripts/init_merlin_dashboard_stores.py" \
             --data-dir "$data" --project-id merlin-main --project-name "Merlin Research Workbench" \
             > "$RUNNER_TEMP/merlin-bootstrap.json"
           python3 -m json.tool "$RUNNER_TEMP/merlin-bootstrap.json" >/dev/null
@@ -108,7 +112,7 @@ jobs:
             source "$data/merlin-hud.env"
             export PYTHONPATH="$release/python"
             export HOME="$test_home"
-            python3 -m merlin.app --port "$test_port" --db "$RUNNER_TEMP/merlin-smoke-events.sqlite3"
+            "$python_bin" -m merlin.app --port "$test_port" --db "$RUNNER_TEMP/merlin-smoke-events.sqlite3"
           ) > "$RUNNER_TEMP/merlin-smoke-server.log" 2>&1 &
           smoke_pid=$!
           cleanup() { kill "$smoke_pid" 2>/dev/null || true; wait "$smoke_pid" 2>/dev/null || true; }
@@ -146,7 +150,7 @@ jobs:
           Environment=MERLIN_HYPOTHESES_DB_PATH=$data/hypotheses.sqlite3
           Environment=MERLIN_DB_PATH=$data/events.sqlite3
           Environment=MERLIN_PROJECT_ID=merlin-main
-          ExecStart=/usr/bin/python3 -m merlin.app --port 8765 --db $data/events.sqlite3
+          ExecStart=$python_bin -m merlin.app --port 8765 --db $data/events.sqlite3
           Restart=on-failure
           RestartSec=3
           NoNewPrivileges=true
