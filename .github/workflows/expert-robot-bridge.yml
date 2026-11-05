@@ -410,6 +410,7 @@ jobs:
 
       - name: Prepare Expert Robot reverse deploy key
         if: ${{ steps.result.outcome == 'success' }}
+        continue-on-error: true
         id: reverse-key
         shell: bash
         env:
@@ -440,7 +441,7 @@ jobs:
           echo "key_file=$key_file" >> "$GITHUB_OUTPUT"
 
       - name: Return structured result to Expert Robot
-        if: ${{ steps.result.outputs.status == 'pass' || steps.result.outputs.status == 'fail' }}
+        if: ${{ (steps.result.outputs.status == 'pass' || steps.result.outputs.status == 'fail') && steps.reverse-key.outputs.key_file != '' }}
         shell: bash
         env:
           KEY_FILE: ${{ steps.reverse-key.outputs.key_file }}
