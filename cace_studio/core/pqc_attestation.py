@@ -142,7 +142,7 @@ def sign_ml_dsa65(statement: Mapping[str, Any], secret_key: bytes, public_key: b
     }
 
 
-def verify_ml_dsa65(envelope: Mapping[str, Any], *, trusted_verifier_id: str | None = None) -> str:
+def verify_ml_dsa65(envelope: Mapping[str, Any], *, trusted_verifier_id: str | None = None, trusted_key_id: str | None = None) -> str:
     """Verify the signature and internal bindings; trust policy remains external."""
     if set(envelope) != ENVELOPE_KEYS:
         raise PQCAttestationError("envelope keys do not match v2 schema")
@@ -169,8 +169,11 @@ def verify_ml_dsa65(envelope: Mapping[str, Any], *, trusted_verifier_id: str | N
         raise PQCAttestationError("public key encoding is not canonical base64")
     if base64.b64encode(signature).decode("ascii") != envelope["signature_b64"]:
         raise PQCAttestationError("signature encoding is not canonical base64")
-    if statement["verifier_key_id"] != public_key_id(public_key):
+    actual_key_id = public_key_id(public_key)
+    if statement["verifier_key_id"] != actual_key_id:
         raise PQCAttestationError("public key ID mismatch")
+    if trusted_key_id is not None and actual_key_id != trusted_key_id:
+        raise PQCAttestationError("signing key is not trusted by the supplied key-ID policy")
     oqs = _provider()
     try:
         with oqs.Signature(ALGORITHM) as verifier:
