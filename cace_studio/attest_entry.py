@@ -72,6 +72,17 @@ def _preflight_crypto() -> int | None:
     return None
 
 
+def _preflight_pqc() -> int | None:
+    try:
+        import oqs  # noqa: F401
+    except ImportError:
+        return _error(
+            "ML-DSA attestations require the optional pinned liboqs-python provider",
+            "PQCProviderUnavailable",
+        )
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if not args or args[0] in {"-h", "--help"}:
@@ -86,6 +97,10 @@ def main(argv: list[str] | None = None) -> int:
             return blocked
     elif command == "sign":
         blocked = _preflight_crypto()
+        if blocked is not None:
+            return blocked
+    elif command.startswith("pqc-"):
+        blocked = _preflight_pqc()
         if blocked is not None:
             return blocked
     return _attest_main(args)
