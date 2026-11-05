@@ -1,15 +1,6 @@
 name: CACE Independent Avrea Evidence Verification
 
 on:
-  push:
-    branches:
-      - "feat/titan-mldsa-attestation-v2-20261105"
-    paths:
-      - "tests/fixtures/titan-avrea-*/**"
-      - "tests/test_titan_avrea_evidence.py"
-      - "tests/test_titan_bundle_verifier.py"
-      - "scripts/verify_titan_bundle.py"
-      - ".github/workflows/titan-avrea-bundle-verify.yml"
   workflow_dispatch:
 
 permissions:
