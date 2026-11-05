@@ -31,6 +31,6 @@ Filesystem                  Size  Used Avail Use% Mounted on
 Filesystem                  Size  Used Avail Use% Mounted on
 /dev/mapper/ocivolume-root   30G   29G  1.2G  97% /
 /dev/mapper/ocivolume-root   30G   29G  1.2G  97% /
-insufficient disk space for pinned Lean toolchain: available_kb=1158160, required_kb=2097152
-insufficient disk space for pinned Lean toolchain: available_kb=1158160, required_kb=2097152
+insufficient disk space for pinned Lean toolchain: available_kb=1158120, required_kb=2097152
+insufficient disk space for pinned Lean toolchain: available_kb=1158120, required_kb=2097152
 exit_code=50
