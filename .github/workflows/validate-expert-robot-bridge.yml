@@ -1,0 +1,35 @@
+name: Validate Expert Robot bridge workflow snapshot
+
+on:
+  push:
+    branches: ["executor/expert-robot-bridge"]
+    paths:
+      - "docs/diagnostics/expert-robot-external-bridge.snapshot.yml"
+      - ".github/workflows/validate-expert-robot-bridge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse workflow YAML and require dispatch job
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby - <<'RUBY'
+          require "yaml"
+          path = "docs/diagnostics/expert-robot-external-bridge.snapshot.yml"
+          doc = YAML.load_file(path)
+          abort "top-level document is not a mapping" unless doc.is_a?(Hash)
+          jobs = doc["jobs"]
+          abort "jobs mapping missing" unless jobs.is_a?(Hash)
+          abort "dispatch job missing" unless jobs.key?("dispatch")
+          abort "dispatch job has no steps" unless jobs["dispatch"]["steps"].is_a?(Array)
+          puts "YAML_PARSE=PASS"
+          puts "TOP_LEVEL_KEYS=#{doc.keys.map(&:to_s).sort.join(",")}"
+          puts "JOB_NAMES=#{jobs.keys.join(",")}"
+          puts "DISPATCH_STEPS=#{jobs["dispatch"]["steps"].length}"
+          RUBY
