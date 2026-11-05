@@ -58,3 +58,7 @@ def test_mldsa65_rejects_short_public_key() -> None:
     envelope["public_key_b64"] = base64.b64encode(public_key[:8]).decode("ascii")
     with pytest.raises(PQCAttestationError):
         verify_ml_dsa65(envelope)
+    # liboqs-python 0.16.0.2 must reject malformed key lengths before native calls.
+    with oqs.Signature("ML-DSA-65") as verifier:
+        with pytest.raises(ValueError):
+            verifier.verify(b"message", b"bad", public_key[:8])
