@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: expert-robot-free-runner-bridge
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   qualify:
@@ -355,7 +355,21 @@ jobs:
           git config user.email "noreply@github.com"
           git add bridge/result.json bridge/result.log
           git commit -m "Expert Robot runner result: $expected" || true
-          git push origin "HEAD:$GITHUB_REF_NAME"
+
+          # Rebase result onto the latest request commit; never force-push.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin "$GITHUB_REF_NAME"
+            git rebase "origin/$GITHUB_REF_NAME"
+            if git push origin "HEAD:$GITHUB_REF_NAME"; then
+              echo "result_published=true attempt=$attempt"
+              exit 0
+            fi
+            echo "Result push raced with a new request; retry=$attempt" >&2
+            git rebase --abort || true
+            sleep "$attempt"
+          done
+          echo "::error::Could not publish result after five fast-forward-safe attempts."
+          exit 1
 
       - name: Prepare Expert Robot reverse deploy key
         if: ${{ steps.result.outcome == 'success' }}
@@ -388,8 +402,8 @@ jobs:
 
           echo "key_file=$key_file" >> "$GITHUB_OUTPUT"
 
-      - name: Return passed evidence to Expert Robot
-        if: ${{ steps.result.outputs.status == 'pass' }}
+      - name: Return structured result to Expert Robot
+        if: ${{ steps.result.outputs.status == 'pass' || steps.result.outputs.status == 'fail' }}
         shell: bash
         env:
           KEY_FILE: ${{ steps.reverse-key.outputs.key_file }}
