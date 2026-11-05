@@ -1,0 +1,27 @@
+request_id=expert-robot-42063228005-b63ffddb143c73e20c183e7c09e8eef191bb0af4
+expert_robot_commit=b63ffddb143c73e20c183e7c09e8eef191bb0af4
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.4Gi       2.5Gi       135Mi       7.0Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+known failure regression guardrails: PASS
+exit_code=0
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+Traceback (most recent call last):
+  File "/opt/actions-runner/_work/_temp/expert-robot-42063290710/tests/cace_return_bridge_smoke.py", line 23, in <module>
+    assert 'git add bridge/request.json bridge/expert-robot-source.tar.gz bridge/result.json bridge/result.log' in external
+AssertionError
+exit_code=1
+=== shell syntax ===
+exit_code=0
