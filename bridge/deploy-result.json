@@ -1,0 +1,15 @@
+{
+  "authority": "qualification-only",
+  "cace_commit": "4b24b78d8702eff67ab5822cbc8a5fd4f7361b99",
+  "cace_repository": "morganaspim/Cace-app",
+  "cace_run_attempt": 1,
+  "cace_workflow_run_id": 42073818605,
+  "deployment_url": null,
+  "expert_robot_commit": "c65c5ffe64e574871b9b528383cb8c96473318bb",
+  "promotion_authority": false,
+  "public_read_only": true,
+  "request_id": "merlin-deploy-42073757748-c65c5ffe64e574871b9b528383cb8c96473318bb",
+  "schema_version": 1,
+  "status": "fail",
+  "tls_ready": false
+}
