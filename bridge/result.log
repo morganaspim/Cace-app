@@ -1,0 +1,147 @@
+request_id=expert-robot-42069738457-1-3429fc2a80ee4e5a9a19f8b50a7fb59d4c6d8c10
+expert_robot_commit=3429fc2a80ee4e5a9a19f8b50a7fb59d4c6d8c10
+runner=cace-oci-a1
+Linux cace-oci-a1 6.12.0-204.92.4.4.3.el9uek.aarch64 #2 SMP Wed Aug  5 12:21:14 PDT 2026 aarch64 aarch64 aarch64 GNU/Linux
+2
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       1.5Gi       2.5Gi       138Mi       7.1Gi       9.2Gi
+Swap:          4.0Gi       220Mi       3.8Gi
+archive safety: PASS
+formal source safety: PASS
+=== compute policy ===
+compute policy guardrails: PASS
+exit_code=0
+=== known failure regression guardrails ===
+known failure regression guardrails: PASS
+exit_code=0
+=== formal dependency lock ===
+formal dependency lock: PASS
+exit_code=0
+=== CACE return bridge guardrails ===
+CACE return bridge guardrails: PASS
+exit_code=0
+=== Hermes proof orchestrator tests ===
+test_malformed_ambiguous_and_rejected_claims_never_reach_lean (test_hermes_proof_orchestrator.HermesProofOrchestratorTests) ... ok
+test_untrusted_registry_result_blocks_lean (test_hermes_proof_orchestrator.HermesProofOrchestratorTests) ... ok
+test_valid_claim_is_recorded_then_dispatched_exactly_once (test_hermes_proof_orchestrator.HermesProofOrchestratorTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK
+exit_code=0
+=== Hermes-to-Lean proof-search boundary tests ===
+test_all_stage_handlers_record_verified_artifacts_and_graph_edges (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_handler_rejects_untyped_or_empty_executor_output (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_proof_search_routes_exact_claim_source_through_lean_then_cace (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_registration_fails_closed_when_an_engine_is_missing (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_standard_composition_registers_builtin_numerical_and_electrical_engines (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+test_unconfigured_lean_dispatch_ignores_executor_compilation_claim (test_hermes_stage_handlers.HermesStageHandlerTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.517s
+
+OK
+exit_code=0
+=== Engineering IR and SPICE export tests ===
+test_detects_unknown_endpoint_and_pin_assigned_twice (test_engineering_ir.EngineeringIRTests) ... ok
+test_detects_voltage_and_current_rating_exceedance (test_engineering_ir.EngineeringIRTests) ... ok
+test_explicit_component_specs_export_deterministic_spice_netlist (test_engineering_ir.EngineeringIRTests) ... ok
+test_invalid_projects_cannot_export (test_engineering_ir.EngineeringIRTests) ... ok
+test_spice_export_rejects_injected_values_and_unknown_refs (test_engineering_ir.EngineeringIRTests) ... ok
+test_valid_project_exports_netlist_and_openscad (test_engineering_ir.EngineeringIRTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+OK
+exit_code=0
+=== bounded ngspice adapter contract tests ===
+test_accepts_simple_passive_operating_point_netlist (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_rejects_shell_control_and_external_file_directives (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_requires_analysis_and_end (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_run_enforces_address_space_limit_with_prlimit (test_ngspice_engine.NgspiceEngineTests) ... ok
+test_run_refuses_to_claim_memory_bounded_execution_without_prlimit (test_ngspice_engine.NgspiceEngineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.004s
+
+OK
+exit_code=0
+=== FreeCAD macro and canonical import tests ===
+test_bundle_contains_macro_and_validated_netlist (test_freecad_bridge.FreeCADBridgeTests) ... ok
+test_invalid_project_is_rejected (test_freecad_bridge.FreeCADBridgeTests) ... ok
+test_macro_preserves_centered_geometry_and_pin_markers (test_freecad_bridge.FreeCADBridgeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+exit_code=0
+=== FreeCAD document registration tests ===
+test_imported_document_is_registered_and_linked_to_cad_workspace_graph (test_freecad_document_bridge.FreeCADDocumentBridgeTests) ... ok
+test_macro_imports_document_and_exports_bounded_assembly_mesh (test_freecad_document_bridge.FreeCADDocumentBridgeTests) ... ok
+test_rejects_unsupported_document_format_and_unbounded_limits (test_freecad_document_bridge.FreeCADDocumentBridgeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.072s
+
+OK
+exit_code=0
+=== read-only HUD and registry query tests ===
+test_dashboard_is_a_read_only_html_view (test_hud_http.HudActivityWSGITests) ... ok
+test_dashboard_rejects_mutating_methods (test_hud_http.HudActivityWSGITests) ... ok
+test_endpoint_is_get_only (test_hud_http.HudActivityWSGITests) ... ok
+test_get_returns_live_schema_and_no_store (test_hud_http.HudActivityWSGITests) ... ok
+test_graph_routes_require_injected_read_api (test_hud_http.HudActivityWSGITests) ... ok
+test_graph_snapshot_route_returns_canonical_snapshot (test_hud_http.HudActivityWSGITests) ... ok
+test_node_route_returns_node_and_typed_neighbors (test_hud_http.HudActivityWSGITests) ... ok
+test_unknown_path_is_not_found (test_hud_http.HudActivityWSGITests) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK
+exit_code=0
+=== read-only HUD runtime tests ===
+test_activity_get_does_not_acknowledge_outbox_events (test_hud_runtime.HudRuntimeTests) ... ok
+test_mount_preserves_host_routes (test_hud_runtime.HudRuntimeTests) ... ok
+test_mounted_dashboard_serves_read_only_browser_view (test_hud_runtime.HudRuntimeTests) ... ok
+test_runtime_injects_canonical_graph_and_typed_workspace (test_hud_runtime.HudRuntimeTests) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.267s
+
+OK
+exit_code=0
+=== canonical registry query tests ===
+test_hypothesis_and_graph_queries_are_read_only_views (test_registry_queries.MerlinReadAPITests) ... ok
+test_outbox_status_and_project_snapshot (test_registry_queries.MerlinReadAPITests) ... ok
+test_pagination_bounds (test_registry_queries.MerlinReadAPITests) ... ok
+test_project_and_artifact_queries_verify_content_address (test_registry_queries.MerlinReadAPITests) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.367s
+
+OK
+exit_code=0
+=== canonical HUD store bootstrap tests ===
+test_initializes_canonical_read_only_dashboard_stores_idempotently (test_merlin_dashboard_bootstrap.MerlinDashboardBootstrapTests) ... ERROR
+
+======================================================================
+ERROR: test_initializes_canonical_read_only_dashboard_stores_idempotently (test_merlin_dashboard_bootstrap.MerlinDashboardBootstrapTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/actions-runner/_work/_temp/expert-robot-42069852177/tests/test_merlin_dashboard_bootstrap.py", line 12, in test_initializes_canonical_read_only_dashboard_stores_idempotently
+    first = initialize(directory, project_id="merlin-test", project_name="Merlin Test")
+  File "/opt/actions-runner/_work/_temp/expert-robot-42069852177/scripts/init_merlin_dashboard_stores.py", line 72, in initialize
+    "name": inventory["project"]["name"],
+KeyError: 'project'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.081s
+
+FAILED (errors=1)
+exit_code=1
+=== shell syntax ===
+exit_code=0
