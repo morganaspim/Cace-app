@@ -375,40 +375,55 @@ jobs:
           echo "cace_commit=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
           echo "cace_workflow_id=367390621" >> "$GITHUB_OUTPUT"
 
-      - name: Publish result inside Cace-app bridge branch
+      - name: Publish result to per-request CACE result branch
         shell: bash
+        env:
+          REQUEST_ID: ${{ steps.result.outputs.request_id }}
         run: |
           set -euo pipefail
 
           result="$RUNNER_TEMP/expert-robot-bridge-result/result.json"
           log="$RUNNER_TEMP/expert-robot-bridge-result/result.log"
-          expected="${{ steps.result.outputs.request_id }}"
+          request="bridge/request.json"
+          result_branch="cace-result/$REQUEST_ID"
+          case "$REQUEST_ID" in
+            *[!A-Za-z0-9._-]*|"")
+              echo "::error::Unsafe request ID for result branch."
+              exit 1
+              ;;
+          esac
 
-          mkdir -p bridge
-          cp "$result" bridge/result.json
-          if [ -f "$log" ]; then
-            cp "$log" bridge/result.log
-          fi
-
-          git config user.name "expert-robot-result-publisher"
-          git config user.email "noreply@github.com"
-          git add bridge/result.json bridge/result.log
-          git commit -m "Expert Robot runner result: $expected" || true
-
-          # Rebase result onto the latest request commit; never force-push.
-          for attempt in 1 2 3 4 5; do
-            git fetch origin "$GITHUB_REF_NAME"
-            git rebase "origin/$GITHUB_REF_NAME"
-            if git push origin "HEAD:$GITHUB_REF_NAME"; then
-              echo "result_published=true attempt=$attempt"
+          test -s "$result"
+          test -s "$request"
+          mkdir -p "$RUNNER_TEMP/cace-result-existing"
+          if git ls-remote --exit-code origin "refs/heads/$result_branch" >/dev/null 2>&1; then
+            git fetch -q origin "refs/heads/$result_branch"
+            git show "FETCH_HEAD:bridge/result.json" > "$RUNNER_TEMP/cace-result-existing/result.json"
+            if cmp -s "$result" "$RUNNER_TEMP/cace-result-existing/result.json"; then
+              echo "result_branch=$result_branch"
+              echo "result_already_published=true"
               exit 0
             fi
-            echo "Result push raced with a new request; retry=$attempt" >&2
-            git rebase --abort || true
-            sleep "$attempt"
-          done
-          echo "::error::Could not publish result after five fast-forward-safe attempts."
-          exit 1
+            echo "::error::A result branch already exists with different result bytes."
+            exit 1
+          fi
+
+          cp "$request" "$RUNNER_TEMP/cace-result-existing/request.json"
+          git checkout --orphan "$result_branch"
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p bridge
+          cp "$result" bridge/result.json
+          cp "$RUNNER_TEMP/cace-result-existing/request.json" bridge/request.json
+          if [ -s "$log" ]; then
+            cp "$log" bridge/result.log
+          fi
+          git config user.name "expert-robot-result-publisher"
+          git config user.email "noreply@github.com"
+          git add bridge/request.json bridge/result.json bridge/result.log
+          git commit -m "CACE result: $REQUEST_ID"
+          git push origin "HEAD:refs/heads/$result_branch"
+          echo "result_branch=$result_branch"
+          echo "result_published=true"
 
       - name: Prepare Expert Robot reverse deploy key
         if: ${{ steps.result.outcome == 'success' }}
