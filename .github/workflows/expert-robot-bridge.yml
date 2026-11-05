@@ -184,6 +184,24 @@ jobs:
             rm -rf -- "$toolchains_dir/leanprover--lean4---v4.34.tmp"
             echo "Disk before Lean install:" | tee -a "$log"
             df -h "$ELAN_HOME" "$RUNNER_TEMP" | tee -a "$log" || true
+
+            # Read-only diagnosis: identify the largest known CACE/Actions cache
+            # locations before deciding whether any cleanup is safe. Do not delete
+            # files or caches in this diagnostic block.
+            echo "CACE runner disk usage diagnostics (read-only):" | tee -a "$log"
+            for inspect_path in \
+              "$persistent_root" \
+              "$ELAN_HOME" \
+              "$HOME/.cache/expert-robot" \
+              "$RUNNER_TEMP" \
+              "${RUNNER_TOOL_CACHE:-/nonexistent}" \
+              "$GITHUB_WORKSPACE"; do
+              if [ -d "$inspect_path" ]; then
+                echo "--- $inspect_path ---" | tee -a "$log"
+                du -x -h --max-depth=2 "$inspect_path" 2>/dev/null | sort -h | tail -n 30 | tee -a "$log" || true
+              fi
+            done
+
             free_kb="$(df -Pk "$ELAN_HOME" | awk 'NR==2 {print $4}')"
             if [ -z "$free_kb" ] || [ "$free_kb" -lt 2097152 ]; then
               echo "insufficient disk space for pinned Lean toolchain: available_kb=${free_kb:-unknown}, required_kb=2097152" | tee -a "$log"
