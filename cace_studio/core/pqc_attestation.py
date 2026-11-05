@@ -83,6 +83,25 @@ def _statement_bytes(statement: Mapping[str, Any]) -> bytes:
         raise PQCAttestationError("unsupported attestation purpose")
     if not isinstance(statement["bindings"], Mapping):
         raise PQCAttestationError("bindings must be an object")
+    bindings = statement["bindings"]
+    required_bindings = {
+        "source_repository", "source_commit_sha", "workflow_run_id",
+        "provider_commit", "vector_source_commit", "verification_scope",
+    }
+    missing = required_bindings - set(bindings)
+    if missing:
+        raise PQCAttestationError(f"missing provenance bindings: {sorted(missing)}")
+    for name in ("source_commit_sha", "provider_commit", "vector_source_commit"):
+        value = bindings[name]
+        if not isinstance(value, str) or len(value) != 40 or any(ch not in "0123456789abcdef" for ch in value):
+            raise PQCAttestationError(f"{name} must be a full lowercase Git commit SHA")
+    if not isinstance(bindings["workflow_run_id"], int) or isinstance(bindings["workflow_run_id"], bool):
+        raise PQCAttestationError("workflow_run_id must be a positive integer")
+    if bindings["workflow_run_id"] <= 0:
+        raise PQCAttestationError("workflow_run_id must be a positive integer")
+    for name in ("source_repository", "verification_scope"):
+        if not isinstance(bindings[name], str) or not bindings[name].strip():
+            raise PQCAttestationError(f"{name} must be non-empty")
     return DOMAIN + canonical_json_bytes(dict(statement))
 
 
