@@ -1,0 +1,59 @@
+name: Titan ML-DSA Attestation v2
+
+on:
+  push:
+    branches:
+      - "feat/titan-mldsa-attestation-v2-20261105"
+    paths:
+      - "cace_studio/core/pqc_attestation.py"
+      - "schema/signed-attestation-v2-mldsa.schema.json"
+      - "tests/test_titan_mldsa_v2.py"
+      - ".github/workflows/titan-mldsa-attestation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mldsa-v2:
+    runs-on: avrea-ubuntu-latest-8-vcpu
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned native provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build gcc g++ git python3 python3-venv
+          git clone --filter=blob:none https://github.com/open-quantum-safe/liboqs.git /tmp/liboqs
+          git -C /tmp/liboqs checkout --detach 5a1a854b0dc9f2141bdc771c555ee60c37950183
+          cmake -S /tmp/liboqs -B /tmp/liboqs/build -GNinja -DCMAKE_BUILD_TYPE=Release -DOQS_ALGS_ENABLED=STD -DBUILD_SHARED_LIBS=ON -DOQS_BUILD_ONLY_LIB=ON -DCMAKE_INSTALL_PREFIX=/tmp/liboqs-install
+          cmake --build /tmp/liboqs/build --parallel 4
+          cmake --install /tmp/liboqs/build
+      - name: Install pinned liboqs-python source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/cace-pqc-venv
+          /tmp/cace-pqc-venv/bin/python -m pip install "hatchling==1.27.0" "pytest==8.4.2"
+          git clone --filter=blob:none https://github.com/open-quantum-safe/liboqs-python.git /tmp/liboqs-python
+          git -C /tmp/liboqs-python checkout --detach 64c76ad0a80d6c69f2003219eb27b253782a3d68
+          OQS_INSTALL_PATH=/tmp/liboqs-install LD_LIBRARY_PATH=/tmp/liboqs-install/lib /tmp/cace-pqc-venv/bin/python -m pip install --no-deps --no-build-isolation /tmp/liboqs-python
+      - name: Verify provider version and run CACE receipt tests
+        shell: bash
+        env:
+          LD_LIBRARY_PATH: /tmp/liboqs-install/lib
+          OQS_INSTALL_PATH: /tmp/liboqs-install
+        run: |
+          set -euo pipefail
+          /tmp/cace-pqc-venv/bin/python - <<'PY'
+          import oqs
+          assert oqs.oqs_python_version() == "0.16.0.2", oqs.oqs_python_version()
+          assert oqs.oqs_version() == "0.16.0", oqs.oqs_version()
+          assert "ML-DSA-65" in oqs.get_enabled_sig_mechanisms()
+          print("liboqs-python", oqs.oqs_python_version(), "liboqs", oqs.oqs_version())
+          PY
+          PYTHONPATH=. /tmp/cace-pqc-venv/bin/python -m pytest -q tests/test_titan_mldsa_v2.py
