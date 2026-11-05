@@ -211,14 +211,33 @@ jobs:
               export ELAN_HOME="/var/lib/cace-cache/elan"
             fi
 
-            if [ ! -x "$ELAN_HOME/bin/elan" ]; then
-              export ELAN_HOME="$persistent_root/elan"
-              if [ ! -x "$ELAN_HOME/bin/elan" ]; then
-                curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-                  | sh -s -- -y --default-toolchain none
+            if [ -n "$tmpfs_root" ]; then
+              # /dev/shm is mounted noexec on this OCI runner. Keep the small
+              # elan launcher executable on the root volume, but point ELAN_HOME
+              # at tmpfs so the large Lean toolchain lives there.
+              ELAN_BIN="/var/lib/cace-cache/elan/bin/elan"
+              if [ ! -x "$ELAN_BIN" ]; then
+                export ELAN_HOME="/var/lib/cace-cache/elan"
+                if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+                  curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+                    | sh -s -- -y --default-toolchain none
+                fi
+                ELAN_BIN="$ELAN_HOME/bin/elan"
               fi
+              export ELAN_HOME="$tmpfs_root/elan-home"
+              export PATH="$(dirname "$ELAN_BIN"):$PATH"
+            else
+              export ELAN_HOME="/var/lib/cace-cache/elan"
+              if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+                export ELAN_HOME="$persistent_root/elan"
+                if [ ! -x "$ELAN_HOME/bin/elan" ]; then
+                  curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+                    | sh -s -- -y --default-toolchain none
+                fi
+              fi
+              ELAN_BIN="$ELAN_HOME/bin/elan"
+              export PATH="$ELAN_HOME/bin:$PATH"
             fi
-            export PATH="$ELAN_HOME/bin:$PATH"
 
             # Recover only incomplete Lean installations left by interrupted runs.
             toolchains_dir="$ELAN_HOME/toolchains"
@@ -248,7 +267,7 @@ jobs:
             df -h / /dev/shm /var/lib/cace-cache 2>&1 | tee -a "$log" || true
             findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /dev/shm 2>&1 | tee -a "$log" || true
             echo "Installed CACE Lean toolchains:" | tee -a "$log"
-            "$ELAN_HOME/bin/elan" toolchain list 2>&1 | tee -a "$log" || true
+            "$ELAN_BIN" toolchain list 2>&1 | tee -a "$log" || true
             echo "Top-level root disk usage (read-only):" | tee -a "$log"
             du -x -h --max-depth=1 /var /usr /opt /home /tmp 2>/dev/null | sort -h | tail -n 40 | tee -a "$log" || true
 
