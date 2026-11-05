@@ -90,7 +90,7 @@ jobs:
           OQS_INSTALL_PATH: /tmp/liboqs-install
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          /tmp/cace-pqc-venv/bin/python - <<'PY'
           import json, os, pathlib, subprocess
           def git(path):
               try: return subprocess.check_output(["git","-C",path,"rev-parse","HEAD"],text=True).strip()
