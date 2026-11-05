@@ -71,9 +71,14 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add "$key_file"
 
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
-          echo "key_file=$key_file" >> "$GITHUB_OUTPUT"
+          {
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
+          {
+            echo "key_file=$key_file"
+            echo "key_source=$bridge_key_source"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Package current Expert Robot source
         id: package
@@ -99,9 +104,11 @@ jobs:
           fi
 
           sha256sum "$archive"
-          echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
-          echo "archive=$archive" >> "$GITHUB_OUTPUT"
-          echo "size_bytes=$size_bytes" >> "$GITHUB_OUTPUT"
+          {
+            echo "request_id=$request_id"
+            echo "archive=$archive"
+            echo "size_bytes=$size_bytes"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Install request on isolated Cace-app bridge branch
         id: install
@@ -718,7 +725,7 @@ jobs:
           git -C "$poll" remote add origin "$RUNNER_REPO_SSH"
 
           found=false
-          for attempt in $(seq 1 120); do
+          for _ in $(seq 1 120); do
             GIT_SSH_COMMAND='ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new' \
               git -C "$poll" fetch -q --force origin "$BRIDGE_BRANCH:refs/remotes/origin/bridge"
 
@@ -775,11 +782,13 @@ jobs:
           cace_commit="$(python3 -c 'import json; print(json.load(open("'"$evidence"'/result.json"))["cace_commit"])')"
           cace_run_id="$(python3 -c 'import json; print(json.load(open("'"$evidence"'/result.json"))["cace_workflow_run_id"])')"
           cace_run_attempt="$(python3 -c 'import json; print(json.load(open("'"$evidence"'/result.json"))["cace_run_attempt"])')"
-          echo "evidence_validated=true" >> "$GITHUB_OUTPUT"
-          echo "result_status=$status" >> "$GITHUB_OUTPUT"
-          echo "cace_commit=$cace_commit" >> "$GITHUB_OUTPUT"
-          echo "cace_run_id=$cace_run_id" >> "$GITHUB_OUTPUT"
-          echo "cace_run_attempt=$cace_run_attempt" >> "$GITHUB_OUTPUT"
+          {
+            echo "evidence_validated=true"
+            echo "result_status=$status"
+            echo "cace_commit=$cace_commit"
+            echo "cace_run_id=$cace_run_id"
+            echo "cace_run_attempt=$cace_run_attempt"
+          } >> "$GITHUB_OUTPUT"
           if [ "$status" = "pass" ]; then
             echo "qualification_passed=true" >> "$GITHUB_OUTPUT"
             echo "External qualification passed."
