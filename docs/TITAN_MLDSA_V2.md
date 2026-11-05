@@ -33,7 +33,7 @@ Private signing keys must remain outside Git and CI artifacts. The test workflow
 - NIST ACVP source: ACVP-Server tag `v1.1.0.41`, commit `b121fee031dc65d32c96f4109a42a10dacbe2076`. The tag commit is pinned, but its GitHub commit is unsigned.
 - Avrea run `42090360334`: 54 selected standardized ACVP tests passed, with zero failures: FIPS 203 ML-KEM 9/9, FIPS 204 ML-DSA 9/9, FIPS 205 SLH-DSA 36/36.
 - CACE OCI run `42091465065`: the `cace-oci-a1` runner independently reconstituted the exact Avrea workflow archive and verified its original archive digest and four extracted evidence artifacts.
-- The actual Avrea archive is also included in the ML-DSA receipt test fixture. The current CACE ML-DSA workflow run is `42092349356`.
+- The actual Avrea archive is also included in the ML-DSA receipt test fixture. The current CACE ML-DSA workflow run is `42092942992` on the independent `cace-oci-a1` runner.
 
 ## Remaining qualification gates
 
