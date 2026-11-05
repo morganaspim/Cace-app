@@ -33,6 +33,9 @@ jobs:
 
           request_id="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["request_id"])')"
           source_sha="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["expert_robot_commit"])')"
+          request_schema="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["schema_version"])')"
+          expected_archive_sha="$(python3 -c 'import json; print(json.load(open("bridge/request.json"))["source_archive_sha256"])')"
+          actual_archive_sha="$(sha256sum bridge/expert-robot-source.tar.gz | awk '{print $1}')"
           work="$RUNNER_TEMP/expert-robot-$GITHUB_RUN_ID"
           log="$GITHUB_WORKSPACE/bridge/result.log"
           rm -rf "$work"
@@ -69,6 +72,12 @@ jobs:
 
           echo "request_id=$request_id" | tee -a "$log"
           echo "expert_robot_commit=$source_sha" | tee -a "$log"
+          if [ "$request_schema" != "3" ] || [ "$actual_archive_sha" != "$expected_archive_sha" ]; then
+            echo "request/archive binding: FAIL" | tee -a "$log"
+            record_failure 42
+          else
+            echo "request/archive binding: PASS sha256=$actual_archive_sha" | tee -a "$log"
+          fi
           echo "runner=$(hostname)" | tee -a "$log"
           uname -a | tee -a "$log" || true
           nproc | tee -a "$log" || true
@@ -292,10 +301,15 @@ jobs:
           rc = int(sys.argv[3])
           log_path = Path("bridge/result.log")
           log_sha256 = hashlib.sha256(log_path.read_bytes()).hexdigest()
+          request_path = Path("bridge/request.json")
+          request_data = json.loads(request_path.read_text(encoding="utf-8"))
+          request_sha256 = hashlib.sha256(request_path.read_bytes()).hexdigest()
           print(json.dumps({
               "schema_version": 3,
               "request_id": sys.argv[1],
               "expert_robot_commit": sys.argv[2],
+              "source_archive_sha256": request_data["source_archive_sha256"],
+              "request_sha256": request_sha256,
               "status": "pass" if rc == 0 else "fail",
               "exit_code": rc,
               "runner_labels": ["self-hosted", "cace", "oci", "aarch64"],
@@ -306,6 +320,12 @@ jobs:
               "qualification_lane": "formal-static-arm64",
               "lean_toolchain": "leanprover/lean4:v4.34.0",
               "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
+              "toolchain": {
+                  "lean_image": "leanprover/lean4:v4.34.0",
+                  "mathlib_commit": "5ed2965256430c3649e86755f9576b54eca72435",
+                  "python_version": platform.python_version(),
+                  "commands": ["lake env lean MathAI.lean", "lake env lean MathAI/Audit.lean"],
+              },
               "cace_repository": sys.argv[9],
               "cace_commit": sys.argv[6],
               "cace_workflow_sha": sys.argv[10],
