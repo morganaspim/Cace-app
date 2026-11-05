@@ -25,7 +25,7 @@ permissions:
 
 concurrency:
   group: external-free-runner-bridge-${{ github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   dispatch:
@@ -557,7 +557,7 @@ jobs:
                     EXPERT_ROBOT_DEPLOY_KEY: __ER_SECRET_DEPLOY_KEY__
                     CACE_TO_EXPERT_ROBOT_SSH_KEY: __ER_SECRET_CACE_TO_ER__
                     EXPERT_ROBOT_DEPLOY_PRIVATE_KEY: __ER_SECRET_DEPLOY_PRIVATE__
-                    RAILWAY_SSH_PRIVATE_KEY: ${{ secrets.RAILWAY_SSH_PRIVATE_KEY }}
+                    RAILWAY_SSH_PRIVATE_KEY: __ER_SECRET_RAILWAY_SSH_PRIVATE_KEY__
                   run: |
                     set -euo pipefail
 
@@ -671,6 +671,8 @@ jobs:
                   dollar + "{{ secrets.CACE_TO_EXPERT_ROBOT_SSH_KEY }}",
               "__ER_SECRET_DEPLOY_PRIVATE__":
                   dollar + "{{ secrets.EXPERT_ROBOT_DEPLOY_PRIVATE_KEY }}",
+              "__ER_SECRET_RAILWAY_SSH_PRIVATE_KEY__":
+                  dollar + "{{ secrets.RAILWAY_SSH_PRIVATE_KEY }}",
               "__ER_REVERSE_KEY_FILE__":
                   dollar + "{{ steps.reverse-key.outputs.key_file }}",
               "__ER_RESULT_REQUEST_ID__":
