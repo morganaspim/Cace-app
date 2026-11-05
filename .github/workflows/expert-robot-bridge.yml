@@ -186,7 +186,7 @@ jobs:
             tmpfs_root="$work/lean-tmpfs"
             tmpfs_mounted=false
             mkdir -p "$tmpfs_root"
-            if sudo -n mount -t tmpfs -o size=5G,mode=0755,exec tmpfs "$tmpfs_root"; then
+            if sudo -n mount -t tmpfs -o "size=5G,mode=0755,uid=$(id -u),gid=$(id -g),exec" tmpfs "$tmpfs_root"; then
               tmpfs_mounted=true
               trap 'sudo -n umount "$tmpfs_root" >/dev/null 2>&1 || true; rmdir "$tmpfs_root" 2>/dev/null || true' EXIT
               cp -a "$formal_dir" "$tmpfs_root/formal"
