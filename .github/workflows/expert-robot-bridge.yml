@@ -202,6 +202,14 @@ jobs:
               fi
             done
 
+            echo "Filesystem and tmpfs availability:" | tee -a "$log"
+            df -h / /dev/shm /var/lib/cace-cache 2>&1 | tee -a "$log" || true
+            findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /dev/shm 2>&1 | tee -a "$log" || true
+            echo "Installed CACE Lean toolchains:" | tee -a "$log"
+            "$ELAN_HOME/bin/elan" toolchain list 2>&1 | tee -a "$log" || true
+            echo "Top-level root disk usage (read-only):" | tee -a "$log"
+            du -x -h --max-depth=1 /var /usr /opt /home /tmp 2>/dev/null | sort -h | tail -n 40 | tee -a "$log" || true
+
             free_kb="$(df -Pk "$ELAN_HOME" | awk 'NR==2 {print $4}')"
             if [ -z "$free_kb" ] || [ "$free_kb" -lt 2097152 ]; then
               echo "insufficient disk space for pinned Lean toolchain: available_kb=${free_kb:-unknown}, required_kb=2097152" | tee -a "$log"
