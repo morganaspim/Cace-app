@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "request_id": "merlin-pr118-20261107",
+  "source_repository": "Mannyspiro/expert-robot",
+  "source_commit": "a7ee23807c4a6fb6528bbfe5db824b7fc87a72f7",
+  "pull_request": 118,
+  "purpose": "focused_ci_validation_only",
+  "tests": [
+    "python compileall for Merlin modules and selected tests",
+    "test_merlin_provider_policy.py",
+    "test_merlin_intent_compiler.py",
+    "test_merlin_prompt_contract.py",
+    "test_research_dispatch.py",
+    "HUD inline JavaScript syntax"
+  ],
+  "authority": "qualification-only",
+  "promotion_authority": false
+}
