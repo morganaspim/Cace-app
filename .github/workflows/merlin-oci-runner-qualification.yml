@@ -131,9 +131,9 @@ jobs:
             cd "$source_dir"
             python3 --version
             python3 -m venv "$RUNNER_TEMP/merlin-venv"
-            "$RUNNER_TEMP/merlin-venv/bin/python" -m pip install -r requirements-merlin-auth.txt pytest==8.3.5
+            timeout 600 "$RUNNER_TEMP/merlin-venv/bin/python" -m pip install --disable-pip-version-check --retries 2 --timeout 30 -r requirements-merlin-auth.txt pytest==8.3.5
             "$RUNNER_TEMP/merlin-venv/bin/python" -m compileall -q python/merlin
-            PYTHONPATH=python:. "$RUNNER_TEMP/merlin-venv/bin/python" -m pytest -q \
+            PYTHONPATH=python:. timeout 1200 "$RUNNER_TEMP/merlin-venv/bin/python" -m pytest -vv \
               tests/research/test_merlin_api.py \
               tests/research/test_merlin_learning_http.py \
               tests/test_merlin_identity.py \
