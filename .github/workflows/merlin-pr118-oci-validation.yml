@@ -1,0 +1,167 @@
+name: Merlin PR 118 focused validation on OCI
+
+on:
+  push:
+    branches:
+      - "merlin/oci-pr118-validation-20261107"
+    paths:
+      - "bridge/merlin-pr118-request.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-pr118-oci-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout CACE request
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate immutable source request
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/merlin-pr118
+          python3 - <<'PY' | tee artifacts/merlin-pr118/request-validation.log
+          import json
+          from pathlib import Path
+          request = json.loads(Path("bridge/merlin-pr118-request.json").read_text(encoding="utf-8"))
+          assert request["schema_version"] == 1
+          assert request["source_repository"] == "Mannyspiro/expert-robot"
+          assert request["pull_request"] == 118
+          assert len(request["source_commit"]) == 40
+          assert request["authority"] == "qualification-only"
+          assert request["promotion_authority"] is False
+          print("request validation: PASS")
+          print("source_commit=" + request["source_commit"])
+          PY
+
+      - name: Checkout exact Expert Robot source
+        uses: actions/checkout@v4
+        with:
+          repository: Mannyspiro/expert-robot
+          ref: ${{ fromJSON(file('bridge/merlin-pr118-request.json')).source_commit }}
+          path: expert-robot
+          persist-credentials: false
+
+      - name: Record OCI runner and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "tested_sha=$(git -C expert-robot rev-parse HEAD)"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "runner_name=$RUNNER_NAME"
+            echo "runner_os=$RUNNER_OS"
+            echo "runner_arch=$RUNNER_ARCH"
+            uname -a
+            nproc
+            free -h
+            python3 --version
+            node --version || true
+          } | tee artifacts/merlin-pr118/runner-identity.log
+          expected="$(python3 -c 'import json; print(json.load(open("bridge/merlin-pr118-request.json"))["source_commit"])')"
+          test "$(git -C expert-robot rev-parse HEAD)" = "$expected"
+
+      - name: Compile Python modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=expert-robot/python python3 -m compileall -q expert-robot/python/merlin \
+            expert-robot/tests/test_merlin_provider_policy.py \
+            expert-robot/tests/test_merlin_intent_compiler.py \
+            expert-robot/tests/test_merlin_prompt_contract.py \
+            expert-robot/tests/test_research_dispatch.py \
+            2>&1 | tee artifacts/merlin-pr118/compileall.log
+
+      - name: Run provider, intent, prompt and dispatch contract tests
+        shell: bash
+        run: |
+          set +e
+          export PYTHONPATH=expert-robot/python
+          rc=0
+          for spec in \
+            "provider-policy:test_merlin_provider_policy.py" \
+            "intent-compiler:test_merlin_intent_compiler.py" \
+            "prompt-contract:test_merlin_prompt_contract.py" \
+            "research-dispatch:test_research_dispatch.py"; do
+            name="${spec%%:*}"
+            pattern="${spec#*:}"
+            python3 -m unittest discover -s expert-robot/tests -p "$pattern" -v \
+              2>&1 | tee "artifacts/merlin-pr118/$name.log"
+            test_rc=${PIPESTATUS[0]}
+            printf '{"suite":"%s","exit_code":%s}\n' "$name" "$test_rc" \
+              > "artifacts/merlin-pr118/$name-result.json"
+            if [ "$test_rc" -ne 0 ] && [ "$rc" -eq 0 ]; then rc="$test_rc"; fi
+          done
+          exit "$rc"
+
+      - name: Validate HUD inline JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.active = False
+                  self.parts = []
+                  self.current = []
+              def handle_starttag(self, tag, attrs):
+                  if tag == "script" and not dict(attrs).get("src"):
+                      self.active = True
+                      self.current = []
+              def handle_data(self, data):
+                  if self.active:
+                      self.current.append(data)
+              def handle_endtag(self, tag):
+                  if tag == "script" and self.active:
+                      self.parts.append("".join(self.current))
+                      self.active = False
+          parser = Scripts()
+          parser.feed(Path("expert-robot/ui/merlin-hud/index.html").read_text(encoding="utf-8"))
+          if not parser.parts:
+              raise SystemExit("no inline scripts found")
+          Path("artifacts/merlin-pr118/hud-inline.js").write_text("\n".join(parser.parts), encoding="utf-8")
+          print("extracted", len(parser.parts), "inline script block(s)")
+          PY
+          if ! command -v node >/dev/null 2>&1; then
+            echo "node is unavailable on the OCI runner" | tee artifacts/merlin-pr118/hud-js-syntax.log
+            exit 127
+          fi
+          node --check artifacts/merlin-pr118/hud-inline.js \
+            2>&1 | tee artifacts/merlin-pr118/hud-js-syntax.log
+
+      - name: Write validation summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Merlin PR 118 OCI validation"
+            echo "- Source: $(git -C expert-robot rev-parse HEAD 2>/dev/null || echo unavailable)"
+            echo "- Runner: ${RUNNER_NAME:-unavailable}"
+            echo "- Workflow run: $GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)"
+            echo "- Scope: compileall, provider policy, intent compiler, prompt contract, research dispatch, HUD JavaScript syntax"
+            echo "- This is CI execution evidence only; no CACE proof or promotion authority is conferred."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload logs and machine-readable results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merlin-pr118-oci-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/merlin-pr118/
+          if-no-files-found: warn
+          retention-days: 30
