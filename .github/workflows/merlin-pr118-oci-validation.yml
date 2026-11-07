@@ -26,12 +26,14 @@ jobs:
           persist-credentials: false
 
       - name: Validate immutable source request
+        id: request
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts/merlin-pr118
           python3 - <<'PY' | tee artifacts/merlin-pr118/request-validation.log
           import json
+          import os
           from pathlib import Path
           request = json.loads(Path("bridge/merlin-pr118-request.json").read_text(encoding="utf-8"))
           assert request["schema_version"] == 1
@@ -42,13 +44,15 @@ jobs:
           assert request["promotion_authority"] is False
           print("request validation: PASS")
           print("source_commit=" + request["source_commit"])
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("source_commit=" + request["source_commit"] + "\\n")
           PY
 
       - name: Checkout exact Expert Robot source
         uses: actions/checkout@v4
         with:
           repository: Mannyspiro/expert-robot
-          ref: ${{ fromJSON(file('bridge/merlin-pr118-request.json')).source_commit }}
+          ref: ${{ steps.request.outputs.source_commit }}
           path: expert-robot
           persist-credentials: false
 
