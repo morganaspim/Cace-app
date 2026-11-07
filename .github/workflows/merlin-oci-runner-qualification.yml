@@ -176,6 +176,8 @@ jobs:
             printf 'lean_toolchain=%s\n' "$CACE_TOOLCHAIN"
             printf 'mathlib_commit=%s\n' "$CACE_MATHLIB_COMMIT"
             printf 'canary_outcome=%s\n' "$CANARY_OUTCOME"
+            printf 'merlin_test_outcome=%s\n' "$MERLIN_TEST_OUTCOME"
+            printf 'merlin_source_commit=%s\n' "$MERLIN_SOURCE_COMMIT"
             printf 'canonical_claim_promotion=false\n'
           } | tee artifacts/oci-qualification-summary.txt
 
@@ -193,6 +195,7 @@ jobs:
         shell: bash
         env:
           CANARY_OUTCOME: ${{ steps.canary.outcome }}
+          MERLIN_TEST_OUTCOME: ${{ steps.merlin_tests.outcome }}
         run: |
           test "$CANARY_OUTCOME" = "success"
           test "$MERLIN_TEST_OUTCOME" = "success"
