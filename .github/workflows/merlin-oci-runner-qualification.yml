@@ -1,0 +1,147 @@
+name: Merlin OCI runner qualification
+
+on:
+  push:
+    branches:
+      - merlin-oci-qualification-20261107
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-oci-runner-qualification
+  cancel-in-progress: false
+
+jobs:
+  qualify-runner:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 90
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_MANIFEST_CACHE_DIR: /var/lib/cace-cache/mathlib/manifests
+      LAKE_ARTIFACT_CACHE: 'true'
+      LAKE_CACHE_DIR: /var/lib/cace-cache/lake
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
+
+    steps:
+      - name: Checkout exact event commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          clean: true
+          persist-credentials: false
+
+      - name: Capture OCI runner identity and capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          {
+            printf 'exact_head=%s\n' "$GITHUB_SHA"
+            printf 'runner_name=%s\n' "${RUNNER_NAME:-unknown}"
+            printf 'runner_os=%s\n' "${RUNNER_OS:-unknown}"
+            printf 'runner_arch=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'hostname=%s\n' "$(hostname)"
+            uname -a
+            printf 'cpu_count=%s\n' "$(getconf _NPROCESSORS_ONLN)"
+            awk '/MemTotal|MemAvailable/ {print}' /proc/meminfo
+            df -h "$GITHUB_WORKSPACE"
+            git status --short
+            test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+            test -z "$(git status --porcelain --untracked-files=no)"
+          } 2>&1 | tee artifacts/oci-runner-identity.log
+
+      - name: Restore pinned Lean and Mathlib cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          test -x "$ELAN_HOME/bin/elan"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          mkdir -p formal/cace_formal/.lake
+          rm -rf formal/cace_formal/.lake/packages
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
+          flock -u 9
+          cd formal/cace_formal
+          lean --version | tee "$GITHUB_WORKSPACE/artifacts/lean-version.log"
+          lake --version | tee "$GITHUB_WORKSPACE/artifacts/lake-version.log"
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          mkdir -p "$CACE_MANIFEST_CACHE_DIR"
+          manifest_key="$(
+            {
+              printf '%s\n' "$CACE_TOOLCHAIN"
+              sha256sum lakefile.lean
+            } | sha256sum | awk '{print $1}'
+          )"
+          manifest_cache="$CACE_MANIFEST_CACHE_DIR/$manifest_key.json"
+          if test -s "$manifest_cache"; then
+            cp "$manifest_cache" lake-manifest.json
+            echo "CACE_MANIFEST_CACHE_HIT key=$manifest_key"
+          else
+            echo "CACE_MANIFEST_CACHE_MISS key=$manifest_key"
+            MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+            test -s lake-manifest.json
+            install -m 0644 lake-manifest.json "$manifest_cache.tmp-$GITHUB_RUN_ID"
+            mv "$manifest_cache.tmp-$GITHUB_RUN_ID" "$manifest_cache"
+          fi
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+      - name: Compile pinned CACE proof canary
+        id: canary
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/oci-lean-canary.log"
+          rc=${PIPESTATUS[0]}
+          printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" > "$GITHUB_WORKSPACE/artifacts/oci-lean-canary-result.json"
+          exit "$rc"
+
+      - name: Write qualification boundary summary
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary.outcome }}
+        run: |
+          {
+            printf 'evidence_class=runner-qualification-and-formal-preflight\n'
+            printf 'qualification=false\n'
+            printf 'exact_head=%s\n' "$GITHUB_SHA"
+            printf 'runner_name=%s\n' "${RUNNER_NAME:-unknown}"
+            printf 'runner_arch=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'lean_toolchain=%s\n' "$CACE_TOOLCHAIN"
+            printf 'mathlib_commit=%s\n' "$CACE_MATHLIB_COMMIT"
+            printf 'canary_outcome=%s\n' "$CANARY_OUTCOME"
+            printf 'canonical_claim_promotion=false\n'
+          } | tee artifacts/oci-qualification-summary.txt
+
+      - name: Upload OCI runner evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-runner-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Require successful pinned compile
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary.outcome }}
+        run: |
+          test "$CANARY_OUTCOME" = "success"
