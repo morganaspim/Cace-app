@@ -158,7 +158,10 @@ jobs:
               tests/test_merlin_virtual_repository.py
           ) > artifacts/merlin-oci-test.log 2>&1
           rc=$?
-          printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","exit_code":%s}\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$rc" > artifacts/merlin-oci-test-result.json
+          log_sha="$(sha256sum artifacts/merlin-oci-test.log | awk '{print $1}')"
+          python_version="$(python3 --version 2>&1 | tr -d '\\n')"
+          pytest_version="$("$RUNNER_TEMP/merlin-venv/bin/python" -m pytest --version 2>&1 | tr -d '\\n')"
+          printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","runner_name":"%s","runner_arch":"%s","python_version":"%s","pytest_version":"%s","exit_code":%s,"log_sha256":"%s"}\\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$RUNNER_NAME" "$RUNNER_ARCH" "$python_version" "$pytest_version" "$rc" "$log_sha" > artifacts/merlin-oci-test-result.json
           exit "$rc"
 
       - name: Write qualification boundary summary
