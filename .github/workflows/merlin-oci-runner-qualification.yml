@@ -27,7 +27,7 @@ jobs:
       LAKE_CACHE_DIR: /var/lib/cace-cache/lake
       MATHLIB_NO_CACHE_ON_UPDATE: '1'
       MERLIN_REPO_URL: https://github.com/Mannyspiro/expert-robot.git
-      MERLIN_SOURCE_COMMIT: c1399812796cabf45e7fd78bb89d7b3c81a2720f
+      MERLIN_SOURCE_COMMIT: 847e9d37462444c75efb9954289909ad6ccd7df3
 
     steps:
       - name: Checkout exact event commit
