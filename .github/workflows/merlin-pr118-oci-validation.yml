@@ -45,7 +45,7 @@ jobs:
           print("request validation: PASS")
           print("source_commit=" + request["source_commit"])
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write("source_commit=" + request["source_commit"] + "\\n")
+              output.write("source_commit=" + request["source_commit"] + "\n")
           PY
 
       - name: Checkout exact Expert Robot source
