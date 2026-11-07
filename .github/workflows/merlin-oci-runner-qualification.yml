@@ -110,7 +110,8 @@ jobs:
           cd formal/cace_formal
           lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/oci-lean-canary.log"
           rc=${PIPESTATUS[0]}
-          printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" > "$GITHUB_WORKSPACE/artifacts/oci-lean-canary-result.json"
+          log_sha="$(sha256sum "$GITHUB_WORKSPACE/artifacts/oci-lean-canary.log" | awk '{print $1}')"
+          printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s,"log_sha256":"%s"}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" "$log_sha" > "$GITHUB_WORKSPACE/artifacts/oci-lean-canary-result.json"
           exit "$rc"
 
       - name: Test exact Merlin commit on OCI
