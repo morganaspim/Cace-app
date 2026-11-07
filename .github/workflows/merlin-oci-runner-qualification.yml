@@ -26,6 +26,8 @@ jobs:
       LAKE_ARTIFACT_CACHE: 'true'
       LAKE_CACHE_DIR: /var/lib/cace-cache/lake
       MATHLIB_NO_CACHE_ON_UPDATE: '1'
+      MERLIN_REPO_URL: https://github.com/Mannyspiro/expert-robot.git
+      MERLIN_SOURCE_COMMIT: c1399812796cabf45e7fd78bb89d7b3c81a2720f
 
     steps:
       - name: Checkout exact event commit
@@ -111,11 +113,59 @@ jobs:
           printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" > "$GITHUB_WORKSPACE/artifacts/oci-lean-canary-result.json"
           exit "$rc"
 
+      - name: Test exact Merlin commit on OCI
+        id: merlin_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          mkdir -p artifacts
+          (
+            set -euo pipefail
+            source_dir="$GITHUB_WORKSPACE/merlin-source"
+            git clone --filter=blob:none --no-checkout "$MERLIN_REPO_URL" "$source_dir"
+            git -C "$source_dir" fetch --depth=1 origin "$MERLIN_SOURCE_COMMIT"
+            git -C "$source_dir" checkout --detach "$MERLIN_SOURCE_COMMIT"
+            test "$(git -C "$source_dir" rev-parse HEAD)" = "$MERLIN_SOURCE_COMMIT"
+            cd "$source_dir"
+            python3 --version
+            python3 -m venv "$RUNNER_TEMP/merlin-venv"
+            "$RUNNER_TEMP/merlin-venv/bin/python" -m pip install -r requirements-merlin-auth.txt pytest==8.3.5
+            "$RUNNER_TEMP/merlin-venv/bin/python" -m compileall -q python/merlin
+            PYTHONPATH=python:. "$RUNNER_TEMP/merlin-venv/bin/python" -m pytest -q \
+              tests/research/test_merlin_api.py \
+              tests/research/test_merlin_learning_http.py \
+              tests/test_merlin_identity.py \
+              tests/test_merlin_learning_platform.py \
+              tests/test_merlin_capability_registry.py \
+              tests/test_merlin_project_registry.py \
+              tests/test_cace_adapter.py \
+              tests/test_cace_attestation.py \
+              tests/test_cace_runtime.py \
+              tests/test_ngspice_engine.py \
+              tests/test_event_outbox.py \
+              tests/test_merlin_worker_api.py \
+              tests/test_hermes_worker.py \
+              tests/test_hermes_worker_service.py \
+              tests/test_hermes_runtime.py \
+              tests/test_hermes_stage_handlers.py \
+              tests/test_hermes_proof_orchestrator.py \
+              tests/test_avrea_adapter.py \
+              tests/test_hermes_outbox.py \
+              tests/test_public_literature.py \
+              tests/test_merlin_learner_store_resources.py \
+              tests/test_merlin_virtual_repository.py
+          ) > artifacts/merlin-oci-test.log 2>&1
+          rc=$?
+          printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","exit_code":%s}\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$rc" > artifacts/merlin-oci-test-result.json
+          exit "$rc"
+
       - name: Write qualification boundary summary
         if: always()
         shell: bash
         env:
           CANARY_OUTCOME: ${{ steps.canary.outcome }}
+          MERLIN_TEST_OUTCOME: ${{ steps.merlin_tests.outcome }}
         run: |
           {
             printf 'evidence_class=runner-qualification-and-formal-preflight\n'
@@ -145,3 +195,4 @@ jobs:
           CANARY_OUTCOME: ${{ steps.canary.outcome }}
         run: |
           test "$CANARY_OUTCOME" = "success"
+          test "$MERLIN_TEST_OUTCOME" = "success"
