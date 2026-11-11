@@ -1,7 +1,7 @@
 {
   "schema": "merlin-cpp-ledger-vendor-origin-v1",
   "source_repo": "Mannyspiro/expert-robot",
-  "source_commit": "85edea142ecb7feae61e7643d5a0f7c2d74d4e9e",
+  "source_commit": "a538bf074874403fe8a3a8ece53311763d585a0c",
   "files": {
     "cpp/src/growth/generation_lineage.cpp": {
       "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/src/growth/generation_lineage.cpp",
@@ -54,6 +54,10 @@
     "tests/research_episode_ledger_smoke.cpp": {
       "vendor_path": "vendor/merlin-cpp-ledger-validation/tests/research_episode_ledger_smoke.cpp",
       "git_blob_sha": "1593d641f3a0f59a18c85b470c797cc0a8fe8057"
+    },
+    "python/merlin/rsi_pipeline.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py",
+      "git_blob_sha": "56d72fe862acebd1ae6102ea21995fd4cb44a04e"
     }
   }
 }
