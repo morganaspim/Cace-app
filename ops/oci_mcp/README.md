@@ -15,6 +15,7 @@ Read-only by default:
 - `get_cace_logs`
 - `get_oci_instance_summary`
 - `get_attached_nsg_rules`
+- `get_github_runner_status`
 
 Opt-in write tools:
 
@@ -33,6 +34,16 @@ The network write tools:
 
 The service exposes no arbitrary command execution, IAM mutation, secret access,
 instance termination, or generic OCI SDK method.
+
+The `get_github_runner_status` tool is a bounded, read-only host snapshot. It
+reports Actions runner directory/registration-file presence, listener process,
+matching systemd units, filesystem capacity, OS/architecture/CPU and aggregate
+memory, plus the local `cace-oci-mcp` service and whether TCP 8765 is bound to
+loopback or a non-loopback address. It never reads runner credentials, contacts
+GitHub, or exposes arbitrary shell. GitHub assignment/online state is reported
+as unobserved by the host probe and must be established from a matching Actions
+job. CI retains the snapshot as a run artifact for audit.
+
 
 ## Authentication model
 
