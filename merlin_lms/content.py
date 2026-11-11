@@ -17,8 +17,13 @@ ANSWER_FORMATS = frozenset({
 
 def validate_exercise_content(content: dict[str, Any], catalogue: dict[str, Any]) -> dict[str, Any]:
     """Validate that every curriculum task has a well-formed learner exercise."""
-    if not isinstance(content, dict) or content.get("schema_version") != 1:
+    if not isinstance(content, dict):
+        raise ValueError("exercise content must be an object")
+    version = content.get("schema_version")
+    if isinstance(version, bool) or version != 1:
         raise ValueError("unsupported exercise content schema")
+    if not isinstance(content.get("content_id"), str) or not content["content_id"]:
+        raise ValueError("content_id is required")
     if content.get("curriculum_id") != catalogue.get("curriculum_id"):
         raise ValueError("exercise content curriculum_id mismatch")
     curriculum_tasks = catalogue.get("tasks", [])
@@ -36,6 +41,9 @@ def validate_exercise_content(content: dict[str, Any], catalogue: dict[str, Any]
         if task_id in seen:
             raise ValueError(f"duplicate exercise task_id: {task_id}")
         seen.add(task_id)
+        content_version = exercise.get("content_version")
+        if isinstance(content_version, bool) or not isinstance(content_version, int) or content_version < 1:
+            raise ValueError(f"{task_id}: content_version must be a positive integer")
         for field in ("objective", "prompt"):
             if not isinstance(exercise.get(field), str) or not exercise[field].strip():
                 raise ValueError(f"{task_id}: {field} is required")
