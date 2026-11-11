@@ -49,6 +49,7 @@ typedef void (*sqlite3_destructor_type)(void *);
 #define SQLITE_ROW 100
 #define SQLITE_DONE 101
 
+#define SQLITE_STATIC ((sqlite3_destructor_type)0)
 #define SQLITE_TRANSIENT ((sqlite3_destructor_type)-1)
 
 int sqlite3_open(const char *filename, sqlite3 **database);
