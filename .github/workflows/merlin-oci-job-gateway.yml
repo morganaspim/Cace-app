@@ -34,6 +34,7 @@ jobs:
           import json
           import os
           import re
+          import sys
           import types
           import urllib.parse
           import urllib.request
@@ -95,15 +96,25 @@ jobs:
 
           request_bytes, request_blob_sha = fetch_contents(request_path)
           request = json.loads(request_bytes.decode("utf-8"))
-          expected_fields = {"schema", "request_id", "operation", "reason", "created_at"}
-          if not isinstance(request, dict) or set(request) != expected_fields:
-              raise SystemExit("request rejected: schema fields do not match the allowlisted contract")
+          base_fields = {"schema", "request_id", "operation", "reason", "created_at"}
+          cace_fields = {
+              "candidate_id", "candidate_digest", "benchmark_manifest_sha256",
+              "evaluator_receipt_sha256", "source_repo", "source_commit",
+              "expected_bundle_sha256",
+          }
+          if not isinstance(request, dict) or not base_fields.issubset(request):
+              raise SystemExit("request rejected: base schema fields are missing")
           if request["schema"] != "merlin-oci-job-request-v1":
               raise SystemExit("request rejected: unsupported schema")
           if str(uuid.UUID(request["request_id"])) != path_request_id:
               raise SystemExit("request rejected: request ID does not match its path")
-          if request["operation"] not in {"inventory_snapshot", "mcp_readonly_probe"}:
+          if not isinstance(request["operation"], str) or request["operation"] not in {
+              "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract"
+          }:
               raise SystemExit("request rejected: operation is not enabled")
+          expected_fields = base_fields | (cace_fields if request["operation"] == "cace_rsi_bundle_contract" else set())
+          if set(request) != expected_fields:
+              raise SystemExit("request rejected: fields do not match the selected fixed operation")
           reason = request["reason"]
           if not isinstance(reason, str) or not reason.strip() or len(reason) > 300:
               raise SystemExit("request rejected: reason must be 1-300 characters")
@@ -254,6 +265,91 @@ jobs:
                       "error_type": type(exc).__name__,
                       "error_message": str(exc)[:300],
                   }
+          cace_bundle_contract = None
+          if request["operation"] == "cace_rsi_bundle_contract":
+              digest_fields = (
+                  "candidate_digest", "benchmark_manifest_sha256",
+                  "evaluator_receipt_sha256", "expected_bundle_sha256",
+              )
+              if any(not re.fullmatch(r"[0-9a-f]{64}", str(request[name])) for name in digest_fields):
+                  raise SystemExit("request rejected: CACE bundle contract requires lowercase SHA-256 digests")
+              if not re.fullmatch(r"[0-9a-f]{40}", str(request["source_commit"])):
+                  raise SystemExit("request rejected: source_commit must be a 40-character Git commit")
+              if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", str(request["source_repo"])):
+                  raise SystemExit("request rejected: source_repo must be owner/name")
+              if not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", str(request["candidate_id"])):
+                  raise SystemExit("request rejected: invalid candidate_id")
+
+              package = types.ModuleType("cace_studio")
+              package.__path__ = []
+              core_package = types.ModuleType("cace_studio.core")
+              core_package.__path__ = []
+              sys.modules["cace_studio"] = package
+              sys.modules["cace_studio.core"] = core_package
+
+              def load_pinned_cace_module(module_name, path, expected_blob_sha):
+                  raw, blob_sha = fetch_contents(path)
+                  if blob_sha != expected_blob_sha:
+                      raise SystemExit(f"CACE source pin mismatch for {path}")
+                  loaded = types.ModuleType(module_name)
+                  loaded.__file__ = path
+                  loaded.__package__ = module_name.rpartition(".")[0]
+                  sys.modules[module_name] = loaded
+                  exec(compile(raw.decode("utf-8"), path, "exec"), loaded.__dict__)
+                  return blob_sha, loaded
+
+              cace_graph_sha, _ = load_pinned_cace_module(
+                  "cace_studio.core.graph", "cace_studio/core/graph.py",
+                  "cffb146a6be9becc45f0c6789707766b7c8e4222")
+              cace_repro_sha, cace_repro = load_pinned_cace_module(
+                  "cace_studio.core.reproducibility", "cace_studio/core/reproducibility.py",
+                  "8c6e7cfe7204ee557a112091a9d451e300e43210")
+              cace_ledger_sha, cace_ledger = load_pinned_cace_module(
+                  "cace_studio.core.evidence_ledger", "cace_studio/core/evidence_ledger.py",
+                  "25104f432bb50339d980754a58cbc4a004f504ec")
+
+              manifest = {
+                  "schema": "merlin-rsi-evidence-manifest-v1",
+                  "candidate_id": request["candidate_id"],
+                  "candidate_digest": request["candidate_digest"],
+                  "benchmark_manifest_sha256": request["benchmark_manifest_sha256"],
+                  "evaluator_receipt_sha256": request["evaluator_receipt_sha256"],
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+              }
+              manifest_bytes = cace_repro.canonical_json_bytes(manifest)
+              bindings = {
+                  "candidate_id": request["candidate_id"],
+                  "candidate_digest": request["candidate_digest"],
+                  "benchmark_manifest_sha256": request["benchmark_manifest_sha256"],
+                  "evaluator_receipt_sha256": request["evaluator_receipt_sha256"],
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "authority": "verification-only",
+              }
+              artifact = cace_ledger.EvidenceArtifact.from_bytes(
+                  "merlin-rsi-evidence-manifest", manifest_bytes,
+                  role="rsi-evidence-manifest", media_type="application/json",
+                  path="merlin-rsi-evidence-manifest.json", metadata={})
+              bundle = cace_ledger.EvidenceBundle(
+                  artifacts=(artifact,), bindings=bindings,
+                  notes=("Merlin RSI exact-artifact independent verification",))
+              actual_bundle_sha = cace_ledger.verify_bundle(bundle)
+              if actual_bundle_sha != request["expected_bundle_sha256"]:
+                  raise SystemExit("CACE EvidenceBundle digest does not match the Merlin adapter")
+              cace_bundle_contract = {
+                  "status": "matched",
+                  "bundle_sha256": actual_bundle_sha,
+                  "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                  "artifact_leaf_sha256": cace_ledger.artifact_leaf_hash(artifact),
+                  "pinned_source_blobs": {
+                      "graph.py": cace_graph_sha,
+                      "reproducibility.py": cace_repro_sha,
+                      "evidence_ledger.py": cace_ledger_sha,
+                  },
+                  "verification_scope": "CACE EvidenceBundle identity only; not a signed attestation or candidate verification",
+              }
+
           completed_at = datetime.now(timezone.utc).isoformat()
           receipt = {
               "schema": "merlin-oci-job-receipt-v1",
@@ -287,6 +383,7 @@ jobs:
               },
               "inventory": inventory,
               "mcp_probe": mcp_probe,
+              "cace_bundle_contract": cace_bundle_contract,
           }
           (artifact_dir / "job-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
