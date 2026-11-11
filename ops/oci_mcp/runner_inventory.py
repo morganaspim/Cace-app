@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import ipaddress
 import os
 from pathlib import Path
 import platform
@@ -36,6 +37,52 @@ def _os_release(path: Path = Path("/etc/os-release")) -> dict[str, str]:
     except (OSError, UnicodeError):
         pass
     return result
+
+
+def _proc_listener_state(
+    tcp: Path = Path("/proc/net/tcp"),
+    tcp6: Path = Path("/proc/net/tcp6"),
+) -> str:
+    """Inspect kernel TCP tables read-only for a listening MCP port 8765."""
+    observed = False
+    loopback = False
+    non_loopback = False
+    for path, family in ((tcp, 4), (tcp6, 6)):
+        try:
+            lines = path.read_text(encoding="ascii").splitlines()
+            observed = True
+        except (OSError, UnicodeError):
+            continue
+        for line in lines[1:]:
+            fields = line.split()
+            if len(fields) < 4 or fields[3] != "0A":
+                continue
+            try:
+                address_hex, port_hex = fields[1].split(":", 1)
+                if int(port_hex, 16) != 8765:
+                    continue
+                raw = bytes.fromhex(address_hex)
+                if family == 4:
+                    address = ipaddress.IPv4Address(raw[::-1])
+                else:
+                    if len(raw) != 16:
+                        continue
+                    normalized = b"".join(
+                        raw[index:index + 4][::-1]
+                        for index in range(0, 16, 4)
+                    )
+                    address = ipaddress.IPv6Address(normalized)
+            except (ValueError, TypeError):
+                continue
+            if address.is_loopback:
+                loopback = True
+            else:
+                non_loopback = True
+    if non_loopback:
+        return "non_loopback"
+    if loopback:
+        return "loopback"
+    return "not_listening" if observed else "unavailable"
 
 
 def collect_runner_status(
@@ -108,32 +155,7 @@ def collect_runner_status(
         result["oci_mcp_service"] = "unavailable"
         result["oci_mcp_service_probe_error"] = type(exc).__name__
 
-    try:
-        sockets = run(
-            ["/usr/bin/ss", "-ltn"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        loopback = False
-        non_loopback = False
-        if sockets.returncode == 0:
-            for line in (sockets.stdout or "").splitlines()[1:]:
-                fields = line.split()
-                if len(fields) < 4 or not fields[3].endswith(":8765"):
-                    continue
-                address = fields[3].rsplit(":", 1)[0].strip("[]")
-                if address in {"127.0.0.1", "::1", "localhost"}:
-                    loopback = True
-                else:
-                    non_loopback = True
-        result["oci_mcp_listener"] = (
-            "loopback" if loopback else "non_loopback" if non_loopback else "not_listening"
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        result["oci_mcp_listener"] = "unavailable"
-        result["oci_mcp_listener_probe_error"] = type(exc).__name__
+    result["oci_mcp_listener"] = _proc_listener_state()
 
     try:
         units = run(
