@@ -85,6 +85,8 @@ jobs:
 
       - name: Run collaboration plus canonical formal-preflight tests
         shell: bash
+        env:
+          TEST_ENV: ${{ runner.temp }}/cace-collaboration-tests-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           "$TEST_ENV/bin/python" -m pytest -q \
