@@ -99,3 +99,14 @@ def validate_curriculum(catalogue: dict[str, Any]) -> dict[str, Any]:
         "concepts": concept_by_id,
         "tasks": tasks,
     }
+
+
+def load_starter_curriculum() -> dict[str, Any]:
+    """Load and validate the packaged starter curriculum."""
+    import json
+    from importlib.resources import files
+
+    resource = files("merlin_lms").joinpath("data/math_foundations_v1.json")
+    with resource.open("r", encoding="utf-8") as stream:
+        catalogue = json.load(stream)
+    return validate_curriculum(catalogue)
