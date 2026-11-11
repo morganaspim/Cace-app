@@ -59,7 +59,7 @@ jobs:
               raise SystemExit("request rejected: commit must add or modify exactly one request file")
 
           request_path = changed[0]
-          match = re.fullmatch(r"merlin/oci-requests/([0-9a-fA-F-]{36})\\.json", request_path)
+          match = re.fullmatch(r"merlin/oci-requests/([0-9a-fA-F-]{36})\.json", request_path)
           if not match:
               raise SystemExit("request rejected: invalid request path")
           path_request_id = str(uuid.UUID(match.group(1)))
@@ -157,11 +157,11 @@ jobs:
               "inventory": inventory,
           }
           (artifact_dir / "job-receipt.json").write_text(
-              json.dumps(receipt, indent=2, sort_keys=True) + "\\n",
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
           )
           (artifact_dir / "runner-inventory.json").write_text(
-              json.dumps(inventory, indent=2, sort_keys=True) + "\\n",
+              json.dumps(inventory, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
           )
           print(json.dumps({k: v for k, v in receipt.items() if k != "inventory"}, indent=2, sort_keys=True))
