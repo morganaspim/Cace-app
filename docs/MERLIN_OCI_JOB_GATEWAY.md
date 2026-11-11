@@ -6,7 +6,7 @@
 
 Provide Merlin and authorized AI clients with a safe way to submit a bounded job to the existing OCI Actions runner using the connected GitHub repository as the control plane. The gateway avoids SSH credentials, inbound firewall changes, public exposure of the OCI MCP port, and any new paid service.
 
-The first profile is deliberately narrow: `inventory_snapshot`. It exercises request validation, runner assignment, evidence collection, and artifact return without installing packages, building software, modifying caches, or changing host configuration.
+The enabled profiles are deliberately narrow: `inventory_snapshot` and `mcp_readonly_probe`. The second profile performs a local Streamable HTTP initialize/tools-list handshake and calls only fixed read-only MCP tools. Neither profile installs packages, builds software, modifies caches, or changes host configuration.
 
 ## Request protocol
 
@@ -46,14 +46,14 @@ The workflow rejects unknown or missing fields, a mismatched filename/request ID
 | `merlin_python_smoke` | Disabled | Requires a separate disk-headroom gate and isolated test environment |
 | `cace_lean_canary` | Disabled | Requires at least 8 GiB free disk and pinned toolchain/cache verification |
 
-The workflow does not accept commands, shell strings, package names, arbitrary paths, or caller-selected scripts. Unknown operations fail closed.
+The workflow does not accept commands, shell strings, package names, arbitrary paths, or caller-selected scripts. The MCP probe is hardcoded to `http://127.0.0.1:8765/mcp` and permits only `get_control_capabilities`, `get_cace_runtime_status`, and `get_github_runner_status`. Unknown operations and tool names fail closed.
 
 ## Execution and trust boundaries
 
 - GitHub Actions is the authenticated control plane; the workflow uses its short-lived `GITHUB_TOKEN` with `contents:read` only to fetch the request and pinned inventory source.
 - The workflow does not run `actions/checkout`, so it does not clean or overwrite the existing runner workspace.
 - The executable inventory module is fetched at the exact request commit and its Git blob SHA must match the reviewed source pin in the workflow.
-- The only executed profile is the reviewed read-only `collect_runner_status` function.
+- The inventory profile executes the reviewed read-only `collect_runner_status` function.\n- The MCP probe sends only protocol initialization, tool discovery, and the three fixed read-only calls listed above; it never accepts a tool name from the request.
 - The job has a three-minute wall-clock limit; each host probe has a five-second timeout.
 - No package installation, cache mutation, service restart, network policy change, deployment, cleanup, or host write is permitted.
 - The request's claimed actor is not trusted; the receipt records the GitHub push event's authenticated sender.
