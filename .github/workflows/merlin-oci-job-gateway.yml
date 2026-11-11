@@ -269,7 +269,7 @@ jobs:
               "inventory_module_sha256": module_sha256,
               "started_at_utc": started_at,
               "completed_at_utc": completed_at,
-              "status": "succeeded",
+              "status": "succeeded" if mcp_probe is None or mcp_probe.get("status") == "succeeded" else "completed_with_probe_error",
               "qualification": False,
               "proof_implication": "none",
               "host_mutations": False,
