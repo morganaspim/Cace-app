@@ -1,11 +1,41 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import os
 from pathlib import Path
+import platform
 import shutil
 import subprocess
 from typing import Any, Callable
 
 RUNNER_ROOT = Path("/opt/actions-runner")
+
+
+def _memory_total_bytes(meminfo: Path = Path("/proc/meminfo")) -> int | None:
+    """Read only the aggregate MemTotal field; do not expose process memory."""
+    try:
+        for line in meminfo.read_text(encoding="ascii").splitlines():
+            if line.startswith("MemTotal:"):
+                fields = line.split()
+                if len(fields) >= 2 and fields[1].isdigit():
+                    return int(fields[1]) * 1024
+    except (OSError, UnicodeError):
+        return None
+    return None
+
+
+def _os_release(path: Path = Path("/etc/os-release")) -> dict[str, str]:
+    """Return a small allowlist of non-secret OS identity fields."""
+    allowed = {"ID", "VERSION_ID", "PRETTY_NAME"}
+    result: dict[str, str] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            key, sep, value = line.partition("=")
+            if sep and key in allowed:
+                result[key.lower()] = value.strip().strip('"').strip("'")[:160]
+    except (OSError, UnicodeError):
+        pass
+    return result
 
 
 def collect_runner_status(
@@ -17,6 +47,8 @@ def collect_runner_status(
     root = Path(runner_root)
     exists = root.is_dir()
     result: dict[str, Any] = {
+        "schema": "cace-oci-runner-inventory-v1",
+        "collected_at_utc": datetime.now(timezone.utc).isoformat(),
         "runner_root": str(root),
         "directory_present": exists,
         "registration_metadata_present": (root / ".runner").is_file() if exists else False,
@@ -25,6 +57,18 @@ def collect_runner_status(
         "listener_process": "not_observed",
         "service_units": [],
         "github_online": "not_observed",
+        "host": {
+            "os": platform.system(),
+            "architecture": platform.machine(),
+            "cpu_count": os.cpu_count(),
+            "memory_total_bytes": _memory_total_bytes(),
+            "os_release": _os_release(),
+        },
+        "actions_environment": {
+            key: os.environ[key]
+            for key in ("RUNNER_NAME", "RUNNER_OS", "RUNNER_ARCH", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT")
+            if os.environ.get(key)
+        },
     }
 
     if exists:
