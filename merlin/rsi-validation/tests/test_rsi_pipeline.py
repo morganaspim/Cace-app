@@ -346,6 +346,46 @@ class RSIPipelineTests(unittest.TestCase):
             "0898289d4c6267dbc8de6e595e56f8f035ad0344b65431f8deb11be0972b0272",
         )
 
+    def test_arxiv_metadata_cache_parses_atom_and_uses_cached_response(self):
+        cache = ResearchMetadataCache(self.db_path)
+        atom = b"""<?xml version="1.0" encoding="UTF-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom">
+          <entry>
+            <id>http://arxiv.org/abs/2401.01234v2</id>
+            <title>  A   Test   Paper </title>
+            <summary> A   concise\n abstract. </summary>
+            <published>2024-01-02T00:00:00Z</published>
+            <author><name>Researcher One</name></author>
+          </entry>
+        </feed>"""
+        from unittest.mock import patch
+        with patch.object(cache, "_request", return_value=atom) as request:
+            first = cache.arxiv_id("https://arxiv.org/abs/2401.01234v2")
+            second = cache.arxiv_id("2401.01234v2")
+            self.assertEqual(first, second)
+            request.assert_called_once_with(
+                "export.arxiv.org",
+                "https://export.arxiv.org/api/query?id_list=2401.01234v2",
+            )
+        self.assertEqual(first["feed"][0]["title"], "A Test Paper")
+        self.assertEqual(first["feed"][0]["authors"], ["Researcher One"])
+        self.assertIn("concise abstract", first["feed"][0]["summary"])
+
+    def test_metadata_host_rate_limit_is_persisted_between_calls(self):
+        from unittest.mock import patch
+        cache = ResearchMetadataCache(self.db_path)
+        with patch("merlin.rsi_pipeline.time.time", side_effect=[100.0, 100.0, 100.0, 100.0]), \
+             patch("merlin.rsi_pipeline.time.sleep") as sleep:
+            cache._reserve_rate_slot("export.arxiv.org")
+            cache._reserve_rate_slot("export.arxiv.org")
+        sleep.assert_called_once_with(3.0)
+        with sqlite3.connect(self.db_path) as db:
+            row = db.execute(
+                "SELECT next_allowed_epoch FROM research_request_clock WHERE host=?",
+                ("export.arxiv.org",),
+            ).fetchone()
+        self.assertEqual(row[0], 106.0)
+
     def test_metadata_cache_normalizes_doi_and_detects_tampering(self):
         cache = ResearchMetadataCache(self.db_path)
         raw = json.dumps({"message": {"title": ["Example"]}}).encode()
