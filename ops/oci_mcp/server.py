@@ -17,6 +17,7 @@ from .policy import (
     validate_log_lines,
     validate_source_cidr,
 )
+from .runner_inventory import collect_runner_status
 
 MCP_HOST = os.getenv("CACE_OCI_MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.getenv("CACE_OCI_MCP_PORT", "8765"))
@@ -149,6 +150,12 @@ def _health_probe() -> dict[str, Any]:
             "error_type": type(exc).__name__,
             "error": str(exc),
         }
+
+
+@mcp.tool()
+def get_github_runner_status() -> dict[str, Any]:
+    """Read local GitHub Actions runner metadata without reading credentials or contacting GitHub."""
+    return collect_runner_status()
 
 
 @mcp.tool()
