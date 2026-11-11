@@ -34,6 +34,8 @@ jobs:
           import json
           import os
           import re
+          import subprocess
+          import sys
           import types
           import urllib.parse
           import urllib.request
@@ -95,15 +97,23 @@ jobs:
 
           request_bytes, request_blob_sha = fetch_contents(request_path)
           request = json.loads(request_bytes.decode("utf-8"))
-          expected_fields = {"schema", "request_id", "operation", "reason", "created_at"}
+          base_fields = {"schema", "request_id", "operation", "reason", "created_at"}
+          operation = request.get("operation") if isinstance(request, dict) else None
+          allowed_operations = {"inventory_snapshot", "mcp_readonly_probe", "rsi_validation"}
+          expected_fields = base_fields | ({"source_repo", "source_commit"} if operation == "rsi_validation" else set())
           if not isinstance(request, dict) or set(request) != expected_fields:
               raise SystemExit("request rejected: schema fields do not match the allowlisted contract")
           if request["schema"] != "merlin-oci-job-request-v1":
               raise SystemExit("request rejected: unsupported schema")
           if str(uuid.UUID(request["request_id"])) != path_request_id:
               raise SystemExit("request rejected: request ID does not match its path")
-          if request["operation"] not in {"inventory_snapshot", "mcp_readonly_probe"}:
+          if operation not in allowed_operations:
               raise SystemExit("request rejected: operation is not enabled")
+          if operation == "rsi_validation":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: RSI source repository is not allowlisted")
+              if request["source_commit"] != "0b7168a95a89d5f945bf918d4089217b85612dbf":
+                  raise SystemExit("request rejected: RSI source commit is not the pinned snapshot")
           reason = request["reason"]
           if not isinstance(reason, str) or not reason.strip() or len(reason) > 300:
               raise SystemExit("request rejected: reason must be 1-300 characters")
@@ -254,6 +264,74 @@ jobs:
                       "error_type": type(exc).__name__,
                       "error_message": str(exc)[:300],
                   }
+          rsi_validation = None
+          if request["operation"] == "rsi_validation":
+              if __import__("importlib.util").util.find_spec("cryptography") is None:
+                  raise SystemExit("RSI validation unavailable: cryptography is not preinstalled; no packages will be installed")
+              profile_root = artifact_dir / "rsi-workspace"
+              profile_files = {
+                  "python/merlin/rsi_pipeline.py": (
+                      "merlin/rsi-validation/python/merlin/rsi_pipeline.py",
+                      "9c1e57161bb2d77787dfe1b7d0ba4324fbf00b1e",
+                  ),
+                  "tests/test_rsi_pipeline.py": (
+                      "merlin/rsi-validation/tests/test_rsi_pipeline.py",
+                      "6b8c257b31a3de282a10c67d5a69b9825d3d5f9d",
+                  ),
+                  "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json": (
+                      "merlin/rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+                      "e38004514228b84ac052dace756d00f3022524b6",
+                  ),
+              }
+              file_receipts = {}
+              for relative_path, (repository_path, expected_blob_sha) in profile_files.items():
+                  file_bytes, actual_blob_sha = fetch_contents(repository_path)
+                  if actual_blob_sha != expected_blob_sha:
+                      raise SystemExit("RSI validation rejected: pinned source snapshot blob mismatch for " + relative_path)
+                  target = profile_root / relative_path
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(file_bytes)
+                  file_receipts[relative_path] = {
+                      "repository_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(file_bytes).hexdigest(),
+                      "size_bytes": len(file_bytes),
+                  }
+              benchmark = json.loads((profile_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json").read_text(encoding="utf-8"))
+              if benchmark.get("status") != "frozen" or len(benchmark.get("cases", [])) != 25:
+                  raise SystemExit("RSI validation rejected: pinned benchmark contract invalid")
+              test_env = dict(os.environ)
+              test_env["PYTHONPATH"] = str(profile_root / "python")
+              compile_result = subprocess.run(
+                  [sys.executable, "-m", "py_compile", "python/merlin/rsi_pipeline.py"],
+                  cwd=profile_root, env=test_env, capture_output=True, text=True, timeout=90,
+              )
+              test_result = None
+              if compile_result.returncode == 0:
+                  test_result = subprocess.run(
+                      [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_rsi_pipeline.py", "-v"],
+                      cwd=profile_root, env=test_env, capture_output=True, text=True, timeout=180,
+                  )
+              (artifact_dir / "rsi-pycompile.stdout.txt").write_text(compile_result.stdout[-20000:], encoding="utf-8")
+              (artifact_dir / "rsi-pycompile.stderr.txt").write_text(compile_result.stderr[-20000:], encoding="utf-8")
+              if test_result is not None:
+                  (artifact_dir / "rsi-unittest.stdout.txt").write_text(test_result.stdout[-30000:], encoding="utf-8")
+                  (artifact_dir / "rsi-unittest.stderr.txt").write_text(test_result.stderr[-30000:], encoding="utf-8")
+              rsi_validation = {
+                  "status": "passed" if compile_result.returncode == 0 and test_result is not None and test_result.returncode == 0 else "failed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "source_files": file_receipts,
+                  "benchmark_suite_id": benchmark.get("suite_id"),
+                  "benchmark_case_count": len(benchmark.get("cases", [])),
+                  "python_version": sys.version.split()[0],
+                  "cryptography_version": __import__("cryptography").__version__,
+                  "compile_returncode": compile_result.returncode,
+                  "test_returncode": test_result.returncode if test_result is not None else None,
+                  "test_stdout": test_result.stdout[-30000:] if test_result is not None else "",
+                  "test_stderr": test_result.stderr[-30000:] if test_result is not None else "",
+                  "package_installation": False,
+                  "host_mutations": False,
+              }
           completed_at = datetime.now(timezone.utc).isoformat()
           receipt = {
               "schema": "merlin-oci-job-receipt-v1",
@@ -273,7 +351,10 @@ jobs:
               "inventory_module_sha256": module_sha256,
               "started_at_utc": started_at,
               "completed_at_utc": completed_at,
-              "status": "succeeded" if mcp_probe is None or mcp_probe.get("status") == "succeeded" else "completed_with_probe_error",
+              "status": (
+                  rsi_validation["status"] if rsi_validation is not None else
+                  "succeeded" if mcp_probe is None or mcp_probe.get("status") == "succeeded" else "completed_with_probe_error"
+              ),
               "qualification": False,
               "proof_implication": "none",
               "host_mutations": False,
@@ -287,6 +368,7 @@ jobs:
               },
               "inventory": inventory,
               "mcp_probe": mcp_probe,
+              "rsi_validation": rsi_validation,
           }
           (artifact_dir / "job-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
@@ -297,7 +379,9 @@ jobs:
               encoding="utf-8",
           )
           print(json.dumps({k: v for k, v in receipt.items() if k != "inventory"}, indent=2, sort_keys=True))
-          print("MERLIN_OCI_JOB_STATUS=succeeded")
+          print("MERLIN_OCI_JOB_STATUS=" + receipt["status"])
+          if receipt["status"] != "succeeded" and receipt["status"] != "passed":
+              raise SystemExit("approved OCI profile completed with a failed status")
           PY
 
       - name: Upload job receipt and inventory
