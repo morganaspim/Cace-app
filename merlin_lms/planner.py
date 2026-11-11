@@ -50,7 +50,7 @@ def _concept_index(learner: dict[str, Any]) -> dict[str, str]:
         concept_id, state = item.get("concept_id"), item.get("state")
         if not isinstance(concept_id, str) or not concept_id:
             raise ValueError("concept state requires a non-empty concept_id")
-        if state not in CONCEPT_NEED:
+        if not isinstance(state, str) or state not in CONCEPT_NEED:
             raise ValueError(f"unsupported concept state for {concept_id}: {state!r}")
         result[concept_id] = state
     return result
@@ -63,10 +63,12 @@ def _validate_task(task: dict[str, Any]) -> None:
         raise ValueError("task requires a non-empty task_id")
     if not isinstance(task.get("concept_id"), str) or not task["concept_id"]:
         raise ValueError(f"{task['task_id']}: concept_id is required")
-    if not isinstance(task.get("requires", []), list):
-        raise ValueError(f"{task['task_id']}: requires must be an array")
-    if not isinstance(task.get("interest_tags", []), list):
-        raise ValueError(f"{task['task_id']}: interest_tags must be an array")
+    requires = task.get("requires", [])
+    if not isinstance(requires, list) or any(not isinstance(item, str) or not item for item in requires):
+        raise ValueError(f"{task['task_id']}: requires must be an array of non-empty strings")
+    interest_tags = task.get("interest_tags", [])
+    if not isinstance(interest_tags, list) or any(not isinstance(item, str) for item in interest_tags):
+        raise ValueError(f"{task['task_id']}: interest_tags must be an array of strings")
     if not isinstance(task.get("pathways", {}), dict):
         raise ValueError(f"{task['task_id']}: pathways must be an object")
     for pathway, value in task.get("pathways", {}).items():
@@ -125,9 +127,15 @@ def plan_next_tasks(learner: dict[str, Any], tasks: Iterable[dict[str, Any]], *,
         raise ValueError("limit must be a positive integer")
     if max_minutes is not None and (isinstance(max_minutes, bool) or not isinstance(max_minutes, int) or max_minutes < 1):
         raise ValueError("max_minutes must be a positive integer when supplied")
+    interests = learner.get("interests", [])
+    if not isinstance(interests, list) or any(not isinstance(item, str) for item in interests):
+        raise ValueError("learner.interests must be an array of strings")
     weights = _learner_pathway_weights(learner)
     concepts = _concept_index(learner)
-    completed = set(completed_task_ids)
+    completed_values = list(completed_task_ids)
+    if any(not isinstance(item, str) or not item for item in completed_values):
+        raise ValueError("completed_task_ids must contain non-empty strings")
+    completed = set(completed_values)
     ranked, blocked, seen = [], [], set()
     for task in tasks:
         _validate_task(task)
