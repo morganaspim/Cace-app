@@ -1,0 +1,228 @@
+name: Merlin OCI runner qualification
+
+on:
+  push:
+    branches:
+      - merlin-oci-qualification-20261107
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-oci-runner-qualification
+  cancel-in-progress: false
+
+jobs:
+  qualify-runner:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 90
+    env:
+      CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
+      CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
+      CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
+      CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_MANIFEST_CACHE_DIR: /var/lib/cace-cache/mathlib/manifests
+      LAKE_ARTIFACT_CACHE: 'true'
+      LAKE_CACHE_DIR: /var/lib/cace-cache/lake
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
+      MERLIN_REPO_URL: https://github.com/Mannyspiro/expert-robot.git
+      MERLIN_SOURCE_COMMIT: 974e132db5f8742fe9c14935aea2b04a67a01963
+      MERLIN_ARTIFACT_DIR: artifacts/merlin-oci-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout exact event commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          clean: false
+          persist-credentials: false
+
+      - name: Capture OCI runner identity and capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$MERLIN_ARTIFACT_DIR"
+          mkdir -p "$MERLIN_ARTIFACT_DIR"
+          {
+            printf 'exact_head=%s\n' "$GITHUB_SHA"
+            printf 'runner_name=%s\n' "${RUNNER_NAME:-unknown}"
+            printf 'runner_os=%s\n' "${RUNNER_OS:-unknown}"
+            printf 'runner_arch=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'hostname=%s\n' "$(hostname)"
+            uname -a
+            printf 'cpu_count=%s\n' "$(getconf _NPROCESSORS_ONLN)"
+            awk '/MemTotal|MemAvailable/ {print}' /proc/meminfo
+            df -h "$GITHUB_WORKSPACE"
+            git status --short
+            test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+            test -z "$(git status --porcelain --untracked-files=no)"
+          } 2>&1 | tee "$MERLIN_ARTIFACT_DIR/oci-runner-identity.log"
+          available_bytes="$(df -PB1 "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')"
+          required_bytes="$((8 * 1024 * 1024 * 1024))"
+          if (( available_bytes < required_bytes )); then
+            printf 'INSUFFICIENT_DISK_HEADROOM available_bytes=%s required_bytes=%s; refusing all cache writes and installs\\n' "$available_bytes" "$required_bytes" | tee "$MERLIN_ARTIFACT_DIR/oci-disk-preflight.txt"
+            exit 78
+          fi
+
+      - name: Restore pinned Lean and Mathlib cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          test -x "$ELAN_HOME/bin/elan"
+          elan toolchain install "$CACE_TOOLCHAIN"
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          mkdir -p formal/cace_formal/.lake
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          if test -d formal/cace_formal/.lake/packages; then
+            test -d formal/cace_formal/.lake/packages/mathlib/.git
+            test "$(git -C formal/cace_formal/.lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          else
+            cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
+          fi
+          flock -u 9
+          cd formal/cace_formal
+          lean --version | tee "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/lean-version.log"
+          lake --version | tee "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/lake-version.log"
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          mkdir -p "$CACE_MANIFEST_CACHE_DIR"
+          manifest_key="$(
+            {
+              printf '%s\n' "$CACE_TOOLCHAIN"
+              sha256sum lakefile.lean
+            } | sha256sum | awk '{print $1}'
+          )"
+          manifest_cache="$CACE_MANIFEST_CACHE_DIR/$manifest_key.json"
+          if test -s "$manifest_cache"; then
+            if test -e lake-manifest.json; then
+              cmp -s lake-manifest.json "$manifest_cache"
+            else
+              cp "$manifest_cache" lake-manifest.json
+            fi
+            echo "CACE_MANIFEST_CACHE_HIT key=$manifest_key"
+          else
+            echo "CACE_MANIFEST_CACHE_MISS key=$manifest_key"
+            if ! test -e lake-manifest.json; then
+              MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+            fi
+            test -s lake-manifest.json
+            install -m 0644 lake-manifest.json "$manifest_cache.tmp-$GITHUB_RUN_ID"
+            if ! test -e "$manifest_cache"; then
+              mv "$manifest_cache.tmp-$GITHUB_RUN_ID" "$manifest_cache"
+            fi
+          fi
+          test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+
+      - name: Compile pinned CACE proof canary
+        id: canary
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/oci-lean-canary.log"
+          rc=${PIPESTATUS[0]}
+          log_sha="$(sha256sum "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/oci-lean-canary.log" | awk '{print $1}')"
+          printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s,"log_sha256":"%s"}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" "$log_sha" > "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/oci-lean-canary-result.json"
+          exit "$rc"
+
+      - name: Test exact Merlin commit on OCI
+        id: merlin_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          test -d "$MERLIN_ARTIFACT_DIR"
+          source_dir="$RUNNER_TEMP/merlin-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          venv_dir="$RUNNER_TEMP/merlin-venv-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          (
+            set -euo pipefail
+            test ! -e "$source_dir"
+            test ! -e "$venv_dir"
+            git clone --filter=blob:none --no-checkout "$MERLIN_REPO_URL" "$source_dir"
+            git -C "$source_dir" fetch --depth=1 origin "$MERLIN_SOURCE_COMMIT"
+            git -C "$source_dir" checkout --detach "$MERLIN_SOURCE_COMMIT"
+            test "$(git -C "$source_dir" rev-parse HEAD)" = "$MERLIN_SOURCE_COMMIT"
+            cd "$source_dir"
+            python3 --version
+            python3 -m venv "$venv_dir"
+            timeout 600 "$venv_dir/bin/python" -m pip install --disable-pip-version-check --retries 2 --timeout 30 -r requirements-merlin-auth.txt pytest==8.3.5
+            "$venv_dir/bin/python" -m compileall -q python/merlin
+            PYTHONPATH=python:. timeout 1200 "$venv_dir/bin/python" -m pytest -vv \
+              tests/research/test_merlin_api.py \
+              tests/research/test_merlin_learning_http.py \
+              tests/test_merlin_identity.py \
+              tests/test_merlin_learning_platform.py \
+              tests/test_merlin_capability_registry.py \
+              tests/test_merlin_project_registry.py \
+              tests/test_cace_adapter.py \
+              tests/test_cace_attestation.py \
+              tests/test_cace_runtime.py \
+              tests/test_ngspice_engine.py \
+              tests/test_event_outbox.py \
+              tests/test_merlin_worker_api.py \
+              tests/test_hermes_worker.py \
+              tests/test_hermes_worker_service.py \
+              tests/test_hermes_runtime.py \
+              tests/test_hermes_stage_handlers.py \
+              tests/test_hermes_proof_orchestrator.py \
+              tests/test_avrea_adapter.py \
+              tests/test_hermes_outbox.py \
+              tests/test_public_literature.py \
+              tests/test_merlin_learner_store_resources.py \
+              tests/test_merlin_virtual_repository.py
+          ) > "$MERLIN_ARTIFACT_DIR/merlin-oci-test.log" 2>&1
+          rc=$?
+          log_sha="$(sha256sum "$MERLIN_ARTIFACT_DIR/merlin-oci-test.log" | awk '{print $1}')"
+          python_version="$(python3 --version 2>&1 | tr -d '\\n')"
+          pytest_version="$("$venv_dir/bin/python" -m pytest --version 2>&1 | tr -d '\\n')"
+          printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","runner_name":"%s","runner_arch":"%s","python_version":"%s","pytest_version":"%s","exit_code":%s,"log_sha256":"%s"}\\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$RUNNER_NAME" "$RUNNER_ARCH" "$python_version" "$pytest_version" "$rc" "$log_sha" > "$MERLIN_ARTIFACT_DIR/merlin-oci-test-result.json"
+          exit "$rc"
+
+      - name: Write qualification boundary summary
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary.outcome }}
+          MERLIN_TEST_OUTCOME: ${{ steps.merlin_tests.outcome }}
+        run: |
+          {
+            printf 'evidence_class=runner-qualification-and-formal-preflight\n'
+            printf 'qualification=false\n'
+            printf 'exact_head=%s\n' "$GITHUB_SHA"
+            printf 'runner_name=%s\n' "${RUNNER_NAME:-unknown}"
+            printf 'runner_arch=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'lean_toolchain=%s\n' "$CACE_TOOLCHAIN"
+            printf 'mathlib_commit=%s\n' "$CACE_MATHLIB_COMMIT"
+            printf 'canary_outcome=%s\n' "$CANARY_OUTCOME"
+            printf 'merlin_test_outcome=%s\n' "$MERLIN_TEST_OUTCOME"
+            printf 'merlin_source_commit=%s\n' "$MERLIN_SOURCE_COMMIT"
+            printf 'canonical_claim_promotion=false\n'
+          } | tee "$MERLIN_ARTIFACT_DIR/oci-qualification-summary.txt"
+
+      - name: Upload OCI runner evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-runner-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ github.workspace }}/${{ env.MERLIN_ARTIFACT_DIR }}/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Require successful pinned compile
+        if: always()
+        shell: bash
+        env:
+          CANARY_OUTCOME: ${{ steps.canary.outcome }}
+          MERLIN_TEST_OUTCOME: ${{ steps.merlin_tests.outcome }}
+        run: |
+          test "$CANARY_OUTCOME" = "success"
+          test "$MERLIN_TEST_OUTCOME" = "success"
