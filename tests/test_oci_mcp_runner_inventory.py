@@ -10,27 +10,27 @@ from ops.oci_mcp.runner_inventory import (
 
 def test_runner_inventory_is_read_only_and_reports_local_mcp_state(tmp_path):
     (tmp_path / ".runner").write_text("registration metadata", encoding="utf-8")
-    (tmp_path / "run.sh").write_text("#!/bin/sh\\n", encoding="utf-8")
+    (tmp_path / "run.sh").write_text("#!/bin/sh\n", encoding="utf-8")
     calls = []
 
     def fake_run(argv, **kwargs):
         calls.append(argv)
         if argv[0].endswith("pgrep"):
-            return SimpleNamespace(returncode=0, stdout="123\\n", stderr="")
+            return SimpleNamespace(returncode=0, stdout="123\n", stderr="")
         if argv[0].endswith("systemctl") and argv[1] == "is-active":
-            return SimpleNamespace(returncode=0, stdout="active\\n", stderr="")
+            return SimpleNamespace(returncode=0, stdout="active\n", stderr="")
         if argv[0].endswith("ss"):
             return SimpleNamespace(
                 returncode=0,
-                stdout="State Recv-Q Send-Q Local Address:Port Peer Address:Port\\nLISTEN 0 128 127.0.0.1:8765 0.0.0.0:*\\n",
+                stdout="State Recv-Q Send-Q Local Address:Port Peer Address:Port\nLISTEN 0 128 127.0.0.1:8765 0.0.0.0:*\n",
                 stderr="",
             )
         return SimpleNamespace(
             returncode=0,
             stdout=(
-                "actions.runner.org-repo.host.service loaded active running Runner\\n"
-                "cace-oci-mcp.service loaded active running CACE MCP\\n"
-                "other.service loaded active running Other\\n"
+                "actions.runner.org-repo.host.service loaded active running Runner\n"
+                "cace-oci-mcp.service loaded active running CACE MCP\n"
+                "other.service loaded active running Other\n"
             ),
             stderr="",
         )
@@ -111,11 +111,11 @@ def test_runner_inventory_never_reads_credentials(tmp_path):
 def test_host_inventory_reads_only_allowlisted_os_fields_and_aggregate_memory(tmp_path):
     release = tmp_path / "os-release"
     release.write_text(
-        'ID="oracle"\\nVERSION_ID="8"\\nPRETTY_NAME="Oracle Linux 8"\\nSECRET_TOKEN="never-return"\\n',
+        'ID="oracle"\nVERSION_ID="8"\nPRETTY_NAME="Oracle Linux 8"\nSECRET_TOKEN="never-return"\n',
         encoding="utf-8",
     )
     meminfo = tmp_path / "meminfo"
-    meminfo.write_text("MemTotal:       1024 kB\\nMemFree:         128 kB\\n", encoding="ascii")
+    meminfo.write_text("MemTotal:       1024 kB\nMemFree:         128 kB\n", encoding="ascii")
 
     assert _os_release(release) == {
         "id": "oracle",
@@ -136,7 +136,7 @@ def test_inventory_distinguishes_non_loopback_mcp_listener(tmp_path):
         if argv[0].endswith("ss"):
             return SimpleNamespace(
                 returncode=0,
-                stdout="State Recv-Q Send-Q Local Address:Port Peer Address:Port\\nLISTEN 0 128 0.0.0.0:8765 0.0.0.0:*\\n",
+                stdout="State Recv-Q Send-Q Local Address:Port Peer Address:Port\nLISTEN 0 128 0.0.0.0:8765 0.0.0.0:*\n",
                 stderr="",
             )
         return SimpleNamespace(returncode=1, stdout="", stderr="")
