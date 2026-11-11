@@ -6,6 +6,16 @@ for operating the CACE Oracle Cloud Infrastructure VM.
 The server is **not** a generic shell and **not** a generic OCI API proxy. It is
 designed to expose a small audited set of actions to an MCP client.
 
+## Merlin extension design
+
+See [MERLIN_OCI_MCP_EXTENSION_SPEC.md](MERLIN_OCI_MCP_EXTENSION_SPEC.md) for the
+proposed, non-destructive extension plan covering identity/headroom checks,
+metadata-only inventory, selected-file retrieval, bounded artifact transfer,
+remote MCP connectivity, audit receipts, and acceptance criteria.
+
+The specification is a design document only. It does not mean the additional
+tools have been implemented, deployed, or connected to a live OCI instance.
+
 ## Exposed tools
 
 Read-only by default:
@@ -136,6 +146,11 @@ The installer:
 - installs a sudoers rule that permits only
   `systemctl restart cace-web`,
 - starts the service on `127.0.0.1:8765`.
+
+**Do not run the current installer against the existing runner without first
+reviewing and replacing its release-directory removal behavior.** It currently
+runs `sudo rm -rf "$release"`; even an existing same-SHA release can be
+removed. This is a known deployment hazard, not a safe update procedure.
 
 Check it:
 
