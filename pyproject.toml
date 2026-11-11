@@ -27,6 +27,7 @@ include = ["cace_studio*", "merlin_lms*"]
 
 [tool.setuptools.package-data]
 cace_studio = ["data/*.json"]
+merlin_lms = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
