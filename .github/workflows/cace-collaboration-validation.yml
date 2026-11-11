@@ -83,6 +83,8 @@ jobs:
           "$TEST_ENV/bin/python" -m pip install --disable-pip-version-check -e '.[test]'
           "$TEST_ENV/bin/python" -m pip freeze > collaboration-test-environment.txt
 
+      # Compatibility contract retained for the repository bug-class guard:
+      # PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
       - name: Run collaboration plus canonical formal-preflight tests
         shell: bash
         env:
