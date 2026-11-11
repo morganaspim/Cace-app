@@ -62,9 +62,13 @@ jobs:
           set -euo pipefail
           PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
           import json
+          from pathlib import Path
           from ops.oci_mcp.runner_inventory import collect_runner_status
 
-          print(json.dumps(collect_runner_status(), indent=2, sort_keys=True))
+          inventory = collect_runner_status()
+          rendered = json.dumps(inventory, indent=2, sort_keys=True) + "\\n"
+          Path("oci-runner-inventory.json").write_text(rendered, encoding="utf-8")
+          print(rendered)
           PY
 
       - name: Bootstrap pinned formal-preflight Python environment
@@ -215,4 +219,5 @@ jobs:
           path: |
             collaboration-validation-summary.json
             collaboration-test-environment.txt
+            oci-runner-inventory.json
           if-no-files-found: error
