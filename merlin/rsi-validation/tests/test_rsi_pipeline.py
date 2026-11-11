@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import sqlite3
 import sys
 import tempfile
@@ -332,43 +333,96 @@ class RSIPipelineTests(unittest.TestCase):
             "signature_b64": base64.b64encode(signature).decode("ascii"),
         }
 
+    def _cace_trust_env(self):
+        document = {
+            "schema": "merlin-cace-trust-store-v1",
+            "keys": [{
+                "key_id": self.cace_key_id,
+                "verifier_id": "cace",
+                "status": "active",
+            }],
+        }
+        raw = json.dumps(document, sort_keys=True, separators=(",", ":"))
+        return {
+            "MERLIN_CACE_TRUST_STORE_JSON": raw,
+            "MERLIN_CACE_TRUST_STORE_SHA256": rsi.sha256_hex(raw.encode("utf-8")),
+        }
+
     def test_cace_verification_and_separate_approval_gate_promotion(self):
+        from unittest.mock import patch
         candidate = "candidate-promote"
         self._record_candidate_and_evaluation(candidate)
         attestation = self._make_cace_attestation(candidate)
-        with self.assertRaises(PermissionError):
-            self.ledger.record_cace_verification(
-                candidate_id=candidate, attestation=attestation, approved_keys={},
+        with patch.dict(os.environ, {
+            "MERLIN_CACE_TRUST_STORE_JSON": "",
+            "MERLIN_CACE_TRUST_STORE_SHA256": "",
+        }):
+            with self.assertRaises(PermissionError):
+                self.ledger.record_cace_verification(
+                    candidate_id=candidate, attestation=attestation,
+                    artifact_sha256=ARTIFACT, suite_sha256=SUITE,
+                )
+        trust_env = self._cace_trust_env()
+        with patch.dict(os.environ, trust_env):
+            cace_event = self.ledger.record_cace_verification(
+                candidate_id=candidate, attestation=attestation,
                 artifact_sha256=ARTIFACT, suite_sha256=SUITE,
             )
-        cace_event = self.ledger.record_cace_verification(
-            candidate_id=candidate, attestation=attestation,
-            approved_keys=self.cace_keys, artifact_sha256=ARTIFACT,
-            suite_sha256=SUITE,
-        )
-        attestation_digest = rsi.sha256_hex(rsi.canonical_json(attestation))
-        approval = sign_receipt("merlin-approver", {
-            "candidate_id": candidate, "candidate_digest": ARTIFACT,
-            "benchmark_manifest_sha256": SUITE,
-            "cace_attestation_sha256": attestation_digest,
-            "action": "promote", "target": "qualified",
-        }, "approver-key", self.approver_private)
-        with self.assertRaises(PermissionError):
-            self.ledger.record_promotion(
+            attestation_digest = rsi.sha256_hex(rsi.canonical_json(attestation))
+            approval = sign_receipt("merlin-approver", {
+                "candidate_id": candidate, "candidate_digest": ARTIFACT,
+                "benchmark_manifest_sha256": SUITE,
+                "cace_attestation_sha256": attestation_digest,
+                "action": "promote", "target": "qualified",
+            }, "approver-key", self.approver_private)
+            with self.assertRaises(PermissionError):
+                self.ledger.record_promotion(
+                    candidate_id=candidate, artifact_sha256=ARTIFACT,
+                    suite_sha256=SUITE, attestation=attestation,
+                    approval_receipt=approval, approval_keys={},
+                )
+            promoted = self.ledger.record_promotion(
                 candidate_id=candidate, artifact_sha256=ARTIFACT,
                 suite_sha256=SUITE, attestation=attestation,
-                cace_approved_keys=self.cace_keys,
-                approval_receipt=approval, approval_keys={},
+                approval_receipt=approval, approval_keys=self.approver_keys,
             )
-        promoted = self.ledger.record_promotion(
-            candidate_id=candidate, artifact_sha256=ARTIFACT,
-            suite_sha256=SUITE, attestation=attestation,
-            cace_approved_keys=self.cace_keys,
-            approval_receipt=approval, approval_keys=self.approver_keys,
-        )
         self.assertEqual(cace_event["seq"], 2)
         self.assertEqual(promoted["seq"], 3)
         self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
+
+    def test_cace_trust_store_rejects_modified_digest_and_self_approval(self):
+        from unittest.mock import patch
+        candidate = "candidate-cace-trust-fail"
+        self._record_candidate_and_evaluation(candidate)
+        attestation = self._make_cace_attestation(candidate)
+        trust_env = self._cace_trust_env()
+        trust_env["MERLIN_CACE_TRUST_STORE_SHA256"] = "0" * 64
+        with patch.dict(os.environ, trust_env):
+            with self.assertRaises(PermissionError):
+                self.ledger.record_cace_verification(
+                    candidate_id=candidate, attestation=attestation,
+                    artifact_sha256=ARTIFACT, suite_sha256=SUITE,
+                )
+        forged_key = Ed25519PrivateKey.generate()
+        forged_raw = forged_key.public_key().public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw
+        )
+        forged_key_id = "ed25519:" + rsi.sha256_hex(forged_raw)
+        forged_env = {
+            "MERLIN_CACE_TRUST_STORE_JSON": json.dumps({
+                "schema": "merlin-cace-trust-store-v1",
+                "keys": [{"key_id": forged_key_id, "verifier_id": "cace", "status": "active"}],
+            }, sort_keys=True, separators=(",", ":")),
+        }
+        forged_env["MERLIN_CACE_TRUST_STORE_SHA256"] = rsi.sha256_hex(
+            forged_env["MERLIN_CACE_TRUST_STORE_JSON"].encode("utf-8")
+        )
+        with patch.dict(os.environ, forged_env):
+            with self.assertRaises(PermissionError):
+                self.ledger.record_cace_verification(
+                    candidate_id=candidate, attestation=attestation,
+                    artifact_sha256=ARTIFACT, suite_sha256=SUITE,
+                )
 
     def test_promotion_rejects_failed_evaluation(self):
         candidate = "candidate-fail"
