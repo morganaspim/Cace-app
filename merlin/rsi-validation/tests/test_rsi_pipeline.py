@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 from merlin import rsi_pipeline as rsi
 from merlin.rsi_pipeline import (
     AppendOnlyLedger, ResearchMetadataCache, SignedReceipt,
-    ingest_hermes_failure, optional_adapter_status,
+    dispatch_rsi_induction_seed, ingest_hermes_failure, optional_adapter_status,
     paired_adapter_gain, paired_adapter_gate,
 )
 
@@ -131,6 +131,106 @@ class RSIPipelineTests(unittest.TestCase):
         self.assertEqual(child["seq"], 0)
         child_event = self.ledger.events("candidate-child")[0]
         self.assertEqual(json.loads(child_event["payload"])["parent_candidate_id"], "candidate-root")
+
+    def test_induction_dispatch_requires_signed_worker_ack_and_is_idempotent(self):
+        failure = {
+            "event_id": "hermes-dispatch-51",
+            "failure_class": "proof-timeout",
+            "summary": "Proof search reached its resource budget",
+            "source_repo": "Mannyspiro/expert-robot",
+            "source_commit": SOURCE_COMMIT,
+            "artifact_sha256": ARTIFACT,
+        }
+        claims = {
+            "subject": "hermes-failure:hermes-dispatch-51",
+            "source_repo": failure["source_repo"],
+            "source_commit": SOURCE_COMMIT,
+            "artifact_sha256": ARTIFACT,
+            "failure_class": failure["failure_class"],
+        }
+        seed = ingest_hermes_failure(
+            self.ledger, failure,
+            sign_receipt("hermes", claims, "hermes-key", self.hermes_private),
+            self.hermes_keys,
+        )
+
+        worker_private = Ed25519PrivateKey.generate()
+        worker_keys = {"worker-key": public_pem(worker_private)}
+
+        class FakeTransport:
+            def __init__(self):
+                self.calls = 0
+            def submit_induction(self, *, seed_event_hash, episode_id, idempotency_key, seed):
+                self.calls += 1
+                ack_claims = {
+                    "seed_event_hash": seed_event_hash,
+                    "episode_id": episode_id,
+                    "idempotency_key": idempotency_key,
+                    "status": "accepted",
+                    "worker_id": "rsi-worker-test-01",
+                    "task_id": "task-51",
+                }
+                return sign_receipt(
+                    "merlin-rsi-worker", ack_claims, "worker-key", worker_private
+                )
+
+        transport = FakeTransport()
+        with self.assertRaises(RuntimeError):
+            dispatch_rsi_induction_seed(self.ledger, seed["event_hash"], None, worker_keys)
+        first = dispatch_rsi_induction_seed(
+            self.ledger, seed["event_hash"], transport, worker_keys
+        )
+        replay = dispatch_rsi_induction_seed(
+            self.ledger, seed["event_hash"], transport, worker_keys
+        )
+        self.assertEqual(first["seq"], 1)
+        self.assertTrue(replay["idempotent_replay"])
+        self.assertEqual(first["event_hash"], replay["event_hash"])
+        self.assertEqual(transport.calls, 1)
+        dispatched = json.loads(self.ledger.events(seed["episode_id"])[1]["payload"])
+        self.assertEqual(dispatched["worker_id"], "rsi-worker-test-01")
+        self.assertFalse(dispatched["promotion_authority"])
+        self.assertTrue(self.ledger.verify_chain(seed["episode_id"])["valid"])
+
+    def test_induction_dispatch_rejects_worker_ack_for_another_seed(self):
+        failure = {
+            "event_id": "hermes-dispatch-52",
+            "failure_class": "lean-error",
+            "summary": "Lean rejected generated declaration",
+            "source_repo": "Mannyspiro/expert-robot",
+            "source_commit": SOURCE_COMMIT,
+            "artifact_sha256": ARTIFACT,
+        }
+        claims = {
+            "subject": "hermes-failure:hermes-dispatch-52",
+            "source_repo": failure["source_repo"],
+            "source_commit": SOURCE_COMMIT,
+            "artifact_sha256": ARTIFACT,
+            "failure_class": failure["failure_class"],
+        }
+        seed = ingest_hermes_failure(
+            self.ledger, failure,
+            sign_receipt("hermes", claims, "hermes-key", self.hermes_private),
+            self.hermes_keys,
+        )
+        worker_private = Ed25519PrivateKey.generate()
+        worker_keys = {"worker-key": public_pem(worker_private)}
+
+        class MismatchedTransport:
+            def submit_induction(self, *, seed_event_hash, episode_id, idempotency_key, seed):
+                return sign_receipt("merlin-rsi-worker", {
+                    "seed_event_hash": "f" * 64,
+                    "episode_id": episode_id,
+                    "idempotency_key": idempotency_key,
+                    "status": "accepted",
+                    "worker_id": "rsi-worker-test-02",
+                    "task_id": "task-wrong",
+                }, "worker-key", worker_private)
+
+        with self.assertRaises(PermissionError):
+            dispatch_rsi_induction_seed(
+                self.ledger, seed["event_hash"], MismatchedTransport(), worker_keys
+            )
 
     def test_rsi_candidate_binds_authenticated_hermes_seed(self):
         failure = {
