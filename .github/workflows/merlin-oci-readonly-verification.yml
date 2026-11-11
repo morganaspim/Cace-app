@@ -76,6 +76,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: merlin-oci-readonly-${"$"}{{ github.run_id }}
-          path: ${"$"}{{ runner.temp }}/merlin-oci-readonly-${"$"}{{ github.run_id }}/
+          name: merlin-oci-readonly-${{ github.run_id }}
+          path: ${{ runner.temp }}/merlin-oci-readonly-${{ github.run_id }}/
           if-no-files-found: warn
