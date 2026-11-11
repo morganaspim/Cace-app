@@ -230,6 +230,10 @@ jobs:
                       "structured_content": result.get("structuredContent"),
                       "content": result.get("content", []),
                   }
+              required_tools_ok = all(
+                  results.get(name, {}).get("available") and not results.get(name, {}).get("is_error")
+                  for name in ("get_control_capabilities", "get_cace_runtime_status")
+              )
               return {
                   "status": "succeeded" if required_tools_ok else "partial",
                   "endpoint": endpoint,
