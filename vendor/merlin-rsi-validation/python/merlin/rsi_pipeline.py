@@ -17,6 +17,8 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
+import re
 import sqlite3
 import statistics
 import time
@@ -25,7 +27,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 
 def canonical_json(value: Any) -> bytes:
@@ -83,9 +85,8 @@ def verify_signed_receipt(
     expected_claims: Mapping[str, Any] | None = None,
     now: datetime | None = None,
     max_age: timedelta = timedelta(days=7),
-    verifier: Callable[[bytes, bytes, str], bool] | None = None,
 ) -> bool:
-    """Verify Ed25519 over canonical JSON; the injected verifier is test-only."""
+    """Verify Ed25519 over canonical JSON using only the trusted issuer key."""
     if receipt.schema_version != 1 or not receipt.issuer or not receipt.key_id:
         return False
     if expected_issuer is not None and receipt.issuer != expected_issuer:
@@ -103,8 +104,6 @@ def verify_signed_receipt(
             return False
         signature = base64.b64decode(receipt.signature_b64, validate=True)
         payload = canonical_json(receipt.unsigned_payload())
-        if verifier is not None:
-            return bool(verifier(payload, signature, pem))
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         key = serialization.load_pem_public_key(pem.encode("utf-8"))
@@ -161,12 +160,46 @@ def cace_rsi_bundle_sha256(
     return sha256_hex(_CACE_BUNDLE_DOMAIN + canonical_json(bundle))
 
 
+def _load_approved_cace_keys() -> dict[str, str]:
+    """Load a server-pinned CACE key allowlist; never accept caller-supplied trust."""
+    raw = os.environ.get("MERLIN_CACE_TRUST_STORE_JSON", "")
+    expected_digest = os.environ.get("MERLIN_CACE_TRUST_STORE_SHA256", "")
+    if not raw or not _is_sha256(expected_digest):
+        raise PermissionError("independent CACE trust store is not configured")
+    if sha256_hex(raw.encode("utf-8")) != expected_digest:
+        raise PermissionError("independent CACE trust store digest mismatch")
+    try:
+        document = json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise PermissionError("independent CACE trust store is invalid JSON") from exc
+    if (not isinstance(document, Mapping)
+        or set(document) != {"schema", "keys"}
+        or document.get("schema") != "merlin-cace-trust-store-v1"
+        or not isinstance(document.get("keys"), list)):
+        raise PermissionError("independent CACE trust store schema mismatch")
+    approved: dict[str, str] = {}
+    for entry in document["keys"]:
+        if (not isinstance(entry, Mapping)
+            or set(entry) != {"key_id", "verifier_id", "status"}
+            or entry.get("verifier_id") != "cace"
+            or entry.get("status") != "active"):
+            raise PermissionError("CACE trust store contains an invalid or inactive key")
+        key_id = entry.get("key_id")
+        if not isinstance(key_id, str) or not re.fullmatch(r"ed25519:[0-9a-f]{64}", key_id):
+            raise PermissionError("CACE trust store key ID is invalid")
+        if key_id in approved:
+            raise PermissionError("CACE trust store contains duplicate key IDs")
+        approved[key_id] = "cace"
+    if not approved:
+        raise PermissionError("CACE trust store contains no active verifier keys")
+    return approved
+
+
 def verify_cace_attestation(
     attestation: Mapping[str, Any], approved_keys: Mapping[str, str], *,
     expected_claim_id: str, expected_bundle_sha256: str,
     expected_bindings: Mapping[str, Any], expected_verifier_id: str = "cace",
     now: datetime | None = None, max_age: timedelta = timedelta(days=30),
-    verifier: Callable[[bytes, bytes, str], tuple[bool, str] | bool] | None = None,
 ) -> dict[str, str]:
     """Verify CACE cace-signed-attestation-v1 and an independently pinned key."""
     envelope_keys = {"schema", "signature_algorithm", "proof_effect",
@@ -216,23 +249,14 @@ def verify_cace_attestation(
     if not public_pem:
         raise PermissionError("CACE public key is missing")
     try:
-        if verifier is not None:
-            result = verifier(signing_bytes, signature, public_pem)
-            if isinstance(result, tuple):
-                valid, actual_key_id = result
-            else:
-                valid, actual_key_id = bool(result), str(statement.get("verifier_key_id", ""))
-            if not valid:
-                raise PermissionError("CACE Ed25519 signature verification failed")
-        else:
-            from cryptography.hazmat.primitives import serialization
-            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-            key = serialization.load_pem_public_key(public_pem.encode("ascii"))
-            if not isinstance(key, Ed25519PublicKey):
-                raise PermissionError("CACE public key is not Ed25519")
-            raw = key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-            actual_key_id = "ed25519:" + sha256_hex(raw)
-            key.verify(signature, signing_bytes)
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        key = serialization.load_pem_public_key(public_pem.encode("ascii"))
+        if not isinstance(key, Ed25519PublicKey):
+            raise PermissionError("CACE public key is not Ed25519")
+        raw = key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+        actual_key_id = "ed25519:" + sha256_hex(raw)
+        key.verify(signature, signing_bytes)
     except PermissionError:
         raise
     except Exception as exc:
@@ -362,7 +386,7 @@ class AppendOnlyLedger:
         source_receipt: SignedReceipt, artifact_sha256: str,
         generator: str, mutation: Mapping[str, Any],
         trusted_keys: Mapping[str, str], episode_id: str | None = None,
-        verifier=None,
+        induction_seed_event_hash: str | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256):
@@ -370,8 +394,20 @@ class AppendOnlyLedger:
         if not candidate_id or not generator:
             raise ValueError("candidate_id and generator are required")
         required = {"candidate_id": candidate_id, "artifact_sha256": artifact_sha256}
+        if induction_seed_event_hash is not None:
+            if not _is_sha256(induction_seed_event_hash):
+                raise ValueError("induction_seed_event_hash must be lowercase SHA-256")
+            with self._connect() as db:
+                seed = db.execute(
+                    "SELECT episode_id FROM research_episode_events "
+                    "WHERE event_hash=? AND event_type='rsi.induction_seeded'",
+                    (induction_seed_event_hash,),
+                ).fetchone()
+            if seed is None:
+                raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
+            required["induction_seed_event_hash"] = induction_seed_event_hash
         if not verify_signed_receipt(source_receipt, trusted_keys,
-            expected_issuer="merlin-source", expected_claims=required, verifier=verifier):
+            expected_issuer="merlin-source", expected_claims=required):
             raise PermissionError("candidate source receipt is missing, untrusted, or mismatched")
         source_repo = source_receipt.claims.get("source_repo")
         source_commit = source_receipt.claims.get("source_commit")
@@ -391,6 +427,7 @@ class AppendOnlyLedger:
             "source_claims": dict(source_receipt.claims),
             "source_repo": source_repo, "source_commit": source_commit,
             "artifact_sha256": artifact_sha256, "generator": generator,
+            "induction_seed_event_hash": induction_seed_event_hash,
             "mutation": dict(mutation),
         })
 
@@ -398,7 +435,7 @@ class AppendOnlyLedger:
         self, *, candidate_id: str, artifact_sha256: str,
         suite_sha256: str, metrics: Mapping[str, float], passed: bool,
         evaluator_receipt: SignedReceipt, trusted_keys: Mapping[str, str],
-        episode_id: str | None = None, verifier=None,
+        episode_id: str | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256) or not _is_sha256(suite_sha256):
@@ -412,7 +449,7 @@ class AppendOnlyLedger:
                     "metrics_sha256": metrics_sha,
                     "status": "pass" if passed else "fail"}
         if not verify_signed_receipt(evaluator_receipt, trusted_keys,
-            expected_issuer="merlin-evaluator", expected_claims=expected, verifier=verifier):
+            expected_issuer="merlin-evaluator", expected_claims=expected):
             raise PermissionError("evaluator receipt is missing, untrusted, or mismatched")
         candidate = self._candidate_event(episode, "candidate.created", candidate_id)
         if not candidate or candidate.get("artifact_sha256") != artifact_sha256:
@@ -453,17 +490,16 @@ class AppendOnlyLedger:
 
     def record_cace_verification(
         self, *, candidate_id: str, attestation: Mapping[str, Any],
-        approved_keys: Mapping[str, str], artifact_sha256: str,
-        suite_sha256: str, episode_id: str | None = None,
-        cace_verifier=None,
+        artifact_sha256: str, suite_sha256: str,
+        episode_id: str | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         _, _, bundle_sha, bindings = self._cace_evidence(
             episode, candidate_id, artifact_sha256, suite_sha256)
+        approved_keys = _load_approved_cace_keys()
         verified = verify_cace_attestation(
             attestation, approved_keys, expected_claim_id=candidate_id,
-            expected_bundle_sha256=bundle_sha, expected_bindings=bindings,
-            verifier=cace_verifier)
+            expected_bundle_sha256=bundle_sha, expected_bindings=bindings)
         return self.append("candidate.cace_verified", episode, {
             "candidate_id": candidate_id, "artifact_sha256": artifact_sha256,
             "suite_sha256": suite_sha256, "bundle_sha256": bundle_sha,
@@ -477,18 +513,16 @@ class AppendOnlyLedger:
     def record_promotion(
         self, *, candidate_id: str, artifact_sha256: str,
         suite_sha256: str, attestation: Mapping[str, Any],
-        cace_approved_keys: Mapping[str, str],
         approval_receipt: SignedReceipt, approval_keys: Mapping[str, str],
-        episode_id: str | None = None, cace_verifier=None,
-        approval_verifier=None,
+        episode_id: str | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         _, _, bundle_sha, bindings = self._cace_evidence(
             episode, candidate_id, artifact_sha256, suite_sha256)
+        cace_approved_keys = _load_approved_cace_keys()
         verified = verify_cace_attestation(
             attestation, cace_approved_keys, expected_claim_id=candidate_id,
-            expected_bundle_sha256=bundle_sha, expected_bindings=bindings,
-            verifier=cace_verifier)
+            expected_bundle_sha256=bundle_sha, expected_bindings=bindings)
         expected_approval = {
             "candidate_id": candidate_id, "candidate_digest": artifact_sha256,
             "benchmark_manifest_sha256": suite_sha256,
@@ -496,8 +530,7 @@ class AppendOnlyLedger:
             "action": "promote", "target": "qualified",
         }
         if not verify_signed_receipt(approval_receipt, approval_keys,
-            expected_issuer="merlin-approver", expected_claims=expected_approval,
-            verifier=approval_verifier):
+            expected_issuer="merlin-approver", expected_claims=expected_approval):
             raise PermissionError("separate signed promotion approval is missing or invalid")
         cace_event = self._candidate_event(episode, "candidate.cace_verified", candidate_id)
         if (not cace_event or cace_event.get("artifact_sha256") != artifact_sha256
@@ -517,7 +550,7 @@ class AppendOnlyLedger:
 
 def ingest_hermes_failure(
     ledger: AppendOnlyLedger, record: Mapping[str, Any],
-    receipt: SignedReceipt, trusted_keys: Mapping[str, str], *, verifier=None,
+    receipt: SignedReceipt, trusted_keys: Mapping[str, str],
 ) -> dict[str, Any]:
     """Authenticate a Hermes failure and append an idempotent RSI induction seed."""
     required_fields = ("event_id", "failure_class", "summary", "source_repo",
@@ -534,7 +567,7 @@ def ingest_hermes_failure(
         "failure_class": record["failure_class"],
     }
     if not verify_signed_receipt(receipt, trusted_keys, expected_issuer="hermes",
-                                 expected_claims=claims, verifier=verifier):
+                                 expected_claims=claims):
         raise PermissionError("Hermes failure lacks an authenticated source receipt")
     existing = ledger.events(episode_id)
     if existing:
@@ -555,6 +588,83 @@ def ingest_hermes_failure(
             "propose_regression_test": True, "compare_alternative_representation": True,
             "promotion_authority": False,
         },
+    })
+
+
+def dispatch_rsi_induction_seed(
+    ledger: AppendOnlyLedger,
+    seed_event_hash: str,
+    transport: Any,
+    trusted_worker_keys: Mapping[str, str],
+) -> dict[str, Any]:
+    """Dispatch one authenticated Hermes seed and persist a signed worker ACK.
+
+    The transport is deliberately injected at the boundary. No endpoint,
+    credentials, or worker capability is assumed to exist. Missing transport
+    fails closed; the ACK must be signed by a separately trusted RSI worker.
+    """
+    if not _is_sha256(seed_event_hash):
+        raise ValueError("seed_event_hash must be lowercase SHA-256")
+    if transport is None:
+        raise RuntimeError("RSI induction transport is unavailable")
+    seed_row = None
+    with ledger._connect() as db:
+        seed_row = db.execute(
+            "SELECT episode_id,event_type,payload,event_hash "
+            "FROM research_episode_events WHERE event_hash=?",
+            (seed_event_hash,),
+        ).fetchone()
+    if seed_row is None or seed_row["event_type"] != "rsi.induction_seeded":
+        raise ValueError("dispatch target is not an authenticated Hermes induction seed")
+    episode_id = str(seed_row["episode_id"])
+    if not ledger.verify_chain(episode_id)["valid"]:
+        raise RuntimeError("refusing RSI dispatch from an invalid episode chain")
+    seed_payload = json.loads(seed_row["payload"])
+    existing = next(
+        (event for event in ledger.events(episode_id)
+         if event["event_type"] == "rsi.induction_dispatched"
+         and json.loads(event["payload"]).get("seed_event_hash") == seed_event_hash),
+        None,
+    )
+    if existing is not None:
+        return {
+            "seq": existing["sequence"], "event_hash": existing["event_hash"],
+            "episode_id": episode_id, "idempotent_replay": True,
+        }
+    idempotency_key = "merlin-rsi-seed:" + seed_event_hash
+    acknowledgement = transport.submit_induction(
+        seed_event_hash=seed_event_hash,
+        episode_id=episode_id,
+        idempotency_key=idempotency_key,
+        seed=seed_payload,
+    )
+    if not isinstance(acknowledgement, SignedReceipt):
+        raise PermissionError("RSI worker must return a signed receipt envelope")
+    expected = {
+        "seed_event_hash": seed_event_hash,
+        "episode_id": episode_id,
+        "idempotency_key": idempotency_key,
+        "status": "accepted",
+    }
+    if not verify_signed_receipt(
+        acknowledgement, trusted_worker_keys,
+        expected_issuer="merlin-rsi-worker", expected_claims=expected,
+    ):
+        raise PermissionError("RSI worker acknowledgement is unauthenticated or mismatched")
+    worker_id = acknowledgement.claims.get("worker_id")
+    task_id = acknowledgement.claims.get("task_id")
+    if not isinstance(worker_id, str) or not worker_id.strip():
+        raise PermissionError("RSI worker acknowledgement omitted worker_id")
+    if not isinstance(task_id, str) or not task_id.strip():
+        raise PermissionError("RSI worker acknowledgement omitted task_id")
+    return ledger.append("rsi.induction_dispatched", episode_id, {
+        "seed_event_hash": seed_event_hash,
+        "idempotency_key": idempotency_key,
+        "worker_id": worker_id,
+        "task_id": task_id,
+        "acknowledgement_receipt_digest": acknowledgement.receipt_digest,
+        "status": "accepted",
+        "promotion_authority": False,
     })
 
 
