@@ -30,11 +30,15 @@ def tasks():
 
 def test_ranks_eligible_tasks_and_explains_recommendations():
     result = plan_next_tasks(learner(), tasks(), max_minutes=30)
-    assert result["eligible_count"] == 2
+    assert result["eligible_count"] == 1
     assert result["ranked_tasks"][0]["task_id"] == "proof-001"
     assert "matches_selected_pathways" in result["ranked_tasks"][0]["reason_codes"]
-    assert result["blocked_tasks"] == [{"task_id": "blocked-001",
-        "blocked_reason": "prerequisites_not_yet_demonstrated", "missing_prerequisites": ["limits"]}]
+    assert result["blocked_tasks"] == [
+        {"task_id": "blocked-001", "blocked_reason": "prerequisites_not_yet_demonstrated",
+         "missing_prerequisites": ["limits"]},
+        {"task_id": "code-001", "blocked_reason": "prerequisites_not_yet_demonstrated",
+         "missing_prerequisites": ["variables"]},
+    ]
 
 
 def test_is_deterministic_and_tie_breaks_by_task_id():
