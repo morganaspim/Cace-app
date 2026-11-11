@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f1b8d4c2-7e35-4a90-8c61-2d9f5b3e6a74",
+  "operation": "rsi_validation",
+  "reason": "Verify that Hermes, RSI source, evaluator, worker, CACE and approver keys are loaded only from digest-pinned server trust registries",
+  "created_at": "2026-11-11T23:59:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "e4fcb16ced5b6ff9e2f64f73869695d640eb1c27"
+}
