@@ -122,8 +122,12 @@ def probe_local_mcp() -> dict[str, Any]:
             "content": result.get("content", []),
         }
 
+    required_tools_ok = all(
+        tool_results.get(name, {}).get("available") and not tool_results.get(name, {}).get("is_error")
+        for name in ("get_control_capabilities", "get_cace_runtime_status")
+    )
     return {
-        "status": "succeeded",
+        "status": "succeeded" if required_tools_ok else "partial",
         "endpoint": MCP_ENDPOINT,
         "protocol_version": protocol_version,
         "server_info": initialize_result.get("serverInfo"),
