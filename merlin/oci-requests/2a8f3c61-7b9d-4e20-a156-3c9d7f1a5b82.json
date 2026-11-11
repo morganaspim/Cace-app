@@ -1,0 +1,14 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "2a8f3c61-7b9d-4e20-a156-3c9d7f1a5b82",
+  "operation": "cace_rsi_bundle_contract",
+  "reason": "Compare Merlin's CACE bundle digest adapter against the pinned CACE EvidenceBundle implementation on the OCI runner; no signing, candidate promotion, package install, or host mutation.",
+  "created_at": "2026-11-11T00:00:00Z",
+  "candidate_id": "merlin-rsi-bridge-contract-test-1",
+  "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "benchmark_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evaluator_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "dddddddddddddddddddddddddddddddddddddddd",
+  "expected_bundle_sha256": "0898289d4c6267dbc8de6e595e56f8f035ad0344b65431f8deb11be0972b0272"
+}
