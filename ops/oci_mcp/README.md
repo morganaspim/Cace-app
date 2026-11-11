@@ -49,7 +49,7 @@ job. CI retains the snapshot as a run artifact for audit.
 
 The collaboration-validation artifact also includes `collaboration-validation-summary.json`. Its v10 manifest hashes every Git-tracked file present in the exact PR checkout, records missing tracked files, lists tracked paths changed or staged inside the runner workspace, and records safe untracked source/document candidates by path, size, and SHA-256. Sensitive-looking paths, environment files, caches, virtual environments, and non-source file types are excluded from the untracked candidate list; their count is reported separately.
 
-This is evidence about the checked-out repository workspace for that workflow run. It does **not** enumerate the entire OCI filesystem, copy untracked files into GitHub, or prove that arbitrary pre-existing runner files were committed to the PR. Review the candidate manifest and explicitly add any required source files through a separate reviewed commit. No workspace cleanup or file deletion is performed by this inventory step.
+The untracked scan uses Git's `--exclude-standard`, so ignored paths (including ignored caches and virtual environments) are not enumerated. This is evidence about the checked-out repository workspace for that workflow run. It does **not** enumerate the entire OCI filesystem, ignored files, files outside `GITHUB_WORKSPACE`, copy untracked files into GitHub, or prove that arbitrary pre-existing runner files were committed to the PR. Review the candidate manifest and explicitly add any required source files through a separate reviewed commit. No workspace cleanup or file deletion is performed by this inventory step.
 
 ## Authentication model
 
