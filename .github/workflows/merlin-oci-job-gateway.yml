@@ -175,10 +175,10 @@ jobs:
                           if line.startswith("data:"):
                               current.append(line[5:].lstrip())
                           elif not line and current:
-                              blocks.append("\\n".join(current))
+                              blocks.append("\n".join(current))
                               current = []
                       if current:
-                          blocks.append("\\n".join(current))
+                          blocks.append("\n".join(current))
                       messages = [json.loads(block) for block in blocks if block and block != "[DONE]"]
                       if not messages:
                           raise RuntimeError("MCP SSE response contained no JSON-RPC message")
