@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "6f0b4d3a-2c71-4e89-9a65-1b3f8d7c0e42",
+  "operation": "inventory_snapshot",
+  "reason": "Validate the OCI runner and loopback CACE OCI MCP service through the typed job gateway",
+  "created_at": "2026-11-11T20:15:00Z"
+}
