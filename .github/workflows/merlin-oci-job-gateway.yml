@@ -30,10 +30,12 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import base64
+          import ctypes.util
           import hashlib
           import json
           import os
           import re
+          import shutil
           import subprocess
           import sys
           import types
@@ -107,6 +109,7 @@ jobs:
               "source_repo", "source_commit", "module_blob_sha",
               "test_blob_sha", "manifest_blob_sha",
           }
+          cpp_test_fields = {"source_repo", "source_commit", "cpp_blob_shas"}
           if not isinstance(request, dict) or not base_fields.issubset(request):
               raise SystemExit("request rejected: base schema fields are missing")
           if request["schema"] != "merlin-oci-job-request-v1":
@@ -115,13 +118,15 @@ jobs:
               raise SystemExit("request rejected: request ID does not match its path")
           if not isinstance(request["operation"], str) or request["operation"] not in {
               "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract",
-              "merlin_rsi_python_tests"
+              "merlin_rsi_python_tests", "merlin_cpp_ledger_tests"
           }:
               raise SystemExit("request rejected: operation is not enabled")
           if request["operation"] == "cace_rsi_bundle_contract":
               expected_fields = base_fields | cace_fields
           elif request["operation"] == "merlin_rsi_python_tests":
               expected_fields = base_fields | rsi_test_fields
+          elif request["operation"] == "merlin_cpp_ledger_tests":
+              expected_fields = base_fields | cpp_test_fields
           else:
               expected_fields = base_fields
           if set(request) != expected_fields:
@@ -452,6 +457,185 @@ jobs:
                   "execution_scope": "fixed Python compile and unittest commands; no package install; external HTTP calls mocked by tests",
               }
 
+          cpp_test_results = None
+          if request["operation"] == "merlin_cpp_ledger_tests":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: C++ source repository is not allowlisted")
+              if not re.fullmatch(r"[0-9a-f]{40}", str(request["source_commit"])):
+                  raise SystemExit("request rejected: C++ source commit must be a 40-character Git commit")
+              cpp_blob_names = {
+                  "generation_lineage_cpp", "episode_ledger_cpp", "state_machine_cpp",
+                  "sha256_cpp", "generation_lineage_hpp", "episode_ledger_hpp",
+                  "state_machine_hpp", "sha256_hpp", "personality_hpp",
+                  "interoception_hpp", "neuromodulation_hpp",
+                  "generation_lineage_test", "episode_ledger_test", "rsi_module",
+              }
+              cpp_blob_shas = request["cpp_blob_shas"]
+              if not isinstance(cpp_blob_shas, dict) or set(cpp_blob_shas) != cpp_blob_names:
+                  raise SystemExit("request rejected: C++ source blob manifest keys do not match fixed allowlist")
+              if any(not re.fullmatch(r"[0-9a-f]{40}", str(value)) for value in cpp_blob_shas.values()):
+                  raise SystemExit("request rejected: C++ source blob manifest contains an invalid Git SHA")
+
+              compiler = shutil.which("g++") or shutil.which("c++")
+              sqlite_headers = [Path("/usr/include/sqlite3.h"), Path("/usr/local/include/sqlite3.h")]
+              sqlite_library = ctypes.util.find_library("sqlite3")
+              if not compiler or not any(path.exists() for path in sqlite_headers) or not sqlite_library:
+                  cpp_test_results = {
+                      "status": "unavailable",
+                      "reason": "preinstalled C++ compiler or SQLite development files are unavailable; no packages were installed",
+                      "compiler_found": bool(compiler),
+                      "sqlite_header_found": any(path.exists() for path in sqlite_headers),
+                      "sqlite_library": sqlite_library,
+                  }
+              else:
+                  cpp_test_root = artifact_dir / "merlin-cpp-ledger-validation"
+                  if cpp_test_root.exists():
+                      raise SystemExit("refusing to overwrite existing C++ validation directory")
+                  cpp_test_root.mkdir(parents=True)
+                  vendor_map = {
+                      "generation_lineage_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/growth/generation_lineage.cpp", "cpp/src/growth/generation_lineage.cpp"),
+                      "episode_ledger_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/research/episode_ledger.cpp", "cpp/src/research/episode_ledger.cpp"),
+                      "state_machine_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/research/state_machine.cpp", "cpp/src/research/state_machine.cpp"),
+                      "sha256_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/sha256.cpp", "cpp/src/sha256.cpp"),
+                      "generation_lineage_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/growth/generation_lineage.hpp", "cpp/include/expert_robot/growth/generation_lineage.hpp"),
+                      "episode_ledger_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/research/episode_ledger.hpp", "cpp/include/expert_robot/research/episode_ledger.hpp"),
+                      "state_machine_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/research/state_machine.hpp", "cpp/include/expert_robot/research/state_machine.hpp"),
+                      "sha256_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/sha256.hpp", "cpp/include/expert_robot/sha256.hpp"),
+                      "personality_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/personality.hpp", "cpp/include/expert_robot/cognition/personality.hpp"),
+                      "interoception_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/interoception.hpp", "cpp/include/expert_robot/cognition/interoception.hpp"),
+                      "neuromodulation_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/neuromodulation.hpp", "cpp/include/expert_robot/cognition/neuromodulation.hpp"),
+                      "generation_lineage_test": ("vendor/merlin-cpp-ledger-validation/tests/generation_lineage_smoke.cpp", "tests/generation_lineage_smoke.cpp"),
+                      "episode_ledger_test": ("vendor/merlin-cpp-ledger-validation/tests/research_episode_ledger_smoke.cpp", "tests/research_episode_ledger_smoke.cpp"),
+                      "rsi_module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py", "python/merlin/rsi_pipeline.py"),
+                  }
+                  copied_cpp = {}
+                  for label, (repo_path, relative_path) in vendor_map.items():
+                      raw, actual_blob_sha = fetch_contents(repo_path)
+                      if actual_blob_sha != cpp_blob_shas[label]:
+                          raise SystemExit(f"C++ source blob mismatch for {label}")
+                      destination = cpp_test_root / relative_path
+                      destination.parent.mkdir(parents=True, exist_ok=True)
+                      destination.write_bytes(raw)
+                      copied_cpp[label] = {
+                          "repo_path": repo_path, "git_blob_sha": actual_blob_sha,
+                          "sha256": hashlib.sha256(raw).hexdigest(), "size_bytes": len(raw),
+                      }
+
+                  build_dir = cpp_test_root / "build"
+                  tmp_dir = cpp_test_root / "tmp"
+                  build_dir.mkdir()
+                  tmp_dir.mkdir()
+                  include_dir = cpp_test_root / "cpp/include"
+                  cpp_env = dict(os.environ)
+                  cpp_env["TMPDIR"] = str(tmp_dir)
+                  cpp_env["TMP"] = str(tmp_dir)
+                  cpp_env["TEMP"] = str(tmp_dir)
+                  cpp_env["PYTHONPATH"] = str(cpp_test_root / "python")
+                  compiler_version = subprocess.run(
+                      [compiler, "--version"], stdout=subprocess.PIPE,
+                      stderr=subprocess.STDOUT, text=True, timeout=15, check=False).stdout.splitlines()[0]
+
+                  commands = [
+                      [compiler, "-std=c++20", "-O0", "-I", str(include_dir),
+                       str(cpp_test_root / "tests/generation_lineage_smoke.cpp"),
+                       str(cpp_test_root / "cpp/src/growth/generation_lineage.cpp"),
+                       str(cpp_test_root / "cpp/src/sha256.cpp"), "-lsqlite3",
+                       "-o", str(build_dir / "generation_lineage_smoke")],
+                      [str(build_dir / "generation_lineage_smoke")],
+                      [compiler, "-std=c++20", "-O0", "-I", str(include_dir),
+                       str(cpp_test_root / "tests/research_episode_ledger_smoke.cpp"),
+                       str(cpp_test_root / "cpp/src/research/episode_ledger.cpp"),
+                       str(cpp_test_root / "cpp/src/research/state_machine.cpp"),
+                       str(cpp_test_root / "cpp/src/sha256.cpp"), "-lsqlite3",
+                       "-o", str(build_dir / "research_episode_ledger_smoke")],
+                      [str(build_dir / "research_episode_ledger_smoke")],
+                  ]
+                  command_results = []
+                  for command in commands:
+                      completed = subprocess.run(
+                          command, cwd=str(cpp_test_root), env=cpp_env,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          text=True, timeout=90, check=False)
+                      command_results.append({
+                          "command": command, "returncode": completed.returncode,
+                          "output": completed.stdout[-12000:],
+                      })
+                      if completed.returncode != 0:
+                          raise SystemExit("fixed C++ ledger compile or smoke test failed")
+
+                  interop_db = cpp_test_root / "python-cpp-interop.sqlite3"
+                  episode_id = "merlin-rsi-python-cpp-interop"
+                  python_writer = (
+                      "import sys; from merlin.rsi_pipeline import AppendOnlyLedger; "
+                      "ledger=AppendOnlyLedger(sys.argv[1]); "
+                      "ledger.append('rsi.python_cpp_interop', sys.argv[2], "
+                      "{'source_repo':sys.argv[3],'source_commit':sys.argv[4]})"
+                  )
+                  written = subprocess.run(
+                      [sys.executable, "-c", python_writer, str(interop_db), episode_id,
+                       request["source_repo"], request["source_commit"]],
+                      cwd=str(cpp_test_root), env=cpp_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=30, check=False)
+                  if written.returncode != 0:
+                      raise SystemExit("Python-to-C++ interop fixture creation failed")
+
+                  harness_path = cpp_test_root / "python_cpp_ledger_interop.cpp"
+                  harness_path.write_text(
+                      '#include "expert_robot/research/episode_ledger.hpp"\n'
+                      '#include <iostream>\n'
+                      'int main(int argc, char** argv) {\n'
+                      '  if (argc != 3) return 2;\n'
+                      '  expert_robot::research::ResearchEpisodeLedger ledger(argv[1]);\n'
+                      '  const auto result = ledger.verify(argv[2]);\n'
+                      '  if (!result.valid || result.event_count != 1) {\n'
+                      '    std::cerr << "ledger verification failed: " << result.reason << "\\n";\n'
+                      '    return 1;\n'
+                      '  }\n'
+                      '  std::cout << "python_to_cpp_episode_verified root=" << result.root_hash << "\\n";\n'
+                      '  return 0;\n'
+                      '}\n',
+                      encoding="utf-8")
+                  interop_binary = build_dir / "python_cpp_ledger_interop"
+                  interop_compile = [
+                      compiler, "-std=c++20", "-O0", "-I", str(include_dir),
+                      str(harness_path), str(cpp_test_root / "cpp/src/research/episode_ledger.cpp"),
+                      str(cpp_test_root / "cpp/src/research/state_machine.cpp"),
+                      str(cpp_test_root / "cpp/src/sha256.cpp"), "-lsqlite3",
+                      "-o", str(interop_binary),
+                  ]
+                  compiled = subprocess.run(
+                      interop_compile, cwd=str(cpp_test_root), env=cpp_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=90, check=False)
+                  command_results.append({"command": interop_compile,
+                      "returncode": compiled.returncode, "output": compiled.stdout[-12000:]})
+                  if compiled.returncode != 0:
+                      raise SystemExit("Python-to-C++ interop harness compilation failed")
+                  interop = subprocess.run(
+                      [str(interop_binary), str(interop_db), episode_id],
+                      cwd=str(cpp_test_root), env=cpp_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=30, check=False)
+                  command_results.append({"command": [str(interop_binary), str(interop_db), episode_id],
+                      "returncode": interop.returncode, "output": interop.stdout[-12000:]})
+                  if interop.returncode != 0:
+                      raise SystemExit("Python-to-C++ research episode interoperability failed")
+
+                  cpp_test_results = {
+                      "status": "passed", "source_repo": request["source_repo"],
+                      "source_commit": request["source_commit"],
+                      "compiler": compiler, "compiler_version": compiler_version,
+                      "sqlite_library": sqlite_library, "source_files": copied_cpp,
+                      "commands": command_results,
+                      "python_cpp_interop": {
+                          "status": "passed", "episode_id": episode_id,
+                          "database_sha256": hashlib.sha256(interop_db.read_bytes()).hexdigest(),
+                          "output": interop.stdout[-4000:],
+                      },
+                      "execution_scope": "fixed C++20 compile/smoke tests and Python-to-C++ ledger verification; no package installation; unique runner-temp paths",
+                  }
+
           completed_at = datetime.now(timezone.utc).isoformat()
           receipt = {
               "schema": "merlin-oci-job-receipt-v1",
@@ -487,6 +671,7 @@ jobs:
               "mcp_probe": mcp_probe,
               "cace_bundle_contract": cace_bundle_contract,
               "rsi_test_results": rsi_test_results,
+              "cpp_test_results": cpp_test_results,
           }
           (artifact_dir / "job-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
