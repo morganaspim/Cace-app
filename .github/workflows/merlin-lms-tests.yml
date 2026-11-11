@@ -45,7 +45,9 @@ jobs:
           for path in (
               Path("schema/merlin-learning-state.schema.json"),
               Path("schema/merlin-curriculum.schema.json"),
+              Path("schema/merlin-exercise-content.schema.json"),
               Path("merlin_lms/data/math_foundations_v1.json"),
+              Path("merlin_lms/data/math_foundations_exercises_v1.json"),
           ):
               json.loads(path.read_text(encoding="utf-8"))
               print(f"valid_json={path}")
@@ -59,4 +61,5 @@ jobs:
           "$RUNNER_TEMP/merlin-lms-tests/bin/python" -m pytest -q \
             tests/test_merlin_learning_planner.py \
             tests/test_merlin_curriculum.py \
-            tests/test_merlin_mastery.py
+            tests/test_merlin_mastery.py \
+            tests/test_merlin_exercise_content.py
