@@ -81,3 +81,11 @@ def test_rejects_boolean_schema_version():
     data["schema_version"] = True
     with pytest.raises(ValueError, match="schema_version"):
         validate_curriculum(data)
+
+
+def test_packaged_starter_curriculum_loads_and_validates():
+    from merlin_lms.curriculum import load_starter_curriculum
+
+    result = load_starter_curriculum()
+    assert result["curriculum_id"] == "math-foundations-v1"
+    assert len(result["tasks"]) == 7
