@@ -102,7 +102,7 @@ jobs:
               raise SystemExit("request rejected: unsupported schema")
           if str(uuid.UUID(request["request_id"])) != path_request_id:
               raise SystemExit("request rejected: request ID does not match its path")
-          if request["operation"] != "inventory_snapshot":
+          if request["operation"] not in {"inventory_snapshot", "mcp_readonly_probe"}:
               raise SystemExit("request rejected: operation is not enabled")
           reason = request["reason"]
           if not isinstance(reason, str) or not reason.strip() or len(reason) > 300:
@@ -131,15 +131,132 @@ jobs:
               raise SystemExit("refusing to overwrite an existing job artifact directory")
           artifact_dir.mkdir(parents=True)
 
+          def probe_local_mcp() -> dict:
+              endpoint = "http://127.0.0.1:8765/mcp"
+              session_id = None
+              protocol_version = "2025-03-26"
+
+              def rpc(method: str, request_id, params=None):
+                  nonlocal session_id
+                  payload = {"jsonrpc": "2.0", "method": method}
+                  if request_id is not None:
+                      payload["id"] = request_id
+                  if params is not None:
+                      payload["params"] = params
+                  headers = {
+                      "Content-Type": "application/json",
+                      "Accept": "application/json, text/event-stream",
+                      "MCP-Protocol-Version": protocol_version,
+                  }
+                  if session_id:
+                      headers["Mcp-Session-Id"] = session_id
+                  req = urllib.request.Request(
+                      endpoint,
+                      data=json.dumps(payload).encode("utf-8"),
+                      headers=headers,
+                      method="POST",
+                  )
+                  try:
+                      with urllib.request.urlopen(req, timeout=8) as response:
+                          response_body = response.read(1024 * 1024 + 1)
+                          if len(response_body) > 1024 * 1024:
+                              raise RuntimeError("MCP response exceeded the 1 MiB limit")
+                          response_type = response.headers.get("Content-Type", "")
+                          session_id = response.headers.get("Mcp-Session-Id", session_id)
+                  except Exception as exc:
+                      raise RuntimeError(f"MCP HTTP request failed: {type(exc).__name__}") from None
+                  if not response_body:
+                      return {}
+                  text_body = response_body.decode("utf-8", errors="replace")
+                  if "text/event-stream" in response_type:
+                      blocks = []
+                      current = []
+                      for line in text_body.splitlines():
+                          if line.startswith("data:"):
+                              current.append(line[5:].lstrip())
+                          elif not line and current:
+                              blocks.append("\\n".join(current))
+                              current = []
+                      if current:
+                          blocks.append("\\n".join(current))
+                      messages = [json.loads(block) for block in blocks if block and block != "[DONE]"]
+                      if not messages:
+                          raise RuntimeError("MCP SSE response contained no JSON-RPC message")
+                      message = messages[-1]
+                  else:
+                      message = json.loads(text_body)
+                  if isinstance(message, dict) and message.get("error"):
+                      raise RuntimeError("MCP JSON-RPC returned an error")
+                  return message
+
+              initialized = rpc(
+                  "initialize",
+                  1,
+                  {
+                      "protocolVersion": protocol_version,
+                      "capabilities": {},
+                      "clientInfo": {"name": "merlin-oci-job-gateway", "version": "1.0.0"},
+                  },
+              )
+              init_result = initialized.get("result") or {}
+              negotiated_version = init_result.get("protocolVersion")
+              if not negotiated_version:
+                  raise RuntimeError("MCP initialize response omitted protocolVersion")
+              protocol_version = negotiated_version
+              rpc("notifications/initialized", None)
+              listed = rpc("tools/list", 2, {})
+              tools = (listed.get("result") or {}).get("tools") or []
+              tool_names = sorted(
+                  tool.get("name") for tool in tools
+                  if isinstance(tool, dict) and isinstance(tool.get("name"), str)
+              )
+              results = {}
+              for request_id, tool_name in enumerate(
+                  ("get_control_capabilities", "get_cace_runtime_status", "get_github_runner_status"),
+                  start=3,
+              ):
+                  if tool_name not in tool_names:
+                      results[tool_name] = {"available": False}
+                      continue
+                  response = rpc(
+                      "tools/call",
+                      request_id,
+                      {"name": tool_name, "arguments": {}},
+                  )
+                  result = response.get("result") or {}
+                  results[tool_name] = {
+                      "available": True,
+                      "is_error": bool(result.get("isError", False)),
+                      "structured_content": result.get("structuredContent"),
+                      "content": result.get("content", []),
+                  }
+              return {
+                  "status": "succeeded" if mcp_probe is None or mcp_probe.get("status") == "succeeded" else "completed_with_probe_error",
+                  "endpoint": endpoint,
+                  "protocol_version": protocol_version,
+                  "tool_names": tool_names,
+                  "read_only_tool_results": results,
+              }
+
           started_at = datetime.now(timezone.utc).isoformat()
           inventory = module.collect_runner_status()
+          mcp_probe = None
+          if request["operation"] == "mcp_readonly_probe":
+              try:
+                  mcp_probe = probe_local_mcp()
+              except Exception as exc:
+                  mcp_probe = {
+                      "status": "failed",
+                      "error_type": type(exc).__name__,
+                      "error_message": str(exc)[:300],
+                  }
           completed_at = datetime.now(timezone.utc).isoformat()
           receipt = {
               "schema": "merlin-oci-job-receipt-v1",
               "request_id": path_request_id,
               "request_blob_sha": request_blob_sha,
               "request_sha256": hashlib.sha256(request_bytes).hexdigest(),
-              "operation": "inventory_snapshot",
+              "operation": request["operation"],
               "actor_id": (event.get("sender") or {}).get("login", "unknown"),
               "repository": repo,
               "request_commit_sha": commit,
@@ -160,11 +277,12 @@ jobs:
               "resource_limits": {
                   "job_timeout_minutes": 3,
                   "per_probe_timeout_seconds": 5,
-                  "network_scope": "GitHub API content reads only",
+                  "network_scope": "GitHub API content reads plus localhost MCP only" if request["operation"] == "mcp_readonly_probe" else "GitHub API content reads only",
                   "package_installation": False,
                   "cache_mutation": False,
               },
               "inventory": inventory,
+              "mcp_probe": mcp_probe,
           }
           (artifact_dir / "job-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
