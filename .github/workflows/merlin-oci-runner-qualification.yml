@@ -139,10 +139,10 @@ jobs:
         run: |
           set +e
           mkdir -p artifacts
+          source_dir="$RUNNER_TEMP/merlin-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          venv_dir="$RUNNER_TEMP/merlin-venv-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           (
             set -euo pipefail
-            source_dir="$RUNNER_TEMP/merlin-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-            venv_dir="$RUNNER_TEMP/merlin-venv-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
             test ! -e "$source_dir"
             test ! -e "$venv_dir"
             git clone --filter=blob:none --no-checkout "$MERLIN_REPO_URL" "$source_dir"
@@ -181,7 +181,7 @@ jobs:
           rc=$?
           log_sha="$(sha256sum artifacts/merlin-oci-test.log | awk '{print $1}')"
           python_version="$(python3 --version 2>&1 | tr -d '\\n')"
-          pytest_version="$("$RUNNER_TEMP/merlin-venv/bin/python" -m pytest --version 2>&1 | tr -d '\\n')"
+          pytest_version="$("$venv_dir/bin/python" -m pytest --version 2>&1 | tr -d '\\n')"
           printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","runner_name":"%s","runner_arch":"%s","python_version":"%s","pytest_version":"%s","exit_code":%s,"log_sha256":"%s"}\\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$RUNNER_NAME" "$RUNNER_ARCH" "$python_version" "$pytest_version" "$rc" "$log_sha" > artifacts/merlin-oci-test-result.json
           exit "$rc"
 
