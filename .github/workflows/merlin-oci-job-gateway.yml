@@ -266,7 +266,9 @@ jobs:
                   }
           rsi_validation = None
           if request["operation"] == "rsi_validation":
-              if __import__("importlib.util").util.find_spec("cryptography") is None:
+              try:
+                  import cryptography
+              except ImportError:
                   raise SystemExit("RSI validation unavailable: cryptography is not preinstalled; no packages will be installed")
               profile_root = artifact_dir / "rsi-workspace"
               profile_files = {
@@ -324,7 +326,7 @@ jobs:
                   "benchmark_suite_id": benchmark.get("suite_id"),
                   "benchmark_case_count": len(benchmark.get("cases", [])),
                   "python_version": sys.version.split()[0],
-                  "cryptography_version": __import__("cryptography").__version__,
+                  "cryptography_version": cryptography.__version__,
                   "compile_returncode": compile_result.returncode,
                   "test_returncode": test_result.returncode if test_result is not None else None,
                   "test_stdout": test_result.stdout[-30000:] if test_result is not None else "",
