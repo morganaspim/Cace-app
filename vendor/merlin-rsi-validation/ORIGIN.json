@@ -1,15 +1,15 @@
 {
   "schema": "merlin-rsi-vendor-origin-v1",
   "source_repo": "Mannyspiro/expert-robot",
-  "source_commit": "85edea142ecb7feae61e7643d5a0f7c2d74d4e9e",
+  "source_commit": "a538bf074874403fe8a3a8ece53311763d585a0c",
   "files": {
     "python/merlin/rsi_pipeline.py": {
       "vendor_path": "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py",
-      "git_blob_sha": "2c2a3ad9e4a38d101f775282311449a2acc8d615"
+      "git_blob_sha": "56d72fe862acebd1ae6102ea21995fd4cb44a04e"
     },
     "tests/test_rsi_pipeline.py": {
       "vendor_path": "vendor/merlin-rsi-validation/tests/test_rsi_pipeline.py",
-      "git_blob_sha": "c59e9d279181d16df7a1f4bbe63740e2b230a0f0"
+      "git_blob_sha": "d86b8766e92eab38f73397de6a411112d4b92cbb"
     },
     "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json": {
       "vendor_path": "vendor/merlin-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
