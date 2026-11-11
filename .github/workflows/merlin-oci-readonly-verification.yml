@@ -1,11 +1,6 @@
 name: Merlin OCI Read-only Verification
 
 on:
-  push:
-    branches:
-      - feature/oci-runner-readonly-inventory-20261111
-    paths:
-      - ".github/workflows/merlin-oci-readonly-verification.yml"
   workflow_dispatch:
 
 permissions:
@@ -22,7 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: \${{ github.sha }}
           fetch-depth: 1
           clean: false
           persist-credentials: false
@@ -82,6 +76,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: merlin-oci-readonly-\${{ github.run_id }}
-          path: \${{ runner.temp }}/merlin-oci-readonly-\${{ github.run_id }}/
+          name: merlin-oci-readonly-\${"$"}{{ github.run_id }}
+          path: \${"$"}{{ runner.temp }}/merlin-oci-readonly-\${"$"}{{ github.run_id }}/
           if-no-files-found: warn
