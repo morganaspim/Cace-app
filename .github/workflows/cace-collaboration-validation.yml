@@ -190,34 +190,58 @@ jobs:
           # Hash repository evidence only. Runtime environments and caches are
           # execution state rather than source evidence and must not be swept into
           # this engineering summary.
-          source_prefixes = (
-            'collaboration/',
-            'quality/',
-            'security/',
-            'formal/',
-            'cace_studio/',
-            'schema/',
-            'scripts/',
-            'ops/',
-            'tests/',
-          )
           tracked = subprocess.check_output(['git', 'ls-files', '-z'])
-          files = set()
-          for raw in tracked.split(b'\\0'):
-            if not raw:
+          tracked_paths = [raw.decode('utf-8') for raw in tracked.split(b'\\0') if raw]
+          tracked_hashes = {}
+          missing_tracked = []
+          for rel in tracked_paths:
+            path = pathlib.Path(rel)
+            if not path.is_file():
+              missing_tracked.append(rel)
               continue
-            rel = raw.decode('utf-8')
-            in_scope = (
-              rel == 'pyproject.toml'
-              or any(rel.startswith(prefix) for prefix in source_prefixes)
-              or (rel.startswith('.github/workflows/cace-') and rel.endswith('.yml'))
-            )
-            if in_scope:
-              path = pathlib.Path(rel)
-              if not path.is_file():
-                raise SystemExit(f'tracked validation source missing from checkout: {rel}')
-              files.add(path)
-          files = sorted(files)
+            tracked_hashes[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+          if missing_tracked:
+            raise SystemExit('tracked files missing from runner checkout: ' + ', '.join(missing_tracked[:20]))
+
+          modified_tracked = subprocess.check_output(
+            ['git', 'diff', '--name-only', 'HEAD', '--'], text=True
+          ).splitlines()
+          staged_tracked = subprocess.check_output(
+            ['git', 'diff', '--cached', '--name-only'], text=True
+          ).splitlines()
+          untracked_raw = subprocess.check_output(
+            ['git', 'ls-files', '--others', '--exclude-standard', '-z']
+          )
+          untracked_paths = [raw.decode('utf-8') for raw in untracked_raw.split(b'\\0') if raw]
+          safe_suffixes = {
+            '.py', '.md', '.json', '.yml', '.yaml', '.toml', '.txt',
+            '.ts', '.tsx', '.js', '.jsx', '.html', '.css', '.lean',
+            '.sh', '.sql', '.csv'
+          }
+          sensitive_tokens = {
+            '.env', '.ssh', '.oci', '.aws', 'credential', 'secret',
+            'token', 'private', 'key', 'cache', 'node_modules', '.lake',
+            '.venv', 'venv'
+          }
+          untracked_candidates = []
+          excluded_untracked_count = 0
+          for rel in untracked_paths:
+            path = pathlib.Path(rel)
+            parts = {part.lower() for part in path.parts}
+            suffix = path.suffix.lower()
+            sensitive = any(
+              token in part for part in parts for token in sensitive_tokens
+            ) or path.name.lower().startswith('.env')
+            if sensitive or suffix not in safe_suffixes or not path.is_file():
+              excluded_untracked_count += 1
+              continue
+            untracked_candidates.append({
+              'path': rel,
+              'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+              'size_bytes': path.stat().st_size,
+              'saved_in_git_head': False,
+            })
+          untracked_candidates.sort(key=lambda item: item['path'])
 
           claim_id='cace.v330.continuum-proof-strengthening'
           claims=json.loads(pathlib.Path('cace_studio/data/claim_registry.json').read_text())['claims']
@@ -236,8 +260,14 @@ jobs:
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'qualified_baseline':qualification['attested_commit'],
             'qualified_proof_artifact_sha256':qualification['proof_artifact_sha256'],
-            'covered_file_count':len(files),
-            'sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
+            'tracked_file_count':len(tracked_hashes),
+            'tracked_file_sha256':tracked_hashes,
+            'modified_tracked_paths':sorted(set(modified_tracked)),
+            'staged_tracked_paths':sorted(set(staged_tracked)),
+            'untracked_candidate_count':len(untracked_candidates),
+            'untracked_candidate_files':untracked_candidates,
+            'excluded_untracked_count':excluded_untracked_count,
+            'all_tracked_files_present':not missing_tracked,
           }
           artifact_dir = pathlib.Path(os.environ['RUNNER_TEMP']) / os.environ['CACE_ARTIFACT_DIR']
           (artifact_dir / 'collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
