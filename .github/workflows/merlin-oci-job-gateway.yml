@@ -231,7 +231,7 @@ jobs:
                       "content": result.get("content", []),
                   }
               return {
-                  "status": "succeeded" if mcp_probe is None or mcp_probe.get("status") == "succeeded" else "completed_with_probe_error",
+                  "status": "succeeded" if required_tools_ok else "partial",
                   "endpoint": endpoint,
                   "protocol_version": protocol_version,
                   "tool_names": tool_names,
