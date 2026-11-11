@@ -140,3 +140,12 @@ In CACE:
 ## Reporting language
 
 Use exact labels: `VERIFIED`, `PASS`, `FAIL`, `NOT_RUN`, `UNAVAILABLE`, `HISTORICAL`, `RESEARCH`, `PROPOSED`. Never use "all runner files inventoried", "OCI verified", "CACE qualified", "production-ready", or "FreeCAD installed" without current, direct, scoped evidence.
+
+
+## Historical OCI host/access facts (not current verification)
+
+Earlier work recorded the OCI runner as `cace-runner-a1` (another older name: `cace-oci-a1`), in Phoenix `us-phoenix-1`, AD-3 / FD-2, Oracle Linux 8 AArch64, `VM.Standard.A1.Flex`, 2 OCPU / 12 GB RAM. The prior SSH account was `opc`; a Cloud Shell RSA key path was `~/.ssh/cace_oci_runner_rsa`. Earlier notes also recorded OCI Run Command as RUNNING and a 60-second runner watchdog heartbeat. These facts are HISTORICAL only; do not assume host identity, network address, key availability, service status, or machine capacity is still current. Public IP and instance OCID are deliberately not stored in this skill.
+
+A previous conversation included an uploaded file named `sui_oci_morgan_key.txt`. Do not expect its bytes to be available in a new execution context, and never copy its private key contents into a repository, prompt, artifact, or log. No current SSH or OCI Run Command connector is exposed to this agent session. Therefore actual VM file inventory remains NOT_RUN / UNAVAILABLE.
+
+When a verified authenticated route becomes available, first verify instance identity and inspect disk free blocks/inodes plus active jobs. Only then perform metadata-only inventory in bounded batches. Do not read secrets or duplicate cache/model files.
