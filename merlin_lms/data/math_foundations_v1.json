@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "curriculum_id": "math-foundations-v1",
+  "title": "Mathematics Foundations: Discover, Prove, Compute",
+  "description": "A starter sequence that connects mathematical discovery, proof, programming, and practical problem solving.",
+  "concepts": [
+    {"concept_id": "whole-number-structure", "title": "Whole-number structure", "level": "foundation", "requires": [], "pathways": ["mathematician", "mathematics_programmer", "computational_problem_solver"]},
+    {"concept_id": "divisibility", "title": "Divisibility and factors", "level": "foundation", "requires": ["whole-number-structure"], "pathways": ["mathematician", "mathematics_programmer"]},
+    {"concept_id": "prime-numbers", "title": "Prime numbers", "level": "foundation", "requires": ["divisibility"], "pathways": ["mathematician", "mathematics_programmer"]},
+    {"concept_id": "variables-and-expressions", "title": "Variables and expressions", "level": "foundation", "requires": ["whole-number-structure"], "pathways": ["mathematician", "mathematics_programmer", "computational_problem_solver"]},
+    {"concept_id": "algorithmic-loops", "title": "Loops and repeated computation", "level": "foundation", "requires": ["variables-and-expressions"], "pathways": ["mathematics_programmer", "computational_problem_solver"]},
+    {"concept_id": "proof-by-contradiction", "title": "Proof by contradiction", "level": "developing", "requires": ["prime-numbers"], "pathways": ["mathematician"]},
+    {"concept_id": "finite-experiment-design", "title": "Finite experiments and counterexamples", "level": "developing", "requires": ["algorithmic-loops"], "pathways": ["mathematician", "mathematics_programmer", "computational_problem_solver"]}
+  ],
+  "tasks": [
+    {"task_id": "discover-counting-patterns", "concept_id": "whole-number-structure", "requires": [], "pathways": {"mathematician": 0.8, "mathematics_programmer": 0.5, "computational_problem_solver": 0.4}, "interest_tags": ["patterns", "puzzles"], "learning_value": 0.9, "transfer_value": 0.8, "estimated_minutes": 20, "task_type": "discovery"},
+    {"task_id": "build-factor-table", "concept_id": "divisibility", "requires": ["whole-number-structure"], "pathways": {"mathematician": 0.7, "mathematics_programmer": 0.8}, "interest_tags": ["number_theory", "tables"], "learning_value": 0.8, "transfer_value": 0.7, "estimated_minutes": 25, "task_type": "exploration"},
+    {"task_id": "write-prime-checker", "concept_id": "prime-numbers", "requires": ["divisibility"], "pathways": {"mathematician": 0.5, "mathematics_programmer": 1.0, "computational_problem_solver": 0.8}, "interest_tags": ["python", "number_theory"], "learning_value": 0.9, "transfer_value": 0.9, "estimated_minutes": 30, "task_type": "coding"},
+    {"task_id": "conjecture-prime-pattern", "concept_id": "prime-numbers", "requires": ["divisibility"], "pathways": {"mathematician": 1.0, "mathematics_programmer": 0.3}, "interest_tags": ["number_theory", "patterns"], "learning_value": 0.9, "transfer_value": 0.8, "estimated_minutes": 25, "task_type": "conjecture"},
+    {"task_id": "prove-infinite-primes", "concept_id": "proof-by-contradiction", "requires": ["prime-numbers"], "pathways": {"mathematician": 1.0}, "interest_tags": ["number_theory", "history"], "learning_value": 1.0, "transfer_value": 1.0, "estimated_minutes": 35, "task_type": "proof"},
+    {"task_id": "implement-repeated-addition", "concept_id": "algorithmic-loops", "requires": ["variables-and-expressions"], "pathways": {"mathematics_programmer": 0.9, "computational_problem_solver": 1.0}, "interest_tags": ["python", "programming"], "learning_value": 0.8, "transfer_value": 0.8, "estimated_minutes": 20, "task_type": "coding"},
+    {"task_id": "search-small-counterexamples", "concept_id": "finite-experiment-design", "requires": ["algorithmic-loops"], "pathways": {"mathematician": 0.8, "mathematics_programmer": 0.9, "computational_problem_solver": 0.9}, "interest_tags": ["python", "puzzles", "experiments"], "learning_value": 0.9, "transfer_value": 1.0, "estimated_minutes": 30, "task_type": "experiment"}
+  ]
+}
