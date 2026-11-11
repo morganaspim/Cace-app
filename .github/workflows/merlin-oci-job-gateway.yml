@@ -469,6 +469,7 @@ jobs:
                   "state_machine_hpp", "sha256_hpp", "personality_hpp",
                   "interoception_hpp", "neuromodulation_hpp",
                   "generation_lineage_test", "episode_ledger_test", "rsi_module",
+                  "sqlite3_compat",
               }
               cpp_blob_shas = request["cpp_blob_shas"]
               if not isinstance(cpp_blob_shas, dict) or set(cpp_blob_shas) != cpp_blob_names:
@@ -477,14 +478,20 @@ jobs:
                   raise SystemExit("request rejected: C++ source blob manifest contains an invalid Git SHA")
 
               compiler = shutil.which("g++") or shutil.which("c++")
-              sqlite_headers = [Path("/usr/include/sqlite3.h"), Path("/usr/local/include/sqlite3.h")]
               sqlite_library = ctypes.util.find_library("sqlite3")
-              if not compiler or not any(path.exists() for path in sqlite_headers) or not sqlite_library:
+              sqlite_runtime_loaded = False
+              if sqlite_library:
+                  try:
+                      ctypes.CDLL(sqlite_library)
+                      sqlite_runtime_loaded = True
+                  except OSError:
+                      sqlite_runtime_loaded = False
+              if not compiler or not sqlite_runtime_loaded:
                   cpp_test_results = {
                       "status": "unavailable",
-                      "reason": "preinstalled C++ compiler or SQLite development files are unavailable; no packages were installed",
+                      "reason": "preinstalled C++ compiler or SQLite runtime library is unavailable; no packages were installed",
                       "compiler_found": bool(compiler),
-                      "sqlite_header_found": any(path.exists() for path in sqlite_headers),
+                      "sqlite_runtime_loaded": sqlite_runtime_loaded,
                       "sqlite_library": sqlite_library,
                   }
               else:
@@ -507,6 +514,7 @@ jobs:
                       "generation_lineage_test": ("vendor/merlin-cpp-ledger-validation/tests/generation_lineage_smoke.cpp", "tests/generation_lineage_smoke.cpp"),
                       "episode_ledger_test": ("vendor/merlin-cpp-ledger-validation/tests/research_episode_ledger_smoke.cpp", "tests/research_episode_ledger_smoke.cpp"),
                       "rsi_module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py", "python/merlin/rsi_pipeline.py"),
+                      "sqlite3_compat": ("vendor/merlin-cpp-ledger-validation/compat/sqlite3.h", "compat/sqlite3.h"),
                   }
                   copied_cpp = {}
                   for label, (repo_path, relative_path) in vendor_map.items():
@@ -526,27 +534,30 @@ jobs:
                   build_dir.mkdir()
                   tmp_dir.mkdir()
                   include_dir = cpp_test_root / "cpp/include"
+                  compat_dir = cpp_test_root / "compat"
                   cpp_env = dict(os.environ)
                   cpp_env["TMPDIR"] = str(tmp_dir)
                   cpp_env["TMP"] = str(tmp_dir)
                   cpp_env["TEMP"] = str(tmp_dir)
                   cpp_env["PYTHONPATH"] = str(cpp_test_root / "python")
+                  sqlite_link_arg = ("-l:" + Path(sqlite_library).name
+                                     if "/" not in sqlite_library else sqlite_library)
                   compiler_version = subprocess.run(
                       [compiler, "--version"], stdout=subprocess.PIPE,
                       stderr=subprocess.STDOUT, text=True, timeout=15, check=False).stdout.splitlines()[0]
 
                   commands = [
-                      [compiler, "-std=c++20", "-O0", "-I", str(include_dir),
+                      [compiler, "-std=c++20", "-O0", "-I", str(compat_dir), "-I", str(include_dir),
                        str(cpp_test_root / "tests/generation_lineage_smoke.cpp"),
                        str(cpp_test_root / "cpp/src/growth/generation_lineage.cpp"),
-                       str(cpp_test_root / "cpp/src/sha256.cpp"), "-lsqlite3",
+                       str(cpp_test_root / "cpp/src/sha256.cpp"), sqlite_link_arg,
                        "-o", str(build_dir / "generation_lineage_smoke")],
                       [str(build_dir / "generation_lineage_smoke")],
-                      [compiler, "-std=c++20", "-O0", "-I", str(include_dir),
+                      [compiler, "-std=c++20", "-O0", "-I", str(compat_dir), "-I", str(include_dir),
                        str(cpp_test_root / "tests/research_episode_ledger_smoke.cpp"),
                        str(cpp_test_root / "cpp/src/research/episode_ledger.cpp"),
                        str(cpp_test_root / "cpp/src/research/state_machine.cpp"),
-                       str(cpp_test_root / "cpp/src/sha256.cpp"), "-lsqlite3",
+                       str(cpp_test_root / "cpp/src/sha256.cpp"), sqlite_link_arg,
                        "-o", str(build_dir / "research_episode_ledger_smoke")],
                       [str(build_dir / "research_episode_ledger_smoke")],
                   ]
@@ -598,10 +609,10 @@ jobs:
                       encoding="utf-8")
                   interop_binary = build_dir / "python_cpp_ledger_interop"
                   interop_compile = [
-                      compiler, "-std=c++20", "-O0", "-I", str(include_dir),
+                      compiler, "-std=c++20", "-O0", "-I", str(compat_dir), "-I", str(include_dir),
                       str(harness_path), str(cpp_test_root / "cpp/src/research/episode_ledger.cpp"),
                       str(cpp_test_root / "cpp/src/research/state_machine.cpp"),
-                      str(cpp_test_root / "cpp/src/sha256.cpp"), "-lsqlite3",
+                      str(cpp_test_root / "cpp/src/sha256.cpp"), sqlite_link_arg,
                       "-o", str(interop_binary),
                   ]
                   compiled = subprocess.run(
@@ -626,7 +637,9 @@ jobs:
                       "status": "passed", "source_repo": request["source_repo"],
                       "source_commit": request["source_commit"],
                       "compiler": compiler, "compiler_version": compiler_version,
-                      "sqlite_library": sqlite_library, "source_files": copied_cpp,
+                      "sqlite_library": sqlite_library,
+                      "sqlite_header_mode": "vendored-minimal-abi-declarations",
+                      "source_files": copied_cpp,
                       "commands": command_results,
                       "python_cpp_interop": {
                           "status": "passed", "episode_id": episode_id,
