@@ -56,6 +56,17 @@ jobs:
       - name: Validate collaboration lifecycle
         run: python scripts/validate_collaboration_lifecycle.py
 
+      - name: Capture read-only OCI runner inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" python - <<'PY'
+          import json
+          from ops.oci_mcp.runner_inventory import collect_runner_status
+
+          print(json.dumps(collect_runner_status(), indent=2, sort_keys=True))
+          PY
+
       - name: Bootstrap pinned formal-preflight Python environment
         shell: bash
         env:
