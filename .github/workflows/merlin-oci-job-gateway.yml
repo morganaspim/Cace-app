@@ -34,6 +34,7 @@ jobs:
           import json
           import os
           import re
+          import subprocess
           import sys
           import types
           import urllib.parse
@@ -102,6 +103,10 @@ jobs:
               "evaluator_receipt_sha256", "source_repo", "source_commit",
               "expected_bundle_sha256",
           }
+          rsi_test_fields = {
+              "source_repo", "source_commit", "module_blob_sha",
+              "test_blob_sha", "manifest_blob_sha",
+          }
           if not isinstance(request, dict) or not base_fields.issubset(request):
               raise SystemExit("request rejected: base schema fields are missing")
           if request["schema"] != "merlin-oci-job-request-v1":
@@ -109,10 +114,16 @@ jobs:
           if str(uuid.UUID(request["request_id"])) != path_request_id:
               raise SystemExit("request rejected: request ID does not match its path")
           if not isinstance(request["operation"], str) or request["operation"] not in {
-              "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract"
+              "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract",
+              "merlin_rsi_python_tests"
           }:
               raise SystemExit("request rejected: operation is not enabled")
-          expected_fields = base_fields | (cace_fields if request["operation"] == "cace_rsi_bundle_contract" else set())
+          if request["operation"] == "cace_rsi_bundle_contract":
+              expected_fields = base_fields | cace_fields
+          elif request["operation"] == "merlin_rsi_python_tests":
+              expected_fields = base_fields | rsi_test_fields
+          else:
+              expected_fields = base_fields
           if set(request) != expected_fields:
               raise SystemExit("request rejected: fields do not match the selected fixed operation")
           reason = request["reason"]
@@ -350,6 +361,97 @@ jobs:
                   "verification_scope": "CACE EvidenceBundle identity only; not a signed attestation or candidate verification",
               }
 
+          rsi_test_results = None
+          if request["operation"] == "merlin_rsi_python_tests":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: source repository is not allowlisted")
+              if not re.fullmatch(r"[0-9a-f]{40}", str(request["source_commit"])):
+                  raise SystemExit("request rejected: source commit must be a 40-character Git commit")
+              for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
+                  if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
+                      raise SystemExit(f"request rejected: {name} must be a Git blob SHA")
+
+              vendor_paths = {
+                  "module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py", request["module_blob_sha"]),
+                  "tests": ("vendor/merlin-rsi-validation/tests/test_rsi_pipeline.py", request["test_blob_sha"]),
+                  "manifest": ("vendor/merlin-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json", request["manifest_blob_sha"]),
+              }
+              test_root = artifact_dir / "merlin-rsi-validation-source"
+              if test_root.exists():
+                  raise SystemExit("refusing to overwrite an existing RSI validation source directory")
+              test_root.mkdir(parents=True)
+              copied = {}
+              for label, (repo_path, expected_blob_sha) in vendor_paths.items():
+                  raw, actual_blob_sha = fetch_contents(repo_path)
+                  if actual_blob_sha != expected_blob_sha:
+                      raise SystemExit(f"RSI source blob mismatch for {label}")
+                  if label == "module":
+                      destination = test_root / "python/merlin/rsi_pipeline.py"
+                  elif label == "tests":
+                      destination = test_root / "tests/test_rsi_pipeline.py"
+                  else:
+                      destination = test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(raw)
+                  copied[label] = {
+                      "repo_path": repo_path,
+                      "git_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                      "size_bytes": len(raw),
+                  }
+
+              manifest_path = test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+              manifest_bytes = manifest_path.read_bytes()
+              manifest = json.loads(manifest_bytes.decode("utf-8"))
+              domain_counts = {}
+              for case in manifest.get("cases", []):
+                  domain = case.get("domain")
+                  domain_counts[domain] = domain_counts.get(domain, 0) + 1
+              if (manifest.get("status") != "frozen"
+                  or manifest.get("split") != "held_out"
+                  or len(manifest.get("cases", [])) != 25
+                  or set(manifest.get("domains", [])) != {"mathematics", "lean", "research", "coding", "engineering"}
+                  or set(domain_counts.values()) != {5}
+                  or set(domain_counts) != set(manifest.get("domains", []))):
+                  raise SystemExit("RSI held-out manifest failed its fixed five-domain contract")
+
+              test_env = dict(os.environ)
+              test_env["PYTHONPATH"] = str(test_root / "python")
+              test_env["PYTHONDONTWRITEBYTECODE"] = "1"
+              commands = [
+                  [sys.executable, "-m", "py_compile", str(test_root / "python/merlin/rsi_pipeline.py")],
+                  [sys.executable, "-m", "unittest", "discover", "-s",
+                   str(test_root / "tests"), "-p", "test_rsi_pipeline.py", "-v"],
+              ]
+              command_results = []
+              for command in commands:
+                  completed = subprocess.run(
+                      command, cwd=str(test_root), env=test_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=120, check=False)
+                  command_results.append({
+                      "command": command[1:],
+                      "returncode": completed.returncode,
+                      "output": completed.stdout[-16000:],
+                  })
+                  if completed.returncode != 0:
+                      raise SystemExit("fixed RSI Python validation command failed")
+              test_output = command_results[-1]["output"]
+              test_match = re.search(r"Ran (\d+) tests? in", test_output)
+              rsi_test_results = {
+                  "status": "passed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "python_version": sys.version.split()[0],
+                  "source_files": copied,
+                  "benchmark_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                  "benchmark_cases": len(manifest["cases"]),
+                  "benchmark_domains": sorted(manifest["domains"]),
+                  "test_count": int(test_match.group(1)) if test_match else None,
+                  "commands": command_results,
+                  "execution_scope": "fixed Python compile and unittest commands; no package install; external HTTP calls mocked by tests",
+              }
+
           completed_at = datetime.now(timezone.utc).isoformat()
           receipt = {
               "schema": "merlin-oci-job-receipt-v1",
@@ -377,13 +479,14 @@ jobs:
               "resource_limits": {
                   "job_timeout_minutes": 3,
                   "per_probe_timeout_seconds": 5,
-                  "network_scope": "GitHub API content reads plus localhost MCP only" if request["operation"] == "mcp_readonly_probe" else "GitHub API content reads only",
+                  "network_scope": "GitHub API content reads plus localhost MCP only" if request["operation"] == "mcp_readonly_probe" else "GitHub API content reads only; local fixed tests use mocked external requests",
                   "package_installation": False,
                   "cache_mutation": False,
               },
               "inventory": inventory,
               "mcp_probe": mcp_probe,
               "cace_bundle_contract": cace_bundle_contract,
+              "rsi_test_results": rsi_test_results,
           }
           (artifact_dir / "job-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
