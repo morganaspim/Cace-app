@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a7f2c8d1-4e63-4b90-9c2a-6d8e1f5b3a70",
+  "operation": "inventory_snapshot",
+  "reason": "Verify current OCI runner identity, filesystem headroom, runner services, and localhost MCP listener without modifying host files or caches.",
+  "created_at": "2026-11-11T22:15:00Z"
+}
