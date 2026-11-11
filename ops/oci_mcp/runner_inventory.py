@@ -89,6 +89,8 @@ def collect_runner_status(
     runner_root: Path = RUNNER_ROOT,
     *,
     run: Callable[..., Any] = subprocess.run,
+    tcp_table: Path = Path("/proc/net/tcp"),
+    tcp6_table: Path = Path("/proc/net/tcp6"),
 ) -> dict[str, Any]:
     """Collect bounded, read-only metadata; never read runner credential files."""
     root = Path(runner_root)
@@ -155,7 +157,7 @@ def collect_runner_status(
         result["oci_mcp_service"] = "unavailable"
         result["oci_mcp_service_probe_error"] = type(exc).__name__
 
-    result["oci_mcp_listener"] = _proc_listener_state()
+    result["oci_mcp_listener"] = _proc_listener_state(tcp_table, tcp6_table)
 
     try:
         units = run(
