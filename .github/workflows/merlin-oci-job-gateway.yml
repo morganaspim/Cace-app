@@ -571,8 +571,11 @@ jobs:
                           "command": command, "returncode": completed.returncode,
                           "output": completed.stdout[-12000:],
                       })
+                      (artifact_dir / "cpp-test-progress.json").write_text(
+                          json.dumps({"commands": command_results}, indent=2, sort_keys=True) + "\n",
+                          encoding="utf-8")
                       if completed.returncode != 0:
-                          raise SystemExit("fixed C++ ledger compile or smoke test failed")
+                          raise SystemExit("fixed C++ ledger compile or smoke test failed:\n" + completed.stdout[-6000:])
 
                   interop_db = cpp_test_root / "python-cpp-interop.sqlite3"
                   episode_id = "merlin-rsi-python-cpp-interop"
@@ -621,8 +624,11 @@ jobs:
                       text=True, timeout=90, check=False)
                   command_results.append({"command": interop_compile,
                       "returncode": compiled.returncode, "output": compiled.stdout[-12000:]})
+                  (artifact_dir / "cpp-test-progress.json").write_text(
+                      json.dumps({"commands": command_results}, indent=2, sort_keys=True) + "\n",
+                      encoding="utf-8")
                   if compiled.returncode != 0:
-                      raise SystemExit("Python-to-C++ interop harness compilation failed")
+                      raise SystemExit("Python-to-C++ interop harness compilation failed:\n" + compiled.stdout[-6000:])
                   interop = subprocess.run(
                       [str(interop_binary), str(interop_db), episode_id],
                       cwd=str(cpp_test_root), env=cpp_env,
@@ -630,8 +636,11 @@ jobs:
                       text=True, timeout=30, check=False)
                   command_results.append({"command": [str(interop_binary), str(interop_db), episode_id],
                       "returncode": interop.returncode, "output": interop.stdout[-12000:]})
+                  (artifact_dir / "cpp-test-progress.json").write_text(
+                      json.dumps({"commands": command_results}, indent=2, sort_keys=True) + "\n",
+                      encoding="utf-8")
                   if interop.returncode != 0:
-                      raise SystemExit("Python-to-C++ research episode interoperability failed")
+                      raise SystemExit("Python-to-C++ research episode interoperability failed:\n" + interop.stdout[-6000:])
 
                   cpp_test_results = {
                       "status": "passed", "source_repo": request["source_repo"],
