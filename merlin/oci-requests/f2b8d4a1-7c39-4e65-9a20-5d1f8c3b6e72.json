@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f2b8d4a1-7c39-4e65-9a20-5d1f8c3b6e72",
+  "operation": "rsi_validation",
+  "reason": "Validate server-pinned Hermes/source/evaluator/approver/CACE trust stores and append-only promotion gate on OCI",
+  "created_at": "2026-11-11T23:59:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "4f055da5c0a0744097a2c15c0984fe12bff5e520"
+}
