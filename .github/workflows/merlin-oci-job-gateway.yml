@@ -274,7 +274,7 @@ jobs:
               profile_files = {
                   "python/merlin/rsi_pipeline.py": (
                       "merlin/rsi-validation/python/merlin/rsi_pipeline.py",
-                      "9c1e57161bb2d77787dfe1b7d0ba4324fbf00b1e",
+                      "56d72fe862acebd1ae6102ea21995fd4cb44a04e",
                   ),
                   "tests/test_rsi_pipeline.py": (
                       "merlin/rsi-validation/tests/test_rsi_pipeline.py",
