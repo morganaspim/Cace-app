@@ -1,6 +1,16 @@
 # Merlin OCI MCP Extension Specification
 
-Status: design specification; not deployed or connected to a live OCI VM.
+Status: partially implemented in the CACE documentation branch; not deployed or connected to a live OCI VM.
+
+## Implementation progress (2026-11-11)
+
+- **Implemented in repository:** pure, I/O-free policy helpers in `ops/oci_mcp/inventory_policy.py` for normalized relative paths, conservative sensitive-path exclusion, symlink rejection flags, depth/per-file/page limits, and no-overwrite destination policy.
+- **Tests added:** `tests/test_oci_mcp_inventory_policy.py` covers traversal, sensitive names, symlink/depth/size limits, cap ceilings, pagination bounds, and refusing existing destinations.
+- **Not implemented:** filesystem enumeration adapter, descriptor-relative no-follow file access, disk/inode headroom tools, active-job inspection, selected-file retrieval, transfer broker, and remote MCP connectivity.
+- **Not validated:** the new pytest module has not yet been run in this session. GitHub currently reports pending Vercel deployment statuses for the latest documentation/policy commit; these are not pytest results.
+- **Not deployed:** no OCI service, VM, runner, cache, or filesystem has been changed.
+
+The policy helpers are necessary but not sufficient. Any future filesystem adapter must use descriptor-relative operations (for example, directory file descriptors and no-follow opens) to prevent symlink and time-of-check/time-of-use races. Do not expose the tools until that adapter and its tests exist.
 
 ## Purpose
 
