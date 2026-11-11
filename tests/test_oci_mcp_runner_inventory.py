@@ -1,7 +1,11 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from ops.oci_mcp.runner_inventory import collect_runner_status
+from ops.oci_mcp.runner_inventory import (
+    _memory_total_bytes,
+    _os_release,
+    collect_runner_status,
+)
 
 
 def test_runner_inventory_is_read_only_and_reports_unobserved_github_state(tmp_path):
@@ -21,6 +25,11 @@ def test_runner_inventory_is_read_only_and_reports_unobserved_github_state(tmp_p
 
     result = collect_runner_status(tmp_path, run=fake_run)
 
+    assert result["schema"] == "cace-oci-runner-inventory-v1"
+    assert result["collected_at_utc"].endswith("+00:00")
+    assert result["host"]["os"]
+    assert result["host"]["architecture"]
+    assert result["host"]["cpu_count"] >= 1
     assert result["directory_present"] is True
     assert result["registration_metadata_present"] is True
     assert result["listener_script_present"] is True
@@ -73,3 +82,27 @@ def test_runner_inventory_never_reads_credentials(tmp_path):
 
     assert result["credential_file_contents_read"] is False
     assert "DO NOT READ" not in repr(result)
+
+
+
+def test_host_inventory_reads_only_allowlisted_os_fields_and_aggregate_memory(tmp_path):
+    release = tmp_path / "os-release"
+    release.write_text(
+        'ID="oracle"\nVERSION_ID="8"\nPRETTY_NAME="Oracle Linux 8"\nSECRET_TOKEN="never-return"\n',
+        encoding="utf-8",
+    )
+    meminfo = tmp_path / "meminfo"
+    meminfo.write_text("MemTotal:       1024 kB\nMemFree:         128 kB\n", encoding="ascii")
+
+    assert _os_release(release) == {
+        "id": "oracle",
+        "version_id": "8",
+        "pretty_name": "Oracle Linux 8",
+    }
+    assert _memory_total_bytes(meminfo) == 1024 * 1024
+    assert "never-return" not in repr(_os_release(release))
+
+
+def test_host_inventory_handles_unavailable_proc_files(tmp_path):
+    assert _memory_total_bytes(tmp_path / "missing") is None
+    assert _os_release(tmp_path / "missing") == {}
