@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "6e2d5b41-8f7a-4a1c-9d3e-2b6f0c8a7415",
+  "operation": "mcp_readonly_probe",
+  "reason": "Verify the OCI runner and authenticated local CACE MCP read-only tools for Merlin; collect signed-identity-bound job receipt without host mutations, package installation, or cache changes.",
+  "created_at": "2026-11-11T00:00:00Z"
+}
