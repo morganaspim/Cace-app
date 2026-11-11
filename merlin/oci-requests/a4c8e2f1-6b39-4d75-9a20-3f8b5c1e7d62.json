@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a4c8e2f1-6b39-4d75-9a20-3f8b5c1e7d62",
+  "operation": "mcp_readonly_probe",
+  "reason": "Discover the live CACE MCP read-only capability surface before wiring independent verification",
+  "created_at": "2026-11-11T23:56:00Z"
+}
