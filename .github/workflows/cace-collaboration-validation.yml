@@ -274,7 +274,7 @@ jobs:
           if qualification.get('proof_artifact_sha256') != ledger.get('proof_artifact_sha256'):
             raise SystemExit('claim registry/proof ledger proof artifact mismatch')
           summary={
-            'schema':'cace-collaboration-validation-v9',
+            'schema':'cace-collaboration-validation-v10',
             'evidence_class':'ENGINEERING_VERIFIED',
             'proof_implication':'none',
             'head_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
