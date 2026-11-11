@@ -23,10 +23,11 @@ cace = "cace_studio.cli:main"
 cace-attest = "cace_studio.attest_entry:main"
 
 [tool.setuptools.packages.find]
-include = ["cace_studio*"]
+include = ["cace_studio*", "merlin_lms*"]
 
 [tool.setuptools.package-data]
 cace_studio = ["data/*.json"]
+merlin_lms = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

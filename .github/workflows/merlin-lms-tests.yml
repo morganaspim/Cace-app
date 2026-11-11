@@ -1,0 +1,65 @@
+name: Merlin LMS Unit Tests
+
+on:
+  push:
+    branches:
+      - 'feature/merlin-math-lms-foundation-*'
+    paths:
+      - 'merlin_lms/**'
+      - 'tests/test_merlin_*.py'
+      - 'schema/merlin-*.json'
+      - 'pyproject.toml'
+      - '.github/workflows/merlin-lms-tests.yml'
+  pull_request:
+    paths:
+      - 'merlin_lms/**'
+      - 'tests/test_merlin_*.py'
+      - 'schema/merlin-*.json'
+      - 'pyproject.toml'
+      - '.github/workflows/merlin-lms-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Create isolated test environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/merlin-lms-tests"
+          "$RUNNER_TEMP/merlin-lms-tests/bin/python" -m pip install --disable-pip-version-check pytest
+      - name: Validate LMS schemas and curriculum data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for path in (
+              Path("schema/merlin-learning-state.schema.json"),
+              Path("schema/merlin-curriculum.schema.json"),
+              Path("schema/merlin-exercise-content.schema.json"),
+              Path("merlin_lms/data/math_foundations_v1.json"),
+              Path("merlin_lms/data/math_foundations_exercises_v1.json"),
+          ):
+              json.loads(path.read_text(encoding="utf-8"))
+              print(f"valid_json={path}")
+          PY
+      - name: Run Merlin LMS unit tests
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/merlin-lms-tests/bin/python" -m pytest -q \
+            tests/test_merlin_learning_planner.py \
+            tests/test_merlin_curriculum.py \
+            tests/test_merlin_mastery.py \
+            tests/test_merlin_exercise_content.py

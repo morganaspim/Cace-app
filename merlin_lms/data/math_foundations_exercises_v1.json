@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "content_id": "math-foundations-exercises-v1",
+  "curriculum_id": "math-foundations-v1",
+  "exercises": [
+    {
+      "task_id": "discover-counting-patterns",
+      "content_version": 1,
+      "objective": "Recognize additive structure in the odd numbers and express a pattern in general form.",
+      "prompt": "Consider the sequence 1, 3, 5, 7, 9, ... Find the difference between consecutive terms. Predict the 10th term. Then explain a rule for the nth odd number and test your rule against at least three positions.",
+      "answer_format": "written_explanation",
+      "hints": [
+        "Compare each term with the term immediately before it.",
+        "The first term is 1 and the sequence increases by 2 each time.",
+        "Try writing the nth term as 1 + 2 times the number of steps after the first term."
+      ],
+      "rubric": [
+        {
+          "dimension": "pattern_observation",
+          "description": "Identifies the constant difference of 2.",
+          "points": 2
+        },
+        {
+          "dimension": "general_rule",
+          "description": "States a correct nth-term rule.",
+          "points": 3
+        },
+        {
+          "dimension": "verification",
+          "description": "Checks the rule at three or more positions.",
+          "points": 2
+        }
+      ],
+      "transfer_prompt": "Start at 4 and repeatedly add 3. Write the nth-term rule and explain how it differs from the odd-number sequence.",
+      "allowed_tools": [
+        "paper",
+        "calculator"
+      ]
+    },
+    {
+      "task_id": "build-factor-table",
+      "content_version": 1,
+      "objective": "Use divisibility and factor pairs to classify whole numbers.",
+      "prompt": "Create a factor table for every integer from 1 through 30. For each number, list all positive factor pairs. Classify each number greater than 1 as prime or composite, and explain why 1 is neither.",
+      "answer_format": "table_and_explanation",
+      "hints": [
+        "A factor pair multiplies to the target number.",
+        "You only need to test possible divisors up to the square root; after that, factor pairs repeat in reverse.",
+        "A prime number has exactly two positive factors."
+      ],
+      "rubric": [
+        {
+          "dimension": "factor_pairs",
+          "description": "Lists correct factor pairs for the assigned range.",
+          "points": 4
+        },
+        {
+          "dimension": "classification",
+          "description": "Correctly classifies primes and composites.",
+          "points": 3
+        },
+        {
+          "dimension": "definition",
+          "description": "Explains why 1 is neither prime nor composite.",
+          "points": 2
+        }
+      ],
+      "transfer_prompt": "Choose a number between 31 and 50 that is composite. Find all factor pairs and justify that your list is complete.",
+      "allowed_tools": [
+        "paper",
+        "calculator"
+      ]
+    },
+    {
+      "task_id": "write-prime-checker",
+      "content_version": 1,
+      "objective": "Translate the definition of primality into a tested algorithm.",
+      "prompt": "Write a Python function is_prime(n) that returns True exactly when n is prime. Handle integers below 2, test divisors only as far as necessary, and include tests for 0, 1, 2, 9, 17, and 49. Explain why your loop bound is sufficient.",
+      "answer_format": "python_code_and_explanation",
+      "hints": [
+        "A prime is an integer greater than 1 with no positive divisors other than 1 and itself.",
+        "If n has a factor larger than its square root, its paired factor must be smaller than the square root.",
+        "Try divisors from 2 through the integer square root, inclusive."
+      ],
+      "rubric": [
+        {
+          "dimension": "correctness",
+          "description": "Correctly handles edge cases and the supplied test values.",
+          "points": 4
+        },
+        {
+          "dimension": "algorithm",
+          "description": "Uses a justified and efficient divisor bound.",
+          "points": 3
+        },
+        {
+          "dimension": "explanation",
+          "description": "Explains why the algorithm decides primality.",
+          "points": 2
+        }
+      ],
+      "transfer_prompt": "Modify the function to return the smallest non-trivial factor when n is composite, or None when n is prime.",
+      "allowed_tools": [
+        "python",
+        "calculator"
+      ]
+    },
+    {
+      "task_id": "conjecture-prime-pattern",
+      "content_version": 1,
+      "objective": "Form a number-theoretic conjecture from examples while distinguishing evidence from proof.",
+      "prompt": "List the prime numbers greater than 3 and less than 50. Compute each remainder after division by 6. Form a conjecture about the possible remainders of primes greater than 3. Search for examples that could disprove your conjecture, then explain why your finite list does not prove it for all primes.",
+      "answer_format": "conjecture_and_counterexample_search",
+      "hints": [
+        "A number leaves one of six possible remainders when divided by 6.",
+        "If a number greater than 3 is divisible by 2 or 3, it cannot be prime.",
+        "Check whether remainders 0, 2, 3, or 4 would force divisibility by 2 or 3."
+      ],
+      "rubric": [
+        {
+          "dimension": "data",
+          "description": "Computes the relevant remainders accurately.",
+          "points": 2
+        },
+        {
+          "dimension": "conjecture",
+          "description": "States the 6k ± 1 pattern for primes greater than 3.",
+          "points": 3
+        },
+        {
+          "dimension": "epistemic_reasoning",
+          "description": "Distinguishes finite experimental support from a universal proof.",
+          "points": 3
+        }
+      ],
+      "transfer_prompt": "Find a composite number of the form 6k + 1. Explain why being of the form 6k ± 1 is necessary for primes greater than 3 but not sufficient.",
+      "allowed_tools": [
+        "paper",
+        "python"
+      ]
+    },
+    {
+      "task_id": "prove-infinite-primes",
+      "content_version": 1,
+      "objective": "Construct and explain Euclid's proof that there are infinitely many primes.",
+      "prompt": "Write a proof by contradiction that there are infinitely many prime numbers. Assume there are finitely many primes, construct a number from their product, and explain why a prime divisor of that number cannot be in the assumed complete list. State clearly why the constructed number itself need not be prime.",
+      "answer_format": "proof",
+      "hints": [
+        "Assume the complete list is p₁, p₂, ..., pₙ.",
+        "Consider N = p₁p₂...pₙ + 1 and examine the remainder when N is divided by any listed prime.",
+        "If N is composite, it still has a prime divisor. That divisor cannot be any prime in the assumed list."
+      ],
+      "rubric": [
+        {
+          "dimension": "contradiction_setup",
+          "description": "Clearly assumes a finite complete list of primes.",
+          "points": 2
+        },
+        {
+          "dimension": "construction",
+          "description": "Constructs the product-plus-one number.",
+          "points": 2
+        },
+        {
+          "dimension": "divisibility_argument",
+          "description": "Shows no listed prime divides the constructed number.",
+          "points": 3
+        },
+        {
+          "dimension": "logical_conclusion",
+          "description": "Uses a prime divisor to derive the contradiction.",
+          "points": 3
+        }
+      ],
+      "transfer_prompt": "Explain why the proof still works if the product-plus-one number is composite.",
+      "allowed_tools": [
+        "paper"
+      ]
+    },
+    {
+      "task_id": "implement-repeated-addition",
+      "content_version": 1,
+      "objective": "Represent multiplication as repeated addition and implement the process with a loop.",
+      "prompt": "Write a Python function multiply_by_addition(a, b) that computes a × b using repeated addition and a loop, without using the multiplication operator inside the function. Define how your function handles zero and negative inputs, then test at least five cases.",
+      "answer_format": "python_code_and_tests",
+      "hints": [
+        "For positive b, add a to a running total b times.",
+        "Initialize the running total at zero.",
+        "For negative b, you can count up to abs(b) and apply the sign at the end."
+      ],
+      "rubric": [
+        {
+          "dimension": "implementation",
+          "description": "Uses a loop and repeated addition without multiplication in the function body.",
+          "points": 3
+        },
+        {
+          "dimension": "edge_cases",
+          "description": "Correctly handles zero and negative inputs.",
+          "points": 3
+        },
+        {
+          "dimension": "tests",
+          "description": "Includes at least five meaningful tests.",
+          "points": 2
+        }
+      ],
+      "transfer_prompt": "Describe how repeated addition relates to the distributive property, then adapt the function to count how many additions it performs.",
+      "allowed_tools": [
+        "python"
+      ]
+    },
+    {
+      "task_id": "search-small-counterexamples",
+      "content_version": 1,
+      "objective": "Use a finite computational search to find a counterexample and explain its scope.",
+      "prompt": "Investigate the conjecture: n² + n + 41 is prime for every non-negative integer n. Write a program to test n from 0 upward. Find the first counterexample, factor the resulting value, and explain what the search establishes—and what it does not establish.",
+      "answer_format": "python_experiment_and_explanation",
+      "hints": [
+        "Begin with n = 0 and increase n by 1 each iteration.",
+        "Test primality with your earlier is_prime function or a separate divisor search.",
+        "Look for a value of n that makes the expression a perfect square."
+      ],
+      "rubric": [
+        {
+          "dimension": "experiment",
+          "description": "Runs a reproducible finite search with a clear stopping condition.",
+          "points": 3
+        },
+        {
+          "dimension": "counterexample",
+          "description": "Finds n = 40 and factors 1681 as 41 × 41.",
+          "points": 3
+        },
+        {
+          "dimension": "interpretation",
+          "description": "Explains that one counterexample disproves the universal conjecture but finite checks cannot prove it.",
+          "points": 3
+        }
+      ],
+      "transfer_prompt": "Change the constant 41 to 43. Search the first 50 non-negative integers and report what your experiment can and cannot conclude.",
+      "allowed_tools": [
+        "python",
+        "calculator"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://merlin.local/schema/learning-state.schema.json",
+  "title": "Merlin Learner Learning State",
+  "description": "Versioned pedagogical state. Not mathematical proof or identity authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "learner_ref",
+    "pathway_weights",
+    "concept_states",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "learner_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "pathway_weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mathematician",
+        "mathematics_programmer",
+        "computational_problem_solver"
+      ],
+      "properties": {
+        "mathematician": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mathematics_programmer": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "computational_problem_solver": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "uniqueItems": true
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "uniqueItems": true
+    },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "explanation_modes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "visual",
+              "worked_example",
+              "socratic",
+              "historical",
+              "textual",
+              "video",
+              "interactive",
+              "code"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "pace": {
+          "enum": [
+            "gentle",
+            "standard",
+            "intensive",
+            "adaptive"
+          ]
+        },
+        "accessibility_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
+      }
+    },
+    "concept_states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "concept_id",
+          "state",
+          "evidence_refs"
+        ],
+        "properties": {
+          "concept_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "state": {
+            "enum": [
+              "unknown",
+              "introduced",
+              "practicing",
+              "provisional",
+              "mastered",
+              "needs_review"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "uniqueItems": true
+          },
+          "misconception_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "uniqueItems": true
+          },
+          "last_observed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "planner_version": {
+      "type": "string",
+      "maxLength": 64
+    }
+  }
+}
