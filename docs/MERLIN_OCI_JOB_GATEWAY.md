@@ -43,6 +43,7 @@ The workflow rejects unknown or missing fields, a mismatched filename/request ID
 | Profile | State | Authority |
 |---|---|---|
 | `inventory_snapshot` | Enabled | Read-only runner and local MCP inventory |
+| `mcp_readonly_probe` | Enabled | Localhost MCP initialize, tools/list, and fixed read-only tool calls only |
 | `merlin_python_smoke` | Disabled | Requires a separate disk-headroom gate and isolated test environment |
 | `cace_lean_canary` | Disabled | Requires at least 8 GiB free disk and pinned toolchain/cache verification |
 
@@ -53,7 +54,8 @@ The workflow does not accept commands, shell strings, package names, arbitrary p
 - GitHub Actions is the authenticated control plane; the workflow uses its short-lived `GITHUB_TOKEN` with `contents:read` only to fetch the request and pinned inventory source.
 - The workflow does not run `actions/checkout`, so it does not clean or overwrite the existing runner workspace.
 - The executable inventory module is fetched at the exact request commit and its Git blob SHA must match the reviewed source pin in the workflow.
-- The inventory profile executes the reviewed read-only `collect_runner_status` function.\n- The MCP probe sends only protocol initialization, tool discovery, and the three fixed read-only calls listed above; it never accepts a tool name from the request.
+- The inventory profile executes the reviewed read-only `collect_runner_status` function.
+- The MCP probe sends only protocol initialization, tool discovery, and the three fixed read-only calls listed above; it never accepts a tool name from the request.
 - The job has a three-minute wall-clock limit; each host probe has a five-second timeout.
 - No package installation, cache mutation, service restart, network policy change, deployment, cleanup, or host write is permitted.
 - The request's claimed actor is not trusted; the receipt records the GitHub push event's authenticated sender.
