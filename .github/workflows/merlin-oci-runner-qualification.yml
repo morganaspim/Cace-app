@@ -28,6 +28,7 @@ jobs:
       MATHLIB_NO_CACHE_ON_UPDATE: '1'
       MERLIN_REPO_URL: https://github.com/Mannyspiro/expert-robot.git
       MERLIN_SOURCE_COMMIT: 974e132db5f8742fe9c14935aea2b04a67a01963
+      MERLIN_ARTIFACT_DIR: artifacts/merlin-oci-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout exact event commit
@@ -42,7 +43,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts
+          test ! -e "$MERLIN_ARTIFACT_DIR"
+          mkdir -p "$MERLIN_ARTIFACT_DIR"
           {
             printf 'exact_head=%s\n' "$GITHUB_SHA"
             printf 'runner_name=%s\n' "${RUNNER_NAME:-unknown}"
@@ -56,11 +58,11 @@ jobs:
             git status --short
             test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
             test -z "$(git status --porcelain --untracked-files=no)"
-          } 2>&1 | tee artifacts/oci-runner-identity.log
+          } 2>&1 | tee "$MERLIN_ARTIFACT_DIR/oci-runner-identity.log"
           available_bytes="$(df -PB1 "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')"
           required_bytes="$((8 * 1024 * 1024 * 1024))"
           if (( available_bytes < required_bytes )); then
-            printf 'INSUFFICIENT_DISK_HEADROOM available_bytes=%s required_bytes=%s; refusing all cache writes and installs\\n' "$available_bytes" "$required_bytes" | tee artifacts/oci-disk-preflight.txt
+            printf 'INSUFFICIENT_DISK_HEADROOM available_bytes=%s required_bytes=%s; refusing all cache writes and installs\\n' "$available_bytes" "$required_bytes" | tee "$MERLIN_ARTIFACT_DIR/oci-disk-preflight.txt"
             exit 78
           fi
 
@@ -86,8 +88,8 @@ jobs:
           fi
           flock -u 9
           cd formal/cace_formal
-          lean --version | tee "$GITHUB_WORKSPACE/artifacts/lean-version.log"
-          lake --version | tee "$GITHUB_WORKSPACE/artifacts/lake-version.log"
+          lean --version | tee "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/lean-version.log"
+          lake --version | tee "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/lake-version.log"
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
           mkdir -p "$CACE_MANIFEST_CACHE_DIR"
           manifest_key="$(
@@ -126,10 +128,10 @@ jobs:
           export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
           export PATH="$ELAN_HOME/bin:$PATH"
           cd formal/cace_formal
-          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/oci-lean-canary.log"
+          lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/oci-lean-canary.log"
           rc=${PIPESTATUS[0]}
-          log_sha="$(sha256sum "$GITHUB_WORKSPACE/artifacts/oci-lean-canary.log" | awk '{print $1}')"
-          printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s,"log_sha256":"%s"}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" "$log_sha" > "$GITHUB_WORKSPACE/artifacts/oci-lean-canary-result.json"
+          log_sha="$(sha256sum "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/oci-lean-canary.log" | awk '{print $1}')"
+          printf '{"suite":"oci-lean-canary","commit":"%s","toolchain":"%s","mathlib_commit":"%s","exit_code":%s,"log_sha256":"%s"}\n' "$GITHUB_SHA" "$CACE_TOOLCHAIN" "$CACE_MATHLIB_COMMIT" "$rc" "$log_sha" > "$GITHUB_WORKSPACE/$MERLIN_ARTIFACT_DIR/oci-lean-canary-result.json"
           exit "$rc"
 
       - name: Test exact Merlin commit on OCI
@@ -138,7 +140,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          mkdir -p artifacts
+          test -d "$MERLIN_ARTIFACT_DIR"
           source_dir="$RUNNER_TEMP/merlin-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           venv_dir="$RUNNER_TEMP/merlin-venv-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           (
@@ -177,12 +179,12 @@ jobs:
               tests/test_public_literature.py \
               tests/test_merlin_learner_store_resources.py \
               tests/test_merlin_virtual_repository.py
-          ) > artifacts/merlin-oci-test.log 2>&1
+          ) > "$MERLIN_ARTIFACT_DIR/merlin-oci-test.log" 2>&1
           rc=$?
-          log_sha="$(sha256sum artifacts/merlin-oci-test.log | awk '{print $1}')"
+          log_sha="$(sha256sum "$MERLIN_ARTIFACT_DIR/merlin-oci-test.log" | awk '{print $1}')"
           python_version="$(python3 --version 2>&1 | tr -d '\\n')"
           pytest_version="$("$venv_dir/bin/python" -m pytest --version 2>&1 | tr -d '\\n')"
-          printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","runner_name":"%s","runner_arch":"%s","python_version":"%s","pytest_version":"%s","exit_code":%s,"log_sha256":"%s"}\\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$RUNNER_NAME" "$RUNNER_ARCH" "$python_version" "$pytest_version" "$rc" "$log_sha" > artifacts/merlin-oci-test-result.json
+          printf '{"suite":"merlin-unified-platform-on-oci","merlin_commit":"%s","cace_commit":"%s","runner_name":"%s","runner_arch":"%s","python_version":"%s","pytest_version":"%s","exit_code":%s,"log_sha256":"%s"}\\n' "$MERLIN_SOURCE_COMMIT" "$GITHUB_SHA" "$RUNNER_NAME" "$RUNNER_ARCH" "$python_version" "$pytest_version" "$rc" "$log_sha" > "$MERLIN_ARTIFACT_DIR/merlin-oci-test-result.json"
           exit "$rc"
 
       - name: Write qualification boundary summary
@@ -204,14 +206,14 @@ jobs:
             printf 'merlin_test_outcome=%s\n' "$MERLIN_TEST_OUTCOME"
             printf 'merlin_source_commit=%s\n' "$MERLIN_SOURCE_COMMIT"
             printf 'canonical_claim_promotion=false\n'
-          } | tee artifacts/oci-qualification-summary.txt
+          } | tee "$MERLIN_ARTIFACT_DIR/oci-qualification-summary.txt"
 
       - name: Upload OCI runner evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: merlin-oci-runner-qualification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/
+          path: ${{ github.workspace }}/${{ env.MERLIN_ARTIFACT_DIR }}/
           if-no-files-found: warn
           retention-days: 30
 
