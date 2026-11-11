@@ -42,10 +42,18 @@ def test_runner_inventory_is_read_only_and_reports_unobserved_github_state(tmp_p
             "load": "loaded",
             "active": "active",
             "sub": "running",
+        },
+        {
+            "unit": "cace-oci-mcp.service",
+            "load": "loaded",
+            "active": "active",
+            "sub": "running",
         }
     ]
     assert calls == [
         ["/usr/bin/pgrep", "-x", "Runner.Listener"],
+        ["/usr/bin/systemctl", "is-active", "--quiet", "cace-oci-mcp"],
+        ["/usr/bin/ss", "-ltn"],
         [
             "/usr/bin/systemctl",
             "list-units",
@@ -106,3 +114,18 @@ def test_host_inventory_reads_only_allowlisted_os_fields_and_aggregate_memory(tm
 def test_host_inventory_handles_unavailable_proc_files(tmp_path):
     assert _memory_total_bytes(tmp_path / "missing") is None
     assert _os_release(tmp_path / "missing") == {}
+
+
+
+def test_inventory_distinguishes_non_loopback_mcp_listener(tmp_path):
+    def fake_run(argv, **kwargs):
+        if argv[0].endswith("ss"):
+            return SimpleNamespace(
+                returncode=0,
+                stdout="State Recv-Q Send-Q Local Address:Port Peer Address:Port\\nLISTEN 0 128 0.0.0.0:8765 0.0.0.0:*\\n",
+                stderr="",
+            )
+        return SimpleNamespace(returncode=1, stdout="", stderr="")
+
+    result = collect_runner_status(tmp_path, run=fake_run)
+    assert result["oci_mcp_listener"] == "non_loopback"
