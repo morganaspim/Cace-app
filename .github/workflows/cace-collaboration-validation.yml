@@ -190,16 +190,36 @@ jobs:
           # Hash repository evidence only. Runtime environments and caches are
           # execution state rather than source evidence and must not be swept into
           # this engineering summary.
-          tracked = subprocess.check_output(['git', 'ls-files', '-z'])
-          tracked_paths = [raw.decode('utf-8') for raw in tracked.split(b'\0') if raw]
+          tracked = subprocess.check_output(['git', 'ls-files', '--stage', '-z'])
           tracked_hashes = {}
           missing_tracked = []
-          for rel in tracked_paths:
+          for raw in tracked.split(b'\0'):
+            if not raw:
+              continue
+            metadata, raw_path = raw.split(b'\t', 1)
+            mode, blob_sha, stage = metadata.decode('ascii').split()
+            rel = raw_path.decode('utf-8')
+            if mode == '160000':
+              tracked_hashes[rel] = {
+                'mode': mode,
+                'gitlink_commit_sha': blob_sha,
+                'sha256': None,
+              }
+              continue
             path = pathlib.Path(rel)
-            if not path.is_file():
+            if path.is_symlink():
+              payload = os.fsencode(os.readlink(path))
+            elif path.is_file():
+              payload = path.read_bytes()
+            else:
               missing_tracked.append(rel)
               continue
-            tracked_hashes[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+            tracked_hashes[rel] = {
+              'mode': mode,
+              'git_blob_sha': blob_sha,
+              'sha256': hashlib.sha256(payload).hexdigest(),
+              'size_bytes': len(payload),
+            }
           if missing_tracked:
             raise SystemExit('tracked files missing from runner checkout: ' + ', '.join(missing_tracked[:20]))
 
