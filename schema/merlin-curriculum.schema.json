@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://merlin.local/schema/curriculum.schema.json",
+  "title": "Merlin Curriculum Catalogue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "curriculum_id",
+    "title",
+    "description",
+    "concepts",
+    "tasks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "curriculum_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "concept_id",
+          "title",
+          "level",
+          "requires",
+          "pathways"
+        ],
+        "properties": {
+          "concept_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "level": {
+            "enum": [
+              "foundation",
+              "developing",
+              "intermediate",
+              "advanced"
+            ]
+          },
+          "requires": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "pathways": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "mathematician",
+                "mathematics_programmer",
+                "computational_problem_solver"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task_id",
+          "concept_id",
+          "requires",
+          "pathways",
+          "interest_tags",
+          "learning_value",
+          "transfer_value",
+          "estimated_minutes",
+          "task_type"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "concept_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "requires": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "pathways": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mathematician": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "mathematics_programmer": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "computational_problem_solver": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "interest_tags": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "learning_value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "transfer_value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "estimated_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "task_type": {
+            "enum": [
+              "discovery",
+              "exploration",
+              "coding",
+              "conjecture",
+              "proof",
+              "experiment",
+              "reflection",
+              "lesson",
+              "project"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
