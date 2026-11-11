@@ -191,7 +191,7 @@ jobs:
           # execution state rather than source evidence and must not be swept into
           # this engineering summary.
           tracked = subprocess.check_output(['git', 'ls-files', '-z'])
-          tracked_paths = [raw.decode('utf-8') for raw in tracked.split(b'\\0') if raw]
+          tracked_paths = [raw.decode('utf-8') for raw in tracked.split(b'\0') if raw]
           tracked_hashes = {}
           missing_tracked = []
           for rel in tracked_paths:
@@ -212,7 +212,7 @@ jobs:
           untracked_raw = subprocess.check_output(
             ['git', 'ls-files', '--others', '--exclude-standard', '-z']
           )
-          untracked_paths = [raw.decode('utf-8') for raw in untracked_raw.split(b'\\0') if raw]
+          untracked_paths = [raw.decode('utf-8') for raw in untracked_raw.split(b'\0') if raw]
           safe_suffixes = {
             '.py', '.md', '.json', '.yml', '.yaml', '.toml', '.txt',
             '.ts', '.tsx', '.js', '.jsx', '.html', '.css', '.lean',
