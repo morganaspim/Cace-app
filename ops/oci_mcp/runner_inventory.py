@@ -96,6 +96,46 @@ def collect_runner_status(
         result["listener_probe_error"] = type(exc).__name__
 
     try:
+        service = run(
+            ["/usr/bin/systemctl", "is-active", "--quiet", "cace-oci-mcp"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        result["oci_mcp_service"] = "active" if service.returncode == 0 else "not_active"
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        result["oci_mcp_service"] = "unavailable"
+        result["oci_mcp_service_probe_error"] = type(exc).__name__
+
+    try:
+        sockets = run(
+            ["/usr/bin/ss", "-ltn"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        loopback = False
+        non_loopback = False
+        if sockets.returncode == 0:
+            for line in (sockets.stdout or "").splitlines()[1:]:
+                fields = line.split()
+                if len(fields) < 4 or not fields[3].endswith(":8765"):
+                    continue
+                address = fields[3].rsplit(":", 1)[0].strip("[]")
+                if address in {"127.0.0.1", "::1", "localhost"}:
+                    loopback = True
+                else:
+                    non_loopback = True
+        result["oci_mcp_listener"] = (
+            "loopback" if loopback else "non_loopback" if non_loopback else "not_listening"
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        result["oci_mcp_listener"] = "unavailable"
+        result["oci_mcp_listener_probe_error"] = type(exc).__name__
+
+    try:
         units = run(
             [
                 "/usr/bin/systemctl",
@@ -114,7 +154,7 @@ def collect_runner_status(
         if units.returncode == 0:
             for line in (units.stdout or "").splitlines():
                 fields = line.split()
-                if fields and fields[0].startswith("actions.runner"):
+                if fields and (fields[0].startswith("actions.runner") or fields[0] == "cace-oci-mcp.service"):
                     matches.append(
                         {
                             "unit": fields[0],
