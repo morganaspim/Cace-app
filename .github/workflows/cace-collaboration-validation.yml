@@ -217,7 +217,8 @@ jobs:
             'covered_file_count':len(files),
             'sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
           }
-          pathlib.Path('collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          artifact_dir = pathlib.Path(os.environ['CACE_ARTIFACT_DIR'])
+          (artifact_dir / 'collaboration-validation-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
           print(json.dumps(summary,indent=2,sort_keys=True))
           PY
 
