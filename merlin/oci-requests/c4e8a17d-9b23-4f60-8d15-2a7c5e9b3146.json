@@ -20,6 +20,7 @@
     "neuromodulation_hpp": "a6c4722dba650631547e7b06f8bccb7b58e4f1d1",
     "generation_lineage_test": "edbd0cd44ae64e9445357521f2c4b343d1716a61",
     "episode_ledger_test": "1593d641f3a0f59a18c85b470c797cc0a8fe8057",
-    "rsi_module": "2c2a3ad9e4a38d101f775282311449a2acc8d615"
+    "rsi_module": "2c2a3ad9e4a38d101f775282311449a2acc8d615",
+    "sqlite3_compat": "db2f35c38af3f9ce1bef3cd555b4ffe1b2afb5c7"
   }
 }
