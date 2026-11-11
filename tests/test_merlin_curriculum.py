@@ -60,3 +60,24 @@ def test_catalogue_tasks_can_be_passed_directly_to_planner():
     )
     assert result["eligible_count"] == 1
     assert result["ranked_tasks"][0]["task_id"] == "discover-counting-patterns"
+
+
+def test_rejects_non_string_prerequisite_instead_of_crashing():
+    data = valid_catalogue()
+    data["tasks"][0]["requires"] = [["not-a-string"]]
+    with pytest.raises(ValueError, match="requires references unknown concepts"):
+        validate_curriculum(data)
+
+
+def test_rejects_boolean_pathway_score():
+    data = valid_catalogue()
+    data["tasks"][0]["pathways"]["mathematician"] = True
+    with pytest.raises(ValueError, match="must be between 0 and 1"):
+        validate_curriculum(data)
+
+
+def test_rejects_boolean_schema_version():
+    data = valid_catalogue()
+    data["schema_version"] = True
+    with pytest.raises(ValueError, match="schema_version"):
+        validate_curriculum(data)
