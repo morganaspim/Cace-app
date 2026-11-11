@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "c4a71e2d-9b63-4f08-a521-6d3e8b7f2a90",
+  "operation": "rsi_validation",
+  "reason": "Re-run the latest pinned RSI bridge tests including real Ed25519 verification, authenticated Hermes seed lineage, and CACE EvidenceBundle digest parity.",
+  "created_at": "2026-11-11T23:58:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "fce180371c006debd8916b4a2be7f9b75bb0b03c"
+}
