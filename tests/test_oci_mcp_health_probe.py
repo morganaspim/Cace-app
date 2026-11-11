@@ -115,6 +115,7 @@ def test_probe_reports_missing_optional_tool_without_calling_other_tools():
     with patch("ops.oci_mcp.health_probe.urlopen", side_effect=fake_urlopen):
         result = probe_local_mcp()
 
+    assert result["status"] == "partial"
     assert result["read_only_tool_results"]["get_github_runner_status"] == {"available": False}
     called = [json.loads(request.data.decode("utf-8")) for request in requests]
     assert [item["method"] for item in called] == [
