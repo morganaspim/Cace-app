@@ -1,0 +1,26 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "5e2a7c91-4d38-4b60-a1f9-6c3d8e2b7a54",
+  "operation": "merlin_cpp_ledger_tests",
+  "reason": "Validate the new CACE gateway branch by compiling pinned C++ ledger smoke tests and verifying a Python-written RSI episode against the C++ ledger.",
+  "created_at": "2026-11-12T00:02:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "a538bf074874403fe8a3a8ece53311763d585a0c",
+  "cpp_blob_shas": {
+    "generation_lineage_cpp": "046f9f6884cb1e1bc58397249b97ef0480a3e82d",
+    "episode_ledger_cpp": "0f21fcff46b9167f6c42c07826d42e3a68803959",
+    "state_machine_cpp": "a2c5dc1c04383662b3751167207482e08476be99",
+    "sha256_cpp": "74d91a042f0a5132e34960d03035dca6b485633a",
+    "generation_lineage_hpp": "6b10c164d33003d4a86a7bd2125817db2802f654",
+    "episode_ledger_hpp": "502efa29d9dc203e6c6e088ec78fa8ba50f67705",
+    "state_machine_hpp": "c94c11226d75e7f486fe0fe11f54768c1b80b364",
+    "sha256_hpp": "4fc097b9dce435df229d42980ca4568e218d5bc8",
+    "personality_hpp": "29a96a8318795afd0fb91f8088ace85307fa9ebd",
+    "interoception_hpp": "e181c2483966c42d2d6b98e1fa19feb0b82d555d",
+    "neuromodulation_hpp": "a6c4722dba650631547e7b06f8bccb7b58e4f1d1",
+    "generation_lineage_test": "edbd0cd44ae64e9445357521f2c4b343d1716a61",
+    "episode_ledger_test": "1593d641f3a0f59a18c85b470c797cc0a8fe8057",
+    "rsi_module": "56d72fe862acebd1ae6102ea21995fd4cb44a04e",
+    "sqlite3_compat": "afbeffd590e693c0bd7a37ebe0cfb4a981da47e9"
+  }
+}
