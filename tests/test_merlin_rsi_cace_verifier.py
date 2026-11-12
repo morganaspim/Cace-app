@@ -252,7 +252,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 bundle_payload=self.bundle.payload(),
                 expected_claim_id=self.claim_id,
                 expected_bindings=self.bindings,
-                artifact_bytes_b64={},
+                artifact_bytes_b64={
+                    "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+                },
                 private_key_pem=self.private_pem,
                 private_key_path=Path("must-not-be-read.pem"),
                 cace_app_root=self.root,
@@ -262,7 +265,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 bundle_payload=self.bundle.payload(),
                 expected_claim_id=self.claim_id,
                 expected_bindings=self.bindings,
-                artifact_bytes_b64={},
+                artifact_bytes_b64={
+                    "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+                },
                 private_key_pem="not a PEM key",
                 cace_app_root=self.root,
             )
