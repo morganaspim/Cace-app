@@ -169,7 +169,9 @@ def verify_merlin_rsi_attestation(
         required_provenance = {
             "schema", "repository", "run_id", "workflow_path", "workflow_commit",
             "runner_name", "job_id", "artifact_sha256", "source_repo",
-            "source_commit", "benchmark_manifest_sha256",
+            "source_commit", "benchmark_manifest_sha256", "orchestrator_run_id",
+            "orchestrator_workflow_path", "orchestrator_workflow_commit",
+            "orchestrator_workflow_sha256", "orchestrator_branch",
         }
         if (not isinstance(runner_provenance, Mapping)
             or set(runner_provenance) != required_provenance
@@ -181,9 +183,20 @@ def verify_merlin_rsi_attestation(
             or runner_provenance.get("source_commit") != expected_bindings.get("source_commit")
             or runner_provenance.get("benchmark_manifest_sha256") != expected_bindings.get("benchmark_manifest_sha256")
             or not isinstance(runner_provenance.get("run_id"), int)
+            or isinstance(runner_provenance.get("run_id"), bool)
             or not isinstance(runner_provenance.get("job_id"), int)
+            or isinstance(runner_provenance.get("job_id"), bool)
             or not re.fullmatch(r"[0-9a-f]{40}", str(runner_provenance.get("workflow_commit", "")))
-            or not re.fullmatch(r"[0-9a-f]{64}", str(runner_provenance.get("artifact_sha256", "")))):
+            or not re.fullmatch(r"[0-9a-f]{64}", str(runner_provenance.get("artifact_sha256", "")))
+            or not isinstance(runner_provenance.get("orchestrator_run_id"), int)
+            or isinstance(runner_provenance.get("orchestrator_run_id"), bool)
+            or runner_provenance.get("orchestrator_run_id") == runner_provenance.get("run_id")
+            or not str(runner_provenance.get("orchestrator_workflow_path", "")).startswith(".github/workflows/")
+            or not re.fullmatch(r"[0-9a-f]{40}", str(runner_provenance.get("orchestrator_workflow_commit", "")))
+            or not re.fullmatch(r"[0-9a-f]{64}", str(runner_provenance.get("orchestrator_workflow_sha256", "")))
+            or not isinstance(runner_provenance.get("orchestrator_branch"), str)
+            or not runner_provenance.get("orchestrator_branch")
+            or runner_provenance.get("orchestrator_branch").startswith("merlin/oci-jobs/")):
             raise PermissionError("CACE independent-reproduction attestation lacks valid OCI run provenance")
     elif runner_provenance is not None:
         raise PermissionError("artifact-integrity attestation must not claim runner reproduction")
@@ -424,12 +437,15 @@ def attest_merlin_rsi_reproduction(
     github_run_id: int,
     trusted_workflow_sha256: str,
     trusted_run_branch: str,
+    trusted_orchestrator_run_id: int,
+    trusted_orchestrator_workflow_sha256: str,
+    trusted_orchestrator_workflow_path: str = ".github/workflows/merlin-cace-protected-orchestrator.yml",
     private_key_path: str | Path | None = None,
     private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
     github_fetch=None,
 ) -> dict[str, Any]:
-    """Sign independent-reproduction only after validating the exact successful CACE OCI run."""
+    """Sign only after validating separate fixed-profile OCI and protected orchestrator runs."""
     AttestationStatement, _, public_key_id, sign_attestation, bundle_from_payload, verify_bundle = _load_cace_core(cace_app_root)
     if not isinstance(github_run_id, int) or isinstance(github_run_id, bool) or github_run_id <= 0:
         raise ValueError("github_run_id must be a positive integer")
@@ -476,10 +492,10 @@ def attest_merlin_rsi_reproduction(
         run.get("repository", {}).get("full_name") != "morganaspim/Cace-app"
         or run.get("status") != "completed"
         or run.get("conclusion") != "success"
-        or run.get("event") != "workflow_dispatch"
-        or run.get("head_branch") != trusted_run_branch
+        or run.get("event") != "push"
+        or not str(run.get("head_branch", "")).startswith("merlin/oci-jobs/")
     ):
-        raise PermissionError("CACE reproduction signing requires a successful manually dispatched run on the configured protected branch")
+        raise PermissionError("CACE execution evidence requires a successful fixed-profile OCI push run on an approved request branch")
     run_sha = run.get("head_sha")
     if not isinstance(run_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", run_sha):
         raise PermissionError("CACE OCI run head commit is invalid")
@@ -527,6 +543,46 @@ def attest_merlin_rsi_reproduction(
     source_pin = re.search(r'request\["source_commit"\]\s*!=\s*["\']([0-9a-f]{40})["\']', profile_text)
     if not source_pin or source_pin.group(1) != expected_bindings.get("source_commit"):
         raise PermissionError("CACE OCI Hermes RSI profile source pin does not match the candidate source commit")
+
+    if (
+        not isinstance(trusted_orchestrator_run_id, int)
+        or isinstance(trusted_orchestrator_run_id, bool)
+        or trusted_orchestrator_run_id <= 0
+        or trusted_orchestrator_run_id == github_run_id
+    ):
+        raise ValueError("trusted_orchestrator_run_id must be a distinct positive integer")
+    if (
+        not isinstance(trusted_run_branch, str)
+        or not trusted_run_branch.strip()
+        or trusted_run_branch.startswith("merlin/oci-jobs/")
+        or not isinstance(trusted_orchestrator_workflow_sha256, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", trusted_orchestrator_workflow_sha256)
+        or not isinstance(trusted_orchestrator_workflow_path, str)
+        or not trusted_orchestrator_workflow_path.startswith(".github/workflows/")
+        or not trusted_orchestrator_workflow_path.endswith((".yml", ".yaml"))
+    ):
+        raise PermissionError("CACE signer requires independently pinned protected-orchestrator configuration")
+    orchestrator = fetch(f"{api}/morganaspim/Cace-app/actions/runs/{trusted_orchestrator_run_id}")
+    if (
+        orchestrator.get("repository", {}).get("full_name") != "morganaspim/Cace-app"
+        or orchestrator.get("status") != "completed"
+        or orchestrator.get("conclusion") != "success"
+        or orchestrator.get("event") != "workflow_dispatch"
+        or orchestrator.get("head_branch") != trusted_run_branch
+        or orchestrator.get("display_title") != f"Validate OCI run {github_run_id}"
+        or str(orchestrator.get("path", "")).split("@", 1)[0] != trusted_orchestrator_workflow_path
+    ):
+        raise PermissionError("CACE signing requires a successful manually dispatched protected-orchestrator run")
+    orchestrator_sha = orchestrator.get("head_sha")
+    if not isinstance(orchestrator_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", orchestrator_sha):
+        raise PermissionError("CACE protected-orchestrator commit is invalid")
+    orchestrator_workflow = fetch_file(
+        trusted_orchestrator_workflow_path, "morganaspim/Cace-app", orchestrator_sha
+    )
+    if _sha256(orchestrator_workflow) != trusted_orchestrator_workflow_sha256:
+        raise PermissionError("protected-orchestrator workflow bytes do not match the independently pinned digest")
+    if b"workflow_dispatch:" not in orchestrator_workflow:
+        raise PermissionError("protected-orchestrator workflow must declare workflow_dispatch")
 
     if (
         expected_bindings.get("source_repo") != "Mannyspiro/expert-robot"
@@ -623,6 +679,11 @@ def attest_merlin_rsi_reproduction(
         "source_repo": expected_bindings["source_repo"],
         "source_commit": expected_bindings["source_commit"],
         "benchmark_manifest_sha256": expected_bindings["benchmark_manifest_sha256"],
+        "orchestrator_run_id": trusted_orchestrator_run_id,
+        "orchestrator_workflow_path": trusted_orchestrator_workflow_path,
+        "orchestrator_workflow_commit": orchestrator_sha,
+        "orchestrator_workflow_sha256": trusted_orchestrator_workflow_sha256,
+        "orchestrator_branch": trusted_run_branch,
     }
     signed_bindings = dict(expected_bindings)
     signed_bindings["cace_runner_provenance"] = provenance

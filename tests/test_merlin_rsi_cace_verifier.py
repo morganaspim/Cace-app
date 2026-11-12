@@ -73,6 +73,11 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "source_repo": self.bindings["source_repo"],
             "source_commit": self.bindings["source_commit"],
             "benchmark_manifest_sha256": self.bindings["benchmark_manifest_sha256"],
+            "orchestrator_run_id": 123457,
+            "orchestrator_workflow_path": ".github/workflows/merlin-cace-protected-orchestrator.yml",
+            "orchestrator_workflow_commit": "d" * 40,
+            "orchestrator_workflow_sha256": "a" * 64,
+            "orchestrator_branch": "main",
         }
         statement = AttestationStatement(
             verifier_id="cace",
@@ -368,16 +373,31 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             f'    if request["source_commit"] != "{source_commit}":\\n'
         )
         trusted_workflow_sha256 = hashlib.sha256(workflow_text.encode("utf-8")).hexdigest()
+        orchestrator_run_id = run_id + 1
+        orchestrator_sha = "d" * 40
+        orchestrator_workflow_path = ".github/workflows/merlin-cace-protected-orchestrator.yml"
+        orchestrator_workflow_text = "name: protected CACE orchestrator\\non:\\n  workflow_dispatch:\\n"
+        trusted_orchestrator_workflow_sha256 = hashlib.sha256(
+            orchestrator_workflow_text.encode("utf-8")
+        ).hexdigest()
 
         def encode_doc(value):
             return base64.b64encode(json.dumps(value).encode()).decode()
 
         def fake_fetch(url):
-            if url.endswith(f"/actions/runs/{run_id}"):
+            if url.endswith(f"/actions/runs/{orchestrator_run_id}"):
                 return {
                     "repository": {"full_name": "morganaspim/Cace-app"},
                     "status": "completed", "conclusion": "success", "event": "workflow_dispatch",
-                    "head_branch": "main",
+                    "head_branch": "main", "head_sha": orchestrator_sha,
+                    "display_title": f"Validate OCI run {run_id}",
+                    "path": orchestrator_workflow_path + "@refs/heads/main",
+                }
+            if url.endswith(f"/actions/runs/{run_id}"):
+                return {
+                    "repository": {"full_name": "morganaspim/Cace-app"},
+                    "status": "completed", "conclusion": "success", "event": "push",
+                    "head_branch": "merlin/oci-jobs/reproduction-test",
                     "head_sha": run_sha,
                     "path": ".github/workflows/merlin-oci-job-gateway.yml@refs/heads/main",
                 }
@@ -385,6 +405,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 return {"files": [{"filename": request_path, "status": "added"}]}
             if "/contents/merlin/oci-requests/" in url:
                 return {"encoding": "base64", "content": encode_doc(request_doc)}
+            if "/contents/" + orchestrator_workflow_path in url:
+                return {"encoding": "base64", "content": base64.b64encode(orchestrator_workflow_text.encode()).decode()}
             if "/contents/.github/workflows/" in url:
                 return {"encoding": "base64", "content": base64.b64encode(workflow_text.encode()).decode()}
             for source_path, raw in source_file_contents.items():
@@ -426,13 +448,16 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 github_run_id=run_id,
                 trusted_workflow_sha256=trusted_workflow_sha256,
                 trusted_run_branch="main",
+                trusted_orchestrator_run_id=orchestrator_run_id,
+                trusted_orchestrator_workflow_sha256=trusted_orchestrator_workflow_sha256,
+                trusted_orchestrator_workflow_path=orchestrator_workflow_path,
                 private_key_pem=key_path.read_bytes(),
                 cace_app_root=self.root,
                 github_fetch=fake_fetch,
             )
-            def branch_push_fetch(url):
+            def untrusted_orchestrator_push_fetch(url):
                 response = fake_fetch(url)
-                if url.endswith(f"/actions/runs/{run_id}"):
+                if url.endswith(f"/actions/runs/{orchestrator_run_id}"):
                     response = dict(response, event="push", head_branch="merlin/oci-jobs/reproduction-test")
                 return response
 
@@ -445,9 +470,12 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     github_run_id=run_id,
                     trusted_workflow_sha256=trusted_workflow_sha256,
                     trusted_run_branch="main",
+                    trusted_orchestrator_run_id=orchestrator_run_id,
+                    trusted_orchestrator_workflow_sha256=trusted_orchestrator_workflow_sha256,
+                    trusted_orchestrator_workflow_path=orchestrator_workflow_path,
                     private_key_pem=key_path.read_bytes(),
                     cace_app_root=self.root,
-                    github_fetch=branch_push_fetch,
+                    github_fetch=untrusted_orchestrator_push_fetch,
                 )
             with self.assertRaises(PermissionError):
                 attest_merlin_rsi_reproduction(
@@ -458,12 +486,32 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     github_run_id=run_id,
                     trusted_workflow_sha256="0" * 64,
                     trusted_run_branch="main",
+                    trusted_orchestrator_run_id=orchestrator_run_id,
+                    trusted_orchestrator_workflow_sha256=trusted_orchestrator_workflow_sha256,
+                    trusted_orchestrator_workflow_path=orchestrator_workflow_path,
+                    private_key_pem=key_path.read_bytes(),
+                    cace_app_root=self.root,
+                    github_fetch=fake_fetch,
+                )
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_reproduction(
+                    bundle_payload=bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=bindings,
+                    artifact_bytes_b64=artifact_bytes_b64,
+                    github_run_id=run_id,
+                    trusted_workflow_sha256=trusted_workflow_sha256,
+                    trusted_run_branch="main",
+                    trusted_orchestrator_run_id=orchestrator_run_id,
+                    trusted_orchestrator_workflow_sha256="0" * 64,
+                    trusted_orchestrator_workflow_path=orchestrator_workflow_path,
                     private_key_pem=key_path.read_bytes(),
                     cace_app_root=self.root,
                     github_fetch=fake_fetch,
                 )
         self.assertEqual(signed["purpose"], "independent-reproduction")
         self.assertEqual(signed["runner_provenance"]["run_id"], run_id)
+        self.assertEqual(signed["runner_provenance"]["orchestrator_run_id"], orchestrator_run_id)
         trust = json.dumps({
             "schema": "merlin-cace-trust-store-v1",
             "keys": [{
@@ -502,12 +550,14 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     github_run_id=98765,
                     trusted_workflow_sha256="0" * 64,
                     trusted_run_branch="main",
+                    trusted_orchestrator_run_id=98766,
+                    trusted_orchestrator_workflow_sha256="0" * 64,
                     private_key_path=key_path,
                     cace_app_root=self.root,
                     github_fetch=lambda url: {
                         "repository": {"full_name": "morganaspim/Cace-app"},
                         "status": "completed", "conclusion": "failure",
-                        "event": "workflow_dispatch", "head_branch": "main",
+                        "event": "push", "head_branch": "merlin/oci-jobs/reproduction-test",
                     },
                 )
 

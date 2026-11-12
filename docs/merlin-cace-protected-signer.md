@@ -43,3 +43,51 @@ No value should be accepted from the request payload to override these settings.
 - No live CACE reproduction attestation has been issued.
 
 Until all blockers are resolved, this integration is code-only and must not be represented as production CACE verification.
+
+
+## Two-run trust boundary (2026-11-12)
+
+The signer treats the fixed OCI execution and the protected orchestrator as
+separate run identities:
+
+- `github_run_id` identifies the OCI execution run. It must be a successful
+  `push` run on a `merlin/oci-jobs/*` request branch and must pass the pinned
+  gateway, exact request, source blob, runner job, and artifact digest checks.
+- `trusted_orchestrator_run_id` identifies a distinct successful
+  `workflow_dispatch` run on the independently configured protected branch.
+  Its workflow path and SHA-256 are separately pinned, and its workflow must
+  declare `workflow_dispatch`.
+- The OCI run cannot satisfy the orchestrator check, and the orchestrator
+  cannot substitute for OCI execution evidence. A push event can provide
+  execution evidence but can never provide signing authority.
+- The signing key remains outside the OCI runner. The protected workflow must
+  use a protected environment or external signer; do not expose the key to
+  branch-controlled code.
+
+This contract is a fail-closed integration seam. It does not create the
+protected orchestrator, configure branch protection/environment reviewers,
+provide a production key, or prove that a real pair of runs has completed.
+The pinned workflow digest and protected branch are independent operator
+configuration and must be reviewed before production use.
+
+
+### Protected workflow validator
+
+`.github/workflows/merlin-cace-protected-orchestrator.yml` now provides a
+read-only, manually dispatched validator on `main`. It accepts an OCI run
+ID, checks the exact gateway workflow, successful `cace-oci-a1` job and
+required steps, and a retained SHA-256-bound receipt artifact. It has only
+`actions: read` and `contents: read` permissions, checks out no repository
+code, and receives no signing secret.
+
+The validator is deliberately validation-only. It does not dispatch arbitrary
+commands, access the signing key, or create an attestation. After the PR is
+reviewed and merged, configure `main` branch protection and independently
+pin the exact orchestrator workflow SHA-256 in the signer configuration. A
+successful workflow run is necessary but not sufficient: the signer still
+revalidates the OCI request, source blobs, benchmark, job and artifact itself.
+
+The protected validator's run title includes the exact OCI run ID
+(`Validate OCI run <id>`). The signer checks this GitHub run display title
+against the OCI execution run ID, preventing a successful protected
+orchestrator run for one execution from being reused to authorize another.

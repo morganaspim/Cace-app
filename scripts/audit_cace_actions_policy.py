@@ -32,6 +32,7 @@ EXPECTED_ACTIVE = {
     "cace-exact-pin-lean-preflight.yml",
     "cace-batch-exact-pin-lean-preflight.yml",
     "cace-lean-source-sanity.yml",
+    "merlin-cace-protected-orchestrator.yml",
 }
 EXPECTED_AUTOMATIC = {
     "cace-collaboration-validation.yml": {"pull_request"},
@@ -41,6 +42,8 @@ EXPECTED_AUTOMATIC = {
     "cace-exact-pin-lean-preflight.yml": set(),
     "cace-batch-exact-pin-lean-preflight.yml": set(),
     "cace-lean-source-sanity.yml": {"pull_request"},
+    # Read-only protected-branch OCI receipt validator; manual dispatch only.
+    "merlin-cace-protected-orchestrator.yml": set(),
 }
 LOCKED_PUSH_SCOPE = {
     "cace-formal-v336-theorem-metadata.yml": {
