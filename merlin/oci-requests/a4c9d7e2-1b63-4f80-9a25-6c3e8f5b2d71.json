@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a4c9d7e2-1b63-4f80-9a25-6c3e8f5b2d71",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Validate current 19-test RSI suite after fixing append metadata and separating artifact-integrity from independent-reproduction promotion.",
+  "created_at": "2026-11-12T00:30:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "c38bd789218b58304268574289a4684b3bf4db19",
+  "module_blob_sha": "d498324a83834b24045808836122801349fcff7d",
+  "test_blob_sha": "f695b800614ff3f2b56220b0a9cb50baa89fa008",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
