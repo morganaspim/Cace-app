@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "c5d8a2f1-7b34-4e90-8c16-2a5f9d3e7b40",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Validate latest 20-test RSI source snapshot with exact Git blob pins and the frozen 25-case multidomain benchmark.",
+  "created_at": "2026-11-12T00:37:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "5f03dbbea07c86b4b60e5832fa102d066d943d49",
+  "module_blob_sha": "9e3b134466b8c15cec35bf8f6d3d137a9bae5327",
+  "test_blob_sha": "2fe094a955e842ad569d6909fd791df896ca8e76",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
