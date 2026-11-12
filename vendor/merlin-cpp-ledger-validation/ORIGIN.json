@@ -1,0 +1,67 @@
+{
+  "schema": "merlin-cpp-ledger-vendor-origin-v1",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "a538bf074874403fe8a3a8ece53311763d585a0c",
+  "files": {
+    "cpp/src/growth/generation_lineage.cpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/src/growth/generation_lineage.cpp",
+      "git_blob_sha": "046f9f6884cb1e1bc58397249b97ef0480a3e82d"
+    },
+    "cpp/src/research/episode_ledger.cpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/src/research/episode_ledger.cpp",
+      "git_blob_sha": "0f21fcff46b9167f6c42c07826d42e3a68803959"
+    },
+    "cpp/src/research/state_machine.cpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/src/research/state_machine.cpp",
+      "git_blob_sha": "a2c5dc1c04383662b3751167207482e08476be99"
+    },
+    "cpp/src/sha256.cpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/src/sha256.cpp",
+      "git_blob_sha": "74d91a042f0a5132e34960d03035dca6b485633a"
+    },
+    "cpp/include/expert_robot/growth/generation_lineage.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/growth/generation_lineage.hpp",
+      "git_blob_sha": "6b10c164d33003d4a86a7bd2125817db2802f654"
+    },
+    "cpp/include/expert_robot/research/episode_ledger.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/research/episode_ledger.hpp",
+      "git_blob_sha": "502efa29d9dc203e6c6e088ec78fa8ba50f67705"
+    },
+    "cpp/include/expert_robot/research/state_machine.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/research/state_machine.hpp",
+      "git_blob_sha": "c94c11226d75e7f486fe0fe11f54768c1b80b364"
+    },
+    "cpp/include/expert_robot/sha256.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/sha256.hpp",
+      "git_blob_sha": "4fc097b9dce435df229d42980ca4568e218d5bc8"
+    },
+    "cpp/include/expert_robot/cognition/personality.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/personality.hpp",
+      "git_blob_sha": "29a96a8318795afd0fb91f8088ace85307fa9ebd"
+    },
+    "cpp/include/expert_robot/cognition/interoception.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/interoception.hpp",
+      "git_blob_sha": "e181c2483966c42d2d6b98e1fa19feb0b82d555d"
+    },
+    "cpp/include/expert_robot/cognition/neuromodulation.hpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/neuromodulation.hpp",
+      "git_blob_sha": "a6c4722dba650631547e7b06f8bccb7b58e4f1d1"
+    },
+    "tests/generation_lineage_smoke.cpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/tests/generation_lineage_smoke.cpp",
+      "git_blob_sha": "edbd0cd44ae64e9445357521f2c4b343d1716a61"
+    },
+    "tests/research_episode_ledger_smoke.cpp": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/tests/research_episode_ledger_smoke.cpp",
+      "git_blob_sha": "1593d641f3a0f59a18c85b470c797cc0a8fe8057"
+    },
+    "sqlite3-test-shim": {
+      "vendor_path": "vendor/merlin-cpp-ledger-validation/compat/sqlite3.h",
+      "git_blob_sha": "afbeffd590e693c0bd7a37ebe0cfb4a981da47e9"
+    },
+    "python/merlin/rsi_pipeline.py": {
+      "vendor_path": "merlin/rsi-validation/python/merlin/rsi_pipeline.py",
+      "git_blob_sha": "56d72fe862acebd1ae6102ea21995fd4cb44a04e"
+    }
+  }
+}
