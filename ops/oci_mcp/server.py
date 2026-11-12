@@ -16,6 +16,7 @@ from .policy import (
     select_managed_rule_ids,
     validate_log_lines,
     validate_source_cidr,
+    require_merlin_rsi_signing,
 )
 from .runner_inventory import collect_runner_status
 
@@ -163,11 +164,7 @@ def get_github_runner_status() -> dict[str, Any]:
 @mcp.tool()
 def initialize_merlin_rsi_attestor() -> dict[str, Any]:
     """Create the CACE Merlin RSI Ed25519 signing identity once, without overwriting it."""
-    if not ALLOW_MERLIN_RSI_SIGNING:
-        raise PermissionError(
-            "Merlin RSI signing is disabled; set CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true "
-            "only after reviewing persistent key custody"
-        )
+    require_merlin_rsi_signing(ALLOW_MERLIN_RSI_SIGNING)
     from .merlin_rsi_verifier import initialize_merlin_rsi_attestor as initialize
 
     return initialize(
@@ -191,6 +188,7 @@ def attest_merlin_rsi_reproduction(
     EvidenceBundle bytes. This attestation still has proof_effect=none and
     cannot promote a candidate.
     """
+    require_merlin_rsi_signing(ALLOW_MERLIN_RSI_SIGNING)
     from .merlin_rsi_verifier import attest_merlin_rsi_reproduction as attest
 
     key_path = os.getenv(
@@ -220,11 +218,7 @@ def attest_merlin_rsi_bundle(
     This is provenance/integrity only (proof_effect=none). It does not run
     candidate code, prove a theorem, or authorize promotion.
     """
-    if not ALLOW_MERLIN_RSI_SIGNING:
-        raise PermissionError(
-            "Merlin RSI signing is disabled; set CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true "
-            "only after reviewing persistent key custody"
-        )
+    require_merlin_rsi_signing(ALLOW_MERLIN_RSI_SIGNING)
     from .merlin_rsi_verifier import attest_merlin_rsi_bundle as attest
 
     return attest(
