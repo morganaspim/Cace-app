@@ -65,3 +65,11 @@ def select_managed_rule_ids(rules: Iterable[object]) -> tuple[str, ...]:
         if is_managed_rule_description(description) and isinstance(rule_id, str) and rule_id:
             selected.append(rule_id)
     return tuple(sorted(set(selected)))
+
+
+def require_merlin_rsi_signing(enabled: bool) -> None:
+    """Fail closed unless the operator explicitly enabled persistent RSI signing."""
+    if enabled is not True:
+        raise PermissionError(
+            "Merlin RSI signing is disabled; review persistent key custody before enabling it"
+        )
