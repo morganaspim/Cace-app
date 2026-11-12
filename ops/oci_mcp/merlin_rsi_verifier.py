@@ -9,7 +9,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -135,8 +137,155 @@ def verify_merlin_rsi_attestation(
         "bundle_sha256": bundle_sha256,
         "attestation_sha256": attestation_sha256,
         "statement_sha256": statement.statement_sha256,
+        "purpose": statement.purpose,
         "artifact_count": len(artifact_bytes),
         "artifact_bytes_verified": total_bytes,
+        "proof_effect": "none",
+        "authority": "verification-only",
+    }
+
+
+def _load_cace_core(cace_app_root: str | Path):
+    root = Path(cace_app_root)
+    if not (root / "cace_studio" / "core").is_dir():
+        raise RuntimeError("CACE core runtime is unavailable at the configured application root")
+    import sys
+    root_text = str(root.resolve())
+    if root_text not in sys.path:
+        sys.path.insert(0, root_text)
+    try:
+        from cace_studio.core.attestation import (
+            AttestationStatement,
+            generate_ed25519_keypair_pem,
+            public_key_id,
+            sign_attestation,
+        )
+        from cace_studio.core.evidence_ledger import bundle_from_payload, verify_bundle
+    except ImportError as exc:
+        raise RuntimeError("CACE core attestation dependencies are unavailable") from exc
+    return AttestationStatement, generate_ed25519_keypair_pem, public_key_id, sign_attestation, bundle_from_payload, verify_bundle
+
+
+def initialize_merlin_rsi_attestor(
+    *, private_key_path: str | Path,
+    cace_app_root: str | Path = "/opt/cace-web/current",
+) -> dict[str, Any]:
+    """Create a CACE signing identity once; never overwrite an existing private key."""
+    _, generate_keypair, public_key_id, _, _, _ = _load_cace_core(cace_app_root)
+    path = Path(private_key_path)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    try:
+        os.chmod(path.parent, 0o700)
+    except OSError:
+        pass
+
+    created = False
+    if not path.exists():
+        private_pem, public_pem = generate_keypair()
+        try:
+            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            private_pem = path.read_bytes()
+        else:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(private_pem)
+                stream.flush()
+                os.fsync(stream.fileno())
+            created = True
+    else:
+        private_pem = path.read_bytes()
+
+    from cryptography.hazmat.primitives import serialization
+    private_key = serialization.load_pem_private_key(private_pem, password=None)
+    public_pem = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+    return {
+        "schema": "cace-merlin-rsi-attestor-identity-v1",
+        "created": created,
+        "verifier_id": "cace",
+        "verifier_key_id": public_key_id(public_pem),
+        "public_key_pem": public_pem.decode("ascii"),
+        "private_key_path": str(path),
+        "private_key_exposed": False,
+        "proof_effect": "none",
+    }
+
+
+def attest_merlin_rsi_bundle(
+    *,
+    bundle_payload: Mapping[str, Any],
+    expected_claim_id: str,
+    expected_bindings: Mapping[str, Any],
+    artifact_bytes_b64: Mapping[str, str],
+    private_key_path: str | Path,
+    cace_app_root: str | Path = "/opt/cace-web/current",
+) -> dict[str, Any]:
+    """Verify exact EvidenceBundle bytes, then sign an artifact-integrity attestation."""
+    AttestationStatement, _, public_key_id, sign_attestation, bundle_from_payload, verify_bundle = _load_cace_core(cace_app_root)
+    if not isinstance(expected_claim_id, str) or not expected_claim_id.strip():
+        raise ValueError("expected_claim_id must be non-empty")
+    if not isinstance(expected_bindings, Mapping):
+        raise ValueError("expected_bindings must be an object")
+    if not isinstance(artifact_bytes_b64, Mapping):
+        raise ValueError("artifact_bytes_b64 must map artifact IDs to base64 bytes")
+
+    bundle = bundle_from_payload(bundle_payload)
+    if dict(bundle.bindings) != dict(expected_bindings):
+        raise PermissionError("CACE EvidenceBundle bindings do not match the expected RSI evidence")
+    if bundle.bindings.get("candidate_id") != expected_claim_id:
+        raise PermissionError("CACE EvidenceBundle candidate ID mismatch")
+    if set(artifact_bytes_b64) != {item.artifact_id for item in bundle.artifacts}:
+        raise PermissionError("artifact byte IDs do not exactly match the CACE EvidenceBundle")
+
+    artifact_bytes: dict[str, bytes] = {}
+    total_bytes = 0
+    for artifact_id, encoded in artifact_bytes_b64.items():
+        if not isinstance(encoded, str) or len(encoded) > 14_000_000:
+            raise ValueError("each base64 artifact must be a bounded string")
+        try:
+            raw = base64.b64decode(encoded.encode("ascii"), validate=True)
+        except Exception as exc:
+            raise ValueError("artifact bytes must use canonical base64") from exc
+        total_bytes += len(raw)
+        if total_bytes > 10 * 1024 * 1024:
+            raise ValueError("CACE RSI attestation payload exceeds the 10 MiB limit")
+        artifact_bytes[artifact_id] = raw
+    bundle_sha256 = verify_bundle(bundle, artifact_bytes=artifact_bytes)
+
+    path = Path(private_key_path)
+    if not path.is_file():
+        raise PermissionError("CACE RSI attestor key has not been initialized")
+    private_pem = path.read_bytes()
+    from cryptography.hazmat.primitives import serialization
+    private_key = serialization.load_pem_private_key(private_pem, password=None)
+    public_pem = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    statement = AttestationStatement(
+        verifier_id="cace",
+        verifier_key_id=public_key_id(public_pem),
+        claim_id=expected_claim_id,
+        bundle_sha256=bundle_sha256,
+        created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        purpose="artifact-integrity",
+        bindings=dict(expected_bindings),
+    )
+    signed = sign_attestation(statement, private_pem)
+    return {
+        "schema": "cace-merlin-rsi-attestation-result-v1",
+        "attestation": signed.payload(),
+        "verified_bundle_sha256": bundle_sha256,
+        "artifact_count": len(artifact_bytes),
+        "artifact_bytes_verified": total_bytes,
+        "verifier_key_id": statement.verifier_key_id,
+        "purpose": "artifact-integrity",
         "proof_effect": "none",
         "authority": "verification-only",
     }
