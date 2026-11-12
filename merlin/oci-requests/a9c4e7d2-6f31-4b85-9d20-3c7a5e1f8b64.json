@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a9c4e7d2-6f31-4b85-9d20-3c7a5e1f8b64",
+  "operation": "rsi_validation",
+  "reason": "Run final separated CACE artifact-integrity and independent-reproduction promotion tests on OCI",
+  "created_at": "2026-11-12T00:34:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "6e560dfe02d80ada44f1adcdc7d60bb303c582ff"
+}
