@@ -1,8 +1,8 @@
 {
   "schema": "merlin-cpp-runner-fixture-v1",
   "source_repository": "Mannyspiro/expert-robot",
-  "source_branch": "feat/merlin-continuum-simplex-core-20261112",
-  "source_commit": "9b41d4a2adda1d3ef5432a030823da4959595d2a",
+  "source_branch": "feat/merlin-continuum-ir-stack-20261112",
+  "source_commit": "ad25cb96605d055227bb37400cf4d20a571788eb",
   "source_files": [
     {
       "source_path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
