@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a7d3e9f1-5c42-4b86-9d20-6e3a8f1c7b54",
+  "operation": "rsi_validation",
+  "reason": "Validate CACE runner provenance return path and independent reproduction ledger promotion",
+  "created_at": "2026-11-12T00:45:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "1822a54226d9d1045769b696e264ff8f3edd7de6"
+}
