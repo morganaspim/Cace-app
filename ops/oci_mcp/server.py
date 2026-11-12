@@ -246,7 +246,7 @@ def get_control_capabilities() -> dict[str, Any]:
         "instance_termination_exposed": False,
         "merlin_rsi_signing_enabled": ALLOW_MERLIN_RSI_SIGNING,
         "private_signing_key_read_enabled": ALLOW_MERLIN_RSI_SIGNING,
-        "merlin_rsi_attestation": "artifact-integrity only; no proof or promotion authority",
+        "merlin_rsi_attestation": "independent-reproduction verification; separate opt-in artifact-integrity attestor; no proof or promotion authority",
         "mcp_listen": f"{MCP_HOST}:{MCP_PORT}",
     }
 
