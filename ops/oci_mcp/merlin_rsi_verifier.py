@@ -423,6 +423,7 @@ def attest_merlin_rsi_reproduction(
     artifact_bytes_b64: Mapping[str, str],
     github_run_id: int,
     trusted_workflow_sha256: str,
+    trusted_run_branch: str,
     private_key_path: str | Path | None = None,
     private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
@@ -466,13 +467,19 @@ def attest_merlin_rsi_reproduction(
     api = "https://api.github.com/repos"
     run = fetch(f"{api}/morganaspim/Cace-app/actions/runs/{github_run_id}")
     if (
+        not isinstance(trusted_run_branch, str)
+        or not trusted_run_branch.strip()
+        or trusted_run_branch.startswith("merlin/oci-jobs/")
+    ):
+        raise PermissionError("CACE signer requires an independently configured protected run branch")
+    if (
         run.get("repository", {}).get("full_name") != "morganaspim/Cace-app"
         or run.get("status") != "completed"
         or run.get("conclusion") != "success"
-        or run.get("event") != "push"
-        or not str(run.get("head_branch", "")).startswith("merlin/oci-jobs/")
+        or run.get("event") != "workflow_dispatch"
+        or run.get("head_branch") != trusted_run_branch
     ):
-        raise PermissionError("CACE OCI workflow run is not a successful approved RSI execution")
+        raise PermissionError("CACE reproduction signing requires a successful manually dispatched run on the configured protected branch")
     run_sha = run.get("head_sha")
     if not isinstance(run_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", run_sha):
         raise PermissionError("CACE OCI run head commit is invalid")
