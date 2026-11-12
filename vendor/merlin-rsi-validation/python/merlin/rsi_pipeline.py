@@ -122,12 +122,12 @@ _CACE_BUNDLE_DOMAIN = b"CACE:EVIDENCE:BUNDLE:v1\0"
 _CACE_ARTIFACT_LEAF_DOMAIN = b"CACE:EVIDENCE:ARTIFACT-LEAF:v1\0"
 
 
-def cace_rsi_bundle_sha256(
+def cace_rsi_bundle_payload(
     *, candidate_id: str, candidate_digest: str,
     benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
     source_repo: str, source_commit: str,
-) -> str:
-    """Reproduce CACE EvidenceBundle v1 identity for a one-artifact RSI manifest."""
+) -> tuple[dict[str, Any], bytes, dict[str, Any]]:
+    """Build the exact CACE EvidenceBundle v1 payload and its sole artifact bytes."""
     manifest = {
         "schema": "merlin-rsi-evidence-manifest-v1",
         "candidate_id": candidate_id, "candidate_digest": candidate_digest,
@@ -158,6 +158,21 @@ def cace_rsi_bundle_sha256(
         "merkle_root_sha256": leaf, "bindings": bindings,
         "notes": ["Merlin RSI exact-artifact independent verification"],
     }
+    return bundle, manifest_bytes, bindings
+
+
+def cace_rsi_bundle_sha256(
+    *, candidate_id: str, candidate_digest: str,
+    benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
+    source_repo: str, source_commit: str,
+) -> str:
+    """Reproduce CACE EvidenceBundle v1 identity for a one-artifact RSI manifest."""
+    bundle, _, _ = cace_rsi_bundle_payload(
+        candidate_id=candidate_id, candidate_digest=candidate_digest,
+        benchmark_manifest_sha256=benchmark_manifest_sha256,
+        evaluator_receipt_sha256=evaluator_receipt_sha256,
+        source_repo=source_repo, source_commit=source_commit,
+    )
     return sha256_hex(_CACE_BUNDLE_DOMAIN + canonical_json(bundle))
 
 
@@ -309,7 +324,134 @@ def verify_cace_attestation(
         "attestation_sha256": sha256_hex(canonical_json(dict(attestation))),
         "statement_sha256": statement_digest, "verifier_key_id": actual_key_id,
         "verifier_id": expected_verifier_id, "bundle_sha256": expected_bundle_sha256,
+        "purpose": statement.get("purpose"), "authority": "verification-only",
     }
+
+
+class CaceMcpAttestor:
+    """Loopback-only MCP client for the CACE OCI attestation service."""
+
+    def __init__(self, endpoint: str = "http://127.0.0.1:8765/mcp", timeout: float = 12.0):
+        from urllib.parse import urlsplit
+        parsed = urlsplit(endpoint)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}
+            or parsed.path != "/mcp" or parsed.query or parsed.fragment
+            or parsed.username or parsed.password):
+            raise ValueError("CACE MCP endpoint must be loopback HTTP at /mcp")
+        self.endpoint = endpoint
+        self.timeout = max(1.0, min(float(timeout), 30.0))
+        self.protocol_version = "2025-03-26"
+        self.session_id: str | None = None
+        self._request_id = 0
+
+    def _rpc(self, method: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        import urllib.request
+        self._request_id += 1
+        request_id = self._request_id if method != "notifications/initialized" else None
+        payload: dict[str, Any] = {"jsonrpc": "2.0", "method": method}
+        if request_id is not None:
+            payload["id"] = request_id
+        if params is not None:
+            payload["params"] = dict(params)
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "MCP-Protocol-Version": self.protocol_version,
+        }
+        if self.session_id:
+            headers["Mcp-Session-Id"] = self.session_id
+        request = urllib.request.Request(
+            self.endpoint, data=json.dumps(payload).encode("utf-8"),
+            headers=headers, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = response.read(1_000_001)
+                if len(body) > 1_000_000:
+                    raise RuntimeError("CACE MCP response exceeded the 1 MB limit")
+                content_type = response.headers.get("Content-Type", "")
+                self.session_id = response.headers.get("Mcp-Session-Id", self.session_id)
+        except Exception as exc:
+            raise RuntimeError(f"CACE MCP request failed: {type(exc).__name__}") from None
+        if not body:
+            return {}
+        text_body = body.decode("utf-8", errors="strict")
+        if "text/event-stream" in content_type:
+            messages: list[dict[str, Any]] = []
+            current: list[str] = []
+            for line in text_body.splitlines():
+                if line.startswith("data:"):
+                    current.append(line[5:].lstrip())
+                elif not line and current:
+                    joined = "\n".join(current)
+                    current = []
+                    if joined and joined != "[DONE]":
+                        item = json.loads(joined)
+                        if isinstance(item, dict):
+                            messages.append(item)
+            if current:
+                joined = "\n".join(current)
+                if joined and joined != "[DONE]":
+                    item = json.loads(joined)
+                    if isinstance(item, dict):
+                        messages.append(item)
+            message = next((item for item in messages if item.get("id") == request_id), None)
+            if message is None and messages:
+                message = messages[-1]
+            if message is None:
+                raise RuntimeError("CACE MCP SSE response contained no JSON-RPC result")
+        else:
+            message = json.loads(text_body)
+        if not isinstance(message, dict) or message.get("error"):
+            raise RuntimeError("CACE MCP returned a JSON-RPC error")
+        result = message.get("result")
+        return result if isinstance(result, dict) else {}
+
+    def attest(
+        self, *, bundle_payload: Mapping[str, Any], expected_claim_id: str,
+        expected_bindings: Mapping[str, Any], artifact_bytes_b64: Mapping[str, str],
+    ) -> dict[str, Any]:
+        initialized = self._rpc("initialize", {
+            "protocolVersion": self.protocol_version,
+            "capabilities": {},
+            "clientInfo": {"name": "merlin-rsi-pipeline", "version": "1.0.0"},
+        })
+        negotiated = initialized.get("protocolVersion")
+        if not isinstance(negotiated, str) or not negotiated:
+            raise RuntimeError("CACE MCP initialize response omitted protocolVersion")
+        self.protocol_version = negotiated
+        self._rpc("notifications/initialized")
+        result = self._rpc("tools/call", {
+            "name": "attest_merlin_rsi_bundle",
+            "arguments": {
+                "bundle_payload": dict(bundle_payload),
+                "expected_claim_id": expected_claim_id,
+                "expected_bindings": dict(expected_bindings),
+                "artifact_bytes_b64": dict(artifact_bytes_b64),
+            },
+        })
+        if result.get("isError") is True:
+            raise PermissionError("CACE MCP refused the RSI evidence attestation")
+        structured = result.get("structuredContent")
+        if not isinstance(structured, Mapping):
+            for item in result.get("content", []):
+                if isinstance(item, Mapping) and item.get("type") == "text":
+                    try:
+                        parsed = json.loads(str(item.get("text", "")))
+                    except ValueError:
+                        continue
+                    if isinstance(parsed, Mapping):
+                        structured = parsed
+                        break
+        if not isinstance(structured, Mapping):
+            raise RuntimeError("CACE MCP attestor returned no structured attestation")
+        response = dict(structured)
+        if (response.get("purpose") != "artifact-integrity"
+            or response.get("proof_effect") != "none"
+            or response.get("authority") != "verification-only"
+            or not isinstance(response.get("attestation"), Mapping)):
+            raise PermissionError("CACE MCP attestation response violates the verification-only contract")
+        return response
 
 
 class AppendOnlyLedger:
@@ -569,8 +711,47 @@ class AppendOnlyLedger:
             "statement_sha256": verified["statement_sha256"],
             "verifier_id": verified["verifier_id"],
             "verifier_key_id": verified["verifier_key_id"],
+            "purpose": verified["purpose"],
             "authority": "verification-only",
         })
+
+    def record_cace_verification_from_mcp(
+        self, *, candidate_id: str, artifact_sha256: str, suite_sha256: str,
+        episode_id: str | None = None, attestor: Any | None = None,
+    ) -> dict[str, Any]:
+        """Obtain a CACE-signed exact-byte attestation through the loopback MCP service."""
+        episode = episode_id or candidate_id
+        candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
+            episode, candidate_id, artifact_sha256, suite_sha256
+        )
+        bundle_payload, manifest_bytes, payload_bindings = cace_rsi_bundle_payload(
+            candidate_id=candidate_id, candidate_digest=artifact_sha256,
+            benchmark_manifest_sha256=suite_sha256,
+            evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
+            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+        )
+        actual_bundle_sha = sha256_hex(
+            _CACE_BUNDLE_DOMAIN + canonical_json(bundle_payload)
+        )
+        if actual_bundle_sha != expected_bundle_sha or payload_bindings != bindings:
+            raise RuntimeError("CACE bundle payload diverged from the canonical RSI evidence identity")
+        transport = attestor or CaceMcpAttestor()
+        response = transport.attest(
+            bundle_payload=bundle_payload,
+            expected_claim_id=candidate_id,
+            expected_bindings=bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii")
+            },
+        )
+        attestation = response.get("attestation") if isinstance(response, Mapping) else None
+        if not isinstance(attestation, Mapping):
+            raise PermissionError("CACE MCP response omitted its signed attestation")
+        return self.record_cace_verification(
+            candidate_id=candidate_id, attestation=attestation,
+            artifact_sha256=artifact_sha256, suite_sha256=suite_sha256,
+            episode_id=episode,
+        )
 
     def record_promotion(
         self, *, candidate_id: str, artifact_sha256: str,
@@ -605,6 +786,7 @@ class AppendOnlyLedger:
             "candidate_id": candidate_id, "artifact_sha256": artifact_sha256,
             "suite_sha256": suite_sha256, "bundle_sha256": bundle_sha,
             "cace_attestation_sha256": verified["attestation_sha256"],
+            "cace_attestation_purpose": verified["purpose"],
             "approval_receipt_digest": approval_receipt.receipt_digest,
             "promotion_authority": "explicit-signed-approval",
         })
