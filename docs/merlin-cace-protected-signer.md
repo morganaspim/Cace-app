@@ -69,3 +69,20 @@ protected orchestrator, configure branch protection/environment reviewers,
 provide a production key, or prove that a real pair of runs has completed.
 The pinned workflow digest and protected branch are independent operator
 configuration and must be reviewed before production use.
+
+
+### Protected workflow validator
+
+`.github/workflows/merlin-cace-protected-orchestrator.yml` now provides a
+read-only, manually dispatched validator on `main`. It accepts an OCI run
+ID, checks the exact gateway workflow, successful `cace-oci-a1` job and
+required steps, and a retained SHA-256-bound receipt artifact. It has only
+`actions: read` and `contents: read` permissions, checks out no repository
+code, and receives no signing secret.
+
+The validator is deliberately validation-only. It does not dispatch arbitrary
+commands, access the signing key, or create an attestation. After the PR is
+reviewed and merged, configure `main` branch protection and independently
+pin the exact orchestrator workflow SHA-256 in the signer configuration. A
+successful workflow run is necessary but not sufficient: the signer still
+revalidates the OCI request, source blobs, benchmark, job and artifact itself.
