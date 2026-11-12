@@ -375,7 +375,7 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "c38bd789218b58304268574289a4684b3bf4db19":
+              if request["source_commit"] != "cd2c9e240f36203d58dda3e372ac7533e6be956e":
                   raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
@@ -466,7 +466,7 @@ jobs:
           if request["operation"] == "merlin_rsi_metadata_live_probe":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: metadata source repository is not allowlisted")
-              if request["source_commit"] != "c38bd789218b58304268574289a4684b3bf4db19":
+              if request["source_commit"] != "cd2c9e240f36203d58dda3e372ac7533e6be956e":
                   raise SystemExit("request rejected: metadata source commit is not the pinned snapshot")
               if request["module_blob_sha"] != "34557113cf335694a77222a74d57ef5cdc6c2e6e":
                   raise SystemExit("request rejected: metadata module blob is not pinned")
@@ -537,7 +537,7 @@ jobs:
           if request["operation"] == "merlin_cpp_ledger_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: C++ source repository is not allowlisted")
-              if request["source_commit"] != "c38bd789218b58304268574289a4684b3bf4db19":
+              if request["source_commit"] != "cd2c9e240f36203d58dda3e372ac7533e6be956e":
                   raise SystemExit("request rejected: C++ source commit is not the pinned source snapshot")
               cpp_blob_names = {
                   "generation_lineage_cpp", "episode_ledger_cpp", "state_machine_cpp",
