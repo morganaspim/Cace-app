@@ -375,7 +375,7 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+              if request["source_commit"] != "f8faf13b53239733b83f8ee4fafb6f0b07949403":
                   raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):

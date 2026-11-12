@@ -519,6 +519,65 @@ class RSIPipelineTests(unittest.TestCase):
         self.assertEqual(len(manifest["cases"]), 25)
         self.assertEqual(len({case["id"] for case in manifest["cases"]}), 25)
 
+    def test_full_heldout_case_results_are_bound_into_append_only_evaluation(self):
+        manifest_path = (
+            Path(__file__).resolve().parents[1]
+            / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+        )
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+        case_results = [{
+            "case_id": case["id"],
+            "domain": case["domain"],
+            "score": 0.8,
+            "passed": True,
+            "evaluator_id": "blind-domain-evaluator",
+            "evaluator_version": "1.0.0",
+            "evidence_sha256": rsi.sha256_hex(rsi.canonical_json({
+                "case_id": case["id"], "score": 0.8, "candidate": "candidate-heldout-25"
+            })),
+        } for case in manifest["cases"]]
+        report = rsi.validate_frozen_benchmark_results(manifest_bytes, case_results)
+        self.assertEqual(report["case_count"], 25)
+        self.assertEqual(set(report["metrics"]), {
+            "overall", "mathematics", "lean", "research", "coding", "engineering"
+        })
+        self.assertTrue(report["passed"])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, case_results[:-1])
+        duplicate = list(case_results)
+        duplicate[-1] = dict(duplicate[0])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, duplicate)
+
+        candidate = "candidate-heldout-25"
+        self.ledger.record_candidate(
+            candidate_id=candidate, parent_candidate_id=None,
+            source_receipt=self.source_receipt(candidate),
+            artifact_sha256=ARTIFACT, generator="rsi", mutation={"suite": report["suite_id"]}
+        )
+        metrics_sha = rsi.sha256_hex(rsi.canonical_json(report["metrics"]))
+        evaluator = sign_receipt("merlin-evaluator", {
+            "candidate_id": candidate,
+            "candidate_digest": ARTIFACT,
+            "benchmark_manifest_sha256": report["suite_sha256"],
+            "metrics_sha256": metrics_sha,
+            "status": "pass",
+            "case_results_sha256": report["case_results_sha256"],
+            "case_count": 25,
+        }, "evaluator-key", self.evaluator_private)
+        self.ledger.record_evaluation(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=report["suite_sha256"], metrics=report["metrics"],
+            passed=True, evaluator_receipt=evaluator,
+            benchmark_manifest_bytes=manifest_bytes, case_results=case_results,
+        )
+        event = json.loads(self.ledger.events(candidate)[1]["payload"])
+        self.assertEqual(event["case_count"], 25)
+        self.assertEqual(event["case_results_sha256"], report["case_results_sha256"])
+        self.assertEqual(len(event["case_results"]), 25)
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
+
     def test_optional_adapters_require_paired_multidomain_gain(self):
         self.assertFalse(paired_adapter_gain([0.5] * 5, [0.8] * 5)["eligible"])
         self.assertTrue(paired_adapter_gain([0.5] * 25, [0.6] * 25)["eligible"])
