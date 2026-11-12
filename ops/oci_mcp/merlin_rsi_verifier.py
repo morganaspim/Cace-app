@@ -72,6 +72,31 @@ def verify_merlin_rsi_attestation(
         raise ValueError("expected_claim_id must be non-empty")
     if not isinstance(expected_bindings, Mapping):
         raise ValueError("expected_bindings must be an object")
+    required_bindings = {
+        "candidate_id",
+        "candidate_digest",
+        "benchmark_manifest_sha256",
+        "evaluator_receipt_sha256",
+        "source_repo",
+        "source_commit",
+        "authority",
+    }
+    if set(expected_bindings) != required_bindings:
+        raise ValueError("expected_bindings must match the exact Merlin RSI evidence schema")
+    if expected_bindings.get("candidate_id") != expected_claim_id:
+        raise PermissionError("expected claim ID must match the candidate binding")
+    if expected_bindings.get("authority") != "verification-only":
+        raise PermissionError("CACE RSI verification cannot assert promotion authority")
+    for field in ("candidate_digest", "benchmark_manifest_sha256", "evaluator_receipt_sha256"):
+        value = expected_bindings.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise ValueError(f"{field} must be lowercase SHA-256")
+    if expected_bindings.get("source_repo") != "Mannyspiro/expert-robot":
+        raise PermissionError("CACE RSI source repository is not allowlisted")
+    if not isinstance(expected_bindings.get("source_commit"), str) or not re.fullmatch(
+        r"[0-9a-f]{40}", expected_bindings["source_commit"]
+    ):
+        raise ValueError("source_commit must be a 40-character lowercase Git commit")
 
     root = Path(cace_app_root)
     if not (root / "cace_studio" / "core").is_dir():
@@ -92,6 +117,8 @@ def verify_merlin_rsi_attestation(
     bundle = bundle_from_payload(bundle_payload)
     if not isinstance(artifact_bytes_b64, Mapping):
         raise ValueError("artifact_bytes_b64 must map artifact IDs to base64 bytes")
+    if len(artifact_bytes_b64) > 32:
+        raise ValueError("CACE RSI verification accepts at most 32 artifacts")
     if set(artifact_bytes_b64) != {item.artifact_id for item in bundle.artifacts}:
         raise PermissionError("artifact byte IDs do not exactly match the CACE EvidenceBundle")
     artifact_bytes: dict[str, bytes] = {}
@@ -103,6 +130,8 @@ def verify_merlin_rsi_attestation(
             raw = base64.b64decode(encoded.encode("ascii"), validate=True)
         except Exception as exc:
             raise ValueError("artifact bytes must use canonical base64") from exc
+        if base64.b64encode(raw).decode("ascii") != encoded:
+            raise ValueError("artifact bytes must use canonical base64")
         total_bytes += len(raw)
         if total_bytes > 10 * 1024 * 1024:
             raise ValueError("CACE RSI verification payload exceeds the 10 MiB limit")
@@ -118,8 +147,16 @@ def verify_merlin_rsi_attestation(
         raise PermissionError("attestation verifier identity is not CACE")
     if statement.verifier_key_id != key_id or approved.get(key_id) != "cace":
         raise PermissionError("attestation signing key is not independently pinned by CACE")
-    if statement.purpose not in {"artifact-integrity", "independent-reproduction"}:
-        raise PermissionError("CACE attestation purpose is not an accepted verification purpose")
+    if statement.purpose != "independent-reproduction":
+        raise PermissionError("CACE attestation purpose is not independent reproduction")
+    created_at = datetime.strptime(
+        statement.created_at_utc, "%Y-%m-%dT%H:%M:%SZ"
+    ).replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if created_at > now + timedelta(minutes=5):
+        raise PermissionError("CACE attestation timestamp is too far in the future")
+    if now - created_at > timedelta(days=30):
+        raise PermissionError("CACE attestation is outside the 30-day verification window")
     if statement.claim_id != expected_claim_id:
         raise PermissionError("CACE attestation claim ID mismatch")
     if statement.bundle_sha256 != bundle_sha256:
