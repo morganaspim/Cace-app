@@ -169,7 +169,9 @@ def verify_merlin_rsi_attestation(
         required_provenance = {
             "schema", "repository", "run_id", "workflow_path", "workflow_commit",
             "runner_name", "job_id", "artifact_sha256", "source_repo",
-            "source_commit", "benchmark_manifest_sha256",
+            "source_commit", "benchmark_manifest_sha256", "orchestrator_run_id",
+            "orchestrator_workflow_path", "orchestrator_workflow_commit",
+            "orchestrator_workflow_sha256", "orchestrator_branch",
         }
         if (not isinstance(runner_provenance, Mapping)
             or set(runner_provenance) != required_provenance
@@ -183,7 +185,15 @@ def verify_merlin_rsi_attestation(
             or not isinstance(runner_provenance.get("run_id"), int)
             or not isinstance(runner_provenance.get("job_id"), int)
             or not re.fullmatch(r"[0-9a-f]{40}", str(runner_provenance.get("workflow_commit", "")))
-            or not re.fullmatch(r"[0-9a-f]{64}", str(runner_provenance.get("artifact_sha256", "")))):
+            or not re.fullmatch(r"[0-9a-f]{64}", str(runner_provenance.get("artifact_sha256", "")))
+            or not isinstance(runner_provenance.get("orchestrator_run_id"), int)
+            or runner_provenance.get("orchestrator_run_id") == runner_provenance.get("run_id")
+            or not str(runner_provenance.get("orchestrator_workflow_path", "")).startswith(".github/workflows/")
+            or not re.fullmatch(r"[0-9a-f]{40}", str(runner_provenance.get("orchestrator_workflow_commit", "")))
+            or not re.fullmatch(r"[0-9a-f]{64}", str(runner_provenance.get("orchestrator_workflow_sha256", "")))
+            or not isinstance(runner_provenance.get("orchestrator_branch"), str)
+            or not runner_provenance.get("orchestrator_branch")
+            or runner_provenance.get("orchestrator_branch").startswith("merlin/oci-jobs/")):
             raise PermissionError("CACE independent-reproduction attestation lacks valid OCI run provenance")
     elif runner_provenance is not None:
         raise PermissionError("artifact-integrity attestation must not claim runner reproduction")
@@ -432,7 +442,7 @@ def attest_merlin_rsi_reproduction(
     cace_app_root: str | Path = "/opt/cace-web/current",
     github_fetch=None,
 ) -> dict[str, Any]:
-    """Sign independent-reproduction only after validating the exact successful CACE OCI run."""
+    """Sign only after validating separate fixed-profile OCI and protected orchestrator runs."""
     AttestationStatement, _, public_key_id, sign_attestation, bundle_from_payload, verify_bundle = _load_cace_core(cace_app_root)
     if not isinstance(github_run_id, int) or isinstance(github_run_id, bool) or github_run_id <= 0:
         raise ValueError("github_run_id must be a positive integer")
@@ -665,6 +675,11 @@ def attest_merlin_rsi_reproduction(
         "source_repo": expected_bindings["source_repo"],
         "source_commit": expected_bindings["source_commit"],
         "benchmark_manifest_sha256": expected_bindings["benchmark_manifest_sha256"],
+        "orchestrator_run_id": trusted_orchestrator_run_id,
+        "orchestrator_workflow_path": trusted_orchestrator_workflow_path,
+        "orchestrator_workflow_commit": orchestrator_sha,
+        "orchestrator_workflow_sha256": trusted_orchestrator_workflow_sha256,
+        "orchestrator_branch": trusted_run_branch,
     }
     signed_bindings = dict(expected_bindings)
     signed_bindings["cace_runner_provenance"] = provenance
