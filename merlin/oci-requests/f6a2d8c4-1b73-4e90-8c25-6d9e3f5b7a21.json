@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f6a2d8c4-1b73-4e90-8c25-6d9e3f5b7a21",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Revalidate latest Expert Robot RSI branch head on OCI with exact module/test/manifest blob pins and the fixed 25-case benchmark.",
+  "created_at": "2026-11-12T00:36:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "6e560dfe02d80ada44f1adcdc7d60bb303c582ff",
+  "module_blob_sha": "9e3b134466b8c15cec35bf8f6d3d137a9bae5327",
+  "test_blob_sha": "e3ec2353151ad7bc61045473d8d4abe3625de0cd",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
