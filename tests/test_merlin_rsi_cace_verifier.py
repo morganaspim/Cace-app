@@ -527,9 +527,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     github_run_id=98765,
                     trusted_workflow_sha256="0" * 64,
                     trusted_run_branch="main",
-                    trusted_orchestrator_run_id=orchestrator_run_id,
-                    trusted_orchestrator_workflow_sha256=trusted_orchestrator_workflow_sha256,
-                    trusted_orchestrator_workflow_path=orchestrator_workflow_path,
+                    trusted_orchestrator_run_id=98766,
+                    trusted_orchestrator_workflow_sha256="0" * 64,
                     private_key_path=key_path,
                     cace_app_root=self.root,
                     github_fetch=lambda url: {
