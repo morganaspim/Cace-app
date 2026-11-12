@@ -279,13 +279,42 @@ def initialize_merlin_rsi_attestor(
     }
 
 
+
+def _resolve_attestor_private_pem(
+    *, private_key_path: str | Path | None, private_key_pem: str | bytes | None,
+) -> bytes:
+    """Load signer material from an in-memory protected secret or an explicit legacy path."""
+    if (private_key_path is None) == (private_key_pem is None):
+        raise ValueError("provide exactly one of private_key_path or private_key_pem")
+    if private_key_pem is not None:
+        if isinstance(private_key_pem, str):
+            try:
+                raw = private_key_pem.encode("ascii")
+            except UnicodeEncodeError as exc:
+                raise ValueError("private key PEM must be ASCII") from exc
+        elif isinstance(private_key_pem, bytes):
+            raw = private_key_pem
+        else:
+            raise ValueError("private key PEM must be text or bytes")
+        if not raw or len(raw) > 64 * 1024 or b"-----BEGIN" not in raw or b"PRIVATE KEY-----" not in raw:
+            raise ValueError("private key PEM is empty, oversized, or malformed")
+        return raw
+    path = Path(private_key_path)
+    if not path.is_file() or path.is_symlink():
+        raise PermissionError("CACE RSI attestor key is not initialized as a regular file")
+    raw = path.read_bytes()
+    if not raw or len(raw) > 64 * 1024:
+        raise PermissionError("CACE RSI attestor key file is empty or oversized")
+    return raw
+
 def attest_merlin_rsi_bundle(
     *,
     bundle_payload: Mapping[str, Any],
     expected_claim_id: str,
     expected_bindings: Mapping[str, Any],
     artifact_bytes_b64: Mapping[str, str],
-    private_key_path: str | Path,
+    private_key_path: str | Path | None = None,
+    private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
 ) -> dict[str, Any]:
     """Verify exact EvidenceBundle bytes, then sign an artifact-integrity attestation."""
@@ -329,10 +358,9 @@ def attest_merlin_rsi_bundle(
             "CACE RSI attestor rejected the exact EvidenceBundle artifact bytes"
         ) from exc
 
-    path = Path(private_key_path)
-    if not path.is_file():
-        raise PermissionError("CACE RSI attestor key has not been initialized")
-    private_pem = path.read_bytes()
+    private_pem = _resolve_attestor_private_pem(
+        private_key_path=private_key_path, private_key_pem=private_key_pem
+    )
     from cryptography.hazmat.primitives import serialization
     private_key = serialization.load_pem_private_key(private_pem, password=None)
     public_pem = private_key.public_key().public_bytes(
@@ -394,7 +422,8 @@ def attest_merlin_rsi_reproduction(
     expected_bindings: Mapping[str, Any],
     artifact_bytes_b64: Mapping[str, str],
     github_run_id: int,
-    private_key_path: str | Path,
+    private_key_path: str | Path | None = None,
+    private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
     github_fetch=None,
 ) -> dict[str, Any]:
@@ -586,10 +615,9 @@ def attest_merlin_rsi_reproduction(
     signed_bindings = dict(expected_bindings)
     signed_bindings["cace_runner_provenance"] = provenance
 
-    path = Path(private_key_path)
-    if not path.is_file() or path.is_symlink():
-        raise PermissionError("CACE RSI attestor key is not initialized as a regular file")
-    private_pem = path.read_bytes()
+    private_pem = _resolve_attestor_private_pem(
+        private_key_path=private_key_path, private_key_pem=private_key_pem
+    )
     from cryptography.hazmat.primitives import serialization
     private_key = serialization.load_pem_private_key(private_pem, password=None)
     public_pem = private_key.public_key().public_bytes(
