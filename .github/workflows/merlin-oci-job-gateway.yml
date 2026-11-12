@@ -112,7 +112,7 @@ jobs:
           if operation == "rsi_validation":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: RSI source repository is not allowlisted")
-              if request["source_commit"] != "3813f8fede65e06e6fb0ab4db4714a90ccd39a8e":
+              if request["source_commit"] != "aaeb50fddc7bb5918c7969d891efe3ab0b64eff0":
                   raise SystemExit("request rejected: RSI source commit is not the pinned snapshot")
           reason = request["reason"]
           if not isinstance(reason, str) or not reason.strip() or len(reason) > 300:
@@ -274,7 +274,7 @@ jobs:
               profile_files = {
                   "python/merlin/rsi_pipeline.py": (
                       "merlin/rsi-validation/python/merlin/rsi_pipeline.py",
-                      "8c2d897509612a034f96ccca6d7c1a44d8884670",
+                      "58ffd50c390da36b6b0e7b279880a6f22caa34c1",
                   ),
                   "tests/test_rsi_pipeline.py": (
                       "merlin/rsi-validation/tests/test_rsi_pipeline.py",
