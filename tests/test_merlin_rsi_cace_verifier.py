@@ -361,6 +361,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             'if request["operation"] == "merlin_hermes_rsi_full_tests":\\n'
             f'    if request["source_commit"] != "{source_commit}":\\n'
         )
+        trusted_workflow_sha256 = hashlib.sha256(workflow_text.encode("utf-8")).hexdigest()
 
         def encode_doc(value):
             return base64.b64encode(json.dumps(value).encode()).decode()
@@ -417,6 +418,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 expected_bindings=bindings,
                 artifact_bytes_b64=artifact_bytes_b64,
                 github_run_id=run_id,
+                trusted_workflow_sha256=trusted_workflow_sha256,
                 private_key_pem=key_path.read_bytes(),
                 cace_app_root=self.root,
                 github_fetch=fake_fetch,
@@ -459,6 +461,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                         "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                     },
                     github_run_id=98765,
+                    trusted_workflow_sha256="0" * 64,
                     private_key_path=key_path,
                     cace_app_root=self.root,
                     github_fetch=lambda url: {
