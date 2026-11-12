@@ -131,18 +131,13 @@ class RSIPipelineTests(unittest.TestCase):
             "source_repo": "Mannyspiro/expert-robot",
             "source_commit": SOURCE_COMMIT, "artifact_sha256": ARTIFACT,
         }
-        claims = {
-            "subject": "hermes-failure:hermes-17",
-            "source_repo": record["source_repo"],
-            "source_commit": SOURCE_COMMIT,
-            "artifact_sha256": ARTIFACT, "failure_class": "lean-timeout",
-        }
-        forged = sign_receipt("hermes", {
-            **claims, "source_commit": "d" * 40
-        }, "hermes-key", self.hermes_private)
+        claims = hermes_claims(record)
+        forged_record = dict(record)
+        forged_record["source_commit"] = "d" * 40
+        forged = sign_hermes_record(forged_record, self.hermes_private)
         with self.assertRaises(PermissionError):
             ingest_hermes_failure(self.ledger, record, forged)
-        signed = sign_receipt("hermes", claims, "hermes-key", self.hermes_private)
+        signed = sign_hermes_record(record, self.hermes_private)
         first = ingest_hermes_failure(self.ledger, record, signed)
         replay = ingest_hermes_failure(self.ledger, record, signed)
         self.assertEqual(first["seq"], 0)
