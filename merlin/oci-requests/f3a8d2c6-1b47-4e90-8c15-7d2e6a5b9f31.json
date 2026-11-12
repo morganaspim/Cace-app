@@ -1,0 +1,10 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f3a8d2c6-1b47-4e90-8c15-7d2e6a5b9f31",
+  "operation": "merlin_rsi_metadata_live_probe",
+  "reason": "Verify live Crossref and arXiv retrieval, persistent response-digest cache hits, and per-host rate-limit clocks on OCI.",
+  "created_at": "2026-11-12T00:32:30Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "cd2c9e240f36203d58dda3e372ac7533e6be956e",
+  "module_blob_sha": "d498324a83834b24045808836122801349fcff7d"
+}
