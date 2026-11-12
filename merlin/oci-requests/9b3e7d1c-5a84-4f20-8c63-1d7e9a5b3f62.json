@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "9b3e7d1c-5a84-4f20-8c63-1d7e9a5b3f62",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Re-run the 19-test RSI suite after fixing append-only ledger event return metadata; verify exact source and test blobs on OCI.",
+  "created_at": "2026-11-12T00:27:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "aaeb50fddc7bb5918c7969d891efe3ab0b64eff0",
+  "module_blob_sha": "58ffd50c390da36b6b0e7b279880a6f22caa34c1",
+  "test_blob_sha": "3484b74b88b226bc2270b4649c59c410dcffc505",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
