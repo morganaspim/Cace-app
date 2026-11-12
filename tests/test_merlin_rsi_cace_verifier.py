@@ -52,6 +52,19 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         )
         self.private_pem, self.public_pem = generate_ed25519_keypair_pem()
         self.key_id = public_key_id(self.public_pem)
+        self.runner_provenance = {
+            "schema": "cace-oci-run-provenance-v1",
+            "repository": "morganaspim/Cace-app",
+            "run_id": 123456,
+            "workflow_path": ".github/workflows/merlin-oci-job-gateway.yml",
+            "workflow_commit": "e" * 40,
+            "runner_name": "cace-oci-a1",
+            "job_id": 98765,
+            "artifact_sha256": "f" * 64,
+            "source_repo": self.bindings["source_repo"],
+            "source_commit": self.bindings["source_commit"],
+            "benchmark_manifest_sha256": self.bindings["benchmark_manifest_sha256"],
+        }
         statement = AttestationStatement(
             verifier_id="cace",
             verifier_key_id=self.key_id,
@@ -59,7 +72,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             bundle_sha256=self.bundle.bundle_sha256,
             created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             purpose="independent-reproduction",
-            bindings=self.bindings,
+            bindings={**self.bindings, "cace_runner_provenance": self.runner_provenance},
         )
         self.attestation = sign_attestation(statement, self.private_pem).payload()
         self.trust_store = json.dumps({
