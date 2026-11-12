@@ -40,7 +40,6 @@ jobs:
           import re
           import urllib.error
           import urllib.request
-          from pathlib import Path
 
           repo = os.environ["REPOSITORY"]
           if repo != "morganaspim/Cace-app":
