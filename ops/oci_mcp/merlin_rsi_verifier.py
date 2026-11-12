@@ -422,6 +422,7 @@ def attest_merlin_rsi_reproduction(
     expected_bindings: Mapping[str, Any],
     artifact_bytes_b64: Mapping[str, str],
     github_run_id: int,
+    trusted_workflow_sha256: str,
     private_key_path: str | Path | None = None,
     private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
@@ -506,7 +507,11 @@ def attest_merlin_rsi_reproduction(
     ):
         raise PermissionError("CACE OCI request is not bound to the full Hermes RSI source commit")
 
+    if not isinstance(trusted_workflow_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", trusted_workflow_sha256):
+        raise PermissionError("CACE signer requires an independently configured trusted workflow SHA-256")
     workflow_bytes = fetch_file(workflow_path, "morganaspim/Cace-app", run_sha)
+    if _sha256(workflow_bytes) != trusted_workflow_sha256:
+        raise PermissionError("CACE OCI workflow bytes do not match the independently pinned trusted workflow")
     workflow_text = workflow_bytes.decode("utf-8")
     profile_marker = 'if request["operation"] == "merlin_hermes_rsi_full_tests":'
     if profile_marker not in workflow_text:
