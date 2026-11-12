@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 import base64
+from collections import Counter
 import hashlib
 import importlib.util
 import json
@@ -475,6 +476,8 @@ class AppendOnlyLedger:
         suite_sha256: str, metrics: Mapping[str, float], passed: bool,
         evaluator_receipt: SignedReceipt,
         episode_id: str | None = None,
+        benchmark_manifest_bytes: bytes | None = None,
+        case_results: list[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256) or not _is_sha256(suite_sha256):
@@ -482,11 +485,28 @@ class AppendOnlyLedger:
         normalized = {str(k): float(v) for k, v in metrics.items()}
         if any(not math.isfinite(v) for v in normalized.values()):
             raise ValueError("evaluation metrics must be finite")
+        case_evaluation = None
+        if benchmark_manifest_bytes is not None or case_results is not None:
+            if benchmark_manifest_bytes is None or case_results is None:
+                raise ValueError("full benchmark evaluation requires both exact manifest bytes and all case results")
+            case_evaluation = validate_frozen_benchmark_results(benchmark_manifest_bytes, case_results)
+            if case_evaluation["suite_sha256"] != suite_sha256:
+                raise PermissionError("case results are bound to a different benchmark manifest digest")
+            if set(normalized) != set(case_evaluation["metrics"]) or any(
+                abs(normalized[key] - case_evaluation["metrics"][key]) > 1e-12
+                for key in normalized
+            ):
+                raise ValueError("aggregate metrics do not match the complete held-out case results")
+            if bool(passed) != case_evaluation["passed"]:
+                raise ValueError("evaluation pass/fail status does not match all case results")
         metrics_sha = sha256_hex(canonical_json(normalized))
         expected = {"candidate_id": candidate_id, "candidate_digest": artifact_sha256,
                     "benchmark_manifest_sha256": suite_sha256,
                     "metrics_sha256": metrics_sha,
                     "status": "pass" if passed else "fail"}
+        if case_evaluation is not None:
+            expected["case_results_sha256"] = case_evaluation["case_results_sha256"]
+            expected["case_count"] = case_evaluation["case_count"]
         if not verify_signed_receipt(evaluator_receipt, _load_issuer_trusted_keys("merlin-evaluator"),
             expected_issuer="merlin-evaluator", expected_claims=expected):
             raise PermissionError("evaluator receipt is missing, untrusted, or mismatched")
@@ -498,6 +518,9 @@ class AppendOnlyLedger:
             "suite_sha256": suite_sha256, "metrics": normalized,
             "metrics_sha256": metrics_sha, "passed": bool(passed),
             "evaluator_receipt_digest": evaluator_receipt.receipt_digest,
+            "case_results_sha256": case_evaluation["case_results_sha256"] if case_evaluation else None,
+            "case_count": case_evaluation["case_count"] if case_evaluation else None,
+            "case_results": case_evaluation["case_results"] if case_evaluation else None,
         })
 
     def _cace_evidence(self, episode_id: str, candidate_id: str,
@@ -836,6 +859,84 @@ class ResearchMetadataCache:
             raise ValueError("invalid arXiv identifier")
         url = "https://export.arxiv.org/api/query?id_list=" + urllib.parse.quote(normalized, safe=".")
         return self._get("arxiv", normalized, url)
+
+
+def validate_frozen_benchmark_results(
+    manifest_bytes: bytes, case_results: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Validate one complete held-out run and derive reproducible domain metrics."""
+    if not isinstance(manifest_bytes, bytes):
+        raise TypeError("benchmark manifest must be supplied as exact bytes")
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ValueError("benchmark manifest is not valid UTF-8 JSON") from exc
+    expected_domains = {"mathematics", "lean", "research", "coding", "engineering"}
+    if (not isinstance(manifest, Mapping)
+        or manifest.get("suite_id") != "merlin-rsi-multidomain-heldout-v1"
+        or manifest.get("status") != "frozen"
+        or manifest.get("split") != "held_out"
+        or set(manifest.get("domains", [])) != expected_domains):
+        raise ValueError("benchmark manifest is not the frozen five-domain held-out suite")
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or len(cases) != 25:
+        raise ValueError("frozen benchmark must contain exactly 25 cases")
+    expected: dict[str, str] = {}
+    for case in cases:
+        if (not isinstance(case, Mapping) or not isinstance(case.get("id"), str)
+            or case.get("domain") not in expected_domains
+            or not isinstance(case.get("prompt"), str) or not case["prompt"].strip()
+            or not isinstance(case.get("evaluator"), str) or not case["evaluator"].strip()):
+            raise ValueError("benchmark contains a malformed case contract")
+        if case["id"] in expected:
+            raise ValueError("benchmark contains duplicate case IDs")
+        expected[case["id"]] = case["domain"]
+    if len(expected) != 25 or set(Counter(expected.values()).values()) != {5}:
+        raise ValueError("benchmark must contain five cases in each of five domains")
+    if not isinstance(case_results, list) or len(case_results) != 25:
+        raise ValueError("evaluation must include exactly one result for each held-out case")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    scores: dict[str, list[float]] = {domain: [] for domain in expected_domains}
+    for result in case_results:
+        required = {"case_id", "domain", "score", "passed", "evaluator_id",
+                    "evaluator_version", "evidence_sha256"}
+        if not isinstance(result, Mapping) or set(result) != required:
+            raise ValueError("case result schema mismatch")
+        case_id = result["case_id"]
+        if case_id not in expected or case_id in seen or result["domain"] != expected[case_id]:
+            raise ValueError("case result is unknown, duplicated, or assigned to the wrong domain")
+        score = float(result["score"])
+        if not math.isfinite(score) or score < 0.0 or score > 1.0:
+            raise ValueError("case score must be finite and within [0,1]")
+        if not isinstance(result["passed"], bool):
+            raise ValueError("case passed field must be boolean")
+        if (not isinstance(result["evaluator_id"], str) or not result["evaluator_id"].strip()
+            or not isinstance(result["evaluator_version"], str) or not result["evaluator_version"].strip()
+            or not _is_sha256(result["evidence_sha256"])):
+            raise ValueError("case result must bind evaluator identity, version, and evidence digest")
+        seen.add(case_id)
+        scores[result["domain"]].append(score)
+        normalized.append({
+            "case_id": case_id, "domain": result["domain"], "score": score,
+            "passed": result["passed"], "evaluator_id": result["evaluator_id"],
+            "evaluator_version": result["evaluator_version"],
+            "evidence_sha256": result["evidence_sha256"],
+        })
+    if seen != set(expected):
+        raise ValueError("evaluation is missing one or more held-out case IDs")
+    normalized.sort(key=lambda item: item["case_id"])
+    metrics = {"overall": statistics.mean(item["score"] for item in normalized)}
+    metrics.update({domain: statistics.mean(values) for domain, values in scores.items()})
+    return {
+        "suite_id": manifest["suite_id"],
+        "suite_sha256": sha256_hex(manifest_bytes),
+        "case_count": len(normalized),
+        "case_results": normalized,
+        "case_results_sha256": sha256_hex(canonical_json(normalized)),
+        "metrics": metrics,
+        "passed": all(item["passed"] for item in normalized),
+    }
 
 
 def paired_adapter_gain(baseline: list[float], candidate: list[float],
