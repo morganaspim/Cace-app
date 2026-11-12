@@ -39,7 +39,11 @@ The service exposes no arbitrary command execution, IAM mutation, secret access,
 instance termination, or generic OCI SDK method. The Merlin RSI verifier delegates
 bundle and Ed25519 semantics to `cace_studio.core`. The dedicated attestor can sign
 only an `artifact-integrity` statement after CACE verifies every supplied artifact
-byte against the bundle; it cannot run candidate code or promote claims.
+byte against the bundle; it cannot run candidate code or promote claims. Both
+key initialization and signing are disabled by default and require the explicit
+`CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true` opt-in. The private key is stored
+at a fixed service-owned path with restrictive permissions and is never returned
+by an MCP tool.
 
 The `get_github_runner_status` tool is a bounded, read-only host snapshot. It
 reports Actions runner directory/registration-file presence, listener process,
@@ -174,7 +178,13 @@ The default environment is fail-closed:
 ```text
 CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false
 CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false
+CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=false
 ```
+
+After the relevant IAM/local privilege configuration has been reviewed. Keep
+CACE RSI signing disabled unless persistent key custody has been explicitly
+approved. The signing tools require the separate opt-in
+CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true; the installer defaults it to false.
 
 After the relevant IAM/local privilege configuration has been reviewed:
 
@@ -238,6 +248,7 @@ verification endpoint for Merlin RSI evidence. It:
 - requires purpose `independent-reproduction`, exact claim and bundle digests,
   and exact expected bindings;
 - checks the signer key ID against a server-loaded, digest-pinned trust store;
+- accepts only `artifact-integrity` or `independent-reproduction` purpose;
 - returns only a verification result with `proof_effect=none` and
   `authority=verification-only`.
 
