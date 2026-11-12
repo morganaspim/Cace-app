@@ -15,6 +15,7 @@ Read-only by default:
 - `get_cace_logs`
 - `get_oci_instance_summary`
 - `get_attached_nsg_rules`
+- `verify_merlin_rsi_attestation` (read-only; CACE-native bundle/signature verification)
 - `get_github_runner_status`
 
 Opt-in write tools:
@@ -33,7 +34,9 @@ The network write tools:
 - never mutate subnet security lists.
 
 The service exposes no arbitrary command execution, IAM mutation, secret access,
-instance termination, or generic OCI SDK method.
+instance termination, or generic OCI SDK method. The Merlin RSI verifier delegates
+bundle and Ed25519 semantics to `cace_studio.core`, and it cannot sign attestations
+or promote claims.
 
 The `get_github_runner_status` tool is a bounded, read-only host snapshot. It
 reports Actions runner directory/registration-file presence, listener process,
@@ -198,6 +201,33 @@ publishing this loopback endpoint directly. If you choose to expose it through
 a public reverse proxy instead, add strong authentication (prefer OAuth),
 TLS, rate limits, and a hostname allowlist; do not publish an unauthenticated
 MCP endpoint.
+
+## Merlin RSI attestation verification
+
+The read-only `verify_merlin_rsi_attestation` MCP tool is an independent CACE
+verification endpoint for Merlin RSI evidence. It:
+
+- parses and verifies the supplied CACE EvidenceBundle using CACE core;
+- verifies the signed attestation using CACE core Ed25519 verification;
+- requires purpose `independent-reproduction`, exact claim and bundle digests,
+  and exact expected bindings;
+- checks the signer key ID against a server-loaded, digest-pinned trust store;
+- returns only a verification result with `proof_effect=none` and
+  `authority=verification-only`.
+
+The caller cannot provide trusted keys. Configure the public-key pin document
+in `/etc/cace-oci-mcp.env` using `CACE_MERLIN_RSI_TRUST_STORE_JSON` and
+`CACE_MERLIN_RSI_TRUST_STORE_SHA256`. The JSON schema is
+`merlin-cace-trust-store-v1` and contains active Ed25519 key IDs bound to
+verifier identity `cace`. The SHA-256 must be computed over the exact UTF-8
+JSON string. The public key itself is carried in the attestation and its
+fingerprint must match the pinned key ID.
+
+Set `CACE_APP_ROOT` only if the CACE Studio release is not available at
+`/opt/cace-web/current`. The tool fails closed if CACE core, cryptography, or
+the trust store is unavailable. It does not generate signatures, run arbitrary
+candidate code, establish mathematical truth, or grant promotion authority.
+Promotion remains a separate Merlin approval decision.
 
 ## Operational boundary
 
