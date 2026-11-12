@@ -472,7 +472,7 @@ jobs:
           if request["operation"] == "merlin_rsi_metadata_live_probe":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: metadata source repository is not allowlisted")
-              if request["source_commit"] != "5d9f21ce0084be8c346aa72eb0457b0d483cc3fa":
+              if request["source_commit"] != "1822a54226d9d1045769b696e264ff8f3edd7de6":
                   raise SystemExit("request rejected: metadata source commit is not the pinned snapshot")
               if request["module_blob_sha"] != "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19":
                   raise SystemExit("request rejected: metadata module blob is not pinned")
