@@ -158,7 +158,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
     def test_artifact_bytes_are_independently_hashed_and_size_checked(self):
         wrong = base64.b64encode(b'{"candidate":"tampered"}').decode("ascii")
         with self.assertRaises(Exception):
-            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": wrong})
+            self.verify(artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": wrong,
+            })
         with self.assertRaises(PermissionError):
             self.verify(artifact_bytes_b64={})
         oversized = base64.b64encode(b"x" * (10 * 1024 * 1024 + 1)).decode("ascii")
@@ -196,7 +199,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     bundle_payload=self.bundle.payload(),
                     expected_claim_id=self.claim_id,
                     expected_bindings=self.bindings,
-                    artifact_bytes_b64={"merlin-rsi-evidence-manifest": base64.b64encode(b"tampered").decode("ascii")},
+                    artifact_bytes_b64={
+                        "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                        "merlin-rsi-evidence-manifest": base64.b64encode(b"tampered").decode("ascii"),
+                    },
                     private_key_path=key_path,
                     cace_app_root=self.root,
                 )
@@ -205,7 +211,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 expected_claim_id=self.claim_id,
                 expected_bindings=self.bindings,
                 artifact_bytes_b64={
-                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                    "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                 },
                 private_key_path=key_path,
                 cace_app_root=self.root,
@@ -283,7 +290,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         request_path = "merlin/oci-requests/11111111-2222-4333-8444-555555555555.json"
 
         def git_blob_sha(raw):
-            return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\\0" + raw).hexdigest()
+            return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
 
         source_file_paths = (
             "python/merlin/rsi_pipeline.py",
@@ -474,7 +481,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
     def test_artifact_base64_must_be_canonical(self):
         encoded = base64.b64encode(self.artifact_bytes).decode("ascii") + "\n"
         with self.assertRaises(ValueError):
-            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": encoded})
+            self.verify(artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": encoded,
+            })
 
 if __name__ == "__main__":
     unittest.main()
