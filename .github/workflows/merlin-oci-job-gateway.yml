@@ -393,6 +393,7 @@ jobs:
                   "hermes_worker": ("vendor/merlin-hermes-rsi-validation/python/merlin/hermes_worker.py", "d8d3140311f270b4321e603d145d11a7ac371b92", "python/merlin/hermes_worker.py"),
                   "runtime_contracts": ("vendor/merlin-hermes-rsi-validation/python/merlin/runtime_contracts.py", "af46433f1d5a1860e76279f866f8d4a149d4b6e9", "python/merlin/runtime_contracts.py"),
                   "sqlite_registry": ("vendor/merlin-hermes-rsi-validation/python/merlin/sqlite_registry.py", "e21141e0e37375f9a4f72fe31f46fc6c31045e11", "python/merlin/sqlite_registry.py"),
+                  "telemetry": ("vendor/merlin-hermes-rsi-validation/python/merlin/telemetry.py", "5e05f0de306e9b55db81ebd26f8446e3fef35c8d", "python/merlin/telemetry.py"),
                   "hermes_tests": ("vendor/merlin-hermes-rsi-validation/tests/test_hermes_rsi_bridge.py", "8269f1f265bae227084d3011060968e2b86c15fb", "tests/test_hermes_rsi_bridge.py"),
               }
               test_root = artifact_dir / "merlin-rsi-validation-source"
