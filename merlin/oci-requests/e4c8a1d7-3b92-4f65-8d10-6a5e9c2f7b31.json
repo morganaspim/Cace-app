@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "e4c8a1d7-3b92-4f65-8d10-6a5e9c2f7b31",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Validate CACE MCP verifier response provenance binding and RSI promotion boundary.",
+  "created_at": "2026-11-12T00:42:30Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "5d9f21ce0084be8c346aa72eb0457b0d483cc3fa",
+  "module_blob_sha": "9c65fd24f1965313b318ca02b380685b66c5908b",
+  "test_blob_sha": "5cc386d54ca346b1b9fef5cff6fd4d6fe33013a7",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
