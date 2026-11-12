@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "b6e2d4a8-3f91-4c57-8a20-6d5e9f1b3c72",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Run RSI regression suite with the new CACE MCP independent-reproduction verifier client.",
+  "created_at": "2026-11-12T00:34:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "5f03dbbea07c86b4b60e5832fa102d066d943d49",
+  "module_blob_sha": "9e3b134466b8c15cec35bf8f6d3d137a9bae5327",
+  "test_blob_sha": "2fe094a955e842ad569d6909fd791df896ca8e76",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
