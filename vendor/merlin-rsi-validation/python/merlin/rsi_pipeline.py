@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 import base64
+from collections import Counter
 import hashlib
 import importlib.util
 import json
@@ -257,7 +258,7 @@ def verify_cace_attestation(
         or statement.get("schema") != "cace-attestation-statement-v1"
         or statement.get("signature_algorithm") != "ed25519"
         or statement.get("proof_effect") != "none"
-        or statement.get("purpose") != "independent-reproduction"):
+        or statement.get("purpose") != "artifact-integrity"):
         raise PermissionError("CACE attestation profile or purpose is not accepted")
     if statement.get("verifier_id") != expected_verifier_id:
         raise PermissionError("CACE verifier identity mismatch")
@@ -334,6 +335,19 @@ class AppendOnlyLedger:
                 CREATE TRIGGER IF NOT EXISTS research_episode_events_no_delete
                 BEFORE DELETE ON research_episode_events
                 BEGIN SELECT RAISE(ABORT, 'append-only research episode ledger'); END;
+                CREATE TABLE IF NOT EXISTS rsi_artifacts (
+                    artifact_sha256 TEXT PRIMARY KEY,
+                    media_type TEXT NOT NULL,
+                    artifact_bytes BLOB NOT NULL,
+                    size_bytes INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TRIGGER IF NOT EXISTS rsi_artifacts_no_update
+                BEFORE UPDATE ON rsi_artifacts
+                BEGIN SELECT RAISE(ABORT, 'append-only RSI artifact store'); END;
+                CREATE TRIGGER IF NOT EXISTS rsi_artifacts_no_delete
+                BEFORE DELETE ON rsi_artifacts
+                BEGIN SELECT RAISE(ABORT, 'append-only RSI artifact store'); END;
             """)
 
     def _connect(self):
@@ -381,6 +395,52 @@ class AppendOnlyLedger:
                 (episode_id,)).fetchall()
         return [dict(row) for row in rows]
 
+    def events_by_type(self, event_type: str) -> list[dict[str, Any]]:
+        if not isinstance(event_type, str) or not event_type.strip():
+            raise ValueError("event_type is required")
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT * FROM research_episode_events WHERE event_type=? "
+                "ORDER BY recorded_at,episode_id,sequence", (event_type,)).fetchall()
+        return [dict(row) for row in rows]
+
+    def store_artifact(self, artifact_bytes: bytes, *, expected_sha256: str | None = None,
+                       media_type: str = "application/octet-stream") -> dict[str, Any]:
+        if not isinstance(artifact_bytes, (bytes, bytearray)):
+            raise ValueError("artifact_bytes must be bytes")
+        raw = bytes(artifact_bytes)
+        if len(raw) > 10 * 1024 * 1024:
+            raise ValueError("RSI inline artifact exceeds the 10 MiB CACE verification limit")
+        digest = sha256_hex(raw)
+        if expected_sha256 is not None and digest != expected_sha256:
+            raise ValueError("artifact bytes do not match the declared SHA-256")
+        if not isinstance(media_type, str) or not media_type.strip() or len(media_type) > 128:
+            raise ValueError("media_type must be a bounded non-empty string")
+        with self._connect() as db:
+            db.execute("INSERT OR IGNORE INTO rsi_artifacts "
+                       "(artifact_sha256,media_type,artifact_bytes,size_bytes) VALUES (?,?,?,?)",
+                       (digest, media_type, sqlite3.Binary(raw), len(raw)))
+            row = db.execute("SELECT artifact_bytes,media_type,size_bytes FROM rsi_artifacts "
+                             "WHERE artifact_sha256=?", (digest,)).fetchone()
+            if (row is None or bytes(row["artifact_bytes"]) != raw
+                    or row["media_type"] != media_type or row["size_bytes"] != len(raw)):
+                raise RuntimeError("content-addressed artifact collision or persistence failure")
+        return {"artifact_sha256": digest, "media_type": media_type, "size_bytes": len(raw)}
+
+    def get_artifact(self, artifact_sha256: str) -> dict[str, Any] | None:
+        if not _is_sha256(artifact_sha256):
+            raise ValueError("artifact_sha256 must be lowercase SHA-256")
+        with self._connect() as db:
+            row = db.execute("SELECT artifact_bytes,media_type,size_bytes FROM rsi_artifacts "
+                             "WHERE artifact_sha256=?", (artifact_sha256,)).fetchone()
+        if row is None:
+            return None
+        raw = bytes(row["artifact_bytes"])
+        if sha256_hex(raw) != artifact_sha256 or len(raw) != row["size_bytes"]:
+            raise RuntimeError("stored artifact integrity check failed")
+        return {"artifact_bytes": raw, "media_type": row["media_type"],
+                "size_bytes": row["size_bytes"], "artifact_sha256": artifact_sha256}
+
     def _candidate_event(self, episode_id: str, event_type: str,
                          candidate_id: str) -> dict[str, Any] | None:
         for row in self.events(episode_id):
@@ -426,33 +486,51 @@ class AppendOnlyLedger:
         generator: str, mutation: Mapping[str, Any],
         episode_id: str | None = None,
         induction_seed_event_hash: str | None = None,
+        induction_seed_event_hashes: list[str] | None = None,
+        artifact_bytes: bytes | None = None,
+        artifact_media_type: str = "application/json",
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256):
             raise ValueError("artifact_sha256 must be lowercase SHA-256")
-        if not candidate_id or not generator:
-            raise ValueError("candidate_id and generator are required")
+        if (not isinstance(candidate_id, str) or not candidate_id.strip()
+                or len(candidate_id) > 128 or not isinstance(generator, str)
+                or not generator.strip() or len(generator) > 128):
+            raise ValueError("candidate_id and generator must be bounded non-empty strings")
         required = {"candidate_id": candidate_id, "artifact_sha256": artifact_sha256}
+        plural_seed_hashes_supplied = induction_seed_event_hashes is not None
+        seed_hashes = list(induction_seed_event_hashes or [])
         if induction_seed_event_hash is not None:
-            if not _is_sha256(induction_seed_event_hash):
-                raise ValueError("induction_seed_event_hash must be lowercase SHA-256")
+            seed_hashes.append(induction_seed_event_hash)
+        if len(seed_hashes) > 100 or any(not _is_sha256(value) for value in seed_hashes):
+            raise ValueError("induction seed hashes must be lowercase SHA-256 values")
+        seed_hashes = sorted(set(seed_hashes))
+        if seed_hashes:
             with self._connect() as db:
-                seed = db.execute(
-                    "SELECT episode_id FROM research_episode_events "
-                    "WHERE event_hash=? AND event_type='rsi.induction_seeded'",
-                    (induction_seed_event_hash,),
-                ).fetchone()
-            if seed is None:
-                raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
-            required["induction_seed_event_hash"] = induction_seed_event_hash
+                for seed_hash in seed_hashes:
+                    seed = db.execute(
+                        "SELECT episode_id FROM research_episode_events "
+                        "WHERE event_hash=? AND event_type='rsi.induction_seeded'",
+                        (seed_hash,),
+                    ).fetchone()
+                    if seed is None:
+                        raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
+            if plural_seed_hashes_supplied:
+                required["induction_seed_event_hashes"] = seed_hashes
+            elif induction_seed_event_hash is not None:
+                required["induction_seed_event_hash"] = induction_seed_event_hash
         if not verify_signed_receipt(source_receipt, _load_issuer_trusted_keys("merlin-source"),
             expected_issuer="merlin-source", expected_claims=required):
             raise PermissionError("candidate source receipt is missing, untrusted, or mismatched")
         source_repo = source_receipt.claims.get("source_repo")
         source_commit = source_receipt.claims.get("source_commit")
-        if not isinstance(source_repo, str) or not source_repo.strip() or not _is_git_commit(source_commit):
-            raise ValueError("candidate source receipt must bind source_repo and exact 40-hex source_commit")
-        if parent_candidate_id:
+        if (not isinstance(source_repo, str)
+                or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source_repo)
+                or not _is_git_commit(source_commit)):
+            raise ValueError("candidate source receipt must bind owner/name and exact 40-hex source_commit")
+        if parent_candidate_id is not None:
+            if not isinstance(parent_candidate_id, str) or not parent_candidate_id.strip():
+                raise ValueError("parent_candidate_id must be a non-empty string")
             with self._connect() as db:
                 rows = db.execute(
                     "SELECT payload FROM research_episode_events WHERE event_type='candidate.created'"
@@ -460,6 +538,11 @@ class AppendOnlyLedger:
             if not any(json.loads(row["payload"]).get("candidate_id") == parent_candidate_id
                        for row in rows):
                 raise ValueError("parent candidate is absent from append-only lineage")
+        artifact_info = None
+        if artifact_bytes is not None:
+            artifact_info = self.store_artifact(
+                artifact_bytes, expected_sha256=artifact_sha256,
+                media_type=artifact_media_type)
         return self.append("candidate.created", episode, {
             "candidate_id": candidate_id, "parent_candidate_id": parent_candidate_id,
             "source_receipt_digest": source_receipt.receipt_digest,
@@ -467,6 +550,8 @@ class AppendOnlyLedger:
             "source_repo": source_repo, "source_commit": source_commit,
             "artifact_sha256": artifact_sha256, "generator": generator,
             "induction_seed_event_hash": induction_seed_event_hash,
+            "induction_seed_event_hashes": seed_hashes,
+            "artifact_storage": artifact_info,
             "mutation": dict(mutation),
         })
 
@@ -475,6 +560,8 @@ class AppendOnlyLedger:
         suite_sha256: str, metrics: Mapping[str, float], passed: bool,
         evaluator_receipt: SignedReceipt,
         episode_id: str | None = None,
+        benchmark_manifest_bytes: bytes | None = None,
+        case_results: list[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256) or not _is_sha256(suite_sha256):
@@ -482,11 +569,28 @@ class AppendOnlyLedger:
         normalized = {str(k): float(v) for k, v in metrics.items()}
         if any(not math.isfinite(v) for v in normalized.values()):
             raise ValueError("evaluation metrics must be finite")
+        case_evaluation = None
+        if benchmark_manifest_bytes is not None or case_results is not None:
+            if benchmark_manifest_bytes is None or case_results is None:
+                raise ValueError("full benchmark evaluation requires both exact manifest bytes and all case results")
+            case_evaluation = validate_frozen_benchmark_results(benchmark_manifest_bytes, case_results)
+            if case_evaluation["suite_sha256"] != suite_sha256:
+                raise PermissionError("case results are bound to a different benchmark manifest digest")
+            if set(normalized) != set(case_evaluation["metrics"]) or any(
+                abs(normalized[key] - case_evaluation["metrics"][key]) > 1e-12
+                for key in normalized
+            ):
+                raise ValueError("aggregate metrics do not match the complete held-out case results")
+            if bool(passed) != case_evaluation["passed"]:
+                raise ValueError("evaluation pass/fail status does not match all case results")
         metrics_sha = sha256_hex(canonical_json(normalized))
         expected = {"candidate_id": candidate_id, "candidate_digest": artifact_sha256,
                     "benchmark_manifest_sha256": suite_sha256,
                     "metrics_sha256": metrics_sha,
                     "status": "pass" if passed else "fail"}
+        if case_evaluation is not None:
+            expected["case_results_sha256"] = case_evaluation["case_results_sha256"]
+            expected["case_count"] = case_evaluation["case_count"]
         if not verify_signed_receipt(evaluator_receipt, _load_issuer_trusted_keys("merlin-evaluator"),
             expected_issuer="merlin-evaluator", expected_claims=expected):
             raise PermissionError("evaluator receipt is missing, untrusted, or mismatched")
@@ -498,6 +602,9 @@ class AppendOnlyLedger:
             "suite_sha256": suite_sha256, "metrics": normalized,
             "metrics_sha256": metrics_sha, "passed": bool(passed),
             "evaluator_receipt_digest": evaluator_receipt.receipt_digest,
+            "case_results_sha256": case_evaluation["case_results_sha256"] if case_evaluation else None,
+            "case_count": case_evaluation["case_count"] if case_evaluation else None,
+            "case_results": case_evaluation["case_results"] if case_evaluation else None,
         })
 
     def _cace_evidence(self, episode_id: str, candidate_id: str,
@@ -591,36 +698,71 @@ def ingest_hermes_failure(
     ledger: AppendOnlyLedger, record: Mapping[str, Any],
     receipt: SignedReceipt,
 ) -> dict[str, Any]:
-    """Authenticate a Hermes failure and append an idempotent RSI induction seed."""
+    """Authenticate the complete Hermes failure envelope before RSI induction."""
     required_fields = ("event_id", "failure_class", "summary", "source_repo",
                        "source_commit", "artifact_sha256")
+    if record.get("schema") != "merlin-hermes-failure/2":
+        raise ValueError("unsupported Hermes failure record schema")
     if any(not record.get(k) for k in required_fields):
         raise ValueError("Hermes failure record is incomplete")
-    if not _is_git_commit(record["source_commit"]) or not _is_sha256(record["artifact_sha256"]):
+    if (not _is_git_commit(record["source_commit"])
+            or not _is_sha256(record["artifact_sha256"])):
         raise ValueError("Hermes failure must bind exact source commit and artifact SHA-256")
+    if not isinstance(record["source_repo"], str) or not re.fullmatch(
+            r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", record["source_repo"]):
+        raise ValueError("Hermes source_repo must be owner/name")
+    failure_signature = record.get("failure_signature")
+    trigger_condition = record.get("trigger_condition")
+    corrective_steps = record.get("corrective_steps", [])
+    if failure_signature is not None and (
+        not isinstance(failure_signature, str) or not failure_signature.strip()
+        or len(failure_signature) > 160
+    ):
+        raise ValueError("failure_signature must be a bounded normalized string")
+    if trigger_condition is not None and (
+        not isinstance(trigger_condition, str) or not trigger_condition.strip()
+        or len(trigger_condition) > 300
+    ):
+        raise ValueError("trigger_condition must be a bounded string")
+    if (not isinstance(corrective_steps, (list, tuple)) or len(corrective_steps) > 10
+            or any(not isinstance(step, str) or not step.strip() or len(step) > 300
+                   for step in corrective_steps)):
+        raise ValueError("corrective_steps must contain at most ten bounded non-empty strings")
+    record_sha256 = sha256_hex(canonical_json(dict(record)))
     episode_id = "rsi-induction:" + str(record["event_id"])
     claims = {
         "subject": "hermes-failure:" + str(record["event_id"]),
-        "source_repo": record["source_repo"], "source_commit": record["source_commit"],
+        "record_sha256": record_sha256,
+        "source_repo": record["source_repo"],
+        "source_commit": record["source_commit"],
         "artifact_sha256": record["artifact_sha256"],
         "failure_class": record["failure_class"],
     }
-    if not verify_signed_receipt(receipt, _load_issuer_trusted_keys("hermes"), expected_issuer="hermes",
-                                 expected_claims=claims):
+    if not verify_signed_receipt(
+        receipt, _load_issuer_trusted_keys("hermes"),
+        expected_issuer="hermes", expected_claims=claims,
+    ):
         raise PermissionError("Hermes failure lacks an authenticated source receipt")
     existing = ledger.events(episode_id)
     if existing:
         seed_row = next((row for row in existing if row["event_type"] == "rsi.induction_seeded"), None)
         seed = json.loads(seed_row["payload"]) if seed_row else None
-        if seed and seed.get("source_receipt_digest") == receipt.receipt_digest:
+        if seed and seed.get("record_sha256") == record_sha256:
             return {"seq": seed_row["sequence"], "event_hash": seed_row["event_hash"],
                     "episode_id": episode_id, "idempotent_replay": True}
         raise PermissionError("Hermes event ID replayed with different evidence")
     return ledger.append("rsi.induction_seeded", episode_id, {
         "hermes_event_id": record["event_id"],
+        "record_sha256": record_sha256,
         "failure_class": record["failure_class"], "summary": record["summary"],
+        "failure_signature": failure_signature,
+        "trigger_condition": trigger_condition,
+        "corrective_steps": list(corrective_steps),
+        "run_id": record.get("run_id"), "task_id": record.get("task_id"),
+        "worker_id": record.get("worker_id"), "stage": record.get("stage"),
         "source_repo": record["source_repo"], "source_commit": record["source_commit"],
         "artifact_sha256": record["artifact_sha256"],
+        "source_artifact_path": record.get("source_artifact_path"),
         "source_receipt_digest": receipt.receipt_digest,
         "induction": {
             "generalize_failure": True, "generate_counterexample": True,
@@ -836,6 +978,84 @@ class ResearchMetadataCache:
             raise ValueError("invalid arXiv identifier")
         url = "https://export.arxiv.org/api/query?id_list=" + urllib.parse.quote(normalized, safe=".")
         return self._get("arxiv", normalized, url)
+
+
+def validate_frozen_benchmark_results(
+    manifest_bytes: bytes, case_results: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Validate one complete held-out run and derive reproducible domain metrics."""
+    if not isinstance(manifest_bytes, bytes):
+        raise TypeError("benchmark manifest must be supplied as exact bytes")
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ValueError("benchmark manifest is not valid UTF-8 JSON") from exc
+    expected_domains = {"mathematics", "lean", "research", "coding", "engineering"}
+    if (not isinstance(manifest, Mapping)
+        or manifest.get("suite_id") != "merlin-rsi-multidomain-heldout-v1"
+        or manifest.get("status") != "frozen"
+        or manifest.get("split") != "held_out"
+        or set(manifest.get("domains", [])) != expected_domains):
+        raise ValueError("benchmark manifest is not the frozen five-domain held-out suite")
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or len(cases) != 25:
+        raise ValueError("frozen benchmark must contain exactly 25 cases")
+    expected: dict[str, str] = {}
+    for case in cases:
+        if (not isinstance(case, Mapping) or not isinstance(case.get("id"), str)
+            or case.get("domain") not in expected_domains
+            or not isinstance(case.get("prompt"), str) or not case["prompt"].strip()
+            or not isinstance(case.get("evaluator"), str) or not case["evaluator"].strip()):
+            raise ValueError("benchmark contains a malformed case contract")
+        if case["id"] in expected:
+            raise ValueError("benchmark contains duplicate case IDs")
+        expected[case["id"]] = case["domain"]
+    if len(expected) != 25 or set(Counter(expected.values()).values()) != {5}:
+        raise ValueError("benchmark must contain five cases in each of five domains")
+    if not isinstance(case_results, list) or len(case_results) != 25:
+        raise ValueError("evaluation must include exactly one result for each held-out case")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    scores: dict[str, list[float]] = {domain: [] for domain in expected_domains}
+    for result in case_results:
+        required = {"case_id", "domain", "score", "passed", "evaluator_id",
+                    "evaluator_version", "evidence_sha256"}
+        if not isinstance(result, Mapping) or set(result) != required:
+            raise ValueError("case result schema mismatch")
+        case_id = result["case_id"]
+        if case_id not in expected or case_id in seen or result["domain"] != expected[case_id]:
+            raise ValueError("case result is unknown, duplicated, or assigned to the wrong domain")
+        score = float(result["score"])
+        if not math.isfinite(score) or score < 0.0 or score > 1.0:
+            raise ValueError("case score must be finite and within [0,1]")
+        if not isinstance(result["passed"], bool):
+            raise ValueError("case passed field must be boolean")
+        if (not isinstance(result["evaluator_id"], str) or not result["evaluator_id"].strip()
+            or not isinstance(result["evaluator_version"], str) or not result["evaluator_version"].strip()
+            or not _is_sha256(result["evidence_sha256"])):
+            raise ValueError("case result must bind evaluator identity, version, and evidence digest")
+        seen.add(case_id)
+        scores[result["domain"]].append(score)
+        normalized.append({
+            "case_id": case_id, "domain": result["domain"], "score": score,
+            "passed": result["passed"], "evaluator_id": result["evaluator_id"],
+            "evaluator_version": result["evaluator_version"],
+            "evidence_sha256": result["evidence_sha256"],
+        })
+    if seen != set(expected):
+        raise ValueError("evaluation is missing one or more held-out case IDs")
+    normalized.sort(key=lambda item: item["case_id"])
+    metrics = {"overall": statistics.mean(item["score"] for item in normalized)}
+    metrics.update({domain: statistics.mean(values) for domain, values in scores.items()})
+    return {
+        "suite_id": manifest["suite_id"],
+        "suite_sha256": sha256_hex(manifest_bytes),
+        "case_count": len(normalized),
+        "case_results": normalized,
+        "case_results_sha256": sha256_hex(canonical_json(normalized)),
+        "metrics": metrics,
+        "passed": all(item["passed"] for item in normalized),
+    }
 
 
 def paired_adapter_gain(baseline: list[float], candidate: list[float],
