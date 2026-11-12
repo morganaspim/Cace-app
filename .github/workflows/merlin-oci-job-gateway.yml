@@ -641,7 +641,6 @@ jobs:
                   }
 
           completed_at = datetime.now(timezone.utc).isoformat()
-          receipt = {          completed_at = datetime.now(timezone.utc).isoformat()
           receipt = {
               "schema": "merlin-oci-job-receipt-v1",
               "request_id": path_request_id,
