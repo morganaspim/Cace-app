@@ -28,7 +28,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 
 def canonical_json(value: Any) -> bytes:
@@ -684,6 +684,33 @@ class AppendOnlyLedger:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def get_artifact(self, artifact_sha256: str) -> dict[str, Any] | None:
+        """Recover candidate bytes from their immutable, hash-chained creation event."""
+        if not _is_sha256(artifact_sha256):
+            raise ValueError("artifact_sha256 must be lowercase SHA-256")
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT payload FROM research_episode_events "
+                "WHERE event_type='candidate.created' ORDER BY episode_id,sequence"
+            ).fetchall()
+        for row in rows:
+            payload = json.loads(row["payload"])
+            if payload.get("artifact_sha256") != artifact_sha256:
+                continue
+            encoded = payload.get("artifact_bytes_b64")
+            if not isinstance(encoded, str):
+                return None
+            raw = base64.b64decode(encoded, validate=True)
+            if sha256_hex(raw) != artifact_sha256:
+                raise RuntimeError("stored candidate artifact bytes failed digest verification")
+            return {
+                "artifact_sha256": artifact_sha256,
+                "artifact_bytes": raw,
+                "artifact_size_bytes": len(raw),
+                "artifact_media_type": payload.get("artifact_media_type"),
+            }
+        return None
+
     def _candidate_event(self, episode_id: str, event_type: str,
                          candidate_id: str) -> dict[str, Any] | None:
         for row in self.events(episode_id):
@@ -729,6 +756,9 @@ class AppendOnlyLedger:
         generator: str, mutation: Mapping[str, Any],
         episode_id: str | None = None,
         induction_seed_event_hash: str | None = None,
+        induction_seed_event_hashes: Sequence[str] | None = None,
+        artifact_bytes: bytes | None = None,
+        artifact_media_type: str = "application/octet-stream",
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256):
@@ -736,18 +766,30 @@ class AppendOnlyLedger:
         if not candidate_id or not generator:
             raise ValueError("candidate_id and generator are required")
         required = {"candidate_id": candidate_id, "artifact_sha256": artifact_sha256}
+        seed_hashes = sorted(set(induction_seed_event_hashes or ()))
         if induction_seed_event_hash is not None:
-            if not _is_sha256(induction_seed_event_hash):
-                raise ValueError("induction_seed_event_hash must be lowercase SHA-256")
-            with self._connect() as db:
-                seed = db.execute(
-                    "SELECT episode_id FROM research_episode_events "
-                    "WHERE event_hash=? AND event_type='rsi.induction_seeded'",
-                    (induction_seed_event_hash,),
-                ).fetchone()
-            if seed is None:
-                raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
+            seed_hashes = sorted(set(seed_hashes) | {induction_seed_event_hash})
             required["induction_seed_event_hash"] = induction_seed_event_hash
+        if any(not _is_sha256(value) for value in seed_hashes):
+            raise ValueError("induction seed event hashes must be lowercase SHA-256")
+        if seed_hashes:
+            with self._connect() as db:
+                for seed_hash in seed_hashes:
+                    seed = db.execute(
+                        "SELECT episode_id FROM research_episode_events "
+                        "WHERE event_hash=? AND event_type='rsi.induction_seeded'",
+                        (seed_hash,),
+                    ).fetchone()
+                    if seed is None:
+                        raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
+            required["induction_seed_event_hashes"] = seed_hashes
+        if artifact_bytes is not None:
+            if not isinstance(artifact_bytes, bytes):
+                raise TypeError("artifact_bytes must be immutable bytes")
+            if sha256_hex(artifact_bytes) != artifact_sha256:
+                raise PermissionError("candidate artifact bytes do not match artifact_sha256")
+            if not isinstance(artifact_media_type, str) or not artifact_media_type.strip():
+                raise ValueError("artifact_media_type is required")
         if not verify_signed_receipt(source_receipt, _load_issuer_trusted_keys("merlin-source"),
             expected_issuer="merlin-source", expected_claims=required):
             raise PermissionError("candidate source receipt is missing, untrusted, or mismatched")
@@ -770,6 +812,10 @@ class AppendOnlyLedger:
             "source_repo": source_repo, "source_commit": source_commit,
             "artifact_sha256": artifact_sha256, "generator": generator,
             "induction_seed_event_hash": induction_seed_event_hash,
+            "induction_seed_event_hashes": seed_hashes,
+            "artifact_bytes_b64": base64.b64encode(artifact_bytes).decode("ascii") if artifact_bytes is not None else None,
+            "artifact_size_bytes": len(artifact_bytes) if artifact_bytes is not None else None,
+            "artifact_media_type": artifact_media_type if artifact_bytes is not None else None,
             "mutation": dict(mutation),
         })
 
