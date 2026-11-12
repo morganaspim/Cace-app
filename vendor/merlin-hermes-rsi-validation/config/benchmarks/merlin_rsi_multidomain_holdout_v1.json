@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "suite_id": "merlin-rsi-multidomain-heldout-v1",
+  "status": "frozen",
+  "split": "held_out",
+  "version": 1,
+  "freeze_policy": {
+    "scoring_changes_require_new_suite_version": true,
+    "candidate_generators_must_not_read_reference_outputs": true,
+    "case_ids_are_stable": true,
+    "paired_comparison_required": true,
+    "minimum_paired_cases_for_optional_adapters": 20,
+    "promotion_requires_independent_cace_receipt": true,
+    "promotion_requires_separate_signed_human_approval": true
+  },
+  "domains": [
+    "mathematics",
+    "lean",
+    "research",
+    "coding",
+    "engineering"
+  ],
+  "cases": [
+    {
+      "id": "math-001",
+      "domain": "mathematics",
+      "task": "derive-and-check",
+      "prompt": "For f(x)=x^3-2x, derive f'(x), evaluate it at x=2, and explain the derivative as an instantaneous rate.",
+      "evaluator": "symbolic_result_plus_numeric_check_plus_conceptual_rubric",
+      "weight": 1
+    },
+    {
+      "id": "math-002",
+      "domain": "mathematics",
+      "task": "counterexample",
+      "prompt": "Assess the claim that every continuous function is differentiable. Give a valid counterexample and identify the failed implication.",
+      "evaluator": "mathematical_validity_and_counterexample",
+      "weight": 1
+    },
+    {
+      "id": "math-003",
+      "domain": "mathematics",
+      "task": "probability",
+      "prompt": "A two-state Markov chain has transition matrix [[0.8,0.2],[0.3,0.7]]. Compute its stationary distribution and verify it.",
+      "evaluator": "exact_or_tolerance_numeric_and_residual",
+      "weight": 1
+    },
+    {
+      "id": "math-004",
+      "domain": "mathematics",
+      "task": "linear-algebra",
+      "prompt": "Determine whether the vectors (1,2,3), (2,4,6), and (0,1,1) are linearly independent. Justify the result.",
+      "evaluator": "rank_or_dependency_certificate",
+      "weight": 1
+    },
+    {
+      "id": "math-005",
+      "domain": "mathematics",
+      "task": "numerical-analysis",
+      "prompt": "Compare forward and central finite differences for x^2 at x=3 with h=0.01. Report both estimates and explain the truncation-error difference.",
+      "evaluator": "reproducible_computation_and_reasoning",
+      "weight": 1
+    },
+    {
+      "id": "lean-001",
+      "domain": "lean",
+      "task": "formal-proof",
+      "prompt": "Formalize and prove in Lean that for all natural numbers n, n + 0 = n. Use the pinned project toolchain and no new axioms.",
+      "evaluator": "pinned_lean_compile_and_axiom_audit",
+      "weight": 1
+    },
+    {
+      "id": "lean-002",
+      "domain": "lean",
+      "task": "proof-repair",
+      "prompt": "Given a theorem statement asserting a + b = b + a over Nat, produce a minimal proof and report the exact Lean source digest.",
+      "evaluator": "exact_source_compile_receipt_and_digest",
+      "weight": 1
+    },
+    {
+      "id": "lean-003",
+      "domain": "lean",
+      "task": "counterexample",
+      "prompt": "Evaluate the proposition that every injective function from Nat to Nat is surjective. If false, provide a formal counterexample.",
+      "evaluator": "formal_counterexample_compiles",
+      "weight": 1
+    },
+    {
+      "id": "lean-004",
+      "domain": "lean",
+      "task": "dependency-discipline",
+      "prompt": "Prove a simple theorem using only dependencies already present in the pinned Lake manifest; report toolchain and dependency-lock digests.",
+      "evaluator": "dependency_lock_and_build_receipt",
+      "weight": 1
+    },
+    {
+      "id": "lean-005",
+      "domain": "lean",
+      "task": "assumption-audit",
+      "prompt": "Inspect a candidate proof for sorry, admit, new axioms, unsafe declarations, or hidden assumptions; return a structured audit.",
+      "evaluator": "independent_static_audit_and_compile",
+      "weight": 1
+    },
+    {
+      "id": "research-001",
+      "domain": "research",
+      "task": "source-triangulation",
+      "prompt": "Investigate a narrowly stated mathematical claim using Crossref and arXiv metadata. Distinguish primary sources, reviews, and unsupported assertions.",
+      "evaluator": "source_identity_metadata_and_claim_support",
+      "weight": 1
+    },
+    {
+      "id": "research-002",
+      "domain": "research",
+      "task": "citation-integrity",
+      "prompt": "Given a DOI and an arXiv identifier, retrieve metadata, normalize identifiers, preserve response digests, and report discrepancies.",
+      "evaluator": "identifier_resolution_and_response_digest",
+      "weight": 1
+    },
+    {
+      "id": "research-003",
+      "domain": "research",
+      "task": "research-gap",
+      "prompt": "Identify one falsifiable research gap from a small set of supplied abstracts. State assumptions, a counterexample strategy, and what evidence would refute it.",
+      "evaluator": "falsifiability_and_evidence_plan_rubric",
+      "weight": 1
+    },
+    {
+      "id": "research-004",
+      "domain": "research",
+      "task": "evidence-synthesis",
+      "prompt": "Synthesize conflicting source claims without collapsing uncertainty. Attribute each claim to a source and preserve dates and scope.",
+      "evaluator": "claim_source_alignment_and_uncertainty",
+      "weight": 1
+    },
+    {
+      "id": "research-005",
+      "domain": "research",
+      "task": "reproducibility",
+      "prompt": "Design a reproducible numerical experiment with pinned inputs, seed, solver, precision, environment, and artifact digest.",
+      "evaluator": "complete_reproducibility_receipt",
+      "weight": 1
+    },
+    {
+      "id": "coding-001",
+      "domain": "coding",
+      "task": "implementation",
+      "prompt": "Implement a deterministic bounded retry scheduler with idempotency keys, explicit terminal states, and unit tests.",
+      "evaluator": "hidden_tests_static_analysis_and_determinism",
+      "weight": 1
+    },
+    {
+      "id": "coding-002",
+      "domain": "coding",
+      "task": "debugging",
+      "prompt": "Diagnose a failing test from a supplied traceback, make the smallest safe change, and add a regression test.",
+      "evaluator": "test_reproduction_patch_scope_and_regression",
+      "weight": 1
+    },
+    {
+      "id": "coding-003",
+      "domain": "coding",
+      "task": "security-boundary",
+      "prompt": "Design an append-only event ledger with canonical serialization, hash chaining, and tamper detection.",
+      "evaluator": "mutation_rejection_and_chain_verification_tests",
+      "weight": 1
+    },
+    {
+      "id": "coding-004",
+      "domain": "coding",
+      "task": "api-contract",
+      "prompt": "Implement a typed API boundary that validates inputs, rejects unknown fields, and emits structured errors.",
+      "evaluator": "contract_tests_and_negative_cases",
+      "weight": 1
+    },
+    {
+      "id": "coding-005",
+      "domain": "coding",
+      "task": "performance",
+      "prompt": "Optimize a deterministic data-processing routine while preserving exact output semantics; include paired benchmark evidence.",
+      "evaluator": "correctness_equivalence_and_paired_measurement",
+      "weight": 1
+    },
+    {
+      "id": "engineering-001",
+      "domain": "engineering",
+      "task": "electrical-design",
+      "prompt": "Design a low-voltage LED circuit from supplied component specifications; calculate resistor value, power margin, and wiring connections.",
+      "evaluator": "unit_checked_calculations_and_netlist_consistency",
+      "weight": 1
+    },
+    {
+      "id": "engineering-002",
+      "domain": "engineering",
+      "task": "cad-constraints",
+      "prompt": "Construct a parametric bracket from supplied dimensions and constraints. Report geometry assumptions and a machine-checkable feature graph.",
+      "evaluator": "geometry_constraints_and_artifact_validation",
+      "weight": 1
+    },
+    {
+      "id": "engineering-003",
+      "domain": "engineering",
+      "task": "thermal-analysis",
+      "prompt": "Estimate steady-state thermal rise for a supplied enclosure and heat load. State model assumptions and sensitivity.",
+      "evaluator": "dimensional_analysis_and_numeric_bounds",
+      "weight": 1
+    },
+    {
+      "id": "engineering-004",
+      "domain": "engineering",
+      "task": "simulation",
+      "prompt": "Create a reproducible mechanical or electrical simulation plan with solver version, boundary conditions, mesh or timestep, and result digest.",
+      "evaluator": "simulation_receipt_and_repeatability",
+      "weight": 1
+    },
+    {
+      "id": "engineering-005",
+      "domain": "engineering",
+      "task": "manufacturability",
+      "prompt": "Review a supplied part design for tolerance stack-up, material suitability, assembly sequence, and manufacturability constraints.",
+      "evaluator": "constraint_coverage_and_engineering_rubric",
+      "weight": 1
+    }
+  ]
+}

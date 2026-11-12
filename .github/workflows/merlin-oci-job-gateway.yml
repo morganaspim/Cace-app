@@ -1,0 +1,972 @@
+name: Merlin OCI typed job gateway
+
+on:
+  push:
+    branches:
+      - 'merlin/oci-jobs/**'
+    paths:
+      - 'merlin/oci-requests/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-oci-job-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run-approved-profile:
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Validate request and execute fixed inventory profile
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import ctypes.util
+          import hashlib
+          import json
+          import os
+          import re
+          import shutil
+          import sqlite3
+          import subprocess
+          import sys
+          import types
+          import urllib.parse
+          import urllib.request
+          import uuid
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          commit = os.environ["GITHUB_SHA"]
+          event_path = Path(os.environ["GITHUB_EVENT_PATH"])
+          token = os.environ["GITHUB_TOKEN"]
+          event = json.loads(event_path.read_text(encoding="utf-8"))
+
+          if not os.environ.get("GITHUB_REF", "").startswith("refs/heads/merlin/oci-jobs/"):
+              raise SystemExit("request rejected: branch is outside the OCI job namespace")
+
+          def fetch_json(url: str) -> dict:
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "Merlin-OCI-Job-Gateway",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=12) as response:
+                  return json.loads(response.read().decode("utf-8"))
+
+          commit_details = fetch_json(f"https://api.github.com/repos/{repo}/commits/{commit}")
+          changed_files = commit_details.get("files") or []
+          if len(changed_files) != 1 or changed_files[0].get("status") not in {"added", "modified"}:
+              raise SystemExit("request rejected: commit must add or modify exactly one request file")
+
+          request_path = changed_files[0].get("filename", "")
+          match = re.fullmatch(r"merlin/oci-requests/([0-9a-fA-F-]{36})\.json", request_path)
+          if not match:
+              raise SystemExit("request rejected: invalid request path")
+          path_request_id = str(uuid.UUID(match.group(1)))
+
+          def fetch_contents(path: str) -> tuple[bytes, str]:
+              encoded_path = urllib.parse.quote(path, safe="/")
+              url = f"https://api.github.com/repos/{repo}/contents/{encoded_path}?ref={commit}"
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "Merlin-OCI-Job-Gateway",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=12) as response:
+                  payload = json.loads(response.read().decode("utf-8"))
+              if payload.get("encoding") != "base64" or not isinstance(payload.get("content"), str):
+                  raise SystemExit(f"request rejected: unsupported GitHub content encoding for {path}")
+              raw = base64.b64decode("".join(payload["content"].split()), validate=True)
+              return raw, str(payload.get("sha", ""))
+
+          def fetch_external_contents(repository: str, path: str, ref: str) -> tuple[bytes, str]:
+              if repository != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: external source repository is not allowlisted")
+              encoded_path = urllib.parse.quote(path, safe="/")
+              url = f"https://api.github.com/repos/{repository}/contents/{encoded_path}?ref={ref}"
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "Merlin-OCI-Job-Gateway",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=12) as response:
+                  payload = json.loads(response.read().decode("utf-8"))
+              if payload.get("encoding") != "base64" or not isinstance(payload.get("content"), str):
+                  raise SystemExit(f"request rejected: unsupported source encoding for {path}")
+              raw = base64.b64decode("".join(payload["content"].split()), validate=True)
+              return raw, str(payload.get("sha", ""))
+
+          request_bytes, request_blob_sha = fetch_contents(request_path)
+          request = json.loads(request_bytes.decode("utf-8"))
+          base_fields = {"schema", "request_id", "operation", "reason", "created_at"}
+          cace_fields = {
+              "candidate_id", "candidate_digest", "benchmark_manifest_sha256",
+              "evaluator_receipt_sha256", "source_repo", "source_commit",
+              "expected_bundle_sha256",
+          }
+          rsi_test_fields = {
+              "source_repo", "source_commit", "module_blob_sha",
+              "test_blob_sha", "manifest_blob_sha",
+          }
+          cpp_test_fields = {"source_repo", "source_commit", "cpp_blob_shas"}
+          metadata_fields = {"source_repo", "source_commit", "module_blob_sha"}
+          hermes_test_fields = {"source_repo", "source_commit", "source_blob_shas"}
+          if not isinstance(request, dict) or not base_fields.issubset(request):
+              raise SystemExit("request rejected: base schema fields are missing")
+          if request["schema"] != "merlin-oci-job-request-v1":
+              raise SystemExit("request rejected: unsupported schema")
+          if str(uuid.UUID(request["request_id"])) != path_request_id:
+              raise SystemExit("request rejected: request ID does not match its path")
+          if not isinstance(request["operation"], str) or request["operation"] not in {
+              "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract",
+              "merlin_rsi_python_tests", "merlin_hermes_rsi_full_tests",
+              "merlin_cpp_ledger_tests", "merlin_rsi_metadata_live_probe"
+          }:
+              raise SystemExit("request rejected: operation is not enabled")
+          if request["operation"] == "cace_rsi_bundle_contract":
+              expected_fields = base_fields | cace_fields
+          elif request["operation"] == "merlin_rsi_python_tests":
+              expected_fields = base_fields | rsi_test_fields
+          elif request["operation"] == "merlin_hermes_rsi_full_tests":
+              expected_fields = base_fields | hermes_test_fields
+          elif request["operation"] == "merlin_cpp_ledger_tests":
+              expected_fields = base_fields | cpp_test_fields
+          elif request["operation"] == "merlin_rsi_metadata_live_probe":
+              expected_fields = base_fields | metadata_fields
+          else:
+              expected_fields = base_fields
+          if set(request) != expected_fields:
+              raise SystemExit("request rejected: fields do not match the selected fixed operation")
+          reason = request["reason"]
+          if not isinstance(reason, str) or not reason.strip() or len(reason) > 300:
+              raise SystemExit("request rejected: reason must be 1-300 characters")
+          created_at = request["created_at"]
+          if not isinstance(created_at, str) or len(created_at) > 40:
+              raise SystemExit("request rejected: invalid created_at")
+          datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+
+          # Pin the executable inventory module to the reviewed blob from PR #85.
+          module_path = "ops/oci_mcp/runner_inventory.py"
+          module_bytes, module_blob_sha = fetch_contents(module_path)
+          expected_module_blob_sha = "bb9f789e3cf0f76356dea0eab5e693ac91ef5838"
+          if module_blob_sha != expected_module_blob_sha:
+              raise SystemExit("request rejected: runner inventory module blob is not the reviewed version")
+          module_sha256 = hashlib.sha256(module_bytes).hexdigest()
+          module = types.ModuleType("merlin_oci_runner_inventory")
+          module.__file__ = module_path
+          exec(compile(module_bytes.decode("utf-8"), module_path, "exec"), module.__dict__)
+
+          artifact_dir = (
+              Path(os.environ["RUNNER_TEMP"])
+              / f"merlin-oci-job-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}"
+          )
+          if artifact_dir.exists():
+              raise SystemExit("refusing to overwrite an existing job artifact directory")
+          artifact_dir.mkdir(parents=True)
+
+          def probe_local_mcp() -> dict:
+              endpoint = "http://127.0.0.1:8765/mcp"
+              session_id = None
+              protocol_version = "2025-03-26"
+
+              def rpc(method: str, request_id, params=None):
+                  nonlocal session_id
+                  payload = {"jsonrpc": "2.0", "method": method}
+                  if request_id is not None:
+                      payload["id"] = request_id
+                  if params is not None:
+                      payload["params"] = params
+                  headers = {
+                      "Content-Type": "application/json",
+                      "Accept": "application/json, text/event-stream",
+                      "MCP-Protocol-Version": protocol_version,
+                  }
+                  if session_id:
+                      headers["Mcp-Session-Id"] = session_id
+                  req = urllib.request.Request(
+                      endpoint,
+                      data=json.dumps(payload).encode("utf-8"),
+                      headers=headers,
+                      method="POST",
+                  )
+                  try:
+                      with urllib.request.urlopen(req, timeout=8) as response:
+                          response_body = response.read(1024 * 1024 + 1)
+                          if len(response_body) > 1024 * 1024:
+                              raise RuntimeError("MCP response exceeded the 1 MiB limit")
+                          response_type = response.headers.get("Content-Type", "")
+                          session_id = response.headers.get("Mcp-Session-Id", session_id)
+                  except Exception as exc:
+                      raise RuntimeError(f"MCP HTTP request failed: {type(exc).__name__}") from None
+                  if not response_body:
+                      return {}
+                  text_body = response_body.decode("utf-8", errors="replace")
+                  if "text/event-stream" in response_type:
+                      blocks = []
+                      current = []
+                      for line in text_body.splitlines():
+                          if line.startswith("data:"):
+                              current.append(line[5:].lstrip())
+                          elif not line and current:
+                              blocks.append("\n".join(current))
+                              current = []
+                      if current:
+                          blocks.append("\n".join(current))
+                      messages = [json.loads(block) for block in blocks if block and block != "[DONE]"]
+                      if not messages:
+                          raise RuntimeError("MCP SSE response contained no JSON-RPC message")
+                      message = messages[-1]
+                  else:
+                      message = json.loads(text_body)
+                  if isinstance(message, dict) and message.get("error"):
+                      raise RuntimeError("MCP JSON-RPC returned an error")
+                  return message
+
+              initialized = rpc(
+                  "initialize",
+                  1,
+                  {
+                      "protocolVersion": protocol_version,
+                      "capabilities": {},
+                      "clientInfo": {"name": "merlin-oci-job-gateway", "version": "1.0.0"},
+                  },
+              )
+              init_result = initialized.get("result") or {}
+              negotiated_version = init_result.get("protocolVersion")
+              if not negotiated_version:
+                  raise RuntimeError("MCP initialize response omitted protocolVersion")
+              protocol_version = negotiated_version
+              rpc("notifications/initialized", None)
+              listed = rpc("tools/list", 2, {})
+              tools = (listed.get("result") or {}).get("tools") or []
+              tool_names = sorted(
+                  tool.get("name") for tool in tools
+                  if isinstance(tool, dict) and isinstance(tool.get("name"), str)
+              )
+              results = {}
+              for request_id, tool_name in enumerate(
+                  ("get_control_capabilities", "get_cace_runtime_status", "get_github_runner_status"),
+                  start=3,
+              ):
+                  if tool_name not in tool_names:
+                      results[tool_name] = {"available": False}
+                      continue
+                  response = rpc(
+                      "tools/call",
+                      request_id,
+                      {"name": tool_name, "arguments": {}},
+                  )
+                  result = response.get("result") or {}
+                  results[tool_name] = {
+                      "available": True,
+                      "is_error": bool(result.get("isError", False)),
+                      "structured_content": result.get("structuredContent"),
+                      "content": result.get("content", []),
+                  }
+              required_tools_ok = all(
+                  results.get(name, {}).get("available") and not results.get(name, {}).get("is_error")
+                  for name in ("get_control_capabilities", "get_cace_runtime_status")
+              )
+              return {
+                  "status": "succeeded" if required_tools_ok else "partial",
+                  "endpoint": endpoint,
+                  "protocol_version": protocol_version,
+                  "tool_names": tool_names,
+                  "read_only_tool_results": results,
+              }
+
+          started_at = datetime.now(timezone.utc).isoformat()
+          inventory = module.collect_runner_status()
+          mcp_probe = None
+          if request["operation"] == "mcp_readonly_probe":
+              try:
+                  mcp_probe = probe_local_mcp()
+              except Exception as exc:
+                  mcp_probe = {
+                      "status": "failed",
+                      "error_type": type(exc).__name__,
+                      "error_message": str(exc)[:300],
+                  }
+          cace_bundle_contract = None
+          if request["operation"] == "cace_rsi_bundle_contract":
+              digest_fields = (
+                  "candidate_digest", "benchmark_manifest_sha256",
+                  "evaluator_receipt_sha256", "expected_bundle_sha256",
+              )
+              if any(not re.fullmatch(r"[0-9a-f]{64}", str(request[name])) for name in digest_fields):
+                  raise SystemExit("request rejected: CACE bundle contract requires lowercase SHA-256 digests")
+              if not re.fullmatch(r"[0-9a-f]{40}", str(request["source_commit"])):
+                  raise SystemExit("request rejected: source_commit must be a 40-character Git commit")
+              if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", str(request["source_repo"])):
+                  raise SystemExit("request rejected: source_repo must be owner/name")
+              if not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", str(request["candidate_id"])):
+                  raise SystemExit("request rejected: invalid candidate_id")
+
+              package = types.ModuleType("cace_studio")
+              package.__path__ = []
+              core_package = types.ModuleType("cace_studio.core")
+              core_package.__path__ = []
+              sys.modules["cace_studio"] = package
+              sys.modules["cace_studio.core"] = core_package
+
+              def load_pinned_cace_module(module_name, path, expected_blob_sha):
+                  raw, blob_sha = fetch_contents(path)
+                  if blob_sha != expected_blob_sha:
+                      raise SystemExit(f"CACE source pin mismatch for {path}")
+                  loaded = types.ModuleType(module_name)
+                  loaded.__file__ = path
+                  loaded.__package__ = module_name.rpartition(".")[0]
+                  sys.modules[module_name] = loaded
+                  exec(compile(raw.decode("utf-8"), path, "exec"), loaded.__dict__)
+                  return blob_sha, loaded
+
+              cace_graph_sha, _ = load_pinned_cace_module(
+                  "cace_studio.core.graph", "cace_studio/core/graph.py",
+                  "cffb146a6be9becc45f0c6789707766b7c8e4222")
+              cace_repro_sha, cace_repro = load_pinned_cace_module(
+                  "cace_studio.core.reproducibility", "cace_studio/core/reproducibility.py",
+                  "8c6e7cfe7204ee557a112091a9d451e300e43210")
+              cace_ledger_sha, cace_ledger = load_pinned_cace_module(
+                  "cace_studio.core.evidence_ledger", "cace_studio/core/evidence_ledger.py",
+                  "25104f432bb50339d980754a58cbc4a004f504ec")
+
+              manifest = {
+                  "schema": "merlin-rsi-evidence-manifest-v1",
+                  "candidate_id": request["candidate_id"],
+                  "candidate_digest": request["candidate_digest"],
+                  "benchmark_manifest_sha256": request["benchmark_manifest_sha256"],
+                  "evaluator_receipt_sha256": request["evaluator_receipt_sha256"],
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+              }
+              manifest_bytes = cace_repro.canonical_json_bytes(manifest)
+              bindings = {
+                  "candidate_id": request["candidate_id"],
+                  "candidate_digest": request["candidate_digest"],
+                  "benchmark_manifest_sha256": request["benchmark_manifest_sha256"],
+                  "evaluator_receipt_sha256": request["evaluator_receipt_sha256"],
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "authority": "verification-only",
+              }
+              artifact = cace_ledger.EvidenceArtifact.from_bytes(
+                  "merlin-rsi-evidence-manifest", manifest_bytes,
+                  role="rsi-evidence-manifest", media_type="application/json",
+                  path="merlin-rsi-evidence-manifest.json", metadata={})
+              bundle = cace_ledger.EvidenceBundle(
+                  artifacts=(artifact,), bindings=bindings,
+                  notes=("Merlin RSI exact-artifact independent verification",))
+              actual_bundle_sha = cace_ledger.verify_bundle(bundle)
+              if actual_bundle_sha != request["expected_bundle_sha256"]:
+                  raise SystemExit("CACE EvidenceBundle digest does not match the Merlin adapter")
+              cace_bundle_contract = {
+                  "status": "matched",
+                  "bundle_sha256": actual_bundle_sha,
+                  "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                  "artifact_leaf_sha256": cace_ledger.artifact_leaf_hash(artifact),
+                  "pinned_source_blobs": {
+                      "graph.py": cace_graph_sha,
+                      "reproducibility.py": cace_repro_sha,
+                      "evidence_ledger.py": cace_ledger_sha,
+                  },
+                  "verification_scope": "CACE EvidenceBundle identity only; not a signed attestation or candidate verification",
+              }
+
+          rsi_test_results = None
+          if request["operation"] == "merlin_rsi_python_tests":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: source repository is not allowlisted")
+              if request["source_commit"] != "e2bdab873c566ca2d54c56932a20df7676f90de6":
+                  raise SystemExit("request rejected: RSI/Hermes source commit is not the pinned source snapshot")
+              for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
+                  if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
+                      raise SystemExit(f"request rejected: {name} must be a Git blob SHA")
+
+              vendor_paths = {
+                  "module": ("vendor/merlin-hermes-rsi-validation/python/merlin/rsi_pipeline.py", request["module_blob_sha"]),
+                  "tests": ("vendor/merlin-hermes-rsi-validation/tests/test_rsi_pipeline.py", request["test_blob_sha"]),
+                  "manifest": ("vendor/merlin-hermes-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json", request["manifest_blob_sha"]),
+              }
+              hermes_vendor_paths = {
+                  "rsi": ("vendor/merlin-hermes-rsi-validation/python/merlin/rsi.py", "a4981d80a076d58b6dbc6efd55e3baf941aee948", "python/merlin/rsi.py"),
+                  "bridge": ("vendor/merlin-hermes-rsi-validation/python/merlin/hermes_rsi_bridge.py", "cef2745bcb91b2fd21393f5af80445e4c44af091", "python/merlin/hermes_rsi_bridge.py"),
+                  "event_outbox": ("vendor/merlin-hermes-rsi-validation/python/merlin/event_outbox.py", "574d36824f688623603172738290116fd77cee08", "python/merlin/event_outbox.py"),
+                  "hermes_worker": ("vendor/merlin-hermes-rsi-validation/python/merlin/hermes_worker.py", "d8d3140311f270b4321e603d145d11a7ac371b92", "python/merlin/hermes_worker.py"),
+                  "runtime_contracts": ("vendor/merlin-hermes-rsi-validation/python/merlin/runtime_contracts.py", "af46433f1d5a1860e76279f866f8d4a149d4b6e9", "python/merlin/runtime_contracts.py"),
+                  "sqlite_registry": ("vendor/merlin-hermes-rsi-validation/python/merlin/sqlite_registry.py", "e21141e0e37375f9a4f72fe31f46fc6c31045e11", "python/merlin/sqlite_registry.py"),
+                  "telemetry": ("vendor/merlin-hermes-rsi-validation/python/merlin/telemetry.py", "5e05f0de306e9b55db81ebd26f8446e3fef35c8d", "python/merlin/telemetry.py"),
+                  "hermes_tests": ("vendor/merlin-hermes-rsi-validation/tests/test_hermes_rsi_bridge.py", "8269f1f265bae227084d3011060968e2b86c15fb", "tests/test_hermes_rsi_bridge.py"),
+              }
+              test_root = artifact_dir / "merlin-rsi-validation-source"
+              if test_root.exists():
+                  raise SystemExit("refusing to overwrite an existing RSI validation source directory")
+              test_root.mkdir(parents=True)
+              copied = {}
+              for label, (repo_path, expected_blob_sha) in vendor_paths.items():
+                  raw, actual_blob_sha = fetch_contents(repo_path)
+                  if actual_blob_sha != expected_blob_sha:
+                      raise SystemExit(f"RSI source blob mismatch for {label}")
+                  if label == "module":
+                      destination = test_root / "python/merlin/rsi_pipeline.py"
+                  elif label == "tests":
+                      destination = test_root / "tests/test_rsi_pipeline.py"
+                  else:
+                      destination = test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(raw)
+                  copied[label] = {
+                      "repo_path": repo_path,
+                      "git_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                      "size_bytes": len(raw),
+                  }
+              for label, (repo_path, expected_blob_sha, relative_path) in hermes_vendor_paths.items():
+                  raw, actual_blob_sha = fetch_contents(repo_path)
+                  if actual_blob_sha != expected_blob_sha:
+                      raise SystemExit(f"Hermes RSI source blob mismatch for {label}")
+                  destination = test_root / relative_path
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(raw)
+                  copied[label] = {
+                      "repo_path": repo_path,
+                      "git_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                      "size_bytes": len(raw),
+                  }
+
+              manifest_path = test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+              manifest_bytes = manifest_path.read_bytes()
+              manifest = json.loads(manifest_bytes.decode("utf-8"))
+              domain_counts = {}
+              for case in manifest.get("cases", []):
+                  domain = case.get("domain")
+                  domain_counts[domain] = domain_counts.get(domain, 0) + 1
+              if (manifest.get("status") != "frozen"
+                  or manifest.get("split") != "held_out"
+                  or len(manifest.get("cases", [])) != 25
+                  or set(manifest.get("domains", [])) != {"mathematics", "lean", "research", "coding", "engineering"}
+                  or set(domain_counts.values()) != {5}
+                  or set(domain_counts) != set(manifest.get("domains", []))):
+                  raise SystemExit("RSI held-out manifest failed its fixed five-domain contract")
+
+              test_env = dict(os.environ)
+              test_env["PYTHONPATH"] = str(test_root / "python")
+              test_env["PYTHONDONTWRITEBYTECODE"] = "1"
+              commands = [
+                  [sys.executable, "-m", "py_compile", str(test_root / "python/merlin/rsi_pipeline.py"), str(test_root / "python/merlin/hermes_rsi_bridge.py")],
+                  [sys.executable, "-m", "unittest", "discover", "-s",
+                   str(test_root / "tests"), "-p", "test_*.py", "-v"],
+              ]
+              command_results = []
+              for command in commands:
+                  completed = subprocess.run(
+                      command, cwd=str(test_root), env=test_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=120, check=False)
+                  command_results.append({
+                      "command": command[1:],
+                      "returncode": completed.returncode,
+                      "output": completed.stdout[-16000:],
+                  })
+                  if completed.returncode != 0:
+                      (artifact_dir / "rsi-test-failure.txt").write_text(
+                          completed.stdout[-20000:], encoding="utf-8"
+                      )
+                      raise SystemExit(
+                          "fixed RSI Python validation command failed:\\n"
+                          + completed.stdout[-12000:]
+                      )
+              test_output = command_results[-1]["output"]
+              test_match = re.search(r"Ran (\d+) tests? in", test_output)
+              rsi_test_results = {
+                  "status": "passed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "python_version": sys.version.split()[0],
+                  "source_files": copied,
+                  "benchmark_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                  "benchmark_cases": len(manifest["cases"]),
+                  "benchmark_domains": sorted(manifest["domains"]),
+                  "test_count": int(test_match.group(1)) if test_match else None,
+                  "commands": command_results,
+                  "execution_scope": "fixed Python compile and RSI plus authenticated Hermes bridge unittest commands; no package install; external HTTP calls mocked by tests",
+              }
+
+          metadata_probe_results = None
+          if request["operation"] == "merlin_rsi_metadata_live_probe":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: metadata source repository is not allowlisted")
+              if request["source_commit"] != "1822a54226d9d1045769b696e264ff8f3edd7de6":
+                  raise SystemExit("request rejected: metadata source commit is not the pinned snapshot")
+              if request["module_blob_sha"] != "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19":
+                  raise SystemExit("request rejected: metadata module blob is not pinned")
+              module_path = "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py"
+              module_bytes, module_blob = fetch_contents(module_path)
+              if module_blob != request["module_blob_sha"]:
+                  raise SystemExit("request rejected: metadata module content differs from pinned blob")
+              metadata_module = types.ModuleType("merlin_rsi_live_metadata")
+              metadata_module.__file__ = module_path
+              sys.modules[metadata_module.__name__] = metadata_module
+              exec(compile(module_bytes.decode("utf-8"), module_path, "exec"), metadata_module.__dict__)
+              metadata_db = artifact_dir / "research-metadata-live.sqlite3"
+              cache = metadata_module.ResearchMetadataCache(metadata_db)
+              calls = []
+              original_request = cache._request
+              def counted_request(host, url):
+                  calls.append({"host": host, "url": url})
+                  return original_request(host, url)
+              cache._request = counted_request
+              doi = "10.1038/nature12373"
+              arxiv_id = "1706.03762"
+              crossref_first = cache.crossref_doi(doi)
+              crossref_second = cache.crossref_doi(doi)
+              arxiv_first = cache.arxiv_id(arxiv_id)
+              arxiv_second = cache.arxiv_id(arxiv_id)
+              if crossref_first != crossref_second or arxiv_first != arxiv_second:
+                  raise RuntimeError("metadata cache replay returned inconsistent data")
+              crossref_title = (crossref_first.get("message") or {}).get("title") or []
+              arxiv_entries = arxiv_first.get("feed") or []
+              if not crossref_title or not arxiv_entries or not arxiv_entries[0].get("title"):
+                  raise RuntimeError("metadata providers returned no usable title metadata")
+              with sqlite3.connect(str(metadata_db)) as metadata_conn:
+                  rows = metadata_conn.execute(
+                      "SELECT provider,identifier,response_sha256 FROM research_metadata_cache ORDER BY provider,identifier"
+                  ).fetchall()
+                  clocks = metadata_conn.execute(
+                      "SELECT host,next_allowed_epoch FROM research_request_clock ORDER BY host"
+                  ).fetchall()
+              if len(rows) != 2 or len(calls) != 2:
+                  raise RuntimeError("metadata cache did not persist exactly one request per provider")
+              metadata_probe_results = {
+                  "status": "passed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "module_blob_sha": module_blob,
+                  "providers": {
+                      "crossref": {"doi": doi, "title": str(crossref_title[0])[:500]},
+                      "arxiv": {"id": arxiv_id, "title": str(arxiv_entries[0]["title"])[:500]},
+                  },
+                  "network_requests": calls,
+                  "cache_rows": [
+                      {"provider": row[0], "identifier": row[1], "response_sha256": row[2]}
+                      for row in rows
+                  ],
+                  "persisted_rate_clocks": [
+                      {"host": row[0], "next_allowed_epoch": row[1]} for row in clocks
+                  ],
+                  "cache_database_sha256": hashlib.sha256(metadata_db.read_bytes()).hexdigest(),
+                  "cache_hit_replays": 2,
+                  "external_hosts_allowlist": ["api.crossref.org", "export.arxiv.org"],
+              }
+              (artifact_dir / "research-metadata-live.json").write_text(
+                  json.dumps(metadata_probe_results, indent=2, sort_keys=True) + "\n",
+                  encoding="utf-8",
+              )
+
+          hermes_test_results = None
+          if request["operation"] == "merlin_hermes_rsi_full_tests":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: Hermes RSI source repository is not allowlisted")
+              if request["source_commit"] != "665c96968e8c82906a97de11f6060ad909716dec":
+                  raise SystemExit("request rejected: Hermes RSI source commit is not pinned")
+              source_paths = {
+                  "python/merlin/rsi_pipeline.py",
+                  "python/merlin/rsi.py",
+                  "python/merlin/event_outbox.py",
+                  "python/merlin/hermes_rsi_bridge.py",
+                  "python/merlin/hermes_worker.py",
+                  "python/merlin/telemetry.py",
+                  "python/merlin/hermes_outbox.py",
+                  "python/merlin/runtime_contracts.py",
+                  "python/merlin/sqlite_registry.py",
+                  "tests/test_rsi_pipeline.py",
+                  "tests/test_hermes_rsi_bridge.py",
+                  "tests/test_hermes_worker.py",
+                  "tests/test_event_outbox.py",
+                  "tests/test_hermes_outbox.py",
+                  "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+              }
+              pins = request["source_blob_shas"]
+              if not isinstance(pins, dict) or set(pins) != source_paths:
+                  raise SystemExit("request rejected: Hermes RSI source blob map is incomplete or has extra paths")
+              for path, expected_sha in pins.items():
+                  if not re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)):
+                      raise SystemExit("request rejected: invalid Git blob SHA for " + path)
+
+              test_root = artifact_dir / "merlin-hermes-rsi-validation-source"
+              if test_root.exists():
+                  raise SystemExit("refusing to overwrite an existing Hermes RSI validation directory")
+              test_root.mkdir(parents=True)
+              copied = {}
+              for path in sorted(source_paths):
+                  raw, actual_blob_sha = fetch_external_contents(
+                      request["source_repo"], path, request["source_commit"]
+                  )
+                  if actual_blob_sha != pins[path]:
+                      raise SystemExit("Hermes RSI source blob mismatch: " + path)
+                  destination = test_root / path
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(raw)
+                  copied[path] = {
+                      "git_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                      "size_bytes": len(raw),
+                  }
+
+              manifest_bytes = (test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json").read_bytes()
+              manifest = json.loads(manifest_bytes.decode("utf-8"))
+              domain_counts = {}
+              for case in manifest.get("cases", []):
+                  domain = case.get("domain")
+                  domain_counts[domain] = domain_counts.get(domain, 0) + 1
+              if (manifest.get("status") != "frozen"
+                  or manifest.get("split") != "held_out"
+                  or len(manifest.get("cases", [])) != 25
+                  or set(manifest.get("domains", [])) != {"mathematics", "lean", "research", "coding", "engineering"}
+                  or set(domain_counts.values()) != {5}
+                  or set(domain_counts) != set(manifest.get("domains", []))):
+                  raise SystemExit("Hermes RSI held-out manifest failed its fixed five-domain contract")
+
+              test_env = dict(os.environ)
+              test_env["PYTHONPATH"] = str(test_root / "python")
+              test_env["PYTHONDONTWRITEBYTECODE"] = "1"
+              python_modules = sorted(path for path in source_paths if path.startswith("python/"))
+              commands = [
+                  [sys.executable, "-m", "py_compile", *[str(test_root / path) for path in python_modules]],
+                  [sys.executable, "-m", "unittest", "discover", "-s",
+                   str(test_root / "tests"), "-p", "test_*.py", "-v"],
+              ]
+              command_results = []
+              for command in commands:
+                  completed = subprocess.run(
+                      command, cwd=str(test_root), env=test_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=180, check=False)
+                  command_results.append({
+                      "command": command[1:],
+                      "returncode": completed.returncode,
+                      "output": completed.stdout[-20000:],
+                  })
+                  if completed.returncode != 0:
+                      (artifact_dir / "hermes-rsi-test-failure.txt").write_text(
+                          completed.stdout[-20000:], encoding="utf-8"
+                      )
+                      raise SystemExit(
+                          "fixed Hermes RSI validation command failed:\n"
+                          + completed.stdout[-12000:]
+                      )
+              test_output = command_results[-1]["output"]
+              test_match = re.search(r"Ran (\d+) tests? in", test_output)
+              if not test_match:
+                  raise SystemExit("Hermes RSI test output did not contain a unittest count")
+              hermes_test_results = {
+                  "status": "passed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "python_version": sys.version.split()[0],
+                  "test_count": int(test_match.group(1)),
+                  "benchmark_cases": len(manifest["cases"]),
+                  "benchmark_domains": sorted(manifest["domains"]),
+                  "benchmark_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                  "source_files": copied,
+                  "commands": command_results,
+                  "execution_scope": "fixed RSI and Hermes bridge/outbox tests; GitHub source reads only; no package installation or host mutation",
+              }
+
+          cpp_test_results = None
+          if request["operation"] == "merlin_cpp_ledger_tests":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: C++ source repository is not allowlisted")
+              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+                  raise SystemExit("request rejected: C++ source commit is not the pinned source snapshot")
+              cpp_blob_names = {
+                  "generation_lineage_cpp", "episode_ledger_cpp", "state_machine_cpp",
+                  "sha256_cpp", "generation_lineage_hpp", "episode_ledger_hpp",
+                  "state_machine_hpp", "sha256_hpp", "personality_hpp",
+                  "interoception_hpp", "neuromodulation_hpp",
+                  "generation_lineage_test", "episode_ledger_test", "rsi_module",
+                  "sqlite3_compat",
+              }
+              cpp_blob_shas = request["cpp_blob_shas"]
+              if not isinstance(cpp_blob_shas, dict) or set(cpp_blob_shas) != cpp_blob_names:
+                  raise SystemExit("request rejected: C++ source blob manifest keys do not match fixed allowlist")
+              if any(not re.fullmatch(r"[0-9a-f]{40}", str(value)) for value in cpp_blob_shas.values()):
+                  raise SystemExit("request rejected: C++ source blob manifest contains an invalid Git SHA")
+
+              compiler = shutil.which("g++") or shutil.which("c++")
+              sqlite_library = ctypes.util.find_library("sqlite3")
+              sqlite_runtime_loaded = False
+              if sqlite_library:
+                  try:
+                      ctypes.CDLL(sqlite_library)
+                      sqlite_runtime_loaded = True
+                  except OSError:
+                      sqlite_runtime_loaded = False
+              if not compiler or not sqlite_runtime_loaded:
+                  cpp_test_results = {
+                      "status": "unavailable",
+                      "reason": "preinstalled C++ compiler or SQLite runtime library is unavailable; no packages were installed",
+                      "compiler_found": bool(compiler),
+                      "sqlite_runtime_loaded": sqlite_runtime_loaded,
+                      "sqlite_library": sqlite_library,
+                  }
+              else:
+                  cpp_test_root = artifact_dir / "merlin-cpp-ledger-validation"
+                  if cpp_test_root.exists():
+                      raise SystemExit("refusing to overwrite existing C++ validation directory")
+                  cpp_test_root.mkdir(parents=True)
+                  vendor_map = {
+                      "generation_lineage_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/growth/generation_lineage.cpp", "cpp/src/growth/generation_lineage.cpp"),
+                      "episode_ledger_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/research/episode_ledger.cpp", "cpp/src/research/episode_ledger.cpp"),
+                      "state_machine_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/research/state_machine.cpp", "cpp/src/research/state_machine.cpp"),
+                      "sha256_cpp": ("vendor/merlin-cpp-ledger-validation/cpp/src/sha256.cpp", "cpp/src/sha256.cpp"),
+                      "generation_lineage_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/growth/generation_lineage.hpp", "cpp/include/expert_robot/growth/generation_lineage.hpp"),
+                      "episode_ledger_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/research/episode_ledger.hpp", "cpp/include/expert_robot/research/episode_ledger.hpp"),
+                      "state_machine_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/research/state_machine.hpp", "cpp/include/expert_robot/research/state_machine.hpp"),
+                      "sha256_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/sha256.hpp", "cpp/include/expert_robot/sha256.hpp"),
+                      "personality_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/personality.hpp", "cpp/include/expert_robot/cognition/personality.hpp"),
+                      "interoception_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/interoception.hpp", "cpp/include/expert_robot/cognition/interoception.hpp"),
+                      "neuromodulation_hpp": ("vendor/merlin-cpp-ledger-validation/cpp/include/expert_robot/cognition/neuromodulation.hpp", "cpp/include/expert_robot/cognition/neuromodulation.hpp"),
+                      "generation_lineage_test": ("vendor/merlin-cpp-ledger-validation/tests/generation_lineage_smoke.cpp", "tests/generation_lineage_smoke.cpp"),
+                      "episode_ledger_test": ("vendor/merlin-cpp-ledger-validation/tests/research_episode_ledger_smoke.cpp", "tests/research_episode_ledger_smoke.cpp"),
+                      "rsi_module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py", "python/merlin/rsi_pipeline.py"),
+                      "sqlite3_compat": ("vendor/merlin-cpp-ledger-validation/compat/sqlite3.h", "compat/sqlite3.h"),
+                  }
+                  copied_cpp = {}
+                  for label, (repo_path, relative_path) in vendor_map.items():
+                      raw, actual_blob_sha = fetch_contents(repo_path)
+                      if actual_blob_sha != cpp_blob_shas[label]:
+                          raise SystemExit(f"C++ source blob mismatch for {label}")
+                      destination = cpp_test_root / relative_path
+                      destination.parent.mkdir(parents=True, exist_ok=True)
+                      destination.write_bytes(raw)
+                      copied_cpp[label] = {
+                          "repo_path": repo_path, "git_blob_sha": actual_blob_sha,
+                          "sha256": hashlib.sha256(raw).hexdigest(), "size_bytes": len(raw),
+                      }
+
+                  build_dir = cpp_test_root / "build"
+                  tmp_dir = cpp_test_root / "tmp"
+                  build_dir.mkdir()
+                  tmp_dir.mkdir()
+                  include_dir = cpp_test_root / "cpp/include"
+                  compat_dir = cpp_test_root / "compat"
+                  cpp_env = dict(os.environ)
+                  cpp_env["TMPDIR"] = str(tmp_dir)
+                  cpp_env["TMP"] = str(tmp_dir)
+                  cpp_env["TEMP"] = str(tmp_dir)
+                  cpp_env["PYTHONPATH"] = str(cpp_test_root / "python")
+                  sqlite_link_arg = ("-l:" + Path(sqlite_library).name
+                                     if "/" not in sqlite_library else sqlite_library)
+                  compiler_version = subprocess.run(
+                      [compiler, "--version"], stdout=subprocess.PIPE,
+                      stderr=subprocess.STDOUT, text=True, timeout=15, check=False).stdout.splitlines()[0]
+
+                  commands = [
+                      [compiler, "-std=c++20", "-O0", "-I", str(compat_dir), "-I", str(include_dir),
+                       str(cpp_test_root / "tests/generation_lineage_smoke.cpp"),
+                       str(cpp_test_root / "cpp/src/growth/generation_lineage.cpp"),
+                       str(cpp_test_root / "cpp/src/sha256.cpp"), sqlite_link_arg,
+                       "-o", str(build_dir / "generation_lineage_smoke")],
+                      [str(build_dir / "generation_lineage_smoke")],
+                      [compiler, "-std=c++20", "-O0", "-I", str(compat_dir), "-I", str(include_dir),
+                       str(cpp_test_root / "tests/research_episode_ledger_smoke.cpp"),
+                       str(cpp_test_root / "cpp/src/research/episode_ledger.cpp"),
+                       str(cpp_test_root / "cpp/src/research/state_machine.cpp"),
+                       str(cpp_test_root / "cpp/src/sha256.cpp"), sqlite_link_arg,
+                       "-o", str(build_dir / "research_episode_ledger_smoke")],
+                      [str(build_dir / "research_episode_ledger_smoke")],
+                  ]
+                  command_results = []
+                  for command in commands:
+                      completed = subprocess.run(
+                          command, cwd=str(cpp_test_root), env=cpp_env,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          text=True, timeout=90, check=False)
+                      command_results.append({
+                          "command": command, "returncode": completed.returncode,
+                          "output": completed.stdout[-12000:],
+                      })
+                      (artifact_dir / "cpp-test-progress.json").write_text(
+                          json.dumps({"commands": command_results}, indent=2, sort_keys=True) + "\n",
+                          encoding="utf-8")
+                      if completed.returncode != 0:
+                          raise SystemExit("fixed C++ ledger compile or smoke test failed:\n" + completed.stdout[-6000:])
+
+                  interop_db = cpp_test_root / "python-cpp-interop.sqlite3"
+                  episode_id = "merlin-rsi-python-cpp-interop"
+                  python_writer = (
+                      "import sys; from merlin.rsi_pipeline import AppendOnlyLedger; "
+                      "ledger=AppendOnlyLedger(sys.argv[1]); "
+                      "ledger.append('rsi.python_cpp_interop', sys.argv[2], "
+                      "{'source_repo':sys.argv[3],'source_commit':sys.argv[4]})"
+                  )
+                  written = subprocess.run(
+                      [sys.executable, "-c", python_writer, str(interop_db), episode_id,
+                       request["source_repo"], request["source_commit"]],
+                      cwd=str(cpp_test_root), env=cpp_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=30, check=False)
+                  if written.returncode != 0:
+                      raise SystemExit("Python-to-C++ interop fixture creation failed")
+
+                  harness_path = cpp_test_root / "python_cpp_ledger_interop.cpp"
+                  harness_path.write_text(
+                      '#include "expert_robot/research/episode_ledger.hpp"\n'
+                      '#include <iostream>\n'
+                      'int main(int argc, char** argv) {\n'
+                      '  if (argc != 3) return 2;\n'
+                      '  expert_robot::research::ResearchEpisodeLedger ledger(argv[1]);\n'
+                      '  const auto result = ledger.verify(argv[2]);\n'
+                      '  if (!result.valid || result.event_count != 1) {\n'
+                      '    std::cerr << "ledger verification failed: " << result.reason << "\\n";\n'
+                      '    return 1;\n'
+                      '  }\n'
+                      '  std::cout << "python_to_cpp_episode_verified root=" << result.root_hash << "\\n";\n'
+                      '  return 0;\n'
+                      '}\n',
+                      encoding="utf-8")
+                  interop_binary = build_dir / "python_cpp_ledger_interop"
+                  interop_compile = [
+                      compiler, "-std=c++20", "-O0", "-I", str(compat_dir), "-I", str(include_dir),
+                      str(harness_path), str(cpp_test_root / "cpp/src/research/episode_ledger.cpp"),
+                      str(cpp_test_root / "cpp/src/research/state_machine.cpp"),
+                      str(cpp_test_root / "cpp/src/sha256.cpp"), sqlite_link_arg,
+                      "-o", str(interop_binary),
+                  ]
+                  compiled = subprocess.run(
+                      interop_compile, cwd=str(cpp_test_root), env=cpp_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=90, check=False)
+                  command_results.append({"command": interop_compile,
+                      "returncode": compiled.returncode, "output": compiled.stdout[-12000:]})
+                  (artifact_dir / "cpp-test-progress.json").write_text(
+                      json.dumps({"commands": command_results}, indent=2, sort_keys=True) + "\n",
+                      encoding="utf-8")
+                  if compiled.returncode != 0:
+                      raise SystemExit("Python-to-C++ interop harness compilation failed:\n" + compiled.stdout[-6000:])
+                  interop = subprocess.run(
+                      [str(interop_binary), str(interop_db), episode_id],
+                      cwd=str(cpp_test_root), env=cpp_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=30, check=False)
+                  command_results.append({"command": [str(interop_binary), str(interop_db), episode_id],
+                      "returncode": interop.returncode, "output": interop.stdout[-12000:]})
+                  (artifact_dir / "cpp-test-progress.json").write_text(
+                      json.dumps({"commands": command_results}, indent=2, sort_keys=True) + "\n",
+                      encoding="utf-8")
+                  if interop.returncode != 0:
+                      raise SystemExit("Python-to-C++ research episode interoperability failed:\n" + interop.stdout[-6000:])
+
+                  cpp_test_results = {
+                      "status": "passed", "source_repo": request["source_repo"],
+                      "source_commit": request["source_commit"],
+                      "compiler": compiler, "compiler_version": compiler_version,
+                      "sqlite_library": sqlite_library,
+                      "sqlite_header_mode": "vendored-minimal-abi-declarations",
+                      "source_files": copied_cpp,
+                      "commands": command_results,
+                      "python_cpp_interop": {
+                          "status": "passed", "episode_id": episode_id,
+                          "database_sha256": hashlib.sha256(interop_db.read_bytes()).hexdigest(),
+                          "output": interop.stdout[-4000:],
+                      },
+                      "execution_scope": "fixed C++20 compile/smoke tests and Python-to-C++ ledger verification; no package installation; unique runner-temp paths",
+                  }
+
+          completed_at = datetime.now(timezone.utc).isoformat()
+          receipt = {
+              "schema": "merlin-oci-job-receipt-v1",
+              "request_id": path_request_id,
+              "request_blob_sha": request_blob_sha,
+              "request_sha256": hashlib.sha256(request_bytes).hexdigest(),
+              "operation": request["operation"],
+              "actor_id": (event.get("sender") or {}).get("login", "unknown"),
+              "repository": repo,
+              "request_commit_sha": commit,
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "runner_name": os.environ.get("RUNNER_NAME", "unknown"),
+              "runner_os": os.environ.get("RUNNER_OS", "unknown"),
+              "runner_arch": os.environ.get("RUNNER_ARCH", "unknown"),
+              "inventory_module_blob_sha": module_blob_sha,
+              "inventory_module_sha256": module_sha256,
+              "started_at_utc": started_at,
+              "completed_at_utc": completed_at,
+              "status": (
+                  "failed" if (
+                      (mcp_probe is not None and mcp_probe.get("status") != "succeeded")
+                      or (cace_bundle_contract is not None and cace_bundle_contract.get("status") != "matched")
+                      or (rsi_test_results is not None and rsi_test_results.get("status") != "passed")
+                      or (cpp_test_results is not None and cpp_test_results.get("status") != "passed")
+                      or (metadata_probe_results is not None and metadata_probe_results.get("status") != "passed")
+                  ) else "succeeded"
+              ),
+              "qualification": False,
+              "proof_implication": "none",
+              "host_mutations": False,
+              "arbitrary_shell_enabled": False,
+              "resource_limits": {
+                  "job_timeout_minutes": 3,
+                  "per_probe_timeout_seconds": 5,
+                  "network_scope": (
+                      "GitHub API content reads plus localhost MCP only" if request["operation"] == "mcp_readonly_probe" else
+                      "GitHub API reads plus Crossref/arXiv public metadata endpoints only" if request["operation"] == "merlin_rsi_metadata_live_probe" else
+                      "GitHub API content reads only; local fixed tests use mocked external requests"
+                  ),
+                  "package_installation": False,
+                  "cache_mutation": False,
+              },
+              "inventory": inventory,
+              "mcp_probe": mcp_probe,
+              "cace_bundle_contract": cace_bundle_contract,
+              "rsi_test_results": rsi_test_results,
+              "hermes_test_results": hermes_test_results,
+              "cpp_test_results": cpp_test_results,
+              "metadata_probe_results": metadata_probe_results,
+          }
+          (artifact_dir / "job-receipt.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          (artifact_dir / "runner-inventory.json").write_text(
+              json.dumps(inventory, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({k: v for k, v in receipt.items() if k != "inventory"}, indent=2, sort_keys=True))
+          print("MERLIN_OCI_JOB_STATUS=" + receipt["status"])
+          if receipt["status"] != "succeeded":
+              raise SystemExit("approved OCI profile failed or was unavailable")
+          PY
+
+      - name: Upload job receipt and inventory
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-job-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-job-${{ github.run_id }}-${{ github.run_attempt }}/
+          if-no-files-found: warn
+          retention-days: 14

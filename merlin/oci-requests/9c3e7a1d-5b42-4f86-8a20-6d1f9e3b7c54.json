@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "9c3e7a1d-5b42-4f86-8a20-6d1f9e3b7c54",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Rerun full RSI and Hermes bridge regression suite after fixing CACE purpose binding and canonical Hermes failure receipt claims.",
+  "created_at": "2026-11-12T01:12:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "e2bdab873c566ca2d54c56932a20df7676f90de6",
+  "module_blob_sha": "1002ded78f15d309443ecfaa0aafb24ca3bff2ff",
+  "test_blob_sha": "adb6b87a95fcec9c3ba831975f561ba11dc3e354",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
