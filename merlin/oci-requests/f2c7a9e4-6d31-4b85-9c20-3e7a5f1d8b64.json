@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f2c7a9e4-6d31-4b85-9c20-3e7a5f1d8b64",
+  "operation": "rsi_validation",
+  "reason": "Validate CACE runner provenance binding and controlled independent-reproduction promotion gate on OCI",
+  "created_at": "2026-11-12T00:40:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "9b3a330a9d014e7cfe20422232bec7454a97d914"
+}
