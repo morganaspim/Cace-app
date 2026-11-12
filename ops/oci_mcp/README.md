@@ -23,6 +23,8 @@ Opt-in write tools:
 - `restart_cace_web`
 - `ensure_web_ingress`
 - `remove_mcp_managed_web_ingress`
+- `initialize_merlin_rsi_attestor` (one-time, non-overwriting Ed25519 key creation)
+- `attest_merlin_rsi_bundle` (signs only after exact artifact bytes are verified)
 
 The network write tools:
 
@@ -35,8 +37,9 @@ The network write tools:
 
 The service exposes no arbitrary command execution, IAM mutation, secret access,
 instance termination, or generic OCI SDK method. The Merlin RSI verifier delegates
-bundle and Ed25519 semantics to `cace_studio.core`, and it cannot sign attestations
-or promote claims.
+bundle and Ed25519 semantics to `cace_studio.core`. The dedicated attestor can sign
+only an `artifact-integrity` statement after CACE verifies every supplied artifact
+byte against the bundle; it cannot run candidate code or promote claims.
 
 The `get_github_runner_status` tool is a bounded, read-only host snapshot. It
 reports Actions runner directory/registration-file presence, listener process,
@@ -208,6 +211,23 @@ a public reverse proxy instead, add strong authentication (prefer OAuth),
 TLS, rate limits, and a hostname allowlist; do not publish an unauthenticated
 MCP endpoint.
 
+### CACE RSI attestor identity
+
+`initialize_merlin_rsi_attestor` creates a single Ed25519 keypair under
+`/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem` (or the fixed
+`CACE_MERLIN_RSI_SIGNING_KEY_PATH` service setting). The private key is
+created with mode 0600, is never returned, and is never overwritten. The
+tool returns only the public PEM and its SHA-256-derived key ID so Merlin can
+pin it independently.
+
+`attest_merlin_rsi_bundle` accepts a CACE EvidenceBundle, the exact expected
+claim/bindings, and base64 bytes for every artifact. It requires an exact
+artifact-ID set, verifies every byte length and SHA-256 using CACE core, caps
+the aggregate decoded input at 10 MiB, and signs an `artifact-integrity`
+attestation. It does not claim independent mathematical reproduction,
+does not execute candidate code, and always returns `proof_effect=none`.
+The separate evaluator receipt and Merlin approval gates remain mandatory.
+
 ## Merlin RSI attestation verification
 
 The read-only `verify_merlin_rsi_attestation` MCP tool is an independent CACE
@@ -230,9 +250,10 @@ JSON string. The public key itself is carried in the attestation and its
 fingerprint must match the pinned key ID.
 
 Set `CACE_APP_ROOT` only if the CACE Studio release is not available at
-`/opt/cace-web/current`. The tool fails closed if CACE core, cryptography, or
-the trust store is unavailable. It does not generate signatures, run arbitrary
-candidate code, establish mathematical truth, or grant promotion authority.
+`/opt/cace-web/current`. The verification tool fails closed if CACE core, cryptography, or
+the trust store is unavailable. The signing tool fails closed if the one-time
+CACE key has not been initialized. Neither tool runs arbitrary candidate code,
+establishes mathematical truth, or grants promotion authority.
 Promotion remains a separate Merlin approval decision.
 
 ## Operational boundary
