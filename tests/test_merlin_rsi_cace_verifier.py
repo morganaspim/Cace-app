@@ -17,7 +17,6 @@ from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ops.oci_mcp import server as mcp_server
 from ops.oci_mcp.merlin_rsi_verifier import (
     attest_merlin_rsi_bundle,
     initialize_merlin_rsi_attestor,
