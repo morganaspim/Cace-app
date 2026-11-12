@@ -109,6 +109,12 @@ jobs:
               "source_repo", "source_commit", "module_blob_sha",
               "test_blob_sha", "manifest_blob_sha",
           }
+          rsi_extra_blob_names = {
+              "rsi_kernel", "hermes_rsi_bridge", "hermes_worker", "event_outbox",
+              "telemetry", "hermes_outbox", "runtime_contracts", "sqlite_registry",
+              "hermes_rsi_bridge_tests", "hermes_worker_tests", "event_outbox_tests",
+              "hermes_outbox_tests", "runtime_contracts_tests", "telemetry_tests",
+          }
           cpp_test_fields = {"source_repo", "source_commit", "cpp_blob_shas"}
           if not isinstance(request, dict) or not base_fields.issubset(request):
               raise SystemExit("request rejected: base schema fields are missing")
@@ -125,6 +131,8 @@ jobs:
               expected_fields = base_fields | cace_fields
           elif request["operation"] == "merlin_rsi_python_tests":
               expected_fields = base_fields | rsi_test_fields
+              if set(request) == expected_fields | {"additional_blob_shas"}:
+                  expected_fields = expected_fields | {"additional_blob_shas"}
           elif request["operation"] == "merlin_cpp_ledger_tests":
               expected_fields = base_fields | cpp_test_fields
           else:
@@ -370,32 +378,56 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "dd57e13aa480883175b53916e64578f62d671077":
+              if request["source_commit"] != "60fdd099e51cdf9e756427b33ef529615a9d63aa":
                   raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
                       raise SystemExit(f"request rejected: {name} must be a Git blob SHA")
 
               vendor_paths = {
-                  "module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py", request["module_blob_sha"]),
-                  "tests": ("vendor/merlin-rsi-validation/tests/test_rsi_pipeline.py", request["test_blob_sha"]),
-                  "manifest": ("vendor/merlin-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json", request["manifest_blob_sha"]),
+                  "module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py",
+                             request["module_blob_sha"], "python/merlin/rsi_pipeline.py"),
+                  "tests": ("vendor/merlin-rsi-validation/tests/test_rsi_pipeline.py",
+                            request["test_blob_sha"], "tests/test_rsi_pipeline.py"),
+                  "manifest": ("vendor/merlin-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+                               request["manifest_blob_sha"], "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"),
               }
+              extra_destinations = {
+                  "rsi_kernel": ("vendor/merlin-rsi-validation/python/merlin/rsi.py", "python/merlin/rsi.py"),
+                  "hermes_rsi_bridge": ("vendor/merlin-rsi-validation/python/merlin/hermes_rsi_bridge.py", "python/merlin/hermes_rsi_bridge.py"),
+                  "hermes_worker": ("vendor/merlin-rsi-validation/python/merlin/hermes_worker.py", "python/merlin/hermes_worker.py"),
+                  "event_outbox": ("vendor/merlin-rsi-validation/python/merlin/event_outbox.py", "python/merlin/event_outbox.py"),
+                  "telemetry": ("vendor/merlin-rsi-validation/python/merlin/telemetry.py", "python/merlin/telemetry.py"),
+                  "hermes_outbox": ("vendor/merlin-rsi-validation/python/merlin/hermes_outbox.py", "python/merlin/hermes_outbox.py"),
+                  "runtime_contracts": ("vendor/merlin-rsi-validation/python/merlin/runtime_contracts.py", "python/merlin/runtime_contracts.py"),
+                  "sqlite_registry": ("vendor/merlin-rsi-validation/python/merlin/sqlite_registry.py", "python/merlin/sqlite_registry.py"),
+                  "hermes_rsi_bridge_tests": ("vendor/merlin-rsi-validation/tests/test_hermes_rsi_bridge.py", "tests/test_hermes_rsi_bridge.py"),
+                  "hermes_worker_tests": ("vendor/merlin-rsi-validation/tests/test_hermes_worker.py", "tests/test_hermes_worker.py"),
+                  "event_outbox_tests": ("vendor/merlin-rsi-validation/tests/test_event_outbox.py", "tests/test_event_outbox.py"),
+                  "hermes_outbox_tests": ("vendor/merlin-rsi-validation/tests/test_hermes_outbox.py", "tests/test_hermes_outbox.py"),
+                  "runtime_contracts_tests": ("vendor/merlin-rsi-validation/tests/test_runtime_contracts.py", "tests/test_runtime_contracts.py"),
+                  "telemetry_tests": ("vendor/merlin-rsi-validation/tests/test_telemetry.py", "tests/test_telemetry.py"),
+              }
+              additional_blob_shas = request.get("additional_blob_shas")
+              if additional_blob_shas is not None:
+                  if (not isinstance(additional_blob_shas, dict)
+                      or set(additional_blob_shas) != rsi_extra_blob_names
+                      or any(not re.fullmatch(r"[0-9a-f]{40}", str(value))
+                             for value in additional_blob_shas.values())):
+                      raise SystemExit("request rejected: RSI additional blob manifest does not match the fixed allowlist")
+                  for name, (repo_path, destination) in extra_destinations.items():
+                      vendor_paths[name] = (repo_path, additional_blob_shas[name], destination)
+
               test_root = artifact_dir / "merlin-rsi-validation-source"
               if test_root.exists():
                   raise SystemExit("refusing to overwrite an existing RSI validation source directory")
               test_root.mkdir(parents=True)
               copied = {}
-              for label, (repo_path, expected_blob_sha) in vendor_paths.items():
+              for label, (repo_path, expected_blob_sha, relative_destination) in vendor_paths.items():
                   raw, actual_blob_sha = fetch_contents(repo_path)
                   if actual_blob_sha != expected_blob_sha:
                       raise SystemExit(f"RSI source blob mismatch for {label}")
-                  if label == "module":
-                      destination = test_root / "python/merlin/rsi_pipeline.py"
-                  elif label == "tests":
-                      destination = test_root / "tests/test_rsi_pipeline.py"
-                  else:
-                      destination = test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+                  destination = test_root / relative_destination
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   destination.write_bytes(raw)
                   copied[label] = {
@@ -423,26 +455,40 @@ jobs:
               test_env = dict(os.environ)
               test_env["PYTHONPATH"] = str(test_root / "python")
               test_env["PYTHONDONTWRITEBYTECODE"] = "1"
+              test_files = ["test_rsi_pipeline.py"]
+              if additional_blob_shas is not None:
+                  test_files.extend([
+                      "test_hermes_rsi_bridge.py", "test_hermes_worker.py",
+                      "test_event_outbox.py", "test_hermes_outbox.py",
+                      "test_runtime_contracts.py", "test_telemetry.py",
+                  ])
               commands = [
-                  [sys.executable, "-m", "py_compile", str(test_root / "python/merlin/rsi_pipeline.py")],
+                  [sys.executable, "-m", "compileall", "-q", str(test_root / "python/merlin")],
+              ] + [
                   [sys.executable, "-m", "unittest", "discover", "-s",
-                   str(test_root / "tests"), "-p", "test_rsi_pipeline.py", "-v"],
+                   str(test_root / "tests"), "-p", test_file, "-v"]
+                  for test_file in test_files
               ]
               command_results = []
               for command in commands:
                   completed = subprocess.run(
                       command, cwd=str(test_root), env=test_env,
                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                      text=True, timeout=120, check=False)
+                      text=True, timeout=180, check=False)
                   command_results.append({
                       "command": command[1:],
                       "returncode": completed.returncode,
                       "output": completed.stdout[-16000:],
                   })
                   if completed.returncode != 0:
-                      raise SystemExit("fixed RSI Python validation command failed")
-              test_output = command_results[-1]["output"]
-              test_match = re.search(r"Ran (\d+) tests? in", test_output)
+                      raise SystemExit("fixed RSI/Hermes Python validation command failed")
+              test_outputs = [item["output"] for item in command_results[1:]]
+              test_output = "\n".join(test_outputs)
+              test_counts = [
+                  int(match.group(1))
+                  for output in test_outputs
+                  if (match := re.search(r"Ran (\d+) tests? in", output))
+              ]
               rsi_test_results = {
                   "status": "passed",
                   "source_repo": request["source_repo"],
@@ -452,7 +498,8 @@ jobs:
                   "benchmark_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
                   "benchmark_cases": len(manifest["cases"]),
                   "benchmark_domains": sorted(manifest["domains"]),
-                  "test_count": int(test_match.group(1)) if test_match else None,
+                  "test_files": test_files,
+                  "test_count": sum(test_counts) if test_counts else None,
                   "commands": command_results,
                   "execution_scope": "fixed Python compile and unittest commands; no package install; external HTTP calls mocked by tests",
               }
@@ -461,7 +508,7 @@ jobs:
           if request["operation"] == "merlin_cpp_ledger_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: C++ source repository is not allowlisted")
-              if request["source_commit"] != "dd57e13aa480883175b53916e64578f62d671077":
+              if request["source_commit"] != "60fdd099e51cdf9e756427b33ef529615a9d63aa":
                   raise SystemExit("request rejected: C++ source commit is not the pinned source snapshot")
               cpp_blob_names = {
                   "generation_lineage_cpp", "episode_ledger_cpp", "state_machine_cpp",
