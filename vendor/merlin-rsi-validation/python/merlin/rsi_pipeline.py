@@ -350,7 +350,8 @@ def verify_cace_attestation(
         "attestation_sha256": sha256_hex(canonical_json(dict(attestation))),
         "statement_sha256": statement_digest, "verifier_key_id": actual_key_id,
         "verifier_id": expected_verifier_id, "bundle_sha256": expected_bundle_sha256,
-        "purpose": statement.get("purpose"), "authority": "verification-only",
+        "purpose": statement.get("purpose"), "runner_provenance": runner_provenance,
+        "authority": "verification-only",
     }
 
 
