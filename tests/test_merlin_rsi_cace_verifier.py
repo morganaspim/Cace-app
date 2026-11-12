@@ -430,6 +430,25 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 cace_app_root=self.root,
                 github_fetch=fake_fetch,
             )
+            def branch_push_fetch(url):
+                response = fake_fetch(url)
+                if url.endswith(f"/actions/runs/{run_id}"):
+                    response = dict(response, event="push", head_branch="merlin/oci-jobs/reproduction-test")
+                return response
+
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_reproduction(
+                    bundle_payload=bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=bindings,
+                    artifact_bytes_b64=artifact_bytes_b64,
+                    github_run_id=run_id,
+                    trusted_workflow_sha256=trusted_workflow_sha256,
+                    trusted_run_branch="main",
+                    private_key_pem=key_path.read_bytes(),
+                    cace_app_root=self.root,
+                    github_fetch=branch_push_fetch,
+                )
             with self.assertRaises(PermissionError):
                 attest_merlin_rsi_reproduction(
                     bundle_payload=bundle.payload(),
