@@ -190,16 +190,13 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     "status": "active",
                 }],
             }, sort_keys=True, separators=(",", ":"))
-            verified = self.verify(
-                attestation_payload=signed["attestation"],
-                trust_store_json=key_store,
-                trust_store_sha256=hashlib.sha256(key_store.encode("utf-8")).hexdigest(),
-            )
             self.assertEqual(signed["purpose"], "artifact-integrity")
-            self.assertTrue(verified["verified"])
-            self.assertEqual(verified["purpose"], "artifact-integrity")
-            self.assertEqual(verified["artifact_bytes_verified"], len(self.artifact_bytes))
-            self.assertEqual(verified["proof_effect"], "none")
+            with self.assertRaises(PermissionError):
+                self.verify(
+                    attestation_payload=signed["attestation"],
+                    trust_store_json=key_store,
+                    trust_store_sha256=hashlib.sha256(key_store.encode("utf-8")).hexdigest(),
+                )
 
     def test_cace_signer_requires_initialized_private_key(self):
         with tempfile.TemporaryDirectory() as temp:
