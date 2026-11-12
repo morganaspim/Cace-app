@@ -1,0 +1,139 @@
+import hashlib
+import json
+import sys
+import unittest
+from datetime import datetime, timezone
+from pathlib import Path
+
+from cace_studio.core.attestation import (
+    AttestationStatement,
+    generate_ed25519_keypair_pem,
+    public_key_id,
+    sign_attestation,
+)
+from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from ops.oci_mcp.merlin_rsi_verifier import verify_merlin_rsi_attestation
+
+
+class MerlinRSICaceVerifierTests(unittest.TestCase):
+    def setUp(self):
+        self.claim_id = "merlin-rsi-candidate-001"
+        self.bindings = {
+            "candidate_id": self.claim_id,
+            "candidate_digest": "a" * 64,
+            "benchmark_manifest_sha256": "b" * 64,
+            "evaluator_receipt_sha256": "c" * 64,
+            "source_repo": "Mannyspiro/expert-robot",
+            "source_commit": "d" * 40,
+            "authority": "verification-only",
+        }
+        artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-evidence-manifest",
+            b'{"candidate":"merlin-rsi-candidate-001"}',
+            role="rsi-evidence-manifest",
+            media_type="application/json",
+            path="merlin-rsi-evidence-manifest.json",
+        )
+        self.bundle = EvidenceBundle(
+            artifacts=(artifact,),
+            bindings=self.bindings,
+            notes=("Merlin RSI exact-artifact independent verification",),
+        )
+        self.private_pem, self.public_pem = generate_ed25519_keypair_pem()
+        self.key_id = public_key_id(self.public_pem)
+        statement = AttestationStatement(
+            verifier_id="cace",
+            verifier_key_id=self.key_id,
+            claim_id=self.claim_id,
+            bundle_sha256=self.bundle.bundle_sha256,
+            created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            purpose="independent-reproduction",
+            bindings=self.bindings,
+        )
+        self.attestation = sign_attestation(statement, self.private_pem).payload()
+        self.trust_store = json.dumps({
+            "schema": "merlin-cace-trust-store-v1",
+            "keys": [{
+                "key_id": self.key_id,
+                "verifier_id": "cace",
+                "status": "active",
+            }],
+        }, sort_keys=True, separators=(",", ":"))
+        self.trust_digest = hashlib.sha256(self.trust_store.encode("utf-8")).hexdigest()
+        self.root = Path(__file__).resolve().parents[1]
+
+    def verify(self, **overrides):
+        args = {
+            "bundle_payload": self.bundle.payload(),
+            "attestation_payload": self.attestation,
+            "expected_claim_id": self.claim_id,
+            "expected_bindings": self.bindings,
+            "trust_store_json": self.trust_store,
+            "trust_store_sha256": self.trust_digest,
+            "cace_app_root": self.root,
+        }
+        args.update(overrides)
+        return verify_merlin_rsi_attestation(**args)
+
+    def test_verifies_cace_native_bundle_and_attestation(self):
+        result = self.verify()
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["verifier_id"], "cace")
+        self.assertEqual(result["verifier_key_id"], self.key_id)
+        self.assertEqual(result["bundle_sha256"], self.bundle.bundle_sha256)
+        self.assertEqual(result["proof_effect"], "none")
+        self.assertEqual(result["authority"], "verification-only")
+
+    def test_missing_or_tampered_trust_store_fails_closed(self):
+        with self.assertRaises(PermissionError):
+            self.verify(trust_store_json="", trust_store_sha256="")
+        with self.assertRaises(PermissionError):
+            self.verify(trust_store_sha256="0" * 64)
+
+    def test_unpinned_key_and_wrong_claim_are_rejected(self):
+        forged = json.dumps({
+            "schema": "merlin-cace-trust-store-v1",
+            "keys": [{
+                "key_id": "ed25519:" + "e" * 64,
+                "verifier_id": "cace",
+                "status": "active",
+            }],
+        }, sort_keys=True, separators=(",", ":"))
+        with self.assertRaises(PermissionError):
+            self.verify(
+                trust_store_json=forged,
+                trust_store_sha256=hashlib.sha256(forged.encode("utf-8")).hexdigest(),
+            )
+        with self.assertRaises(PermissionError):
+            self.verify(expected_claim_id="another-candidate")
+
+    def test_bundle_and_attestation_bindings_must_match_exactly(self):
+        changed = dict(self.bindings)
+        changed["candidate_digest"] = "f" * 64
+        with self.assertRaises(PermissionError):
+            self.verify(expected_bindings=changed)
+        forged = json.loads(json.dumps(self.attestation))
+        forged["statement"]["bindings"]["candidate_digest"] = "f" * 64
+        with self.assertRaises(Exception):
+            self.verify(attestation_payload=forged)
+
+    def test_non_reproduction_purpose_is_rejected(self):
+        statement = AttestationStatement(
+            verifier_id="cace",
+            verifier_key_id=self.key_id,
+            claim_id=self.claim_id,
+            bundle_sha256=self.bundle.bundle_sha256,
+            created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            purpose="artifact-integrity",
+            bindings=self.bindings,
+        )
+        attestation = sign_attestation(statement, self.private_pem).payload()
+        with self.assertRaises(PermissionError):
+            self.verify(attestation_payload=attestation)
+
+
+if __name__ == "__main__":
+    unittest.main()
