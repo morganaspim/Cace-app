@@ -186,6 +186,7 @@ class RSIPipelineTests(unittest.TestCase):
         }
         claims = {
             "subject": "hermes-failure:hermes-dispatch-51",
+            "record_sha256": rsi.sha256_hex(rsi.canonical_json(failure)),
             "source_repo": failure["source_repo"],
             "source_commit": SOURCE_COMMIT,
             "artifact_sha256": ARTIFACT,
@@ -248,6 +249,7 @@ class RSIPipelineTests(unittest.TestCase):
         }
         claims = {
             "subject": "hermes-failure:hermes-dispatch-52",
+            "record_sha256": rsi.sha256_hex(rsi.canonical_json(failure)),
             "source_repo": failure["source_repo"],
             "source_commit": SOURCE_COMMIT,
             "artifact_sha256": ARTIFACT,
@@ -290,6 +292,7 @@ class RSIPipelineTests(unittest.TestCase):
         }
         hermes_receipt = sign_receipt("hermes", {
             "subject": "hermes-failure:hermes-seed-42",
+            "record_sha256": rsi.sha256_hex(rsi.canonical_json(failure)),
             "source_repo": failure["source_repo"],
             "source_commit": SOURCE_COMMIT,
             "artifact_sha256": ARTIFACT,
