@@ -43,3 +43,29 @@ No value should be accepted from the request payload to override these settings.
 - No live CACE reproduction attestation has been issued.
 
 Until all blockers are resolved, this integration is code-only and must not be represented as production CACE verification.
+
+
+## Two-run trust boundary (2026-11-12)
+
+The signer treats the fixed OCI execution and the protected orchestrator as
+separate run identities:
+
+- `github_run_id` identifies the OCI execution run. It must be a successful
+  `push` run on a `merlin/oci-jobs/*` request branch and must pass the pinned
+  gateway, exact request, source blob, runner job, and artifact digest checks.
+- `trusted_orchestrator_run_id` identifies a distinct successful
+  `workflow_dispatch` run on the independently configured protected branch.
+  Its workflow path and SHA-256 are separately pinned, and its workflow must
+  declare `workflow_dispatch`.
+- The OCI run cannot satisfy the orchestrator check, and the orchestrator
+  cannot substitute for OCI execution evidence. A push event can provide
+  execution evidence but can never provide signing authority.
+- The signing key remains outside the OCI runner. The protected workflow must
+  use a protected environment or external signer; do not expose the key to
+  branch-controlled code.
+
+This contract is a fail-closed integration seam. It does not create the
+protected orchestrator, configure branch protection/environment reviewers,
+provide a production key, or prove that a real pair of runs has completed.
+The pinned workflow digest and protected branch are independent operator
+configuration and must be reviewed before production use.
