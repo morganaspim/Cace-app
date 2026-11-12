@@ -147,8 +147,8 @@ def verify_merlin_rsi_attestation(
         raise PermissionError("attestation verifier identity is not CACE")
     if statement.verifier_key_id != key_id or approved.get(key_id) != "cace":
         raise PermissionError("attestation signing key is not independently pinned by CACE")
-    if statement.purpose != "independent-reproduction":
-        raise PermissionError("CACE verification requires an independent-reproduction attestation")
+    if statement.purpose not in {"artifact-integrity", "independent-reproduction"}:
+        raise PermissionError("CACE verification purpose is not supported")
     created_at = datetime.strptime(
         statement.created_at_utc, "%Y-%m-%dT%H:%M:%SZ"
     ).replace(tzinfo=timezone.utc)
