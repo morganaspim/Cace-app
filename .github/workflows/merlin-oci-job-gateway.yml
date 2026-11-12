@@ -100,7 +100,7 @@ jobs:
           base_fields = {"schema", "request_id", "operation", "reason", "created_at"}
           operation = request.get("operation") if isinstance(request, dict) else None
           allowed_operations = {"inventory_snapshot", "mcp_readonly_probe", "rsi_validation"}
-          expected_fields = base_fields | ({"source_repo", "source_commit"} if operation == "rsi_validation" else set())
+          expected_fields = base_fields | ({"source_repo", "source_commit", "module_blob_sha", "test_blob_sha", "manifest_blob_sha"} if operation == "rsi_validation" else set())
           if not isinstance(request, dict) or set(request) != expected_fields:
               raise SystemExit("request rejected: schema fields do not match the allowlisted contract")
           if request["schema"] != "merlin-oci-job-request-v1":
@@ -114,6 +114,13 @@ jobs:
                   raise SystemExit("request rejected: RSI source repository is not allowlisted")
               if request["source_commit"] != "1822a54226d9d1045769b696e264ff8f3edd7de6":
                   raise SystemExit("request rejected: RSI source commit is not the pinned snapshot")
+              expected_source_blobs = {
+                  "module_blob_sha": "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19",
+                  "test_blob_sha": "c54ddc10f16f460bc70703939f0fac8395bdcd18",
+                  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6",
+              }
+              if any(request.get(key) != value for key, value in expected_source_blobs.items()):
+                  raise SystemExit("request rejected: RSI source blob receipts do not match the pinned commit")
           reason = request["reason"]
           if not isinstance(reason, str) or not reason.strip() or len(reason) > 300:
               raise SystemExit("request rejected: reason must be 1-300 characters")
