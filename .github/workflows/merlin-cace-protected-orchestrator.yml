@@ -1,4 +1,5 @@
 name: Merlin CACE protected run validator
+run-name: Validate OCI run ${{ inputs.oci_execution_run_id }}
 
 on:
   workflow_dispatch:
