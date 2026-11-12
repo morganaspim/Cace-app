@@ -98,6 +98,27 @@ jobs:
               raw = base64.b64decode("".join(payload["content"].split()), validate=True)
               return raw, str(payload.get("sha", ""))
 
+          def fetch_external_contents(repository: str, path: str, ref: str) -> tuple[bytes, str]:
+              if repository != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: external source repository is not allowlisted")
+              encoded_path = urllib.parse.quote(path, safe="/")
+              url = f"https://api.github.com/repos/{repository}/contents/{encoded_path}?ref={ref}"
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "Merlin-OCI-Job-Gateway",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=12) as response:
+                  payload = json.loads(response.read().decode("utf-8"))
+              if payload.get("encoding") != "base64" or not isinstance(payload.get("content"), str):
+                  raise SystemExit(f"request rejected: unsupported source encoding for {path}")
+              raw = base64.b64decode("".join(payload["content"].split()), validate=True)
+              return raw, str(payload.get("sha", ""))
+
           request_bytes, request_blob_sha = fetch_contents(request_path)
           request = json.loads(request_bytes.decode("utf-8"))
           base_fields = {"schema", "request_id", "operation", "reason", "created_at"}
@@ -112,6 +133,7 @@ jobs:
           }
           cpp_test_fields = {"source_repo", "source_commit", "cpp_blob_shas"}
           metadata_fields = {"source_repo", "source_commit", "module_blob_sha"}
+          hermes_test_fields = {"source_repo", "source_commit", "source_blob_shas"}
           if not isinstance(request, dict) or not base_fields.issubset(request):
               raise SystemExit("request rejected: base schema fields are missing")
           if request["schema"] != "merlin-oci-job-request-v1":
@@ -120,14 +142,16 @@ jobs:
               raise SystemExit("request rejected: request ID does not match its path")
           if not isinstance(request["operation"], str) or request["operation"] not in {
               "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract",
-              "merlin_rsi_python_tests", "merlin_cpp_ledger_tests",
-              "merlin_rsi_metadata_live_probe"
+              "merlin_rsi_python_tests", "merlin_hermes_rsi_full_tests",
+              "merlin_cpp_ledger_tests", "merlin_rsi_metadata_live_probe"
           }:
               raise SystemExit("request rejected: operation is not enabled")
           if request["operation"] == "cace_rsi_bundle_contract":
               expected_fields = base_fields | cace_fields
           elif request["operation"] == "merlin_rsi_python_tests":
               expected_fields = base_fields | rsi_test_fields
+          elif request["operation"] == "merlin_hermes_rsi_full_tests":
+              expected_fields = base_fields | hermes_test_fields
           elif request["operation"] == "merlin_cpp_ledger_tests":
               expected_fields = base_fields | cpp_test_fields
           elif request["operation"] == "merlin_rsi_metadata_live_probe":
@@ -539,6 +563,116 @@ jobs:
                   encoding="utf-8",
               )
 
+          hermes_test_results = None
+          if request["operation"] == "merlin_hermes_rsi_full_tests":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: Hermes RSI source repository is not allowlisted")
+              if request["source_commit"] != "665c96968e8c82906a97de11f6060ad909716dec":
+                  raise SystemExit("request rejected: Hermes RSI source commit is not pinned")
+              source_paths = {
+                  "python/merlin/rsi_pipeline.py",
+                  "python/merlin/rsi.py",
+                  "python/merlin/event_outbox.py",
+                  "python/merlin/hermes_rsi_bridge.py",
+                  "python/merlin/hermes_worker.py",
+                  "python/merlin/telemetry.py",
+                  "python/merlin/hermes_outbox.py",
+                  "python/merlin/runtime_contracts.py",
+                  "python/merlin/sqlite_registry.py",
+                  "tests/test_rsi_pipeline.py",
+                  "tests/test_hermes_rsi_bridge.py",
+                  "tests/test_hermes_worker.py",
+                  "tests/test_event_outbox.py",
+                  "tests/test_hermes_outbox.py",
+                  "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+              }
+              pins = request["source_blob_shas"]
+              if not isinstance(pins, dict) or set(pins) != source_paths:
+                  raise SystemExit("request rejected: Hermes RSI source blob map is incomplete or has extra paths")
+              for path, expected_sha in pins.items():
+                  if not re.fullmatch(r"[0-9a-f]{40}", str(expected_sha)):
+                      raise SystemExit("request rejected: invalid Git blob SHA for " + path)
+
+              test_root = artifact_dir / "merlin-hermes-rsi-validation-source"
+              if test_root.exists():
+                  raise SystemExit("refusing to overwrite an existing Hermes RSI validation directory")
+              test_root.mkdir(parents=True)
+              copied = {}
+              for path in sorted(source_paths):
+                  raw, actual_blob_sha = fetch_external_contents(
+                      request["source_repo"], path, request["source_commit"]
+                  )
+                  if actual_blob_sha != pins[path]:
+                      raise SystemExit("Hermes RSI source blob mismatch: " + path)
+                  destination = test_root / path
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(raw)
+                  copied[path] = {
+                      "git_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                      "size_bytes": len(raw),
+                  }
+
+              manifest_bytes = (test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json").read_bytes()
+              manifest = json.loads(manifest_bytes.decode("utf-8"))
+              domain_counts = {}
+              for case in manifest.get("cases", []):
+                  domain = case.get("domain")
+                  domain_counts[domain] = domain_counts.get(domain, 0) + 1
+              if (manifest.get("status") != "frozen"
+                  or manifest.get("split") != "held_out"
+                  or len(manifest.get("cases", [])) != 25
+                  or set(manifest.get("domains", [])) != {"mathematics", "lean", "research", "coding", "engineering"}
+                  or set(domain_counts.values()) != {5}
+                  or set(domain_counts) != set(manifest.get("domains", []))):
+                  raise SystemExit("Hermes RSI held-out manifest failed its fixed five-domain contract")
+
+              test_env = dict(os.environ)
+              test_env["PYTHONPATH"] = str(test_root / "python")
+              test_env["PYTHONDONTWRITEBYTECODE"] = "1"
+              python_modules = sorted(path for path in source_paths if path.startswith("python/"))
+              commands = [
+                  [sys.executable, "-m", "py_compile", *[str(test_root / path) for path in python_modules]],
+                  [sys.executable, "-m", "unittest", "discover", "-s",
+                   str(test_root / "tests"), "-p", "test_*.py", "-v"],
+              ]
+              command_results = []
+              for command in commands:
+                  completed = subprocess.run(
+                      command, cwd=str(test_root), env=test_env,
+                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True, timeout=180, check=False)
+                  command_results.append({
+                      "command": command[1:],
+                      "returncode": completed.returncode,
+                      "output": completed.stdout[-20000:],
+                  })
+                  if completed.returncode != 0:
+                      (artifact_dir / "hermes-rsi-test-failure.txt").write_text(
+                          completed.stdout[-20000:], encoding="utf-8"
+                      )
+                      raise SystemExit(
+                          "fixed Hermes RSI validation command failed:\n"
+                          + completed.stdout[-12000:]
+                      )
+              test_output = command_results[-1]["output"]
+              test_match = re.search(r"Ran (\d+) tests? in", test_output)
+              if not test_match:
+                  raise SystemExit("Hermes RSI test output did not contain a unittest count")
+              hermes_test_results = {
+                  "status": "passed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "python_version": sys.version.split()[0],
+                  "test_count": int(test_match.group(1)),
+                  "benchmark_cases": len(manifest["cases"]),
+                  "benchmark_domains": sorted(manifest["domains"]),
+                  "benchmark_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                  "source_files": copied,
+                  "commands": command_results,
+                  "execution_scope": "fixed RSI and Hermes bridge/outbox tests; GitHub source reads only; no package installation or host mutation",
+              }
+
           cpp_test_results = None
           if request["operation"] == "merlin_cpp_ledger_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
@@ -787,6 +921,7 @@ jobs:
               "mcp_probe": mcp_probe,
               "cace_bundle_contract": cace_bundle_contract,
               "rsi_test_results": rsi_test_results,
+              "hermes_test_results": hermes_test_results,
               "cpp_test_results": cpp_test_results,
               "metadata_probe_results": metadata_probe_results,
           }
