@@ -1,0 +1,129 @@
+name: Merlin CACE protected run validator
+
+on:
+  workflow_dispatch:
+    inputs:
+      oci_execution_run_id:
+        description: Successful fixed-profile OCI execution run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: merlin-cace-protected-validator
+  cancel-in-progress: false
+
+jobs:
+  validate-oci-execution:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Validate exact OCI run, runner job, and retained artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OCI_EXECUTION_RUN_ID: ${{ inputs.oci_execution_run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          repo = os.environ["REPOSITORY"]
+          if repo != "morganaspim/Cace-app":
+              raise SystemExit("validator must run in morganaspim/Cace-app")
+          raw_run_id = os.environ["OCI_EXECUTION_RUN_ID"]
+          if not re.fullmatch(r"[1-9][0-9]{0,19}", raw_run_id):
+              raise SystemExit("OCI execution run ID must be a positive decimal integer")
+          run_id = int(raw_run_id)
+          token = os.environ["GH_TOKEN"]
+          api = f"https://api.github.com/repos/{repo}"
+
+          def get(path):
+              request = urllib.request.Request(
+                  api + path,
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": "Bearer " + token,
+                      "X-GitHub-Api-Version": "2022-11-28",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=15) as response:
+                      return json.loads(response.read().decode("utf-8"))
+              except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+                  raise SystemExit(f"GitHub API validation request failed: {path}: {exc}") from exc
+
+          run = get(f"/actions/runs/{run_id}")
+          if (
+              run.get("repository", {}).get("full_name") != repo
+              or run.get("status") != "completed"
+              or run.get("conclusion") != "success"
+              or run.get("event") != "push"
+              or not str(run.get("head_branch", "")).startswith("merlin/oci-jobs/")
+              or str(run.get("path", "")).split("@", 1)[0]
+                  != ".github/workflows/merlin-oci-job-gateway.yml"
+          ):
+              raise SystemExit("OCI run is not a successful fixed-gateway push execution")
+
+          jobs = get(f"/actions/runs/{run_id}/jobs?per_page=100").get("jobs", [])
+          matching = [
+              job for job in jobs
+              if job.get("name") == "run-approved-profile"
+              and job.get("runner_name") == "cace-oci-a1"
+              and job.get("conclusion") == "success"
+          ]
+          if len(matching) != 1:
+              raise SystemExit("OCI run must contain exactly one successful cace-oci-a1 profile job")
+          steps = {step.get("name"): step.get("conclusion") for step in matching[0].get("steps", [])}
+          required_steps = (
+              "Validate request and execute fixed inventory profile",
+              "Upload job receipt and inventory",
+          )
+          if any(steps.get(name) != "success" for name in required_steps):
+              raise SystemExit("OCI execution or receipt-upload step did not succeed")
+
+          artifacts = get(f"/actions/runs/{run_id}/artifacts?per_page=100").get("artifacts", [])
+          attempt = run.get("run_attempt")
+          expected_name = f"merlin-oci-job-{run_id}-{attempt}"
+          retained = [
+              item for item in artifacts
+              if item.get("name") == expected_name
+              and not item.get("expired")
+              and re.fullmatch(r"sha256:[0-9a-f]{64}", str(item.get("digest", "")))
+          ]
+          if len(retained) != 1:
+              raise SystemExit("OCI run must have exactly one retained SHA-256-bound receipt artifact")
+
+          result = {
+              "schema": "merlin-cace-orchestrator-validation-v1",
+              "oci_execution_run_id": run_id,
+              "oci_execution_run_attempt": attempt,
+              "oci_head_branch": run["head_branch"],
+              "oci_head_sha": run["head_sha"],
+              "oci_workflow_path": ".github/workflows/merlin-oci-job-gateway.yml",
+              "oci_job_id": matching[0]["id"],
+              "oci_runner": matching[0]["runner_name"],
+              "receipt_artifact_name": expected_name,
+              "receipt_artifact_digest": retained[0]["digest"],
+              "validation": "passed",
+              "authority": "validation-only",
+              "proof_effect": "none",
+          }
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("## Merlin OCI execution validation\n\n")
+              summary.write("```json\n" + json.dumps(result, indent=2, sort_keys=True) + "\n```\n")
+          print(json.dumps(result, sort_keys=True))
+          PY
