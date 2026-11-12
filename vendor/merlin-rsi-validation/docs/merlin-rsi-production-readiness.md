@@ -8,7 +8,7 @@ Status: implemented validation bridge; production promotion remains fail-closed 
 2. The Hermes receipt is verified against the server-pinned `hermes` issuer registry before the failure can become an RSI induction seed.
 3. A worker dispatch is idempotent and accepts only a signed acknowledgement from the separately pinned `merlin-rsi-worker` issuer. The acknowledgement grants no promotion authority.
 4. Candidate creation requires a signed `merlin-source` receipt. If derived from a Hermes failure, the candidate stores the exact induction seed event hash.
-5. Evaluation stores the fixed benchmark manifest digest, normalized metrics, and a signed `merlin-evaluator` receipt.
+5. Evaluation stores the fixed benchmark manifest digest, normalized overall and per-domain metrics, all 25 normalized case results, the case-results digest, and a signed `merlin-evaluator` receipt. The evaluator signature binds the case-results digest and case count.
 6. CACE evidence binds candidate ID and artifact digest, benchmark digest, evaluator receipt digest, source repository, and exact source commit. The CACE bundle digest is reproduced against the CACE EvidenceBundle v1 implementation.
 7. A CACE attestation must be Ed25519-signed, have `proof_effect: none`, identify verifier `cace`, bind the exact bundle and candidate, and match the server-pinned CACE verifier key allowlist.
 8. Promotion requires a separate signed `merlin-approver` receipt over the exact candidate, artifact, benchmark, and CACE attestation digests. A valid ledger chain is checked before promotion.
@@ -59,7 +59,7 @@ Crossref DOI and arXiv identifier lookups use a persistent SQLite cache with res
 
 The frozen suite `merlin-rsi-multidomain-heldout-v1` contains 25 stable cases across mathematics, Lean, research, coding, and engineering. Suite changes require a new version. Candidate generators must not consume reference outputs; adapter comparisons must use paired cases.
 
-The current OCI job validates the pipeline and its contracts against this frozen manifest. It does **not** claim that every task prompt has been run through a fully provisioned model/evaluator stack. Full task scoring requires the separate domain evaluators and held-out execution harness.
+The current OCI job validates the pipeline contracts and case-level ledger schema against this frozen manifest. The validator rejects missing/duplicate cases, domain mismatches, invalid scores, and unbound evaluator evidence. It does **not** claim that every task prompt has been run through a fully provisioned model/evaluator stack. Full task scoring still requires the separate domain evaluators and held-out execution harness.
 
 GEPA and Inspect remain optional and disabled. The current gate requires at least 20 paired cases, a positive lower 95% confidence bound above the configured minimum gain, complete paired data in all five domains, and no per-domain regression. Eligibility is measurement-only; it does not automatically enable or promote an adapter. No adapter is enabled without actual paired held-out measurements.
 
