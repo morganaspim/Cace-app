@@ -375,16 +375,25 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "5d9f21ce0084be8c346aa72eb0457b0d483cc3fa":
-                  raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
+              if request["source_commit"] != "df7d07e64b9cd664a54348bc8d67617b4ad78a64":
+                  raise SystemExit("request rejected: RSI/Hermes source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
                       raise SystemExit(f"request rejected: {name} must be a Git blob SHA")
 
               vendor_paths = {
-                  "module": ("vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py", request["module_blob_sha"]),
-                  "tests": ("vendor/merlin-rsi-validation/tests/test_rsi_pipeline.py", request["test_blob_sha"]),
-                  "manifest": ("vendor/merlin-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json", request["manifest_blob_sha"]),
+                  "module": ("vendor/merlin-hermes-rsi-validation/python/merlin/rsi_pipeline.py", request["module_blob_sha"]),
+                  "tests": ("vendor/merlin-hermes-rsi-validation/tests/test_rsi_pipeline.py", request["test_blob_sha"]),
+                  "manifest": ("vendor/merlin-hermes-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json", request["manifest_blob_sha"]),
+              }
+              hermes_vendor_paths = {
+                  "rsi": ("vendor/merlin-hermes-rsi-validation/python/merlin/rsi.py", "a4981d80a076d58b6dbc6efd55e3baf941aee948", "python/merlin/rsi.py"),
+                  "bridge": ("vendor/merlin-hermes-rsi-validation/python/merlin/hermes_rsi_bridge.py", "cef2745bcb91b2fd21393f5af80445e4c44af091", "python/merlin/hermes_rsi_bridge.py"),
+                  "event_outbox": ("vendor/merlin-hermes-rsi-validation/python/merlin/event_outbox.py", "574d36824f688623603172738290116fd77cee08", "python/merlin/event_outbox.py"),
+                  "hermes_worker": ("vendor/merlin-hermes-rsi-validation/python/merlin/hermes_worker.py", "d8d3140311f270b4321e603d145d11a7ac371b92", "python/merlin/hermes_worker.py"),
+                  "runtime_contracts": ("vendor/merlin-hermes-rsi-validation/python/merlin/runtime_contracts.py", "af46433f1d5a1860e76279f866f8d4a149d4b6e9", "python/merlin/runtime_contracts.py"),
+                  "sqlite_registry": ("vendor/merlin-hermes-rsi-validation/python/merlin/sqlite_registry.py", "e21141e0e37375f9a4f72fe31f46fc6c31045e11", "python/merlin/sqlite_registry.py"),
+                  "hermes_tests": ("vendor/merlin-hermes-rsi-validation/tests/test_hermes_rsi_bridge.py", "8269f1f265bae227084d3011060968e2b86c15fb", "tests/test_hermes_rsi_bridge.py"),
               }
               test_root = artifact_dir / "merlin-rsi-validation-source"
               if test_root.exists():
@@ -401,6 +410,19 @@ jobs:
                       destination = test_root / "tests/test_rsi_pipeline.py"
                   else:
                       destination = test_root / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(raw)
+                  copied[label] = {
+                      "repo_path": repo_path,
+                      "git_blob_sha": actual_blob_sha,
+                      "sha256": hashlib.sha256(raw).hexdigest(),
+                      "size_bytes": len(raw),
+                  }
+              for label, (repo_path, expected_blob_sha, relative_path) in hermes_vendor_paths.items():
+                  raw, actual_blob_sha = fetch_contents(repo_path)
+                  if actual_blob_sha != expected_blob_sha:
+                      raise SystemExit(f"Hermes RSI source blob mismatch for {label}")
+                  destination = test_root / relative_path
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   destination.write_bytes(raw)
                   copied[label] = {
@@ -429,9 +451,9 @@ jobs:
               test_env["PYTHONPATH"] = str(test_root / "python")
               test_env["PYTHONDONTWRITEBYTECODE"] = "1"
               commands = [
-                  [sys.executable, "-m", "py_compile", str(test_root / "python/merlin/rsi_pipeline.py")],
+                  [sys.executable, "-m", "py_compile", str(test_root / "python/merlin/rsi_pipeline.py"), str(test_root / "python/merlin/hermes_rsi_bridge.py")],
                   [sys.executable, "-m", "unittest", "discover", "-s",
-                   str(test_root / "tests"), "-p", "test_rsi_pipeline.py", "-v"],
+                   str(test_root / "tests"), "-p", "test_*.py", "-v"],
               ]
               command_results = []
               for command in commands:
@@ -459,7 +481,7 @@ jobs:
                   "benchmark_domains": sorted(manifest["domains"]),
                   "test_count": int(test_match.group(1)) if test_match else None,
                   "commands": command_results,
-                  "execution_scope": "fixed Python compile and unittest commands; no package install; external HTTP calls mocked by tests",
+                  "execution_scope": "fixed Python compile and RSI plus authenticated Hermes bridge unittest commands; no package install; external HTTP calls mocked by tests",
               }
 
           metadata_probe_results = None
