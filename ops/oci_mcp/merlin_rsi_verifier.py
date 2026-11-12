@@ -463,17 +463,21 @@ def attest_merlin_rsi_reproduction(
 
     request_doc = json.loads(fetch_file(request_path, "morganaspim/Cace-app", run_sha).decode("utf-8"))
     if (
-        request_doc.get("operation") != "merlin_rsi_python_tests"
+        request_doc.get("operation") != "merlin_hermes_rsi_full_tests"
         or request_doc.get("source_repo") != expected_bindings.get("source_repo")
         or request_doc.get("source_commit") != expected_bindings.get("source_commit")
     ):
-        raise PermissionError("CACE OCI request is not bound to this exact RSI source commit")
+        raise PermissionError("CACE OCI request is not bound to the full Hermes RSI source commit")
 
     workflow_bytes = fetch_file(workflow_path, "morganaspim/Cace-app", run_sha)
     workflow_text = workflow_bytes.decode("utf-8")
-    source_pin = re.search(r'request\["source_commit"\]\s*!=\s*["\']([0-9a-f]{40})["\']', workflow_text)
+    profile_marker = 'if request["operation"] == "merlin_hermes_rsi_full_tests":'
+    if profile_marker not in workflow_text:
+        raise PermissionError("CACE OCI workflow omits the fixed Hermes RSI validation profile")
+    profile_text = workflow_text.split(profile_marker, 1)[1]
+    source_pin = re.search(r'request\["source_commit"\]\s*!=\s*["\']([0-9a-f]{40})["\']', profile_text)
     if not source_pin or source_pin.group(1) != expected_bindings.get("source_commit"):
-        raise PermissionError("CACE OCI workflow source pin does not match the candidate source commit")
+        raise PermissionError("CACE OCI Hermes RSI profile source pin does not match the candidate source commit")
 
     if (
         expected_bindings.get("source_repo") != "Mannyspiro/expert-robot"
@@ -484,21 +488,36 @@ def attest_merlin_rsi_reproduction(
     def git_blob_sha(raw: bytes) -> str:
         return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
 
-    source_file_pins = {
-        "module_blob_sha": "python/merlin/rsi_pipeline.py",
-        "test_blob_sha": "tests/test_rsi_pipeline.py",
-        "manifest_blob_sha": "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
-    }
-    for request_field, source_path in source_file_pins.items():
-        expected_blob = request_doc.get(request_field)
+    source_file_paths = (
+        "python/merlin/rsi_pipeline.py",
+        "python/merlin/rsi.py",
+        "python/merlin/event_outbox.py",
+        "python/merlin/hermes_rsi_bridge.py",
+        "python/merlin/hermes_worker.py",
+        "python/merlin/telemetry.py",
+        "python/merlin/hermes_outbox.py",
+        "python/merlin/runtime_contracts.py",
+        "python/merlin/sqlite_registry.py",
+        "tests/test_rsi_pipeline.py",
+        "tests/test_hermes_rsi_bridge.py",
+        "tests/test_hermes_worker.py",
+        "tests/test_event_outbox.py",
+        "tests/test_hermes_outbox.py",
+        "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+    )
+    source_blob_shas = request_doc.get("source_blob_shas")
+    if not isinstance(source_blob_shas, Mapping) or set(source_blob_shas) != set(source_file_paths):
+        raise PermissionError("CACE OCI request must pin the complete Hermes RSI source and test set")
+    for source_path in source_file_paths:
+        expected_blob = source_blob_shas.get(source_path)
         if not isinstance(expected_blob, str) or not re.fullmatch(r"[0-9a-f]{40}", expected_blob):
-            raise PermissionError("CACE OCI request lacks a pinned " + request_field)
+            raise PermissionError("CACE OCI request lacks a valid source blob pin: " + source_path)
         source_bytes = fetch_file(
             source_path, str(expected_bindings["source_repo"]),
             str(expected_bindings["source_commit"]),
         )
         if git_blob_sha(source_bytes) != expected_blob:
-            raise PermissionError("CACE OCI request source blob does not match the exact Expert Robot commit: " + request_field)
+            raise PermissionError("CACE OCI source blob does not match the exact Expert Robot commit: " + source_path)
 
     benchmark_path = "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
     benchmark_bytes = fetch_file(
