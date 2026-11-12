@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "c2f9a6d4-1e73-4b85-9c20-7d3a5e8f1b64",
+  "operation": "rsi_validation",
+  "reason": "Rerun OCI RSI suite after correcting CACE MCP ledger event assertion",
+  "created_at": "2026-11-12T00:27:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "3813f8fede65e06e6fb0ab4db4714a90ccd39a8e"
+}
