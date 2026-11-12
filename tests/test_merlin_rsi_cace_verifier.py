@@ -417,7 +417,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 expected_bindings=bindings,
                 artifact_bytes_b64=artifact_bytes_b64,
                 github_run_id=run_id,
-                private_key_path=key_path,
+                private_key_pem=key_path.read_bytes(),
                 cace_app_root=self.root,
                 github_fetch=fake_fetch,
             )
