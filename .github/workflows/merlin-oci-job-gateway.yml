@@ -370,8 +370,8 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if not re.fullmatch(r"[0-9a-f]{40}", str(request["source_commit"])):
-                  raise SystemExit("request rejected: source commit must be a 40-character Git commit")
+              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+                  raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
                       raise SystemExit(f"request rejected: {name} must be a Git blob SHA")
@@ -461,8 +461,8 @@ jobs:
           if request["operation"] == "merlin_cpp_ledger_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: C++ source repository is not allowlisted")
-              if not re.fullmatch(r"[0-9a-f]{40}", str(request["source_commit"])):
-                  raise SystemExit("request rejected: C++ source commit must be a 40-character Git commit")
+              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+                  raise SystemExit("request rejected: C++ source commit is not the pinned source snapshot")
               cpp_blob_names = {
                   "generation_lineage_cpp", "episode_ledger_cpp", "state_machine_cpp",
                   "sha256_cpp", "generation_lineage_hpp", "episode_ledger_hpp",
@@ -677,7 +677,14 @@ jobs:
               "inventory_module_sha256": module_sha256,
               "started_at_utc": started_at,
               "completed_at_utc": completed_at,
-              "status": "succeeded" if mcp_probe is None or mcp_probe.get("status") == "succeeded" else "completed_with_probe_error",
+              "status": (
+                  "failed" if (
+                      (mcp_probe is not None and mcp_probe.get("status") != "succeeded")
+                      or (cace_bundle_contract is not None and cace_bundle_contract.get("status") != "matched")
+                      or (rsi_test_results is not None and rsi_test_results.get("status") != "passed")
+                      or (cpp_test_results is not None and cpp_test_results.get("status") != "passed")
+                  ) else "succeeded"
+              ),
               "qualification": False,
               "proof_implication": "none",
               "host_mutations": False,
@@ -704,7 +711,9 @@ jobs:
               encoding="utf-8",
           )
           print(json.dumps({k: v for k, v in receipt.items() if k != "inventory"}, indent=2, sort_keys=True))
-          print("MERLIN_OCI_JOB_STATUS=succeeded")
+          print("MERLIN_OCI_JOB_STATUS=" + receipt["status"])
+          if receipt["status"] != "succeeded":
+              raise SystemExit("approved OCI profile failed or was unavailable")
           PY
 
       - name: Upload job receipt and inventory
