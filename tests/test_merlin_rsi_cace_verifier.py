@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import sys
+import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,7 +17,11 @@ from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ops.oci_mcp.merlin_rsi_verifier import verify_merlin_rsi_attestation
+from ops.oci_mcp.merlin_rsi_verifier import (
+    attest_merlin_rsi_bundle,
+    initialize_merlin_rsi_attestor,
+    verify_merlin_rsi_attestation,
+)
 
 
 class MerlinRSICaceVerifierTests(unittest.TestCase):
@@ -134,6 +139,81 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         oversized = base64.b64encode(b"x" * (10 * 1024 * 1024 + 1)).decode("ascii")
         with self.assertRaises(ValueError):
             self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": oversized})
+
+    def test_attestor_key_initializes_once_without_overwrite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            key_path = Path(temp) / "keys" / "merlin-rsi-attestor.pem"
+            first = initialize_merlin_rsi_attestor(
+                private_key_path=key_path, cace_app_root=self.root
+            )
+            original = key_path.read_bytes()
+            second = initialize_merlin_rsi_attestor(
+                private_key_path=key_path, cace_app_root=self.root
+            )
+            self.assertTrue(first["created"])
+            self.assertFalse(second["created"])
+            self.assertEqual(first["verifier_key_id"], second["verifier_key_id"])
+            self.assertEqual(original, key_path.read_bytes())
+            self.assertEqual(key_path.stat().st_mode & 0o777, 0o600)
+            self.assertFalse(first["private_key_exposed"])
+
+    def test_cace_signer_verifies_exact_bytes_before_signing(self):
+        with tempfile.TemporaryDirectory() as temp:
+            key_path = Path(temp) / "keys" / "merlin-rsi-attestor.pem"
+            identity = initialize_merlin_rsi_attestor(
+                private_key_path=key_path, cace_app_root=self.root
+            )
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_bundle(
+                    bundle_payload=self.bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=self.bindings,
+                    artifact_bytes_b64={"merlin-rsi-evidence-manifest": base64.b64encode(b"tampered").decode("ascii")},
+                    private_key_path=key_path,
+                    cace_app_root=self.root,
+                )
+            signed = attest_merlin_rsi_bundle(
+                bundle_payload=self.bundle.payload(),
+                expected_claim_id=self.claim_id,
+                expected_bindings=self.bindings,
+                artifact_bytes_b64={
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                },
+                private_key_path=key_path,
+                cace_app_root=self.root,
+            )
+            key_store = json.dumps({
+                "schema": "merlin-cace-trust-store-v1",
+                "keys": [{
+                    "key_id": identity["verifier_key_id"],
+                    "verifier_id": "cace",
+                    "status": "active",
+                }],
+            }, sort_keys=True, separators=(",", ":"))
+            verified = self.verify(
+                attestation_payload=signed["attestation"],
+                trust_store_json=key_store,
+                trust_store_sha256=hashlib.sha256(key_store.encode("utf-8")).hexdigest(),
+            )
+            self.assertEqual(signed["purpose"], "artifact-integrity")
+            self.assertTrue(verified["verified"])
+            self.assertEqual(verified["purpose"], "artifact-integrity")
+            self.assertEqual(verified["artifact_bytes_verified"], len(self.artifact_bytes))
+            self.assertEqual(verified["proof_effect"], "none")
+
+    def test_cace_signer_requires_initialized_private_key(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_bundle(
+                    bundle_payload=self.bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=self.bindings,
+                    artifact_bytes_b64={
+                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                    },
+                    private_key_path=Path(temp) / "missing.pem",
+                    cace_app_root=self.root,
+                )
 
     def test_non_reproduction_purpose_is_rejected(self):
         statement = AttestationStatement(
