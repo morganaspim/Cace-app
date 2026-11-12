@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "c7d1e5a9-8b32-4f06-a913-2d7e6b4c5f80",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Run the latest reviewed RSI snapshot on the OCI runner: Hermes signed failure ingestion, authenticated worker acknowledgements, append-only candidate/evaluation history, strict CACE independent-reproduction gate, frozen 25-case benchmark, metadata caching/rate limits, and optional adapter measurement.",
+  "created_at": "2026-11-12T00:30:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "cd2c9e240f36203d58dda3e372ac7533e6be956e",
+  "module_blob_sha": "d498324a83834b24045808836122801349fcff7d",
+  "test_blob_sha": "1a574c44af9e3341febee32db66116b8746a800f",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
