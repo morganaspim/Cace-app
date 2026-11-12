@@ -164,6 +164,7 @@ def verify_merlin_rsi_attestation(
     attestation_payload: dict[str, Any],
     expected_claim_id: str,
     expected_bindings: dict[str, Any],
+    artifact_bytes_b64: dict[str, str],
 ) -> dict[str, Any]:
     """Verify a Merlin RSI EvidenceBundle and CACE-signed independent-reproduction attestation.
 
@@ -178,6 +179,7 @@ def verify_merlin_rsi_attestation(
         attestation_payload=attestation_payload,
         expected_claim_id=expected_claim_id,
         expected_bindings=expected_bindings,
+        artifact_bytes_b64=artifact_bytes_b64,
         trust_store_json=os.getenv("CACE_MERLIN_RSI_TRUST_STORE_JSON", ""),
         trust_store_sha256=os.getenv("CACE_MERLIN_RSI_TRUST_STORE_SHA256", ""),
         cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
