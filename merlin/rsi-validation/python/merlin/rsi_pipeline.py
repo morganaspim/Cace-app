@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 import base64
+from collections import Counter
 import hashlib
 import importlib.util
 import json
@@ -121,12 +122,12 @@ _CACE_BUNDLE_DOMAIN = b"CACE:EVIDENCE:BUNDLE:v1\0"
 _CACE_ARTIFACT_LEAF_DOMAIN = b"CACE:EVIDENCE:ARTIFACT-LEAF:v1\0"
 
 
-def cace_rsi_bundle_sha256(
+def cace_rsi_bundle_payload(
     *, candidate_id: str, candidate_digest: str,
     benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
     source_repo: str, source_commit: str,
-) -> str:
-    """Reproduce CACE EvidenceBundle v1 identity for a one-artifact RSI manifest."""
+) -> tuple[dict[str, Any], bytes, dict[str, Any]]:
+    """Build the exact CACE EvidenceBundle v1 payload and its sole artifact bytes."""
     manifest = {
         "schema": "merlin-rsi-evidence-manifest-v1",
         "candidate_id": candidate_id, "candidate_digest": candidate_digest,
@@ -157,7 +158,61 @@ def cace_rsi_bundle_sha256(
         "merkle_root_sha256": leaf, "bindings": bindings,
         "notes": ["Merlin RSI exact-artifact independent verification"],
     }
+    return bundle, manifest_bytes, bindings
+
+
+def cace_rsi_bundle_sha256(
+    *, candidate_id: str, candidate_digest: str,
+    benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
+    source_repo: str, source_commit: str,
+) -> str:
+    """Reproduce CACE EvidenceBundle v1 identity for a one-artifact RSI manifest."""
+    bundle, _, _ = cace_rsi_bundle_payload(
+        candidate_id=candidate_id, candidate_digest=candidate_digest,
+        benchmark_manifest_sha256=benchmark_manifest_sha256,
+        evaluator_receipt_sha256=evaluator_receipt_sha256,
+        source_repo=source_repo, source_commit=source_commit,
+    )
     return sha256_hex(_CACE_BUNDLE_DOMAIN + canonical_json(bundle))
+
+
+def _load_issuer_trusted_keys(issuer: str) -> dict[str, str]:
+    """Load issuer public keys from a digest-pinned server trust store."""
+    raw = os.environ.get("MERLIN_ISSUER_TRUST_STORE_JSON", "")
+    expected_digest = os.environ.get("MERLIN_ISSUER_TRUST_STORE_SHA256", "")
+    if not raw or not _is_sha256(expected_digest):
+        raise PermissionError("issuer trust store is not configured")
+    if sha256_hex(raw.encode("utf-8")) != expected_digest:
+        raise PermissionError("issuer trust store digest mismatch")
+    try:
+        document = json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise PermissionError("issuer trust store is invalid JSON") from exc
+    if (not isinstance(document, Mapping)
+        or set(document) != {"schema", "issuers"}
+        or document.get("schema") != "merlin-issuer-trust-store-v1"
+        or not isinstance(document.get("issuers"), Mapping)):
+        raise PermissionError("issuer trust store schema mismatch")
+    entries = document["issuers"].get(issuer)
+    if not isinstance(entries, Mapping) or not entries:
+        raise PermissionError("trusted issuer has no configured public keys: " + issuer)
+    validated: dict[str, str] = {}
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        for key_id, pem in entries.items():
+            if (not isinstance(key_id, str) or not key_id.strip()
+                or not isinstance(pem, str) or not pem.strip()):
+                raise PermissionError("issuer trust store contains an invalid key entry")
+            key = serialization.load_pem_public_key(pem.encode("ascii"))
+            if not isinstance(key, Ed25519PublicKey):
+                raise PermissionError("issuer trust store accepts Ed25519 keys only")
+            validated[key_id] = pem
+    except PermissionError:
+        raise
+    except Exception as exc:
+        raise PermissionError("issuer trust store contains an invalid public key") from exc
+    return validated
 
 
 def _load_approved_cace_keys() -> dict[str, str]:
@@ -218,7 +273,7 @@ def verify_cace_attestation(
         or statement.get("schema") != "cace-attestation-statement-v1"
         or statement.get("signature_algorithm") != "ed25519"
         or statement.get("proof_effect") != "none"
-        or statement.get("purpose") != "independent-reproduction"):
+        or statement.get("purpose") != "artifact-integrity"):
         raise PermissionError("CACE attestation profile or purpose is not accepted")
     if statement.get("verifier_id") != expected_verifier_id:
         raise PermissionError("CACE verifier identity mismatch")
@@ -269,7 +324,134 @@ def verify_cace_attestation(
         "attestation_sha256": sha256_hex(canonical_json(dict(attestation))),
         "statement_sha256": statement_digest, "verifier_key_id": actual_key_id,
         "verifier_id": expected_verifier_id, "bundle_sha256": expected_bundle_sha256,
+        "purpose": statement.get("purpose"), "authority": "verification-only",
     }
+
+
+class CaceMcpAttestor:
+    """Loopback-only MCP client for the CACE OCI attestation service."""
+
+    def __init__(self, endpoint: str = "http://127.0.0.1:8765/mcp", timeout: float = 12.0):
+        from urllib.parse import urlsplit
+        parsed = urlsplit(endpoint)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}
+            or parsed.path != "/mcp" or parsed.query or parsed.fragment
+            or parsed.username or parsed.password):
+            raise ValueError("CACE MCP endpoint must be loopback HTTP at /mcp")
+        self.endpoint = endpoint
+        self.timeout = max(1.0, min(float(timeout), 30.0))
+        self.protocol_version = "2025-03-26"
+        self.session_id: str | None = None
+        self._request_id = 0
+
+    def _rpc(self, method: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        import urllib.request
+        self._request_id += 1
+        request_id = self._request_id if method != "notifications/initialized" else None
+        payload: dict[str, Any] = {"jsonrpc": "2.0", "method": method}
+        if request_id is not None:
+            payload["id"] = request_id
+        if params is not None:
+            payload["params"] = dict(params)
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "MCP-Protocol-Version": self.protocol_version,
+        }
+        if self.session_id:
+            headers["Mcp-Session-Id"] = self.session_id
+        request = urllib.request.Request(
+            self.endpoint, data=json.dumps(payload).encode("utf-8"),
+            headers=headers, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = response.read(1_000_001)
+                if len(body) > 1_000_000:
+                    raise RuntimeError("CACE MCP response exceeded the 1 MB limit")
+                content_type = response.headers.get("Content-Type", "")
+                self.session_id = response.headers.get("Mcp-Session-Id", self.session_id)
+        except Exception as exc:
+            raise RuntimeError(f"CACE MCP request failed: {type(exc).__name__}") from None
+        if not body:
+            return {}
+        text_body = body.decode("utf-8", errors="strict")
+        if "text/event-stream" in content_type:
+            messages: list[dict[str, Any]] = []
+            current: list[str] = []
+            for line in text_body.splitlines():
+                if line.startswith("data:"):
+                    current.append(line[5:].lstrip())
+                elif not line and current:
+                    joined = "\n".join(current)
+                    current = []
+                    if joined and joined != "[DONE]":
+                        item = json.loads(joined)
+                        if isinstance(item, dict):
+                            messages.append(item)
+            if current:
+                joined = "\n".join(current)
+                if joined and joined != "[DONE]":
+                    item = json.loads(joined)
+                    if isinstance(item, dict):
+                        messages.append(item)
+            message = next((item for item in messages if item.get("id") == request_id), None)
+            if message is None and messages:
+                message = messages[-1]
+            if message is None:
+                raise RuntimeError("CACE MCP SSE response contained no JSON-RPC result")
+        else:
+            message = json.loads(text_body)
+        if not isinstance(message, dict) or message.get("error"):
+            raise RuntimeError("CACE MCP returned a JSON-RPC error")
+        result = message.get("result")
+        return result if isinstance(result, dict) else {}
+
+    def attest(
+        self, *, bundle_payload: Mapping[str, Any], expected_claim_id: str,
+        expected_bindings: Mapping[str, Any], artifact_bytes_b64: Mapping[str, str],
+    ) -> dict[str, Any]:
+        initialized = self._rpc("initialize", {
+            "protocolVersion": self.protocol_version,
+            "capabilities": {},
+            "clientInfo": {"name": "merlin-rsi-pipeline", "version": "1.0.0"},
+        })
+        negotiated = initialized.get("protocolVersion")
+        if not isinstance(negotiated, str) or not negotiated:
+            raise RuntimeError("CACE MCP initialize response omitted protocolVersion")
+        self.protocol_version = negotiated
+        self._rpc("notifications/initialized")
+        result = self._rpc("tools/call", {
+            "name": "attest_merlin_rsi_bundle",
+            "arguments": {
+                "bundle_payload": dict(bundle_payload),
+                "expected_claim_id": expected_claim_id,
+                "expected_bindings": dict(expected_bindings),
+                "artifact_bytes_b64": dict(artifact_bytes_b64),
+            },
+        })
+        if result.get("isError") is True:
+            raise PermissionError("CACE MCP refused the RSI evidence attestation")
+        structured = result.get("structuredContent")
+        if not isinstance(structured, Mapping):
+            for item in result.get("content", []):
+                if isinstance(item, Mapping) and item.get("type") == "text":
+                    try:
+                        parsed = json.loads(str(item.get("text", "")))
+                    except ValueError:
+                        continue
+                    if isinstance(parsed, Mapping):
+                        structured = parsed
+                        break
+        if not isinstance(structured, Mapping):
+            raise RuntimeError("CACE MCP attestor returned no structured attestation")
+        response = dict(structured)
+        if (response.get("purpose") != "artifact-integrity"
+            or response.get("proof_effect") != "none"
+            or response.get("authority") != "verification-only"
+            or not isinstance(response.get("attestation"), Mapping)):
+            raise PermissionError("CACE MCP attestation response violates the verification-only contract")
+        return response
 
 
 class AppendOnlyLedger:
@@ -385,7 +567,7 @@ class AppendOnlyLedger:
         self, *, candidate_id: str, parent_candidate_id: str | None,
         source_receipt: SignedReceipt, artifact_sha256: str,
         generator: str, mutation: Mapping[str, Any],
-        trusted_keys: Mapping[str, str], episode_id: str | None = None,
+        episode_id: str | None = None,
         induction_seed_event_hash: str | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
@@ -406,7 +588,7 @@ class AppendOnlyLedger:
             if seed is None:
                 raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
             required["induction_seed_event_hash"] = induction_seed_event_hash
-        if not verify_signed_receipt(source_receipt, trusted_keys,
+        if not verify_signed_receipt(source_receipt, _load_issuer_trusted_keys("merlin-source"),
             expected_issuer="merlin-source", expected_claims=required):
             raise PermissionError("candidate source receipt is missing, untrusted, or mismatched")
         source_repo = source_receipt.claims.get("source_repo")
@@ -434,8 +616,10 @@ class AppendOnlyLedger:
     def record_evaluation(
         self, *, candidate_id: str, artifact_sha256: str,
         suite_sha256: str, metrics: Mapping[str, float], passed: bool,
-        evaluator_receipt: SignedReceipt, trusted_keys: Mapping[str, str],
+        evaluator_receipt: SignedReceipt,
         episode_id: str | None = None,
+        benchmark_manifest_bytes: bytes | None = None,
+        case_results: list[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256) or not _is_sha256(suite_sha256):
@@ -443,12 +627,29 @@ class AppendOnlyLedger:
         normalized = {str(k): float(v) for k, v in metrics.items()}
         if any(not math.isfinite(v) for v in normalized.values()):
             raise ValueError("evaluation metrics must be finite")
+        case_evaluation = None
+        if benchmark_manifest_bytes is not None or case_results is not None:
+            if benchmark_manifest_bytes is None or case_results is None:
+                raise ValueError("full benchmark evaluation requires both exact manifest bytes and all case results")
+            case_evaluation = validate_frozen_benchmark_results(benchmark_manifest_bytes, case_results)
+            if case_evaluation["suite_sha256"] != suite_sha256:
+                raise PermissionError("case results are bound to a different benchmark manifest digest")
+            if set(normalized) != set(case_evaluation["metrics"]) or any(
+                abs(normalized[key] - case_evaluation["metrics"][key]) > 1e-12
+                for key in normalized
+            ):
+                raise ValueError("aggregate metrics do not match the complete held-out case results")
+            if bool(passed) != case_evaluation["passed"]:
+                raise ValueError("evaluation pass/fail status does not match all case results")
         metrics_sha = sha256_hex(canonical_json(normalized))
         expected = {"candidate_id": candidate_id, "candidate_digest": artifact_sha256,
                     "benchmark_manifest_sha256": suite_sha256,
                     "metrics_sha256": metrics_sha,
                     "status": "pass" if passed else "fail"}
-        if not verify_signed_receipt(evaluator_receipt, trusted_keys,
+        if case_evaluation is not None:
+            expected["case_results_sha256"] = case_evaluation["case_results_sha256"]
+            expected["case_count"] = case_evaluation["case_count"]
+        if not verify_signed_receipt(evaluator_receipt, _load_issuer_trusted_keys("merlin-evaluator"),
             expected_issuer="merlin-evaluator", expected_claims=expected):
             raise PermissionError("evaluator receipt is missing, untrusted, or mismatched")
         candidate = self._candidate_event(episode, "candidate.created", candidate_id)
@@ -459,6 +660,9 @@ class AppendOnlyLedger:
             "suite_sha256": suite_sha256, "metrics": normalized,
             "metrics_sha256": metrics_sha, "passed": bool(passed),
             "evaluator_receipt_digest": evaluator_receipt.receipt_digest,
+            "case_results_sha256": case_evaluation["case_results_sha256"] if case_evaluation else None,
+            "case_count": case_evaluation["case_count"] if case_evaluation else None,
+            "case_results": case_evaluation["case_results"] if case_evaluation else None,
         })
 
     def _cace_evidence(self, episode_id: str, candidate_id: str,
@@ -507,13 +711,52 @@ class AppendOnlyLedger:
             "statement_sha256": verified["statement_sha256"],
             "verifier_id": verified["verifier_id"],
             "verifier_key_id": verified["verifier_key_id"],
+            "purpose": verified["purpose"],
             "authority": "verification-only",
         })
+
+    def record_cace_verification_from_mcp(
+        self, *, candidate_id: str, artifact_sha256: str, suite_sha256: str,
+        episode_id: str | None = None, attestor: Any | None = None,
+    ) -> dict[str, Any]:
+        """Obtain a CACE-signed exact-byte attestation through the loopback MCP service."""
+        episode = episode_id or candidate_id
+        candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
+            episode, candidate_id, artifact_sha256, suite_sha256
+        )
+        bundle_payload, manifest_bytes, payload_bindings = cace_rsi_bundle_payload(
+            candidate_id=candidate_id, candidate_digest=artifact_sha256,
+            benchmark_manifest_sha256=suite_sha256,
+            evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
+            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+        )
+        actual_bundle_sha = sha256_hex(
+            _CACE_BUNDLE_DOMAIN + canonical_json(bundle_payload)
+        )
+        if actual_bundle_sha != expected_bundle_sha or payload_bindings != bindings:
+            raise RuntimeError("CACE bundle payload diverged from the canonical RSI evidence identity")
+        transport = attestor or CaceMcpAttestor()
+        response = transport.attest(
+            bundle_payload=bundle_payload,
+            expected_claim_id=candidate_id,
+            expected_bindings=bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii")
+            },
+        )
+        attestation = response.get("attestation") if isinstance(response, Mapping) else None
+        if not isinstance(attestation, Mapping):
+            raise PermissionError("CACE MCP response omitted its signed attestation")
+        return self.record_cace_verification(
+            candidate_id=candidate_id, attestation=attestation,
+            artifact_sha256=artifact_sha256, suite_sha256=suite_sha256,
+            episode_id=episode,
+        )
 
     def record_promotion(
         self, *, candidate_id: str, artifact_sha256: str,
         suite_sha256: str, attestation: Mapping[str, Any],
-        approval_receipt: SignedReceipt, approval_keys: Mapping[str, str],
+        approval_receipt: SignedReceipt,
         episode_id: str | None = None,
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
@@ -529,7 +772,7 @@ class AppendOnlyLedger:
             "cace_attestation_sha256": verified["attestation_sha256"],
             "action": "promote", "target": "qualified",
         }
-        if not verify_signed_receipt(approval_receipt, approval_keys,
+        if not verify_signed_receipt(approval_receipt, _load_issuer_trusted_keys("merlin-approver"),
             expected_issuer="merlin-approver", expected_claims=expected_approval):
             raise PermissionError("separate signed promotion approval is missing or invalid")
         cace_event = self._candidate_event(episode, "candidate.cace_verified", candidate_id)
@@ -543,6 +786,7 @@ class AppendOnlyLedger:
             "candidate_id": candidate_id, "artifact_sha256": artifact_sha256,
             "suite_sha256": suite_sha256, "bundle_sha256": bundle_sha,
             "cace_attestation_sha256": verified["attestation_sha256"],
+            "cace_attestation_purpose": verified["purpose"],
             "approval_receipt_digest": approval_receipt.receipt_digest,
             "promotion_authority": "explicit-signed-approval",
         })
@@ -550,7 +794,7 @@ class AppendOnlyLedger:
 
 def ingest_hermes_failure(
     ledger: AppendOnlyLedger, record: Mapping[str, Any],
-    receipt: SignedReceipt, trusted_keys: Mapping[str, str],
+    receipt: SignedReceipt,
 ) -> dict[str, Any]:
     """Authenticate a Hermes failure and append an idempotent RSI induction seed."""
     required_fields = ("event_id", "failure_class", "summary", "source_repo",
@@ -566,7 +810,7 @@ def ingest_hermes_failure(
         "artifact_sha256": record["artifact_sha256"],
         "failure_class": record["failure_class"],
     }
-    if not verify_signed_receipt(receipt, trusted_keys, expected_issuer="hermes",
+    if not verify_signed_receipt(receipt, _load_issuer_trusted_keys("hermes"), expected_issuer="hermes",
                                  expected_claims=claims):
         raise PermissionError("Hermes failure lacks an authenticated source receipt")
     existing = ledger.events(episode_id)
@@ -595,7 +839,6 @@ def dispatch_rsi_induction_seed(
     ledger: AppendOnlyLedger,
     seed_event_hash: str,
     transport: Any,
-    trusted_worker_keys: Mapping[str, str],
 ) -> dict[str, Any]:
     """Dispatch one authenticated Hermes seed and persist a signed worker ACK.
 
@@ -647,7 +890,7 @@ def dispatch_rsi_induction_seed(
         "status": "accepted",
     }
     if not verify_signed_receipt(
-        acknowledgement, trusted_worker_keys,
+        acknowledgement, _load_issuer_trusted_keys("merlin-rsi-worker"),
         expected_issuer="merlin-rsi-worker", expected_claims=expected,
     ):
         raise PermissionError("RSI worker acknowledgement is unauthenticated or mismatched")
@@ -798,6 +1041,84 @@ class ResearchMetadataCache:
             raise ValueError("invalid arXiv identifier")
         url = "https://export.arxiv.org/api/query?id_list=" + urllib.parse.quote(normalized, safe=".")
         return self._get("arxiv", normalized, url)
+
+
+def validate_frozen_benchmark_results(
+    manifest_bytes: bytes, case_results: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Validate one complete held-out run and derive reproducible domain metrics."""
+    if not isinstance(manifest_bytes, bytes):
+        raise TypeError("benchmark manifest must be supplied as exact bytes")
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ValueError("benchmark manifest is not valid UTF-8 JSON") from exc
+    expected_domains = {"mathematics", "lean", "research", "coding", "engineering"}
+    if (not isinstance(manifest, Mapping)
+        or manifest.get("suite_id") != "merlin-rsi-multidomain-heldout-v1"
+        or manifest.get("status") != "frozen"
+        or manifest.get("split") != "held_out"
+        or set(manifest.get("domains", [])) != expected_domains):
+        raise ValueError("benchmark manifest is not the frozen five-domain held-out suite")
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or len(cases) != 25:
+        raise ValueError("frozen benchmark must contain exactly 25 cases")
+    expected: dict[str, str] = {}
+    for case in cases:
+        if (not isinstance(case, Mapping) or not isinstance(case.get("id"), str)
+            or case.get("domain") not in expected_domains
+            or not isinstance(case.get("prompt"), str) or not case["prompt"].strip()
+            or not isinstance(case.get("evaluator"), str) or not case["evaluator"].strip()):
+            raise ValueError("benchmark contains a malformed case contract")
+        if case["id"] in expected:
+            raise ValueError("benchmark contains duplicate case IDs")
+        expected[case["id"]] = case["domain"]
+    if len(expected) != 25 or set(Counter(expected.values()).values()) != {5}:
+        raise ValueError("benchmark must contain five cases in each of five domains")
+    if not isinstance(case_results, list) or len(case_results) != 25:
+        raise ValueError("evaluation must include exactly one result for each held-out case")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    scores: dict[str, list[float]] = {domain: [] for domain in expected_domains}
+    for result in case_results:
+        required = {"case_id", "domain", "score", "passed", "evaluator_id",
+                    "evaluator_version", "evidence_sha256"}
+        if not isinstance(result, Mapping) or set(result) != required:
+            raise ValueError("case result schema mismatch")
+        case_id = result["case_id"]
+        if case_id not in expected or case_id in seen or result["domain"] != expected[case_id]:
+            raise ValueError("case result is unknown, duplicated, or assigned to the wrong domain")
+        score = float(result["score"])
+        if not math.isfinite(score) or score < 0.0 or score > 1.0:
+            raise ValueError("case score must be finite and within [0,1]")
+        if not isinstance(result["passed"], bool):
+            raise ValueError("case passed field must be boolean")
+        if (not isinstance(result["evaluator_id"], str) or not result["evaluator_id"].strip()
+            or not isinstance(result["evaluator_version"], str) or not result["evaluator_version"].strip()
+            or not _is_sha256(result["evidence_sha256"])):
+            raise ValueError("case result must bind evaluator identity, version, and evidence digest")
+        seen.add(case_id)
+        scores[result["domain"]].append(score)
+        normalized.append({
+            "case_id": case_id, "domain": result["domain"], "score": score,
+            "passed": result["passed"], "evaluator_id": result["evaluator_id"],
+            "evaluator_version": result["evaluator_version"],
+            "evidence_sha256": result["evidence_sha256"],
+        })
+    if seen != set(expected):
+        raise ValueError("evaluation is missing one or more held-out case IDs")
+    normalized.sort(key=lambda item: item["case_id"])
+    metrics = {"overall": statistics.mean(item["score"] for item in normalized)}
+    metrics.update({domain: statistics.mean(values) for domain, values in scores.items()})
+    return {
+        "suite_id": manifest["suite_id"],
+        "suite_sha256": sha256_hex(manifest_bytes),
+        "case_count": len(normalized),
+        "case_results": normalized,
+        "case_results_sha256": sha256_hex(canonical_json(normalized)),
+        "metrics": metrics,
+        "passed": all(item["passed"] for item in normalized),
+    }
 
 
 def paired_adapter_gain(baseline: list[float], candidate: list[float],
