@@ -672,6 +672,18 @@ class AppendOnlyLedger:
                 (episode_id,)).fetchall()
         return [dict(row) for row in rows]
 
+    def events_by_type(self, event_type: str) -> list[dict[str, Any]]:
+        """Return immutable ledger rows of one event type in stable order."""
+        if not isinstance(event_type, str) or not event_type:
+            raise ValueError("event_type is required")
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT * FROM research_episode_events WHERE event_type=? "
+                "ORDER BY episode_id,sequence",
+                (event_type,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def _candidate_event(self, episode_id: str, event_type: str,
                          candidate_id: str) -> dict[str, Any] | None:
         for row in self.events(episode_id):
@@ -1037,8 +1049,10 @@ def ingest_hermes_failure(
     if not _is_git_commit(record["source_commit"]) or not _is_sha256(record["artifact_sha256"]):
         raise ValueError("Hermes failure must bind exact source commit and artifact SHA-256")
     episode_id = "rsi-induction:" + str(record["event_id"])
+    record_sha256 = sha256_hex(canonical_json(dict(record)))
     claims = {
         "subject": "hermes-failure:" + str(record["event_id"]),
+        "record_sha256": record_sha256,
         "source_repo": record["source_repo"], "source_commit": record["source_commit"],
         "artifact_sha256": record["artifact_sha256"],
         "failure_class": record["failure_class"],
@@ -1050,7 +1064,7 @@ def ingest_hermes_failure(
     if existing:
         seed_row = next((row for row in existing if row["event_type"] == "rsi.induction_seeded"), None)
         seed = json.loads(seed_row["payload"]) if seed_row else None
-        if seed and seed.get("source_receipt_digest") == receipt.receipt_digest:
+        if seed and seed.get("source_record_sha256") == record_sha256:
             return {"seq": seed_row["sequence"], "event_hash": seed_row["event_hash"],
                     "episode_id": episode_id, "idempotent_replay": True}
         raise PermissionError("Hermes event ID replayed with different evidence")
@@ -1059,6 +1073,12 @@ def ingest_hermes_failure(
         "failure_class": record["failure_class"], "summary": record["summary"],
         "source_repo": record["source_repo"], "source_commit": record["source_commit"],
         "artifact_sha256": record["artifact_sha256"],
+        "run_id": record.get("run_id"),
+        "failure_signature": record.get("failure_signature"),
+        "trigger_condition": record.get("trigger_condition"),
+        "corrective_steps": list(record.get("corrective_steps") or []),
+        "source_record_sha256": record_sha256,
+        "failure_record": dict(record),
         "source_receipt_digest": receipt.receipt_digest,
         "induction": {
             "generalize_failure": True, "generate_counterexample": True,
