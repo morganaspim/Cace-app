@@ -86,3 +86,8 @@ reviewed and merged, configure `main` branch protection and independently
 pin the exact orchestrator workflow SHA-256 in the signer configuration. A
 successful workflow run is necessary but not sufficient: the signer still
 revalidates the OCI request, source blobs, benchmark, job and artifact itself.
+
+The protected validator's run title includes the exact OCI run ID
+(`Validate OCI run <id>`). The signer checks this GitHub run display title
+against the OCI execution run ID, preventing a successful protected
+orchestrator run for one execution from being reused to authorize another.
