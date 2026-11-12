@@ -256,6 +256,7 @@ jobs:
             tests/test_cace_batch_proof_targets.py \
             tests/test_lean_source_sanity.py \
             tests/test_oci_mcp_policy.py \
+            tests/test_merlin_rsi_cace_verifier.py \
             tests/test_oci_mcp_runner_inventory.py \
             tests/test_oci_mcp_health_probe.py \
             tests/test_cli.py \

@@ -15,6 +15,7 @@ Read-only by default:
 - `get_cace_logs`
 - `get_oci_instance_summary`
 - `get_attached_nsg_rules`
+- `verify_merlin_rsi_attestation` (read-only; CACE-native bundle/signature verification)
 - `get_github_runner_status`
 
 Opt-in write tools:
@@ -22,6 +23,9 @@ Opt-in write tools:
 - `restart_cace_web`
 - `ensure_web_ingress`
 - `remove_mcp_managed_web_ingress`
+- `initialize_merlin_rsi_attestor` (one-time, non-overwriting Ed25519 key creation)
+- `attest_merlin_rsi_bundle` (signs only after exact artifact bytes are verified)
+- `attest_merlin_rsi_reproduction` (signs only after verifying a successful pinned OCI workflow run)
 
 The network write tools:
 
@@ -33,7 +37,10 @@ The network write tools:
 - never mutate subnet security lists.
 
 The service exposes no arbitrary command execution, IAM mutation, secret access,
-instance termination, or generic OCI SDK method.
+instance termination, or generic OCI SDK method. The Merlin RSI verifier delegates
+bundle and Ed25519 semantics to `cace_studio.core`. The dedicated attestor can sign
+only an `artifact-integrity` statement after CACE verifies every supplied artifact
+byte against the bundle; it cannot run candidate code or promote claims.
 
 The `get_github_runner_status` tool is a bounded, read-only host snapshot. It
 reports Actions runner directory/registration-file presence, listener process,
@@ -204,6 +211,72 @@ publishing this loopback endpoint directly. If you choose to expose it through
 a public reverse proxy instead, add strong authentication (prefer OAuth),
 TLS, rate limits, and a hostname allowlist; do not publish an unauthenticated
 MCP endpoint.
+
+### Independent reproduction attestation
+
+`attest_merlin_rsi_reproduction` is stricter than artifact-integrity signing.
+It independently checks the public GitHub Actions record for the exact
+`morganaspim/Cace-app` run, including:
+
+- completed/successful push run from the `merlin/oci-jobs/` namespace;
+- exact Merlin OCI gateway workflow path and one-file request commit;
+- request binding to the exact Expert Robot source repository and commit, plus Git blob SHA-1 receipts for the RSI module, tests, and frozen benchmark manifest;
+- workflow source-commit pin and SHA-256 of the frozen 25-case held-out suite;
+- one successful `run-approved-profile` job on `cace-oci-a1`, with both
+  validation and artifact-upload steps successful;
+- one retained job receipt artifact with a GitHub SHA-256 digest;
+- exact EvidenceBundle artifact bytes verified by CACE core.
+
+Only then does CACE sign an `independent-reproduction` statement. Its
+`cace_runner_provenance` binding records the GitHub run, workflow commit,
+runner/job identity, artifact digest, source commit, and benchmark digest.
+The signature has `proof_effect=none`; it is not a theorem proof and does not
+authorize promotion. Merlin still requires its separate signed approver receipt.
+
+### CACE RSI attestor identity
+
+`initialize_merlin_rsi_attestor` creates a single Ed25519 keypair under
+`/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem` (or the fixed
+`CACE_MERLIN_RSI_SIGNING_KEY_PATH` service setting). The private key is
+created with mode 0600, is never returned, and is never overwritten. The
+tool returns only the public PEM and its SHA-256-derived key ID so Merlin can
+pin it independently.
+
+`attest_merlin_rsi_bundle` accepts a CACE EvidenceBundle, the exact expected
+claim/bindings, and base64 bytes for every artifact. It requires an exact
+artifact-ID set, verifies every byte length and SHA-256 using CACE core, caps
+the aggregate decoded input at 10 MiB, and signs an `artifact-integrity`
+attestation. It does not claim independent mathematical reproduction,
+does not execute candidate code, and always returns `proof_effect=none`.
+The separate evaluator receipt and Merlin approval gates remain mandatory.
+
+## Merlin RSI attestation verification
+
+The read-only `verify_merlin_rsi_attestation` MCP tool is an independent CACE
+verification endpoint for Merlin RSI evidence. It:
+
+- parses and verifies the supplied CACE EvidenceBundle and exact artifact bytes using CACE core (10 MiB aggregate request limit);
+- verifies the signed attestation using CACE core Ed25519 verification;
+- requires purpose `independent-reproduction` only, exact claim and bundle digests,
+  and exact expected bindings;
+- checks the signer key ID against a server-loaded, digest-pinned trust store;
+- returns only a verification result with `proof_effect=none` and
+  `authority=verification-only`.
+
+The caller cannot provide trusted keys. Configure the public-key pin document
+in `/etc/cace-oci-mcp.env` using `CACE_MERLIN_RSI_TRUST_STORE_JSON` and
+`CACE_MERLIN_RSI_TRUST_STORE_SHA256`. The JSON schema is
+`merlin-cace-trust-store-v1` and contains active Ed25519 key IDs bound to
+verifier identity `cace`. The SHA-256 must be computed over the exact UTF-8
+JSON string. The public key itself is carried in the attestation and its
+fingerprint must match the pinned key ID.
+
+Set `CACE_APP_ROOT` only if the CACE Studio release is not available at
+`/opt/cace-web/current`. The verification tool fails closed if CACE core, cryptography, or
+the trust store is unavailable. The signing tool fails closed if the one-time
+CACE key has not been initialized. Neither tool runs arbitrary candidate code,
+establishes mathematical truth, or grants promotion authority.
+Promotion remains a separate Merlin approval decision.
 
 ## Operational boundary
 
