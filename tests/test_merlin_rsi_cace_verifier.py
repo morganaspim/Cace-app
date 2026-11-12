@@ -270,7 +270,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         def git_blob_sha(raw):
             return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
         request_doc = {
-            "operation": "rsi_validation",
+            "operation": "merlin_rsi_python_tests",
             "source_repo": bindings["source_repo"],
             "source_commit": source_commit,
             "module_blob_sha": git_blob_sha(module_bytes),
@@ -279,8 +279,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         }
         workflow_text = (
             f'if request["source_repo"] != "{bindings["source_repo"]}":\n'
-            f'expected_source_commit = "{source_commit}"\n'
-            f'if request["source_commit"] != expected_source_commit:\n'
+            f'if request["source_commit"] != "{source_commit}":\n'
         )
         def encode_doc(value):
             return base64.b64encode(json.dumps(value).encode()).decode()
