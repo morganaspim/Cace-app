@@ -390,6 +390,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     "repository": {"full_name": "morganaspim/Cace-app"},
                     "status": "completed", "conclusion": "success", "event": "workflow_dispatch",
                     "head_branch": "main", "head_sha": orchestrator_sha,
+                    "display_title": f"Validate OCI run {run_id}",
                     "path": orchestrator_workflow_path + "@refs/heads/main",
                 }
             if url.endswith(f"/actions/runs/{run_id}"):
