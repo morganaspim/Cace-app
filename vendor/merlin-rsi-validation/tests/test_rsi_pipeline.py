@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 from merlin import rsi_pipeline as rsi
 from merlin.rsi_pipeline import (
     AppendOnlyLedger, CaceMcpAttestor, ResearchMetadataCache, SignedReceipt,
-    cace_rsi_bundle_payload, dispatch_rsi_induction_seed,
+    CaceMcpVerifier, cace_rsi_bundle_payload, dispatch_rsi_induction_seed,
     ingest_hermes_failure, optional_adapter_status,
     paired_adapter_gain, paired_adapter_gate,
 )
@@ -452,6 +452,52 @@ class RSIPipelineTests(unittest.TestCase):
         self.assertEqual(recorded[-1]["event_type"], "candidate.cace_integrity_attested")
         self.assertEqual(json.loads(recorded[-1]["payload"])["purpose"], "artifact-integrity")
         self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
+
+    def test_cace_mcp_verifier_calls_read_only_tool_and_checks_result(self):
+        class StubVerifier(CaceMcpVerifier):
+            def __init__(self, response):
+                super().__init__()
+                self.response = response
+                self.calls = []
+            def _rpc(self, method, params=None):
+                self.calls.append((method, params))
+                if method == "initialize":
+                    return {"protocolVersion": "2025-03-26"}
+                if method == "notifications/initialized":
+                    return {}
+                if method == "tools/call":
+                    return {"structuredContent": self.response}
+                raise AssertionError("unexpected MCP method")
+
+        valid = {
+            "verified": True, "verifier_id": "cace",
+            "purpose": "independent-reproduction", "proof_effect": "none",
+            "authority": "verification-only", "claim_id": "candidate-mcp-client",
+            "bundle_sha256": "a" * 64, "attestation_sha256": "b" * 64,
+        }
+        verifier = StubVerifier(valid)
+        result = verifier.verify(
+            bundle_payload={"schema": "cace-evidence-bundle-v1"},
+            attestation_payload={"schema": "cace-signed-attestation-v1"},
+            expected_claim_id="candidate-mcp-client",
+            expected_bindings={"authority": "verification-only"},
+            artifact_bytes_b64={"artifact-1": base64.b64encode(b"exact").decode("ascii")},
+        )
+        self.assertTrue(result["verified"])
+        call = next(params for method, params in verifier.calls if method == "tools/call")
+        self.assertEqual(call["name"], "verify_merlin_rsi_attestation")
+        self.assertEqual(call["arguments"]["expected_claim_id"], "candidate-mcp-client")
+        self.assertEqual(call["arguments"]["artifact_bytes_b64"]["artifact-1"],
+                         base64.b64encode(b"exact").decode("ascii"))
+
+        invalid = dict(valid, purpose="artifact-integrity")
+        with self.assertRaises(PermissionError):
+            StubVerifier(invalid).verify(
+                bundle_payload={}, attestation_payload={},
+                expected_claim_id="candidate-mcp-client",
+                expected_bindings={"authority": "verification-only"},
+                artifact_bytes_b64={},
+            )
 
     def test_ledger_verifies_independent_reproduction_through_cace_mcp(self):
         from unittest.mock import patch
