@@ -1,15 +1,71 @@
 {
   "schema": "merlin-rsi-validation-origin-v1",
   "source_repo": "Mannyspiro/expert-robot",
-  "source_commit": "dd57e13aa480883175b53916e64578f62d671077",
+  "source_commit": "60fdd099e51cdf9e756427b33ef529615a9d63aa",
   "files": {
     "python/merlin/rsi_pipeline.py": {
       "vendor_path": "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py",
-      "git_blob_sha": "34557113cf335694a77222a74d57ef5cdc6c2e6e"
+      "git_blob_sha": "8e1c447e40e0822b542b87706b3d73c19ed98ca9"
+    },
+    "python/merlin/rsi.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/rsi.py",
+      "git_blob_sha": "a4981d80a076d58b6dbc6efd55e3baf941aee948"
+    },
+    "python/merlin/hermes_rsi_bridge.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/hermes_rsi_bridge.py",
+      "git_blob_sha": "cef2745bcb91b2fd21393f5af80445e4c44af091"
+    },
+    "python/merlin/hermes_worker.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/hermes_worker.py",
+      "git_blob_sha": "d8d3140311f270b4321e603d145d11a7ac371b92"
+    },
+    "python/merlin/event_outbox.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/event_outbox.py",
+      "git_blob_sha": "574d36824f688623603172738290116fd77cee08"
+    },
+    "python/merlin/telemetry.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/telemetry.py",
+      "git_blob_sha": "5e05f0de306e9b55db81ebd26f8446e3fef35c8d"
+    },
+    "python/merlin/hermes_outbox.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/hermes_outbox.py",
+      "git_blob_sha": "08f877da566704f6c90ac4dc7d678db2dcf7517c"
+    },
+    "python/merlin/runtime_contracts.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/runtime_contracts.py",
+      "git_blob_sha": "af46433f1d5a1860e76279f866f8d4a149d4b6e9"
+    },
+    "python/merlin/sqlite_registry.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/python/merlin/sqlite_registry.py",
+      "git_blob_sha": "e21141e0e37375f9a4f72fe31f46fc6c31045e11"
     },
     "tests/test_rsi_pipeline.py": {
       "vendor_path": "vendor/merlin-rsi-validation/tests/test_rsi_pipeline.py",
-      "git_blob_sha": "7351769424ebd9bbcf23a4aed06f77fc2cadce13"
+      "git_blob_sha": "e9b95bbfc4eecfce17ad0185dc9810e27a6888e0"
+    },
+    "tests/test_hermes_rsi_bridge.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/tests/test_hermes_rsi_bridge.py",
+      "git_blob_sha": "8269f1f265bae227084d3011060968e2b86c15fb"
+    },
+    "tests/test_hermes_worker.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/tests/test_hermes_worker.py",
+      "git_blob_sha": "03295f8a3559e1b3c386b6041b3a98fd9b618d6f"
+    },
+    "tests/test_event_outbox.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/tests/test_event_outbox.py",
+      "git_blob_sha": "bb6aad75095c102cb4d17cb6577ba0b88141729f"
+    },
+    "tests/test_hermes_outbox.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/tests/test_hermes_outbox.py",
+      "git_blob_sha": "06004242ea80cdbff1b3cddae6d74b86a8c7bcc0"
+    },
+    "tests/test_runtime_contracts.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/tests/test_runtime_contracts.py",
+      "git_blob_sha": "6cffff0fa9b5dfe77d517400184a87da1e4e81e7"
+    },
+    "tests/test_telemetry.py": {
+      "vendor_path": "vendor/merlin-rsi-validation/tests/test_telemetry.py",
+      "git_blob_sha": "3a0ec6dc5f9a323736b629bab549c5e5aa10d520"
     },
     "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json": {
       "vendor_path": "vendor/merlin-rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
