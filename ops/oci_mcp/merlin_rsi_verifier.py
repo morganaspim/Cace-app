@@ -475,6 +475,31 @@ def attest_merlin_rsi_reproduction(
     if not source_pin or source_pin.group(1) != expected_bindings.get("source_commit"):
         raise PermissionError("CACE OCI workflow source pin does not match the candidate source commit")
 
+    if (
+        expected_bindings.get("source_repo") != "Mannyspiro/expert-robot"
+        or not re.fullmatch(r"[0-9a-f]{40}", str(expected_bindings.get("source_commit", "")))
+    ):
+        raise PermissionError("CACE reproduction source repository or commit is not allowlisted")
+
+    def git_blob_sha(raw: bytes) -> str:
+        return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
+
+    source_file_pins = {
+        "module_blob_sha": "python/merlin/rsi_pipeline.py",
+        "test_blob_sha": "tests/test_rsi_pipeline.py",
+        "manifest_blob_sha": "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+    }
+    for request_field, source_path in source_file_pins.items():
+        expected_blob = request_doc.get(request_field)
+        if not isinstance(expected_blob, str) or not re.fullmatch(r"[0-9a-f]{40}", expected_blob):
+            raise PermissionError("CACE OCI request lacks a pinned " + request_field)
+        source_bytes = fetch_file(
+            source_path, str(expected_bindings["source_repo"]),
+            str(expected_bindings["source_commit"]),
+        )
+        if git_blob_sha(source_bytes) != expected_blob:
+            raise PermissionError("CACE OCI request source blob does not match the exact Expert Robot commit: " + request_field)
+
     benchmark_path = "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
     benchmark_bytes = fetch_file(
         benchmark_path, str(expected_bindings["source_repo"]),
