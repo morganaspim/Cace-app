@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "structure_id": "merlin.math.continuum.paired-state-triangle",
+  "version": "1.0.0",
+  "claim": "A geometric simplex can carry a state space on each oriented cell. In this triangle prototype, each edge carries a two-channel real-valued field; shared endpoint values define a single-valued boundary field, and affine edge traces admit an affine barycentric extension.",
+  "geometry": {
+    "kind": "simplex",
+    "dimension": 2,
+    "orientation": "oriented"
+  },
+  "vertices": [
+    {
+      "id": "A",
+      "coordinates": [
+        0,
+        0
+      ],
+      "state": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": "B",
+      "coordinates": [
+        1,
+        0
+      ],
+      "state": [
+        1,
+        0
+      ]
+    },
+    {
+      "id": "C",
+      "coordinates": [
+        0,
+        1
+      ],
+      "state": [
+        1,
+        1
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "id": "AB",
+      "dimension": 1,
+      "vertex_ids": [
+        "A",
+        "B"
+      ],
+      "orientation": 1,
+      "state_space_id": "R2-edge"
+    },
+    {
+      "id": "BC",
+      "dimension": 1,
+      "vertex_ids": [
+        "B",
+        "C"
+      ],
+      "orientation": 1,
+      "state_space_id": "R2-edge"
+    },
+    {
+      "id": "CA",
+      "dimension": 1,
+      "vertex_ids": [
+        "C",
+        "A"
+      ],
+      "orientation": 1,
+      "state_space_id": "R2-edge"
+    },
+    {
+      "id": "ABC",
+      "dimension": 2,
+      "vertex_ids": [
+        "A",
+        "B",
+        "C"
+      ],
+      "orientation": 1,
+      "state_space_id": "R2-edge"
+    }
+  ],
+  "state_spaces": [
+    {
+      "id": "R2-edge",
+      "kind": "real_vector",
+      "dimension": 2,
+      "scalar_field": "R",
+      "semantics": "Ordered pair of independent real channels; not implicitly a complex number."
+    }
+  ],
+  "edge_fields": [
+    {
+      "id": "F_AB",
+      "cell_id": "AB",
+      "state_space_id": "R2-edge",
+      "parameterization": {
+        "parameter": "t",
+        "domain": [
+          0,
+          1
+        ],
+        "basis": "piecewise_linear"
+      },
+      "samples": [
+        {
+          "parameter": 0,
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "parameter": 0.5,
+          "value": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "parameter": 1,
+          "value": [
+            1,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F_BC",
+      "cell_id": "BC",
+      "state_space_id": "R2-edge",
+      "parameterization": {
+        "parameter": "t",
+        "domain": [
+          0,
+          1
+        ],
+        "basis": "piecewise_linear"
+      },
+      "samples": [
+        {
+          "parameter": 0,
+          "value": [
+            1,
+            0
+          ]
+        },
+        {
+          "parameter": 0.5,
+          "value": [
+            1,
+            0.5
+          ]
+        },
+        {
+          "parameter": 1,
+          "value": [
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F_CA",
+      "cell_id": "CA",
+      "state_space_id": "R2-edge",
+      "parameterization": {
+        "parameter": "t",
+        "domain": [
+          0,
+          1
+        ],
+        "basis": "piecewise_linear"
+      },
+      "samples": [
+        {
+          "parameter": 0,
+          "value": [
+            1,
+            1
+          ]
+        },
+        {
+          "parameter": 0.5,
+          "value": [
+            0.5,
+            1
+          ]
+        },
+        {
+          "parameter": 1,
+          "value": [
+            0,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "transformations": [
+    {
+      "id": "scale-first-channel",
+      "kind": "linear_matrix",
+      "source_state_space_id": "R2-edge",
+      "target_state_space_id": "R2-edge",
+      "matrix": [
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "composition_semantics": "A.then(B) applies A first and then B; the composed matrix is B multiplied by A."
+    }
+  ],
+  "constraints": [
+    {
+      "id": "shared-vertex-gluing",
+      "kind": "endpoint_compatibility",
+      "component_ids": [
+        "F_AB",
+        "F_BC",
+        "F_CA"
+      ],
+      "description": "AB(0)=CA(1)=A, AB(1)=BC(0)=B, and BC(1)=CA(0)=C."
+    },
+    {
+      "id": "affine-boundary-extension",
+      "kind": "affine_extension",
+      "component_ids": [
+        "F_AB",
+        "F_BC",
+        "F_CA"
+      ],
+      "description": "The affine barycentric extension is boundary-matching only when every sampled edge trace is affine and shared vertices agree."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "boundary-of-boundary-zero",
+      "status": "finite_tested",
+      "scope": "Oriented triangle and tetrahedron smoke fixtures; general proof remains separate."
+    }
+  ],
+  "assumptions": [
+    "Edge orientation is AB:A→B, BC:B→C, and CA:C→A.",
+    "Each edge is represented by finite samples and piecewise-linear interpolation.",
+    "The two state channels are independent real coordinates.",
+    "The affine extension classifier does not decide existence of higher-order or continuous extensions."
+  ],
+  "epistemic": {
+    "claim_status": "candidate",
+    "finite_test_status": "passed",
+    "formal_proof_status": "not_formalized"
+  },
+  "provenance": {
+    "source_repository": "Mannyspiro/expert-robot",
+    "source_branch": "feat/merlin-continuum-simplex-core-20261112",
+    "source_commit": "a3ad1b9319a150f5a3be4f8aae906e7ad112116b",
+    "source_files": [
+      {
+        "path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
+        "git_blob_sha1": "82517314e813c665f91dddf30181c06fc186254a"
+      },
+      {
+        "path": "cpp/include/expert_robot/math/simplicial_complex.hpp",
+        "git_blob_sha1": "34ca1ff5adf986388dbc797adc7999701bc5513a"
+      },
+      {
+        "path": "tests/continuum_simplex_smoke.cpp",
+        "git_blob_sha1": "d50a070a3a1b56b836c39036d40866cc4b53c4a6"
+      },
+      {
+        "path": "tests/simplicial_complex_smoke.cpp",
+        "git_blob_sha1": "ac002637014f6175d8c5e36d769bdb57e058bfa2"
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "cace-oci-continuum-cpp-smoke",
+      "repository": "morganaspim/Cace-app",
+      "run_id": "43294161866",
+      "status": "passed",
+      "url": "https://github.com/morganaspim/Cace-app/actions/runs/43294161866",
+      "proof_implication": "none"
+    }
+  ]
+}
