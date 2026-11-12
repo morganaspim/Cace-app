@@ -1,0 +1,29 @@
+{
+  "schema": "merlin-cpp-runner-fixture-v1",
+  "source_repository": "Mannyspiro/expert-robot",
+  "source_branch": "feat/merlin-continuum-simplex-core-20261112",
+  "source_commit": "a3ad1b9319a150f5a3be4f8aae906e7ad112116b",
+  "source_files": [
+    {
+      "source_path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
+      "fixture_path": "collaboration/merlin-continuum/cpp/include/expert_robot/math/continuum_simplex.hpp",
+      "git_blob_sha1": "82517314e813c665f91dddf30181c06fc186254a"
+    },
+    {
+      "source_path": "cpp/include/expert_robot/math/simplicial_complex.hpp",
+      "fixture_path": "collaboration/merlin-continuum/cpp/include/expert_robot/math/simplicial_complex.hpp",
+      "git_blob_sha1": "34ca1ff5adf986388dbc797adc7999701bc5513a"
+    },
+    {
+      "source_path": "tests/continuum_simplex_smoke.cpp",
+      "fixture_path": "collaboration/merlin-continuum/tests/continuum_simplex_smoke.cpp",
+      "git_blob_sha1": "d50a070a3a1b56b836c39036d40866cc4b53c4a6"
+    },
+    {
+      "source_path": "tests/simplicial_complex_smoke.cpp",
+      "fixture_path": "collaboration/merlin-continuum/tests/simplicial_complex_smoke.cpp",
+      "git_blob_sha1": "ac002637014f6175d8c5e36d769bdb57e058bfa2"
+    }
+  ],
+  "evidence_boundary": "Exact-byte fixture binding for independent OCI compilation. Not a Lean proof, CACE signature, qualification, or promotion."
+}
