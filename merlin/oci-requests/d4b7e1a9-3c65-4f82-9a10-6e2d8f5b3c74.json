@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "d4b7e1a9-3c65-4f82-9a10-6e2d8f5b3c74",
+  "operation": "rsi_validation",
+  "reason": "Rerun OCI RSI CACE integration after correcting artifact-integrity approval assertions",
+  "created_at": "2026-11-12T00:29:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "3813f8fede65e06e6fb0ab4db4714a90ccd39a8e"
+}
