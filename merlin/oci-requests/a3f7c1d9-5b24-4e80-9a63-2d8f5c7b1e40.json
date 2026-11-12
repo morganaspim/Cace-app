@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a3f7c1d9-5b24-4e80-9a63-2d8f5c7b1e40",
+  "operation": "rsi_validation",
+  "reason": "Run the latest matching 23-test RSI source snapshot with pinned OCI provenance so CACE can attest the exact successful fixed-profile run.",
+  "created_at": "2026-11-12T00:47:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "5d9f21ce0084be8c346aa72eb0457b0d483cc3fa",
+  "module_blob_sha": "9c65fd24f1965313b318ca02b380685b66c5908b",
+  "test_blob_sha": "5cc386d54ca346b1b9fef5cff6fd4d6fe33013a7",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
