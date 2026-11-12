@@ -410,9 +410,11 @@ def attest_merlin_rsi_reproduction(
         raise PermissionError("CACE EvidenceBundle bindings do not match expected RSI evidence")
     if bundle.bindings.get("candidate_id") != expected_claim_id:
         raise PermissionError("CACE EvidenceBundle candidate ID mismatch")
-    if not isinstance(artifact_bytes_b64, Mapping) or set(artifact_bytes_b64) != {
-        item.artifact_id for item in bundle.artifacts
-    }:
+    if not isinstance(artifact_bytes_b64, Mapping):
+        raise ValueError("artifact_bytes_b64 must map artifact IDs to base64 bytes")
+    if len(artifact_bytes_b64) > 32:
+        raise ValueError("CACE RSI reproduction accepts at most 32 artifacts")
+    if set(artifact_bytes_b64) != {item.artifact_id for item in bundle.artifacts}:
         raise PermissionError("artifact byte IDs do not exactly match the CACE EvidenceBundle")
     artifact_bytes: dict[str, bytes] = {}
     total_bytes = 0
@@ -423,6 +425,8 @@ def attest_merlin_rsi_reproduction(
             raw = base64.b64decode(encoded.encode("ascii"), validate=True)
         except Exception as exc:
             raise ValueError("artifact bytes must use canonical base64") from exc
+        if base64.b64encode(raw).decode("ascii") != encoded:
+            raise ValueError("artifact bytes must use canonical base64")
         total_bytes += len(raw)
         if total_bytes > 10 * 1024 * 1024:
             raise ValueError("CACE RSI reproduction payload exceeds the 10 MiB limit")
