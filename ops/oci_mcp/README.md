@@ -220,7 +220,7 @@ It independently checks the public GitHub Actions record for the exact
 
 - completed/successful push run from the `merlin/oci-jobs/` namespace;
 - exact Merlin OCI gateway workflow path and one-file request commit;
-- request binding to the exact Expert Robot source repository and commit;
+- request binding to the exact Expert Robot source repository and commit, plus Git blob SHA-1 receipts for the RSI module, tests, and frozen benchmark manifest;
 - workflow source-commit pin and SHA-256 of the frozen 25-case held-out suite;
 - one successful `run-approved-profile` job on `cace-oci-a1`, with both
   validation and artifact-upload steps successful;
