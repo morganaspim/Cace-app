@@ -108,6 +108,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         self.assertEqual(result["verifier_id"], "cace")
         self.assertEqual(result["verifier_key_id"], self.key_id)
         self.assertEqual(result["bundle_sha256"], self.bundle.bundle_sha256)
+        self.assertEqual(result["runner_provenance"], self.runner_provenance)
         self.assertEqual(result["proof_effect"], "none")
         self.assertEqual(result["authority"], "verification-only")
 
@@ -386,6 +387,9 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             )
 
     def _signed_attestation_at(self, created_at_utc, purpose="independent-reproduction"):
+        statement_bindings = dict(self.bindings)
+        if purpose == "independent-reproduction":
+            statement_bindings["cace_runner_provenance"] = self.runner_provenance
         statement = AttestationStatement(
             verifier_id="cace",
             verifier_key_id=self.key_id,
@@ -393,7 +397,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             bundle_sha256=self.bundle.bundle_sha256,
             created_at_utc=created_at_utc,
             purpose=purpose,
-            bindings=self.bindings,
+            bindings=statement_bindings,
         )
         return sign_attestation(statement, self.private_pem).payload()
 
