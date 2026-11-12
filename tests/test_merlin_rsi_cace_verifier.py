@@ -4,7 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cace_studio.core.attestation import (
@@ -226,6 +226,40 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 purpose="unrecognized-purpose",
                 bindings=self.bindings,
             )
+
+    def _signed_attestation_at(self, created_at_utc, purpose="independent-reproduction"):
+        statement = AttestationStatement(
+            verifier_id="cace",
+            verifier_key_id=self.key_id,
+            claim_id=self.claim_id,
+            bundle_sha256=self.bundle.bundle_sha256,
+            created_at_utc=created_at_utc,
+            purpose=purpose,
+            bindings=self.bindings,
+        )
+        return sign_attestation(statement, self.private_pem).payload()
+
+    def test_verification_authority_and_binding_schema_are_fixed(self):
+        with self.assertRaises(PermissionError):
+            self.verify(expected_bindings={**self.bindings, "authority": "production"})
+        with self.assertRaises(ValueError):
+            self.verify(expected_bindings={**self.bindings, "extra": "not-allowed"})
+        with self.assertRaises(ValueError):
+            self.verify(expected_bindings={**self.bindings, "candidate_digest": "not-a-digest"})
+        with self.assertRaises(PermissionError):
+            self.verify(expected_bindings={**self.bindings, "source_repo": "attacker/fork"})
+
+    def test_stale_and_future_attestations_are_rejected(self):
+        stale = (datetime.now(timezone.utc) - timedelta(days=31)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        future = (datetime.now(timezone.utc) + timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for created_at in (stale, future):
+            with self.assertRaises(PermissionError):
+                self.verify(attestation_payload=self._signed_attestation_at(created_at))
+
+    def test_artifact_base64_must_be_canonical(self):
+        encoded = base64.b64encode(self.artifact_bytes).decode("ascii") + "\n"
+        with self.assertRaises(ValueError):
+            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": encoded})
 
 if __name__ == "__main__":
     unittest.main()
