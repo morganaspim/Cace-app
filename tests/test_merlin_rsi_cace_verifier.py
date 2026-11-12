@@ -265,10 +265,17 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         run_sha = "e" * 40
         run_id = 98765
         request_path = "merlin/oci-requests/11111111-2222-4333-8444-555555555555.json"
+        module_bytes = b"pinned-rsi-module-source"
+        test_bytes = b"pinned-rsi-test-source"
+        def git_blob_sha(raw):
+            return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
         request_doc = {
-            "operation": "rsi_validation",
+            "operation": "merlin_rsi_python_tests",
             "source_repo": bindings["source_repo"],
             "source_commit": source_commit,
+            "module_blob_sha": git_blob_sha(module_bytes),
+            "test_blob_sha": git_blob_sha(test_bytes),
+            "manifest_blob_sha": git_blob_sha(benchmark_bytes),
         }
         workflow_text = (
             f'if request["source_repo"] != "{bindings["source_repo"]}":\n'
@@ -291,6 +298,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 return {"encoding": "base64", "content": encode_doc(request_doc)}
             if "/contents/.github/workflows/" in url:
                 return {"encoding": "base64", "content": base64.b64encode(workflow_text.encode()).decode()}
+            if "/contents/python/merlin/rsi_pipeline.py?" in url:
+                return {"encoding": "base64", "content": base64.b64encode(module_bytes).decode()}
+            if "/contents/tests/test_rsi_pipeline.py?" in url:
+                return {"encoding": "base64", "content": base64.b64encode(test_bytes).decode()}
             if "/contents/config/benchmarks/" in url:
                 return {"encoding": "base64", "content": base64.b64encode(benchmark_bytes).decode()}
             if url.endswith(f"/actions/runs/{run_id}/jobs?per_page=100"):
