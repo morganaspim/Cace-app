@@ -605,7 +605,7 @@ jobs:
           if request["operation"] == "merlin_hermes_rsi_full_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: Hermes RSI source repository is not allowlisted")
-              if request["source_commit"] != "4b7b0c9d95618f004b1e9675c8196f51b8637fc0":
+              if request["source_commit"] != "d67c993980e1efe774898f63561a9ab2999e1605":
                   raise SystemExit("request rejected: Hermes RSI source commit is not pinned")
               source_paths = {
                   "python/merlin/rsi_pipeline.py",
