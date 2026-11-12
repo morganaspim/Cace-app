@@ -276,7 +276,8 @@ jobs:
             tests/test_rmk_formal_qualification.py \
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
-            tests/test_merlin_continuum_cpp_smoke.py \\\n            tests/test_qualification_promotion_v339.py
+            tests/test_merlin_continuum_cpp_smoke.py \
+            tests/test_qualification_promotion_v339.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$TEST_ENV/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
