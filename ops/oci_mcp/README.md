@@ -213,7 +213,7 @@ MCP endpoint.
 The read-only `verify_merlin_rsi_attestation` MCP tool is an independent CACE
 verification endpoint for Merlin RSI evidence. It:
 
-- parses and verifies the supplied CACE EvidenceBundle using CACE core;
+- parses and verifies the supplied CACE EvidenceBundle and exact artifact bytes using CACE core (10 MiB aggregate request limit);
 - verifies the signed attestation using CACE core Ed25519 verification;
 - requires purpose `independent-reproduction`, exact claim and bundle digests,
   and exact expected bindings;
