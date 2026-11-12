@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "e6b3a9d2-5c41-4f87-9b20-6d3e8a1f5c72",
+  "operation": "mcp_readonly_probe",
+  "reason": "Discover the actual live CACE MCP tools and runtime status on the OCI host to determine whether independent RSI candidate reproduction and attestation are available.",
+  "created_at": "2026-11-12T01:48:00Z"
+}

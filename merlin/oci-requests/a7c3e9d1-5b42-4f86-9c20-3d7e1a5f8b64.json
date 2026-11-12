@@ -1,0 +1,10 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a7c3e9d1-5b42-4f86-9c20-3d7e1a5f8b64",
+  "operation": "merlin_rsi_metadata_live_probe",
+  "reason": "Re-run live Crossref and arXiv integration after the RSI adapter changed to require exact candidate bytes for CACE bundles.",
+  "created_at": "2026-11-12T02:05:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "d67c993980e1efe774898f63561a9ab2999e1605",
+  "module_blob_sha": "4489abb85b8f2c549882dd19bbab4bf6db618ad4"
+}

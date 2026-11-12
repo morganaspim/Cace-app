@@ -279,13 +279,42 @@ def initialize_merlin_rsi_attestor(
     }
 
 
+
+def _resolve_attestor_private_pem(
+    *, private_key_path: str | Path | None, private_key_pem: str | bytes | None,
+) -> bytes:
+    """Load signer material from an in-memory protected secret or an explicit legacy path."""
+    if (private_key_path is None) == (private_key_pem is None):
+        raise ValueError("provide exactly one of private_key_path or private_key_pem")
+    if private_key_pem is not None:
+        if isinstance(private_key_pem, str):
+            try:
+                raw = private_key_pem.encode("ascii")
+            except UnicodeEncodeError as exc:
+                raise ValueError("private key PEM must be ASCII") from exc
+        elif isinstance(private_key_pem, bytes):
+            raw = private_key_pem
+        else:
+            raise ValueError("private key PEM must be text or bytes")
+        if not raw or len(raw) > 64 * 1024 or b"-----BEGIN" not in raw or b"PRIVATE KEY-----" not in raw:
+            raise ValueError("private key PEM is empty, oversized, or malformed")
+        return raw
+    path = Path(private_key_path)
+    if not path.is_file() or path.is_symlink():
+        raise PermissionError("CACE RSI attestor key is not initialized as a regular file")
+    raw = path.read_bytes()
+    if not raw or len(raw) > 64 * 1024:
+        raise PermissionError("CACE RSI attestor key file is empty or oversized")
+    return raw
+
 def attest_merlin_rsi_bundle(
     *,
     bundle_payload: Mapping[str, Any],
     expected_claim_id: str,
     expected_bindings: Mapping[str, Any],
     artifact_bytes_b64: Mapping[str, str],
-    private_key_path: str | Path,
+    private_key_path: str | Path | None = None,
+    private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
 ) -> dict[str, Any]:
     """Verify exact EvidenceBundle bytes, then sign an artifact-integrity attestation."""
@@ -302,6 +331,8 @@ def attest_merlin_rsi_bundle(
         raise PermissionError("CACE EvidenceBundle bindings do not match the expected RSI evidence")
     if bundle.bindings.get("candidate_id") != expected_claim_id:
         raise PermissionError("CACE EvidenceBundle candidate ID mismatch")
+    if len(artifact_bytes_b64) > 32:
+        raise ValueError("CACE RSI attestation accepts at most 32 artifacts")
     if set(artifact_bytes_b64) != {item.artifact_id for item in bundle.artifacts}:
         raise PermissionError("artifact byte IDs do not exactly match the CACE EvidenceBundle")
 
@@ -314,6 +345,8 @@ def attest_merlin_rsi_bundle(
             raw = base64.b64decode(encoded.encode("ascii"), validate=True)
         except Exception as exc:
             raise ValueError("artifact bytes must use canonical base64") from exc
+        if base64.b64encode(raw).decode("ascii") != encoded:
+            raise ValueError("artifact bytes must use canonical base64")
         total_bytes += len(raw)
         if total_bytes > 10 * 1024 * 1024:
             raise ValueError("CACE RSI attestation payload exceeds the 10 MiB limit")
@@ -325,10 +358,9 @@ def attest_merlin_rsi_bundle(
             "CACE RSI attestor rejected the exact EvidenceBundle artifact bytes"
         ) from exc
 
-    path = Path(private_key_path)
-    if not path.is_file():
-        raise PermissionError("CACE RSI attestor key has not been initialized")
-    private_pem = path.read_bytes()
+    private_pem = _resolve_attestor_private_pem(
+        private_key_path=private_key_path, private_key_pem=private_key_pem
+    )
     from cryptography.hazmat.primitives import serialization
     private_key = serialization.load_pem_private_key(private_pem, password=None)
     public_pem = private_key.public_key().public_bytes(
@@ -390,7 +422,10 @@ def attest_merlin_rsi_reproduction(
     expected_bindings: Mapping[str, Any],
     artifact_bytes_b64: Mapping[str, str],
     github_run_id: int,
-    private_key_path: str | Path,
+    trusted_workflow_sha256: str,
+    trusted_run_branch: str,
+    private_key_path: str | Path | None = None,
+    private_key_pem: str | bytes | None = None,
     cace_app_root: str | Path = "/opt/cace-web/current",
     github_fetch=None,
 ) -> dict[str, Any]:
@@ -406,9 +441,11 @@ def attest_merlin_rsi_reproduction(
         raise PermissionError("CACE EvidenceBundle bindings do not match expected RSI evidence")
     if bundle.bindings.get("candidate_id") != expected_claim_id:
         raise PermissionError("CACE EvidenceBundle candidate ID mismatch")
-    if not isinstance(artifact_bytes_b64, Mapping) or set(artifact_bytes_b64) != {
-        item.artifact_id for item in bundle.artifacts
-    }:
+    if not isinstance(artifact_bytes_b64, Mapping):
+        raise ValueError("artifact_bytes_b64 must map artifact IDs to base64 bytes")
+    if len(artifact_bytes_b64) > 32:
+        raise ValueError("CACE RSI reproduction accepts at most 32 artifacts")
+    if set(artifact_bytes_b64) != {item.artifact_id for item in bundle.artifacts}:
         raise PermissionError("artifact byte IDs do not exactly match the CACE EvidenceBundle")
     artifact_bytes: dict[str, bytes] = {}
     total_bytes = 0
@@ -419,6 +456,8 @@ def attest_merlin_rsi_reproduction(
             raw = base64.b64decode(encoded.encode("ascii"), validate=True)
         except Exception as exc:
             raise ValueError("artifact bytes must use canonical base64") from exc
+        if base64.b64encode(raw).decode("ascii") != encoded:
+            raise ValueError("artifact bytes must use canonical base64")
         total_bytes += len(raw)
         if total_bytes > 10 * 1024 * 1024:
             raise ValueError("CACE RSI reproduction payload exceeds the 10 MiB limit")
@@ -428,13 +467,19 @@ def attest_merlin_rsi_reproduction(
     api = "https://api.github.com/repos"
     run = fetch(f"{api}/morganaspim/Cace-app/actions/runs/{github_run_id}")
     if (
+        not isinstance(trusted_run_branch, str)
+        or not trusted_run_branch.strip()
+        or trusted_run_branch.startswith("merlin/oci-jobs/")
+    ):
+        raise PermissionError("CACE signer requires an independently configured protected run branch")
+    if (
         run.get("repository", {}).get("full_name") != "morganaspim/Cace-app"
         or run.get("status") != "completed"
         or run.get("conclusion") != "success"
-        or run.get("event") != "push"
-        or not str(run.get("head_branch", "")).startswith("merlin/oci-jobs/")
+        or run.get("event") != "workflow_dispatch"
+        or run.get("head_branch") != trusted_run_branch
     ):
-        raise PermissionError("CACE OCI workflow run is not a successful approved RSI execution")
+        raise PermissionError("CACE reproduction signing requires a successful manually dispatched run on the configured protected branch")
     run_sha = run.get("head_sha")
     if not isinstance(run_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", run_sha):
         raise PermissionError("CACE OCI run head commit is invalid")
@@ -463,17 +508,25 @@ def attest_merlin_rsi_reproduction(
 
     request_doc = json.loads(fetch_file(request_path, "morganaspim/Cace-app", run_sha).decode("utf-8"))
     if (
-        request_doc.get("operation") != "merlin_rsi_python_tests"
+        request_doc.get("operation") != "merlin_hermes_rsi_full_tests"
         or request_doc.get("source_repo") != expected_bindings.get("source_repo")
         or request_doc.get("source_commit") != expected_bindings.get("source_commit")
     ):
-        raise PermissionError("CACE OCI request is not bound to this exact RSI source commit")
+        raise PermissionError("CACE OCI request is not bound to the full Hermes RSI source commit")
 
+    if not isinstance(trusted_workflow_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", trusted_workflow_sha256):
+        raise PermissionError("CACE signer requires an independently configured trusted workflow SHA-256")
     workflow_bytes = fetch_file(workflow_path, "morganaspim/Cace-app", run_sha)
+    if _sha256(workflow_bytes) != trusted_workflow_sha256:
+        raise PermissionError("CACE OCI workflow bytes do not match the independently pinned trusted workflow")
     workflow_text = workflow_bytes.decode("utf-8")
-    source_pin = re.search(r'request\["source_commit"\]\s*!=\s*["\']([0-9a-f]{40})["\']', workflow_text)
+    profile_marker = 'if request["operation"] == "merlin_hermes_rsi_full_tests":'
+    if profile_marker not in workflow_text:
+        raise PermissionError("CACE OCI workflow omits the fixed Hermes RSI validation profile")
+    profile_text = workflow_text.split(profile_marker, 1)[1]
+    source_pin = re.search(r'request\["source_commit"\]\s*!=\s*["\']([0-9a-f]{40})["\']', profile_text)
     if not source_pin or source_pin.group(1) != expected_bindings.get("source_commit"):
-        raise PermissionError("CACE OCI workflow source pin does not match the candidate source commit")
+        raise PermissionError("CACE OCI Hermes RSI profile source pin does not match the candidate source commit")
 
     if (
         expected_bindings.get("source_repo") != "Mannyspiro/expert-robot"
@@ -484,21 +537,36 @@ def attest_merlin_rsi_reproduction(
     def git_blob_sha(raw: bytes) -> str:
         return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
 
-    source_file_pins = {
-        "module_blob_sha": "python/merlin/rsi_pipeline.py",
-        "test_blob_sha": "tests/test_rsi_pipeline.py",
-        "manifest_blob_sha": "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
-    }
-    for request_field, source_path in source_file_pins.items():
-        expected_blob = request_doc.get(request_field)
+    source_file_paths = (
+        "python/merlin/rsi_pipeline.py",
+        "python/merlin/rsi.py",
+        "python/merlin/event_outbox.py",
+        "python/merlin/hermes_rsi_bridge.py",
+        "python/merlin/hermes_worker.py",
+        "python/merlin/telemetry.py",
+        "python/merlin/hermes_outbox.py",
+        "python/merlin/runtime_contracts.py",
+        "python/merlin/sqlite_registry.py",
+        "tests/test_rsi_pipeline.py",
+        "tests/test_hermes_rsi_bridge.py",
+        "tests/test_hermes_worker.py",
+        "tests/test_event_outbox.py",
+        "tests/test_hermes_outbox.py",
+        "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+    )
+    source_blob_shas = request_doc.get("source_blob_shas")
+    if not isinstance(source_blob_shas, Mapping) or set(source_blob_shas) != set(source_file_paths):
+        raise PermissionError("CACE OCI request must pin the complete Hermes RSI source and test set")
+    for source_path in source_file_paths:
+        expected_blob = source_blob_shas.get(source_path)
         if not isinstance(expected_blob, str) or not re.fullmatch(r"[0-9a-f]{40}", expected_blob):
-            raise PermissionError("CACE OCI request lacks a pinned " + request_field)
+            raise PermissionError("CACE OCI request lacks a valid source blob pin: " + source_path)
         source_bytes = fetch_file(
             source_path, str(expected_bindings["source_repo"]),
             str(expected_bindings["source_commit"]),
         )
         if git_blob_sha(source_bytes) != expected_blob:
-            raise PermissionError("CACE OCI request source blob does not match the exact Expert Robot commit: " + request_field)
+            raise PermissionError("CACE OCI source blob does not match the exact Expert Robot commit: " + source_path)
 
     benchmark_path = "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
     benchmark_bytes = fetch_file(
@@ -559,10 +627,9 @@ def attest_merlin_rsi_reproduction(
     signed_bindings = dict(expected_bindings)
     signed_bindings["cace_runner_provenance"] = provenance
 
-    path = Path(private_key_path)
-    if not path.is_file() or path.is_symlink():
-        raise PermissionError("CACE RSI attestor key is not initialized as a regular file")
-    private_pem = path.read_bytes()
+    private_pem = _resolve_attestor_private_pem(
+        private_key_path=private_key_path, private_key_pem=private_key_pem
+    )
     from cryptography.hazmat.primitives import serialization
     private_key = serialization.load_pem_private_key(private_pem, password=None)
     public_pem = private_key.public_key().public_bytes(

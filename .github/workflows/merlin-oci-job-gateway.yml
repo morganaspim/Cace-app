@@ -125,7 +125,7 @@ jobs:
           cace_fields = {
               "candidate_id", "candidate_digest", "benchmark_manifest_sha256",
               "evaluator_receipt_sha256", "source_repo", "source_commit",
-              "expected_bundle_sha256",
+              "expected_bundle_sha256", "candidate_artifact_bytes_b64",
           }
           rsi_test_fields = {
               "source_repo", "source_commit", "module_blob_sha",
@@ -363,6 +363,13 @@ jobs:
                   "source_commit": request["source_commit"],
               }
               manifest_bytes = cace_repro.canonical_json_bytes(manifest)
+              try:
+                  candidate_artifact_bytes = base64.b64decode(
+                      request["candidate_artifact_bytes_b64"], validate=True)
+              except Exception as exc:
+                  raise SystemExit("request rejected: candidate artifact bytes are not canonical base64") from exc
+              if hashlib.sha256(candidate_artifact_bytes).hexdigest() != request["candidate_digest"]:
+                  raise SystemExit("request rejected: candidate artifact bytes do not match candidate_digest")
               bindings = {
                   "candidate_id": request["candidate_id"],
                   "candidate_digest": request["candidate_digest"],
@@ -372,21 +379,29 @@ jobs:
                   "source_commit": request["source_commit"],
                   "authority": "verification-only",
               }
-              artifact = cace_ledger.EvidenceArtifact.from_bytes(
+              candidate_artifact = cace_ledger.EvidenceArtifact.from_bytes(
+                  "merlin-rsi-candidate", candidate_artifact_bytes,
+                  role="candidate-artifact", media_type="application/octet-stream",
+                  path="merlin-rsi-candidate.bin", metadata={})
+              manifest_artifact = cace_ledger.EvidenceArtifact.from_bytes(
                   "merlin-rsi-evidence-manifest", manifest_bytes,
                   role="rsi-evidence-manifest", media_type="application/json",
                   path="merlin-rsi-evidence-manifest.json", metadata={})
               bundle = cace_ledger.EvidenceBundle(
-                  artifacts=(artifact,), bindings=bindings,
+                  artifacts=(candidate_artifact, manifest_artifact), bindings=bindings,
                   notes=("Merlin RSI exact-artifact independent verification",))
-              actual_bundle_sha = cace_ledger.verify_bundle(bundle)
+              actual_bundle_sha = cace_ledger.verify_bundle(bundle, artifact_bytes={
+                  "merlin-rsi-candidate": candidate_artifact_bytes,
+                  "merlin-rsi-evidence-manifest": manifest_bytes,
+              })
               if actual_bundle_sha != request["expected_bundle_sha256"]:
                   raise SystemExit("CACE EvidenceBundle digest does not match the Merlin adapter")
               cace_bundle_contract = {
                   "status": "matched",
                   "bundle_sha256": actual_bundle_sha,
                   "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
-                  "artifact_leaf_sha256": cace_ledger.artifact_leaf_hash(artifact),
+                  "candidate_artifact_sha256": candidate_artifact.sha256,
+                  "artifact_leaf_sha256": cace_ledger.artifact_leaf_hash(candidate_artifact),
                   "pinned_source_blobs": {
                       "graph.py": cace_graph_sha,
                       "reproducibility.py": cace_repro_sha,
@@ -519,9 +534,9 @@ jobs:
           if request["operation"] == "merlin_rsi_metadata_live_probe":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: metadata source repository is not allowlisted")
-              if request["source_commit"] != "1822a54226d9d1045769b696e264ff8f3edd7de6":
+              if request["source_commit"] != "d67c993980e1efe774898f63561a9ab2999e1605":
                   raise SystemExit("request rejected: metadata source commit is not the pinned snapshot")
-              if request["module_blob_sha"] != "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19":
+              if request["module_blob_sha"] != "4489abb85b8f2c549882dd19bbab4bf6db618ad4":
                   raise SystemExit("request rejected: metadata module blob is not pinned")
               module_path = "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py"
               module_bytes, module_blob = fetch_contents(module_path)
@@ -590,7 +605,7 @@ jobs:
           if request["operation"] == "merlin_hermes_rsi_full_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: Hermes RSI source repository is not allowlisted")
-              if request["source_commit"] != "665c96968e8c82906a97de11f6060ad909716dec":
+              if request["source_commit"] != "d67c993980e1efe774898f63561a9ab2999e1605":
                   raise SystemExit("request rejected: Hermes RSI source commit is not pinned")
               source_paths = {
                   "python/merlin/rsi_pipeline.py",
@@ -622,15 +637,15 @@ jobs:
               test_root.mkdir(parents=True)
               copied = {}
               for path in sorted(source_paths):
-                  raw, actual_blob_sha = fetch_external_contents(
-                      request["source_repo"], path, request["source_commit"]
-                  )
+                  vendor_path = "vendor/merlin-hermes-rsi-validation/" + path
+                  raw, actual_blob_sha = fetch_contents(vendor_path)
                   if actual_blob_sha != pins[path]:
-                      raise SystemExit("Hermes RSI source blob mismatch: " + path)
+                      raise SystemExit("Hermes RSI vendored source blob mismatch: " + path)
                   destination = test_root / path
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   destination.write_bytes(raw)
                   copied[path] = {
+                      "repository_path": vendor_path,
                       "git_blob_sha": actual_blob_sha,
                       "sha256": hashlib.sha256(raw).hexdigest(),
                       "size_bytes": len(raw),

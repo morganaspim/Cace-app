@@ -28,7 +28,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 
 def canonical_json(value: Any) -> bytes:
@@ -120,14 +120,23 @@ def verify_signed_receipt(
 _CACE_ATTESTATION_DOMAIN = b"CACE:SIGNED-ATTESTATION:v1\0"
 _CACE_BUNDLE_DOMAIN = b"CACE:EVIDENCE:BUNDLE:v1\0"
 _CACE_ARTIFACT_LEAF_DOMAIN = b"CACE:EVIDENCE:ARTIFACT-LEAF:v1\0"
+_CACE_MERKLE_NODE_DOMAIN = b"CACE:EVIDENCE:MERKLE-NODE:v1\0"
 
 
-def cace_rsi_bundle_sha256(
+def cace_rsi_bundle_payload(
     *, candidate_id: str, candidate_digest: str,
     benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
     source_repo: str, source_commit: str,
-) -> str:
-    """Reproduce CACE EvidenceBundle v1 identity for a one-artifact RSI manifest."""
+    candidate_artifact_bytes: bytes,
+    candidate_artifact_media_type: str = "application/octet-stream",
+) -> tuple[dict[str, Any], bytes, dict[str, Any]]:
+    """Build a CACE bundle binding the exact candidate bytes and RSI manifest."""
+    if not isinstance(candidate_artifact_bytes, bytes):
+        raise TypeError("candidate_artifact_bytes must be immutable bytes")
+    if sha256_hex(candidate_artifact_bytes) != candidate_digest:
+        raise PermissionError("candidate artifact bytes do not match the candidate digest")
+    if not isinstance(candidate_artifact_media_type, str) or not candidate_artifact_media_type.strip():
+        raise ValueError("candidate artifact media type is required")
     manifest = {
         "schema": "merlin-rsi-evidence-manifest-v1",
         "candidate_id": candidate_id, "candidate_digest": candidate_digest,
@@ -136,13 +145,29 @@ def cace_rsi_bundle_sha256(
         "source_repo": source_repo, "source_commit": source_commit,
     }
     manifest_bytes = canonical_json(manifest)
-    artifact = {
+    candidate_artifact = {
+        "artifact_id": "merlin-rsi-candidate",
+        "sha256": candidate_digest, "size_bytes": len(candidate_artifact_bytes),
+        "role": "candidate-artifact", "media_type": candidate_artifact_media_type,
+        "path": "merlin-rsi-candidate.bin", "metadata": {},
+    }
+    manifest_artifact = {
         "artifact_id": "merlin-rsi-evidence-manifest",
         "sha256": sha256_hex(manifest_bytes), "size_bytes": len(manifest_bytes),
         "role": "rsi-evidence-manifest", "media_type": "application/json",
         "path": "merlin-rsi-evidence-manifest.json", "metadata": {},
     }
-    leaf = sha256_hex(_CACE_ARTIFACT_LEAF_DOMAIN + canonical_json(artifact))
+    artifacts = sorted(
+        [candidate_artifact, manifest_artifact],
+        key=lambda item: (item["artifact_id"], item["sha256"]),
+    )
+    leaves = [
+        sha256_hex(_CACE_ARTIFACT_LEAF_DOMAIN + canonical_json(item))
+        for item in artifacts
+    ]
+    merkle_root = sha256_hex(
+        _CACE_MERKLE_NODE_DOMAIN + bytes.fromhex(leaves[0]) + bytes.fromhex(leaves[1])
+    )
     bindings = {
         "candidate_id": candidate_id, "candidate_digest": candidate_digest,
         "benchmark_manifest_sha256": benchmark_manifest_sha256,
@@ -154,10 +179,29 @@ def cace_rsi_bundle_sha256(
         "schema": "cace-evidence-bundle-v1",
         "identity_algorithm": "sha256/cace-canonical-json-v1",
         "merkle_algorithm": "sha256/cace-merkle-v1",
-        "proof_effect": "none", "artifacts": [artifact],
-        "merkle_root_sha256": leaf, "bindings": bindings,
+        "proof_effect": "none", "artifacts": artifacts,
+        "merkle_root_sha256": merkle_root, "bindings": bindings,
         "notes": ["Merlin RSI exact-artifact independent verification"],
     }
+    return bundle, manifest_bytes, bindings
+
+
+def cace_rsi_bundle_sha256(
+    *, candidate_id: str, candidate_digest: str,
+    benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
+    source_repo: str, source_commit: str,
+    candidate_artifact_bytes: bytes,
+    candidate_artifact_media_type: str = "application/octet-stream",
+) -> str:
+    """Reproduce CACE EvidenceBundle v1 identity for exact candidate and manifest bytes."""
+    bundle, _, _ = cace_rsi_bundle_payload(
+        candidate_id=candidate_id, candidate_digest=candidate_digest,
+        benchmark_manifest_sha256=benchmark_manifest_sha256,
+        evaluator_receipt_sha256=evaluator_receipt_sha256,
+        source_repo=source_repo, source_commit=source_commit,
+        candidate_artifact_bytes=candidate_artifact_bytes,
+        candidate_artifact_media_type=candidate_artifact_media_type,
+    )
     return sha256_hex(_CACE_BUNDLE_DOMAIN + canonical_json(bundle))
 
 
@@ -258,7 +302,7 @@ def verify_cace_attestation(
         or statement.get("schema") != "cace-attestation-statement-v1"
         or statement.get("signature_algorithm") != "ed25519"
         or statement.get("proof_effect") != "none"
-        or statement.get("purpose") != "independent-reproduction"):
+        or statement.get("purpose") not in {"artifact-integrity", "independent-reproduction"}):
         raise PermissionError("CACE attestation profile or purpose is not accepted")
     if statement.get("verifier_id") != expected_verifier_id:
         raise PermissionError("CACE verifier identity mismatch")
@@ -267,9 +311,35 @@ def verify_cace_attestation(
     if statement.get("bundle_sha256") != expected_bundle_sha256:
         raise PermissionError("CACE evidence bundle digest mismatch")
     bindings = statement.get("bindings")
-    if (not isinstance(bindings, Mapping) or set(bindings) != set(expected_bindings)
-        or any(bindings.get(k) != v for k, v in expected_bindings.items())):
+    if not isinstance(bindings, Mapping):
+        raise PermissionError("CACE attestation bindings are malformed")
+    signed_bindings = dict(bindings)
+    runner_provenance = signed_bindings.pop("cace_runner_provenance", None)
+    if (set(signed_bindings) != set(expected_bindings)
+        or any(signed_bindings.get(k) != v for k, v in expected_bindings.items())):
         raise PermissionError("CACE attestation bindings do not match candidate evidence")
+    if statement.get("purpose") == "independent-reproduction":
+        required_provenance = {
+            "schema", "repository", "run_id", "workflow_path", "workflow_commit",
+            "runner_name", "job_id", "artifact_sha256", "source_repo",
+            "source_commit", "benchmark_manifest_sha256",
+        }
+        if (not isinstance(runner_provenance, Mapping)
+            or set(runner_provenance) != required_provenance
+            or runner_provenance.get("schema") != "cace-oci-run-provenance-v1"
+            or runner_provenance.get("repository") != "morganaspim/Cace-app"
+            or runner_provenance.get("workflow_path") != ".github/workflows/merlin-oci-job-gateway.yml"
+            or runner_provenance.get("runner_name") != "cace-oci-a1"
+            or runner_provenance.get("source_repo") != expected_bindings.get("source_repo")
+            or runner_provenance.get("source_commit") != expected_bindings.get("source_commit")
+            or runner_provenance.get("benchmark_manifest_sha256") != expected_bindings.get("benchmark_manifest_sha256")
+            or not isinstance(runner_provenance.get("run_id"), int)
+            or not isinstance(runner_provenance.get("job_id"), int)
+            or not _is_sha256(runner_provenance.get("artifact_sha256"))
+            or not re.fullmatch(r"[0-9a-f]{40}", str(runner_provenance.get("workflow_commit", "")))):
+            raise PermissionError("CACE independent-reproduction attestation lacks valid OCI run provenance")
+    elif runner_provenance is not None:
+        raise PermissionError("artifact-integrity attestation cannot claim runner reproduction")
     created_text = str(statement.get("created_at_utc", ""))
     created = datetime.strptime(created_text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
     current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
@@ -309,7 +379,250 @@ def verify_cace_attestation(
         "attestation_sha256": sha256_hex(canonical_json(dict(attestation))),
         "statement_sha256": statement_digest, "verifier_key_id": actual_key_id,
         "verifier_id": expected_verifier_id, "bundle_sha256": expected_bundle_sha256,
+        "purpose": statement.get("purpose"), "runner_provenance": runner_provenance,
+        "authority": "verification-only",
     }
+
+
+class CaceMcpAttestor:
+    """Loopback-only MCP client for the CACE OCI attestation service."""
+
+    def __init__(self, endpoint: str = "http://127.0.0.1:8765/mcp", timeout: float = 12.0):
+        from urllib.parse import urlsplit
+        parsed = urlsplit(endpoint)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}
+            or parsed.path != "/mcp" or parsed.query or parsed.fragment
+            or parsed.username or parsed.password):
+            raise ValueError("CACE MCP endpoint must be loopback HTTP at /mcp")
+        self.endpoint = endpoint
+        self.timeout = max(1.0, min(float(timeout), 30.0))
+        self.protocol_version = "2025-03-26"
+        self.session_id: str | None = None
+        self._request_id = 0
+
+    def _rpc(self, method: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        import urllib.request
+        self._request_id += 1
+        request_id = self._request_id if method != "notifications/initialized" else None
+        payload: dict[str, Any] = {"jsonrpc": "2.0", "method": method}
+        if request_id is not None:
+            payload["id"] = request_id
+        if params is not None:
+            payload["params"] = dict(params)
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "MCP-Protocol-Version": self.protocol_version,
+        }
+        if self.session_id:
+            headers["Mcp-Session-Id"] = self.session_id
+        request = urllib.request.Request(
+            self.endpoint, data=json.dumps(payload).encode("utf-8"),
+            headers=headers, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = response.read(1_000_001)
+                if len(body) > 1_000_000:
+                    raise RuntimeError("CACE MCP response exceeded the 1 MB limit")
+                content_type = response.headers.get("Content-Type", "")
+                self.session_id = response.headers.get("Mcp-Session-Id", self.session_id)
+        except Exception as exc:
+            raise RuntimeError(f"CACE MCP request failed: {type(exc).__name__}") from None
+        if not body:
+            return {}
+        text_body = body.decode("utf-8", errors="strict")
+        if "text/event-stream" in content_type:
+            messages: list[dict[str, Any]] = []
+            current: list[str] = []
+            for line in text_body.splitlines():
+                if line.startswith("data:"):
+                    current.append(line[5:].lstrip())
+                elif not line and current:
+                    joined = "\n".join(current)
+                    current = []
+                    if joined and joined != "[DONE]":
+                        item = json.loads(joined)
+                        if isinstance(item, dict):
+                            messages.append(item)
+            if current:
+                joined = "\n".join(current)
+                if joined and joined != "[DONE]":
+                    item = json.loads(joined)
+                    if isinstance(item, dict):
+                        messages.append(item)
+            message = next((item for item in messages if item.get("id") == request_id), None)
+            if message is None and messages:
+                message = messages[-1]
+            if message is None:
+                raise RuntimeError("CACE MCP SSE response contained no JSON-RPC result")
+        else:
+            message = json.loads(text_body)
+        if not isinstance(message, dict) or message.get("error"):
+            raise RuntimeError("CACE MCP returned a JSON-RPC error")
+        result = message.get("result")
+        return result if isinstance(result, dict) else {}
+
+    def reproduce(
+        self, *, bundle_payload: Mapping[str, Any], expected_claim_id: str,
+        expected_bindings: Mapping[str, Any], artifact_bytes_b64: Mapping[str, str],
+        github_run_id: int,
+    ) -> dict[str, Any]:
+        initialized = self._rpc("initialize", {
+            "protocolVersion": self.protocol_version,
+            "capabilities": {},
+            "clientInfo": {"name": "merlin-rsi-pipeline", "version": "1.0.0"},
+        })
+        negotiated = initialized.get("protocolVersion")
+        if not isinstance(negotiated, str) or not negotiated:
+            raise RuntimeError("CACE MCP initialize response omitted protocolVersion")
+        self.protocol_version = negotiated
+        self._rpc("notifications/initialized")
+        result = self._rpc("tools/call", {
+            "name": "attest_merlin_rsi_reproduction",
+            "arguments": {
+                "bundle_payload": dict(bundle_payload),
+                "expected_claim_id": expected_claim_id,
+                "expected_bindings": dict(expected_bindings),
+                "artifact_bytes_b64": dict(artifact_bytes_b64),
+                "github_run_id": int(github_run_id),
+            },
+        })
+        if result.get("isError") is True:
+            raise PermissionError("CACE MCP refused independent-reproduction attestation")
+        structured = result.get("structuredContent")
+        if not isinstance(structured, Mapping):
+            for item in result.get("content", []):
+                if isinstance(item, Mapping) and item.get("type") == "text":
+                    try:
+                        parsed = json.loads(str(item.get("text", "")))
+                    except ValueError:
+                        continue
+                    if isinstance(parsed, Mapping):
+                        structured = parsed
+                        break
+        if not isinstance(structured, Mapping):
+            raise RuntimeError("CACE MCP reproduction tool returned no structured attestation")
+        response = dict(structured)
+        if (response.get("purpose") != "independent-reproduction"
+            or response.get("proof_effect") != "none"
+            or response.get("authority") != "verification-only"
+            or not isinstance(response.get("attestation"), Mapping)
+            or not isinstance(response.get("runner_provenance"), Mapping)):
+            raise PermissionError("CACE MCP reproduction response violates the verification contract")
+        return response
+
+
+    def attest(
+        self, *, bundle_payload: Mapping[str, Any], expected_claim_id: str,
+        expected_bindings: Mapping[str, Any], artifact_bytes_b64: Mapping[str, str],
+    ) -> dict[str, Any]:
+        initialized = self._rpc("initialize", {
+            "protocolVersion": self.protocol_version,
+            "capabilities": {},
+            "clientInfo": {"name": "merlin-rsi-pipeline", "version": "1.0.0"},
+        })
+        negotiated = initialized.get("protocolVersion")
+        if not isinstance(negotiated, str) or not negotiated:
+            raise RuntimeError("CACE MCP initialize response omitted protocolVersion")
+        self.protocol_version = negotiated
+        self._rpc("notifications/initialized")
+        result = self._rpc("tools/call", {
+            "name": "attest_merlin_rsi_bundle",
+            "arguments": {
+                "bundle_payload": dict(bundle_payload),
+                "expected_claim_id": expected_claim_id,
+                "expected_bindings": dict(expected_bindings),
+                "artifact_bytes_b64": dict(artifact_bytes_b64),
+            },
+        })
+        if result.get("isError") is True:
+            raise PermissionError("CACE MCP refused the RSI evidence attestation")
+        structured = result.get("structuredContent")
+        if not isinstance(structured, Mapping):
+            for item in result.get("content", []):
+                if isinstance(item, Mapping) and item.get("type") == "text":
+                    try:
+                        parsed = json.loads(str(item.get("text", "")))
+                    except ValueError:
+                        continue
+                    if isinstance(parsed, Mapping):
+                        structured = parsed
+                        break
+        if not isinstance(structured, Mapping):
+            raise RuntimeError("CACE MCP attestor returned no structured attestation")
+        response = dict(structured)
+        if (response.get("purpose") != "artifact-integrity"
+            or response.get("proof_effect") != "none"
+            or response.get("authority") != "verification-only"
+            or not isinstance(response.get("attestation"), Mapping)):
+            raise PermissionError("CACE MCP attestation response violates the verification-only contract")
+        return response
+
+
+class CaceMcpVerifier(CaceMcpAttestor):
+    """Loopback-only client for CACE's independent-reproduction verifier."""
+
+    def verify(
+        self, *, bundle_payload: Mapping[str, Any],
+        attestation_payload: Mapping[str, Any], expected_claim_id: str,
+        expected_bindings: Mapping[str, Any],
+        artifact_bytes_b64: Mapping[str, str],
+    ) -> dict[str, Any]:
+        initialized = self._rpc("initialize", {
+            "protocolVersion": self.protocol_version,
+            "capabilities": {},
+            "clientInfo": {"name": "merlin-rsi-verifier", "version": "1.0.0"},
+        })
+        negotiated = initialized.get("protocolVersion")
+        if not isinstance(negotiated, str) or not negotiated:
+            raise RuntimeError("CACE MCP initialize response omitted protocolVersion")
+        self.protocol_version = negotiated
+        self._rpc("notifications/initialized")
+        result = self._rpc("tools/call", {
+            "name": "verify_merlin_rsi_attestation",
+            "arguments": {
+                "bundle_payload": dict(bundle_payload),
+                "attestation_payload": dict(attestation_payload),
+                "expected_claim_id": expected_claim_id,
+                "expected_bindings": dict(expected_bindings),
+                "artifact_bytes_b64": dict(artifact_bytes_b64),
+            },
+        })
+        if result.get("isError") is True:
+            raise PermissionError("independent CACE verifier rejected the RSI evidence")
+        structured = result.get("structuredContent")
+        if not isinstance(structured, Mapping):
+            for item in result.get("content", []):
+                if isinstance(item, Mapping) and item.get("type") == "text":
+                    try:
+                        parsed = json.loads(str(item.get("text", "")))
+                    except ValueError:
+                        continue
+                    if isinstance(parsed, Mapping):
+                        structured = parsed
+                        break
+        if not isinstance(structured, Mapping):
+            raise RuntimeError("CACE MCP verifier returned no structured result")
+        response = dict(structured)
+        statement = attestation_payload.get("statement") if isinstance(attestation_payload, Mapping) else None
+        statement_bindings = statement.get("bindings") if isinstance(statement, Mapping) else None
+        expected_provenance = (
+            statement_bindings.get("cace_runner_provenance")
+            if isinstance(statement_bindings, Mapping) else None
+        )
+        if (
+            response.get("verified") is not True
+            or response.get("verifier_id") != "cace"
+            or response.get("purpose") != "independent-reproduction"
+            or response.get("proof_effect") != "none"
+            or response.get("authority") != "verification-only"
+            or response.get("claim_id") != expected_claim_id
+            or response.get("runner_provenance") != expected_provenance
+            or not isinstance(expected_provenance, Mapping)
+        ):
+            raise PermissionError("CACE MCP verifier response violates the independent verification contract")
+        return response
 
 
 class AppendOnlyLedger:
@@ -335,19 +648,6 @@ class AppendOnlyLedger:
                 CREATE TRIGGER IF NOT EXISTS research_episode_events_no_delete
                 BEFORE DELETE ON research_episode_events
                 BEGIN SELECT RAISE(ABORT, 'append-only research episode ledger'); END;
-                CREATE TABLE IF NOT EXISTS rsi_artifacts (
-                    artifact_sha256 TEXT PRIMARY KEY,
-                    media_type TEXT NOT NULL,
-                    artifact_bytes BLOB NOT NULL,
-                    size_bytes INTEGER NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TRIGGER IF NOT EXISTS rsi_artifacts_no_update
-                BEFORE UPDATE ON rsi_artifacts
-                BEGIN SELECT RAISE(ABORT, 'append-only RSI artifact store'); END;
-                CREATE TRIGGER IF NOT EXISTS rsi_artifacts_no_delete
-                BEFORE DELETE ON rsi_artifacts
-                BEGIN SELECT RAISE(ABORT, 'append-only RSI artifact store'); END;
             """)
 
     def _connect(self):
@@ -385,8 +685,14 @@ class AppendOnlyLedger:
                     previous_event_hash,event_hash) VALUES (?,?,?,?,?,?,?)""",
                 (entity_id, sequence, event_type, payload_text, payload_hash,
                  previous, event_hash))
-            return {"seq": sequence, "event_id": event_hash[:32],
-                    "event_hash": event_hash, "episode_id": entity_id}
+            return {
+                **dict(payload),
+                "seq": sequence,
+                "event_id": event_hash[:32],
+                "event_hash": event_hash,
+                "episode_id": entity_id,
+                "event_type": event_type,
+            }
 
     def events(self, episode_id: str) -> list[dict[str, Any]]:
         with self._connect() as db:
@@ -396,50 +702,43 @@ class AppendOnlyLedger:
         return [dict(row) for row in rows]
 
     def events_by_type(self, event_type: str) -> list[dict[str, Any]]:
-        if not isinstance(event_type, str) or not event_type.strip():
+        """Return immutable ledger rows of one event type in stable order."""
+        if not isinstance(event_type, str) or not event_type:
             raise ValueError("event_type is required")
         with self._connect() as db:
             rows = db.execute(
                 "SELECT * FROM research_episode_events WHERE event_type=? "
-                "ORDER BY recorded_at,episode_id,sequence", (event_type,)).fetchall()
+                "ORDER BY episode_id,sequence",
+                (event_type,),
+            ).fetchall()
         return [dict(row) for row in rows]
 
-    def store_artifact(self, artifact_bytes: bytes, *, expected_sha256: str | None = None,
-                       media_type: str = "application/octet-stream") -> dict[str, Any]:
-        if not isinstance(artifact_bytes, (bytes, bytearray)):
-            raise ValueError("artifact_bytes must be bytes")
-        raw = bytes(artifact_bytes)
-        if len(raw) > 10 * 1024 * 1024:
-            raise ValueError("RSI inline artifact exceeds the 10 MiB CACE verification limit")
-        digest = sha256_hex(raw)
-        if expected_sha256 is not None and digest != expected_sha256:
-            raise ValueError("artifact bytes do not match the declared SHA-256")
-        if not isinstance(media_type, str) or not media_type.strip() or len(media_type) > 128:
-            raise ValueError("media_type must be a bounded non-empty string")
-        with self._connect() as db:
-            db.execute("INSERT OR IGNORE INTO rsi_artifacts "
-                       "(artifact_sha256,media_type,artifact_bytes,size_bytes) VALUES (?,?,?,?)",
-                       (digest, media_type, sqlite3.Binary(raw), len(raw)))
-            row = db.execute("SELECT artifact_bytes,media_type,size_bytes FROM rsi_artifacts "
-                             "WHERE artifact_sha256=?", (digest,)).fetchone()
-            if (row is None or bytes(row["artifact_bytes"]) != raw
-                    or row["media_type"] != media_type or row["size_bytes"] != len(raw)):
-                raise RuntimeError("content-addressed artifact collision or persistence failure")
-        return {"artifact_sha256": digest, "media_type": media_type, "size_bytes": len(raw)}
-
     def get_artifact(self, artifact_sha256: str) -> dict[str, Any] | None:
+        """Recover candidate bytes from their immutable, hash-chained creation event."""
         if not _is_sha256(artifact_sha256):
             raise ValueError("artifact_sha256 must be lowercase SHA-256")
         with self._connect() as db:
-            row = db.execute("SELECT artifact_bytes,media_type,size_bytes FROM rsi_artifacts "
-                             "WHERE artifact_sha256=?", (artifact_sha256,)).fetchone()
-        if row is None:
-            return None
-        raw = bytes(row["artifact_bytes"])
-        if sha256_hex(raw) != artifact_sha256 or len(raw) != row["size_bytes"]:
-            raise RuntimeError("stored artifact integrity check failed")
-        return {"artifact_bytes": raw, "media_type": row["media_type"],
-                "size_bytes": row["size_bytes"], "artifact_sha256": artifact_sha256}
+            rows = db.execute(
+                "SELECT payload FROM research_episode_events "
+                "WHERE event_type='candidate.created' ORDER BY episode_id,sequence"
+            ).fetchall()
+        for row in rows:
+            payload = json.loads(row["payload"])
+            if payload.get("artifact_sha256") != artifact_sha256:
+                continue
+            encoded = payload.get("artifact_bytes_b64")
+            if not isinstance(encoded, str):
+                return None
+            raw = base64.b64decode(encoded, validate=True)
+            if sha256_hex(raw) != artifact_sha256:
+                raise RuntimeError("stored candidate artifact bytes failed digest verification")
+            return {
+                "artifact_sha256": artifact_sha256,
+                "artifact_bytes": raw,
+                "artifact_size_bytes": len(raw),
+                "artifact_media_type": payload.get("artifact_media_type"),
+            }
+        return None
 
     def _candidate_event(self, episode_id: str, event_type: str,
                          candidate_id: str) -> dict[str, Any] | None:
@@ -486,25 +785,22 @@ class AppendOnlyLedger:
         generator: str, mutation: Mapping[str, Any],
         episode_id: str | None = None,
         induction_seed_event_hash: str | None = None,
-        induction_seed_event_hashes: list[str] | None = None,
+        induction_seed_event_hashes: Sequence[str] | None = None,
         artifact_bytes: bytes | None = None,
-        artifact_media_type: str = "application/json",
+        artifact_media_type: str = "application/octet-stream",
     ) -> dict[str, Any]:
         episode = episode_id or candidate_id
         if not _is_sha256(artifact_sha256):
             raise ValueError("artifact_sha256 must be lowercase SHA-256")
-        if (not isinstance(candidate_id, str) or not candidate_id.strip()
-                or len(candidate_id) > 128 or not isinstance(generator, str)
-                or not generator.strip() or len(generator) > 128):
-            raise ValueError("candidate_id and generator must be bounded non-empty strings")
+        if not candidate_id or not generator:
+            raise ValueError("candidate_id and generator are required")
         required = {"candidate_id": candidate_id, "artifact_sha256": artifact_sha256}
-        plural_seed_hashes_supplied = induction_seed_event_hashes is not None
-        seed_hashes = list(induction_seed_event_hashes or [])
+        seed_hashes = sorted(set(induction_seed_event_hashes or ()))
         if induction_seed_event_hash is not None:
-            seed_hashes.append(induction_seed_event_hash)
-        if len(seed_hashes) > 100 or any(not _is_sha256(value) for value in seed_hashes):
-            raise ValueError("induction seed hashes must be lowercase SHA-256 values")
-        seed_hashes = sorted(set(seed_hashes))
+            seed_hashes = sorted(set(seed_hashes) | {induction_seed_event_hash})
+            required["induction_seed_event_hash"] = induction_seed_event_hash
+        if any(not _is_sha256(value) for value in seed_hashes):
+            raise ValueError("induction seed event hashes must be lowercase SHA-256")
         if seed_hashes:
             with self._connect() as db:
                 for seed_hash in seed_hashes:
@@ -515,22 +811,23 @@ class AppendOnlyLedger:
                     ).fetchone()
                     if seed is None:
                         raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
-            if plural_seed_hashes_supplied:
-                required["induction_seed_event_hashes"] = seed_hashes
-            elif induction_seed_event_hash is not None:
-                required["induction_seed_event_hash"] = induction_seed_event_hash
+        if induction_seed_event_hashes is not None:
+            required["induction_seed_event_hashes"] = seed_hashes
+        if artifact_bytes is not None:
+            if not isinstance(artifact_bytes, bytes):
+                raise TypeError("artifact_bytes must be immutable bytes")
+            if sha256_hex(artifact_bytes) != artifact_sha256:
+                raise PermissionError("candidate artifact bytes do not match artifact_sha256")
+            if not isinstance(artifact_media_type, str) or not artifact_media_type.strip():
+                raise ValueError("artifact_media_type is required")
         if not verify_signed_receipt(source_receipt, _load_issuer_trusted_keys("merlin-source"),
             expected_issuer="merlin-source", expected_claims=required):
             raise PermissionError("candidate source receipt is missing, untrusted, or mismatched")
         source_repo = source_receipt.claims.get("source_repo")
         source_commit = source_receipt.claims.get("source_commit")
-        if (not isinstance(source_repo, str)
-                or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source_repo)
-                or not _is_git_commit(source_commit)):
-            raise ValueError("candidate source receipt must bind owner/name and exact 40-hex source_commit")
-        if parent_candidate_id is not None:
-            if not isinstance(parent_candidate_id, str) or not parent_candidate_id.strip():
-                raise ValueError("parent_candidate_id must be a non-empty string")
+        if not isinstance(source_repo, str) or not source_repo.strip() or not _is_git_commit(source_commit):
+            raise ValueError("candidate source receipt must bind source_repo and exact 40-hex source_commit")
+        if parent_candidate_id:
             with self._connect() as db:
                 rows = db.execute(
                     "SELECT payload FROM research_episode_events WHERE event_type='candidate.created'"
@@ -538,11 +835,6 @@ class AppendOnlyLedger:
             if not any(json.loads(row["payload"]).get("candidate_id") == parent_candidate_id
                        for row in rows):
                 raise ValueError("parent candidate is absent from append-only lineage")
-        artifact_info = None
-        if artifact_bytes is not None:
-            artifact_info = self.store_artifact(
-                artifact_bytes, expected_sha256=artifact_sha256,
-                media_type=artifact_media_type)
         return self.append("candidate.created", episode, {
             "candidate_id": candidate_id, "parent_candidate_id": parent_candidate_id,
             "source_receipt_digest": source_receipt.receipt_digest,
@@ -551,7 +843,9 @@ class AppendOnlyLedger:
             "artifact_sha256": artifact_sha256, "generator": generator,
             "induction_seed_event_hash": induction_seed_event_hash,
             "induction_seed_event_hashes": seed_hashes,
-            "artifact_storage": artifact_info,
+            "artifact_bytes_b64": base64.b64encode(artifact_bytes).decode("ascii") if artifact_bytes is not None else None,
+            "artifact_size_bytes": len(artifact_bytes) if artifact_bytes is not None else None,
+            "artifact_media_type": artifact_media_type if artifact_bytes is not None else None,
             "mutation": dict(mutation),
         })
 
@@ -627,11 +921,16 @@ class AppendOnlyLedger:
             "source_repo": candidate["source_repo"], "source_commit": candidate["source_commit"],
             "authority": "verification-only",
         }
+        artifact_record = self.get_artifact(artifact_sha256)
+        if artifact_record is None:
+            raise PermissionError("candidate artifact bytes are not persisted; CACE reproduction is blocked")
         bundle_sha = cace_rsi_bundle_sha256(
             candidate_id=candidate_id, candidate_digest=artifact_sha256,
             benchmark_manifest_sha256=suite_sha256,
             evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
-            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"])
+            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+            candidate_artifact_bytes=artifact_record["artifact_bytes"],
+            candidate_artifact_media_type=artifact_record["artifact_media_type"])
         return candidate, evaluation, bundle_sha, bindings
 
     def record_cace_verification(
@@ -646,6 +945,10 @@ class AppendOnlyLedger:
         verified = verify_cace_attestation(
             attestation, approved_keys, expected_claim_id=candidate_id,
             expected_bundle_sha256=bundle_sha, expected_bindings=bindings)
+        if verified["purpose"] != "independent-reproduction":
+            raise PermissionError(
+                "candidate.cace_verified requires an independent-reproduction attestation"
+            )
         return self.append("candidate.cace_verified", episode, {
             "candidate_id": candidate_id, "artifact_sha256": artifact_sha256,
             "suite_sha256": suite_sha256, "bundle_sha256": bundle_sha,
@@ -653,8 +956,136 @@ class AppendOnlyLedger:
             "statement_sha256": verified["statement_sha256"],
             "verifier_id": verified["verifier_id"],
             "verifier_key_id": verified["verifier_key_id"],
+            "purpose": verified["purpose"],
+            "runner_provenance": verified.get("runner_provenance"),
             "authority": "verification-only",
         })
+
+    def record_cace_integrity_attestation_from_mcp(
+        self, *, candidate_id: str, artifact_sha256: str, suite_sha256: str,
+        episode_id: str | None = None, attestor: Any | None = None,
+    ) -> dict[str, Any]:
+        """Record a CACE artifact-integrity attestation; this is not independent reproduction."""
+        episode = episode_id or candidate_id
+        candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
+            episode, candidate_id, artifact_sha256, suite_sha256
+        )
+        artifact_record = self.get_artifact(artifact_sha256)
+        if artifact_record is None:
+            raise PermissionError("candidate artifact bytes are not persisted; CACE attestation is blocked")
+        candidate_artifact_bytes = artifact_record["artifact_bytes"]
+        bundle_payload, manifest_bytes, payload_bindings = cace_rsi_bundle_payload(
+            candidate_id=candidate_id, candidate_digest=artifact_sha256,
+            benchmark_manifest_sha256=suite_sha256,
+            evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
+            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+            candidate_artifact_bytes=candidate_artifact_bytes,
+            candidate_artifact_media_type=artifact_record["artifact_media_type"],
+        )
+        actual_bundle_sha = sha256_hex(
+            _CACE_BUNDLE_DOMAIN + canonical_json(bundle_payload)
+        )
+        if actual_bundle_sha != expected_bundle_sha or payload_bindings != bindings:
+            raise RuntimeError("CACE bundle payload diverged from the canonical RSI evidence identity")
+        transport = attestor or CaceMcpAttestor()
+        response = transport.attest(
+            bundle_payload=bundle_payload,
+            expected_claim_id=candidate_id,
+            expected_bindings=bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(candidate_artifact_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii"),
+            },
+        )
+        attestation = response.get("attestation") if isinstance(response, Mapping) else None
+        if not isinstance(attestation, Mapping):
+            raise PermissionError("CACE MCP response omitted its signed attestation")
+        approved_keys = _load_approved_cace_keys()
+        verified = verify_cace_attestation(
+            attestation, approved_keys, expected_claim_id=candidate_id,
+            expected_bundle_sha256=expected_bundle_sha, expected_bindings=bindings,
+        )
+        if verified["purpose"] != "artifact-integrity":
+            raise PermissionError("integrity attestor must return artifact-integrity purpose")
+        return self.append("candidate.cace_integrity_attested", episode, {
+            "candidate_id": candidate_id,
+            "artifact_sha256": artifact_sha256,
+            "suite_sha256": suite_sha256,
+            "bundle_sha256": expected_bundle_sha,
+            "attestation_sha256": verified["attestation_sha256"],
+            "statement_sha256": verified["statement_sha256"],
+            "verifier_id": verified["verifier_id"],
+            "verifier_key_id": verified["verifier_key_id"],
+            "purpose": verified["purpose"],
+            "authority": "verification-only",
+        })
+
+    def record_cace_verification_from_mcp(
+        self, *, candidate_id: str, artifact_sha256: str, suite_sha256: str,
+        github_run_id: int, episode_id: str | None = None,
+        attestor: Any | None = None, verifier: Any | None = None,
+    ) -> dict[str, Any]:
+        """Record CACE independent reproduction after verifying a completed pinned OCI run."""
+        episode = episode_id or candidate_id
+        candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
+            episode, candidate_id, artifact_sha256, suite_sha256
+        )
+        artifact_record = self.get_artifact(artifact_sha256)
+        if artifact_record is None:
+            raise PermissionError("candidate artifact bytes are not persisted; CACE attestation is blocked")
+        candidate_artifact_bytes = artifact_record["artifact_bytes"]
+        bundle_payload, manifest_bytes, payload_bindings = cace_rsi_bundle_payload(
+            candidate_id=candidate_id, candidate_digest=artifact_sha256,
+            benchmark_manifest_sha256=suite_sha256,
+            evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
+            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+            candidate_artifact_bytes=candidate_artifact_bytes,
+            candidate_artifact_media_type=artifact_record["artifact_media_type"],
+        )
+        actual_bundle_sha = sha256_hex(
+            _CACE_BUNDLE_DOMAIN + canonical_json(bundle_payload)
+        )
+        if actual_bundle_sha != expected_bundle_sha or payload_bindings != bindings:
+            raise RuntimeError("CACE bundle payload diverged from the canonical RSI evidence identity")
+        transport = attestor or CaceMcpAttestor()
+        response = transport.reproduce(
+            bundle_payload=bundle_payload,
+            expected_claim_id=candidate_id,
+            expected_bindings=bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(candidate_artifact_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii"),
+            },
+            github_run_id=github_run_id,
+        )
+        attestation = response.get("attestation") if isinstance(response, Mapping) else None
+        if not isinstance(attestation, Mapping):
+            raise PermissionError("CACE MCP response omitted its signed reproduction attestation")
+        verifier_transport = verifier or CaceMcpVerifier()
+        verification = verifier_transport.verify(
+            bundle_payload=bundle_payload,
+            attestation_payload=attestation,
+            expected_claim_id=candidate_id,
+            expected_bindings=bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(candidate_artifact_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii"),
+            },
+        )
+        expected_attestation_sha = sha256_hex(canonical_json(dict(attestation)))
+        if (
+            verification.get("verified") is not True
+            or verification.get("purpose") != "independent-reproduction"
+            or verification.get("bundle_sha256") != expected_bundle_sha
+            or verification.get("attestation_sha256") != expected_attestation_sha
+            or verification.get("runner_provenance") != response.get("runner_provenance")
+        ):
+            raise PermissionError("CACE MCP verifier did not independently confirm the exact reproduction attestation")
+        return self.record_cace_verification(
+            candidate_id=candidate_id, attestation=attestation,
+            artifact_sha256=artifact_sha256, suite_sha256=suite_sha256,
+            episode_id=episode,
+        )
 
     def record_promotion(
         self, *, candidate_id: str, artifact_sha256: str,
@@ -669,6 +1100,11 @@ class AppendOnlyLedger:
         verified = verify_cace_attestation(
             attestation, cace_approved_keys, expected_claim_id=candidate_id,
             expected_bundle_sha256=bundle_sha, expected_bindings=bindings)
+        if verified["purpose"] != "independent-reproduction":
+            raise PermissionError(
+                "promotion requires an independent-reproduction CACE attestation; "
+                "artifact-integrity alone is insufficient"
+            )
         expected_approval = {
             "candidate_id": candidate_id, "candidate_digest": artifact_sha256,
             "benchmark_manifest_sha256": suite_sha256,
@@ -681,7 +1117,8 @@ class AppendOnlyLedger:
         cace_event = self._candidate_event(episode, "candidate.cace_verified", candidate_id)
         if (not cace_event or cace_event.get("artifact_sha256") != artifact_sha256
             or cace_event.get("suite_sha256") != suite_sha256
-            or cace_event.get("attestation_sha256") != verified["attestation_sha256"]):
+            or cace_event.get("attestation_sha256") != verified["attestation_sha256"]
+            or cace_event.get("purpose") != "independent-reproduction"):
             raise PermissionError("independent CACE verification event is absent or mismatched")
         if not self.verify_chain(episode)["valid"]:
             raise RuntimeError("canonical research episode ledger integrity check failed")
@@ -689,6 +1126,8 @@ class AppendOnlyLedger:
             "candidate_id": candidate_id, "artifact_sha256": artifact_sha256,
             "suite_sha256": suite_sha256, "bundle_sha256": bundle_sha,
             "cace_attestation_sha256": verified["attestation_sha256"],
+            "cace_attestation_purpose": verified["purpose"],
+            "cace_runner_provenance": verified.get("runner_provenance"),
             "approval_receipt_digest": approval_receipt.receipt_digest,
             "promotion_authority": "explicit-signed-approval",
         })
@@ -698,71 +1137,44 @@ def ingest_hermes_failure(
     ledger: AppendOnlyLedger, record: Mapping[str, Any],
     receipt: SignedReceipt,
 ) -> dict[str, Any]:
-    """Authenticate the complete Hermes failure envelope before RSI induction."""
+    """Authenticate a Hermes failure and append an idempotent RSI induction seed."""
     required_fields = ("event_id", "failure_class", "summary", "source_repo",
                        "source_commit", "artifact_sha256")
-    if record.get("schema") != "merlin-hermes-failure/2":
-        raise ValueError("unsupported Hermes failure record schema")
     if any(not record.get(k) for k in required_fields):
         raise ValueError("Hermes failure record is incomplete")
-    if (not _is_git_commit(record["source_commit"])
-            or not _is_sha256(record["artifact_sha256"])):
+    if not _is_git_commit(record["source_commit"]) or not _is_sha256(record["artifact_sha256"]):
         raise ValueError("Hermes failure must bind exact source commit and artifact SHA-256")
-    if not isinstance(record["source_repo"], str) or not re.fullmatch(
-            r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", record["source_repo"]):
-        raise ValueError("Hermes source_repo must be owner/name")
-    failure_signature = record.get("failure_signature")
-    trigger_condition = record.get("trigger_condition")
-    corrective_steps = record.get("corrective_steps", [])
-    if failure_signature is not None and (
-        not isinstance(failure_signature, str) or not failure_signature.strip()
-        or len(failure_signature) > 160
-    ):
-        raise ValueError("failure_signature must be a bounded normalized string")
-    if trigger_condition is not None and (
-        not isinstance(trigger_condition, str) or not trigger_condition.strip()
-        or len(trigger_condition) > 300
-    ):
-        raise ValueError("trigger_condition must be a bounded string")
-    if (not isinstance(corrective_steps, (list, tuple)) or len(corrective_steps) > 10
-            or any(not isinstance(step, str) or not step.strip() or len(step) > 300
-                   for step in corrective_steps)):
-        raise ValueError("corrective_steps must contain at most ten bounded non-empty strings")
-    record_sha256 = sha256_hex(canonical_json(dict(record)))
     episode_id = "rsi-induction:" + str(record["event_id"])
+    record_sha256 = sha256_hex(canonical_json(dict(record)))
     claims = {
         "subject": "hermes-failure:" + str(record["event_id"]),
         "record_sha256": record_sha256,
-        "source_repo": record["source_repo"],
-        "source_commit": record["source_commit"],
+        "source_repo": record["source_repo"], "source_commit": record["source_commit"],
         "artifact_sha256": record["artifact_sha256"],
         "failure_class": record["failure_class"],
     }
-    if not verify_signed_receipt(
-        receipt, _load_issuer_trusted_keys("hermes"),
-        expected_issuer="hermes", expected_claims=claims,
-    ):
+    if not verify_signed_receipt(receipt, _load_issuer_trusted_keys("hermes"), expected_issuer="hermes",
+                                 expected_claims=claims):
         raise PermissionError("Hermes failure lacks an authenticated source receipt")
     existing = ledger.events(episode_id)
     if existing:
         seed_row = next((row for row in existing if row["event_type"] == "rsi.induction_seeded"), None)
         seed = json.loads(seed_row["payload"]) if seed_row else None
-        if seed and seed.get("record_sha256") == record_sha256:
+        if seed and seed.get("source_record_sha256") == record_sha256:
             return {"seq": seed_row["sequence"], "event_hash": seed_row["event_hash"],
                     "episode_id": episode_id, "idempotent_replay": True}
         raise PermissionError("Hermes event ID replayed with different evidence")
     return ledger.append("rsi.induction_seeded", episode_id, {
         "hermes_event_id": record["event_id"],
-        "record_sha256": record_sha256,
         "failure_class": record["failure_class"], "summary": record["summary"],
-        "failure_signature": failure_signature,
-        "trigger_condition": trigger_condition,
-        "corrective_steps": list(corrective_steps),
-        "run_id": record.get("run_id"), "task_id": record.get("task_id"),
-        "worker_id": record.get("worker_id"), "stage": record.get("stage"),
         "source_repo": record["source_repo"], "source_commit": record["source_commit"],
         "artifact_sha256": record["artifact_sha256"],
-        "source_artifact_path": record.get("source_artifact_path"),
+        "run_id": record.get("run_id"),
+        "failure_signature": record.get("failure_signature"),
+        "trigger_condition": record.get("trigger_condition"),
+        "corrective_steps": list(record.get("corrective_steps") or []),
+        "source_record_sha256": record_sha256,
+        "failure_record": dict(record),
         "source_receipt_digest": receipt.receipt_digest,
         "induction": {
             "generalize_failure": True, "generate_counterexample": True,

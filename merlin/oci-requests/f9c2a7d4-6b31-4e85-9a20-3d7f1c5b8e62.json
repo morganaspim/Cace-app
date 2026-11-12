@@ -1,0 +1,15 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f9c2a7d4-6b31-4e85-9a20-3d7f1c5b8e62",
+  "operation": "cace_rsi_bundle_contract",
+  "reason": "Verify the exact two-artifact Merlin RSI CACE bundle against pinned CACE EvidenceBundle v1, including the actual candidate bytes and manifest bytes.",
+  "created_at": "2026-11-12T01:55:00Z",
+  "candidate_id": "merlin-rsi-bridge-contract-test-1",
+  "candidate_digest": "ea3ea4f1b0865b8c40cf62e7b9d3c25baf3c0f4ea231f9a5f7648b5a6baba00c",
+  "benchmark_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evaluator_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "dddddddddddddddddddddddddddddddddddddddd",
+  "expected_bundle_sha256": "842afc373bce4b2c883c0455bf2169b034bba33629c653c2de80b5957c28fadd",
+  "candidate_artifact_bytes_b64": "TWVybGluIGNhbmRpZGF0ZSBhcnRpZmFjdCBmaXh0dXJlIHYxCg=="
+}

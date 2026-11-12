@@ -37,8 +37,17 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "source_commit": "d" * 40,
             "authority": "verification-only",
         }
+        self.candidate_bytes = b"Merlin candidate artifact fixture v1\\n"
+        self.bindings["candidate_digest"] = hashlib.sha256(self.candidate_bytes).hexdigest()
         self.artifact_bytes = b'{"candidate":"merlin-rsi-candidate-001"}'
-        artifact = EvidenceArtifact.from_bytes(
+        candidate_artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-candidate",
+            self.candidate_bytes,
+            role="candidate-artifact",
+            media_type="application/octet-stream",
+            path="merlin-rsi-candidate.bin",
+        )
+        manifest_artifact = EvidenceArtifact.from_bytes(
             "merlin-rsi-evidence-manifest",
             self.artifact_bytes,
             role="rsi-evidence-manifest",
@@ -46,7 +55,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             path="merlin-rsi-evidence-manifest.json",
         )
         self.bundle = EvidenceBundle(
-            artifacts=(artifact,),
+            artifacts=(candidate_artifact, manifest_artifact),
             bindings=self.bindings,
             notes=("Merlin RSI exact-artifact independent verification",),
         )
@@ -93,7 +102,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "expected_claim_id": self.claim_id,
             "expected_bindings": self.bindings,
             "artifact_bytes_b64": {
-                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
             },
             "trust_store_json": self.trust_store,
             "trust_store_sha256": self.trust_digest,
@@ -148,12 +158,18 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
     def test_artifact_bytes_are_independently_hashed_and_size_checked(self):
         wrong = base64.b64encode(b'{"candidate":"tampered"}').decode("ascii")
         with self.assertRaises(Exception):
-            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": wrong})
+            self.verify(artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": wrong,
+            })
         with self.assertRaises(PermissionError):
             self.verify(artifact_bytes_b64={})
         oversized = base64.b64encode(b"x" * (10 * 1024 * 1024 + 1)).decode("ascii")
         with self.assertRaises(ValueError):
-            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": oversized})
+            self.verify(artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": oversized,
+            })
 
     def test_attestor_key_initializes_once_without_overwrite(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -183,7 +199,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     bundle_payload=self.bundle.payload(),
                     expected_claim_id=self.claim_id,
                     expected_bindings=self.bindings,
-                    artifact_bytes_b64={"merlin-rsi-evidence-manifest": base64.b64encode(b"tampered").decode("ascii")},
+                    artifact_bytes_b64={
+                        "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                        "merlin-rsi-evidence-manifest": base64.b64encode(b"tampered").decode("ascii"),
+                    },
                     private_key_path=key_path,
                     cace_app_root=self.root,
                 )
@@ -192,7 +211,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 expected_claim_id=self.claim_id,
                 expected_bindings=self.bindings,
                 artifact_bytes_b64={
-                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                    "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                 },
                 private_key_path=key_path,
                 cace_app_root=self.root,
@@ -213,6 +233,46 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     trust_store_sha256=hashlib.sha256(key_store.encode("utf-8")).hexdigest(),
                 )
 
+    def test_cace_signer_accepts_in_memory_pem_without_creating_a_key_file(self):
+        signed = attest_merlin_rsi_bundle(
+            bundle_payload=self.bundle.payload(),
+            expected_claim_id=self.claim_id,
+            expected_bindings=self.bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+            },
+            private_key_pem=self.private_pem,
+            cace_app_root=self.root,
+        )
+        self.assertEqual(signed["purpose"], "artifact-integrity")
+        self.assertEqual(signed["verifier_key_id"], self.key_id)
+        with self.assertRaises(ValueError):
+            attest_merlin_rsi_bundle(
+                bundle_payload=self.bundle.payload(),
+                expected_claim_id=self.claim_id,
+                expected_bindings=self.bindings,
+                artifact_bytes_b64={
+                    "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+                },
+                private_key_pem=self.private_pem,
+                private_key_path=Path("must-not-be-read.pem"),
+                cace_app_root=self.root,
+            )
+        with self.assertRaises(ValueError):
+            attest_merlin_rsi_bundle(
+                bundle_payload=self.bundle.payload(),
+                expected_claim_id=self.claim_id,
+                expected_bindings=self.bindings,
+                artifact_bytes_b64={
+                    "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                    "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+                },
+                private_key_pem="not a PEM key",
+                cace_app_root=self.root,
+            )
+
     def test_cace_signer_requires_initialized_private_key(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(PermissionError):
@@ -221,7 +281,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     expected_claim_id=self.claim_id,
                     expected_bindings=self.bindings,
                     artifact_bytes_b64={
-                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                        "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                     },
                     private_key_path=Path(temp) / "missing.pem",
                     cace_app_root=self.root,
@@ -248,16 +309,18 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         benchmark_sha = hashlib.sha256(benchmark_bytes).hexdigest()
         bindings = dict(self.bindings)
         bindings["benchmark_manifest_sha256"] = benchmark_sha
-        artifact_bytes = self.artifact_bytes
-        artifact = EvidenceArtifact.from_bytes(
-            "merlin-rsi-evidence-manifest",
-            artifact_bytes,
-            role="rsi-evidence-manifest",
-            media_type="application/json",
+        candidate_artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-candidate", self.candidate_bytes,
+            role="candidate-artifact", media_type="application/octet-stream",
+            path="merlin-rsi-candidate.bin",
+        )
+        manifest_artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-evidence-manifest", self.artifact_bytes,
+            role="rsi-evidence-manifest", media_type="application/json",
             path="merlin-rsi-evidence-manifest.json",
         )
         bundle = EvidenceBundle(
-            artifacts=(artifact,),
+            artifacts=(candidate_artifact, manifest_artifact),
             bindings=bindings,
             notes=("Merlin RSI exact-artifact independent verification",),
         )
@@ -265,32 +328,58 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         run_sha = "e" * 40
         run_id = 98765
         request_path = "merlin/oci-requests/11111111-2222-4333-8444-555555555555.json"
-        module_bytes = b"pinned-rsi-module-source"
-        test_bytes = b"pinned-rsi-test-source"
+
         def git_blob_sha(raw):
             return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
+
+        source_file_paths = (
+            "python/merlin/rsi_pipeline.py",
+            "python/merlin/rsi.py",
+            "python/merlin/event_outbox.py",
+            "python/merlin/hermes_rsi_bridge.py",
+            "python/merlin/hermes_worker.py",
+            "python/merlin/telemetry.py",
+            "python/merlin/hermes_outbox.py",
+            "python/merlin/runtime_contracts.py",
+            "python/merlin/sqlite_registry.py",
+            "tests/test_rsi_pipeline.py",
+            "tests/test_hermes_rsi_bridge.py",
+            "tests/test_hermes_worker.py",
+            "tests/test_event_outbox.py",
+            "tests/test_hermes_outbox.py",
+            "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
+        )
+        source_file_contents = {
+            path: (("pinned source " + path).encode("utf-8"))
+            for path in source_file_paths
+        }
+        source_file_contents["config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"] = benchmark_bytes
+        source_blob_shas = {
+            path: git_blob_sha(raw) for path, raw in source_file_contents.items()
+        }
         request_doc = {
-            "operation": "merlin_rsi_python_tests",
+            "operation": "merlin_hermes_rsi_full_tests",
             "source_repo": bindings["source_repo"],
             "source_commit": source_commit,
-            "module_blob_sha": git_blob_sha(module_bytes),
-            "test_blob_sha": git_blob_sha(test_bytes),
-            "manifest_blob_sha": git_blob_sha(benchmark_bytes),
+            "source_blob_shas": source_blob_shas,
         }
         workflow_text = (
-            f'if request["source_repo"] != "{bindings["source_repo"]}":\n'
-            f'if request["source_commit"] != "{source_commit}":\n'
+            'if request["operation"] == "merlin_hermes_rsi_full_tests":\\n'
+            f'    if request["source_commit"] != "{source_commit}":\\n'
         )
+        trusted_workflow_sha256 = hashlib.sha256(workflow_text.encode("utf-8")).hexdigest()
+
         def encode_doc(value):
             return base64.b64encode(json.dumps(value).encode()).decode()
+
         def fake_fetch(url):
             if url.endswith(f"/actions/runs/{run_id}"):
                 return {
                     "repository": {"full_name": "morganaspim/Cace-app"},
-                    "status": "completed", "conclusion": "success", "event": "push",
-                    "head_branch": "merlin/oci-jobs/reproduction-test",
+                    "status": "completed", "conclusion": "success", "event": "workflow_dispatch",
+                    "head_branch": "main",
                     "head_sha": run_sha,
-                    "path": ".github/workflows/merlin-oci-job-gateway.yml@refs/heads/merlin/oci-jobs/reproduction-test",
+                    "path": ".github/workflows/merlin-oci-job-gateway.yml@refs/heads/main",
                 }
             if url.endswith(f"/commits/{run_sha}"):
                 return {"files": [{"filename": request_path, "status": "added"}]}
@@ -298,12 +387,9 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 return {"encoding": "base64", "content": encode_doc(request_doc)}
             if "/contents/.github/workflows/" in url:
                 return {"encoding": "base64", "content": base64.b64encode(workflow_text.encode()).decode()}
-            if "/contents/python/merlin/rsi_pipeline.py?" in url:
-                return {"encoding": "base64", "content": base64.b64encode(module_bytes).decode()}
-            if "/contents/tests/test_rsi_pipeline.py?" in url:
-                return {"encoding": "base64", "content": base64.b64encode(test_bytes).decode()}
-            if "/contents/config/benchmarks/" in url:
-                return {"encoding": "base64", "content": base64.b64encode(benchmark_bytes).decode()}
+            for source_path, raw in source_file_contents.items():
+                if f"/contents/{source_path}?" in url:
+                    return {"encoding": "base64", "content": base64.b64encode(raw).decode()}
             if url.endswith(f"/actions/runs/{run_id}/jobs?per_page=100"):
                 return {"jobs": [{
                     "id": 123456,
@@ -323,6 +409,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 }]}
             raise AssertionError("unexpected GitHub API URL: " + url)
 
+        artifact_bytes_b64 = {
+            "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+            "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+        }
         with tempfile.TemporaryDirectory() as temp:
             key_path = Path(temp) / "keys" / "attestor.pem"
             identity = initialize_merlin_rsi_attestor(
@@ -332,14 +422,46 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 bundle_payload=bundle.payload(),
                 expected_claim_id=self.claim_id,
                 expected_bindings=bindings,
-                artifact_bytes_b64={
-                    "merlin-rsi-evidence-manifest": base64.b64encode(artifact_bytes).decode("ascii")
-                },
+                artifact_bytes_b64=artifact_bytes_b64,
                 github_run_id=run_id,
-                private_key_path=key_path,
+                trusted_workflow_sha256=trusted_workflow_sha256,
+                trusted_run_branch="main",
+                private_key_pem=key_path.read_bytes(),
                 cace_app_root=self.root,
                 github_fetch=fake_fetch,
             )
+            def branch_push_fetch(url):
+                response = fake_fetch(url)
+                if url.endswith(f"/actions/runs/{run_id}"):
+                    response = dict(response, event="push", head_branch="merlin/oci-jobs/reproduction-test")
+                return response
+
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_reproduction(
+                    bundle_payload=bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=bindings,
+                    artifact_bytes_b64=artifact_bytes_b64,
+                    github_run_id=run_id,
+                    trusted_workflow_sha256=trusted_workflow_sha256,
+                    trusted_run_branch="main",
+                    private_key_pem=key_path.read_bytes(),
+                    cace_app_root=self.root,
+                    github_fetch=branch_push_fetch,
+                )
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_reproduction(
+                    bundle_payload=bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=bindings,
+                    artifact_bytes_b64=artifact_bytes_b64,
+                    github_run_id=run_id,
+                    trusted_workflow_sha256="0" * 64,
+                    trusted_run_branch="main",
+                    private_key_pem=key_path.read_bytes(),
+                    cace_app_root=self.root,
+                    github_fetch=fake_fetch,
+                )
         self.assertEqual(signed["purpose"], "independent-reproduction")
         self.assertEqual(signed["runner_provenance"]["run_id"], run_id)
         trust = json.dumps({
@@ -355,9 +477,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             attestation_payload=signed["attestation"],
             expected_claim_id=self.claim_id,
             expected_bindings=bindings,
-            artifact_bytes_b64={
-                "merlin-rsi-evidence-manifest": base64.b64encode(artifact_bytes).decode("ascii")
-            },
+            artifact_bytes_b64=artifact_bytes_b64,
             trust_store_json=trust,
             trust_store_sha256=hashlib.sha256(trust.encode()).hexdigest(),
             cace_app_root=self.root,
@@ -376,15 +496,18 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     expected_claim_id=self.claim_id,
                     expected_bindings=self.bindings,
                     artifact_bytes_b64={
-                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                        "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                     },
                     github_run_id=98765,
+                    trusted_workflow_sha256="0" * 64,
+                    trusted_run_branch="main",
                     private_key_path=key_path,
                     cace_app_root=self.root,
                     github_fetch=lambda url: {
                         "repository": {"full_name": "morganaspim/Cace-app"},
                         "status": "completed", "conclusion": "failure",
-                        "event": "push", "head_branch": "merlin/oci-jobs/nope",
+                        "event": "workflow_dispatch", "head_branch": "main",
                     },
                 )
 
@@ -435,7 +558,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
     def test_artifact_base64_must_be_canonical(self):
         encoded = base64.b64encode(self.artifact_bytes).decode("ascii") + "\n"
         with self.assertRaises(ValueError):
-            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": encoded})
+            self.verify(artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": encoded,
+            })
 
 if __name__ == "__main__":
     unittest.main()
