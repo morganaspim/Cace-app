@@ -73,6 +73,11 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "source_repo": self.bindings["source_repo"],
             "source_commit": self.bindings["source_commit"],
             "benchmark_manifest_sha256": self.bindings["benchmark_manifest_sha256"],
+            "orchestrator_run_id": 123457,
+            "orchestrator_workflow_path": ".github/workflows/merlin-cace-protected-orchestrator.yml",
+            "orchestrator_workflow_commit": "d" * 40,
+            "orchestrator_workflow_sha256": "a" * 64,
+            "orchestrator_branch": "main",
         }
         statement = AttestationStatement(
             verifier_id="cace",
