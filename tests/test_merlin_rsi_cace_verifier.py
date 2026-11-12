@@ -233,6 +233,40 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     trust_store_sha256=hashlib.sha256(key_store.encode("utf-8")).hexdigest(),
                 )
 
+    def test_cace_signer_accepts_in_memory_pem_without_creating_a_key_file(self):
+        signed = attest_merlin_rsi_bundle(
+            bundle_payload=self.bundle.payload(),
+            expected_claim_id=self.claim_id,
+            expected_bindings=self.bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
+            },
+            private_key_pem=self.private_pem,
+            cace_app_root=self.root,
+        )
+        self.assertEqual(signed["purpose"], "artifact-integrity")
+        self.assertEqual(signed["verifier_key_id"], self.key_id)
+        with self.assertRaises(ValueError):
+            attest_merlin_rsi_bundle(
+                bundle_payload=self.bundle.payload(),
+                expected_claim_id=self.claim_id,
+                expected_bindings=self.bindings,
+                artifact_bytes_b64={},
+                private_key_pem=self.private_pem,
+                private_key_path=Path("must-not-be-read.pem"),
+                cace_app_root=self.root,
+            )
+        with self.assertRaises(ValueError):
+            attest_merlin_rsi_bundle(
+                bundle_payload=self.bundle.payload(),
+                expected_claim_id=self.claim_id,
+                expected_bindings=self.bindings,
+                artifact_bytes_b64={},
+                private_key_pem="not a PEM key",
+                cace_app_root=self.root,
+            )
+
     def test_cace_signer_requires_initialized_private_key(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaises(PermissionError):
