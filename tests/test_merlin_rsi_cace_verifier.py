@@ -492,8 +492,25 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     cace_app_root=self.root,
                     github_fetch=fake_fetch,
                 )
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_reproduction(
+                    bundle_payload=bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=bindings,
+                    artifact_bytes_b64=artifact_bytes_b64,
+                    github_run_id=run_id,
+                    trusted_workflow_sha256=trusted_workflow_sha256,
+                    trusted_run_branch="main",
+                    trusted_orchestrator_run_id=orchestrator_run_id,
+                    trusted_orchestrator_workflow_sha256="0" * 64,
+                    trusted_orchestrator_workflow_path=orchestrator_workflow_path,
+                    private_key_pem=key_path.read_bytes(),
+                    cace_app_root=self.root,
+                    github_fetch=fake_fetch,
+                )
         self.assertEqual(signed["purpose"], "independent-reproduction")
         self.assertEqual(signed["runner_provenance"]["run_id"], run_id)
+        self.assertEqual(signed["runner_provenance"]["orchestrator_run_id"], orchestrator_run_id)
         trust = json.dumps({
             "schema": "merlin-cace-trust-store-v1",
             "keys": [{
