@@ -159,6 +159,32 @@ def get_github_runner_status() -> dict[str, Any]:
 
 
 @mcp.tool()
+def verify_merlin_rsi_attestation(
+    bundle_payload: dict[str, Any],
+    attestation_payload: dict[str, Any],
+    expected_claim_id: str,
+    expected_bindings: dict[str, Any],
+) -> dict[str, Any]:
+    """Verify a Merlin RSI EvidenceBundle and CACE-signed independent-reproduction attestation.
+
+    The verifier key allowlist is loaded only from the service's digest-pinned
+    environment trust store. Callers cannot supply or override trusted keys.
+    This operation is read-only and never upgrades proof or promotion state.
+    """
+    from .merlin_rsi_verifier import verify_merlin_rsi_attestation as verify
+
+    return verify(
+        bundle_payload=bundle_payload,
+        attestation_payload=attestation_payload,
+        expected_claim_id=expected_claim_id,
+        expected_bindings=expected_bindings,
+        trust_store_json=os.getenv("CACE_MERLIN_RSI_TRUST_STORE_JSON", ""),
+        trust_store_sha256=os.getenv("CACE_MERLIN_RSI_TRUST_STORE_SHA256", ""),
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
+@mcp.tool()
 def get_control_capabilities() -> dict[str, Any]:
     """Return the narrow capability switches for this OCI MCP server."""
     return {
