@@ -15,8 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
 from merlin import rsi_pipeline as rsi
 from merlin.rsi_pipeline import (
-    AppendOnlyLedger, ResearchMetadataCache, SignedReceipt,
-    dispatch_rsi_induction_seed, ingest_hermes_failure, optional_adapter_status,
+    AppendOnlyLedger, CaceMcpAttestor, ResearchMetadataCache, SignedReceipt,
+    cace_rsi_bundle_payload, dispatch_rsi_induction_seed,
+    ingest_hermes_failure, optional_adapter_status,
     paired_adapter_gain, paired_adapter_gate,
 )
 
@@ -359,7 +360,7 @@ class RSIPipelineTests(unittest.TestCase):
             "claim_id": candidate,
             "bundle_sha256": bundle_sha,
             "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "purpose": "independent-reproduction",
+            "purpose": "artifact-integrity",
             "bindings": bindings,
         }
         signing_bytes = rsi._CACE_ATTESTATION_DOMAIN + rsi.canonical_json(statement)
@@ -388,6 +389,67 @@ class RSIPipelineTests(unittest.TestCase):
             "MERLIN_CACE_TRUST_STORE_JSON": raw,
             "MERLIN_CACE_TRUST_STORE_SHA256": rsi.sha256_hex(raw.encode("utf-8")),
         }
+
+    def test_cace_bundle_payload_contains_exact_manifest_bytes(self):
+        bundle, manifest_bytes, bindings = cace_rsi_bundle_payload(
+            candidate_id="candidate-payload",
+            candidate_digest=ARTIFACT,
+            benchmark_manifest_sha256=SUITE,
+            evaluator_receipt_sha256="e" * 64,
+            source_repo="Mannyspiro/expert-robot",
+            source_commit=SOURCE_COMMIT,
+        )
+        self.assertEqual(json.loads(manifest_bytes)["candidate_id"], "candidate-payload")
+        self.assertEqual(bundle["bindings"], bindings)
+        self.assertEqual(
+            rsi.sha256_hex(rsi._CACE_BUNDLE_DOMAIN + rsi.canonical_json(bundle)),
+            rsi.cace_rsi_bundle_sha256(
+                candidate_id="candidate-payload",
+                candidate_digest=ARTIFACT,
+                benchmark_manifest_sha256=SUITE,
+                evaluator_receipt_sha256="e" * 64,
+                source_repo="Mannyspiro/expert-robot",
+                source_commit=SOURCE_COMMIT,
+            ),
+        )
+
+    def test_cace_mcp_attestor_rejects_non_loopback_endpoints(self):
+        with self.assertRaises(ValueError):
+            CaceMcpAttestor("https://untrusted.example/mcp")
+        with self.assertRaises(ValueError):
+            CaceMcpAttestor("http://192.0.2.10:8765/mcp")
+
+    def test_ledger_obtains_cace_attestation_from_mcp_transport(self):
+        candidate = "candidate-live-cace-transport"
+        self._record_candidate_and_evaluation(candidate)
+        attestation = self._make_cace_attestation(candidate)
+        class FakeAttestor:
+            def __init__(self):
+                self.calls = 0
+            def attest(self, *, bundle_payload, expected_claim_id, expected_bindings, artifact_bytes_b64):
+                self.calls += 1
+                self.asserted = {
+                    "claim": expected_claim_id,
+                    "bindings": expected_bindings,
+                    "artifact_ids": sorted(artifact_bytes_b64),
+                }
+                return {
+                    "attestation": attestation,
+                    "purpose": "artifact-integrity",
+                    "proof_effect": "none",
+                    "authority": "verification-only",
+                }
+        fake = FakeAttestor()
+        event = self.ledger.record_cace_verification_from_mcp(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=SUITE, attestor=fake,
+        )
+        self.assertEqual(fake.calls, 1)
+        self.assertEqual(fake.asserted["claim"], candidate)
+        self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-evidence-manifest"])
+        self.assertEqual(event["event_type"], "candidate.cace_verified")
+        self.assertEqual(event["verifier_id"], "cace")
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_cace_verification_and_separate_approval_gate_promotion(self):
         from unittest.mock import patch
@@ -519,6 +581,65 @@ class RSIPipelineTests(unittest.TestCase):
         self.assertEqual(len(manifest["cases"]), 25)
         self.assertEqual(len({case["id"] for case in manifest["cases"]}), 25)
 
+    def test_full_heldout_case_results_are_bound_into_append_only_evaluation(self):
+        manifest_path = (
+            Path(__file__).resolve().parents[1]
+            / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+        )
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+        case_results = [{
+            "case_id": case["id"],
+            "domain": case["domain"],
+            "score": 0.8,
+            "passed": True,
+            "evaluator_id": "blind-domain-evaluator",
+            "evaluator_version": "1.0.0",
+            "evidence_sha256": rsi.sha256_hex(rsi.canonical_json({
+                "case_id": case["id"], "score": 0.8, "candidate": "candidate-heldout-25"
+            })),
+        } for case in manifest["cases"]]
+        report = rsi.validate_frozen_benchmark_results(manifest_bytes, case_results)
+        self.assertEqual(report["case_count"], 25)
+        self.assertEqual(set(report["metrics"]), {
+            "overall", "mathematics", "lean", "research", "coding", "engineering"
+        })
+        self.assertTrue(report["passed"])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, case_results[:-1])
+        duplicate = list(case_results)
+        duplicate[-1] = dict(duplicate[0])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, duplicate)
+
+        candidate = "candidate-heldout-25"
+        self.ledger.record_candidate(
+            candidate_id=candidate, parent_candidate_id=None,
+            source_receipt=self.source_receipt(candidate),
+            artifact_sha256=ARTIFACT, generator="rsi", mutation={"suite": report["suite_id"]}
+        )
+        metrics_sha = rsi.sha256_hex(rsi.canonical_json(report["metrics"]))
+        evaluator = sign_receipt("merlin-evaluator", {
+            "candidate_id": candidate,
+            "candidate_digest": ARTIFACT,
+            "benchmark_manifest_sha256": report["suite_sha256"],
+            "metrics_sha256": metrics_sha,
+            "status": "pass",
+            "case_results_sha256": report["case_results_sha256"],
+            "case_count": 25,
+        }, "evaluator-key", self.evaluator_private)
+        self.ledger.record_evaluation(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=report["suite_sha256"], metrics=report["metrics"],
+            passed=True, evaluator_receipt=evaluator,
+            benchmark_manifest_bytes=manifest_bytes, case_results=case_results,
+        )
+        event = json.loads(self.ledger.events(candidate)[1]["payload"])
+        self.assertEqual(event["case_count"], 25)
+        self.assertEqual(event["case_results_sha256"], report["case_results_sha256"])
+        self.assertEqual(len(event["case_results"]), 25)
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
+
     def test_optional_adapters_require_paired_multidomain_gain(self):
         self.assertFalse(paired_adapter_gain([0.5] * 5, [0.8] * 5)["eligible"])
         self.assertTrue(paired_adapter_gain([0.5] * 25, [0.6] * 25)["eligible"])
@@ -546,46 +667,6 @@ class RSIPipelineTests(unittest.TestCase):
             actual,
             "0898289d4c6267dbc8de6e595e56f8f035ad0344b65431f8deb11be0972b0272",
         )
-
-    def test_arxiv_metadata_cache_parses_atom_and_uses_cached_response(self):
-        cache = ResearchMetadataCache(self.db_path)
-        atom = b"""<?xml version="1.0" encoding="UTF-8"?>
-        <feed xmlns="http://www.w3.org/2005/Atom">
-          <entry>
-            <id>http://arxiv.org/abs/2401.01234v2</id>
-            <title>  A   Test   Paper </title>
-            <summary> A   concise\n abstract. </summary>
-            <published>2024-01-02T00:00:00Z</published>
-            <author><name>Researcher One</name></author>
-          </entry>
-        </feed>"""
-        from unittest.mock import patch
-        with patch.object(cache, "_request", return_value=atom) as request:
-            first = cache.arxiv_id("https://arxiv.org/abs/2401.01234v2")
-            second = cache.arxiv_id("2401.01234v2")
-            self.assertEqual(first, second)
-            request.assert_called_once_with(
-                "export.arxiv.org",
-                "https://export.arxiv.org/api/query?id_list=2401.01234v2",
-            )
-        self.assertEqual(first["feed"][0]["title"], "A Test Paper")
-        self.assertEqual(first["feed"][0]["authors"], ["Researcher One"])
-        self.assertIn("concise abstract", first["feed"][0]["summary"])
-
-    def test_metadata_host_rate_limit_is_persisted_between_calls(self):
-        from unittest.mock import patch
-        cache = ResearchMetadataCache(self.db_path)
-        with patch("merlin.rsi_pipeline.time.time", side_effect=[100.0, 100.0, 100.0, 100.0]), \
-             patch("merlin.rsi_pipeline.time.sleep") as sleep:
-            cache._reserve_rate_slot("export.arxiv.org")
-            cache._reserve_rate_slot("export.arxiv.org")
-        sleep.assert_called_once_with(3.0)
-        with sqlite3.connect(self.db_path) as db:
-            row = db.execute(
-                "SELECT next_allowed_epoch FROM research_request_clock WHERE host=?",
-                ("export.arxiv.org",),
-            ).fetchone()
-        self.assertEqual(row[0], 106.0)
 
     def test_arxiv_metadata_cache_parses_atom_and_uses_cached_response(self):
         cache = ResearchMetadataCache(self.db_path)
