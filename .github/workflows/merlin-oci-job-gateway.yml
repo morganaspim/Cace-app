@@ -375,7 +375,7 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "df7d07e64b9cd664a54348bc8d67617b4ad78a64":
+              if request["source_commit"] != "e2bdab873c566ca2d54c56932a20df7676f90de6":
                   raise SystemExit("request rejected: RSI/Hermes source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
