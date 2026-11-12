@@ -782,6 +782,7 @@ class AppendOnlyLedger:
                     ).fetchone()
                     if seed is None:
                         raise ValueError("candidate induction seed is absent from authenticated Hermes failure history")
+        if induction_seed_event_hashes is not None:
             required["induction_seed_event_hashes"] = seed_hashes
         if artifact_bytes is not None:
             if not isinstance(artifact_bytes, bytes):
