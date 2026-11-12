@@ -273,7 +273,7 @@ def verify_cace_attestation(
         or statement.get("schema") != "cace-attestation-statement-v1"
         or statement.get("signature_algorithm") != "ed25519"
         or statement.get("proof_effect") != "none"
-        or statement.get("purpose") != "artifact-integrity"):
+        or statement.get("purpose") not in {"artifact-integrity", "independent-reproduction"}):
         raise PermissionError("CACE attestation profile or purpose is not accepted")
     if statement.get("verifier_id") != expected_verifier_id:
         raise PermissionError("CACE verifier identity mismatch")
@@ -514,8 +514,14 @@ class AppendOnlyLedger:
                     previous_event_hash,event_hash) VALUES (?,?,?,?,?,?,?)""",
                 (entity_id, sequence, event_type, payload_text, payload_hash,
                  previous, event_hash))
-            return {"seq": sequence, "event_id": event_hash[:32],
-                    "event_hash": event_hash, "episode_id": entity_id}
+            return {
+                **dict(payload),
+                "seq": sequence,
+                "event_id": event_hash[:32],
+                "event_hash": event_hash,
+                "episode_id": entity_id,
+                "event_type": event_type,
+            }
 
     def events(self, episode_id: str) -> list[dict[str, Any]]:
         with self._connect() as db:
@@ -766,6 +772,11 @@ class AppendOnlyLedger:
         verified = verify_cace_attestation(
             attestation, cace_approved_keys, expected_claim_id=candidate_id,
             expected_bundle_sha256=bundle_sha, expected_bindings=bindings)
+        if verified["purpose"] != "independent-reproduction":
+            raise PermissionError(
+                "promotion requires an independent-reproduction CACE attestation; "
+                "artifact-integrity alone is insufficient"
+            )
         expected_approval = {
             "candidate_id": candidate_id, "candidate_digest": artifact_sha256,
             "benchmark_manifest_sha256": suite_sha256,
@@ -778,7 +789,8 @@ class AppendOnlyLedger:
         cace_event = self._candidate_event(episode, "candidate.cace_verified", candidate_id)
         if (not cace_event or cace_event.get("artifact_sha256") != artifact_sha256
             or cace_event.get("suite_sha256") != suite_sha256
-            or cace_event.get("attestation_sha256") != verified["attestation_sha256"]):
+            or cace_event.get("attestation_sha256") != verified["attestation_sha256"]
+            or cace_event.get("purpose") != "independent-reproduction"):
             raise PermissionError("independent CACE verification event is absent or mismatched")
         if not self.verify_chain(episode)["valid"]:
             raise RuntimeError("canonical research episode ledger integrity check failed")
