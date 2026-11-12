@@ -177,6 +177,38 @@ def initialize_merlin_rsi_attestor() -> dict[str, Any]:
 
 
 @mcp.tool()
+def attest_merlin_rsi_reproduction(
+    bundle_payload: dict[str, Any],
+    expected_claim_id: str,
+    expected_bindings: dict[str, Any],
+    artifact_bytes_b64: dict[str, str],
+    github_run_id: int,
+) -> dict[str, Any]:
+    """Verify exact CACE OCI run provenance and sign an independent-reproduction attestation.
+
+    Requires a successful fixed-profile run on cace-oci-a1, exact pinned source
+    commit, frozen 25-case held-out suite, retained job artifact, and exact
+    EvidenceBundle bytes. This attestation still has proof_effect=none and
+    cannot promote a candidate.
+    """
+    from .merlin_rsi_verifier import attest_merlin_rsi_reproduction as attest
+
+    key_path = os.getenv(
+        "CACE_MERLIN_RSI_SIGNING_KEY_PATH",
+        "/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem",
+    )
+    return attest(
+        bundle_payload=bundle_payload,
+        expected_claim_id=expected_claim_id,
+        expected_bindings=expected_bindings,
+        artifact_bytes_b64=artifact_bytes_b64,
+        github_run_id=github_run_id,
+        private_key_path=key_path,
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
+@mcp.tool()
 def attest_merlin_rsi_bundle(
     bundle_payload: dict[str, Any],
     expected_claim_id: str,
