@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "e5c1a9d7-4b62-4f83-9a10-6d2e8c5f7b31",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Run current pinned RSI source and 15 regression tests on OCI, including real Ed25519 trust-store checks, signed Hermes dispatch, arXiv/Crossref caching, and CACE bundle parity.",
+  "created_at": "2026-11-12T00:02:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "70269acb55093c2071f204c6b2607c11ec2ae99f",
+  "module_blob_sha": "34557113cf335694a77222a74d57ef5cdc6c2e6e",
+  "test_blob_sha": "7351769424ebd9bbcf23a4aed06f77fc2cadce13",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
