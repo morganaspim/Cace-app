@@ -2,7 +2,7 @@
   "schema": "merlin-cpp-runner-fixture-v1",
   "source_repository": "Mannyspiro/expert-robot",
   "source_branch": "feat/merlin-continuum-simplex-core-20261112",
-  "source_commit": "a3ad1b9319a150f5a3be4f8aae906e7ad112116b",
+  "source_commit": "9b41d4a2adda1d3ef5432a030823da4959595d2a",
   "source_files": [
     {
       "source_path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
@@ -23,6 +23,21 @@
       "source_path": "tests/simplicial_complex_smoke.cpp",
       "fixture_path": "collaboration/merlin-continuum/tests/simplicial_complex_smoke.cpp",
       "git_blob_sha1": "ac002637014f6175d8c5e36d769bdb57e058bfa2"
+    },
+    {
+      "source_path": "schemas/merlin/continuum-structure.v1.schema.json",
+      "fixture_path": "collaboration/merlin-continuum/schemas/merlin/continuum-structure.v1.schema.json",
+      "git_blob_sha1": "513be029681eb248b666a343bc35771889ead37f"
+    },
+    {
+      "source_path": "docs/research/paired-state-continuum-triangle.v1.json",
+      "fixture_path": "collaboration/merlin-continuum/docs/research/paired-state-continuum-triangle.v1.json",
+      "git_blob_sha1": "ae6696d3615f6e5d59f1fe7d1db27be06dd7018d"
+    },
+    {
+      "source_path": "tests/test_continuum_structure_ir.py",
+      "fixture_path": "collaboration/merlin-continuum/tests/test_continuum_structure_ir.py",
+      "git_blob_sha1": "df6e0dabb490de5a3b4cd8f9995706b4928671be"
     }
   ],
   "evidence_boundary": "Exact-byte fixture binding for independent OCI compilation. Not a Lean proof, CACE signature, qualification, or promotion."
