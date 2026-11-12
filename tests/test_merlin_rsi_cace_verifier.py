@@ -234,7 +234,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     expected_claim_id=self.claim_id,
                     expected_bindings=self.bindings,
                     artifact_bytes_b64={
-                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                        "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                     },
                     private_key_path=Path(temp) / "missing.pem",
                     cace_app_root=self.root,
@@ -413,7 +414,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     expected_claim_id=self.claim_id,
                     expected_bindings=self.bindings,
                     artifact_bytes_b64={
-                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                        "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
                     },
                     github_run_id=98765,
                     private_key_path=key_path,
