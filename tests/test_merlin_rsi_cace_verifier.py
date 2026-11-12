@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from cace_studio.core.attestation import (
     AttestationStatement,
@@ -213,6 +214,21 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     },
                     private_key_path=Path(temp) / "missing.pem",
                     cace_app_root=self.root,
+                )
+
+    def test_persistent_signing_tools_are_disabled_by_default(self):
+        with patch.object(mcp_server, "ALLOW_MERLIN_RSI_SIGNING", False):
+            capabilities = mcp_server.get_control_capabilities()
+            self.assertFalse(capabilities["merlin_rsi_signing_enabled"])
+            self.assertFalse(capabilities["private_signing_key_read_enabled"])
+            with self.assertRaises(PermissionError):
+                mcp_server.initialize_merlin_rsi_attestor()
+            with self.assertRaises(PermissionError):
+                mcp_server.attest_merlin_rsi_bundle(
+                    bundle_payload={},
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=self.bindings,
+                    artifact_bytes_b64={},
                 )
 
     def test_cace_core_rejects_unknown_attestation_purpose(self):
