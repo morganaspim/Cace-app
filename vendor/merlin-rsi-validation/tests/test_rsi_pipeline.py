@@ -41,6 +41,21 @@ def sign_receipt(issuer, claims, key_id, private_key):
         base64.b64encode(signature).decode("ascii"),
     )
 
+def hermes_claims(record):
+    return {
+        "subject": "hermes-failure:" + record["event_id"],
+        "record_sha256": rsi.sha256_hex(rsi.canonical_json(record)),
+        "source_repo": record["source_repo"],
+        "source_commit": record["source_commit"],
+        "artifact_sha256": record["artifact_sha256"],
+        "failure_class": record["failure_class"],
+    }
+
+
+def sign_hermes_record(record, private_key):
+    return sign_receipt("hermes", hermes_claims(record), "hermes-key", private_key)
+
+
 class RSIPipelineTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -110,6 +125,7 @@ class RSIPipelineTests(unittest.TestCase):
 
     def test_hermes_failure_requires_authentic_signature_and_is_idempotent(self):
         record = {
+            "schema": "merlin-hermes-failure/2",
             "event_id": "hermes-17", "failure_class": "lean-timeout",
             "summary": "Proof search exceeded its budget",
             "source_repo": "Mannyspiro/expert-robot",
@@ -175,20 +191,20 @@ class RSIPipelineTests(unittest.TestCase):
 
     def test_induction_dispatch_requires_signed_worker_ack_and_is_idempotent(self):
         failure = {
+            "schema": "merlin-hermes-failure/2",
             "event_id": "hermes-dispatch-51",
             "failure_class": "proof-timeout",
             "summary": "Proof search reached its resource budget",
             "source_repo": "Mannyspiro/expert-robot",
             "source_commit": SOURCE_COMMIT,
             "artifact_sha256": ARTIFACT,
+            "failure_signature": "proof-timeout:lean",
+            "trigger_condition": "stage:proof",
+            "corrective_steps": ["bound proof search", "cache normalized goal"],
+            "run_id": "run-hermes-51", "task_id": "task-51",
+            "worker_id": "hermes-worker", "stage": "proof",
         }
-        claims = {
-            "subject": "hermes-failure:hermes-dispatch-51",
-            "source_repo": failure["source_repo"],
-            "source_commit": SOURCE_COMMIT,
-            "artifact_sha256": ARTIFACT,
-            "failure_class": failure["failure_class"],
-        }
+        claims = hermes_claims(failure)
         seed = ingest_hermes_failure(
             self.ledger, failure,
             sign_receipt("hermes", claims, "hermes-key", self.hermes_private),
@@ -237,20 +253,20 @@ class RSIPipelineTests(unittest.TestCase):
 
     def test_induction_dispatch_rejects_worker_ack_for_another_seed(self):
         failure = {
+            "schema": "merlin-hermes-failure/2",
             "event_id": "hermes-dispatch-52",
             "failure_class": "lean-error",
             "summary": "Lean rejected generated declaration",
             "source_repo": "Mannyspiro/expert-robot",
             "source_commit": SOURCE_COMMIT,
             "artifact_sha256": ARTIFACT,
+            "failure_signature": "lean-compile-error:formalize",
+            "trigger_condition": "stage:formalize",
+            "corrective_steps": ["inspect compiler diagnostic", "minimize theorem statement"],
+            "run_id": "run-hermes-52", "task_id": "task-52",
+            "worker_id": "hermes-worker", "stage": "formalize",
         }
-        claims = {
-            "subject": "hermes-failure:hermes-dispatch-52",
-            "source_repo": failure["source_repo"],
-            "source_commit": SOURCE_COMMIT,
-            "artifact_sha256": ARTIFACT,
-            "failure_class": failure["failure_class"],
-        }
+        claims = hermes_claims(failure)
         seed = ingest_hermes_failure(
             self.ledger, failure,
             sign_receipt("hermes", claims, "hermes-key", self.hermes_private),
@@ -279,6 +295,8 @@ class RSIPipelineTests(unittest.TestCase):
 
     def test_rsi_candidate_binds_authenticated_hermes_seed(self):
         failure = {
+            "schema": "merlin-hermes-failure/2",
+            "schema": "merlin-hermes-failure/2",
             "event_id": "hermes-seed-42",
             "failure_class": "formalization-timeout",
             "summary": "Lean proof search timed out",
@@ -286,13 +304,14 @@ class RSIPipelineTests(unittest.TestCase):
             "source_commit": SOURCE_COMMIT,
             "artifact_sha256": ARTIFACT,
         }
-        hermes_receipt = sign_receipt("hermes", {
-            "subject": "hermes-failure:hermes-seed-42",
-            "source_repo": failure["source_repo"],
-            "source_commit": SOURCE_COMMIT,
-            "artifact_sha256": ARTIFACT,
-            "failure_class": failure["failure_class"],
-        }, "hermes-key", self.hermes_private)
+        failure.update({
+            "failure_signature": "formalization-timeout:lean",
+            "trigger_condition": "stage:formalize",
+            "corrective_steps": ["bound proof search", "cache normalized goal"],
+            "run_id": "run-hermes-42", "task_id": "task-42",
+            "worker_id": "hermes-worker", "stage": "formalize",
+        })
+        hermes_receipt = sign_hermes_record(failure, self.hermes_private)
         seed = ingest_hermes_failure(
             self.ledger, failure, hermes_receipt
         )
@@ -518,6 +537,65 @@ class RSIPipelineTests(unittest.TestCase):
         })
         self.assertEqual(len(manifest["cases"]), 25)
         self.assertEqual(len({case["id"] for case in manifest["cases"]}), 25)
+
+    def test_full_heldout_case_results_are_bound_into_append_only_evaluation(self):
+        manifest_path = (
+            Path(__file__).resolve().parents[1]
+            / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+        )
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+        case_results = [{
+            "case_id": case["id"],
+            "domain": case["domain"],
+            "score": 0.8,
+            "passed": True,
+            "evaluator_id": "blind-domain-evaluator",
+            "evaluator_version": "1.0.0",
+            "evidence_sha256": rsi.sha256_hex(rsi.canonical_json({
+                "case_id": case["id"], "score": 0.8, "candidate": "candidate-heldout-25"
+            })),
+        } for case in manifest["cases"]]
+        report = rsi.validate_frozen_benchmark_results(manifest_bytes, case_results)
+        self.assertEqual(report["case_count"], 25)
+        self.assertEqual(set(report["metrics"]), {
+            "overall", "mathematics", "lean", "research", "coding", "engineering"
+        })
+        self.assertTrue(report["passed"])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, case_results[:-1])
+        duplicate = list(case_results)
+        duplicate[-1] = dict(duplicate[0])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, duplicate)
+
+        candidate = "candidate-heldout-25"
+        self.ledger.record_candidate(
+            candidate_id=candidate, parent_candidate_id=None,
+            source_receipt=self.source_receipt(candidate),
+            artifact_sha256=ARTIFACT, generator="rsi", mutation={"suite": report["suite_id"]}
+        )
+        metrics_sha = rsi.sha256_hex(rsi.canonical_json(report["metrics"]))
+        evaluator = sign_receipt("merlin-evaluator", {
+            "candidate_id": candidate,
+            "candidate_digest": ARTIFACT,
+            "benchmark_manifest_sha256": report["suite_sha256"],
+            "metrics_sha256": metrics_sha,
+            "status": "pass",
+            "case_results_sha256": report["case_results_sha256"],
+            "case_count": 25,
+        }, "evaluator-key", self.evaluator_private)
+        self.ledger.record_evaluation(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=report["suite_sha256"], metrics=report["metrics"],
+            passed=True, evaluator_receipt=evaluator,
+            benchmark_manifest_bytes=manifest_bytes, case_results=case_results,
+        )
+        event = json.loads(self.ledger.events(candidate)[1]["payload"])
+        self.assertEqual(event["case_count"], 25)
+        self.assertEqual(event["case_results_sha256"], report["case_results_sha256"])
+        self.assertEqual(len(event["case_results"]), 25)
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_optional_adapters_require_paired_multidomain_gain(self):
         self.assertFalse(paired_adapter_gain([0.5] * 5, [0.8] * 5)["eligible"])
