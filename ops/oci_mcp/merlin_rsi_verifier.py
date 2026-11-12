@@ -566,6 +566,7 @@ def attest_merlin_rsi_reproduction(
         or orchestrator.get("conclusion") != "success"
         or orchestrator.get("event") != "workflow_dispatch"
         or orchestrator.get("head_branch") != trusted_run_branch
+        or orchestrator.get("display_title") != f"Validate OCI run {github_run_id}"
         or str(orchestrator.get("path", "")).split("@", 1)[0] != trusted_orchestrator_workflow_path
     ):
         raise PermissionError("CACE signing requires a successful manually dispatched protected-orchestrator run")
