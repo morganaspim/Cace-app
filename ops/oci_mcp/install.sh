@@ -42,6 +42,7 @@ if [[ ! -f /etc/cace-oci-mcp.env ]]; then
 # Fail-closed defaults. Enable capabilities only after OCI IAM is configured.
 CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false
 CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false
+CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=false
 EOF
   sudo chmod 0600 /etc/cace-oci-mcp.env
 fi

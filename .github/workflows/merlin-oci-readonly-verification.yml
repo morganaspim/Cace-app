@@ -1,0 +1,81 @@
+name: Merlin OCI Read-only Verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-oci-readonly-verification
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          clean: false
+          persist-credentials: false
+      - name: Capture bounded read-only runner inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          from ops.oci_mcp.runner_inventory import collect_runner_status
+          out = Path(os.environ["RUNNER_TEMP"]) / ("merlin-oci-readonly-" + os.environ["GITHUB_RUN_ID"])
+          if out.exists():
+              raise SystemExit("refusing to overwrite a prior evidence directory")
+          out.mkdir(parents=True)
+          inventory = collect_runner_status()
+          payload = json.dumps(inventory, sort_keys=True, indent=2) + "\n"
+          (out / "runner-inventory.json").write_text(payload, encoding="utf-8")
+          print(json.dumps({
+              "schema": "merlin-oci-readonly-check-v1",
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "runner_name": os.environ.get("RUNNER_NAME"),
+              "runner_os": os.environ.get("RUNNER_OS"),
+              "runner_arch": os.environ.get("RUNNER_ARCH"),
+              "inventory_sha256": hashlib.sha256(payload.encode()).hexdigest(),
+              "runner_root_present": inventory["directory_present"],
+              "mcp_service": inventory.get("oci_mcp_service"),
+              "mcp_listener": inventory.get("oci_mcp_listener"),
+              "free_bytes": inventory.get("filesystem", {}).get("free_bytes"),
+          }, sort_keys=True, indent=2))
+          PY
+      - name: Probe only fixed read-only CACE MCP tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          from ops.oci_mcp.health_probe import probe_local_mcp
+          result = probe_local_mcp()
+          out = Path(os.environ["RUNNER_TEMP"]) / ("merlin-oci-readonly-" + os.environ["GITHUB_RUN_ID"])
+          (out / "mcp-health.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\n")
+          print(json.dumps({
+              "status": result.get("status"),
+              "protocol_version": result.get("protocol_version"),
+              "server_info": result.get("server_info"),
+              "read_only_tools": sorted(result.get("read_only_tool_results", {}).keys()),
+              "all_required_tools_available": all(
+                  result.get("read_only_tool_results", {}).get(name, {}).get("available", False)
+                  and not result.get("read_only_tool_results", {}).get(name, {}).get("is_error", False)
+                  for name in ("get_control_capabilities", "get_cace_runtime_status")
+              ),
+          }, sort_keys=True, indent=2))
+          if result.get("status") != "succeeded":
+              raise SystemExit("CACE MCP read-only health probe did not succeed")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: merlin-oci-readonly-${{ github.run_id }}
+          path: ${{ runner.temp }}/merlin-oci-readonly-${{ github.run_id }}/
+          if-no-files-found: warn

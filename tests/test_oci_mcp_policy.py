@@ -75,3 +75,30 @@ def test_server_and_service_do_not_enable_broad_control_by_default():
     assert lines == [
         "cace-mcp ALL=(root) NOPASSWD: /usr/bin/systemctl restart cace-web"
     ]
+
+
+def test_merlin_rsi_signing_is_fail_closed_and_all_signing_tools_use_gate():
+    from ops.oci_mcp.policy import require_merlin_rsi_signing
+
+    with pytest.raises(PermissionError):
+        require_merlin_rsi_signing(False)
+    require_merlin_rsi_signing(True)
+
+    import ast
+    server = ast.parse(Path("ops/oci_mcp/server.py").read_text(encoding="utf-8"))
+    functions = {
+        node.name: node for node in ast.walk(server)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    for name in (
+        "initialize_merlin_rsi_attestor",
+        "attest_merlin_rsi_reproduction",
+        "attest_merlin_rsi_bundle",
+    ):
+        calls = [
+            node for node in ast.walk(functions[name])
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "require_merlin_rsi_signing"
+        ]
+        assert len(calls) == 1, f"{name} must enforce the explicit signing gate"
