@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "2f6c9a31-8b47-4d52-9e10-7a3c5f8d2b64",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Run current RSI trust-registry and ledger tests on OCI using the fixed five-domain benchmark manifest",
+  "created_at": "2026-11-12T00:05:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "dd57e13aa480883175b53916e64578f62d671077",
+  "module_blob_sha": "34557113cf335694a77222a74d57ef5cdc6c2e6e",
+  "test_blob_sha": "7351769424ebd9bbcf23a4aed06f77fc2cadce13",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
