@@ -159,6 +159,49 @@ def get_github_runner_status() -> dict[str, Any]:
 
 
 @mcp.tool()
+def initialize_merlin_rsi_attestor() -> dict[str, Any]:
+    """Create the CACE Merlin RSI Ed25519 signing identity once, without overwriting it."""
+    from .merlin_rsi_verifier import initialize_merlin_rsi_attestor as initialize
+
+    key_path = os.getenv(
+        "CACE_MERLIN_RSI_SIGNING_KEY_PATH",
+        "/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem",
+    )
+    return initialize(
+        private_key_path=key_path,
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
+@mcp.tool()
+def attest_merlin_rsi_bundle(
+    bundle_payload: dict[str, Any],
+    expected_claim_id: str,
+    expected_bindings: dict[str, Any],
+    artifact_bytes_b64: dict[str, str],
+) -> dict[str, Any]:
+    """Verify exact EvidenceBundle artifact bytes and sign a CACE artifact-integrity attestation.
+
+    This is provenance/integrity only (proof_effect=none). It does not run
+    candidate code, prove a theorem, or authorize promotion.
+    """
+    from .merlin_rsi_verifier import attest_merlin_rsi_bundle as attest
+
+    key_path = os.getenv(
+        "CACE_MERLIN_RSI_SIGNING_KEY_PATH",
+        "/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem",
+    )
+    return attest(
+        bundle_payload=bundle_payload,
+        expected_claim_id=expected_claim_id,
+        expected_bindings=expected_bindings,
+        artifact_bytes_b64=artifact_bytes_b64,
+        private_key_path=key_path,
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
+@mcp.tool()
 def verify_merlin_rsi_attestation(
     bundle_payload: dict[str, Any],
     attestation_payload: dict[str, Any],
@@ -197,6 +240,7 @@ def get_control_capabilities() -> dict[str, Any]:
         "iam_mutation_exposed": False,
         "secret_access_exposed": False,
         "instance_termination_exposed": False,
+        "merlin_rsi_attestation": "narrow artifact-integrity only; no proof or promotion authority",
         "mcp_listen": f"{MCP_HOST}:{MCP_PORT}",
     }
 
