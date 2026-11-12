@@ -174,11 +174,6 @@ CACE_OCI_MCP_ALLOW_SERVICE_RESTART=false
 CACE_OCI_MCP_ALLOW_NETWORK_WRITE=false
 ```
 
-After the relevant IAM/local privilege configuration has been reviewed. Keep
-CACE RSI signing disabled unless persistent key custody has been explicitly
-approved. The signing tools require the separate opt-in
-CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true; the installer defaults it to false.
-
 After the relevant IAM/local privilege configuration has been reviewed:
 
 ```bash
