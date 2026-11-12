@@ -25,6 +25,7 @@ Opt-in write tools:
 - `remove_mcp_managed_web_ingress`
 - `initialize_merlin_rsi_attestor` (one-time, non-overwriting Ed25519 key creation)
 - `attest_merlin_rsi_bundle` (signs only after exact artifact bytes are verified)
+- `attest_merlin_rsi_reproduction` (signs only after verifying a successful pinned OCI workflow run)
 
 The network write tools:
 
@@ -210,6 +211,27 @@ publishing this loopback endpoint directly. If you choose to expose it through
 a public reverse proxy instead, add strong authentication (prefer OAuth),
 TLS, rate limits, and a hostname allowlist; do not publish an unauthenticated
 MCP endpoint.
+
+### Independent reproduction attestation
+
+`attest_merlin_rsi_reproduction` is stricter than artifact-integrity signing.
+It independently checks the public GitHub Actions record for the exact
+`morganaspim/Cace-app` run, including:
+
+- completed/successful push run from the `merlin/oci-jobs/` namespace;
+- exact Merlin OCI gateway workflow path and one-file request commit;
+- request binding to the exact Expert Robot source repository and commit;
+- workflow source-commit pin and SHA-256 of the frozen 25-case held-out suite;
+- one successful `run-approved-profile` job on `cace-oci-a1`, with both
+  validation and artifact-upload steps successful;
+- one retained job receipt artifact with a GitHub SHA-256 digest;
+- exact EvidenceBundle artifact bytes verified by CACE core.
+
+Only then does CACE sign an `independent-reproduction` statement. Its
+`cace_runner_provenance` binding records the GitHub run, workflow commit,
+runner/job identity, artifact digest, source commit, and benchmark digest.
+The signature has `proof_effect=none`; it is not a theorem proof and does not
+authorize promotion. Merlin still requires its separate signed approver receipt.
 
 ### CACE RSI attestor identity
 
