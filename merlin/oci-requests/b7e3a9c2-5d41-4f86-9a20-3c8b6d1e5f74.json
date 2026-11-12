@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "b7e3a9c2-5d41-4f86-9a20-3c8b6d1e5f74",
+  "operation": "rsi_validation",
+  "reason": "Validate latest RSI pipeline and live CACE MCP attestor transport with exact bundle bytes and artifact-integrity purpose",
+  "created_at": "2026-11-12T00:25:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "3813f8fede65e06e6fb0ab4db4714a90ccd39a8e"
+}
