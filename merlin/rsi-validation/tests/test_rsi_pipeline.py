@@ -347,7 +347,7 @@ class RSIPipelineTests(unittest.TestCase):
         )
         return evaluator
 
-    def _make_cace_attestation(self, candidate):
+    def _make_cace_attestation(self, candidate, purpose="artifact-integrity"):
         _, _, bundle_sha, bindings = self.ledger._cace_evidence(
             candidate, candidate, ARTIFACT, SUITE
         )
@@ -360,7 +360,7 @@ class RSIPipelineTests(unittest.TestCase):
             "claim_id": candidate,
             "bundle_sha256": bundle_sha,
             "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "purpose": "artifact-integrity",
+            "purpose": purpose,
             "bindings": bindings,
         }
         signing_bytes = rsi._CACE_ATTESTATION_DOMAIN + rsi.canonical_json(statement)
@@ -447,15 +447,16 @@ class RSIPipelineTests(unittest.TestCase):
         self.assertEqual(fake.calls, 1)
         self.assertEqual(fake.asserted["claim"], candidate)
         self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-evidence-manifest"])
-        self.assertEqual(event["event_type"], "candidate.cace_verified")
-        self.assertEqual(event["verifier_id"], "cace")
+        self.assertEqual(event["seq"], 2)
+        recorded = self.ledger.events(candidate)
+        self.assertEqual(recorded[-1]["event_type"], "candidate.cace_verified")
         self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_cace_verification_and_separate_approval_gate_promotion(self):
         from unittest.mock import patch
         candidate = "candidate-promote"
         self._record_candidate_and_evaluation(candidate)
-        attestation = self._make_cace_attestation(candidate)
+        attestation = self._make_cace_attestation(candidate, purpose="independent-reproduction")
         with patch.dict(os.environ, {
             "MERLIN_CACE_TRUST_STORE_JSON": "",
             "MERLIN_CACE_TRUST_STORE_SHA256": "",
@@ -498,6 +499,33 @@ class RSIPipelineTests(unittest.TestCase):
             )
         self.assertEqual(cace_event["seq"], 2)
         self.assertEqual(promoted["seq"], 3)
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
+
+    def test_artifact_integrity_attestation_cannot_promote(self):
+        candidate = "candidate-artifact-integrity-only"
+        self._record_candidate_and_evaluation(candidate)
+        attestation = self._make_cace_attestation(candidate, purpose="artifact-integrity")
+        trust_env = self._cace_trust_env()
+        with patch.dict(os.environ, trust_env):
+            event = self.ledger.record_cace_verification(
+                candidate_id=candidate, attestation=attestation,
+                artifact_sha256=ARTIFACT, suite_sha256=SUITE,
+            )
+            self.assertEqual(event["purpose"], "artifact-integrity")
+            approval = sign_receipt("merlin-approver", {
+                "candidate_id": candidate,
+                "candidate_digest": ARTIFACT,
+                "benchmark_manifest_sha256": SUITE,
+                "cace_attestation_sha256": rsi.sha256_hex(rsi.canonical_json(attestation)),
+                "action": "promote",
+                "target": "qualified",
+            }, "approver-key", self.approver_private)
+            with self.assertRaises(PermissionError):
+                self.ledger.record_promotion(
+                    candidate_id=candidate, artifact_sha256=ARTIFACT,
+                    suite_sha256=SUITE, attestation=attestation,
+                    approval_receipt=approval,
+                )
         self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_cace_trust_store_rejects_modified_digest_and_self_approval(self):
