@@ -120,14 +120,23 @@ def verify_signed_receipt(
 _CACE_ATTESTATION_DOMAIN = b"CACE:SIGNED-ATTESTATION:v1\0"
 _CACE_BUNDLE_DOMAIN = b"CACE:EVIDENCE:BUNDLE:v1\0"
 _CACE_ARTIFACT_LEAF_DOMAIN = b"CACE:EVIDENCE:ARTIFACT-LEAF:v1\0"
+_CACE_MERKLE_NODE_DOMAIN = b"CACE:EVIDENCE:MERKLE-NODE:v1\0"
 
 
 def cace_rsi_bundle_payload(
     *, candidate_id: str, candidate_digest: str,
     benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
     source_repo: str, source_commit: str,
+    candidate_artifact_bytes: bytes,
+    candidate_artifact_media_type: str = "application/octet-stream",
 ) -> tuple[dict[str, Any], bytes, dict[str, Any]]:
-    """Build the exact CACE EvidenceBundle v1 payload and its sole artifact bytes."""
+    """Build a CACE bundle binding the exact candidate bytes and RSI manifest."""
+    if not isinstance(candidate_artifact_bytes, bytes):
+        raise TypeError("candidate_artifact_bytes must be immutable bytes")
+    if sha256_hex(candidate_artifact_bytes) != candidate_digest:
+        raise PermissionError("candidate artifact bytes do not match the candidate digest")
+    if not isinstance(candidate_artifact_media_type, str) or not candidate_artifact_media_type.strip():
+        raise ValueError("candidate artifact media type is required")
     manifest = {
         "schema": "merlin-rsi-evidence-manifest-v1",
         "candidate_id": candidate_id, "candidate_digest": candidate_digest,
@@ -136,13 +145,29 @@ def cace_rsi_bundle_payload(
         "source_repo": source_repo, "source_commit": source_commit,
     }
     manifest_bytes = canonical_json(manifest)
-    artifact = {
+    candidate_artifact = {
+        "artifact_id": "merlin-rsi-candidate",
+        "sha256": candidate_digest, "size_bytes": len(candidate_artifact_bytes),
+        "role": "candidate-artifact", "media_type": candidate_artifact_media_type,
+        "path": "merlin-rsi-candidate.bin", "metadata": {},
+    }
+    manifest_artifact = {
         "artifact_id": "merlin-rsi-evidence-manifest",
         "sha256": sha256_hex(manifest_bytes), "size_bytes": len(manifest_bytes),
         "role": "rsi-evidence-manifest", "media_type": "application/json",
         "path": "merlin-rsi-evidence-manifest.json", "metadata": {},
     }
-    leaf = sha256_hex(_CACE_ARTIFACT_LEAF_DOMAIN + canonical_json(artifact))
+    artifacts = sorted(
+        [candidate_artifact, manifest_artifact],
+        key=lambda item: (item["artifact_id"], item["sha256"]),
+    )
+    leaves = [
+        sha256_hex(_CACE_ARTIFACT_LEAF_DOMAIN + canonical_json(item))
+        for item in artifacts
+    ]
+    merkle_root = sha256_hex(
+        _CACE_MERKLE_NODE_DOMAIN + bytes.fromhex(leaves[0]) + bytes.fromhex(leaves[1])
+    )
     bindings = {
         "candidate_id": candidate_id, "candidate_digest": candidate_digest,
         "benchmark_manifest_sha256": benchmark_manifest_sha256,
@@ -154,8 +179,8 @@ def cace_rsi_bundle_payload(
         "schema": "cace-evidence-bundle-v1",
         "identity_algorithm": "sha256/cace-canonical-json-v1",
         "merkle_algorithm": "sha256/cace-merkle-v1",
-        "proof_effect": "none", "artifacts": [artifact],
-        "merkle_root_sha256": leaf, "bindings": bindings,
+        "proof_effect": "none", "artifacts": artifacts,
+        "merkle_root_sha256": merkle_root, "bindings": bindings,
         "notes": ["Merlin RSI exact-artifact independent verification"],
     }
     return bundle, manifest_bytes, bindings
@@ -165,13 +190,17 @@ def cace_rsi_bundle_sha256(
     *, candidate_id: str, candidate_digest: str,
     benchmark_manifest_sha256: str, evaluator_receipt_sha256: str,
     source_repo: str, source_commit: str,
+    candidate_artifact_bytes: bytes,
+    candidate_artifact_media_type: str = "application/octet-stream",
 ) -> str:
-    """Reproduce CACE EvidenceBundle v1 identity for a one-artifact RSI manifest."""
+    """Reproduce CACE EvidenceBundle v1 identity for exact candidate and manifest bytes."""
     bundle, _, _ = cace_rsi_bundle_payload(
         candidate_id=candidate_id, candidate_digest=candidate_digest,
         benchmark_manifest_sha256=benchmark_manifest_sha256,
         evaluator_receipt_sha256=evaluator_receipt_sha256,
         source_repo=source_repo, source_commit=source_commit,
+        candidate_artifact_bytes=candidate_artifact_bytes,
+        candidate_artifact_media_type=candidate_artifact_media_type,
     )
     return sha256_hex(_CACE_BUNDLE_DOMAIN + canonical_json(bundle))
 
@@ -892,11 +921,16 @@ class AppendOnlyLedger:
             "source_repo": candidate["source_repo"], "source_commit": candidate["source_commit"],
             "authority": "verification-only",
         }
+        artifact_record = self.get_artifact(artifact_sha256)
+        if artifact_record is None:
+            raise PermissionError("candidate artifact bytes are not persisted; CACE reproduction is blocked")
         bundle_sha = cace_rsi_bundle_sha256(
             candidate_id=candidate_id, candidate_digest=artifact_sha256,
             benchmark_manifest_sha256=suite_sha256,
             evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
-            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"])
+            source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+            candidate_artifact_bytes=artifact_record["artifact_bytes"],
+            candidate_artifact_media_type=artifact_record["artifact_media_type"])
         return candidate, evaluation, bundle_sha, bindings
 
     def record_cace_verification(
@@ -936,11 +970,17 @@ class AppendOnlyLedger:
         candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
             episode, candidate_id, artifact_sha256, suite_sha256
         )
+        artifact_record = self.get_artifact(artifact_sha256)
+        if artifact_record is None:
+            raise PermissionError("candidate artifact bytes are not persisted; CACE attestation is blocked")
+        candidate_artifact_bytes = artifact_record["artifact_bytes"]
         bundle_payload, manifest_bytes, payload_bindings = cace_rsi_bundle_payload(
             candidate_id=candidate_id, candidate_digest=artifact_sha256,
             benchmark_manifest_sha256=suite_sha256,
             evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
             source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+            candidate_artifact_bytes=candidate_artifact_bytes,
+            candidate_artifact_media_type=artifact_record["artifact_media_type"],
         )
         actual_bundle_sha = sha256_hex(
             _CACE_BUNDLE_DOMAIN + canonical_json(bundle_payload)
@@ -953,7 +993,8 @@ class AppendOnlyLedger:
             expected_claim_id=candidate_id,
             expected_bindings=bindings,
             artifact_bytes_b64={
-                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii")
+                "merlin-rsi-candidate": base64.b64encode(candidate_artifact_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii"),
             },
         )
         attestation = response.get("attestation") if isinstance(response, Mapping) else None
@@ -989,11 +1030,17 @@ class AppendOnlyLedger:
         candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
             episode, candidate_id, artifact_sha256, suite_sha256
         )
+        artifact_record = self.get_artifact(artifact_sha256)
+        if artifact_record is None:
+            raise PermissionError("candidate artifact bytes are not persisted; CACE attestation is blocked")
+        candidate_artifact_bytes = artifact_record["artifact_bytes"]
         bundle_payload, manifest_bytes, payload_bindings = cace_rsi_bundle_payload(
             candidate_id=candidate_id, candidate_digest=artifact_sha256,
             benchmark_manifest_sha256=suite_sha256,
             evaluator_receipt_sha256=evaluation["evaluator_receipt_digest"],
             source_repo=candidate["source_repo"], source_commit=candidate["source_commit"],
+            candidate_artifact_bytes=candidate_artifact_bytes,
+            candidate_artifact_media_type=artifact_record["artifact_media_type"],
         )
         actual_bundle_sha = sha256_hex(
             _CACE_BUNDLE_DOMAIN + canonical_json(bundle_payload)
@@ -1006,7 +1053,8 @@ class AppendOnlyLedger:
             expected_claim_id=candidate_id,
             expected_bindings=bindings,
             artifact_bytes_b64={
-                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii")
+                "merlin-rsi-candidate": base64.b64encode(candidate_artifact_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii"),
             },
             github_run_id=github_run_id,
         )
@@ -1020,7 +1068,8 @@ class AppendOnlyLedger:
             expected_claim_id=candidate_id,
             expected_bindings=bindings,
             artifact_bytes_b64={
-                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii")
+                "merlin-rsi-candidate": base64.b64encode(candidate_artifact_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(manifest_bytes).decode("ascii"),
             },
         )
         expected_attestation_sha = sha256_hex(canonical_json(dict(attestation)))
