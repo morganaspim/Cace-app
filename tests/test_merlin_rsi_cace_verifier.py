@@ -27,63 +27,118 @@ from ops.oci_mcp.merlin_rsi_verifier import (
 
 class MerlinRSICaceVerifierTests(unittest.TestCase):
     def setUp(self):
-        self.claim_id = "merlin-rsi-candidate-001"
+        self.root = Path(__file__).resolve().parents[1]
+        self.private_pem, public_pem = generate_ed25519_keypair_pem()
+        self.key_id = public_key_id(public_pem)
+        self.claim_id = "merlin-rsi:sha256:" + "a" * 64
+        self.source_repo = "Mannyspiro/expert-robot"
+        self.source_commit = "d" * 40
+        self.candidate_bytes = b"Merlin candidate artifact fixture v1\\n"
+        benchmark = {
+            "status": "frozen",
+            "split": "held_out",
+            "domains": ["mathematics", "lean", "research", "coding", "engineering"],
+            "cases": [{"id": f"case-{i}", "domain": domain} for i, domain in enumerate(
+                ["mathematics", "lean", "research", "coding", "engineering"] * 5
+            )],
+        }
+        self.benchmark_bytes = json.dumps(
+            benchmark, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        candidate_digest = hashlib.sha256(self.candidate_bytes).hexdigest()
+        benchmark_digest = hashlib.sha256(self.benchmark_bytes).hexdigest()
+        self.evaluator_id = "merlin-rsi-multidomain-evaluator"
+        self.tool_identity = "merlin.rsi.evaluator@1"
+        evaluator_receipt = {
+            "schema": "merlin-rsi-evaluator-receipt-v1",
+            "candidate_id": self.claim_id,
+            "candidate_digest": candidate_digest,
+            "benchmark_manifest_sha256": benchmark_digest,
+            "source_repo": self.source_repo,
+            "source_commit": self.source_commit,
+            "evaluation_status": "passed",
+            "held_out": True,
+            "evaluator_id": self.evaluator_id,
+            "tool_identity": self.tool_identity,
+            "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        self.evaluator_receipt_bytes = json.dumps(
+            evaluator_receipt, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
         self.bindings = {
             "candidate_id": self.claim_id,
-            "candidate_digest": "a" * 64,
-            "benchmark_manifest_sha256": "b" * 64,
-            "evaluator_receipt_sha256": "c" * 64,
-            "source_repo": "Mannyspiro/expert-robot",
-            "source_commit": "d" * 40,
+            "candidate_digest": candidate_digest,
+            "benchmark_manifest_sha256": benchmark_digest,
+            "evaluator_receipt_sha256": hashlib.sha256(self.evaluator_receipt_bytes).hexdigest(),
+            "source_repo": self.source_repo,
+            "source_commit": self.source_commit,
             "authority": "verification-only",
         }
-        self.candidate_bytes = b"Merlin candidate artifact fixture v1\\n"
-        self.bindings["candidate_digest"] = hashlib.sha256(self.candidate_bytes).hexdigest()
-        self.artifact_bytes = b'{"candidate":"merlin-rsi-candidate-001"}'
         candidate_artifact = EvidenceArtifact.from_bytes(
             "merlin-rsi-candidate",
             self.candidate_bytes,
             role="candidate-artifact",
             media_type="application/octet-stream",
             path="merlin-rsi-candidate.bin",
+            metadata={
+                "candidate_id": self.claim_id,
+                "source_repo": self.source_repo,
+                "source_commit": self.source_commit,
+            },
         )
-        manifest_artifact = EvidenceArtifact.from_bytes(
-            "merlin-rsi-evidence-manifest",
-            self.artifact_bytes,
-            role="rsi-evidence-manifest",
+        benchmark_artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-benchmark-manifest",
+            self.benchmark_bytes,
+            role="benchmark-manifest",
             media_type="application/json",
-            path="merlin-rsi-evidence-manifest.json",
+            path="merlin-rsi-benchmark-manifest.json",
+            metadata={
+                "source_repo": self.source_repo,
+                "source_commit": self.source_commit,
+                "status": "frozen",
+                "split": "held_out",
+            },
+        )
+        evaluator_artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-evaluator-receipt",
+            self.evaluator_receipt_bytes,
+            role="evaluator-receipt",
+            media_type="application/json",
+            path="merlin-rsi-evaluator-receipt.json",
+            metadata={
+                "candidate_id": self.claim_id,
+                "candidate_digest": candidate_digest,
+                "benchmark_manifest_sha256": benchmark_digest,
+                "source_repo": self.source_repo,
+                "source_commit": self.source_commit,
+                "evaluator_id": self.evaluator_id,
+                "tool_identity": self.tool_identity,
+            },
         )
         self.bundle = EvidenceBundle(
-            artifacts=(candidate_artifact, manifest_artifact),
+            artifacts=(candidate_artifact, benchmark_artifact, evaluator_artifact),
             bindings=self.bindings,
-            notes=("Merlin RSI exact-artifact independent verification",),
+            notes=("Merlin RSI exact-artifact independent verification; no proof or promotion authority",),
         )
-        self.private_pem, self.public_pem = generate_ed25519_keypair_pem()
-        self.key_id = public_key_id(self.public_pem)
         self.runner_provenance = {
-            "schema": "cace-oci-run-provenance-v1",
+            "run_id": 12345,
+            "run_url": "https://github.com/morganaspim/Cace-app/actions/runs/12345",
             "repository": "morganaspim/Cace-app",
-            "run_id": 123456,
-            "workflow_path": ".github/workflows/merlin-oci-job-gateway.yml",
-            "workflow_commit": "e" * 40,
-            "runner_name": "cace-oci-a1",
-            "job_id": 98765,
+            "commit_sha": "e" * 40,
+            "workflow_name": "Merlin OCI Job Gateway",
+            "artifact_name": "merlin-oci-job-12345-1",
             "artifact_sha256": "f" * 64,
-            "source_repo": self.bindings["source_repo"],
-            "source_commit": self.bindings["source_commit"],
-            "benchmark_manifest_sha256": self.bindings["benchmark_manifest_sha256"],
+            "job_id": 67890,
+            "job_name": "run-approved-profile",
+            "runner_name": "cace-oci-a1",
+            "conclusion": "success",
+            "completed_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "evidence_bundle_sha256": self.bundle.bundle_sha256,
+            "benchmark_manifest_sha256": benchmark_digest,
         }
-        statement = AttestationStatement(
-            verifier_id="cace",
-            verifier_key_id=self.key_id,
-            claim_id=self.claim_id,
-            bundle_sha256=self.bundle.bundle_sha256,
-            created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            purpose="independent-reproduction",
-            bindings={**self.bindings, "cace_runner_provenance": self.runner_provenance},
+        self.attestation = self._signed_attestation_at(
+            datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         )
-        self.attestation = sign_attestation(statement, self.private_pem).payload()
         self.trust_store = json.dumps({
             "schema": "merlin-cace-trust-store-v1",
             "keys": [{
@@ -93,7 +148,13 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             }],
         }, sort_keys=True, separators=(",", ":"))
         self.trust_digest = hashlib.sha256(self.trust_store.encode("utf-8")).hexdigest()
-        self.root = Path(__file__).resolve().parents[1]
+
+    def _artifact_bytes_b64(self):
+        return {
+            "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+            "merlin-rsi-benchmark-manifest": base64.b64encode(self.benchmark_bytes).decode("ascii"),
+            "merlin-rsi-evaluator-receipt": base64.b64encode(self.evaluator_receipt_bytes).decode("ascii"),
+        }
 
     def verify(self, **overrides):
         args = {
@@ -101,10 +162,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "attestation_payload": self.attestation,
             "expected_claim_id": self.claim_id,
             "expected_bindings": self.bindings,
-            "artifact_bytes_b64": {
-                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
-                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
-            },
+            "artifact_bytes_b64": self._artifact_bytes_b64(),
             "trust_store_json": self.trust_store,
             "trust_store_sha256": self.trust_digest,
             "cace_app_root": self.root,
