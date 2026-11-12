@@ -37,8 +37,17 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "source_commit": "d" * 40,
             "authority": "verification-only",
         }
+        self.candidate_bytes = b"Merlin candidate artifact fixture v1\\n"
+        self.bindings["candidate_digest"] = hashlib.sha256(self.candidate_bytes).hexdigest()
         self.artifact_bytes = b'{"candidate":"merlin-rsi-candidate-001"}'
-        artifact = EvidenceArtifact.from_bytes(
+        candidate_artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-candidate",
+            self.candidate_bytes,
+            role="candidate-artifact",
+            media_type="application/octet-stream",
+            path="merlin-rsi-candidate.bin",
+        )
+        manifest_artifact = EvidenceArtifact.from_bytes(
             "merlin-rsi-evidence-manifest",
             self.artifact_bytes,
             role="rsi-evidence-manifest",
@@ -46,7 +55,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             path="merlin-rsi-evidence-manifest.json",
         )
         self.bundle = EvidenceBundle(
-            artifacts=(artifact,),
+            artifacts=(candidate_artifact, manifest_artifact),
             bindings=self.bindings,
             notes=("Merlin RSI exact-artifact independent verification",),
         )
@@ -93,7 +102,8 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "expected_claim_id": self.claim_id,
             "expected_bindings": self.bindings,
             "artifact_bytes_b64": {
-                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii"),
             },
             "trust_store_json": self.trust_store,
             "trust_store_sha256": self.trust_digest,
@@ -153,7 +163,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             self.verify(artifact_bytes_b64={})
         oversized = base64.b64encode(b"x" * (10 * 1024 * 1024 + 1)).decode("ascii")
         with self.assertRaises(ValueError):
-            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": oversized})
+            self.verify(artifact_bytes_b64={
+                "merlin-rsi-candidate": base64.b64encode(self.candidate_bytes).decode("ascii"),
+                "merlin-rsi-evidence-manifest": oversized,
+            })
 
     def test_attestor_key_initializes_once_without_overwrite(self):
         with tempfile.TemporaryDirectory() as temp:
