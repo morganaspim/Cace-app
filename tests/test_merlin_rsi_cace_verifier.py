@@ -376,10 +376,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             if url.endswith(f"/actions/runs/{run_id}"):
                 return {
                     "repository": {"full_name": "morganaspim/Cace-app"},
-                    "status": "completed", "conclusion": "success", "event": "push",
-                    "head_branch": "merlin/oci-jobs/reproduction-test",
+                    "status": "completed", "conclusion": "success", "event": "workflow_dispatch",
+                    "head_branch": "main",
                     "head_sha": run_sha,
-                    "path": ".github/workflows/merlin-oci-job-gateway.yml@refs/heads/merlin/oci-jobs/reproduction-test",
+                    "path": ".github/workflows/merlin-oci-job-gateway.yml@refs/heads/main",
                 }
             if url.endswith(f"/commits/{run_sha}"):
                 return {"files": [{"filename": request_path, "status": "added"}]}
@@ -425,6 +425,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                 artifact_bytes_b64=artifact_bytes_b64,
                 github_run_id=run_id,
                 trusted_workflow_sha256=trusted_workflow_sha256,
+                trusted_run_branch="main",
                 private_key_pem=key_path.read_bytes(),
                 cace_app_root=self.root,
                 github_fetch=fake_fetch,
@@ -437,6 +438,7 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     artifact_bytes_b64=artifact_bytes_b64,
                     github_run_id=run_id,
                     trusted_workflow_sha256="0" * 64,
+                    trusted_run_branch="main",
                     private_key_pem=key_path.read_bytes(),
                     cace_app_root=self.root,
                     github_fetch=fake_fetch,
@@ -480,12 +482,13 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     },
                     github_run_id=98765,
                     trusted_workflow_sha256="0" * 64,
+                    trusted_run_branch="main",
                     private_key_path=key_path,
                     cace_app_root=self.root,
                     github_fetch=lambda url: {
                         "repository": {"full_name": "morganaspim/Cace-app"},
                         "status": "completed", "conclusion": "failure",
-                        "event": "push", "head_branch": "merlin/oci-jobs/nope",
+                        "event": "workflow_dispatch", "head_branch": "main",
                     },
                 )
 
