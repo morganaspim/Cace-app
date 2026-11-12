@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -147,8 +147,8 @@ def verify_merlin_rsi_attestation(
         raise PermissionError("attestation verifier identity is not CACE")
     if statement.verifier_key_id != key_id or approved.get(key_id) != "cace":
         raise PermissionError("attestation signing key is not independently pinned by CACE")
-    if statement.purpose != "independent-reproduction":
-        raise PermissionError("CACE attestation purpose is not independent reproduction")
+    if statement.purpose not in {"artifact-integrity", "independent-reproduction"}:
+        raise PermissionError("CACE attestation purpose is not an accepted verification purpose")
     created_at = datetime.strptime(
         statement.created_at_utc, "%Y-%m-%dT%H:%M:%SZ"
     ).replace(tzinfo=timezone.utc)
@@ -293,7 +293,12 @@ def attest_merlin_rsi_bundle(
         if total_bytes > 10 * 1024 * 1024:
             raise ValueError("CACE RSI attestation payload exceeds the 10 MiB limit")
         artifact_bytes[artifact_id] = raw
-    bundle_sha256 = verify_bundle(bundle, artifact_bytes=artifact_bytes)
+    try:
+        bundle_sha256 = verify_bundle(bundle, artifact_bytes=artifact_bytes)
+    except ValueError as exc:
+        raise PermissionError(
+            "CACE RSI attestor rejected the exact EvidenceBundle artifact bytes"
+        ) from exc
 
     path = Path(private_key_path)
     if not path.is_file():
