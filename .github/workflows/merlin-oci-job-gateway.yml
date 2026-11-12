@@ -370,7 +370,7 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+              if request["source_commit"] != "dd57e13aa480883175b53916e64578f62d671077":
                   raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
@@ -461,7 +461,7 @@ jobs:
           if request["operation"] == "merlin_cpp_ledger_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: C++ source repository is not allowlisted")
-              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+              if request["source_commit"] != "dd57e13aa480883175b53916e64578f62d671077":
                   raise SystemExit("request rejected: C++ source commit is not the pinned source snapshot")
               cpp_blob_names = {
                   "generation_lineage_cpp", "episode_ledger_cpp", "state_machine_cpp",
