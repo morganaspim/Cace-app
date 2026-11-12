@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import os
 import sqlite3
@@ -21,7 +22,8 @@ from merlin.rsi_pipeline import (
     paired_adapter_gain, paired_adapter_gate,
 )
 
-ARTIFACT = "a" * 64
+ARTIFACT_BYTES = b"Merlin candidate artifact fixture v1\n"
+ARTIFACT = hashlib.sha256(ARTIFACT_BYTES).hexdigest()
 SUITE = "b" * 64
 SOURCE_COMMIT = "c" * 40
 
@@ -335,7 +337,9 @@ class RSIPipelineTests(unittest.TestCase):
             candidate_id=candidate, parent_candidate_id=None,
             source_receipt=self.source_receipt(candidate),
             artifact_sha256=ARTIFACT, generator="rsi",
-            mutation={"failure_class": "lean-timeout"}
+            mutation={"failure_class": "lean-timeout"},
+            artifact_bytes=ARTIFACT_BYTES,
+            artifact_media_type="application/octet-stream",
         )
         metrics = {"overall": 0.9, "lean": 0.95}
         metrics_sha = rsi.sha256_hex(rsi.canonical_json(metrics))
@@ -420,8 +424,13 @@ class RSIPipelineTests(unittest.TestCase):
             evaluator_receipt_sha256="e" * 64,
             source_repo="Mannyspiro/expert-robot",
             source_commit=SOURCE_COMMIT,
+            candidate_artifact_bytes=ARTIFACT_BYTES,
         )
         self.assertEqual(json.loads(manifest_bytes)["candidate_id"], "candidate-payload")
+        self.assertEqual([item["artifact_id"] for item in bundle["artifacts"]],
+                         ["merlin-rsi-candidate", "merlin-rsi-evidence-manifest"])
+        self.assertEqual(bundle["artifacts"][0]["sha256"], ARTIFACT)
+        self.assertEqual(bundle["artifacts"][0]["size_bytes"], len(ARTIFACT_BYTES))
         self.assertEqual(bundle["bindings"], bindings)
         self.assertEqual(
             rsi.sha256_hex(rsi._CACE_BUNDLE_DOMAIN + rsi.canonical_json(bundle)),
@@ -432,6 +441,7 @@ class RSIPipelineTests(unittest.TestCase):
                 evaluator_receipt_sha256="e" * 64,
                 source_repo="Mannyspiro/expert-robot",
                 source_commit=SOURCE_COMMIT,
+                candidate_artifact_bytes=ARTIFACT_BYTES,
             ),
         )
 
@@ -468,7 +478,7 @@ class RSIPipelineTests(unittest.TestCase):
         )
         self.assertEqual(fake.calls, 1)
         self.assertEqual(fake.asserted["claim"], candidate)
-        self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-evidence-manifest"])
+        self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-candidate", "merlin-rsi-evidence-manifest"])
         self.assertEqual(event["seq"], 2)
         recorded = self.ledger.events(candidate)
         self.assertEqual(recorded[-1]["event_type"], "candidate.cace_integrity_attested")
@@ -808,16 +818,14 @@ class RSIPipelineTests(unittest.TestCase):
     def test_cace_bundle_digest_matches_pinned_oci_implementation(self):
         actual = rsi.cace_rsi_bundle_sha256(
             candidate_id="merlin-rsi-bridge-contract-test-1",
-            candidate_digest="a" * 64,
+            candidate_digest=ARTIFACT,
             benchmark_manifest_sha256="b" * 64,
             evaluator_receipt_sha256="c" * 64,
             source_repo="Mannyspiro/expert-robot",
             source_commit="d" * 40,
+            candidate_artifact_bytes=ARTIFACT_BYTES,
         )
-        self.assertEqual(
-            actual,
-            "0898289d4c6267dbc8de6e595e56f8f035ad0344b65431f8deb11be0972b0272",
-        )
+        self.assertEqual(actual, "842afc373bce4b2c883c0455bf2169b034bba33629c653c2de80b5957c28fadd")
 
     def test_arxiv_metadata_cache_parses_atom_and_uses_cached_response(self):
         cache = ResearchMetadataCache(self.db_path)
