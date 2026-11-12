@@ -710,6 +710,10 @@ class AppendOnlyLedger:
         verified = verify_cace_attestation(
             attestation, approved_keys, expected_claim_id=candidate_id,
             expected_bundle_sha256=bundle_sha, expected_bindings=bindings)
+        if verified["purpose"] != "independent-reproduction":
+            raise PermissionError(
+                "candidate.cace_verified requires an independent-reproduction attestation"
+            )
         return self.append("candidate.cace_verified", episode, {
             "candidate_id": candidate_id, "artifact_sha256": artifact_sha256,
             "suite_sha256": suite_sha256, "bundle_sha256": bundle_sha,
@@ -721,11 +725,11 @@ class AppendOnlyLedger:
             "authority": "verification-only",
         })
 
-    def record_cace_verification_from_mcp(
+    def record_cace_integrity_attestation_from_mcp(
         self, *, candidate_id: str, artifact_sha256: str, suite_sha256: str,
         episode_id: str | None = None, attestor: Any | None = None,
     ) -> dict[str, Any]:
-        """Obtain a CACE-signed exact-byte attestation through the loopback MCP service."""
+        """Record a CACE artifact-integrity attestation; this is not independent reproduction."""
         episode = episode_id or candidate_id
         candidate, evaluation, expected_bundle_sha, bindings = self._cace_evidence(
             episode, candidate_id, artifact_sha256, suite_sha256
@@ -753,11 +757,25 @@ class AppendOnlyLedger:
         attestation = response.get("attestation") if isinstance(response, Mapping) else None
         if not isinstance(attestation, Mapping):
             raise PermissionError("CACE MCP response omitted its signed attestation")
-        return self.record_cace_verification(
-            candidate_id=candidate_id, attestation=attestation,
-            artifact_sha256=artifact_sha256, suite_sha256=suite_sha256,
-            episode_id=episode,
+        approved_keys = _load_approved_cace_keys()
+        verified = verify_cace_attestation(
+            attestation, approved_keys, expected_claim_id=candidate_id,
+            expected_bundle_sha256=expected_bundle_sha, expected_bindings=bindings,
         )
+        if verified["purpose"] != "artifact-integrity":
+            raise PermissionError("integrity attestor must return artifact-integrity purpose")
+        return self.append("candidate.cace_integrity_attested", episode, {
+            "candidate_id": candidate_id,
+            "artifact_sha256": artifact_sha256,
+            "suite_sha256": suite_sha256,
+            "bundle_sha256": expected_bundle_sha,
+            "attestation_sha256": verified["attestation_sha256"],
+            "statement_sha256": verified["statement_sha256"],
+            "verifier_id": verified["verifier_id"],
+            "verifier_key_id": verified["verifier_key_id"],
+            "purpose": verified["purpose"],
+            "authority": "verification-only",
+        })
 
     def record_promotion(
         self, *, candidate_id: str, artifact_sha256: str,
