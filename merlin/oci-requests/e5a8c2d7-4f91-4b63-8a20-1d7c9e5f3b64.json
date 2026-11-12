@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "e5a8c2d7-4f91-4b63-8a20-1d7c9e5f3b64",
+  "operation": "rsi_validation",
+  "reason": "Validate separated CACE artifact-integrity attestation and independent-reproduction promotion gates",
+  "created_at": "2026-11-12T00:32:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "6e560dfe02d80ada44f1adcdc7d60bb303c582ff"
+}
