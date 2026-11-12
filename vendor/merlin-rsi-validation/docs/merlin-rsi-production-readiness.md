@@ -9,7 +9,7 @@ Status: implemented validation bridge; production promotion remains fail-closed 
 3. A worker dispatch is idempotent and accepts only a signed acknowledgement from the separately pinned `merlin-rsi-worker` issuer. The acknowledgement grants no promotion authority.
 4. Candidate creation requires a signed `merlin-source` receipt. If derived from a Hermes failure, the candidate stores the exact induction seed event hash.
 5. Evaluation stores the fixed benchmark manifest digest, normalized overall and per-domain metrics, all 25 normalized case results, the case-results digest, and a signed `merlin-evaluator` receipt. The evaluator signature binds the case-results digest and case count.
-6. CACE evidence binds candidate ID and artifact digest, benchmark digest, evaluator receipt digest, source repository, and exact source commit. The CACE bundle digest is reproduced against the CACE EvidenceBundle v1 implementation.
+6. CACE evidence binds candidate ID and artifact digest, benchmark digest, evaluator receipt digest, source repository, and exact source commit. The CACE bundle digest is reproduced against the CACE EvidenceBundle v1 implementation. The current bundle-contract probe verifies the manifest/bundle identity only; it does not receive candidate artifact bytes, so it is not yet an independent reproduction of the candidate artifact itself.
 7. A CACE attestation must be Ed25519-signed, have `proof_effect: none`, identify verifier `cace`, bind the exact bundle and candidate, and match the server-pinned CACE verifier key allowlist.
 8. Promotion requires a separate signed `merlin-approver` receipt over the exact candidate, artifact, benchmark, and CACE attestation digests. A valid ledger chain is checked before promotion.
 
