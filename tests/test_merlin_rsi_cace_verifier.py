@@ -266,11 +266,14 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         run_id = 98765
         request_path = "merlin/oci-requests/11111111-2222-4333-8444-555555555555.json"
         request_doc = {
-            "operation": "merlin_rsi_python_tests",
+            "operation": "rsi_validation",
             "source_repo": bindings["source_repo"],
             "source_commit": source_commit,
         }
-        workflow_text = f'if request["source_commit"] != "{source_commit}":\n'
+        workflow_text = (
+            f'if request["source_repo"] != "{bindings["source_repo"]}":\n'
+            f'if request["source_commit"] != "{source_commit}":\n'
+        )
         def encode_doc(value):
             return base64.b64encode(json.dumps(value).encode()).decode()
         def fake_fetch(url):
