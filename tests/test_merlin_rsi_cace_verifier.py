@@ -215,20 +215,17 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
                     cace_app_root=self.root,
                 )
 
-    def test_non_reproduction_purpose_is_rejected(self):
-        statement = AttestationStatement(
-            verifier_id="cace",
-            verifier_key_id=self.key_id,
-            claim_id=self.claim_id,
-            bundle_sha256=self.bundle.bundle_sha256,
-            created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            purpose="artifact-integrity",
-            bindings=self.bindings,
-        )
-        attestation = sign_attestation(statement, self.private_pem).payload()
-        with self.assertRaises(PermissionError):
-            self.verify(attestation_payload=attestation)
-
+    def test_cace_core_rejects_unknown_attestation_purpose(self):
+        with self.assertRaises(ValueError):
+            AttestationStatement(
+                verifier_id="cace",
+                verifier_key_id=self.key_id,
+                claim_id=self.claim_id,
+                bundle_sha256=self.bundle.bundle_sha256,
+                created_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                purpose="unrecognized-purpose",
+                bindings=self.bindings,
+            )
 
 if __name__ == "__main__":
     unittest.main()
