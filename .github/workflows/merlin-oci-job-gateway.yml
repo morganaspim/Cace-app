@@ -474,7 +474,7 @@ jobs:
                   raise SystemExit("request rejected: metadata source repository is not allowlisted")
               if request["source_commit"] != "5d9f21ce0084be8c346aa72eb0457b0d483cc3fa":
                   raise SystemExit("request rejected: metadata source commit is not the pinned snapshot")
-              if request["module_blob_sha"] != "9e3b134466b8c15cec35bf8f6d3d137a9bae5327":
+              if request["module_blob_sha"] != "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19":
                   raise SystemExit("request rejected: metadata module blob is not pinned")
               module_path = "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py"
               module_bytes, module_blob = fetch_contents(module_path)
