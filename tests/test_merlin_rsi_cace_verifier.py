@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 import sys
@@ -30,9 +31,10 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "source_commit": "d" * 40,
             "authority": "verification-only",
         }
+        self.artifact_bytes = b'{"candidate":"merlin-rsi-candidate-001"}'
         artifact = EvidenceArtifact.from_bytes(
             "merlin-rsi-evidence-manifest",
-            b'{"candidate":"merlin-rsi-candidate-001"}',
+            self.artifact_bytes,
             role="rsi-evidence-manifest",
             media_type="application/json",
             path="merlin-rsi-evidence-manifest.json",
@@ -71,6 +73,9 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
             "attestation_payload": self.attestation,
             "expected_claim_id": self.claim_id,
             "expected_bindings": self.bindings,
+            "artifact_bytes_b64": {
+                "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+            },
             "trust_store_json": self.trust_store,
             "trust_store_sha256": self.trust_digest,
             "cace_app_root": self.root,
@@ -119,6 +124,16 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         forged["statement"]["bindings"]["candidate_digest"] = "f" * 64
         with self.assertRaises(Exception):
             self.verify(attestation_payload=forged)
+
+    def test_artifact_bytes_are_independently_hashed_and_size_checked(self):
+        wrong = base64.b64encode(b'{"candidate":"tampered"}').decode("ascii")
+        with self.assertRaises(Exception):
+            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": wrong})
+        with self.assertRaises(PermissionError):
+            self.verify(artifact_bytes_b64={})
+        oversized = base64.b64encode(b"x" * (10 * 1024 * 1024 + 1)).decode("ascii")
+        with self.assertRaises(ValueError):
+            self.verify(artifact_bytes_b64={"merlin-rsi-evidence-manifest": oversized})
 
     def test_non_reproduction_purpose_is_rejected(self):
         statement = AttestationStatement(
