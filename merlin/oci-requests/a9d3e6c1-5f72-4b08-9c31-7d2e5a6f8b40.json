@@ -1,0 +1,10 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a9d3e6c1-5f72-4b08-9c31-7d2e5a6f8b40",
+  "operation": "merlin_rsi_metadata_live_probe",
+  "reason": "Confirm live Crossref and arXiv caching and host rate limits on the current RSI source snapshot.",
+  "created_at": "2026-11-12T00:50:30Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "1822a54226d9d1045769b696e264ff8f3edd7de6",
+  "module_blob_sha": "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19"
+}
