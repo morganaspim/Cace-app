@@ -1,0 +1,28 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "7b4e2a91-5d63-4f80-a1c7-9e3b6d5f2a84",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Repeat the full Hermes-to-RSI OCI regression run with persisted per-command failure diagnostics.",
+  "created_at": "2026-11-12T00:32:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "60fdd099e51cdf9e756427b33ef529615a9d63aa",
+  "module_blob_sha": "8e1c447e40e0822b542b87706b3d73c19ed98ca9",
+  "test_blob_sha": "e9b95bbfc4eecfce17ad0185dc9810e27a6888e0",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6",
+  "additional_blob_shas": {
+    "rsi_kernel": "a4981d80a076d58b6dbc6efd55e3baf941aee948",
+    "hermes_rsi_bridge": "cef2745bcb91b2fd21393f5af80445e4c44af091",
+    "hermes_worker": "d8d3140311f270b4321e603d145d11a7ac371b92",
+    "event_outbox": "574d36824f688623603172738290116fd77cee08",
+    "telemetry": "5e05f0de306e9b55db81ebd26f8446e3fef35c8d",
+    "hermes_outbox": "08f877da566704f6c90ac4dc7d678db2dcf7517c",
+    "runtime_contracts": "af46433f1d5a1860e76279f866f8d4a149d4b6e9",
+    "sqlite_registry": "e21141e0e37375f9a4f72fe31f46fc6c31045e11",
+    "hermes_rsi_bridge_tests": "8269f1f265bae227084d3011060968e2b86c15fb",
+    "hermes_worker_tests": "03295f8a3559e1b3c386b6041b3a98fd9b618d6f",
+    "event_outbox_tests": "bb6aad75095c102cb4d17cb6577ba0b88141729f",
+    "hermes_outbox_tests": "06004242ea80cdbff1b3cddae6d74b86a8c7bcc0",
+    "runtime_contracts_tests": "6cffff0fa9b5dfe77d517400184a87da1e4e81e7",
+    "telemetry_tests": "3a0ec6dc5f9a323736b629bab549c5e5aa10d520"
+  }
+}
