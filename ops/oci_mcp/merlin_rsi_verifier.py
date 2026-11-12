@@ -463,7 +463,7 @@ def attest_merlin_rsi_reproduction(
 
     request_doc = json.loads(fetch_file(request_path, "morganaspim/Cace-app", run_sha).decode("utf-8"))
     if (
-        request_doc.get("operation") != "rsi_validation"
+        request_doc.get("operation") != "merlin_rsi_python_tests"
         or request_doc.get("source_repo") != expected_bindings.get("source_repo")
         or request_doc.get("source_commit") != expected_bindings.get("source_commit")
     ):
@@ -471,7 +471,7 @@ def attest_merlin_rsi_reproduction(
 
     workflow_bytes = fetch_file(workflow_path, "morganaspim/Cace-app", run_sha)
     workflow_text = workflow_bytes.decode("utf-8")
-    source_pin = re.search(r'expected_source_commit\s*=\s*["\']([0-9a-f]{40})["\']', workflow_text)
+    source_pin = re.search(r'request\["source_commit"\]\s*!=\s*["\']([0-9a-f]{40})["\']', workflow_text)
     if not source_pin or source_pin.group(1) != expected_bindings.get("source_commit"):
         raise PermissionError("CACE OCI workflow source pin does not match the candidate source commit")
 
