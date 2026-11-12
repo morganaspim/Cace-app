@@ -6,6 +6,7 @@ proof/promotion authority.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import re
@@ -59,6 +60,7 @@ def verify_merlin_rsi_attestation(
     attestation_payload: Mapping[str, Any],
     expected_claim_id: str,
     expected_bindings: Mapping[str, Any],
+    artifact_bytes_b64: Mapping[str, str],
     trust_store_json: str,
     trust_store_sha256: str,
     cace_app_root: str | Path = "/opt/cace-web/current",
@@ -86,7 +88,24 @@ def verify_merlin_rsi_attestation(
 
     approved = _approved_keys(trust_store_json, trust_store_sha256)
     bundle = bundle_from_payload(bundle_payload)
-    bundle_sha256 = verify_bundle(bundle)
+    if not isinstance(artifact_bytes_b64, Mapping):
+        raise ValueError("artifact_bytes_b64 must map artifact IDs to base64 bytes")
+    if set(artifact_bytes_b64) != {item.artifact_id for item in bundle.artifacts}:
+        raise PermissionError("artifact byte IDs do not exactly match the CACE EvidenceBundle")
+    artifact_bytes: dict[str, bytes] = {}
+    total_bytes = 0
+    for artifact_id, encoded in artifact_bytes_b64.items():
+        if not isinstance(encoded, str) or len(encoded) > 14_000_000:
+            raise ValueError("each base64 artifact must be a bounded string")
+        try:
+            raw = base64.b64decode(encoded.encode("ascii"), validate=True)
+        except Exception as exc:
+            raise ValueError("artifact bytes must use canonical base64") from exc
+        total_bytes += len(raw)
+        if total_bytes > 10 * 1024 * 1024:
+            raise ValueError("CACE RSI verification payload exceeds the 10 MiB limit")
+        artifact_bytes[artifact_id] = raw
+    bundle_sha256 = verify_bundle(bundle, artifact_bytes=artifact_bytes)
     if dict(bundle.bindings) != dict(expected_bindings):
         raise PermissionError("CACE EvidenceBundle bindings do not match the expected RSI evidence")
     attestation = attestation_from_payload(attestation_payload)
@@ -116,6 +135,8 @@ def verify_merlin_rsi_attestation(
         "bundle_sha256": bundle_sha256,
         "attestation_sha256": attestation_sha256,
         "statement_sha256": statement.statement_sha256,
+        "artifact_count": len(artifact_bytes),
+        "artifact_bytes_verified": total_bytes,
         "proof_effect": "none",
         "authority": "verification-only",
     }
