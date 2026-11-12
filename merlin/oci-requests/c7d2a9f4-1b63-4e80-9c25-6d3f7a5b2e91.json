@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "c7d2a9f4-1b63-4e80-9c25-6d3f7a5b2e91",
+  "operation": "rsi_validation",
+  "reason": "Run the fixed 21-test RSI profile with exact pinned source, benchmark and artifact evidence for CACE's independent-reproduction provenance verifier.",
+  "created_at": "2026-11-12T00:42:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "313942c2816249547d771cebf1a2ed313dc9b1e2",
+  "module_blob_sha": "9e3b134466b8c15cec35bf8f6d3d137a9bae5327",
+  "test_blob_sha": "d88fb610d8700094c1325f40d7ccef08c9779825",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
