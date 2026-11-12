@@ -110,6 +110,7 @@ jobs:
               "test_blob_sha", "manifest_blob_sha",
           }
           cpp_test_fields = {"source_repo", "source_commit", "cpp_blob_shas"}
+          metadata_fields = {"source_repo", "source_commit", "module_blob_sha"}
           if not isinstance(request, dict) or not base_fields.issubset(request):
               raise SystemExit("request rejected: base schema fields are missing")
           if request["schema"] != "merlin-oci-job-request-v1":
@@ -118,7 +119,8 @@ jobs:
               raise SystemExit("request rejected: request ID does not match its path")
           if not isinstance(request["operation"], str) or request["operation"] not in {
               "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract",
-              "merlin_rsi_python_tests", "merlin_cpp_ledger_tests"
+              "merlin_rsi_python_tests", "merlin_cpp_ledger_tests",
+              "merlin_rsi_metadata_live_probe"
           }:
               raise SystemExit("request rejected: operation is not enabled")
           if request["operation"] == "cace_rsi_bundle_contract":
@@ -127,6 +129,8 @@ jobs:
               expected_fields = base_fields | rsi_test_fields
           elif request["operation"] == "merlin_cpp_ledger_tests":
               expected_fields = base_fields | cpp_test_fields
+          elif request["operation"] == "merlin_rsi_metadata_live_probe":
+              expected_fields = base_fields | metadata_fields
           else:
               expected_fields = base_fields
           if set(request) != expected_fields:
@@ -457,6 +461,77 @@ jobs:
                   "execution_scope": "fixed Python compile and unittest commands; no package install; external HTTP calls mocked by tests",
               }
 
+          metadata_probe_results = None
+          if request["operation"] == "merlin_rsi_metadata_live_probe":
+              if request["source_repo"] != "Mannyspiro/expert-robot":
+                  raise SystemExit("request rejected: metadata source repository is not allowlisted")
+              if request["source_commit"] != "70269acb55093c2071f204c6b2607c11ec2ae99f":
+                  raise SystemExit("request rejected: metadata source commit is not the pinned snapshot")
+              if request["module_blob_sha"] != "34557113cf335694a77222a74d57ef5cdc6c2e6e":
+                  raise SystemExit("request rejected: metadata module blob is not pinned")
+              module_path = "vendor/merlin-rsi-validation/python/merlin/rsi_pipeline.py"
+              module_bytes, module_blob = fetch_contents(module_path)
+              if module_blob != request["module_blob_sha"]:
+                  raise SystemExit("request rejected: metadata module content differs from pinned blob")
+              metadata_module = types.ModuleType("merlin_rsi_live_metadata")
+              metadata_module.__file__ = module_path
+              sys.modules[metadata_module.__name__] = metadata_module
+              exec(compile(module_bytes.decode("utf-8"), module_path, "exec"), metadata_module.__dict__)
+              metadata_db = artifact_dir / "research-metadata-live.sqlite3"
+              cache = metadata_module.ResearchMetadataCache(metadata_db)
+              calls = []
+              original_request = cache._request
+              def counted_request(host, url):
+                  calls.append({"host": host, "url": url})
+                  return original_request(host, url)
+              cache._request = counted_request
+              doi = "10.1038/nature12373"
+              arxiv_id = "1706.03762"
+              crossref_first = cache.crossref_doi(doi)
+              crossref_second = cache.crossref_doi(doi)
+              arxiv_first = cache.arxiv_id(arxiv_id)
+              arxiv_second = cache.arxiv_id(arxiv_id)
+              if crossref_first != crossref_second or arxiv_first != arxiv_second:
+                  raise RuntimeError("metadata cache replay returned inconsistent data")
+              crossref_title = (crossref_first.get("message") or {}).get("title") or []
+              arxiv_entries = arxiv_first.get("feed") or []
+              if not crossref_title or not arxiv_entries or not arxiv_entries[0].get("title"):
+                  raise RuntimeError("metadata providers returned no usable title metadata")
+              with sqlite3.connect(str(metadata_db)) as metadata_conn:
+                  rows = metadata_conn.execute(
+                      "SELECT provider,identifier,response_sha256 FROM research_metadata_cache ORDER BY provider,identifier"
+                  ).fetchall()
+                  clocks = metadata_conn.execute(
+                      "SELECT host,next_allowed_epoch FROM research_request_clock ORDER BY host"
+                  ).fetchall()
+              if len(rows) != 2 or len(calls) != 2:
+                  raise RuntimeError("metadata cache did not persist exactly one request per provider")
+              metadata_probe_results = {
+                  "status": "passed",
+                  "source_repo": request["source_repo"],
+                  "source_commit": request["source_commit"],
+                  "module_blob_sha": module_blob,
+                  "providers": {
+                      "crossref": {"doi": doi, "title": str(crossref_title[0])[:500]},
+                      "arxiv": {"id": arxiv_id, "title": str(arxiv_entries[0]["title"])[:500]},
+                  },
+                  "network_requests": calls,
+                  "cache_rows": [
+                      {"provider": row[0], "identifier": row[1], "response_sha256": row[2]}
+                      for row in rows
+                  ],
+                  "persisted_rate_clocks": [
+                      {"host": row[0], "next_allowed_epoch": row[1]} for row in clocks
+                  ],
+                  "cache_database_sha256": hashlib.sha256(metadata_db.read_bytes()).hexdigest(),
+                  "cache_hit_replays": 2,
+                  "external_hosts_allowlist": ["api.crossref.org", "export.arxiv.org"],
+              }
+              (artifact_dir / "research-metadata-live.json").write_text(
+                  json.dumps(metadata_probe_results, indent=2, sort_keys=True) + "\n",
+                  encoding="utf-8",
+              )
+
           cpp_test_results = None
           if request["operation"] == "merlin_cpp_ledger_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
@@ -683,6 +758,7 @@ jobs:
                       or (cace_bundle_contract is not None and cace_bundle_contract.get("status") != "matched")
                       or (rsi_test_results is not None and rsi_test_results.get("status") != "passed")
                       or (cpp_test_results is not None and cpp_test_results.get("status") != "passed")
+                      or (metadata_probe_results is not None and metadata_probe_results.get("status") != "passed")
                   ) else "succeeded"
               ),
               "qualification": False,
@@ -692,7 +768,11 @@ jobs:
               "resource_limits": {
                   "job_timeout_minutes": 3,
                   "per_probe_timeout_seconds": 5,
-                  "network_scope": "GitHub API content reads plus localhost MCP only" if request["operation"] == "mcp_readonly_probe" else "GitHub API content reads only; local fixed tests use mocked external requests",
+                  "network_scope": (
+                      "GitHub API content reads plus localhost MCP only" if request["operation"] == "mcp_readonly_probe" else
+                      "GitHub API reads plus Crossref/arXiv public metadata endpoints only" if request["operation"] == "merlin_rsi_metadata_live_probe" else
+                      "GitHub API content reads only; local fixed tests use mocked external requests"
+                  ),
                   "package_installation": False,
                   "cache_mutation": False,
               },
@@ -701,6 +781,7 @@ jobs:
               "cace_bundle_contract": cace_bundle_contract,
               "rsi_test_results": rsi_test_results,
               "cpp_test_results": cpp_test_results,
+              "metadata_probe_results": metadata_probe_results,
           }
           (artifact_dir / "job-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
