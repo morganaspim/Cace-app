@@ -375,7 +375,7 @@ jobs:
           if request["operation"] == "merlin_rsi_python_tests":
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "5d9f21ce0084be8c346aa72eb0457b0d483cc3fa":
+              if request["source_commit"] != "1822a54226d9d1045769b696e264ff8f3edd7de6":
                   raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
@@ -445,7 +445,13 @@ jobs:
                       "output": completed.stdout[-16000:],
                   })
                   if completed.returncode != 0:
-                      raise SystemExit("fixed RSI Python validation command failed")
+                      (artifact_dir / "rsi-test-failure.txt").write_text(
+                          completed.stdout[-20000:], encoding="utf-8"
+                      )
+                      raise SystemExit(
+                          "fixed RSI Python validation command failed:\\n"
+                          + completed.stdout[-12000:]
+                      )
               test_output = command_results[-1]["output"]
               test_match = re.search(r"Ran (\d+) tests? in", test_output)
               rsi_test_results = {
