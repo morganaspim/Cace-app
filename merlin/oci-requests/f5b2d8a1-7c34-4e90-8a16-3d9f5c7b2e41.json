@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f5b2d8a1-7c34-4e90-8a16-3d9f5c7b2e41",
+  "operation": "rsi_validation",
+  "reason": "Run the exact current 22-test RSI snapshot on OCI with a source-pinned request and retained evidence artifact for CACE independent-reproduction provenance.",
+  "created_at": "2026-11-12T00:49:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "1822a54226d9d1045769b696e264ff8f3edd7de6",
+  "module_blob_sha": "09ac1050add7ce5bebe12ab4a6a435dc02cc7c19",
+  "test_blob_sha": "c54ddc10f16f460bc70703939f0fac8395bdcd18",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
