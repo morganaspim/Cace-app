@@ -23,8 +23,6 @@ MCP_HOST = os.getenv("CACE_OCI_MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.getenv("CACE_OCI_MCP_PORT", "8765"))
 ALLOW_SERVICE_RESTART = os.getenv("CACE_OCI_MCP_ALLOW_SERVICE_RESTART", "").lower() == "true"
 ALLOW_NETWORK_WRITE = os.getenv("CACE_OCI_MCP_ALLOW_NETWORK_WRITE", "").lower() == "true"
-ALLOW_MERLIN_RSI_SIGNING = os.getenv("CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING", "").lower() == "true"
-MERLIN_RSI_SIGNING_KEY = Path("/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem")
 CACE_SERVICE = "cace-web"
 IMDS_INSTANCE = "http://169.254.169.254/opc/v2/instance/"
 IMDS_VNICS = "http://169.254.169.254/opc/v2/vnics/"
@@ -161,51 +159,6 @@ def get_github_runner_status() -> dict[str, Any]:
 
 
 @mcp.tool()
-def initialize_merlin_rsi_attestor() -> dict[str, Any]:
-    """Create the CACE Merlin RSI Ed25519 signing identity once, without overwriting it."""
-    if not ALLOW_MERLIN_RSI_SIGNING:
-        raise PermissionError(
-            "Merlin RSI signing is disabled; set CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true "
-            "only after reviewing persistent key custody"
-        )
-    from .merlin_rsi_verifier import initialize_merlin_rsi_attestor as initialize
-
-    return initialize(
-        private_key_path=MERLIN_RSI_SIGNING_KEY,
-        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
-    )
-
-
-@mcp.tool()
-def attest_merlin_rsi_bundle(
-    bundle_payload: dict[str, Any],
-    expected_claim_id: str,
-    expected_bindings: dict[str, Any],
-    artifact_bytes_b64: dict[str, str],
-) -> dict[str, Any]:
-    """Verify exact EvidenceBundle artifact bytes and sign a CACE artifact-integrity attestation.
-
-    This is provenance/integrity only (proof_effect=none). It does not run
-    candidate code, prove a theorem, or authorize promotion.
-    """
-    if not ALLOW_MERLIN_RSI_SIGNING:
-        raise PermissionError(
-            "Merlin RSI signing is disabled; set CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING=true "
-            "only after reviewing persistent key custody"
-        )
-    from .merlin_rsi_verifier import attest_merlin_rsi_bundle as attest
-
-    return attest(
-        bundle_payload=bundle_payload,
-        expected_claim_id=expected_claim_id,
-        expected_bindings=expected_bindings,
-        artifact_bytes_b64=artifact_bytes_b64,
-        private_key_path=MERLIN_RSI_SIGNING_KEY,
-        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
-    )
-
-
-@mcp.tool()
 def verify_merlin_rsi_attestation(
     bundle_payload: dict[str, Any],
     attestation_payload: dict[str, Any],
@@ -244,9 +197,7 @@ def get_control_capabilities() -> dict[str, Any]:
         "iam_mutation_exposed": False,
         "secret_access_exposed": False,
         "instance_termination_exposed": False,
-        "merlin_rsi_signing_enabled": ALLOW_MERLIN_RSI_SIGNING,
-        "private_signing_key_read_enabled": ALLOW_MERLIN_RSI_SIGNING,
-        "merlin_rsi_attestation": "artifact-integrity only; no proof or promotion authority",
+        "merlin_rsi_attestation": "read-only independent-reproduction verification; no proof or promotion authority",
         "mcp_listen": f"{MCP_HOST}:{MCP_PORT}",
     }
 
