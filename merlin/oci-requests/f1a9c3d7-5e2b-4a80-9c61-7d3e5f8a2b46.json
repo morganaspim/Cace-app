@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "f1a9c3d7-5e2b-4a80-9c61-7d3e5f8a2b46",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Run the latest Expert Robot RSI source and all 16 current regression tests on the actual OCI runner; verify the exact reviewed Git tree and fixed benchmark manifest.",
+  "created_at": "2026-11-12T00:18:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "6881980681a9246dd9ad5d4c683dcf32b47e4f2a",
+  "module_blob_sha": "d933a11528f1e47cd97b2693a5456cf49ce646fc",
+  "test_blob_sha": "7f16e8fc0fd9e9bdff6090b93b90c4a8a285943b",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
