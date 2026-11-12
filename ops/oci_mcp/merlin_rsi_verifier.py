@@ -56,6 +56,125 @@ def _approved_keys(trust_store_json: str, trust_store_sha256: str) -> dict[str, 
     return approved
 
 
+def _validate_rsi_evidence_artifacts(
+    bundle: Any,
+    artifact_bytes: Mapping[str, bytes],
+    expected_claim_id: str,
+    expected_bindings: Mapping[str, Any],
+    *,
+    benchmark_source_bytes: bytes | None = None,
+) -> None:
+    """Bind the signed RSI claims to the exact candidate, benchmark and evaluator bytes."""
+    required_bindings = {
+        "candidate_id",
+        "candidate_digest",
+        "benchmark_manifest_sha256",
+        "evaluator_receipt_sha256",
+        "source_repo",
+        "source_commit",
+        "authority",
+    }
+    if set(expected_bindings) != required_bindings:
+        raise PermissionError("RSI evidence bindings do not match the exact schema")
+    if expected_bindings.get("authority") != "verification-only":
+        raise PermissionError("CACE RSI evidence cannot grant promotion authority")
+
+    required_roles = {"candidate-artifact", "benchmark-manifest", "evaluator-receipt"}
+    by_role: dict[str, Any] = {}
+    for artifact in bundle.artifacts:
+        role = artifact.role
+        if role not in required_roles or role in by_role:
+            raise PermissionError("RSI evidence bundle contains an unknown or duplicate artifact role")
+        by_role[role] = artifact
+    if set(by_role) != required_roles:
+        raise PermissionError("RSI evidence bundle requires candidate, benchmark and evaluator receipt artifacts")
+
+    def require_metadata(artifact: Any, expected: Mapping[str, Any]) -> None:
+        metadata = dict(artifact.metadata)
+        for key, value in expected.items():
+            if metadata.get(key) != value:
+                raise PermissionError("RSI artifact metadata binding mismatch: " + key)
+
+    candidate = by_role["candidate-artifact"]
+    benchmark = by_role["benchmark-manifest"]
+    evaluator = by_role["evaluator-receipt"]
+    candidate_digest = expected_bindings["candidate_digest"]
+    benchmark_digest = expected_bindings["benchmark_manifest_sha256"]
+    evaluator_digest = expected_bindings["evaluator_receipt_sha256"]
+    source_repo = expected_bindings["source_repo"]
+    source_commit = expected_bindings["source_commit"]
+
+    if candidate.sha256 != candidate_digest:
+        raise PermissionError("candidate artifact digest does not match candidate_digest binding")
+    require_metadata(candidate, {
+        "candidate_id": expected_claim_id,
+        "source_repo": source_repo,
+        "source_commit": source_commit,
+    })
+
+    if benchmark.sha256 != benchmark_digest:
+        raise PermissionError("benchmark artifact digest does not match benchmark_manifest_sha256 binding")
+    require_metadata(benchmark, {
+        "source_repo": source_repo,
+        "source_commit": source_commit,
+        "status": "frozen",
+        "split": "held_out",
+    })
+    benchmark_bytes = artifact_bytes[benchmark.artifact_id]
+    if benchmark_source_bytes is not None and benchmark_bytes != benchmark_source_bytes:
+        raise PermissionError("bundled benchmark bytes differ from the exact source-commit manifest")
+    try:
+        benchmark_doc = json.loads(benchmark_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PermissionError("bundled benchmark manifest is not valid UTF-8 JSON") from exc
+    expected_domains = {"mathematics", "lean", "research", "coding", "engineering"}
+    if (
+        not isinstance(benchmark_doc, Mapping)
+        or benchmark_doc.get("status") != "frozen"
+        or benchmark_doc.get("split") != "held_out"
+        or len(benchmark_doc.get("cases", [])) != 25
+        or set(benchmark_doc.get("domains", [])) != expected_domains
+    ):
+        raise PermissionError("bundled benchmark is not the frozen 25-case multidomain holdout")
+
+    if evaluator.sha256 != evaluator_digest:
+        raise PermissionError("evaluator receipt digest does not match evaluator_receipt_sha256 binding")
+    require_metadata(evaluator, {
+        "candidate_id": expected_claim_id,
+        "candidate_digest": candidate_digest,
+        "benchmark_manifest_sha256": benchmark_digest,
+        "source_repo": source_repo,
+        "source_commit": source_commit,
+    })
+    try:
+        receipt = json.loads(artifact_bytes[evaluator.artifact_id].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PermissionError("evaluator receipt is not valid UTF-8 JSON") from exc
+    required_receipt_bindings = {
+        "schema": "merlin-rsi-evaluator-receipt-v1",
+        "candidate_id": expected_claim_id,
+        "candidate_digest": candidate_digest,
+        "benchmark_manifest_sha256": benchmark_digest,
+        "source_repo": source_repo,
+        "source_commit": source_commit,
+        "evaluation_status": "passed",
+        "held_out": True,
+    }
+    if not isinstance(receipt, Mapping) or any(
+        receipt.get(key) != value for key, value in required_receipt_bindings.items()
+    ):
+        raise PermissionError("evaluator receipt does not bind the exact candidate and held-out benchmark")
+    if (
+        not isinstance(receipt.get("evaluator_id"), str) or not receipt["evaluator_id"].strip()
+        or not isinstance(receipt.get("tool_identity"), str) or not receipt["tool_identity"].strip()
+    ):
+        raise PermissionError("evaluator receipt must identify its evaluator and tool version")
+    require_metadata(evaluator, {
+        "evaluator_id": receipt["evaluator_id"],
+        "tool_identity": receipt["tool_identity"],
+    })
+
+
 def verify_merlin_rsi_attestation(
     *,
     bundle_payload: Mapping[str, Any],
@@ -139,6 +258,9 @@ def verify_merlin_rsi_attestation(
     bundle_sha256 = verify_bundle(bundle, artifact_bytes=artifact_bytes)
     if dict(bundle.bindings) != dict(expected_bindings):
         raise PermissionError("CACE EvidenceBundle bindings do not match the expected RSI evidence")
+    _validate_rsi_evidence_artifacts(
+        bundle, artifact_bytes, expected_claim_id, expected_bindings
+    )
     attestation = attestation_from_payload(attestation_payload)
     key_id = verify_attestation(attestation)
     statement = attestation.statement
@@ -531,6 +653,13 @@ def attest_merlin_rsi_reproduction(
     benchmark_bytes = fetch_file(
         benchmark_path, str(expected_bindings["source_repo"]),
         str(expected_bindings["source_commit"]),
+    )
+    _validate_rsi_evidence_artifacts(
+        bundle,
+        artifact_bytes,
+        expected_claim_id,
+        expected_bindings,
+        benchmark_source_bytes=benchmark_bytes,
     )
     if _sha256(benchmark_bytes) != expected_bindings.get("benchmark_manifest_sha256"):
         raise PermissionError("held-out benchmark manifest digest does not match the source commit")
