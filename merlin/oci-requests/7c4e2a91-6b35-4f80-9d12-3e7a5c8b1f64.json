@@ -1,0 +1,9 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "7c4e2a91-6b35-4f80-9d12-3e7a5c8b1f64",
+  "operation": "rsi_validation",
+  "reason": "Re-run the CACE-attestor RSI profile after correcting append-only ledger event metadata; validate exact current source and 20 regression tests.",
+  "created_at": "2026-11-12T00:28:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "aaeb50fddc7bb5918c7969d891efe3ab0b64eff0"
+}
