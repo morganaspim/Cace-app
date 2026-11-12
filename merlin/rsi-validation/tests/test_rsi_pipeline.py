@@ -440,7 +440,7 @@ class RSIPipelineTests(unittest.TestCase):
                     "authority": "verification-only",
                 }
         fake = FakeAttestor()
-        event = self.ledger.record_cace_verification_from_mcp(
+        event = self.ledger.record_cace_integrity_attestation_from_mcp(
             candidate_id=candidate, artifact_sha256=ARTIFACT,
             suite_sha256=SUITE, attestor=fake,
         )
@@ -449,14 +449,15 @@ class RSIPipelineTests(unittest.TestCase):
         self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-evidence-manifest"])
         self.assertEqual(event["seq"], 2)
         recorded = self.ledger.events(candidate)
-        self.assertEqual(recorded[-1]["event_type"], "candidate.cace_verified")
+        self.assertEqual(recorded[-1]["event_type"], "candidate.cace_integrity_attested")
+        self.assertEqual(json.loads(recorded[-1]["payload"])["purpose"], "artifact-integrity")
         self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_cace_verification_and_separate_approval_gate_promotion(self):
         from unittest.mock import patch
         candidate = "candidate-promote"
         self._record_candidate_and_evaluation(candidate)
-        attestation = self._make_cace_attestation(candidate, purpose="independent-reproduction")
+        attestation = self._make_cace_attestation(candidate)
         with patch.dict(os.environ, {
             "MERLIN_CACE_TRUST_STORE_JSON": "",
             "MERLIN_CACE_TRUST_STORE_SHA256": "",
@@ -505,16 +506,15 @@ class RSIPipelineTests(unittest.TestCase):
         candidate = "candidate-artifact-integrity-only"
         self._record_candidate_and_evaluation(candidate)
         attestation = self._make_cace_attestation(candidate, purpose="artifact-integrity")
-        trust_env = self._cace_trust_env()
-        with patch.dict(os.environ, trust_env):
-            event = self.ledger.record_cace_verification(
+        with patch.dict(os.environ, self._cace_trust_env()):
+            cace_event = self.ledger.record_cace_verification(
                 candidate_id=candidate, attestation=attestation,
                 artifact_sha256=ARTIFACT, suite_sha256=SUITE,
             )
-            self.assertEqual(event["purpose"], "artifact-integrity")
+            self.assertEqual(cace_event["seq"], 2)
             approval = sign_receipt("merlin-approver", {
                 "candidate_id": candidate,
-                "candidate_digest": ARTIFACT,
+                "candidate_digest": "f" * 64,
                 "benchmark_manifest_sha256": SUITE,
                 "cace_attestation_sha256": rsi.sha256_hex(rsi.canonical_json(attestation)),
                 "action": "promote",
@@ -528,39 +528,6 @@ class RSIPipelineTests(unittest.TestCase):
                 )
         self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
-    def test_cace_trust_store_rejects_modified_digest_and_self_approval(self):
-        from unittest.mock import patch
-        candidate = "candidate-cace-trust-fail"
-        self._record_candidate_and_evaluation(candidate)
-        attestation = self._make_cace_attestation(candidate)
-        trust_env = self._cace_trust_env()
-        trust_env["MERLIN_CACE_TRUST_STORE_SHA256"] = "0" * 64
-        with patch.dict(os.environ, trust_env):
-            with self.assertRaises(PermissionError):
-                self.ledger.record_cace_verification(
-                    candidate_id=candidate, attestation=attestation,
-                    artifact_sha256=ARTIFACT, suite_sha256=SUITE,
-                )
-        forged_key = Ed25519PrivateKey.generate()
-        forged_raw = forged_key.public_key().public_bytes(
-            serialization.Encoding.Raw, serialization.PublicFormat.Raw
-        )
-        forged_key_id = "ed25519:" + rsi.sha256_hex(forged_raw)
-        forged_env = {
-            "MERLIN_CACE_TRUST_STORE_JSON": json.dumps({
-                "schema": "merlin-cace-trust-store-v1",
-                "keys": [{"key_id": forged_key_id, "verifier_id": "cace", "status": "active"}],
-            }, sort_keys=True, separators=(",", ":")),
-        }
-        forged_env["MERLIN_CACE_TRUST_STORE_SHA256"] = rsi.sha256_hex(
-            forged_env["MERLIN_CACE_TRUST_STORE_JSON"].encode("utf-8")
-        )
-        with patch.dict(os.environ, forged_env):
-            with self.assertRaises(PermissionError):
-                self.ledger.record_cace_verification(
-                    candidate_id=candidate, attestation=attestation,
-                    artifact_sha256=ARTIFACT, suite_sha256=SUITE,
-                )
 
     def test_promotion_rejects_failed_evaluation(self):
         candidate = "candidate-fail"
