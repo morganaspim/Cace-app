@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ops.oci_mcp.merlin_rsi_verifier import (
     attest_merlin_rsi_bundle,
+    attest_merlin_rsi_reproduction,
     initialize_merlin_rsi_attestor,
     verify_merlin_rsi_attestation,
 )
@@ -219,6 +220,145 @@ class MerlinRSICaceVerifierTests(unittest.TestCase):
         )
         with self.assertRaises(PermissionError):
             self.verify(attestation_payload=integrity_only)
+
+    def test_independent_reproduction_attestation_requires_successful_pinned_oci_run(self):
+        benchmark = {
+            "status": "frozen",
+            "split": "held_out",
+            "domains": ["mathematics", "lean", "research", "coding", "engineering"],
+            "cases": [{"id": f"case-{i}", "domain": d} for i, d in enumerate(
+                ["mathematics", "lean", "research", "coding", "engineering"] * 5
+            )],
+        }
+        benchmark_bytes = json.dumps(benchmark, sort_keys=True, separators=(",", ":")).encode()
+        benchmark_sha = hashlib.sha256(benchmark_bytes).hexdigest()
+        bindings = dict(self.bindings)
+        bindings["benchmark_manifest_sha256"] = benchmark_sha
+        artifact_bytes = self.artifact_bytes
+        artifact = EvidenceArtifact.from_bytes(
+            "merlin-rsi-evidence-manifest",
+            artifact_bytes,
+            role="rsi-evidence-manifest",
+            media_type="application/json",
+            path="merlin-rsi-evidence-manifest.json",
+        )
+        bundle = EvidenceBundle(
+            artifacts=(artifact,),
+            bindings=bindings,
+            notes=("Merlin RSI exact-artifact independent verification",),
+        )
+        source_commit = bindings["source_commit"]
+        run_sha = "e" * 40
+        run_id = 98765
+        request_path = "merlin/oci-requests/11111111-2222-4333-8444-555555555555.json"
+        request_doc = {
+            "operation": "rsi_validation",
+            "source_repo": bindings["source_repo"],
+            "source_commit": source_commit,
+        }
+        workflow_text = f'expected_source_commit = "{source_commit}"\n'
+        def encode_doc(value):
+            return base64.b64encode(json.dumps(value).encode()).decode()
+        def fake_fetch(url):
+            if url.endswith(f"/actions/runs/{run_id}"):
+                return {
+                    "repository": {"full_name": "morganaspim/Cace-app"},
+                    "status": "completed", "conclusion": "success", "event": "push",
+                    "head_branch": "merlin/oci-jobs/reproduction-test",
+                    "head_sha": run_sha,
+                    "path": ".github/workflows/merlin-oci-job-gateway.yml@refs/heads/merlin/oci-jobs/reproduction-test",
+                }
+            if url.endswith(f"/commits/{run_sha}"):
+                return {"files": [{"filename": request_path, "status": "added"}]}
+            if "/contents/merlin/oci-requests/" in url:
+                return {"encoding": "base64", "content": encode_doc(request_doc)}
+            if "/contents/.github/workflows/" in url:
+                return {"encoding": "base64", "content": base64.b64encode(workflow_text.encode()).decode()}
+            if "/contents/config/benchmarks/" in url:
+                return {"encoding": "base64", "content": base64.b64encode(benchmark_bytes).decode()}
+            if url.endswith(f"/actions/runs/{run_id}/jobs?per_page=100"):
+                return {"jobs": [{
+                    "id": 123456,
+                    "name": "run-approved-profile",
+                    "runner_name": "cace-oci-a1",
+                    "conclusion": "success",
+                    "steps": [
+                        {"name": "Validate request and execute fixed inventory profile", "conclusion": "success"},
+                        {"name": "Upload job receipt and inventory", "conclusion": "success"},
+                    ],
+                }]}
+            if url.endswith(f"/actions/runs/{run_id}/artifacts?per_page=100"):
+                return {"artifacts": [{
+                    "name": f"merlin-oci-job-{run_id}-1",
+                    "expired": False,
+                    "digest": "sha256:" + "f" * 64,
+                }]}
+            raise AssertionError("unexpected GitHub API URL: " + url)
+
+        with tempfile.TemporaryDirectory() as temp:
+            key_path = Path(temp) / "keys" / "attestor.pem"
+            identity = initialize_merlin_rsi_attestor(
+                private_key_path=key_path, cace_app_root=self.root
+            )
+            signed = attest_merlin_rsi_reproduction(
+                bundle_payload=bundle.payload(),
+                expected_claim_id=self.claim_id,
+                expected_bindings=bindings,
+                artifact_bytes_b64={
+                    "merlin-rsi-evidence-manifest": base64.b64encode(artifact_bytes).decode("ascii")
+                },
+                github_run_id=run_id,
+                private_key_path=key_path,
+                cace_app_root=self.root,
+                github_fetch=fake_fetch,
+            )
+        self.assertEqual(signed["purpose"], "independent-reproduction")
+        self.assertEqual(signed["runner_provenance"]["run_id"], run_id)
+        trust = json.dumps({
+            "schema": "merlin-cace-trust-store-v1",
+            "keys": [{
+                "key_id": identity["verifier_key_id"],
+                "verifier_id": "cace",
+                "status": "active",
+            }],
+        }, sort_keys=True, separators=(",", ":"))
+        verified = verify_merlin_rsi_attestation(
+            bundle_payload=bundle.payload(),
+            attestation_payload=signed["attestation"],
+            expected_claim_id=self.claim_id,
+            expected_bindings=bindings,
+            artifact_bytes_b64={
+                "merlin-rsi-evidence-manifest": base64.b64encode(artifact_bytes).decode("ascii")
+            },
+            trust_store_json=trust,
+            trust_store_sha256=hashlib.sha256(trust.encode()).hexdigest(),
+            cace_app_root=self.root,
+        )
+        self.assertTrue(verified["verified"])
+        self.assertEqual(verified["runner_provenance"]["runner_name"], "cace-oci-a1")
+
+    def test_independent_reproduction_rejects_failed_oci_run(self):
+        # A failed or incomplete GitHub Actions run must never be attested.
+        with tempfile.TemporaryDirectory() as temp:
+            key_path = Path(temp) / "keys" / "attestor.pem"
+            initialize_merlin_rsi_attestor(private_key_path=key_path, cace_app_root=self.root)
+            with self.assertRaises(PermissionError):
+                attest_merlin_rsi_reproduction(
+                    bundle_payload=self.bundle.payload(),
+                    expected_claim_id=self.claim_id,
+                    expected_bindings=self.bindings,
+                    artifact_bytes_b64={
+                        "merlin-rsi-evidence-manifest": base64.b64encode(self.artifact_bytes).decode("ascii")
+                    },
+                    github_run_id=98765,
+                    private_key_path=key_path,
+                    cace_app_root=self.root,
+                    github_fetch=lambda url: {
+                        "repository": {"full_name": "morganaspim/Cace-app"},
+                        "status": "completed", "conclusion": "failure",
+                        "event": "push", "head_branch": "merlin/oci-jobs/nope",
+                    },
+                )
 
     def test_cace_core_rejects_unknown_attestation_purpose(self):
         with self.assertRaises(ValueError):
