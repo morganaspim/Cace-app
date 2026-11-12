@@ -120,13 +120,13 @@ jobs:
               raise SystemExit("request rejected: request ID does not match its path")
           if not isinstance(request["operation"], str) or request["operation"] not in {
               "inventory_snapshot", "mcp_readonly_probe", "cace_rsi_bundle_contract",
-              "merlin_rsi_python_tests", "merlin_cpp_ledger_tests",
+              "merlin_rsi_python_tests", "rsi_validation", "merlin_cpp_ledger_tests",
               "merlin_rsi_metadata_live_probe"
           }:
               raise SystemExit("request rejected: operation is not enabled")
           if request["operation"] == "cace_rsi_bundle_contract":
               expected_fields = base_fields | cace_fields
-          elif request["operation"] == "merlin_rsi_python_tests":
+          elif request["operation"] in {"merlin_rsi_python_tests", "rsi_validation"}:
               expected_fields = base_fields | rsi_test_fields
           elif request["operation"] == "merlin_cpp_ledger_tests":
               expected_fields = base_fields | cpp_test_fields
@@ -372,10 +372,11 @@ jobs:
               }
 
           rsi_test_results = None
-          if request["operation"] == "merlin_rsi_python_tests":
+          if request["operation"] in {"merlin_rsi_python_tests", "rsi_validation"}:
               if request["source_repo"] != "Mannyspiro/expert-robot":
                   raise SystemExit("request rejected: source repository is not allowlisted")
-              if request["source_commit"] != "313942c2816249547d771cebf1a2ed313dc9b1e2":
+              expected_source_commit = "313942c2816249547d771cebf1a2ed313dc9b1e2"
+              if request["source_commit"] != expected_source_commit:
                   raise SystemExit("request rejected: RSI source commit is not the pinned source snapshot")
               for name in ("module_blob_sha", "test_blob_sha", "manifest_blob_sha"):
                   if not re.fullmatch(r"[0-9a-f]{40}", str(request[name])):
