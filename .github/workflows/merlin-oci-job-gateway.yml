@@ -278,7 +278,7 @@ jobs:
                   ),
                   "tests/test_rsi_pipeline.py": (
                       "merlin/rsi-validation/tests/test_rsi_pipeline.py",
-                      "e89d1ba8631e045c87b012c6e4f86e9c125b8f55",
+                      "a2708c47f78d7a32e048dfd4e065266a2dba9c87",
                   ),
                   "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json": (
                       "merlin/rsi-validation/config/benchmarks/merlin_rsi_multidomain_holdout_v1.json",
