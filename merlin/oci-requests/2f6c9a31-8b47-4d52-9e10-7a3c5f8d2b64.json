@@ -5,8 +5,8 @@
   "reason": "Run current RSI trust-registry and ledger tests on OCI using the fixed five-domain benchmark manifest",
   "created_at": "2026-11-12T00:05:00Z",
   "source_repo": "Mannyspiro/expert-robot",
-  "source_commit": "dd57e13aa480883175b53916e64578f62d671077",
-  "module_blob_sha": "34557113cf335694a77222a74d57ef5cdc6c2e6e",
-  "test_blob_sha": "7351769424ebd9bbcf23a4aed06f77fc2cadce13",
+  "source_commit": "f8faf13b53239733b83f8ee4fafb6f0b07949403",
+  "module_blob_sha": "d933a11528f1e47cd97b2693a5456cf49ce646fc",
+  "test_blob_sha": "7f16e8fc0fd9e9bdff6090b93b90c4a8a285943b",
   "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
 }
