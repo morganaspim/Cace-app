@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "c8e1a4b7-2d63-4f90-8a12-5e7b3c9d6f20",
+  "operation": "merlin_rsi_python_tests",
+  "reason": "Validate the latest Expert Robot RSI module and 16 regression tests on OCI using exact current Git blob pins and the frozen 25-case benchmark manifest.",
+  "created_at": "2026-11-12T00:22:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "a9fb8926038f0e83ce4cea0801987ca2a4cddb78",
+  "module_blob_sha": "58c7b4b3bce7a94cd6724da7c1348c2293deefff",
+  "test_blob_sha": "725650e9e822b3fdfba907185855e1cfdc98b5f3",
+  "manifest_blob_sha": "e38004514228b84ac052dace756d00f3022524b6"
+}
