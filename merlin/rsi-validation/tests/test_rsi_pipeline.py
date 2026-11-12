@@ -15,8 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
 from merlin import rsi_pipeline as rsi
 from merlin.rsi_pipeline import (
-    AppendOnlyLedger, ResearchMetadataCache, SignedReceipt,
-    dispatch_rsi_induction_seed, ingest_hermes_failure, optional_adapter_status,
+    AppendOnlyLedger, CaceMcpAttestor, ResearchMetadataCache, SignedReceipt,
+    cace_rsi_bundle_payload, dispatch_rsi_induction_seed,
+    ingest_hermes_failure, optional_adapter_status,
     paired_adapter_gain, paired_adapter_gate,
 )
 
@@ -64,6 +65,42 @@ class RSIPipelineTests(unittest.TestCase):
         self.cace_key_id = "ed25519:" + rsi.sha256_hex(cace_raw)
         self.cace_keys = {self.cace_key_id: "cace"}
 
+        from unittest.mock import patch
+        issuer_store = {
+            "schema": "merlin-issuer-trust-store-v1",
+            "issuers": {
+                "hermes": self.hermes_keys,
+                "merlin-source": self.source_keys,
+                "merlin-evaluator": self.evaluator_keys,
+                "merlin-approver": self.approver_keys,
+            },
+        }
+        issuer_raw = json.dumps(issuer_store, sort_keys=True, separators=(",", ":"))
+        issuer_env = {
+            "MERLIN_ISSUER_TRUST_STORE_JSON": issuer_raw,
+            "MERLIN_ISSUER_TRUST_STORE_SHA256": rsi.sha256_hex(issuer_raw.encode("utf-8")),
+            **self._cace_trust_env(),
+        }
+        self._trust_patcher = patch.dict(os.environ, issuer_env)
+        self._trust_patcher.start()
+        self.addCleanup(self._trust_patcher.stop)
+
+    def _issuer_env_with(self, issuer, keys):
+        document = json.loads(os.environ["MERLIN_ISSUER_TRUST_STORE_JSON"])
+        document["issuers"][issuer] = keys
+        raw = json.dumps(document, sort_keys=True, separators=(",", ":"))
+        return {
+            "MERLIN_ISSUER_TRUST_STORE_JSON": raw,
+            "MERLIN_ISSUER_TRUST_STORE_SHA256": rsi.sha256_hex(raw.encode("utf-8")),
+        }
+
+    def _trust_issuer(self, issuer, keys):
+        document = json.loads(os.environ["MERLIN_ISSUER_TRUST_STORE_JSON"])
+        document["issuers"][issuer] = keys
+        raw = json.dumps(document, sort_keys=True, separators=(",", ":"))
+        os.environ["MERLIN_ISSUER_TRUST_STORE_JSON"] = raw
+        os.environ["MERLIN_ISSUER_TRUST_STORE_SHA256"] = rsi.sha256_hex(raw.encode("utf-8"))
+
     def source_receipt(self, candidate):
         return sign_receipt("merlin-source", {
             "candidate_id": candidate,
@@ -89,10 +126,10 @@ class RSIPipelineTests(unittest.TestCase):
             **claims, "source_commit": "d" * 40
         }, "hermes-key", self.hermes_private)
         with self.assertRaises(PermissionError):
-            ingest_hermes_failure(self.ledger, record, forged, self.hermes_keys)
+            ingest_hermes_failure(self.ledger, record, forged)
         signed = sign_receipt("hermes", claims, "hermes-key", self.hermes_private)
-        first = ingest_hermes_failure(self.ledger, record, signed, self.hermes_keys)
-        replay = ingest_hermes_failure(self.ledger, record, signed, self.hermes_keys)
+        first = ingest_hermes_failure(self.ledger, record, signed)
+        replay = ingest_hermes_failure(self.ledger, record, signed)
         self.assertEqual(first["seq"], 0)
         self.assertTrue(replay["idempotent_replay"])
         self.assertEqual(first["event_hash"], replay["event_hash"])
@@ -104,29 +141,33 @@ class RSIPipelineTests(unittest.TestCase):
 
     def test_candidate_lineage_requires_signed_source_and_valid_parent(self):
         source = self.source_receipt("candidate-root")
-        with self.assertRaises(PermissionError):
-            self.ledger.record_candidate(
-                candidate_id="candidate-root", parent_candidate_id=None,
-                source_receipt=source, artifact_sha256=ARTIFACT,
-                generator="hermes", mutation={}, trusted_keys={},
-            )
+        from unittest.mock import patch
+        with patch.dict(os.environ, {
+            "MERLIN_ISSUER_TRUST_STORE_JSON": "",
+            "MERLIN_ISSUER_TRUST_STORE_SHA256": "",
+        }):
+            with self.assertRaises(PermissionError):
+                self.ledger.record_candidate(
+                    candidate_id="candidate-root", parent_candidate_id=None,
+                    source_receipt=source, artifact_sha256=ARTIFACT,
+                    generator="hermes", mutation={}
+                )
         with self.assertRaises(ValueError):
             self.ledger.record_candidate(
                 candidate_id="candidate-child", parent_candidate_id="missing-parent",
                 source_receipt=self.source_receipt("candidate-child"),
-                artifact_sha256=ARTIFACT, generator="rsi", mutation={},
-                trusted_keys=self.source_keys,
+                artifact_sha256=ARTIFACT, generator="rsi", mutation={}
             )
         root = self.ledger.record_candidate(
             candidate_id="candidate-root", parent_candidate_id=None,
             source_receipt=source, artifact_sha256=ARTIFACT,
-            generator="hermes", mutation={}, trusted_keys=self.source_keys,
+            generator="hermes", mutation={}
         )
         child = self.ledger.record_candidate(
             candidate_id="candidate-child", parent_candidate_id="candidate-root",
             source_receipt=self.source_receipt("candidate-child"),
             artifact_sha256=ARTIFACT, generator="rsi",
-            mutation={"fix": "bounded-search"}, trusted_keys=self.source_keys,
+            mutation={"fix": "bounded-search"}
         )
         self.assertEqual(root["seq"], 0)
         self.assertEqual(child["seq"], 0)
@@ -152,11 +193,11 @@ class RSIPipelineTests(unittest.TestCase):
         seed = ingest_hermes_failure(
             self.ledger, failure,
             sign_receipt("hermes", claims, "hermes-key", self.hermes_private),
-            self.hermes_keys,
         )
 
         worker_private = Ed25519PrivateKey.generate()
         worker_keys = {"worker-key": public_pem(worker_private)}
+        self._trust_issuer("merlin-rsi-worker", worker_keys)
 
         class FakeTransport:
             def __init__(self):
@@ -177,14 +218,16 @@ class RSIPipelineTests(unittest.TestCase):
 
         transport = FakeTransport()
         with self.assertRaises(RuntimeError):
-            dispatch_rsi_induction_seed(self.ledger, seed["event_hash"], None, worker_keys)
-        first = dispatch_rsi_induction_seed(
-            self.ledger, seed["event_hash"], transport, worker_keys
-        )
-        replay = dispatch_rsi_induction_seed(
-            self.ledger, seed["event_hash"], transport, worker_keys
-        )
-        self.assertEqual(first["seq"], 1)
+            dispatch_rsi_induction_seed(self.ledger, seed["event_hash"], None)
+        from unittest.mock import patch
+        with patch.dict(os.environ, self._issuer_env_with("merlin-rsi-worker", worker_keys)):
+            first = dispatch_rsi_induction_seed(
+                self.ledger, seed["event_hash"], transport
+            )
+            replay = dispatch_rsi_induction_seed(
+                self.ledger, seed["event_hash"], transport
+            )
+            self.assertEqual(first["seq"], 1)
         self.assertTrue(replay["idempotent_replay"])
         self.assertEqual(first["event_hash"], replay["event_hash"])
         self.assertEqual(transport.calls, 1)
@@ -212,10 +255,10 @@ class RSIPipelineTests(unittest.TestCase):
         seed = ingest_hermes_failure(
             self.ledger, failure,
             sign_receipt("hermes", claims, "hermes-key", self.hermes_private),
-            self.hermes_keys,
         )
         worker_private = Ed25519PrivateKey.generate()
         worker_keys = {"worker-key": public_pem(worker_private)}
+        self._trust_issuer("merlin-rsi-worker", worker_keys)
 
         class MismatchedTransport:
             def submit_induction(self, *, seed_event_hash, episode_id, idempotency_key, seed):
@@ -228,9 +271,11 @@ class RSIPipelineTests(unittest.TestCase):
                     "task_id": "task-wrong",
                 }, "worker-key", worker_private)
 
-        with self.assertRaises(PermissionError):
-            dispatch_rsi_induction_seed(
-                self.ledger, seed["event_hash"], MismatchedTransport(), worker_keys
+        from unittest.mock import patch
+        with patch.dict(os.environ, self._issuer_env_with("merlin-rsi-worker", worker_keys)):
+            with self.assertRaises(PermissionError):
+                dispatch_rsi_induction_seed(
+                    self.ledger, seed["event_hash"], MismatchedTransport()
             )
 
     def test_rsi_candidate_binds_authenticated_hermes_seed(self):
@@ -250,7 +295,7 @@ class RSIPipelineTests(unittest.TestCase):
             "failure_class": failure["failure_class"],
         }, "hermes-key", self.hermes_private)
         seed = ingest_hermes_failure(
-            self.ledger, failure, hermes_receipt, self.hermes_keys
+            self.ledger, failure, hermes_receipt
         )
         candidate_id = "candidate-from-hermes-seed"
         claims = {
@@ -266,7 +311,6 @@ class RSIPipelineTests(unittest.TestCase):
                 source_receipt=self.source_receipt(candidate_id),
                 artifact_sha256=ARTIFACT, generator="rsi",
                 mutation={"origin": "hermes-failure"},
-                trusted_keys=self.source_keys,
                 induction_seed_event_hash=seed["event_hash"],
             )
         signed_source = sign_receipt(
@@ -276,7 +320,6 @@ class RSIPipelineTests(unittest.TestCase):
             candidate_id=candidate_id, parent_candidate_id=None,
             source_receipt=signed_source, artifact_sha256=ARTIFACT,
             generator="rsi", mutation={"origin": "hermes-failure"},
-            trusted_keys=self.source_keys,
             induction_seed_event_hash=seed["event_hash"],
         )
         payload = json.loads(self.ledger.events(candidate_id)[0]["payload"])
@@ -288,8 +331,7 @@ class RSIPipelineTests(unittest.TestCase):
             candidate_id=candidate, parent_candidate_id=None,
             source_receipt=self.source_receipt(candidate),
             artifact_sha256=ARTIFACT, generator="rsi",
-            mutation={"failure_class": "lean-timeout"},
-            trusted_keys=self.source_keys,
+            mutation={"failure_class": "lean-timeout"}
         )
         metrics = {"overall": 0.9, "lean": 0.95}
         metrics_sha = rsi.sha256_hex(rsi.canonical_json(metrics))
@@ -301,7 +343,7 @@ class RSIPipelineTests(unittest.TestCase):
         self.ledger.record_evaluation(
             candidate_id=candidate, artifact_sha256=ARTIFACT,
             suite_sha256=SUITE, metrics=metrics, passed=True,
-            evaluator_receipt=evaluator, trusted_keys=self.evaluator_keys,
+            evaluator_receipt=evaluator
         )
         return evaluator
 
@@ -318,7 +360,7 @@ class RSIPipelineTests(unittest.TestCase):
             "claim_id": candidate,
             "bundle_sha256": bundle_sha,
             "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "purpose": "independent-reproduction",
+            "purpose": "artifact-integrity",
             "bindings": bindings,
         }
         signing_bytes = rsi._CACE_ATTESTATION_DOMAIN + rsi.canonical_json(statement)
@@ -348,6 +390,67 @@ class RSIPipelineTests(unittest.TestCase):
             "MERLIN_CACE_TRUST_STORE_SHA256": rsi.sha256_hex(raw.encode("utf-8")),
         }
 
+    def test_cace_bundle_payload_contains_exact_manifest_bytes(self):
+        bundle, manifest_bytes, bindings = cace_rsi_bundle_payload(
+            candidate_id="candidate-payload",
+            candidate_digest=ARTIFACT,
+            benchmark_manifest_sha256=SUITE,
+            evaluator_receipt_sha256="e" * 64,
+            source_repo="Mannyspiro/expert-robot",
+            source_commit=SOURCE_COMMIT,
+        )
+        self.assertEqual(json.loads(manifest_bytes)["candidate_id"], "candidate-payload")
+        self.assertEqual(bundle["bindings"], bindings)
+        self.assertEqual(
+            rsi.sha256_hex(rsi._CACE_BUNDLE_DOMAIN + rsi.canonical_json(bundle)),
+            rsi.cace_rsi_bundle_sha256(
+                candidate_id="candidate-payload",
+                candidate_digest=ARTIFACT,
+                benchmark_manifest_sha256=SUITE,
+                evaluator_receipt_sha256="e" * 64,
+                source_repo="Mannyspiro/expert-robot",
+                source_commit=SOURCE_COMMIT,
+            ),
+        )
+
+    def test_cace_mcp_attestor_rejects_non_loopback_endpoints(self):
+        with self.assertRaises(ValueError):
+            CaceMcpAttestor("https://untrusted.example/mcp")
+        with self.assertRaises(ValueError):
+            CaceMcpAttestor("http://192.0.2.10:8765/mcp")
+
+    def test_ledger_obtains_cace_attestation_from_mcp_transport(self):
+        candidate = "candidate-live-cace-transport"
+        self._record_candidate_and_evaluation(candidate)
+        attestation = self._make_cace_attestation(candidate)
+        class FakeAttestor:
+            def __init__(self):
+                self.calls = 0
+            def attest(self, *, bundle_payload, expected_claim_id, expected_bindings, artifact_bytes_b64):
+                self.calls += 1
+                self.asserted = {
+                    "claim": expected_claim_id,
+                    "bindings": expected_bindings,
+                    "artifact_ids": sorted(artifact_bytes_b64),
+                }
+                return {
+                    "attestation": attestation,
+                    "purpose": "artifact-integrity",
+                    "proof_effect": "none",
+                    "authority": "verification-only",
+                }
+        fake = FakeAttestor()
+        event = self.ledger.record_cace_verification_from_mcp(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=SUITE, attestor=fake,
+        )
+        self.assertEqual(fake.calls, 1)
+        self.assertEqual(fake.asserted["claim"], candidate)
+        self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-evidence-manifest"])
+        self.assertEqual(event["event_type"], "candidate.cace_verified")
+        self.assertEqual(event["verifier_id"], "cace")
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
+
     def test_cace_verification_and_separate_approval_gate_promotion(self):
         from unittest.mock import patch
         candidate = "candidate-promote"
@@ -375,16 +478,23 @@ class RSIPipelineTests(unittest.TestCase):
                 "cace_attestation_sha256": attestation_digest,
                 "action": "promote", "target": "qualified",
             }, "approver-key", self.approver_private)
-            with self.assertRaises(PermissionError):
-                self.ledger.record_promotion(
-                    candidate_id=candidate, artifact_sha256=ARTIFACT,
-                    suite_sha256=SUITE, attestation=attestation,
-                    approval_receipt=approval, approval_keys={},
-                )
+            issuer_store = json.loads(os.environ["MERLIN_ISSUER_TRUST_STORE_JSON"])
+            issuer_store["issuers"].pop("merlin-approver")
+            unapproved_raw = json.dumps(issuer_store, sort_keys=True, separators=(",", ":"))
+            with patch.dict(os.environ, {
+                "MERLIN_ISSUER_TRUST_STORE_JSON": unapproved_raw,
+                "MERLIN_ISSUER_TRUST_STORE_SHA256": rsi.sha256_hex(unapproved_raw.encode("utf-8")),
+            }):
+                with self.assertRaises(PermissionError):
+                    self.ledger.record_promotion(
+                        candidate_id=candidate, artifact_sha256=ARTIFACT,
+                        suite_sha256=SUITE, attestation=attestation,
+                        approval_receipt=approval
+                    )
             promoted = self.ledger.record_promotion(
                 candidate_id=candidate, artifact_sha256=ARTIFACT,
                 suite_sha256=SUITE, attestation=attestation,
-                approval_receipt=approval, approval_keys=self.approver_keys,
+                approval_receipt=approval
             )
         self.assertEqual(cace_event["seq"], 2)
         self.assertEqual(promoted["seq"], 3)
@@ -429,8 +539,7 @@ class RSIPipelineTests(unittest.TestCase):
         self.ledger.record_candidate(
             candidate_id=candidate, parent_candidate_id=None,
             source_receipt=self.source_receipt(candidate),
-            artifact_sha256=ARTIFACT, generator="rsi", mutation={},
-            trusted_keys=self.source_keys,
+            artifact_sha256=ARTIFACT, generator="rsi", mutation={}
         )
         metrics = {"overall": 0.1}
         evaluator = sign_receipt("merlin-evaluator", {
@@ -442,7 +551,7 @@ class RSIPipelineTests(unittest.TestCase):
         self.ledger.record_evaluation(
             candidate_id=candidate, artifact_sha256=ARTIFACT,
             suite_sha256=SUITE, metrics=metrics, passed=False,
-            evaluator_receipt=evaluator, trusted_keys=self.evaluator_keys,
+            evaluator_receipt=evaluator
         )
         with self.assertRaises(PermissionError):
             self.ledger._cace_evidence(candidate, candidate, ARTIFACT, SUITE)
@@ -471,6 +580,65 @@ class RSIPipelineTests(unittest.TestCase):
         })
         self.assertEqual(len(manifest["cases"]), 25)
         self.assertEqual(len({case["id"] for case in manifest["cases"]}), 25)
+
+    def test_full_heldout_case_results_are_bound_into_append_only_evaluation(self):
+        manifest_path = (
+            Path(__file__).resolve().parents[1]
+            / "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json"
+        )
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+        case_results = [{
+            "case_id": case["id"],
+            "domain": case["domain"],
+            "score": 0.8,
+            "passed": True,
+            "evaluator_id": "blind-domain-evaluator",
+            "evaluator_version": "1.0.0",
+            "evidence_sha256": rsi.sha256_hex(rsi.canonical_json({
+                "case_id": case["id"], "score": 0.8, "candidate": "candidate-heldout-25"
+            })),
+        } for case in manifest["cases"]]
+        report = rsi.validate_frozen_benchmark_results(manifest_bytes, case_results)
+        self.assertEqual(report["case_count"], 25)
+        self.assertEqual(set(report["metrics"]), {
+            "overall", "mathematics", "lean", "research", "coding", "engineering"
+        })
+        self.assertTrue(report["passed"])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, case_results[:-1])
+        duplicate = list(case_results)
+        duplicate[-1] = dict(duplicate[0])
+        with self.assertRaises(ValueError):
+            rsi.validate_frozen_benchmark_results(manifest_bytes, duplicate)
+
+        candidate = "candidate-heldout-25"
+        self.ledger.record_candidate(
+            candidate_id=candidate, parent_candidate_id=None,
+            source_receipt=self.source_receipt(candidate),
+            artifact_sha256=ARTIFACT, generator="rsi", mutation={"suite": report["suite_id"]}
+        )
+        metrics_sha = rsi.sha256_hex(rsi.canonical_json(report["metrics"]))
+        evaluator = sign_receipt("merlin-evaluator", {
+            "candidate_id": candidate,
+            "candidate_digest": ARTIFACT,
+            "benchmark_manifest_sha256": report["suite_sha256"],
+            "metrics_sha256": metrics_sha,
+            "status": "pass",
+            "case_results_sha256": report["case_results_sha256"],
+            "case_count": 25,
+        }, "evaluator-key", self.evaluator_private)
+        self.ledger.record_evaluation(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=report["suite_sha256"], metrics=report["metrics"],
+            passed=True, evaluator_receipt=evaluator,
+            benchmark_manifest_bytes=manifest_bytes, case_results=case_results,
+        )
+        event = json.loads(self.ledger.events(candidate)[1]["payload"])
+        self.assertEqual(event["case_count"], 25)
+        self.assertEqual(event["case_results_sha256"], report["case_results_sha256"])
+        self.assertEqual(len(event["case_results"]), 25)
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_optional_adapters_require_paired_multidomain_gain(self):
         self.assertFalse(paired_adapter_gain([0.5] * 5, [0.8] * 5)["eligible"])
