@@ -622,15 +622,15 @@ jobs:
               test_root.mkdir(parents=True)
               copied = {}
               for path in sorted(source_paths):
-                  raw, actual_blob_sha = fetch_external_contents(
-                      request["source_repo"], path, request["source_commit"]
-                  )
+                  vendor_path = "vendor/merlin-hermes-rsi-validation/" + path
+                  raw, actual_blob_sha = fetch_contents(vendor_path)
                   if actual_blob_sha != pins[path]:
-                      raise SystemExit("Hermes RSI source blob mismatch: " + path)
+                      raise SystemExit("Hermes RSI vendored source blob mismatch: " + path)
                   destination = test_root / path
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   destination.write_bytes(raw)
                   copied[path] = {
+                      "repository_path": vendor_path,
                       "git_blob_sha": actual_blob_sha,
                       "sha256": hashlib.sha256(raw).hexdigest(),
                       "size_bytes": len(raw),
