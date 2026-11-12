@@ -15,8 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
 from merlin import rsi_pipeline as rsi
 from merlin.rsi_pipeline import (
-    AppendOnlyLedger, ResearchMetadataCache, SignedReceipt,
-    dispatch_rsi_induction_seed, ingest_hermes_failure, optional_adapter_status,
+    AppendOnlyLedger, CaceMcpAttestor, ResearchMetadataCache, SignedReceipt,
+    cace_rsi_bundle_payload, dispatch_rsi_induction_seed,
+    ingest_hermes_failure, optional_adapter_status,
     paired_adapter_gain, paired_adapter_gate,
 )
 
@@ -388,6 +389,67 @@ class RSIPipelineTests(unittest.TestCase):
             "MERLIN_CACE_TRUST_STORE_JSON": raw,
             "MERLIN_CACE_TRUST_STORE_SHA256": rsi.sha256_hex(raw.encode("utf-8")),
         }
+
+    def test_cace_bundle_payload_contains_exact_manifest_bytes(self):
+        bundle, manifest_bytes, bindings = cace_rsi_bundle_payload(
+            candidate_id="candidate-payload",
+            candidate_digest=ARTIFACT,
+            benchmark_manifest_sha256=SUITE,
+            evaluator_receipt_sha256="e" * 64,
+            source_repo="Mannyspiro/expert-robot",
+            source_commit=SOURCE_COMMIT,
+        )
+        self.assertEqual(json.loads(manifest_bytes)["candidate_id"], "candidate-payload")
+        self.assertEqual(bundle["bindings"], bindings)
+        self.assertEqual(
+            rsi.sha256_hex(rsi._CACE_BUNDLE_DOMAIN + rsi.canonical_json(bundle)),
+            rsi.cace_rsi_bundle_sha256(
+                candidate_id="candidate-payload",
+                candidate_digest=ARTIFACT,
+                benchmark_manifest_sha256=SUITE,
+                evaluator_receipt_sha256="e" * 64,
+                source_repo="Mannyspiro/expert-robot",
+                source_commit=SOURCE_COMMIT,
+            ),
+        )
+
+    def test_cace_mcp_attestor_rejects_non_loopback_endpoints(self):
+        with self.assertRaises(ValueError):
+            CaceMcpAttestor("https://untrusted.example/mcp")
+        with self.assertRaises(ValueError):
+            CaceMcpAttestor("http://192.0.2.10:8765/mcp")
+
+    def test_ledger_obtains_cace_attestation_from_mcp_transport(self):
+        candidate = "candidate-live-cace-transport"
+        self._record_candidate_and_evaluation(candidate)
+        attestation = self._make_cace_attestation(candidate)
+        class FakeAttestor:
+            def __init__(self):
+                self.calls = 0
+            def attest(self, *, bundle_payload, expected_claim_id, expected_bindings, artifact_bytes_b64):
+                self.calls += 1
+                self.asserted = {
+                    "claim": expected_claim_id,
+                    "bindings": expected_bindings,
+                    "artifact_ids": sorted(artifact_bytes_b64),
+                }
+                return {
+                    "attestation": attestation,
+                    "purpose": "artifact-integrity",
+                    "proof_effect": "none",
+                    "authority": "verification-only",
+                }
+        fake = FakeAttestor()
+        event = self.ledger.record_cace_verification_from_mcp(
+            candidate_id=candidate, artifact_sha256=ARTIFACT,
+            suite_sha256=SUITE, attestor=fake,
+        )
+        self.assertEqual(fake.calls, 1)
+        self.assertEqual(fake.asserted["claim"], candidate)
+        self.assertEqual(fake.asserted["artifact_ids"], ["merlin-rsi-evidence-manifest"])
+        self.assertEqual(event["event_type"], "candidate.cace_verified")
+        self.assertEqual(event["verifier_id"], "cace")
+        self.assertTrue(self.ledger.verify_chain(candidate)["valid"])
 
     def test_cace_verification_and_separate_approval_gate_promotion(self):
         from unittest.mock import patch
