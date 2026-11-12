@@ -559,10 +559,20 @@ class RSIPipelineTests(unittest.TestCase):
                     "authority": "verification-only",
                 }
         fake = FakeReproducer()
+        class FakeIndependentVerifier:
+            def verify(self, **kwargs):
+                signed = kwargs["attestation_payload"]
+                return {
+                    "verified": True,
+                    "purpose": "independent-reproduction",
+                    "bundle_sha256": signed["statement"]["bundle_sha256"],
+                    "attestation_sha256": rsi.sha256_hex(rsi.canonical_json(dict(signed))),
+                    "runner_provenance": provenance,
+                }
         event = self.ledger.record_cace_verification_from_mcp(
             candidate_id=candidate, artifact_sha256=ARTIFACT,
             suite_sha256=SUITE, github_run_id=provenance["run_id"],
-            attestor=fake,
+            attestor=fake, verifier=FakeIndependentVerifier(),
         )
         self.assertEqual(fake.kwargs["github_run_id"], provenance["run_id"])
         self.assertEqual(self.ledger.events(candidate)[-1]["event_type"], "candidate.cace_verified")
