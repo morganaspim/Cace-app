@@ -1,0 +1,10 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "a9f3c6d1-5e72-4b80-9c25-6d8f1a3e7b42",
+  "operation": "merlin_rsi_metadata_live_probe",
+  "reason": "Repeat live Crossref/arXiv retrieval and cache replay against the latest exact RSI module source.",
+  "created_at": "2026-11-12T00:40:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "571e1e895c44b401d7ade6cc9329c7e7e183a00a",
+  "module_blob_sha": "9e3b134466b8c15cec35bf8f6d3d137a9bae5327"
+}
