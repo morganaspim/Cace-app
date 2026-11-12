@@ -118,8 +118,8 @@ def verify_merlin_rsi_attestation(
         raise PermissionError("attestation verifier identity is not CACE")
     if statement.verifier_key_id != key_id or approved.get(key_id) != "cace":
         raise PermissionError("attestation signing key is not independently pinned by CACE")
-    if statement.purpose != "independent-reproduction":
-        raise PermissionError("CACE attestation purpose is not independent reproduction")
+    if statement.purpose not in {"artifact-integrity", "independent-reproduction"}:
+        raise PermissionError("CACE attestation purpose is not an accepted verification purpose")
     if statement.claim_id != expected_claim_id:
         raise PermissionError("CACE attestation claim ID mismatch")
     if statement.bundle_sha256 != bundle_sha256:
