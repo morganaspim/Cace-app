@@ -10,6 +10,10 @@ integer determinants/determinantal divisors on small matrices.
 
 from itertools import combinations
 from math import gcd
+import json
+import os
+import platform
+from pathlib import Path
 
 
 FACETS = (
@@ -181,6 +185,79 @@ def _rp2_h1_presentation(edges: tuple[tuple[int, int], ...]) -> list[list[int]]:
             if edge not in tree_edges:
                 presentation[generator_index[edge]][face_index] += coefficient
     return presentation
+
+
+
+def test_emit_independent_reference_receipt() -> None:
+    vertices, edges, d1, d2 = _boundary_matrices()
+    presentation = _rp2_h1_presentation(edges)
+    full_determinant = bareiss_determinant(presentation)
+    unit_minor = [
+        [value for column, value in enumerate(row) if column != 0]
+        for row_index, row in enumerate(presentation) if row_index != 2
+    ]
+    rp2_mod2 = {
+        "b0": len(vertices) - _rank_mod2([[x & 1 for x in row] for row in d1]),
+        "b1": len(edges)
+              - _rank_mod2([[x & 1 for x in row] for row in d1])
+              - _rank_mod2([[x & 1 for x in row] for row in d2]),
+        "b2": len(FACETS) - _rank_mod2([[x & 1 for x in row] for row in d2]),
+    }
+    fixtures = (
+        [[2, 4], [6, 8]],
+        [[0, 2], [3, 0]],
+        [[4, 6], [3, 9]],
+        [[0, 0], [0, 6]],
+        [[-2, 4, 0], [6, -8, 2]],
+    )
+    binding = json.loads(
+        (Path(__file__).resolve().parents[1] / "SOURCE_BINDING.json").read_text()
+    )
+    receipt = {
+        "schema": "merlin-cace-oci-independent-reference-v1",
+        "source_repository": binding["source_repository"],
+        "source_commit": binding["source_commit"],
+        "runner": {
+            "name": os.environ.get("RUNNER_NAME", "unknown"),
+            "os": os.environ.get("RUNNER_OS", platform.system()),
+            "arch": os.environ.get("RUNNER_ARCH", platform.machine()),
+            "platform": platform.platform(),
+        },
+        "workflow": {
+            "repository": os.environ.get("GITHUB_REPOSITORY", ""),
+            "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+            "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+            "job": os.environ.get("GITHUB_JOB", ""),
+            "workflow_sha": os.environ.get("GITHUB_WORKFLOW_SHA", ""),
+        },
+        "implementation": "pure-python-bareiss-determinants-and-tree-collapse",
+        "rp2": {
+            "vertices": len(vertices),
+            "edges": len(edges),
+            "triangles": len(FACETS),
+            "euler_characteristic": len(vertices) - len(edges) + len(FACETS),
+            "integral_homology": {"H0": "Z", "H1": "Z/2", "H2": "0"},
+            "mod2_betti": rp2_mod2,
+            "tree_collapsed_presentation_determinant": full_determinant,
+            "unit_9x9_minor_determinant": bareiss_determinant(unit_minor),
+            "smith_invariant_factors": [1] * 9 + [abs(full_determinant)],
+        },
+        "snf_fixtures": [
+            {"matrix": matrix, "invariant_factors": determinantal_invariants(matrix)}
+            for matrix in fixtures
+        ],
+    }
+    assert receipt["rp2"]["mod2_betti"] == {"b0": 1, "b1": 1, "b2": 1}
+    assert receipt["rp2"]["smith_invariant_factors"] == [1] * 9 + [2]
+    artifact_dir_name = os.environ.get("CACE_ARTIFACT_DIR")
+    runner_temp = os.environ.get("RUNNER_TEMP")
+    if artifact_dir_name and runner_temp:
+        output_dir = Path(runner_temp) / artifact_dir_name
+        output_dir.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(receipt, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        (output_dir / "merlin-continuum-independent-reference-receipt.json").write_bytes(
+            payload + b"\\n"
+        )
 
 
 def test_six_vertex_triangulated_rp2_integral_homology() -> None:
