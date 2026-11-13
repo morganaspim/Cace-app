@@ -1,0 +1,188 @@
+from __future__ import annotations
+
+"""Independent pure-Python reference checks for the six-vertex RP2 model.
+
+This intentionally does not import or port the C++ Smith-normal-form or
+simplicial-homology implementation. It constructs boundary matrices directly,
+collapses a spanning tree to obtain an H1 presentation, and uses exact
+integer determinants/determinantal divisors on small matrices.
+"""
+
+from itertools import combinations
+from math import gcd
+from functools import reduce
+
+
+FACETS = (
+    (0, 1, 2), (0, 1, 3), (0, 2, 4), (0, 3, 5), (0, 4, 5),
+    (1, 2, 5), (1, 3, 4), (1, 4, 5), (2, 3, 4), (2, 3, 5),
+)
+
+
+def bareiss_determinant(matrix: list[list[int]]) -> int:
+    """Fraction-free determinant with exact integer arithmetic."""
+    if not matrix:
+        return 1
+    values = [row[:] for row in matrix]
+    size = len(values)
+    if any(len(row) != size for row in values):
+        raise ValueError("determinant requires a square matrix")
+    sign = 1
+    previous_pivot = 1
+    for pivot_index in range(size - 1):
+        pivot_row = next(
+            (row for row in range(pivot_index, size)
+             if values[row][pivot_index] != 0),
+            None,
+        )
+        if pivot_row is None:
+            return 0
+        if pivot_row != pivot_index:
+            values[pivot_index], values[pivot_row] = (
+                values[pivot_row], values[pivot_index]
+            )
+            sign = -sign
+        pivot = values[pivot_index][pivot_index]
+        for row in range(pivot_index + 1, size):
+            for column in range(pivot_index + 1, size):
+                numerator = (
+                    values[row][column] * pivot
+                    - values[row][pivot_index] * values[pivot_index][column]
+                )
+                if numerator % previous_pivot:
+                    raise ArithmeticError("Bareiss exact-division invariant failed")
+                values[row][column] = numerator // previous_pivot
+        for row in range(pivot_index + 1, size):
+            values[row][pivot_index] = 0
+        previous_pivot = pivot
+    return sign * values[-1][-1]
+
+
+def determinantal_invariants(matrix: list[list[int]]) -> list[int]:
+    """Compute Smith factors from gcds of all minors; intended for small matrices."""
+    if not matrix or not matrix[0]:
+        return []
+    rows, columns = len(matrix), len(matrix[0])
+    if any(len(row) != columns for row in matrix):
+        raise ValueError("matrix must be rectangular")
+    factors: list[int] = []
+    previous_divisor = 1
+    for order in range(1, min(rows, columns) + 1):
+        divisor = 0
+        for row_ids in combinations(range(rows), order):
+            for column_ids in combinations(range(columns), order):
+                minor = [
+                    [matrix[row][column] for column in column_ids]
+                    for row in row_ids
+                ]
+                divisor = gcd(divisor, abs(bareiss_determinant(minor)))
+        if divisor == 0:
+            break
+        if divisor % previous_divisor:
+            raise AssertionError("determinantal divisors do not form a divisibility chain")
+        factors.append(divisor // previous_divisor)
+        previous_divisor = divisor
+    return factors
+
+
+def elementary_unimodular_transform(matrix: list[list[int]]) -> list[list[int]]:
+    result = [row[:] for row in matrix]
+    rows, columns = len(result), len(result[0])
+    if rows > 1:
+        result[0], result[-1] = result[-1], result[0]
+        result[1] = [a + 2 * b for a, b in zip(result[1], result[0])]
+    if columns > 1:
+        for row in result:
+            row[0], row[-1] = row[-1], row[0]
+        for row in result:
+            row[1] -= row[0]
+    return result
+
+
+def test_small_integer_snf_fixtures_and_unimodular_equivalence() -> None:
+    fixtures = (
+        ([[2, 4], [6, 8]], [2, 4]),
+        ([[0, 2], [3, 0]], [1, 6]),
+        ([[4, 6], [3, 9]], [1, 18]),
+        ([[0, 0], [0, 6]], [6]),
+        ([[-2, 4, 0], [6, -8, 2]], [2, 2]),
+    )
+    for matrix, expected in fixtures:
+        factors = determinantal_invariants(matrix)
+        assert factors == expected
+        assert all(factors[index + 1] % factors[index] == 0
+                   for index in range(len(factors) - 1))
+        assert determinantal_invariants(elementary_unimodular_transform(matrix)) == factors
+
+
+def _boundary_matrices():
+    vertices = tuple(range(6))
+    edges = tuple(combinations(vertices, 2))
+    edge_index = {edge: index for index, edge in enumerate(edges)}
+    d1 = [[0 for _ in edges] for _ in vertices]
+    for column, (a, b) in enumerate(edges):
+        d1[a][column] = -1
+        d1[b][column] = 1
+
+    d2 = [[0 for _ in FACETS] for _ in edges]
+    for column, (a, b, c) in enumerate(FACETS):
+        d2[edge_index[(b, c)]][column] += 1
+        d2[edge_index[(a, c)]][column] -= 1
+        d2[edge_index[(a, b)]][column] += 1
+    return vertices, edges, d1, d2
+
+
+def _multiply(left: list[list[int]], right: list[list[int]]) -> list[list[int]]:
+    return [
+        [sum(left[row][k] * right[k][column] for k in range(len(right)))
+         for column in range(len(right[0]))]
+        for row in range(len(left))
+    ]
+
+
+def _rp2_h1_presentation(edges: tuple[tuple[int, int], ...]) -> list[list[int]]:
+    # Collapse the explicit spanning tree {0-i | i=1..5}. Its five edges
+    # generate no H1 generators; each triangle boundary becomes a relation
+    # among the ten remaining edge generators.
+    tree_edges = {(0, vertex) for vertex in range(1, 6)}
+    generators = [edge for edge in edges if edge not in tree_edges]
+    generator_index = {edge: index for index, edge in enumerate(generators)}
+    presentation = [[0 for _ in FACETS] for _ in generators]
+    for face_index, (a, b, c) in enumerate(FACETS):
+        for edge, coefficient in (
+            ((b, c), 1), ((a, c), -1), ((a, b), 1)
+        ):
+            if edge not in tree_edges:
+                presentation[generator_index[edge]][face_index] += coefficient
+    return presentation
+
+
+def test_six_vertex_triangulated_rp2_integral_homology() -> None:
+    vertices, edges, d1, d2 = _boundary_matrices()
+    assert len(vertices) == 6
+    assert len(edges) == 15
+    assert len(FACETS) == 10
+    assert len({tuple(sorted(face)) for face in FACETS}) == 10
+    assert all(sum(1 for face in FACETS if set(edge).issubset(face)) == 2
+               for edge in edges)
+    assert _multiply(d1, d2) == [[0 for _ in FACETS] for _ in vertices]
+    assert len(vertices) - len(edges) + len(FACETS) == 1
+
+    # The star at vertex 0 is a spanning tree, so the 1-skeleton is connected:
+    # H0(RP2; Z) = Z. The reduced 10x10 relation matrix presents H1.
+    presentation = _rp2_h1_presentation(edges)
+    assert len(presentation) == 10 and all(len(row) == 10 for row in presentation)
+    assert bareiss_determinant(presentation) == -2
+
+    # A unit 9x9 minor proves the first nine determinantal divisors are 1:
+    # the selected submatrix is unimodular, so all its exterior powers have
+    # integral inverses. The full determinant then gives final factor 2.
+    unit_minor = [
+        [value for column, value in enumerate(row) if column != 0]
+        for row_index, row in enumerate(presentation) if row_index != 2
+    ]
+    assert bareiss_determinant(unit_minor) == -1
+    assert [1] * 9 + [2] == [1, 1, 1, 1, 1, 1, 1, 1, 1, 2]
+
+    # The relation matrix is nonsingular, so the simplicial boundary map
+    # d2 is injective and H2=0. Together: H0=Z, H1=Z/2, H2=0.
