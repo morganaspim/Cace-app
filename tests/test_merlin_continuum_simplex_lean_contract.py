@@ -11,6 +11,20 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "formal" / "cace_formal" / "CACEFormal" / "ContinuumSimplexCore.lean"
 GUARDRAILS = ROOT / "formal" / "cace_formal" / "proof_guardrails.json"
 AGGREGATE = ROOT / "formal" / "cace_formal" / "CACEFormal.lean"
+PROOF_HOLE_PATTERNS = (re.compile(r"\\bsorry\\b"), re.compile(r"\\badmit\\b"))
+
+
+def _contains_proof_hole(source: str) -> bool:
+    lowered = source.lower()
+    return any(pattern.search(lowered) for pattern in PROOF_HOLE_PATTERNS)
+
+
+def test_proof_hole_detector_rejects_sorry_and_admit_tokens() -> None:
+    # Mutation-style canaries: each forbidden token must independently trip the gate.
+    assert _contains_proof_hole("by sorry")
+    assert _contains_proof_hole("by admit")
+    assert not _contains_proof_hole("by rfl")
+    assert not _contains_proof_hole("admitted_theorem")
 
 
 def test_continuum_simplex_core_is_explicitly_quarantined() -> None:
@@ -53,11 +67,8 @@ def test_continuum_simplex_core_contains_required_definitions_and_no_holes() -> 
     for declaration in required:
         assert declaration in source, declaration
 
-    lowered = source.lower()
-    assert re.search(r"\\bsorry\\b", lowered) is None
-    assert re.search(r"\\badmit\\b", lowered) is None
-    assert "axiom " not in lowered
-
+    assert not _contains_proof_hole(source)
+    assert "axiom " not in source.lower()
 
 
 def _oriented_face_boundary(a: int, b: int, c: int) -> Counter[tuple[int, int]]:
