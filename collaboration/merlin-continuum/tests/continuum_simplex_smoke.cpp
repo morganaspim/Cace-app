@@ -86,6 +86,60 @@ int main() {
     assert(composed.invertible());
     assert(!(Matrix2{1.0, 0.0, 0.0, 0.0}.invertible()));
 
+
+    // Heterogeneous linear maps carry explicit source/target state-space IDs.
+    // R2 -> R3 -> R1 composes to a rectangular R2 -> R1 map.
+    using expert_robot::math::continuum::DenseMatrix;
+    using expert_robot::math::continuum::LinearStateMap;
+    const LinearStateMap embed(
+        "embed-R2-R3", "R2", "R3",
+        DenseMatrix({{1.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}}));
+    const LinearStateMap collapse(
+        "collapse-R3-R1", "R3", "R1",
+        DenseMatrix({{1.0, 1.0, 0.0}}));
+    const auto composed_map = embed.then(collapse);
+    assert(composed_map.source() == "R2");
+    assert(composed_map.target() == "R1");
+    const auto composed_value = composed_map.apply({2.0, 3.0});
+    assert(composed_value.size() == 1);
+    assert(close(composed_value[0], 5.0));
+
+    // The collapse is non-injective: distinct source states share one image.
+    assert(close(collapse.apply(embed.apply({2.0, 3.0}))[0],
+                 collapse.apply(embed.apply({4.0, 1.0}))[0]));
+
+    const LinearStateMap identity(
+        "identity-R2", "R2", "R2",
+        DenseMatrix({{1.0, 0.0}, {0.0, 1.0}}));
+    const auto identity_composed = identity.then(embed);
+    const auto identity_value = identity_composed.apply({2.0, 3.0});
+    const auto direct_value = embed.apply({2.0, 3.0});
+    assert(identity_value == direct_value);
+
+    bool rejected_wrong_source_dimension = false;
+    try {
+        (void)embed.apply({1.0});
+    } catch (const std::invalid_argument&) {
+        rejected_wrong_source_dimension = true;
+    }
+    assert(rejected_wrong_source_dimension);
+
+    bool rejected_wrong_intermediate_carrier = false;
+    try {
+        (void)embed.then(identity);
+    } catch (const std::invalid_argument&) {
+        rejected_wrong_intermediate_carrier = true;
+    }
+    assert(rejected_wrong_intermediate_carrier);
+
+    bool rejected_ragged_matrix = false;
+    try {
+        (void)DenseMatrix({{1.0, 0.0}, {0.0}});
+    } catch (const std::invalid_argument&) {
+        rejected_ragged_matrix = true;
+    }
+    assert(rejected_ragged_matrix);
+
     bool rejected_bad_samples = false;
     try {
         (void)EdgeField({{0.0, a}, {0.7, b}, {0.6, c}, {1.0, a}});
