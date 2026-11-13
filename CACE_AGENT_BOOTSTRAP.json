@@ -7,6 +7,8 @@
     "production_ready": false
   },
   "first_read": [
+    "docs/MERLIN_PRODUCTION_HANDOFF.md",
+    "docs/OCI_RUNNER_OPERATIONS.md",
     "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md",
     "docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md",
     "docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md",
@@ -79,7 +81,9 @@
     "rmk_formal_linkage_matrix": "docs/proofs/RMK_FORMAL_LINKAGE_MATRIX.json",
     "capability_gap_feedback": "docs/AI_CAPABILITY_GAP_FEEDBACK_LOOP.md",
     "interactive_workbench": "docs/INTERACTIVE_RESEARCH_WORKBENCH_SPEC.md",
-    "geometric_ai_efficiency": "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md"
+    "geometric_ai_efficiency": "docs/GEOMETRIC_AI_EFFICIENCY_ROADMAP.md",
+    "merlin_cross_chat_handoff": "docs/MERLIN_PRODUCTION_HANDOFF.md",
+    "oci_runner_operations": "docs/OCI_RUNNER_OPERATIONS.md"
   },
   "trust_model": {
     "presentation": "untrusted; cannot create scientific evidence",
