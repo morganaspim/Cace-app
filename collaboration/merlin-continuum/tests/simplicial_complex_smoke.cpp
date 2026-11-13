@@ -679,6 +679,9 @@ int main() {
     assert(evidence.filtration_parameters.find("threshold=1") != std::string::npos);
 
     assert(!evidence.reproducibility_metadata.empty());
+    std::cout << "PERSISTENCE_ALGORITHM_VERSION=" << evidence.algorithm_version << "\n";
+    std::cout << "PERSISTENCE_INPUT_SHA256=" << evidence.input_digest << "\n";
+    std::cout << "PERSISTENCE_OUTPUT_SHA256=" << evidence.output_digest << "\n";
 
     // Build a transport-ready evidence envelope tied to an exact source
     // commit, algorithm, input/output bytes and runner execution. A matching
