@@ -37,6 +37,9 @@ def test_continuum_simplex_core_contains_required_definitions_and_no_holes() -> 
         "def orientedEdgeBoundary",
         "def orientedTriangleBoundarySquared",
         "theorem oriented_triangle_boundary_squared_zero",
+        "def orientedFaceBoundary",
+        "def orientedTetrahedronBoundarySquared",
+        "theorem oriented_tetrahedron_boundary_squared_zero",
     )
     for declaration in required:
         assert declaration in source, declaration
