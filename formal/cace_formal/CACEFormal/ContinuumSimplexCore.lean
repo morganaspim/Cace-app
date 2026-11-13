@@ -180,4 +180,41 @@ theorem oriented_triangle_boundary_squared_zero
   simp [orientedTriangleBoundarySquared, orientedEdgeBoundary]
   ring
 
+
+
+/-! ## Oriented tetrahedron boundary cancellation
+
+The oriented tetrahedron [a,b,c,d] has boundary
+[b,c,d] - [a,c,d] + [a,b,d] - [a,b,c]. Each oriented face is
+expanded into its three ordered edges. The resulting 1-chain is zero:
+every edge occurs twice with opposite coefficients. This is a finite
+chain identity and does not depend on the paired-continuum fields.
+-/
+
+/-- Boundary of an oriented 2-simplex [a,b,c], represented as an integer
+1-chain on ordered vertex pairs. -/
+def orientedFaceBoundary {V : Type*} [DecidableEq V] (a b c : V) :
+    (V × V) →₀ ℤ :=
+  Finsupp.single (b, c) 1 -
+    Finsupp.single (a, c) 1 +
+    Finsupp.single (a, b) 1
+
+/-- Apply the edge boundary to the alternating oriented face boundary
+of a tetrahedron [a,b,c,d]. -/
+def orientedTetrahedronBoundarySquared {V : Type*} [DecidableEq V]
+    (a b c d : V) : (V × V) →₀ ℤ :=
+  orientedFaceBoundary b c d -
+    orientedFaceBoundary a c d +
+    orientedFaceBoundary a b d -
+    orientedFaceBoundary a b c
+
+/-- The boundary of the boundary of an oriented tetrahedron is zero.
+The ordered-edge coefficients cancel in opposite-sign pairs. -/
+theorem oriented_tetrahedron_boundary_squared_zero
+    {V : Type*} [DecidableEq V] (a b c d : V) :
+    orientedTetrahedronBoundarySquared a b c d = 0 := by
+  ext edge
+  simp [orientedTetrahedronBoundarySquared, orientedFaceBoundary]
+  ring
+
 end CACEFormal
