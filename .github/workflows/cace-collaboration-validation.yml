@@ -276,8 +276,20 @@ jobs:
             tests/test_rmk_formal_qualification.py \
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
+            tests/test_merlin_continuum_cpp_smoke.py collaboration/merlin-continuum/tests/test_continuum_structure_ir.py \
+            collaboration/merlin-continuum/tests/test_independent_integer_homology_reference.py \
+            tests/test_merlin_continuum_simplex_lean_contract.py \
             tests/test_qualification_promotion_v339.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$TEST_ENV/bin/python" scripts/check_bug_sweep.py
+
+      - name: Build exact-byte CACE continuum EvidenceBundle
+        shell: bash
+        env:
+          TEST_ENV: ${{ runner.temp }}/cace-collaboration-tests-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" "$TEST_ENV/bin/python" scripts/build_merlin_continuum_evidence_bundle.py \
+            | tee "$RUNNER_TEMP/$CACE_ARTIFACT_DIR/merlin-continuum-evidence-build.log"
 
       - name: Verify canonical qualified baseline remains an ancestor
         shell: bash
