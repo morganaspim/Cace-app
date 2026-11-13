@@ -277,6 +277,7 @@ jobs:
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
             tests/test_merlin_continuum_cpp_smoke.py collaboration/merlin-continuum/tests/test_continuum_structure_ir.py \
+            tests/test_merlin_continuum_simplex_lean_contract.py \\
             tests/test_qualification_promotion_v339.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$TEST_ENV/bin/python" scripts/check_bug_sweep.py
 
