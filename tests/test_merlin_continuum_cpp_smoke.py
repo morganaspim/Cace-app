@@ -53,6 +53,11 @@ def test_exact_source_compiles_and_runs_on_cace_oci() -> None:
                     "-I",
                     str(INCLUDE),
                     str(source),
+                    *(
+                        [str(FIXTURE / "cpp" / "src" / "sha256.cpp")]
+                        if source.stem == "simplicial_complex_smoke"
+                        else []
+                    ),
                     "-o",
                     str(binary),
                 ],
