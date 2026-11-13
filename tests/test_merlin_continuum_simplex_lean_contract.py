@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
+from itertools import permutations, product
 from pathlib import Path
 
 
@@ -48,3 +50,40 @@ def test_continuum_simplex_core_contains_required_definitions_and_no_holes() -> 
     assert "sorry" not in lowered
     assert "admit" not in lowered
     assert "axiom " not in lowered
+
+
+
+def _oriented_face_boundary(a: int, b: int, c: int) -> Counter[tuple[int, int]]:
+    """Reference 1-chain for [a,b,c] = [b,c] - [a,c] + [a,b]."""
+    result: Counter[tuple[int, int]] = Counter()
+    result[(b, c)] += 1
+    result[(a, c)] -= 1
+    result[(a, b)] += 1
+    return result
+
+
+def _oriented_tetrahedron_boundary_squared(
+    a: int, b: int, c: int, d: int
+) -> Counter[tuple[int, int]]:
+    """Expand [b,c,d] - [a,c,d] + [a,b,d] - [a,b,c] to edges."""
+    result: Counter[tuple[int, int]] = Counter()
+    signed_faces = (
+        (1, (b, c, d)),
+        (-1, (a, c, d)),
+        (1, (a, b, d)),
+        (-1, (a, b, c)),
+    )
+    for sign, (x, y, z) in signed_faces:
+        for edge, coefficient in _oriented_face_boundary(x, y, z).items():
+            result[edge] += sign * coefficient
+    return result
+
+
+def test_tetrahedron_boundary_cancellation_for_permutations_and_degenerate_labels() -> None:
+    # All 24 orientations of four distinct vertices.
+    for vertices in permutations(range(4)):
+        assert not any(_oriented_tetrahedron_boundary_squared(*vertices).values())
+
+    # Repeated labels exercise degeneracies and coincident ordered edges.
+    for vertices in product(range(3), repeat=4):
+        assert not any(_oriented_tetrahedron_boundary_squared(*vertices).values())
