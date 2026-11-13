@@ -1,6 +1,6 @@
-import re
 from __future__ import annotations
 
+import re
 import json
 from collections import Counter
 from itertools import permutations, product
