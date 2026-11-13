@@ -27,6 +27,7 @@ def test_continuum_simplex_core_contains_required_definitions_and_no_holes() -> 
         "def EndpointGluing",
         "map_preserves_endpoint_gluing",
         "mapEdges_preserves_endpoint_gluing",
+        "mapEdges_preserves_continuity",
         "map_preserves_continuity",
         "theorem comp_assoc",
         "theorem id_comp",
