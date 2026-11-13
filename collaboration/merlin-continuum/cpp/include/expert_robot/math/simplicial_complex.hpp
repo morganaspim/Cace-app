@@ -711,6 +711,82 @@ inline std::vector<F2HomologyRepresentatives> compute_f2_homology_representative
 }
 
 
+// Independently audit an explicit homology basis against the chain complex.
+// This checks cycle closure, independence modulo boundaries, and spanning of
+// the full cycle space; merely returning closed cycles is not sufficient.
+inline void validate_f2_homology_representatives(
+    const FiniteSimplicialComplex& complex,
+    const F2HomologyRepresentatives& group) {
+    std::vector<SimplexKey> expected_simplices;
+    for (const auto& [simplex, present] : complex.simplices()) {
+        (void)present;
+        if (simplex.size() == group.degree + 1) expected_simplices.push_back(simplex);
+    }
+    if (expected_simplices != group.basis_simplices) {
+        throw std::invalid_argument("homology basis simplex ordering does not match the complex");
+    }
+
+    const std::size_t dimension = expected_simplices.size();
+    const auto lower = boundary_matrix_mod2(complex, group.degree);
+    const auto upper = boundary_matrix_mod2(complex, group.degree + 1);
+    const std::size_t lower_rank = rank_mod2(lower);
+    const std::size_t boundary_rank = rank_mod2(upper);
+    if (lower_rank > dimension || boundary_rank > dimension - lower_rank) {
+        throw std::logic_error("chain dimensions violate the homology rank identity");
+    }
+    const std::size_t expected_betti = dimension - lower_rank - boundary_rank;
+    if (group.representatives.size() != expected_betti) {
+        throw std::invalid_argument("homology representative count does not equal the computed Betti number");
+    }
+
+    std::map<SimplexKey, std::size_t> simplex_index;
+    for (std::size_t i = 0; i < dimension; ++i) {
+        simplex_index.emplace(expected_simplices[i], i);
+    }
+
+    std::vector<std::vector<unsigned char>> span;
+    if (!upper.empty()) {
+        for (std::size_t column = 0; column < upper.front().size(); ++column) {
+            std::vector<unsigned char> boundary_vector(dimension, 0);
+            for (std::size_t row = 0; row < dimension; ++row) {
+                boundary_vector[row] = upper[row][column] & 1U;
+            }
+            span.push_back(std::move(boundary_vector));
+        }
+    }
+    if (vector_rank_mod2(span, dimension) != boundary_rank) {
+        throw std::logic_error("boundary-column rank is inconsistent");
+    }
+
+    for (const auto& representative : group.representatives) {
+        std::vector<unsigned char> coordinates(dimension, 0);
+        for (const auto& [simplex, coefficient] : representative) {
+            const auto found = simplex_index.find(simplex);
+            if (found == simplex_index.end() || (coefficient != 1 && coefficient != -1)) {
+                throw std::invalid_argument("homology representative has an invalid simplex or F2 coefficient");
+            }
+            coordinates[found->second] ^= static_cast<unsigned char>(coefficient & 1);
+        }
+        if (group.degree > 0) {
+            const IntegerChain boundary_chain = boundary(representative);
+            for (const auto& [simplex, coefficient] : boundary_chain) {
+                (void)simplex;
+                if ((coefficient & 1) != 0) {
+                    throw std::invalid_argument("homology representative is not a cycle over F2");
+                }
+            }
+        }
+        span.push_back(std::move(coordinates));
+    }
+
+    const std::size_t full_span_rank = vector_rank_mod2(span, dimension);
+    if (full_span_rank != dimension - lower_rank) {
+        throw std::invalid_argument(
+            "homology representatives do not form a basis of cycles modulo boundaries");
+    }
+}
+
+
 // Exact integer matrices with explicit dimensions (including 0-by-n maps).
 using Integer = std::int64_t;
 struct IntegerMatrix {
@@ -1322,367 +1398,3 @@ inline ContinuumStateFiltration build_paired_state_filtration(
             result.filtration.push_back(FilteredSimplex{simplex, scores.at(simplex)});
         }
     }
-    return result;
-}
-
-
-// Resolve shared endpoints only when the caller supplies an explicit
-// compatibility constraint. The first binding is the reference state;
-// every other incident edge must agree within the declared tolerance.
-inline std::vector<ResolvedContinuumEndpoint> validate_continuum_gluing(
-    const std::vector<PairedContinuumSample>& samples,
-    const std::vector<ContinuumEndpointConstraint>& constraints) {
-    std::map<std::string, const PairedContinuumSample*> by_id;
-    for (const auto& sample : samples) {
-        if (sample.sample_id.empty() || sample.edge_id.empty() ||
-            !std::isfinite(sample.parameter) || !std::isfinite(sample.first) ||
-            !std::isfinite(sample.second) ||
-            !by_id.emplace(sample.sample_id, &sample).second) {
-            throw std::invalid_argument("continuum gluing requires unique, named samples and finite edge/state coordinates");
-        }
-    }
-    std::set<std::string> endpoint_ids;
-    std::vector<ResolvedContinuumEndpoint> resolved;
-    for (const auto& constraint : constraints) {
-        if (constraint.endpoint_id.empty() || !endpoint_ids.insert(constraint.endpoint_id).second ||
-            constraint.bindings.size() < 2 || !std::isfinite(constraint.tolerance) ||
-            constraint.tolerance < 0.0) {
-            throw std::invalid_argument("endpoint constraints need unique IDs, two bindings and finite nonnegative tolerance");
-        }
-        const auto& reference_binding = constraint.bindings.front();
-        const auto reference = by_id.find(reference_binding.sample_id);
-        if (reference == by_id.end() || reference->second->edge_id != reference_binding.edge_id ||
-            !std::isfinite(reference_binding.endpoint_parameter) ||
-            std::abs(reference->second->parameter - reference_binding.endpoint_parameter) > 1e-12 ||
-            (std::abs(reference_binding.endpoint_parameter) > 1e-12 &&
-             std::abs(reference_binding.endpoint_parameter - 1.0) > 1e-12)) {
-            throw std::invalid_argument("endpoint reference binding does not identify its declared edge endpoint");
-        }
-        ResolvedContinuumEndpoint item;
-        item.endpoint_id = constraint.endpoint_id;
-        item.first = reference->second->first;
-        item.second = reference->second->second;
-        item.provenance = constraint.provenance;
-        item.provenance.push_back("endpoint:" + constraint.endpoint_id);
-        item.provenance.push_back("tolerance:" + canonical_double(constraint.tolerance));
-        std::set<std::string> bound_edges;
-        std::set<std::string> bound_samples;
-        for (const auto& binding : constraint.bindings) {
-            if (!bound_edges.insert(binding.edge_id).second ||
-                !bound_samples.insert(binding.sample_id).second) {
-                throw std::invalid_argument("an endpoint constraint cannot bind the same edge or sample twice");
-            }
-            const auto found = by_id.find(binding.sample_id);
-            if (found == by_id.end() || found->second->edge_id != binding.edge_id ||
-                !std::isfinite(binding.endpoint_parameter) ||
-                (std::abs(binding.endpoint_parameter) > 1e-12 &&
-                 std::abs(binding.endpoint_parameter - 1.0) > 1e-12) ||
-                std::abs(found->second->parameter - binding.endpoint_parameter) > 1e-12) {
-                throw std::invalid_argument("endpoint binding does not match an explicit sample at edge parameter 0 or 1");
-            }
-            if (std::abs(found->second->first - item.first) > constraint.tolerance ||
-                std::abs(found->second->second - item.second) > constraint.tolerance) {
-                throw std::invalid_argument("shared endpoint paired states violate compatibility tolerance");
-            }
-            item.incident_edges.push_back(binding.edge_id);
-            item.sample_ids.push_back(binding.sample_id);
-            item.provenance.push_back("endpoint:" + constraint.endpoint_id);
-            item.provenance.push_back("edge:" + binding.edge_id);
-            item.provenance.push_back("sample:" + binding.sample_id);
-            item.provenance.push_back("parameter:" + canonical_double(binding.endpoint_parameter));
-            item.provenance.insert(item.provenance.end(), found->second->assumptions.begin(),
-                                   found->second->assumptions.end());
-        }
-        std::sort(item.provenance.begin(), item.provenance.end());
-        item.provenance.erase(std::unique(item.provenance.begin(), item.provenance.end()),
-                              item.provenance.end());
-        resolved.push_back(std::move(item));
-    }
-    return resolved;
-}
-
-struct PersistenceEvidence {
-    std::string algorithm_version = "merlin-persistence-f2-v2";
-    std::string input_digest;
-    std::string filtration_parameters;
-    std::string output_digest;
-    std::string reproducibility_metadata;
-    // This is a computational record, not a CACE verification receipt.
-};
-
-inline std::string canonical_persistence_input(
-    const std::vector<FilteredSimplex>& filtration) {
-    auto ordered = filtration;
-    std::sort(ordered.begin(), ordered.end(), [](const auto& a, const auto& b) {
-        if (a.simplex != b.simplex) return a.simplex < b.simplex;
-        return a.filtration < b.filtration;
-    });
-    std::string canonical;
-    for (const auto& item : ordered) {
-        for (const auto& vertex : item.simplex) {
-            canonical += std::to_string(vertex.size()) + ":" + vertex + ";";
-        }
-        canonical += "@" + canonical_double(item.filtration) + "\n";
-    }
-    return canonical;
-}
-
-inline std::string canonical_persistence_output(
-    const std::vector<F2PersistenceInterval>& intervals) {
-    std::string canonical;
-    for (const auto& interval : intervals) {
-        canonical += std::to_string(interval.degree) + "|" +
-            canonical_double(interval.birth) + "|" +
-            (interval.essential() ? "inf" : canonical_double(interval.death)) + "|birth:";
-        for (const auto& vertex : interval.birth_simplex) {
-            canonical += std::to_string(vertex.size()) + ":" + vertex + ";";
-        }
-        canonical += "|death:";
-        for (const auto& vertex : interval.death_simplex) {
-            canonical += std::to_string(vertex.size()) + ":" + vertex + ";";
-        }
-        canonical += "|cycle:";
-        for (const auto& [simplex, coefficient] : interval.birth_cycle) {
-            for (const auto& vertex : simplex) {
-                canonical += std::to_string(vertex.size()) + ":" + vertex + ";";
-            }
-            canonical += "=" + std::to_string(coefficient) + ",";
-        }
-        canonical += "\n";
-    }
-    return canonical;
-}
-
-inline PersistenceEvidence make_persistence_evidence(
-    const std::vector<FilteredSimplex>& filtration,
-    const std::vector<F2PersistenceInterval>& intervals,
-    std::string filtration_parameters,
-    std::string reproducibility_metadata) {
-    PersistenceEvidence evidence;
-    evidence.input_digest = expert_robot::sha256_hex(canonical_persistence_input(filtration));
-    evidence.output_digest = expert_robot::sha256_hex(canonical_persistence_output(intervals));
-    evidence.filtration_parameters = std::move(filtration_parameters);
-    evidence.reproducibility_metadata = std::move(reproducibility_metadata);
-    return evidence;
-}
-
-inline std::string canonical_continuum_filtration_input(
-    const ContinuumStateFiltration& state_filtration) {
-    std::string canonical = "threshold=" + canonical_double(state_filtration.threshold) + "\n";
-    canonical += canonical_persistence_input(state_filtration.filtration);
-    for (const auto& [simplex, origins] : state_filtration.provenance) {
-        canonical += "simplex:";
-        for (const auto& vertex : simplex) {
-            canonical += std::to_string(vertex.size()) + ":" + vertex + ";";
-        }
-        canonical += "\norigins:";
-        for (const auto& origin : origins) {
-            canonical += std::to_string(origin.size()) + ":" + origin + ";";
-        }
-        canonical += "\nstates:";
-        const auto values = state_filtration.paired_state_values.find(simplex);
-        if (values != state_filtration.paired_state_values.end()) {
-            for (const double value : values->second) canonical += canonical_double(value) + ",";
-        }
-        canonical += "\n";
-    }
-    return canonical;
-}
-
-inline PersistenceEvidence make_persistence_evidence(
-    const ContinuumStateFiltration& state_filtration,
-    const std::vector<F2PersistenceInterval>& intervals,
-    std::string filtration_parameters,
-    std::string reproducibility_metadata) {
-    PersistenceEvidence evidence;
-    evidence.input_digest = expert_robot::sha256_hex(
-        canonical_continuum_filtration_input(state_filtration));
-    evidence.output_digest = expert_robot::sha256_hex(canonical_persistence_output(intervals));
-    evidence.filtration_parameters = std::move(filtration_parameters);
-    evidence.reproducibility_metadata = std::move(reproducibility_metadata);
-    return evidence;
-}
-
-
-
-// Transport-ready evidence envelope. It binds a run to immutable source and
-// result identities; it is a request/record for CACE, not a CACE signature or
-// a claim that independent verification has occurred.
-struct PersistenceEvidenceEnvelope {
-    std::string source_commit;
-    std::string algorithm_version;
-    std::string input_digest;
-    std::string output_digest;
-    std::string runner_identity;
-    std::string runner_execution_id;
-    std::string environment;
-    std::string reproducibility_receipt_digest;
-};
-
-inline bool is_lower_hex_digest(const std::string& value) {
-    return value.size() == 64 &&
-        std::all_of(value.begin(), value.end(), [](char c) {
-            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
-        });
-}
-
-inline std::string canonical_persistence_evidence_envelope(
-    const PersistenceEvidenceEnvelope& envelope) {
-    if (envelope.source_commit.size() != 40 ||
-        !std::all_of(envelope.source_commit.begin(), envelope.source_commit.end(),
-                     [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }) ||
-        envelope.algorithm_version.empty() || envelope.runner_identity.empty() ||
-        envelope.runner_execution_id.empty() || envelope.environment.empty() ||
-        !is_lower_hex_digest(envelope.input_digest) ||
-        !is_lower_hex_digest(envelope.output_digest) ||
-        !is_lower_hex_digest(envelope.reproducibility_receipt_digest)) {
-        throw std::invalid_argument("evidence envelope is missing exact source, runner or digest identity");
-    }
-    const auto field = [](const std::string& name, const std::string& value) {
-        return name + "=" + std::to_string(value.size()) + ":" + value + "\n";
-    };
-    return field("source_commit", envelope.source_commit) +
-        field("algorithm_version", envelope.algorithm_version) +
-        field("input_digest", envelope.input_digest) +
-        field("output_digest", envelope.output_digest) +
-        field("runner_identity", envelope.runner_identity) +
-        field("runner_execution_id", envelope.runner_execution_id) +
-        field("environment", envelope.environment) +
-        field("reproducibility_receipt_digest", envelope.reproducibility_receipt_digest);
-}
-
-inline std::string persistence_evidence_envelope_digest(
-    const PersistenceEvidenceEnvelope& envelope) {
-    return expert_robot::sha256_hex(canonical_persistence_evidence_envelope(envelope));
-}
-
-// CACE's eventual response must bind this exact envelope digest. Signature
-// verification and issuer trust remain responsibilities of the CACE verifier.
-struct CaceReceiptBinding {
-    std::string envelope_digest;
-    std::string receipt_id;
-    std::string issuer_key_id;
-    std::string signature;
-    std::string verifier_version;
-};
-
-inline void validate_cace_receipt_binding(
-    const PersistenceEvidenceEnvelope& envelope,
-    const CaceReceiptBinding& receipt) {
-    if (receipt.envelope_digest != persistence_evidence_envelope_digest(envelope) ||
-        receipt.receipt_id.empty() || receipt.issuer_key_id.empty() ||
-        receipt.signature.empty() || receipt.verifier_version.empty()) {
-        throw std::invalid_argument("CACE receipt binding is incomplete or targets different evidence bytes");
-    }
-}
-
-inline std::vector<std::vector<unsigned char>> induced_f2_homology_map(
-    const SimplicialChainMap& map,
-    const F2HomologyRepresentatives& source_basis,
-    const F2HomologyRepresentatives& target_basis) {
-    if (source_basis.degree != target_basis.degree) {
-        throw std::invalid_argument("induced homology map requires equal degrees");
-    }
-    const std::size_t degree = source_basis.degree;
-    std::vector<SimplexKey> target_simplices;
-    for (const auto& [simplex, present] : map.target_simplices()) {
-        (void)present;
-        if (simplex.size() == degree + 1) target_simplices.push_back(simplex);
-    }
-    if (target_simplices != target_basis.basis_simplices) {
-        throw std::invalid_argument("target homology basis belongs to a different simplex ordering");
-    }
-    for (const auto& simplex : source_basis.basis_simplices) {
-        if (!map.source_contains(simplex)) {
-            throw std::invalid_argument("source homology basis contains a simplex outside the map domain");
-        }
-    }
-
-    const std::size_t rows = target_simplices.size();
-    std::map<SimplexKey, std::size_t> row_index;
-    for (std::size_t i = 0; i < rows; ++i) row_index.emplace(target_simplices[i], i);
-    std::vector<std::vector<unsigned char>> columns;
-    for (const auto& [simplex, present] : map.target_simplices()) {
-        (void)present;
-        if (simplex.size() != degree + 2) continue;
-        const auto faces = boundary(OrientedSimplex{simplex});
-        std::vector<unsigned char> vector(rows, 0);
-        for (const auto& [face, coefficient] : faces) {
-            (void)coefficient;
-            vector[row_index.at(face)] ^= 1U;
-        }
-        columns.push_back(std::move(vector));
-    }
-    const std::size_t boundary_columns = columns.size();
-    for (const auto& representative : target_basis.representatives) {
-        std::vector<unsigned char> vector(rows, 0);
-        for (const auto& [simplex, coefficient] : representative) {
-            const auto found = row_index.find(simplex);
-            if (found == row_index.end()) {
-                throw std::invalid_argument("target representative is outside target chain group");
-            }
-            vector[found->second] ^= static_cast<unsigned char>(coefficient & 1);
-        }
-        columns.push_back(std::move(vector));
-    }
-
-    std::vector<std::vector<unsigned char>> result(
-        target_basis.representatives.size(),
-        std::vector<unsigned char>(source_basis.representatives.size(), 0));
-    for (std::size_t source_column = 0;
-         source_column < source_basis.representatives.size(); ++source_column) {
-        IntegerChain image_chain;
-        for (const auto& [simplex, coefficient] : source_basis.representatives[source_column]) {
-            add_chain_coefficient(image_chain, simplex, coefficient);
-        }
-        const SimplicialChain image = map.apply(SimplicialChain(degree, image_chain));
-        std::vector<unsigned char> rhs(rows, 0);
-        for (const auto& [simplex, coefficient] : image.terms()) {
-            const auto found = row_index.find(simplex);
-            if (found == row_index.end()) {
-                throw std::logic_error("chain map image has wrong degree or leaves target chain group");
-            }
-            rhs[found->second] ^= static_cast<unsigned char>(coefficient & 1);
-        }
-
-        const std::size_t unknowns = columns.size();
-        std::vector<std::vector<unsigned char>> augmented(
-            rows, std::vector<unsigned char>(unknowns + 1, 0));
-        for (std::size_t row = 0; row < rows; ++row) {
-            for (std::size_t col = 0; col < unknowns; ++col) augmented[row][col] = columns[col][row];
-            augmented[row][unknowns] = rhs[row];
-        }
-        std::vector<std::size_t> pivot_columns;
-        std::size_t pivot_row = 0;
-        for (std::size_t col = 0; col < unknowns && pivot_row < rows; ++col) {
-            std::size_t selected = pivot_row;
-            while (selected < rows && augmented[selected][col] == 0) ++selected;
-            if (selected == rows) continue;
-            std::swap(augmented[pivot_row], augmented[selected]);
-            for (std::size_t row = 0; row < rows; ++row) {
-                if (row == pivot_row || augmented[row][col] == 0) continue;
-                for (std::size_t j = col; j <= unknowns; ++j) augmented[row][j] ^= augmented[pivot_row][j];
-            }
-            pivot_columns.push_back(col);
-            ++pivot_row;
-        }
-        for (std::size_t row = pivot_row; row < rows; ++row) {
-            bool zero = true;
-            for (std::size_t col = 0; col < unknowns; ++col) zero = zero && augmented[row][col] == 0;
-            if (zero && augmented[row][unknowns] != 0) {
-                throw std::logic_error("mapped cycle is outside target boundaries plus homology span");
-            }
-        }
-        std::vector<unsigned char> solution(unknowns, 0);
-        for (std::size_t row = 0; row < pivot_columns.size(); ++row) {
-            solution[pivot_columns[row]] = augmented[row][unknowns];
-        }
-        for (std::size_t target_column = 0;
-             target_column < target_basis.representatives.size(); ++target_column) {
-            result[target_column][source_column] = solution[boundary_columns + target_column];
-        }
-    }
-    return result;
-}
-
-} // namespace expert_robot::math::continuum
