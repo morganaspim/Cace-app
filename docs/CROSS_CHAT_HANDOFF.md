@@ -481,3 +481,12 @@ The canonical Merlin/CACE cross-agent handoff is now `docs/MERLIN_PRODUCTION_HAN
 Runner setup and operational safety are documented in `docs/OCI_RUNNER_OPERATIONS.md`. It covers the existing `cace-oci-a1` self-hosted lane, labels, ARM64 architecture, loopback-only OCI MCP service, least-privilege instance-principal model, safe replacement-runner procedure, health checks, resource gates, and recovery. Archived provisioning scripts are historical only; in particular, the archived unrestricted `ocarun` sudo grant must never be reused.
 
 Both documents are first-read entries in `CACE_AGENT_BOOTSTRAP.json` and linked from the repository README. The latest PR #102 head validation is run #655, exact head `a9b8a9c661c7271e40d8927c1622c67ced52ccdb`, successful engineering-only validation. Re-query current PR and run state before any action. PR #102 remains stacked on PR #101 and must not merge independently.
+
+
+## 2026-11-13 Merlin math continuation
+
+Read `docs/MERLIN_PRODUCTION_HANDOFF.md` first for the full canonical state. The F-031 proof-hole guard now has a second layer: `scripts/check_lean_source_sanity.py` masks comments/strings and scans the complete `formal/cace_formal` tree for whole-token `sorry` and `admit`; the exact-pin workflow invokes it before compilation. Regression fixtures are in `tests/test_lean_source_sanity.py`.
+
+Validation boundary: scanner implementation passed CACE collaboration run `43469516682` and Lean Source Sanity run `43469517086` on `dca948e89c8153693b287da8c8c31caa84a568eb`. The corrected final multiline mutation fixtures are in `f66eaa63c5480bc49db2d377019087d4e1643475` and need a fresh exact-head run. Earlier collaboration run `43468823050` validated `1739266a2a22fde3c2fbae07f3ec232027cf07fb`, before this scanner extension. None of these is a Lean kernel compile or proof qualification.
+
+Next: exact-head scanner/collaboration validation; then manually dispatch the exact-pin Lean standalone preflight for `CACEFormal.ContinuumSimplexCore` with Lean `v4.32.1` and Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`. Keep the module quarantined until every formal and independent CACE gate passes. PR #102 remains stacked on PR #101; do not merge independently.
