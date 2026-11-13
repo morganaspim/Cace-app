@@ -472,3 +472,12 @@ Science-module direction:
 - approximately 100 curated high-value examples as a long-term target.
 
 This program is architecture/implementation intent only and does not alter existing proof qualification state.
+
+
+## 2026-11-13 continuity and runner operations update
+
+The canonical Merlin/CACE cross-agent handoff is now `docs/MERLIN_PRODUCTION_HANDOFF.md`. Every AI/chat/agent must read it before work, then re-query live GitHub state. It records the Merlin architecture and product goals, authority/security invariants, active PR chain, exact validation commits/runs, mathematical gates, bug-to-guardrail lifecycle, and next actions. It is a navigation snapshot, never proof evidence.
+
+Runner setup and operational safety are documented in `docs/OCI_RUNNER_OPERATIONS.md`. It covers the existing `cace-oci-a1` self-hosted lane, labels, ARM64 architecture, loopback-only OCI MCP service, least-privilege instance-principal model, safe replacement-runner procedure, health checks, resource gates, and recovery. Archived provisioning scripts are historical only; in particular, the archived unrestricted `ocarun` sudo grant must never be reused.
+
+Both documents are first-read entries in `CACE_AGENT_BOOTSTRAP.json` and linked from the repository README. The latest PR #102 head validation is run #655, exact head `a9b8a9c661c7271e40d8927c1622c67ced52ccdb`, successful engineering-only validation. Re-query current PR and run state before any action. PR #102 remains stacked on PR #101 and must not merge independently.
