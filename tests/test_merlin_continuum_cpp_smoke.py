@@ -47,7 +47,6 @@ def test_exact_source_compiles_and_runs_on_cace_oci() -> None:
         for source in test_sources:
             binary = temp / source.stem
             compile_command = [
-                compiler,
                     compiler,
                     "-std=c++20",
                     "-Wall",
