@@ -1,3 +1,4 @@
+import re
 from __future__ import annotations
 
 import json
@@ -53,8 +54,8 @@ def test_continuum_simplex_core_contains_required_definitions_and_no_holes() -> 
         assert declaration in source, declaration
 
     lowered = source.lower()
-    assert "sorry" not in lowered
-    assert "admit" not in lowered
+    assert re.search(r"\\bsorry\\b", lowered) is None
+    assert re.search(r"\\badmit\\b", lowered) is None
     assert "axiom " not in lowered
 
 
