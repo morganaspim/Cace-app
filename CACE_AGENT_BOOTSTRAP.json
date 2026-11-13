@@ -51,7 +51,10 @@
     "docs/BUG_FLUSH_ARCHITECTURE.md",
     "docs/PROVENANCE_ATTESTATION.md",
     "docs/PRODUCTION_READINESS.md",
-    "docs/AI_QUICKSTART.md"
+    "docs/AI_QUICKSTART.md",
+    "scripts/check_lean_source_sanity.py",
+    "tests/test_lean_source_sanity.py",
+    "formal/FAILURE_GUARDRAILS.md"
   ],
   "authority": {
     "current_source": "checked-out Git commit",
