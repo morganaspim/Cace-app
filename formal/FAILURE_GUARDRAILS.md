@@ -591,3 +591,31 @@ codomain with the image of zero under the continuous linear embedding at that ap
 - reject the fragile direct application `complexL2ToDistribution_injective n hgDist`.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
+
+
+## F-031 — proof-hole regex used literal backslash escapes
+
+**Fingerprint:** the Lean source-contract test intended to reject the proof-hole tokens
+`sorry` and `admit`, but the regular expressions used doubled backslashes
+(`\\\\b`), matching a literal backslash sequence rather than word boundaries.
+The guard therefore failed to detect ordinary proof-hole tokens in Lean source.
+
+**Root cause:** regex escaping was reviewed as source text without a mutation test
+that demonstrated rejection of the actual forbidden tokens.
+
+**Permanent prevention:**
+- define the forbidden-token patterns as compiled Python regexes using actual
+  word-boundary expressions: `re.compile(r"\\bsorry\\b")` and
+  `re.compile(r"\\badmit\\b")`;
+- exercise the detector with mutation canaries for `by sorry` and `by admit`;
+- include positive controls for a valid proof token and an identifier such as
+  `admitted_theorem`, preventing an overbroad substring check;
+- keep the canaries in the ordinary CACE collaboration/formal-preflight test suite.
+
+**Regression guard:**
+`tests/test_merlin_continuum_simplex_lean_contract.py::test_proof_hole_detector_rejects_sorry_and_admit_tokens`.
+
+The detector fix and canaries passed CACE OCI collaboration validation on exact
+head `84b4dae2c725b86a094396f62ae614b4ac433fc5`, run
+[43466879333](https://github.com/morganaspim/Cace-app/actions/runs/43466879333).
+This is a guardrail-test result, not a Lean kernel compilation or proof qualification.
