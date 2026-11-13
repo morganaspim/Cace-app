@@ -548,7 +548,7 @@ int main() {
     const auto interacting_graph_basis =
         expert_robot::math::continuum::compute_f2_homology_representatives(interacting_graph);
     assert(interacting_graph_basis.size() > 1);
-    assert(interacting_graph_basis[1].betti_number == 2);
+    assert(interacting_graph_basis[1].representatives.size() == 2);
     expert_robot::math::continuum::F2HomologyRepresentatives interacting_persistence_basis{
         1, interacting_graph_basis[1].basis_simplices,
         {interacting_h1[0]->birth_cycle, interacting_h1[1]->birth_cycle}};
