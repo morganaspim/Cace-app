@@ -34,6 +34,9 @@ def test_continuum_simplex_core_contains_required_definitions_and_no_holes() -> 
         "theorem comp_id",
         "def triangleLoop",
         "theorem pair_channels_reconstruct",
+        "def orientedEdgeBoundary",
+        "def orientedTriangleBoundarySquared",
+        "theorem oriented_triangle_boundary_squared_zero",
     )
     for declaration in required:
         assert declaration in source, declaration
