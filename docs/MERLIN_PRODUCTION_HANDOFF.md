@@ -201,3 +201,15 @@ This handoff is intended to survive chat resets, model changes and agent handoff
 - Numerical receipts should bind seed, precision, solver/version, parameters, environment, runtime and output digest.
 - Counterexample receipts should bind domain/bounds, method, seed and termination result.
 - CACE independently verifies the exact artifact bytes; Hermes stores the result with idempotency/outbox semantics.
+
+## 2026-11-13 math guardrail continuation
+
+- PR #102 remains OPEN and DRAFT, stacked on PR #101; do not merge this branch independently.
+- The original F-031 regex fix remains in place. The shared `scripts/check_lean_source_sanity.py` scanner now additionally detects whole-token `sorry`/`admit` in Lean code after masking line comments, nested block comments, and strings.
+- `.github/workflows/cace-batch-exact-pin-lean-preflight.yml` now scans the complete `formal/cace_formal` tree before target compilation, while retaining per-batch-target scans.
+- `tests/test_lean_source_sanity.py` includes explicit proof-hole positive/negative fixtures. A fixture-escaping issue was corrected in commit `f66eaa63c5480bc49db2d377019087d4e1643475`; do not treat earlier mutation-test CI attempts as validating that final test text.
+- Scanner implementation exact head `dca948e89c8153693b287da8c8c31caa84a568eb` passed collaboration validation run `43469516682` and Lean Source Sanity run `43469517086`. Both are source-guard validation, not Lean kernel compilation.
+- Earlier full collaboration validation run `43468823050` passed on exact commit `1739266a2a22fde3c2fbae07f3ec232027cf07fb`, including OCI inventory, read-only MCP probe, tests, exact-byte EvidenceBundle build and artifact upload. It predates the new scanner extension.
+- Exact current branch head must be re-queried after each commit. The final multiline fixture commit and subsequent docs commits require a fresh exact-head CI run; recent concurrent Actions runs were cancelled by the repository-wide serialization policy.
+- Next math gate: obtain a successful exact-head scanner + collaboration run; then run the exact pinned Lean standalone compile for `CACEFormal.ContinuumSimplexCore` under Lean `v4.32.1` / Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`. Workflow dispatch is not exposed by the connected GitHub action set; do not claim compilation until a run ID is observed.
+- Preserve quarantine: no import into `CACEFormal.lean`, no promotion, no signing, and no proof-qualification claim until standalone compile, audited-root compile, kernel axiom audit, metadata/proof-contract checks and independent exact-byte CACE verification have passed.
