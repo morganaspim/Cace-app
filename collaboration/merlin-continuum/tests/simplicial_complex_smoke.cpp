@@ -761,7 +761,7 @@ int main() {
     const auto rp2_f2 = expert_robot::math::continuum::compute_f2_homology(rp2);
     assert(rp2_f2[0].betti_number == 1);
     assert(rp2_f2[1].betti_number == 1);
-    assert(rp2_f2[2].betti_number == 0);
+    assert(rp2_f2[2].betti_number == 1); // RP2 has a mod-2 fundamental class
 
     // Independent SNF cross-check: determinantal divisors are gcds of all
     // k-by-k minors. This does not reuse the Euclidean SNF reduction.
