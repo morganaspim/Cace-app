@@ -2,7 +2,7 @@
   "schema": "merlin-cpp-runner-fixture-v1",
   "source_repository": "Mannyspiro/expert-robot",
   "source_branch": "feat/merlin-continuum-ir-stack-20261112",
-  "source_commit": "8d7b9d85a11e12dc6dffa0629649761143935260",
+  "source_commit": "42bc5ed36fe220ecb76f80be98a27a5fe0af8094",
   "source_files": [
     {
       "source_path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
@@ -42,7 +42,7 @@
     {
       "source_path": "tests/simplicial_complex_smoke.cpp",
       "fixture_path": "collaboration/merlin-continuum/tests/simplicial_complex_smoke.cpp",
-      "git_blob_sha1": "1ccd689b1a248c4d15ac3a203e17678ad818a9dd"
+      "git_blob_sha1": "9266a0a2a23bc7348012858047e3064482f6e73d"
     },
     {
       "source_path": "tests/test_continuum_structure_ir.py",
