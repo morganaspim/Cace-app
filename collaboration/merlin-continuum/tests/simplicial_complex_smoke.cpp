@@ -10,6 +10,7 @@
 #include <numeric>
 #include <cstdint>
 #include <cstdlib>
+#include <set>
 
 using expert_robot::math::continuum::IntegerChain;
 using expert_robot::math::continuum::OrientedSimplex;
@@ -577,6 +578,7 @@ int main() {
     using expert_robot::math::continuum::PairedContinuumSample;
     using expert_robot::math::continuum::ContinuumStateSimplex;
     using expert_robot::math::continuum::build_paired_state_filtration;
+    using expert_robot::math::continuum::ContinuumEndpointConstraint;
     using expert_robot::math::continuum::make_persistence_evidence;
     const std::vector<PairedContinuumSample> paired_samples{
         {"AB", "A", 0.0, 0.0, 0.0, {"boundary-condition:fixed"}},
@@ -614,7 +616,6 @@ int main() {
 
     // Explicit endpoint gluing joins distinct samples from two edge charts.
     using expert_robot::math::continuum::ContinuumEndpointBinding;
-    using expert_robot::math::continuum::ContinuumEndpointConstraint;
     using expert_robot::math::continuum::validate_continuum_gluing;
     const std::vector<PairedContinuumSample> endpoint_samples{
         {"AB", "AB-at-B", 1.0, 0.5, -0.25, {"measurement:ab"}},
