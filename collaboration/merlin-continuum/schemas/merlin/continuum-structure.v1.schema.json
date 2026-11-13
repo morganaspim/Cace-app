@@ -276,6 +276,10 @@
                   "items": {
                     "type": "number"
                   }
+                },
+                "sample_id": {
+                  "type": "string",
+                  "minLength": 1
                 }
               }
             }
@@ -532,6 +536,119 @@
           },
           "proof_implication": {
             "const": "none"
+          }
+        }
+      }
+    },
+    "n_ality": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Independent dimensional axes. These are not collapsed into one n-ality number: geometry, state carrier, logical structure, and temporal parameters vary independently.",
+      "required": [
+        "geometric_dimension",
+        "state_dimension",
+        "logical_dimension",
+        "temporal_dimension"
+      ],
+      "properties": {
+        "geometric_dimension": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Topological/geometric dimension; must equal geometry.dimension."
+        },
+        "state_dimension": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Dimension of the state carrier for this signature; individual cells may reference other state spaces."
+        },
+        "logical_dimension": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of independent logical components or channels, not automatically equal to state_dimension."
+        },
+        "temporal_dimension": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of independent temporal parameters; zero denotes a static structure."
+        }
+      }
+    },
+    "endpoint_gluing": {
+      "type": "array",
+      "description": "Explicit shared endpoint identifications between edge-field sample records. This field is optional in v1 for backward compatibility.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "endpoint_id",
+          "bindings",
+          "tolerance",
+          "compatibility",
+          "provenance"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bindings": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "edge_field_id",
+                "sample_id",
+                "parameter",
+                "value"
+              ],
+              "properties": {
+                "edge_field_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sample_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "parameter": {
+                  "type": "number",
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "value": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "tolerance": {
+            "type": "number",
+            "minimum": 0
+          },
+          "compatibility": {
+            "enum": [
+              "componentwise_absolute"
+            ]
+          },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }
