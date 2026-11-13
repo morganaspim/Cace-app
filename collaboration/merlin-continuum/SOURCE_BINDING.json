@@ -12,7 +12,7 @@
     {
       "source_path": "cpp/include/expert_robot/math/simplicial_complex.hpp",
       "fixture_path": "collaboration/merlin-continuum/cpp/include/expert_robot/math/simplicial_complex.hpp",
-      "git_blob_sha1": "94b03f1915568d88ff8668f0a1176f2b9157ffe6"
+      "git_blob_sha1": "77d806965d1b4b285858221aab88d78e53a54597"
     },
     {
       "source_path": "cpp/include/expert_robot/sha256.hpp",
