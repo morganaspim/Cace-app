@@ -256,7 +256,7 @@ def test_emit_independent_reference_receipt() -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(receipt, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
         (output_dir / "merlin-continuum-independent-reference-receipt.json").write_bytes(
-            payload + b"\\n"
+            payload + b"\n"
         )
 
 
