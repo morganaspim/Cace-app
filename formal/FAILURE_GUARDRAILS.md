@@ -615,7 +615,20 @@ that demonstrated rejection of the actual forbidden tokens.
 **Regression guard:**
 `tests/test_merlin_continuum_simplex_lean_contract.py::test_proof_hole_detector_rejects_sorry_and_admit_tokens`.
 
-The detector fix and canaries passed CACE OCI collaboration validation on exact
+The original detector fix and focused canaries passed CACE OCI collaboration validation on exact
 head `84b4dae2c725b86a094396f62ae614b4ac433fc5`, run
 [43466879333](https://github.com/morganaspim/Cace-app/actions/runs/43466879333).
-This is a guardrail-test result, not a Lean kernel compilation or proof qualification.
+
+**Tree-wide defense-in-depth extension (2026-11-13):** `scripts/check_lean_source_sanity.py`
+now scans the comment/string-masked Lean source for whole-token `sorry` and `admit` occurrences,
+so comments and string literals do not create false positives. The exact-pin preflight workflow
+runs the scanner over `formal/cace_formal` before compilation, in addition to scanning each
+selected batch target. `tests/test_lean_source_sanity.py` adds positive/negative token fixtures.
+This extends the F-031 guardrail; it is not a new defect class. The scanner implementation passed
+CACE collaboration validation and Lean Source Sanity on exact head
+`dca948e89c8153693b287da8c8c31caa84a568eb`, runs
+[43469516682](https://github.com/morganaspim/Cace-app/actions/runs/43469516682) and
+[43469517086](https://github.com/morganaspim/Cace-app/actions/runs/43469517086).
+The subsequent multiline mutation-test fixture correction is commit
+`f66eaa63c5480bc49db2d377019087d4e1643475`; its exact-head CI result is pending.
+Neither result is a Lean kernel compilation or proof qualification.
