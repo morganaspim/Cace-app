@@ -217,4 +217,54 @@ theorem oriented_tetrahedron_boundary_squared_zero
   simp [orientedTetrahedronBoundarySquared, orientedFaceBoundary]
   ring
 
+
+
+/-! ## Affine interior extension from vertex data
+
+Every triple of paired-real vertex values admits an affine extension over
+the standard 2-simplex. Its three oriented edge traces are the corresponding
+linear interpolants. This result concerns affine traces induced by vertex
+data; it does not claim that arbitrary continuous edge fields extend.
+-/
+
+/-- Coordinatewise linear interpolation between two paired states. -/
+def pairLinearBlend (t : ℝ) (P Q : PairState) : PairState :=
+  ((1 - t) * P.1 + t * Q.1, (1 - t) * P.2 + t * Q.2)
+
+/-- Affine extension over barycentric coordinates (u,v) on the standard
+triangle, with A=(0,0), B=(1,0), and C=(0,1). -/
+def affineTriangleExtension (A B C : PairState) (u v : ℝ) : PairState :=
+  ((1 - u - v) * A.1 + u * B.1 + v * C.1,
+   (1 - u - v) * A.2 + u * B.2 + v * C.2)
+
+/-- The affine extension has the prescribed values at all three vertices. -/
+theorem affineTriangleExtension_vertex_values
+    (A B C : PairState) :
+    affineTriangleExtension A B C 0 0 = A ∧
+    affineTriangleExtension A B C 1 0 = B ∧
+    affineTriangleExtension A B C 0 1 = C := by
+  constructor
+  · ext <;> simp [affineTriangleExtension]
+  constructor
+  · ext <;> simp [affineTriangleExtension] <;> ring
+  · ext <;> simp [affineTriangleExtension] <;> ring
+
+/-- The AB trace is the affine interpolation from A to B. -/
+theorem affineTriangleExtension_trace_AB
+    (A B C : PairState) (t : ℝ) :
+    affineTriangleExtension A B C t 0 = pairLinearBlend t A B := by
+  ext <;> simp [affineTriangleExtension, pairLinearBlend] <;> ring
+
+/-- The BC trace is the affine interpolation from B to C. -/
+theorem affineTriangleExtension_trace_BC
+    (A B C : PairState) (t : ℝ) :
+    affineTriangleExtension A B C (1 - t) t = pairLinearBlend t B C := by
+  ext <;> simp [affineTriangleExtension, pairLinearBlend] <;> ring
+
+/-- The CA trace is the affine interpolation from C to A. -/
+theorem affineTriangleExtension_trace_CA
+    (A B C : PairState) (t : ℝ) :
+    affineTriangleExtension A B C 0 (1 - t) = pairLinearBlend t C A := by
+  ext <;> simp [affineTriangleExtension, pairLinearBlend] <;> ring
+
 end CACEFormal
