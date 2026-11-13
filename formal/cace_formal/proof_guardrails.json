@@ -69,7 +69,9 @@
     "CACEFormal.RuntimeGroupExteriorBridge",
     "CACEFormal.CertifiedIntervalBounds"
   ],
-  "quarantined_root_imports": [],
+  "quarantined_root_imports": [
+    "CACEFormal.ContinuumSimplexCore"
+  ],
   "policy": {
     "root_imports_are_exact_allowlist": true,
     "quarantined_modules_may_not_enter_root": true,
