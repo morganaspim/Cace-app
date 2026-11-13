@@ -114,7 +114,8 @@
           "value": [
             0,
             1
-          ]
+          ],
+          "sample_id": "F_AB-A"
         },
         {
           "parameter": 0.5,
@@ -128,7 +129,8 @@
           "value": [
             1,
             0
-          ]
+          ],
+          "sample_id": "F_AB-B"
         }
       ]
     },
@@ -150,7 +152,8 @@
           "value": [
             1,
             0
-          ]
+          ],
+          "sample_id": "F_BC-B"
         },
         {
           "parameter": 0.5,
@@ -164,7 +167,8 @@
           "value": [
             1,
             1
-          ]
+          ],
+          "sample_id": "F_BC-C"
         }
       ]
     },
@@ -186,7 +190,8 @@
           "value": [
             1,
             1
-          ]
+          ],
+          "sample_id": "F_CA-C"
         },
         {
           "parameter": 0.5,
@@ -200,7 +205,8 @@
           "value": [
             0,
             1
-          ]
+          ],
+          "sample_id": "F_CA-A"
         }
       ]
     }
@@ -233,7 +239,7 @@
         "F_BC",
         "F_CA"
       ],
-      "description": "AB(0)=CA(1)=A, AB(1)=BC(0)=B, and BC(1)=CA(0)=C."
+      "description": "Explicit endpoint_gluing records glue AB(0)=CA(1)=A, AB(1)=BC(0)=B, and BC(1)=CA(0)=C using named sample IDs, edge parameters, paired values, componentwise tolerance, and provenance."
     },
     {
       "id": "affine-boundary-extension",
@@ -295,6 +301,104 @@
       "status": "passed",
       "url": "https://github.com/morganaspim/Cace-app/actions/runs/43294161866",
       "proof_implication": "none"
+    }
+  ],
+  "n_ality": {
+    "geometric_dimension": 2,
+    "state_dimension": 2,
+    "logical_dimension": 2,
+    "temporal_dimension": 1
+  },
+  "endpoint_gluing": [
+    {
+      "id": "glue-A",
+      "endpoint_id": "A",
+      "bindings": [
+        {
+          "edge_field_id": "F_AB",
+          "sample_id": "F_AB-A",
+          "parameter": 0,
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "edge_field_id": "F_CA",
+          "sample_id": "F_CA-A",
+          "parameter": 1,
+          "value": [
+            0,
+            1
+          ]
+        }
+      ],
+      "tolerance": 1e-9,
+      "compatibility": "componentwise_absolute",
+      "provenance": [
+        "canonical-vertex:A",
+        "constraint:paired-state-continuity"
+      ]
+    },
+    {
+      "id": "glue-B",
+      "endpoint_id": "B",
+      "bindings": [
+        {
+          "edge_field_id": "F_AB",
+          "sample_id": "F_AB-B",
+          "parameter": 1,
+          "value": [
+            1,
+            0
+          ]
+        },
+        {
+          "edge_field_id": "F_BC",
+          "sample_id": "F_BC-B",
+          "parameter": 0,
+          "value": [
+            1,
+            0
+          ]
+        }
+      ],
+      "tolerance": 1e-9,
+      "compatibility": "componentwise_absolute",
+      "provenance": [
+        "canonical-vertex:B",
+        "constraint:paired-state-continuity"
+      ]
+    },
+    {
+      "id": "glue-C",
+      "endpoint_id": "C",
+      "bindings": [
+        {
+          "edge_field_id": "F_BC",
+          "sample_id": "F_BC-C",
+          "parameter": 1,
+          "value": [
+            1,
+            1
+          ]
+        },
+        {
+          "edge_field_id": "F_CA",
+          "sample_id": "F_CA-C",
+          "parameter": 0,
+          "value": [
+            1,
+            1
+          ]
+        }
+      ],
+      "tolerance": 1e-9,
+      "compatibility": "componentwise_absolute",
+      "provenance": [
+        "canonical-vertex:C",
+        "constraint:paired-state-continuity"
+      ]
     }
   ]
 }
