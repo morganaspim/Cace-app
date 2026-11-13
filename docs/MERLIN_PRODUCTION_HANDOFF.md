@@ -154,3 +154,50 @@ At the end of each substantive session, update:
 - `docs/STATUS.md` only when product/qualification state changes (do not call this PR success production readiness).
 
 This handoff is intended to survive chat resets, model changes and agent handoffs because the repository itself carries the context.
+
+
+## Detailed source and evidence lineage (retain exact identities)
+
+### Expert Robot source candidate
+
+- Repository: `Mannyspiro/expert-robot`.
+- Feature branch: `feat/merlin-continuum-ir-stack-20261112`.
+- PR #143: draft at last known snapshot.
+- Source commit used for the independent C++/Python audit: `a55865e120346a37e8d8545ccf90154b5ad583ae`.
+- Source CI run #3846 / run ID `43447003376`: success; Learning run #3846 companion ID `43447003328`: success.
+- Source diagnostics artifact ID `14049215558`, SHA-256 `a42e036b23b48b6ce0e807c4eaad239a50362c5ac1cd0e5b2c996105f4edb045`.
+- C++/test source binding in CACE pins header Git blob `77d806965d1b4b285858221aab88d78e53a54597` and test blob `1469edd1a3624547742c3342253a142c848a5048`.
+- Source binding manifest records the exact source commit, header/test blobs and validation run. Never replace this with an unverified user-supplied SHA.
+
+### CACE independent reproduction run #653
+
+- CACE PR #101 head at the run: `57810a37fee14413ed8189e0f4a8995787c4aed0`.
+- Source repo/commit: `Mannyspiro/expert-robot` / `a55865e120346a37e8d8545ccf90154b5ad583ae`.
+- CACE workflow run #653 / ID `43447334912`, success; OCI runner identity `cace-oci-a1`, execution ID `43447334912.1.validate`.
+- Strict-warning C++20 compile/smoke results: `continuum_simplex_smoke.cpp` PASS; `simplicial_complex_smoke.cpp` PASS with persistence input/output SHA-256 receipts.
+- Independent Python/Bareiss/tree-collapse reference: RP² integral homology H0=Z, H1=Z/2, H2=0; mod-2 Betti numbers (1,1,1); Smith Normal Form invariant factors `[1,1,1,1,1,1,1,1,1,2]`; five SNF fixtures validated.
+- EvidenceBundle: 14 artifacts; artifact ID `14048596444`; ZIP SHA-256 `66f8c90be9ee37c9b61c65d2777435646c6d6d109eb92c49b66dd260bd7e70b0`.
+- Independently checked bundle ZIP digest, 14 base64 payload hashes/sizes, EvidenceBundle SHA-256 `701fd6563223bcb0cf280185e42359dcdbfd7bfae38ac70ec534bae1b83047c6`, Merkle root `0d67b1ec2ff1cf273f0d4d7f61c8572dbaf7af2a65e48e1516ef465d4878afeb`, candidate digest `1cd2556161d611aa7ca2809f6e103409eab24269907d3283d935851e0b268f1e`, persistence envelope digest `6440f5150a09b9bb42911e1a55b93a256dd1bf90d21c71a90be7c2e7fdd1b46c`, evaluator receipt SHA-256 `7fa1fe1b8452195489ad2ea7632e0358543cc80d5b03b8ca7384605b5f73a745`, benchmark manifest SHA-256 `f29ab282fdee21f50d94482b51d356c8859782ad68cad479307186a0fbe46d02`.
+- Classification: `ENGINEERING_VERIFIED`; `proof_implication=none`; `authority=verification-only`.
+- Attestation state: `prepared_not_signed`; signature null; signer blocker was no exposed secret access, writable signer endpoint, or independently pinned signing key.
+- This run does not prove the new Lean module, formal qualification, or production readiness.
+
+### Lean and protected signer gates
+
+- Exact-pin preflight workflow on `main`: `.github/workflows/cace-batch-exact-pin-lean-preflight.yml`.
+- Workflow dispatch inputs include target module list and `prewarm_mathlib_cache` default false.
+- Exact toolchain `leanprover/lean4:v4.32.1`; exact Mathlib commit `520045ab14e26149ee970e2e617ca04b09bde5d6`; target `CACEFormal.ContinuumSimplexCore`.
+- The GitHub connector does not provide workflow_dispatch. A user/owner with Actions UI access must dispatch the workflow; do not claim it was run unless a new run ID and exact head are observed.
+- Protected orchestrator validator exists on the PR #101 feature branch at `.github/workflows/merlin-cace-protected-orchestrator.yml`. It checks a successful fixed-profile OCI push run, exactly one successful `run-approved-profile` job on `cace-oci-a1`, required steps, and a retained SHA-256-bound receipt artifact. It is not yet on main.
+- The protected signer workflow, external signer configuration and independently pinned trust material remain outstanding. A successful engineering workflow is not the distinct protected orchestrator run.
+- Keep signing, verification, and promotion as separate transitions. Do not store signer keys in the repository or treat the OCI host's local key as an independent external signer.
+
+### Related formal runtime constraints
+
+- Existing CACE adapter constructor requires `verify_transport`, `registry`, `outbox`, optional `graph`; fail closed if verification transport is unconfigured.
+- Hermes must route eligible/ineligible/ambiguous/malformed/rejected claims distinctly. Non-eligible claims must not reach Lean.
+- Lean source must not contain `sorry` or `admit`; do not generate a fake proof scaffold.
+- Every compiler receipt should bind exact source digest, toolchain, Mathlib lock/commit, command, exit status, stdout/stderr and environment.
+- Numerical receipts should bind seed, precision, solver/version, parameters, environment, runtime and output digest.
+- Counterexample receipts should bind domain/bounds, method, seed and termination result.
+- CACE independently verifies the exact artifact bytes; Hermes stores the result with idempotency/outbox semantics.
