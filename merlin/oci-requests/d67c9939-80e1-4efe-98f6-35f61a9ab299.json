@@ -1,0 +1,26 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "d67c9939-80e1-4efe-98f6-35f61a9ab299",
+  "operation": "merlin_hermes_rsi_full_tests",
+  "reason": "Run the exact fixed-profile OCI Hermes RSI test suite against pinned source commit d67c993980e1efe774898f63561a9ab2999e1605 with corrected Git blob SHA pins. No arbitrary commands, package installation, deletion, or host mutation.",
+  "created_at": "2026-11-12T03:45:00Z",
+  "source_repo": "Mannyspiro/expert-robot",
+  "source_commit": "d67c993980e1efe774898f63561a9ab2999e1605",
+  "source_blob_shas": {
+    "python/merlin/rsi_pipeline.py": "4489abb85b8f2c549882dd19bbab4bf6db618ad4",
+    "python/merlin/rsi.py": "a4981d80a076d58b6dbc6efd55e3baf941aee948",
+    "python/merlin/event_outbox.py": "574d36824f688623603172738290116fd77cee08",
+    "python/merlin/hermes_rsi_bridge.py": "cef2745bcb91b2fd21393f5af80445e4c44af091",
+    "python/merlin/hermes_worker.py": "d8d3140311f270b4321e603d145d11a7ac371b92",
+    "python/merlin/telemetry.py": "5e05f0de306e9b55db81ebd26f8446e3fef35c8d",
+    "python/merlin/hermes_outbox.py": "08f877da566704f6c90ac4dc7d678db2dcf7517c",
+    "python/merlin/runtime_contracts.py": "af46433f1d5a1860e76279f866f8d4a149d4b6e9",
+    "python/merlin/sqlite_registry.py": "e21141e0e37375f9a4f72fe31f46fc6c31045e11",
+    "tests/test_rsi_pipeline.py": "7482abe2048e88511a5990a1a08ad1ab0d0eca61",
+    "tests/test_hermes_rsi_bridge.py": "8269f1f265bae227084d3011060968e2b86c15fb",
+    "tests/test_hermes_worker.py": "03295f8a3559e1b3c386b6041b3a98fd9b618d6f",
+    "tests/test_event_outbox.py": "bb6aad75095c102cb4d17cb6577ba0b88141729f",
+    "tests/test_hermes_outbox.py": "06004242ea80cdbff1b3cddae6d74b86a8c7bcc0",
+    "config/benchmarks/merlin_rsi_multidomain_holdout_v1.json": "e38004514228b84ac052dace756d00f3022524b6"
+  }
+}
