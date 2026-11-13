@@ -48,6 +48,26 @@ theorem map_preserves_endpoint_gluing
   rcases h with ⟨hab, hbc, hca⟩
   exact ⟨congrArg F hab, congrArg F hbc, congrArg F hca⟩
 
+/-- Apply a potentially different state transformation to each oriented edge. -/
+def mapEdges
+    (F_AB F_BC F_CA : PairState → PairState)
+    (T : PairedContinuumTriangle) : PairedContinuumTriangle where
+  ab := fun t => F_AB (T.ab t)
+  bc := fun t => F_BC (T.bc t)
+  ca := fun t => F_CA (T.ca t)
+
+/-- Edge-specific transformations preserve gluing exactly when their values
+agree at each shared endpoint. The hypotheses are explicit rather than
+silently assuming the three transformations are identical. -/
+theorem mapEdges_preserves_endpoint_gluing
+    (F_AB F_BC F_CA : PairState → PairState)
+    (T : PairedContinuumTriangle)
+    (hB : F_AB (T.ab 1) = F_BC (T.bc 0))
+    (hC : F_BC (T.bc 1) = F_CA (T.ca 0))
+    (hA : F_CA (T.ca 1) = F_AB (T.ab 0)) :
+    EndpointGluing (mapEdges F_AB F_BC F_CA T) := by
+  exact ⟨hB, hC, hA⟩
+
 /-- Continuous edge fields remain continuous after a continuous state map. -/
 theorem map_preserves_continuity
     (F : PairState → PairState) (hF : Continuous F)
