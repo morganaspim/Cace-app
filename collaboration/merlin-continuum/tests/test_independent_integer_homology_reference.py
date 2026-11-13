@@ -10,7 +10,6 @@ integer determinants/determinantal divisors on small matrices.
 
 from itertools import combinations
 from math import gcd
-from functools import reduce
 
 
 FACETS = (
@@ -165,6 +164,16 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     assert len({tuple(sorted(face)) for face in FACETS}) == 10
     assert all(sum(1 for face in FACETS if set(edge).issubset(face)) == 2
                for edge in edges)
+    for vertex in vertices:
+        link_edges = [
+            tuple(sorted(set(face) - {vertex}))
+            for face in FACETS if vertex in face
+        ]
+        link_degrees = {other: 0 for edge in link_edges for other in edge}
+        for left, right in link_edges:
+            link_degrees[left] += 1
+            link_degrees[right] += 1
+        assert link_degrees and all(degree == 2 for degree in link_degrees.values())
     assert _multiply(d1, d2) == [[0 for _ in FACETS] for _ in vertices]
     assert len(vertices) - len(edges) + len(FACETS) == 1
 
@@ -183,6 +192,12 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     ]
     assert bareiss_determinant(unit_minor) == -1
     assert [1] * 9 + [2] == [1, 1, 1, 1, 1, 1, 1, 1, 1, 2]
+
+    full_determinant = bareiss_determinant(presentation)
+    unit_minor_determinant = bareiss_determinant(unit_minor)
+    factors_from_minor_witness = [1] * 9 + [abs(full_determinant)]
+    assert abs(unit_minor_determinant) == 1
+    assert factors_from_minor_witness == [1] * 9 + [2]
 
     # The relation matrix is nonsingular, so the simplicial boundary map
     # d2 is injective and H2=0. Together: H0=Z, H1=Z/2, H2=0.
