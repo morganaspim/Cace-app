@@ -78,6 +78,19 @@ theorem map_preserves_continuity
     Continuous (map F T).ca := by
   exact ⟨hF.comp hab, hF.comp hbc, hF.comp hca⟩
 
+/-- Edge-local continuous transformations preserve continuity on their
+respective edge fields. Together with the endpoint theorem above, this gives
+the exact local conditions for a continuous glued boundary field. -/
+theorem mapEdges_preserves_continuity
+    (F_AB F_BC F_CA : PairState → PairState)
+    (hAB : Continuous F_AB) (hBC : Continuous F_BC) (hCA : Continuous F_CA)
+    (T : PairedContinuumTriangle)
+    (hab : Continuous T.ab) (hbc : Continuous T.bc) (hca : Continuous T.ca) :
+    Continuous (mapEdges F_AB F_BC F_CA T).ab ∧
+    Continuous (mapEdges F_AB F_BC F_CA T).bc ∧
+    Continuous (mapEdges F_AB F_BC F_CA T).ca := by
+  exact ⟨hAB.comp hab, hBC.comp hbc, hCA.comp hca⟩
+
 end PairedContinuumTriangle
 
 /-- A typed state transformation on the paired real state space. -/
