@@ -50,5 +50,14 @@
       "git_blob_sha1": "5d8b8aa9104429252d95c304aa87d056d49c3efc"
     }
   ],
-  "evidence_boundary": "Exact-byte fixture binding for independent OCI compilation. Not a Lean proof, CACE signature, qualification, or promotion."
+  "evidence_boundary": "Exact-byte fixture binding for independent OCI compilation. Not a Lean proof, CACE signature, qualification, or promotion.",
+  "source_validation": {
+    "workflow": "Mannyspiro/expert-robot/.github/workflows/ci.yml",
+    "run_id": "43445179459",
+    "source_commit": "67a095ec556e10778138ec6ae24bc50d1eb2d7b1",
+    "conclusion": "success",
+    "homology_audit_artifact_id": "14047088411",
+    "homology_audit_artifact_sha256": "602520cab7073bf4e773890585cb8415d422d46c77cc691243efb37f5f0773e2",
+    "homology_audit_json_sha256": "d6675f21d464a7b7d5dffd5648f1941017d96a239fcd00cc9f296dfda2424ae7"
+  }
 }
