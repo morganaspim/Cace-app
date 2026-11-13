@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "formal" / "cace_formal" / "CACEFormal" / "ContinuumSimplexCore.lean"
 GUARDRAILS = ROOT / "formal" / "cace_formal" / "proof_guardrails.json"
 AGGREGATE = ROOT / "formal" / "cace_formal" / "CACEFormal.lean"
-PROOF_HOLE_PATTERNS = (re.compile(r"\\bsorry\\b"), re.compile(r"\\badmit\\b"))
+PROOF_HOLE_PATTERNS = (re.compile(r"\bsorry\b"), re.compile(r"\badmit\b"))
 
 
 def _contains_proof_hole(source: str) -> bool:
