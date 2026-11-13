@@ -233,6 +233,111 @@ struct Matrix2 {
     [[nodiscard]] static Matrix2 identity() noexcept { return {}; }
 };
 
+
+// Dimension-aware linear algebra for heterogeneous state carriers. Matrix2
+// remains the compact two-channel convenience type above; this generic form
+// is the canonical path for maps R^m -> R^n.
+class DenseMatrix {
+public:
+    explicit DenseMatrix(std::vector<std::vector<double>> rows)
+        : rows_(std::move(rows)) {
+        if (rows_.empty() || rows_.front().empty()) {
+            throw std::invalid_argument("a linear map matrix must be non-empty");
+        }
+        const std::size_t width = rows_.front().size();
+        for (const auto& row : rows_) {
+            if (row.size() != width ||
+                !std::all_of(row.begin(), row.end(),
+                             [](double value) { return std::isfinite(value); })) {
+                throw std::invalid_argument(
+                    "matrix rows must have equal width and finite entries");
+            }
+        }
+    }
+
+    [[nodiscard]] std::size_t row_count() const noexcept { return rows_.size(); }
+    [[nodiscard]] std::size_t column_count() const noexcept {
+        return rows_.front().size();
+    }
+    [[nodiscard]] const std::vector<std::vector<double>>& rows() const noexcept {
+        return rows_;
+    }
+
+    [[nodiscard]] std::vector<double> apply(
+        const std::vector<double>& value) const {
+        if (value.size() != column_count()) {
+            throw std::invalid_argument("matrix input dimension does not match source carrier");
+        }
+        std::vector<double> result(row_count(), 0.0);
+        for (std::size_t i = 0; i < row_count(); ++i) {
+            for (std::size_t j = 0; j < column_count(); ++j) {
+                result[i] += rows_[i][j] * value[j];
+            }
+        }
+        return result;
+    }
+
+    [[nodiscard]] DenseMatrix then(const DenseMatrix& next) const {
+        if (row_count() != next.column_count()) {
+            throw std::invalid_argument("matrix composition dimensions do not match");
+        }
+        std::vector<std::vector<double>> product(
+            next.row_count(), std::vector<double>(column_count(), 0.0));
+        // Apply this matrix first, then next: product = next * this.
+        for (std::size_t i = 0; i < next.row_count(); ++i) {
+            for (std::size_t k = 0; k < row_count(); ++k) {
+                for (std::size_t j = 0; j < column_count(); ++j) {
+                    product[i][j] += next.rows_[i][k] * rows_[k][j];
+                }
+            }
+        }
+        return DenseMatrix(std::move(product));
+    }
+
+private:
+    std::vector<std::vector<double>> rows_;
+};
+
+class LinearStateMap {
+public:
+    LinearStateMap(std::string id, std::string source_state_space_id,
+                   std::string target_state_space_id, DenseMatrix matrix)
+        : id_(std::move(id)),
+          source_(std::move(source_state_space_id)),
+          target_(std::move(target_state_space_id)),
+          matrix_(std::move(matrix)) {
+        if (id_.empty() || source_.empty() || target_.empty()) {
+            throw std::invalid_argument("linear map identity and carrier IDs must be non-empty");
+        }
+    }
+
+    [[nodiscard]] const std::string& id() const noexcept { return id_; }
+    [[nodiscard]] const std::string& source() const noexcept { return source_; }
+    [[nodiscard]] const std::string& target() const noexcept { return target_; }
+    [[nodiscard]] const DenseMatrix& matrix() const noexcept { return matrix_; }
+
+    [[nodiscard]] std::vector<double> apply(
+        const std::vector<double>& value) const {
+        return matrix_.apply(value);
+    }
+
+    [[nodiscard]] LinearStateMap then(const LinearStateMap& next) const {
+        if (target_ != next.source_) {
+            throw std::invalid_argument(
+                "linear map composition requires matching intermediate state-space IDs");
+        }
+        return LinearStateMap(
+            id_ + ";" + next.id_, source_, next.target_,
+            matrix_.then(next.matrix_));
+    }
+
+private:
+    std::string id_;
+    std::string source_;
+    std::string target_;
+    DenseMatrix matrix_;
+};
+
 struct NAlitySignature {
     std::size_t geometric_dimension{2};
     std::size_t state_dimension{2};
