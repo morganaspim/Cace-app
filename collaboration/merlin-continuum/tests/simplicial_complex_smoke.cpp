@@ -538,6 +538,22 @@ int main() {
     });
     assert(interacting_h1[0]->birth == 1.0 && interacting_h1[0]->death == 2.0);
     assert(interacting_h1[1]->birth == 1.0 && interacting_h1[1]->death == 3.0);
+
+    // At the common birth parameter the two loops form a graph with a shared
+    // edge. Validate the persistence cycles together as a complete H1 basis;
+    // this catches cycles that are closed individually but represent the same class.
+    const expert_robot::math::continuum::FiniteSimplicialComplex interacting_graph(
+        "interacting-persistence-birth-graph",
+        {{"A", "B"}, {"A", "C"}, {"B", "C"}, {"A", "D"}, {"B", "D"}});
+    const auto interacting_graph_basis =
+        expert_robot::math::continuum::compute_f2_homology_representatives(interacting_graph);
+    assert(interacting_graph_basis.size() > 1);
+    assert(interacting_graph_basis[1].betti_number == 2);
+    expert_robot::math::continuum::F2HomologyRepresentatives interacting_persistence_basis{
+        1, interacting_graph_basis[1].basis_simplices,
+        {interacting_h1[0]->birth_cycle, interacting_h1[1]->birth_cycle}};
+    expert_robot::math::continuum::validate_f2_homology_representatives(
+        interacting_graph, interacting_persistence_basis);
     std::map<expert_robot::math::continuum::SimplexKey, double> interacting_birth_values;
     for (const auto& item : interacting_filtration)
         interacting_birth_values.emplace(item.simplex, item.filtration);
@@ -766,6 +782,16 @@ int main() {
     assert(rp2_f2[1].betti_number == 1);
     assert(rp2_f2[2].betti_number == 1); // RP2 has a mod-2 fundamental class
 
+    // Validate explicit representatives in every degree, not only dimensions.
+    const auto rp2_representatives =
+        expert_robot::math::continuum::compute_f2_homology_representatives(rp2);
+    assert(rp2_representatives.size() == 3);
+    for (const auto& group : rp2_representatives)
+        expert_robot::math::continuum::validate_f2_homology_representatives(rp2, group);
+    assert(rp2_representatives[0].representatives.size() == 1);
+    assert(rp2_representatives[1].representatives.size() == 1);
+    assert(rp2_representatives[2].representatives.size() == 1);
+
     // Independent SNF cross-check: determinantal divisors are gcds of all
     // k-by-k minors. This does not reuse the Euclidean SNF reduction.
     const auto determinant = [](const auto& self,
@@ -943,6 +969,50 @@ int main() {
         SimplicialVertexMap({{"A", "X"}, {"B", "Y"}, {"C", "Z"}}));
     const auto source_h1 = compute_f2_homology_representatives(source_circle)[1];
     const auto target_h1 = compute_f2_homology_representatives(target_circle)[1];
+    validate_f2_homology_representatives(source_circle, source_h1);
+    validate_f2_homology_representatives(target_circle, target_h1);
+    const FiniteSimplicialComplex representative_point("representative-point", {{"P"}});
+    const auto point_h0 = compute_f2_homology_representatives(representative_point)[0];
+    validate_f2_homology_representatives(representative_point, point_h0);
+
+    // The verifier rejects a duplicate class (independence failure), a
+    // non-cycle, and a basis with the wrong cardinality (spanning failure).
+    const FiniteSimplicialComplex figure_eight(
+        "homology-figure-eight",
+        {{"A", "B"}, {"B", "C"}, {"A", "C"},
+         {"A", "D"}, {"D", "E"}, {"A", "E"}});
+    const auto figure_eight_h1 = compute_f2_homology_representatives(figure_eight)[1];
+    validate_f2_homology_representatives(figure_eight, figure_eight_h1);
+    assert(figure_eight_h1.representatives.size() == 2);
+    auto duplicate_h1 = figure_eight_h1;
+    duplicate_h1.representatives[1] = duplicate_h1.representatives[0];
+    bool rejected_duplicate_homology_class = false;
+    try {
+        validate_f2_homology_representatives(figure_eight, duplicate_h1);
+    } catch (const std::invalid_argument&) {
+        rejected_duplicate_homology_class = true;
+    }
+    assert(rejected_duplicate_homology_class);
+
+    auto noncycle_h1 = source_h1;
+    noncycle_h1.representatives.front() = {{{"A", "B"}, 1}};
+    bool rejected_noncycle_homology_representative = false;
+    try {
+        validate_f2_homology_representatives(source_circle, noncycle_h1);
+    } catch (const std::invalid_argument&) {
+        rejected_noncycle_homology_representative = true;
+    }
+    assert(rejected_noncycle_homology_representative);
+
+    auto incomplete_h1 = source_h1;
+    incomplete_h1.representatives.clear();
+    bool rejected_incomplete_homology_basis = false;
+    try {
+        validate_f2_homology_representatives(source_circle, incomplete_h1);
+    } catch (const std::invalid_argument&) {
+        rejected_incomplete_homology_basis = true;
+    }
+    assert(rejected_incomplete_homology_basis);
     const auto identity_h1 = induced_f2_homology_map(
         identity_on_circle, source_h1, target_h1);
     assert(identity_h1.size() == 1 && identity_h1[0].size() == 1);
