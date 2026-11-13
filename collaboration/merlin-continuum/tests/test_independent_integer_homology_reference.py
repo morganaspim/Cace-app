@@ -114,6 +114,33 @@ def test_small_integer_snf_fixtures_and_unimodular_equivalence() -> None:
         assert determinantal_invariants(elementary_unimodular_transform(matrix)) == factors
 
 
+
+def _rank_mod2(matrix: list[list[int]]) -> int:
+    if not matrix:
+        return 0
+    values = [[entry & 1 for entry in row] for row in matrix]
+    row_count, column_count = len(values), len(values[0])
+    pivot_row = 0
+    for column in range(column_count):
+        selected = next(
+            (row for row in range(pivot_row, row_count) if values[row][column]),
+            None,
+        )
+        if selected is None:
+            continue
+        values[pivot_row], values[selected] = values[selected], values[pivot_row]
+        for row in range(pivot_row + 1, row_count):
+            if values[row][column]:
+                values[row] = [
+                    left ^ right
+                    for left, right in zip(values[row], values[pivot_row])
+                ]
+        pivot_row += 1
+        if pivot_row == row_count:
+            break
+    return pivot_row
+
+
 def _boundary_matrices():
     vertices = tuple(range(6))
     edges = tuple(combinations(vertices, 2))
@@ -176,6 +203,15 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
         assert link_degrees and all(degree == 2 for degree in link_degrees.values())
     assert _multiply(d1, d2) == [[0 for _ in FACETS] for _ in vertices]
     assert len(vertices) - len(edges) + len(FACETS) == 1
+
+    # Over F2, the non-orientable surface has a mod-2 fundamental class:
+    # b0=b1=b2=1. This is deliberately distinct from integral H2=0.
+    d1_mod2 = [[value & 1 for value in row] for row in d1]
+    d2_mod2 = [[value & 1 for value in row] for row in d2]
+    rank_d1 = _rank_mod2(d1_mod2)
+    rank_d2 = _rank_mod2(d2_mod2)
+    assert (len(vertices) - rank_d1, len(edges) - rank_d1 - rank_d2,
+            len(FACETS) - rank_d2) == (1, 1, 1)
 
     # The star at vertex 0 is a spanning tree, so the 1-skeleton is connected:
     # H0(RP2; Z) = Z. The reduced 10x10 relation matrix presents H1.
