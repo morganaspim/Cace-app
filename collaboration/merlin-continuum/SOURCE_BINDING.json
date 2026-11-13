@@ -7,7 +7,7 @@
     {
       "source_path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
       "fixture_path": "collaboration/merlin-continuum/cpp/include/expert_robot/math/continuum_simplex.hpp",
-      "git_blob_sha1": "82517314e813c665f91dddf30181c06fc186254a"
+      "git_blob_sha1": "13b02019b390cbfbc88083f2a9b8e5460d8f598f"
     },
     {
       "source_path": "cpp/include/expert_robot/math/simplicial_complex.hpp",
@@ -37,7 +37,7 @@
     {
       "source_path": "tests/continuum_simplex_smoke.cpp",
       "fixture_path": "collaboration/merlin-continuum/tests/continuum_simplex_smoke.cpp",
-      "git_blob_sha1": "d50a070a3a1b56b836c39036d40866cc4b53c4a6"
+      "git_blob_sha1": "9ed2e3c25381184d13e899a86af57e4248f02e39"
     },
     {
       "source_path": "tests/simplicial_complex_smoke.cpp",
