@@ -2,7 +2,7 @@
   "schema": "merlin-cpp-runner-fixture-v1",
   "source_repository": "Mannyspiro/expert-robot",
   "source_branch": "feat/merlin-continuum-ir-stack-20261112",
-  "source_commit": "ad25cb96605d055227bb37400cf4d20a571788eb",
+  "source_commit": "b4b4e69498388c6bd152f81264e7dff8cf8c48e0",
   "source_files": [
     {
       "source_path": "cpp/include/expert_robot/math/continuum_simplex.hpp",
@@ -12,7 +12,27 @@
     {
       "source_path": "cpp/include/expert_robot/math/simplicial_complex.hpp",
       "fixture_path": "collaboration/merlin-continuum/cpp/include/expert_robot/math/simplicial_complex.hpp",
-      "git_blob_sha1": "34ca1ff5adf986388dbc797adc7999701bc5513a"
+      "git_blob_sha1": "99923dc4a1436e034f90e2a84f9436d7a2c97efe"
+    },
+    {
+      "source_path": "cpp/include/expert_robot/sha256.hpp",
+      "fixture_path": "collaboration/merlin-continuum/cpp/include/expert_robot/sha256.hpp",
+      "git_blob_sha1": "4fc097b9dce435df229d42980ca4568e218d5bc8"
+    },
+    {
+      "source_path": "cpp/src/sha256.cpp",
+      "fixture_path": "collaboration/merlin-continuum/cpp/src/sha256.cpp",
+      "git_blob_sha1": "74d91a042f0a5132e34960d03035dca6b485633a"
+    },
+    {
+      "source_path": "docs/research/paired-state-continuum-triangle.v1.json",
+      "fixture_path": "collaboration/merlin-continuum/docs/research/paired-state-continuum-triangle.v1.json",
+      "git_blob_sha1": "e49fa811323f28eaeb1390a3d96774c1612aa81d"
+    },
+    {
+      "source_path": "schemas/merlin/continuum-structure.v1.schema.json",
+      "fixture_path": "collaboration/merlin-continuum/schemas/merlin/continuum-structure.v1.schema.json",
+      "git_blob_sha1": "34a3ae51c73a0be5efb2669299352eb684a4b4e1"
     },
     {
       "source_path": "tests/continuum_simplex_smoke.cpp",
@@ -22,22 +42,12 @@
     {
       "source_path": "tests/simplicial_complex_smoke.cpp",
       "fixture_path": "collaboration/merlin-continuum/tests/simplicial_complex_smoke.cpp",
-      "git_blob_sha1": "ac002637014f6175d8c5e36d769bdb57e058bfa2"
-    },
-    {
-      "source_path": "schemas/merlin/continuum-structure.v1.schema.json",
-      "fixture_path": "collaboration/merlin-continuum/schemas/merlin/continuum-structure.v1.schema.json",
-      "git_blob_sha1": "513be029681eb248b666a343bc35771889ead37f"
-    },
-    {
-      "source_path": "docs/research/paired-state-continuum-triangle.v1.json",
-      "fixture_path": "collaboration/merlin-continuum/docs/research/paired-state-continuum-triangle.v1.json",
-      "git_blob_sha1": "ae6696d3615f6e5d59f1fe7d1db27be06dd7018d"
+      "git_blob_sha1": "c76f1c13066d4cd0192a6a6f3119d3a7f3d1ede7"
     },
     {
       "source_path": "tests/test_continuum_structure_ir.py",
       "fixture_path": "collaboration/merlin-continuum/tests/test_continuum_structure_ir.py",
-      "git_blob_sha1": "df6e0dabb490de5a3b4cd8f9995706b4928671be"
+      "git_blob_sha1": "5d8b8aa9104429252d95c304aa87d056d49c3efc"
     }
   ],
   "evidence_boundary": "Exact-byte fixture binding for independent OCI compilation. Not a Lean proof, CACE signature, qualification, or promotion."
