@@ -154,4 +154,4 @@ def test_exact_source_compiles_and_runs_on_cace_oci() -> None:
             "persistence": persistence,
         }
         payload = json.dumps(receipt, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-        (artifact_dir / "merlin-continuum-cpp-reproduction-receipt.json").write_bytes(payload + b"\\n")
+        (artifact_dir / "merlin-continuum-cpp-reproduction-receipt.json").write_bytes(payload + b"\n")
