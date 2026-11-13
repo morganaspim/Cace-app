@@ -148,4 +148,36 @@ theorem pair_channels_reconstruct (f : PairEdgeField) (t : ℝ) :
   cases h : f t
   rfl
 
+
+/-! ## Oriented triangle boundary cancellation
+
+The following small chain-level kernel isolates the algebraic identity
+\(\partial_1 \circ \partial_2 = 0\) for an oriented 2-simplex.
+The edge [a,b] has boundary b-a, and the oriented triangle [a,b,c]
+has boundary [b,c] - [a,c] + [a,b]. This theorem is independent of
+the continuity and state-field assumptions above.
+-/
+
+/-- Boundary of an oriented 1-simplex [a,b], represented as an integer
+0-chain. -/
+def orientedEdgeBoundary {V : Type*} [DecidableEq V] (a b : V) :
+    V →₀ ℤ :=
+  Finsupp.single b 1 - Finsupp.single a 1
+
+/-- Apply the vertex boundary to the alternating oriented boundary of
+the triangle [a,b,c]. -/
+def orientedTriangleBoundarySquared {V : Type*} [DecidableEq V]
+    (a b c : V) : V →₀ ℤ :=
+  orientedEdgeBoundary b c -
+    orientedEdgeBoundary a c +
+    orientedEdgeBoundary a b
+
+/-- The boundary of the boundary of an oriented triangle is zero. -/
+theorem oriented_triangle_boundary_squared_zero
+    {V : Type*} [DecidableEq V] (a b c : V) :
+    orientedTriangleBoundarySquared a b c = 0 := by
+  ext v
+  simp [orientedTriangleBoundarySquared, orientedEdgeBoundary]
+  ring
+
 end CACEFormal
