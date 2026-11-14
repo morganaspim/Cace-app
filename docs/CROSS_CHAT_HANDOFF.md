@@ -532,3 +532,8 @@ Next production gate: strict CACE request schema + independent canonical-registr
 ## 2026-11-14 latest Merlin CI continuation
 
 Expert Robot PR #144 latest exact head: `53d0f18d0f0cd15acd15dae2f8a19ced0509a5db` (OPEN/DRAFT, stacked). The previous exact head `67013dd151b6a3c5839bec72d6f94ff327c16a98` passed native CI but unified tests had 220 passed / 1 failed due a newline-escaping issue in a test assertion. That assertion was simplified in the latest source commit. Fresh exact-head native CI #43544767097 and unified platform #43544767303 are IN_PROGRESS; no success is claimed yet. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for the full failure analysis and CACE signing boundary.
+
+
+## 2026-11-14 authenticated artifact resolver boundary
+
+Expert Robot PR #144 latest source head `57e74bae65237e86d6efbcde3dab0e518e5b8b8d` adds a read-only `POST /api/artifacts/resolve` endpoint backed by `MerlinRegistry.read_artifact_ref`. It requires a dedicated `MERLIN_ARTIFACT_READ_TOKEN`, is unavailable without token + canonical registry, and caps exact-byte reads at 25 MiB. The response contains the complete versioned ArtifactRef, resolution metadata and base64 bytes; CACE must independently re-hash those bytes and verify the reference. API tests are added to the unified suite. Exact-head CI is pending/queued; see `docs/MERLIN_PRODUCTION_HANDOFF.md` for run IDs. No production token or deployment configuration has been changed. CACE signing/independent trust verification remains outstanding.
