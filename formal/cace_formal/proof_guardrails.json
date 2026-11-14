@@ -70,7 +70,8 @@
     "CACEFormal.CertifiedIntervalBounds"
   ],
   "quarantined_root_imports": [
-    "CACEFormal.ContinuumSimplexCore"
+    "CACEFormal.ContinuumSimplexCore",
+    "CACEFormal.RP2ChainComplex"
   ],
   "policy": {
     "root_imports_are_exact_allowlist": true,
