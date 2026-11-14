@@ -706,3 +706,10 @@ No production secrets, signer key, trust material, environment variables, featur
 - Merlin PR #150 exact head 7ade0d22b7542c2e6aa4396f76a3fe0f91718be5 passed CI 43605312229; artifact 14117503140, SHA-256 b19e3bac900bf2f1b4cbcd4c9afe6b65968cab9da69178e0b3a498264a7458d7.
 - DAG snapshot persistence is in the existing MerlinRegistry DB, not a second registry. SQLite transaction serialization is single-host only.
 - All three Merlin PRs remain draft/stacked. Production blockers unchanged: independent trust root, protected Lean compile, live resolver-attestation-verification round trip, and distinct protected orchestrator/OCI linkage.
+
+
+## Latest CACE PR #102 gate
+- Exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed CACE Collaboration Coordination Validation run 43605425667.
+- Artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089.
+- Companion Lean Source Sanity run 43605425559 was CANCELLED, not passed.
+- Manual protected exact-pin Lean kernel compilation remains outstanding; no workflow dispatch or OCI run is claimed.
