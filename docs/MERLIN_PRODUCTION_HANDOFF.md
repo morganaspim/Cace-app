@@ -715,3 +715,10 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PR #156 independently validates all nine v1 node types, trust-root and trust-store provenance, nested ArtifactRefs, canonical bytes, sorted arrays, duplicate-key rejection, digest/cycle/endpoint checks, Unicode content, and twelve randomized DAG vectors.
 - Stale PRs #147, #152, #153, and #155 were closed in favor of #157/#156; PR #154 was closed as a duplicate test expansion. Do not merge the stale branches.
 - CACE PR #102 collaboration validation remains passed at exact code head `89d84525c2cc32ec5f87431130eab52c2d42d45e` (run `43605425667`, artifact `14117987843`, SHA-256 `4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089`). Companion Lean Source Sanity was cancelled. Protected exact-pin Lean kernel compile remains outstanding.
+
+
+## Failure-memory expansion after branch-stack audit (2026-11-14)
+
+- Merlin PR #157 now registers two additional cross-chat failure classes: stale stacked-child base drift that drops upstream invariants, and cross-PR signer-file overlap that can regress the hardened key loader.
+- Exact head `88e7bed9af0e1cda0264eef6dcc3bf700d31e857` passed CI run `43607743085`; diagnostics artifact `14119451467`, SHA-256 `1c4f7967b530daedba622a1d7f43298c65e0c191e9f9c77043219c0f255bc252`.
+- The guardrail test verifies the registered prevention requirements; it does not authorize merging out of dependency order.
