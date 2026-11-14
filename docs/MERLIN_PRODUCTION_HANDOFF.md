@@ -798,5 +798,6 @@ All listed passes remain engineering CI, not live cloud or production qualificat
 - Creation writes/fsyncs a temporary key and publishes with no-overwrite semantics; an exclusive flock serializes initializers.
 - Crash recovery removes only a same-device/same-inode, service-owned temporary alias with the exact generated prefix; unrelated hard links remain rejected.
 - Regression tests cover symlinked parents, hard-linked keys, 16 concurrent initializers, and crash recovery.
-- Earlier equivalent code/test head `24d540ea8ea625aad92f9b530d357c65728daae1` passed CI `43611326761`, artifact `14120222700`, SHA-256 `d168b1b07e66dc0692b014d17b6640fe9e97d07fc69c5bf04e190a67d9f1625c`. This rebased head needs fresh exact-head validation.
+- Earlier equivalent code/test head `24d540ea8ea625aad92f9b530d357c65728daae1` passed CI `43611326761`, artifact `14120222700`, SHA-256 `d168b1b07e66dc0692b014d17b6640fe9e97d07fc69c5bf04e190a67d9f1625c`.
+- Current rebased PR #111 exact head `0640570d43bb7ffcc7fc7cb04e01efec6b058421` passed CI `43611590724`, artifact `14119973780`, SHA-256 `aa617c85482df66d538921c44d64ac349136e424e00732d982ae1190b52250d5`.
 - This does not provision a production signer or independent trust root, and does not perform a live resolver/sign/verify operation.
