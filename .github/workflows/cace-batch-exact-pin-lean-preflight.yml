@@ -109,6 +109,7 @@ jobs:
           cat cace-impacted-modules.txt
 
       - name: Reject malformed Lean source seams in every batch target
+        id: source_sanity
         shell: bash
         run: |
           set -euo pipefail
@@ -119,28 +120,79 @@ jobs:
           done
           python3 scripts/check_lean_source_sanity.py "${args[@]}"
 
-      - name: Restore pinned Lean and exact Mathlib package tree
+      - name: Measure OCI cache and workspace capacity
+        id: cache_capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          test -x "$ELAN_HOME/bin/elan"
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          actual_mathlib="$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)"
+          test "$actual_mathlib" = "$CACE_MATHLIB_COMMIT"
+          cache_bytes="$(du -sb "$CACE_PACKAGE_CACHE" | awk '{print $1}')"
+          workspace_free="$(df -B1 --output=avail "$GITHUB_WORKSPACE" | awk 'NR==2 {print $1}')"
+          elan_free="$(df -B1 --output=avail "$ELAN_HOME" | awk 'NR==2 {print $1}')"
+          reserve_bytes=$((8 * 1024 * 1024 * 1024))
+          required_workspace=$((cache_bytes + reserve_bytes))
+          printf 'cache_bytes=%s\nworkspace_free_bytes=%s\nelan_free_bytes=%s\nrequired_workspace_bytes=%s\n' "$cache_bytes" "$workspace_free" "$elan_free" "$required_workspace" | tee cace-cache-capacity.txt
+          if (( workspace_free < required_workspace )); then
+            echo "CACE_CACHE_CAPACITY_REJECTED: package copy requires cache_bytes plus an 8 GiB safety reserve; no copy was attempted." >&2
+            exit 22
+          fi
+          if (( elan_free < reserve_bytes )); then
+            echo "CACE_ELAN_CAPACITY_REJECTED: less than 8 GiB free on the persistent toolchain filesystem." >&2
+            exit 23
+          fi
+
+      - name: Install and verify pinned Lean toolchain
+        id: install_toolchain
+        timeout-minutes: 20
+        shell: bash
+        env:
+          ELAN_HOME: ${{ env.CACE_PERSISTENT_ELAN_HOME }}
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          printf 'toolchain_install_started=%s\n' "$(date -u +%FT%TZ)"
+          if ! elan toolchain list | grep -Fq "$CACE_TOOLCHAIN"; then
+            elan toolchain install "$CACE_TOOLCHAIN"
+          fi
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          lean --version
+          lake --version
+          printf 'toolchain_install_completed=%s\n' "$(date -u +%FT%TZ)"
+
+      - name: Restore exact pinned Mathlib package tree
+        id: restore_packages
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'package_restore_started=%s\n' "$(date -u +%FT%TZ)"
+          mkdir -p formal/cace_formal/.lake
+          rm -rf formal/cace_formal/.lake/packages
+          mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
+          test "$(git -C formal/cace_formal/.lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          flock -u 9
+          du -sh formal/cace_formal/.lake/packages
+          df -h "$GITHUB_WORKSPACE"
+          printf 'package_restore_completed=%s\n' "$(date -u +%FT%TZ)"
+
+      - name: Restore or generate pinned Lake manifest
+        id: restore_manifest
+        timeout-minutes: 15
         shell: bash
         run: |
           set -euo pipefail
           export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
           export PATH="$ELAN_HOME/bin:$PATH"
-          test -x "$ELAN_HOME/bin/elan"
-          elan toolchain install "$CACE_TOOLCHAIN"
-          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
-          mkdir -p formal/cace_formal/.lake
-          rm -rf formal/cace_formal/.lake/packages
-          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
-          flock -s -w 900 9
-          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
-          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
-          flock -u 9
           cd formal/cace_formal
-          lean --version
-          lake --version
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-
           mkdir -p "$CACE_MANIFEST_CACHE_DIR"
           manifest_key="$(
             {
@@ -154,14 +206,16 @@ jobs:
             echo "CACE_MANIFEST_CACHE_HIT key=$manifest_key"
           else
             echo "CACE_MANIFEST_CACHE_MISS key=$manifest_key"
-            MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+            timeout --signal=TERM --kill-after=30s 10m env MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
             test -s lake-manifest.json
             install -m 0644 lake-manifest.json "$manifest_cache.tmp-$GITHUB_RUN_ID"
             mv "$manifest_cache.tmp-$GITHUB_RUN_ID" "$manifest_cache"
           fi
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          printf 'manifest_restore_completed=%s\n' "$(date -u +%FT%TZ)"
 
       - name: Explicitly prewarm pinned Mathlib artifacts
+        id: prewarm_cache
         if: ${{ inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -201,6 +255,7 @@ jobs:
           flock -u 9
 
       - name: Verify normal proof run is cache-local
+        id: cache_local
         if: ${{ ! inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -276,9 +331,19 @@ jobs:
           exit "$overall"
 
       - name: Aggregate batched preflight failures
+        id: diagnostic_aggregate
         if: always()
         shell: bash
         env:
+          TARGETS_OUTCOME: ${{ steps.targets.outcome }}
+          GUARDRAILS_OUTCOME: ${{ steps.guardrails.outcome }}
+          SOURCE_SANITY_OUTCOME: ${{ steps.source_sanity.outcome }}
+          CAPACITY_OUTCOME: ${{ steps.cache_capacity.outcome }}
+          TOOLCHAIN_OUTCOME: ${{ steps.install_toolchain.outcome }}
+          PACKAGES_OUTCOME: ${{ steps.restore_packages.outcome }}
+          MANIFEST_OUTCOME: ${{ steps.restore_manifest.outcome }}
+          PREWARM_OUTCOME: ${{ steps.prewarm_cache.outcome }}
+          CACHE_LOCAL_OUTCOME: ${{ steps.cache_local.outcome }}
           CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
           IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
           BATCH_OUTCOME: ${{ steps.batch_compile.outcome }}
@@ -286,18 +351,34 @@ jobs:
           set -euo pipefail
           failures=0
           : > cace-batch-diagnostic-sweep.txt
-          record() {
+          record_required() {
             label="$1"
             outcome="$2"
             printf '%s=%s\n' "$label" "$outcome" | tee -a cace-batch-diagnostic-sweep.txt
-            case "$outcome" in
-              success|skipped) ;;
-              *) failures=$((failures + 1)) ;;
-            esac
+            if test "$outcome" != "success"; then
+              failures=$((failures + 1))
+            fi
           }
-          record canary "$CANARY_OUTCOME"
-          record impacted "$IMPACTED_OUTCOME"
-          record batch_targets "$BATCH_OUTCOME"
+          record_required targets "$TARGETS_OUTCOME"
+          record_required guardrails "$GUARDRAILS_OUTCOME"
+          record_required source_sanity "$SOURCE_SANITY_OUTCOME"
+          record_required cache_capacity "$CAPACITY_OUTCOME"
+          record_required install_toolchain "$TOOLCHAIN_OUTCOME"
+          record_required restore_packages "$PACKAGES_OUTCOME"
+          record_required restore_manifest "$MANIFEST_OUTCOME"
+
+          if { test "$PREWARM_OUTCOME" = "success" && test "$CACHE_LOCAL_OUTCOME" = "skipped"; } ||
+             { test "$PREWARM_OUTCOME" = "skipped" && test "$CACHE_LOCAL_OUTCOME" = "success"; }; then
+            echo "cache_mode=valid" | tee -a cace-batch-diagnostic-sweep.txt
+          else
+            echo "cache_mode=invalid prewarm=$PREWARM_OUTCOME cache_local=$CACHE_LOCAL_OUTCOME" | tee -a cace-batch-diagnostic-sweep.txt
+            failures=$((failures + 1))
+          fi
+
+          record_required canary "$CANARY_OUTCOME"
+          record_required impacted "$IMPACTED_OUTCOME"
+          record_required batch_targets "$BATCH_OUTCOME"
+
           if test -s cace-batch-compile-failures.txt; then
             echo "Failed target modules:"
             cat cace-batch-compile-failures.txt
@@ -312,10 +393,13 @@ jobs:
               done
             done < cace-batch-compile-failures.txt
           fi
+
           if test "$failures" -ne 0; then
             echo "CACE_BATCH_PREFLIGHT_FAILURES=$failures"
+            echo "preflight_status=failure" | tee -a cace-batch-diagnostic-sweep.txt
             exit 40
           fi
+          echo "preflight_status=success" | tee -a cace-batch-diagnostic-sweep.txt
           echo "CACE_BATCH_PREFLIGHT_OK"
 
       - name: Emit batched non-qualification summary
@@ -339,6 +423,8 @@ jobs:
           batch_policy=all requested modules must be explicitly quarantined standalone targets
           note=One batched preflight compiles all requested quarantined modules and reports the complete target failure frontier. It never promotes modules or replaces canonical qualification.
           EOF
+          preflight_status="$(awk -F= '$1 == "preflight_status" { value=$2 } END { print value }' cace-batch-diagnostic-sweep.txt 2>/dev/null || true)"
+          printf 'preflight_status=%s\n' "${preflight_status:-not_reached}" >> cace-batch-preflight-summary.txt
           cat cace-batch-preflight-summary.txt
 
       - name: Upload batched preflight evidence
@@ -355,6 +441,7 @@ jobs:
             cace-batch-compile-status.tsv
             cace-batch-compile-failures.txt
             cace-batch-diagnostic-sweep.txt
+            cace-cache-capacity.txt
             cace-batch-canary-build.log
             cace-batch-impacted-build.log
             cace-batch-target-*.log
