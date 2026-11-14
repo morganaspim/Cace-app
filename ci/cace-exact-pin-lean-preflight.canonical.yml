@@ -285,17 +285,25 @@ jobs:
           flock -x -w 900 9
           staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           backup="${CACE_PACKAGE_CACHE}.backup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          # Never overwrite or delete a prior staging/backup directory. A unique
-          # run/attempt path makes retries explicit and preserves recovery data.
+          failed="${CACE_PACKAGE_CACHE}.failed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          # Never overwrite or delete a prior staging/backup/failed directory.
+          # Unique run/attempt paths preserve all recovery evidence across retries.
           test ! -e "$staging"
           test ! -e "$backup"
+          test ! -e "$failed"
           cp -a --reflink=auto .lake/packages "$staging"
           test "$(git -C "$staging/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
           restore_previous_cache() {
             status="$?"
-            if test "$status" -ne 0 && test ! -e "$CACE_PACKAGE_CACHE" && test -d "$backup"; then
-              mv "$backup" "$CACE_PACKAGE_CACHE"
-              echo "CACE_MATHLIB_CACHE_ROLLBACK_RESTORED=$CACE_PACKAGE_CACHE"
+            if test "$status" -ne 0 && test -d "$backup"; then
+              if test -e "$CACE_PACKAGE_CACHE"; then
+                mv "$CACE_PACKAGE_CACHE" "$failed"
+                echo "CACE_MATHLIB_CACHE_FAILED_PROMOTION_PRESERVED=$failed"
+              fi
+              if test ! -e "$CACE_PACKAGE_CACHE"; then
+                mv "$backup" "$CACE_PACKAGE_CACHE"
+                echo "CACE_MATHLIB_CACHE_ROLLBACK_RESTORED=$CACE_PACKAGE_CACHE"
+              fi
             fi
             return "$status"
           }
