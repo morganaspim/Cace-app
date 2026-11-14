@@ -121,7 +121,8 @@ def _merlin_artifact_ref_trust_store_provider() -> dict[str, Any]:
     secret_ocid = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SECRET_OCID", "")
     if not secret_ocid.startswith("ocid1.vaultsecret."):
         raise RuntimeError("ArtifactRef signed trust-store Vault secret is unavailable")
-    client = oci.secrets.SecretsClient(config={}, signer=_signer())
+    from oci.secrets import SecretsClient
+    client = SecretsClient(config={}, signer=_signer())
     bundle = client.get_secret_bundle(secret_id=secret_ocid).data
     content = getattr(bundle, "secret_bundle_content", None)
     if content is None or getattr(content, "content_type", None) != "BASE64":
