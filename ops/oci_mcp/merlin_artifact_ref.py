@@ -427,11 +427,7 @@ def _independent_trust_material(
         public_key = serialization.load_pem_public_key(root["public_key_pem"].encode("ascii"))
         if not isinstance(public_key, Ed25519PublicKey):
             raise ValueError("trust root is not Ed25519")
-        public_raw = public_key.public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw,
-        )
-        actual_key_id = public_key_id(public_raw)
+        actual_key_id = public_key_id(root["public_key_pem"].encode("ascii"))
         if actual_key_id != root["key_id"]:
             raise ValueError("trust-root key ID mismatch")
         public_key.verify(signature, encoded)
