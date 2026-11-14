@@ -666,3 +666,16 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PRs #147, #149, and #150 remain draft/stacked. These CI passes do not constitute production qualification or signer trust.
 - Next DAG gates: source adapters that independently retrieve canonical evidence, explicit required-prerequisite policies, multi-host/backup qualification, event/outbox coupling, API/HUD integration, independent implementation and fuzz/property testing.
 - CACE gates remain independent trust-root provisioning (issue #104), exact-pin Lean kernel compilation, live historical resolve→attest→verify, and a distinct protected orchestrator run linked to exact OCI execution.
+
+
+## 2026-11-14 independent ArtifactRef trust-root implementation
+
+CACE PR branch `feat/independent-merlin-trust-root-20261114` adds a new fail-closed trust verification path for Merlin ArtifactRef attestations:
+
+- Trust-store payloads use schema `merlin-cace-trust-store-v2` and are signed over canonical JSON by a separate Ed25519 trust root.
+- The verifier obtains the root from protected deployment configuration and the signed trust-store receipt from a distinct OCI Vault secret using the OCI instance principal.
+- The verifier checks root key ID, root authority ID, root/store source separation, protected root provisioning identity versus runtime retrieval identity, canonical payload digest, Ed25519 signature, timestamp window, 90-day maximum validity, trust-store schema/version, duplicate key IDs, and active key status.
+- Verification results bind trust-root authority/version/key ID/digest and trust-store version/digest/source/retrieval identity.
+- Negative tests cover co-located source identities, payload-and-digest substitution without a valid root signature, stale trust, revoked keys, and root-key substitution.
+
+**Qualification boundary:** This is the cryptographic verifier and adapter contract, not proof that production OCI IAM or deployment protections are correctly configured. The root PEM and provisioning identity must be provisioned by a separately administered protected deployment path; the trust-store secret must be read-only to the CACE instance principal and writable only by the designated trust-store authority. No production secret, root key, signer key, IAM policy, or Vault secret was created or changed. Capability remains unavailable/unqualified until the actual deployment identities and OCI policies are independently inspected and a protected integration run is retained.
