@@ -579,3 +579,17 @@ The additional read-only key-readiness regression test is now included and the u
 - CACE issue #104 remains the separate acceptance gate for independently administered trust-root custody.
 
 The earlier PR #103 pass on head `3534a1906fc0ff8cb5c9f3b052e917cf23258800` is superseded by the newer exact-head pass above.
+
+
+## Merlin reliability follow-through: failure-class registry
+
+Merlin's canonical failure-class extension is now implemented in draft PR #147:
+https://github.com/Mannyspiro/expert-robot/pull/147
+
+- Exact head: `b3ed5a49ec81674b27e487a4f76223c2831108d8`.
+- Native CI run `43604241877`: **SUCCESS**; the known-failure regression guardrails passed.
+- Artifact `14118235088`, SHA-256 `09ac300e71c03a993c5b82c270c6d9e9504c785f00d4c36cd932c1ada7d9d695`.
+- The PR extends Merlin's existing `config/known_failure_classes.json` and pins five external CACE signer-custody failure classes to CACE PR #103 tests and exact evidence. It does not create a parallel bug registry.
+- Merlin issue #145 tracks the work; issue #146 tracks transitive evidence DAG invalidation.
+
+PR #147 is draft and stacked on Merlin PR #144. Native CI is the relevant exact-head gate for this registry/config-only change; no unified platform pass is claimed for #147.
