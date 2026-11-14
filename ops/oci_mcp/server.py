@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 from pathlib import Path
@@ -87,10 +88,66 @@ def _merlin_artifact_resolver(artifact_ref: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _merlin_artifact_ref_trust_root_provider() -> dict[str, Any]:
+    """Read the trust anchor from separately administered protected deployment config."""
+    from cace_studio.core.attestation import public_key_id
+
+    public_pem = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PUBLIC_KEY_PEM", "")
+    authority_id = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_AUTHORITY_ID", "")
+    provisioning_identity = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PROVISIONING_IDENTITY", "")
+    version_text = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_VERSION", "")
+    if not all((public_pem, authority_id, provisioning_identity, version_text)):
+        raise RuntimeError("independently provisioned ArtifactRef trust root is unavailable")
+    try:
+        version = int(version_text)
+    except ValueError as exc:
+        raise RuntimeError("independent ArtifactRef trust-root version is invalid") from exc
+    if version < 1:
+        raise RuntimeError("independent ArtifactRef trust-root version is invalid")
+    pem_bytes = public_pem.encode("ascii")
+    return {
+        "schema": "merlin-independent-trust-root-v1",
+        "authority_id": authority_id,
+        "version": version,
+        "key_id": public_key_id(pem_bytes),
+        "public_key_pem": public_pem,
+        "source_authority": "protected-deployment-config:CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PUBLIC_KEY_PEM",
+        "provisioning_identity": provisioning_identity,
+    }
+
+
+def _merlin_artifact_ref_trust_store_provider() -> dict[str, Any]:
+    """Retrieve the signed trust-store receipt from OCI Vault using instance identity."""
+    secret_ocid = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SECRET_OCID", "")
+    if not secret_ocid.startswith("ocid1.vaultsecret."):
+        raise RuntimeError("ArtifactRef signed trust-store Vault secret is unavailable")
+    from oci.secrets import SecretsClient
+    client = SecretsClient(config={}, signer=_signer())
+    bundle = client.get_secret_bundle(secret_id=secret_ocid).data
+    content = getattr(bundle, "secret_bundle_content", None)
+    if content is None or getattr(content, "content_type", None) != "BASE64":
+        raise RuntimeError("ArtifactRef trust-store Vault secret has an unsupported content type")
+    try:
+        raw = base64.b64decode(content.content.encode("ascii"), validate=True)
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception as exc:
+        raise RuntimeError("ArtifactRef signed trust-store Vault secret is malformed") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("ArtifactRef signed trust-store Vault secret must be an object")
+    metadata = _metadata()
+    instance_id = metadata.get("id")
+    if not isinstance(instance_id, str) or not instance_id:
+        raise RuntimeError("OCI instance identity is unavailable for trust-store retrieval")
+    return {
+        **payload,
+        "source_authority": f"oci-vault-secret:{secret_ocid}",
+        "retrieval_identity": f"oci-instance-principal:{instance_id}",
+    }
+
+
 @mcp.tool()
 def get_merlin_artifact_ref_capability() -> dict[str, Any]:
     """Report readiness without exposing resolver credentials or trust material."""
-    import hashlib
     endpoint = os.getenv("MERLIN_ARTIFACT_RESOLVER_URL", "").strip()
     token_configured = bool(os.getenv("MERLIN_ARTIFACT_RESOLVER_TOKEN", ""))
     from .merlin_artifact_ref import load_merlin_artifact_ref_private_key
@@ -99,11 +156,17 @@ def get_merlin_artifact_ref_capability() -> dict[str, Any]:
         key_ready = True
     except (OSError, PermissionError, RuntimeError, ValueError):
         key_ready = False
-    trust_json = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_JSON", "")
-    trust_digest = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SHA256", "")
-    trust_ready = bool(trust_json and trust_digest and hashlib.sha256(trust_json.encode("utf-8")).hexdigest() == trust_digest)
+    root_ready = all(os.getenv(name, "") for name in (
+        "CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PUBLIC_KEY_PEM",
+        "CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_AUTHORITY_ID",
+        "CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PROVISIONING_IDENTITY",
+        "CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_VERSION",
+    ))
+    trust_store_ready = os.getenv(
+        "CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SECRET_OCID", ""
+    ).startswith("ocid1.vaultsecret.")
     resolver_ready = endpoint.startswith("https://") and endpoint.rstrip("/").endswith("/api/artifacts/resolve") and token_configured
-    configured = ALLOW_MERLIN_ARTIFACT_REF and resolver_ready and key_ready and trust_ready
+    configured = ALLOW_MERLIN_ARTIFACT_REF and resolver_ready and key_ready and root_ready and trust_store_ready
     return {
         "schema": "cace-capability-status-v1",
         "capability_id": "merlin.artifact_ref.attestation",
@@ -113,7 +176,8 @@ def get_merlin_artifact_ref_capability() -> dict[str, Any]:
             "feature_flag_enabled": ALLOW_MERLIN_ARTIFACT_REF,
             "https_resolver_and_token_configured": resolver_ready,
             "separate_signing_key_present": key_ready,
-            "digest_pinned_trust_store_present": trust_ready,
+            "independently_provisioned_trust_root_present": root_ready,
+            "signed_trust_store_vault_secret_configured": trust_store_ready,
             "independent_protected_qualification_receipt": False,
         },
         "authority": "verification-only",
@@ -181,8 +245,8 @@ def verify_merlin_artifact_ref(
         source_commit=source_commit, artifact_id=artifact_id,
         artifact_kind=artifact_kind, artifact_schema=artifact_schema,
         resolver=_merlin_artifact_resolver,
-        trust_store_json=os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_JSON", ""),
-        trust_store_sha256=os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SHA256", ""),
+        trust_root_provider=_merlin_artifact_ref_trust_root_provider,
+        trust_store_provider=_merlin_artifact_ref_trust_store_provider,
         cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
     )
 
