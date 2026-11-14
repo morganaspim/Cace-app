@@ -565,3 +565,17 @@ Independent trust-root custody is now tracked explicitly as CACE issue #104:
 https://github.com/morganaspim/Cace-app/issues/104
 
 Issue #104 addresses the limitation that trust-store JSON and its expected digest currently arrive from the same runtime configuration authority. A matching digest is not an independent trust anchor when both values can be replaced together. Production verification must record the independently administered root identity/version, not merely the co-located digest.
+
+
+## 2026-11-14 latest PR #103 exact-head validation
+
+The additional read-only key-readiness regression test is now included and the updated PR #103 head has passed.
+
+- Exact head: `00ffff17d97508b9df9ec1386404343e1d9f9dae`.
+- CACE Collaboration Coordination Validation run `43604033624`: **SUCCESS**.
+- Artifact `14117581229`, SHA-256 `7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477`.
+- This exact run covers `tests/test_merlin_artifact_ref.py`, including the read-only readiness checks that reject unsafe key/directory modes without modifying them.
+- PR #103 remains DRAFT and stacked on PR #102. It is not merged and does not qualify a production signer.
+- CACE issue #104 remains the separate acceptance gate for independently administered trust-root custody.
+
+The earlier PR #103 pass on head `3534a1906fc0ff8cb5c9f3b052e917cf23258800` is superseded by the newer exact-head pass above.
