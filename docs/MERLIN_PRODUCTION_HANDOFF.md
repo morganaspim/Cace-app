@@ -769,22 +769,16 @@ Merlin-side exact-head gates:
 - PR #161 OCI Vault/KMS adapter and deployment runbook: `cdc22ab861ff71a27f4707887c2ef3772583398c`, CI `43609808622` SUCCESS.
 - PR #163 create-only OCI Object Storage transport: `d873e1e419e78f10b9de83c7f56cd259a80b22fc`, CI `43610431390` SUCCESS. It verifies the full bytes of an existing object on 412 replay, not only metadata/size. Older PR #162 was closed as superseded.
 
-CACE signer custody:
-- Draft PR #109 `security/artifact-ref-key-directory-custody-20261114` hardens parent traversal with no-follow directory descriptors, validates owner/mode and hard-link count, atomically publishes a complete key file, and serializes concurrent initializers.
-- First CI run `43610222590` exposed a real race in the temporary hard-link publication window. The fix uses an exclusive directory-descriptor flock; the strict one-link check remains.
-- Latest exact head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed CACE Collaboration Coordination Validation `43610495149`; artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`.
-- PR #109 is stacked on this PR #102 branch and remains draft. Do not merge independently.
 
-All these passes are engineering CI, not live cloud or production qualification. Still outstanding: protected exact-pin Lean kernel compile; deployed Merlin source identity and authenticated resolver configuration; production signer key and independently provisioned trust pin; live historical-byte resolve/attest/verify; protected orchestrator bound to exact OCI execution; real OCI Vault/KMS and Object Storage upload/download; retention/IAM audit; separate-host restore drill. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
+## CACE ArtifactRef signer filesystem custody (2026-11-14)
 
+- PR #109 was closed as a stale-base predecessor. Current draft is PR #110, rebased on the latest CACE PR #102 handoff branch.
+- The implementation walks parent directories with no-follow directory descriptors, enforces service ownership and 0700 directory mode, rejects symlink/non-regular/foreign-owned/hard-linked key files, and enforces 0600.
+- It writes and fsyncs a private temporary key, publishes with no-overwrite semantics, fsyncs the directory, and serializes concurrent initializers using `flock` on the verified directory descriptor.
+- Regression tests cover symlinked parents, hard-linked keys, and 16 concurrent initializers.
+- The first run `43610222590` exposed a legitimate race in the temporary hard-link publication window; the lock fixed the race without relaxing the one-link invariant.
+- Equivalent code/test content passed run `43610362239` at `230b4e90e9b40267ac78ba16c03d1c704907f033`; the follow-up passed run `43610495149` at `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed`, artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`.
+- PR #110's rebased code/test head is `a607c9576b762fa9bbe2616b9a5a2ca00910af0a`; latest branch head before this handoff refresh was `b3af13bbd8716db6c1d2ded6455a4c9bd45c2ab5`. The new handoff commit requires its own exact-head CI.
+- PR #110 remains draft and stacked on PR #102. Do not merge independently.
 
-## ArtifactRef signer key filesystem custody hardening (2026-11-14)
-- Draft implementation rebased on the latest CACE PR #102 handoff base.
-- Parent directory traversal uses directory descriptors and no-follow semantics; final directory must be service-owned and mode 0700.
-- Existing key files must be service-owned regular files with one link and mode 0600.
-- Key creation writes/fsyncs a private temporary file and atomically publishes it without overwrite.
-- An exclusive flock on the verified directory descriptor serializes initializers, avoiding the temporary hard-link alias race found in first CI.
-- Regression tests cover symlinked parent, hard-linked key rejection, and 16 concurrent initializers.
-- Prior equivalent code/test head `230b4e90e9b40267ac78ba16c03d1c704907f033` passed CI `43610362239`; the rebased exact head requires its own CI.
-- Prior handoff-only head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed CI `43610495149`, artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`. The new branch preserves the code/test content but must be independently validated after rebasing.
-- This does not provision a production signer or independent trust root, and does not perform a live resolver/sign/verify operation.
+All engineering CI passes above are not live cloud or production qualification. Still outstanding: protected exact-pin Lean kernel compile; deployed Merlin source identity and authenticated resolver configuration; production signer key and independently provisioned trust pin; live historical-byte resolve/attest/verify; protected orchestrator bound to exact OCI execution; real OCI Vault/KMS and Object Storage upload/download; retention/IAM audit; separate-host restore drill. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
