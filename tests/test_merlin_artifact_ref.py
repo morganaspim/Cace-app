@@ -371,7 +371,9 @@ def test_artifact_ref_key_initializer_rejects_symlinked_parent(tmp_path):
 
 def test_artifact_ref_key_initializer_rejects_unsafe_directory_and_hardlinks(tmp_path):
     pytest.importorskip("cryptography")
-    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+    from ops.oci_mcp.merlin_artifact_ref import (
+        initialize_merlin_artifact_ref_attestor, load_merlin_artifact_ref_private_key,
+    )
 
     unsafe_parent = tmp_path / "unsafe"
     unsafe_parent.mkdir()
@@ -387,12 +389,15 @@ def test_artifact_ref_key_initializer_rejects_unsafe_directory_and_hardlinks(tmp
     initialize_merlin_artifact_ref_attestor(
         private_key_path=str(key_path), cace_app_root=".",
     )
+    assert load_merlin_artifact_ref_private_key(str(key_path)).startswith(b"-----BEGIN")
     second_link = safe_parent / "unexpected-hardlink.pem"
     second_link.hardlink_to(key_path)
     with pytest.raises(PermissionError):
         initialize_merlin_artifact_ref_attestor(
             private_key_path=str(key_path), cace_app_root=".",
         )
+    with pytest.raises(PermissionError):
+        load_merlin_artifact_ref_private_key(str(key_path))
 
 
 def test_artifact_ref_key_initializer_serializes_concurrent_creation(tmp_path):
@@ -438,3 +443,21 @@ def test_artifact_ref_key_initializer_cleans_partial_temp_on_write_failure(tmp_p
     monkeypatch.setattr(os, "write", original_write)
     assert not key_path.exists()
     assert list(parent.iterdir()) == []
+
+
+def test_artifact_ref_key_loader_rejects_final_symlink_and_missing_key(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import (
+        initialize_merlin_artifact_ref_attestor, load_merlin_artifact_ref_private_key,
+    )
+
+    key_path = tmp_path / "loader" / "artifact-ref.pem"
+    with pytest.raises(PermissionError):
+        load_merlin_artifact_ref_private_key(str(key_path))
+    initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    alias = key_path.parent / "alias.pem"
+    alias.symlink_to(key_path)
+    with pytest.raises(PermissionError):
+        load_merlin_artifact_ref_private_key(str(alias))
