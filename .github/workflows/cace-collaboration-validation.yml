@@ -2,6 +2,12 @@ name: CACE Collaboration Coordination Validation
 
 on:
   workflow_dispatch:
+    inputs:
+      runner_data_inventory:
+        description: "Run a read-only metadata inventory of known CACE runner cache roots"
+        required: false
+        default: false
+        type: boolean
   pull_request:
     # Keep automatic PR validation inexpensive. Heavy formal proof validation
     # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
@@ -55,6 +61,35 @@ jobs:
 
       - name: Validate collaboration lifecycle
         run: python scripts/validate_collaboration_lifecycle.py
+
+      - name: Inventory OCI runner cache metadata (read-only)
+        if: ${{ inputs.runner_data_inventory == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cace_runner_data_inventory.py --output runner-data-inventory
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("runner-data-inventory/inventory.json").read_text())
+          print(json.dumps({
+              "roots": len(payload["roots"]),
+              "files": sum(root["file_count"] for root in payload["roots"]),
+              "bytes": sum(root["total_bytes"] for root in payload["roots"]),
+              "truncated": any(root["truncated"] for root in payload["roots"]),
+              "content_read": payload["content_read"],
+              "deletions_performed": payload["deletions_performed"],
+          }, indent=2))
+          PY
+
+      - name: Upload OCI runner inventory (planning evidence only)
+        if: ${{ inputs.runner_data_inventory == true }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-oci-runner-data-inventory
+          path: runner-data-inventory/inventory.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Bootstrap pinned formal-preflight Python environment
         shell: bash
