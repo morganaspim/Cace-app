@@ -747,3 +747,12 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - Diagnostics artifact `14118708504`, SHA-256 `95ed5e471f2336b9fda1af887ee244edb5bbb6a8e675e5a427a0ed9e0228def6`.
 - The envelope uses injected KMS data-key generation/unwrap, chunked AES-256-GCM, authenticated header/chunk index, and re-verifies the full backup after decryption.
 - CI uses a deterministic fake KMS provider. No production OCI Vault/KMS adapter, independently provisioned key, object-storage transport, retention lock, or separate-host restore drill has been qualified.
+
+
+## OCI Vault/KMS backup adapter qualification (2026-11-14)
+
+- Merlin PR #161 exact head `cdc22ab861ff71a27f4707887c2ef3772583398c` passed native CI run `43609808622`.
+- Diagnostics artifact `14119489951`, SHA-256 `b6f7cf1d54609b8110fe19b7e65b0d898bd8dbff6f48d357d6612c2da356604c`.
+- The pinned OCI Python SDK 2.191.0 model contract passes. The adapter uses an OCI instance-principal signer and is limited to data-key generation/decryption for one configured symmetric AES key.
+- The protected runbook records required runner configuration, IAM separation, live round-trip qualification, key-rotation retention and separate-host recovery steps.
+- No live OCI tenancy key/endpoint, IAM policy, network path or KMS round trip is configured or independently verified. Object Storage transport, retention lock, independent backup attestation and separate-host restore remain unqualified.
