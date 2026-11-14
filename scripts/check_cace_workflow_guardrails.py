@@ -78,6 +78,13 @@ def main() -> int:
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 
+    compile_root_fallback = "COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}"
+    if text.count(compile_root_fallback) != 2:
+        raise SystemExit(
+            "Rejected: both standalone target classification and proof-plan hashing "
+            "must force compile_root=false for pull_request events"
+        )
+
     lock_match = re.search(r"^\s*CACE_PACKAGE_CACHE_LOCK:\s*(.+?)\s*$", text, flags=re.MULTILINE)
     if not lock_match:
         raise SystemExit("Rejected: exact-pin workflow is missing its package-cache lock path")
