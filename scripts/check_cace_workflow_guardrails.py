@@ -36,6 +36,10 @@ EXPECTED_STEPS = (
 )
 
 REQUIRED_SNIPPETS = (
+    "pull_request:",
+    "CACEFormal/ContinuumSimplexCore.lean",
+    "REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
+    "COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}",
     "fetch-depth: 0",
     "python3 scripts/cace_proof_guardrails.py validate",
     "python3 scripts/cace_proof_guardrails.py impacted",
