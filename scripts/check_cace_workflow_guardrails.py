@@ -55,6 +55,8 @@ REQUIRED_SNIPPETS = (
     "proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}",
     "continue-on-error: true",
     "CACE_DIAGNOSTIC_SWEEP_FAILURES",
+    "CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock",
+    'mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"',
     "cace-canary-build.log",
     "cace-impacted-build.log",
     "cace-target-build.log",
@@ -71,6 +73,15 @@ def main() -> int:
         )
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
+
+    lock_match = re.search(r"^\\s*CACE_PACKAGE_CACHE_LOCK:\\s*(.+?)\\s*$", text, flags=re.MULTILINE)
+    if not lock_match:
+        raise SystemExit("Rejected: exact-pin workflow is missing its package-cache lock path")
+    lock_path = lock_match.group(1)
+    if not lock_path.startswith("/var/lib/cace-cache/locks/") or "/packages/" in lock_path:
+        raise SystemExit("Rejected: package-cache lock must live outside the replaceable package tree")
+    if text.count('mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"') != 2:
+        raise SystemExit("Rejected: both package-cache lock acquisitions must create the external lock directory")
 
     names = tuple(
         match.group(1).strip()
