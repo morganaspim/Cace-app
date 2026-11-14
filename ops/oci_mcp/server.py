@@ -20,6 +20,17 @@ from .policy import (
 )
 from .runner_inventory import collect_runner_status
 
+mcp = MCPServer(
+    "CACE OCI Control Plane",
+    instructions=(
+        "Narrow operational control plane for one CACE OCI VM. "
+        "Never claim a write succeeded unless the tool response says it did. "
+        "Network changes are restricted to attached NSGs and TCP 80/443. "
+        "No generic shell, IAM mutation, secret access, instance termination, "
+        "or arbitrary OCI API execution is exposed."
+    ),
+)
+
 MCP_HOST = os.getenv("CACE_OCI_MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.getenv("CACE_OCI_MCP_PORT", "8765"))
 ALLOW_SERVICE_RESTART = os.getenv("CACE_OCI_MCP_ALLOW_SERVICE_RESTART", "").lower() == "true"
@@ -136,16 +147,6 @@ IMDS_INSTANCE = "http://169.254.169.254/opc/v2/instance/"
 IMDS_VNICS = "http://169.254.169.254/opc/v2/vnics/"
 MANAGED_RULE_PREFIX = "CACE-MCP-MANAGED"
 
-mcp = MCPServer(
-    "CACE OCI Control Plane",
-    instructions=(
-        "Narrow operational control plane for one CACE OCI VM. "
-        "Never claim a write succeeded unless the tool response says it did. "
-        "Network changes are restricted to attached NSGs and TCP 80/443. "
-        "No generic shell, IAM mutation, secret access, instance termination, "
-        "or arbitrary OCI API execution is exposed."
-    ),
-)
 
 
 
