@@ -622,3 +622,117 @@ No production secrets, signer key, trust material, environment variables, featur
 - Both PRs remain unmerged/draft; no promotion or deployment.
 - Still blocked: deployed source identity and resolver credentials; protected signer key and independent trust pin; live resolve/attest/verify; protected main-only orchestrator run; manual exact-pin Lean kernel compile; formal qualification. No secrets, host/IAM settings, or production variables have been changed.
 - Continue with the six gates in `docs/MERLIN_PRODUCTION_HANDOFF.md`. Re-query live GitHub state before acting; do not treat handoff snapshots as evidence.
+
+
+## 2026-11-14 live continuation: ArtifactRef key custody
+
+- CACE PR #102 branch was refreshed with production handoff commit 47188d235747e9b0916b029bf0b0e8f12f7118ea.
+- New stacked draft PR #103: https://github.com/morganaspim/Cace-app/pull/103
+- Exact head 7a1d9a0d473897e55cc698c59fd60359fae529b1; CACE Collaboration Coordination Validation run 43603317438 **SUCCESS**.
+- Artifact 14117181753, SHA-256 7d52b73c7b5d3b0aa63039ce156fa61c10f137dd3b380eb2cf4d7a6dff8365f0.
+- PR #103 hardens ArtifactRef signer-key parent traversal, ownership/permissions, hard-link rejection, concurrent initialization, and atomic no-overwrite publication. Tests are in tests/test_merlin_artifact_ref.py.
+- PR #103 remains draft and stacked on PR #102. Do not merge independently. No production key, trust root, endpoint, secret, host configuration, deployment, or promotion was touched.
+- Exact-pin Lean kernel preflight remains outstanding. Collaboration validation and source sanity are not Lean compilation.
+- Failure-class registry and exact-source qualification lineage already exist in Merlin (config/known_failure_classes.json, PR #10, and source-binding PR #46); extend those canonical systems rather than creating parallel registries.
+- Next: inspect PR #103 run evidence and crash-recovery edge cases; exact-pin Lean preflight; protected signer/trust provisioning; live resolve→attest→verify; protected orchestrator receipt.
+
+
+## 2026-11-14 latest ArtifactRef custody gate
+
+- CACE PR #103 current exact head: 3534a1906fc0ff8cb5c9f3b052e917cf23258800.
+- Exact-head Collaboration Coordination Validation run 43603746084: SUCCESS.
+- Artifact 14116814715, SHA-256 237710f7b090997d231068084c9e8118cab98bee8e420784ae22d92659353657.
+- This pass includes the updated signer key loader and server integration, plus ArtifactRef regression tests. PR #103 remains draft and stacked on PR #102.
+- CACE issue #104 tracks independently administered trust-root custody: https://github.com/morganaspim/Cace-app/issues/104.
+- Trust-store JSON plus digest from the same mutable runtime environment is not an independent trust root.
+- Exact-pin Lean kernel preflight, production trust provisioning, live resolver round trip, and protected orchestrator run remain outstanding.
+
+
+## 2026-11-14 latest CACE signer custody result
+
+- PR #103 exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed Collaboration Coordination Validation run 43604033624.
+- Artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- The passing run includes signer parent traversal, atomic initialization, read-path revalidation, and read-only readiness permission tests.
+- PR #103 remains draft/stacked; no production key has been initialized.
+- CACE issue #104 independently tracks trust-root custody. Trust payload and digest supplied by one mutable source are not independent.
+- Exact-pin Lean kernel compilation, live resolve→attest→verify, and protected orchestrator linkage remain outstanding.
+
+
+## 2026-11-14 Merlin reliability PR
+
+- Merlin PR #147 extends the existing failure-class registry with five CACE ArtifactRef signer-custody classes.
+- Exact head b3ed5a49ec81674b27e487a4f76223c2831108d8; native CI run 43604241877 SUCCESS.
+- Artifact 14118235088, SHA-256 09ac300e71c03a993c5b82c270c6d9e9504c785f00d4c36cd932c1ada7d9d695.
+- It is stacked on Merlin PR #144 and remains draft.
+- Merlin issue #146 covers transitive evidence dependency invalidation; CACE issue #104 covers independent trust-root custody.
+
+
+## 2026-11-14 evidence DAG design
+
+- Merlin PR #148: https://github.com/Mannyspiro/expert-robot/pull/148
+- Exact head f037341acb54417352c42d26924ac79447590b8c.
+- Adds a typed read-only qualification evidence DAG v1 design and JSON Schema.
+- JSON schema syntax was parsed successfully; runtime graph construction, deterministic digest, cycle rejection, selective invalidation and property tests are not yet implemented.
+- PR #148 remains draft and stacked on PR #144.
+
+
+## 2026-11-14 latest production Merlin continuation
+
+- CACE PR #103 exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed run 43604033624; artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- Merlin PR #147 exact head 694968f9558d6075be536909bf197d3ead6dd59b passed CI run 43604488928; diagnostics artifact 14117811826, SHA-256 ab7e725abf7a41ceab298f10680a8877a92758af373599df02807c51754007d2.
+- PR #147 registers five signer custody failure classes in the existing failure registry and pins each to CACE's exact test/evidence. Earlier failed attempts exposed and fixed stale test-path and evidence-pin guards.
+- Merlin PR #148 introduces the qualification evidence DAG v1 design/schema only; runtime DAG evaluation, digesting, cycle detection, invalidation, and property tests remain.
+- CACE issue #104 is the independent trust-root custody gate.
+- Remaining gates: protected exact-pin Lean kernel compile; independently administered trust root; live historical resolve→attest→verify; protected OCI/orchestrator linkage; end-to-end ArtifactRef schema migration across Hermes/Avrea/OCI/CACE.
+- No production secrets, keys, trust roots, deployments, merges, or promotion were changed.
+
+
+## 2026-11-14 Merlin DAG and failure-memory implementation
+
+- Merlin PR #147 exact head 7a78cd3e73ee57b7c605babfe843ade50f001942 passed CI 43605061762; artifact 14117564194, SHA-256 f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f.
+- PR #147 now records five CACE signer-custody failure classes and two cross-repository integration classes. External pins are stored once in the canonical registry; tests no longer duplicate mutable commit/run/digest values.
+- Merlin PR #149 exact head d5f0c7fe2c43599850aa980cbc08797ce9bfe482 passed CI 43604937482; diagnostics artifact 14117398094, SHA-256 00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0.
+- Merlin PR #150 code head 97107bbf38f2e68823fe7c3c7c18599656b7005f passed CI 43605192756; diagnostics artifact 14118372468, SHA-256 aad40e4f92affdf10927f3e7c40bce8bc8fad534078add67b56d087a6582324d.
+- PR #149 implements deterministic DAG projection, identity and ArtifactRef validation, cycle rejection, selective invalidation, and status propagation.
+- PR #150 adds append-only snapshot history in the existing MerlinRegistry SQLite database with local serialized writes and tamper-checked reads.
+- These remain draft stacked PRs. Multi-host coordination, backup/restore, event/outbox coupling, authenticated source adapters, API/HUD integration, independent implementation, and property/fuzz testing remain outstanding.
+- Production blockers remain independent trust-root provisioning (CACE issue #104), exact-pin Lean kernel compile, live historical resolve→attest→verify, and protected OCI/orchestrator linkage.
+
+
+## Latest 2026-11-14 exact-head DAG receipts
+
+- Merlin PR #147 exact head 7a78cd3e73ee57b7c605babfe843ade50f001942 passed CI 43605061762; artifact 14117564194, SHA-256 f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f.
+- Merlin PR #149 code head d5f0c7fe2c43599850aa980cbc08797ce9bfe482 passed CI 43604937482; artifact 14117398094, SHA-256 00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0.
+- Merlin PR #150 exact head 7ade0d22b7542c2e6aa4396f76a3fe0f91718be5 passed CI 43605312229; artifact 14117503140, SHA-256 b19e3bac900bf2f1b4cbcd4c9afe6b65968cab9da69178e0b3a498264a7458d7.
+- DAG snapshot persistence is in the existing MerlinRegistry DB, not a second registry. SQLite transaction serialization is single-host only.
+- All three Merlin PRs remain draft/stacked. Production blockers unchanged: independent trust root, protected Lean compile, live resolver-attestation-verification round trip, and distinct protected orchestrator/OCI linkage.
+
+
+## Latest CACE PR #102 gate
+- Exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed CACE Collaboration Coordination Validation run 43605425667.
+- Artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089.
+- Companion Lean Source Sanity run 43605425559 was CANCELLED, not passed.
+- Manual protected exact-pin Lean kernel compilation remains outstanding; no workflow dispatch or OCI run is claimed.
+
+
+## Latest DAG persistence and independent verifier receipts
+
+- Merlin PR #150 exact code head 4af3be9f75491c7ff0d76cd033a35182580ab778 passed CI 43605877291; diagnostics artifact 14117578731, SHA-256 dadbef6c593862e655813d2e4a3e16662b7fc778aa4258d7fa84031549b75621.
+- Its backup-tamper test fixture was corrected to restore the append-only trigger after tampering, so CI reaches the intended stored-snapshot integrity assertion. No verifier guard was weakened.
+- Merlin PR #152 exact head 893978926f5b3d6758b59247c9495bb99b346275 passed CI 43606008520; diagnostics artifact 14117489219, SHA-256 0701f39e1109b10bf56f2f5daf8c809e1b0faa594f75eb61baac35a1b372f7a9.
+- PR #152 adds an independent Node verifier and tests for canonical bytes, sorted arrays, digest reproduction, and tamper rejection. Type-specific identity equivalence and randomized cross-language property vectors remain.
+- CACE PR #102 branch exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed collaboration run 43605425667; artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089. Lean Source Sanity run 43605425559 was CANCELLED.
+- Protected exact-pin Lean compile, independent trust root, live resolve→attest→verify, and OCI/protected orchestrator run remain outstanding.
+
+
+## 2026-11-14 independent ArtifactRef trust-root progress
+
+- Draft CACE PR #106: https://github.com/morganaspim/Cace-app/pull/106
+- Exact tested code head: `128e43513f3565f769231642f5fc222139273190`.
+- CACE Collaboration Coordination Validation run `43606285010`: SUCCESS.
+- Retained artifact `14118358494`, SHA-256 `9cfd205ef56999b2dc5d11cdfbf0d8ceccb2c6ef0a7d2667c7a7da592df53311`.
+- The new verifier replaces co-located trust-store JSON/digest input with a canonical, root-signed v2 trust-store receipt. It binds an independently provisioned Ed25519 root from protected deployment configuration to a separate OCI Vault secret fetched with the instance principal.
+- Verification results bind root authority/version/key ID/digest and trust-store version/digest/source/retrieval identity. Tests cover signature substitution, source co-location, stale trust, revoked keys, and root-key swaps.
+- PR #106 is draft and stacked on PR #102. The earlier PR #105 branch was closed as superseded before any merge.
+- Production IAM separation remains unproven: inspect protected deployment approvals, actual OCI dynamic-group/compartment policy, Vault secret OCID and read-only permission, then perform a protected OCI round trip. No production secret/key/IAM setting was changed.
+- Exact-pin Lean kernel compilation and protected orchestrator linkage remain independent blockers. Verification remains proof_effect=none and authority=verification-only.
