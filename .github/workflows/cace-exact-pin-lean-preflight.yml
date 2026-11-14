@@ -35,7 +35,7 @@ jobs:
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
       CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
-      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages.lock
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock
       CACE_MANIFEST_CACHE_DIR: /var/lib/cace-cache/mathlib/manifests
       LAKE_ARTIFACT_CACHE: 'true'
       LAKE_CACHE_DIR: /var/lib/cace-cache/lake
@@ -195,6 +195,7 @@ jobs:
           test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
           mkdir -p formal/cace_formal/.lake
           rm -rf formal/cace_formal/.lake/packages
+          mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
           flock -s -w 900 9
           test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
@@ -254,6 +255,7 @@ jobs:
 
           lake exe cache get
 
+          mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
           flock -x -w 900 9
           staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}"
