@@ -789,3 +789,15 @@ CACE signer custody and independent trust:
 8. After the above gates, merge the dependency chain in order and run a protected integrated production-readiness suite. No deployment or promotion follows from CI alone.
 
 All listed passes remain engineering CI, not live cloud or production qualification. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
+
+
+## CACE ArtifactRef signer filesystem custody hardening (2026-11-14)
+- Rebased on the latest CACE PR #102 handoff base `aaae48bf1e729aa037ef25ce4b2233fb453a4c16`; no CACE production secrets or deployment configuration changed.
+- Parent traversal uses directory descriptors with no-follow semantics; the final key directory must be service-owned and mode 0700.
+- Existing keys must be service-owned regular files with one link and mode 0600. Symlinked parents/leaves, foreign ownership, and unknown hard links fail closed.
+- Creation writes/fsyncs a temporary key and publishes with no-overwrite semantics; an exclusive flock serializes initializers.
+- Crash recovery removes only a same-device/same-inode, service-owned temporary alias with the exact generated prefix; unrelated hard links remain rejected.
+- Regression tests cover symlinked parents, hard-linked keys, 16 concurrent initializers, and crash recovery.
+- Earlier equivalent code/test head `24d540ea8ea625aad92f9b530d357c65728daae1` passed CI `43611326761`, artifact `14120222700`, SHA-256 `d168b1b07e66dc0692b014d17b6640fe9e97d07fc69c5bf04e190a67d9f1625c`.
+- Current rebased PR #111 exact head `0640570d43bb7ffcc7fc7cb04e01efec6b058421` passed CI `43611590724`, artifact `14119973780`, SHA-256 `aa617c85482df66d538921c44d64ac349136e424e00732d982ae1190b52250d5`.
+- This does not provision a production signer or independent trust root, and does not perform a live resolver/sign/verify operation.
