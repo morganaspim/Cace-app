@@ -448,7 +448,7 @@ def test_independent_trust_root_rejects_expiry_revocation_and_root_swap():
             "version": 3, "key_id": key_id,
             "public_key_pem": root_public.decode("ascii"),
             "source_authority": "protected-deployment-config:trust-root",
-            "provisioning_identity": "security-admin:trust-root",
+            "provisioning_identity": "protected-deployment:security-admin",
         }
         receipt = {
             "schema": "merlin-cace-signed-trust-store-receipt-v1",
