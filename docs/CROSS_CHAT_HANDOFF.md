@@ -665,3 +665,12 @@ No production secrets, signer key, trust material, environment variables, featur
 - Artifact 14118235088, SHA-256 09ac300e71c03a993c5b82c270c6d9e9504c785f00d4c36cd932c1ada7d9d695.
 - It is stacked on Merlin PR #144 and remains draft.
 - Merlin issue #146 covers transitive evidence dependency invalidation; CACE issue #104 covers independent trust-root custody.
+
+
+## 2026-11-14 evidence DAG design
+
+- Merlin PR #148: https://github.com/Mannyspiro/expert-robot/pull/148
+- Exact head f037341acb54417352c42d26924ac79447590b8c.
+- Adds a typed read-only qualification evidence DAG v1 design and JSON Schema.
+- JSON schema syntax was parsed successfully; runtime graph construction, deterministic digest, cycle rejection, selective invalidation and property tests are not yet implemented.
+- PR #148 remains draft and stacked on PR #144.
