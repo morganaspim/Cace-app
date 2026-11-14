@@ -384,3 +384,16 @@ Remaining gates (do not mark production qualified):
 6. Independently reproduce RP²/SNF and expand persistence representatives/interacting cycles, then bind those results to the same exact source and evidence chain.
 
 No production secret, signing key, trust store, feature flag, resolver deployment, OCI host/IAM/service state or workflow-dispatch run was changed/created by this code-only work. PR #102 remains OPEN/DRAFT; do not merge independently or infer deployment.
+
+
+## 2026-11-14 ArtifactRef hardening: latest exact code head
+
+Latest CACE code head: `ab6c146da6b990956fb64a53f78adee58abec69c`.
+- Collaboration validation #43601156993: SUCCESS — https://github.com/morganaspim/Cace-app/actions/runs/43601156993
+- This exact-head test command includes `tests/test_merlin_artifact_ref.py`; it passed the resolver mutation cases, full CACE Ed25519 sign/verify round trip, duplicate trust-key rejection and AST regression guarding MCP server initialization before tool registration.
+- Evidence artifact ID `14115733300`, SHA-256 `1a789b77b7ce40febd2a00615cd1f4a05c04108dc872847df76a7cbcce99b87e`.
+- Lean Source Sanity on earlier code head `7082e600105a41982e066d3bd9f39a8b49b3cd6f` passed as run #43600934550. No Lean source changed after that head; the newer Lean Source Sanity attempt on ab6c was cancelled before a job began. Do not call it a pass on ab6c.
+
+Exact-pin math target clarification: the current CACE repository contains `formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean`, which is explicitly listed in `proof_guardrails.json` as `quarantined_root_imports`. The correct targeted preflight invocation is workflow `CACE Exact-Pin Lean Preflight` with module `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, and `prewarm_mathlib_cache=false` (unless a separate cache refresh is explicitly approved). The workflow pins `leanprover/lean4:v4.32.1` and mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`. This workflow is manual-dispatch on the protected CACE runner; no dispatch or kernel result has been obtained in this continuation. Do not confuse this file with the earlier proposed `SimplexBoundaryDistribution.lean`, which is not present in this CACE branch tree.
+
+Protected signer and orchestrator boundary: the MCP key-initialization tool and capability report are code-only. No key has been generated on OCI, no trust key has been independently provisioned, no feature flag enabled, no live Merlin resolver request made, and no production signer call performed. Existing `merlin-cace-protected-orchestrator.yml` requires manual dispatch on `main` with a successful OCI execution run ID; the PR is still stacked/draft and the workflow has not been dispatched. Thus steps 3–6 remain operationally blocked pending protected configuration, main integration and authorized workflow dispatch.
