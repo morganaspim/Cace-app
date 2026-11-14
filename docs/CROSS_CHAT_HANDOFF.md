@@ -656,3 +656,12 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #103 remains draft/stacked; no production key has been initialized.
 - CACE issue #104 independently tracks trust-root custody. Trust payload and digest supplied by one mutable source are not independent.
 - Exact-pin Lean kernel compilation, live resolve→attest→verify, and protected orchestrator linkage remain outstanding.
+
+
+## 2026-11-14 Merlin reliability PR
+
+- Merlin PR #147 extends the existing failure-class registry with five CACE ArtifactRef signer-custody classes.
+- Exact head b3ed5a49ec81674b27e487a4f76223c2831108d8; native CI run 43604241877 SUCCESS.
+- Artifact 14118235088, SHA-256 09ac300e71c03a993c5b82c270c6d9e9504c785f00d4c36cd932c1ada7d9d695.
+- It is stacked on Merlin PR #144 and remains draft.
+- Merlin issue #146 covers transitive evidence dependency invalidation; CACE issue #104 covers independent trust-root custody.
