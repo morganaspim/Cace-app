@@ -56,11 +56,29 @@ def _decode_canonical_b64(encoded: Any) -> bytes:
     return raw
 
 
+def _exact_provenance(value: Any) -> dict[str, str]:
+    fields = {"schema", "source_repo", "source_commit", "artifact_id", "artifact_kind", "artifact_schema"}
+    if not isinstance(value, Mapping) or set(value) != fields:
+        raise PermissionError("Merlin resolver must return the exact immutable artifact provenance fields")
+    provenance = dict(value)
+    if provenance.get("schema") != "merlin-artifact-provenance/1":
+        raise PermissionError("unsupported Merlin artifact provenance schema")
+    if provenance.get("source_repo") != "Mannyspiro/expert-robot":
+        raise PermissionError("Merlin artifact provenance source repository is not allowlisted")
+    if not isinstance(provenance.get("source_commit"), str) or not re.fullmatch(r"[0-9a-f]{40}", provenance["source_commit"]):
+        raise PermissionError("Merlin artifact provenance source commit is not a full Git SHA")
+    for field in ("artifact_id", "artifact_kind", "artifact_schema"):
+        item = provenance.get(field)
+        if not isinstance(item, str) or not item.strip() or len(item) > 256:
+            raise PermissionError(f"Merlin artifact provenance {field} is invalid")
+    return provenance
+
+
 def resolve_merlin_artifact_bytes(
     artifact_ref: Mapping[str, Any],
     *,
     resolver: Callable[[dict[str, Any]], Mapping[str, Any]],
-) -> tuple[dict[str, Any], bytes]:
+) -> tuple[dict[str, Any], bytes, dict[str, str]]:
     """Ask an injected authenticated Merlin transport for exact historical bytes."""
     ref = _exact_ref(artifact_ref)
     if not callable(resolver):
@@ -100,7 +118,8 @@ def resolve_merlin_artifact_bytes(
         raise PermissionError("Merlin resolver content digest mismatch")
     if resolution.get("size_bytes") != len(raw):
         raise PermissionError("Merlin resolution metadata size mismatch")
-    return ref, raw
+    provenance = _exact_provenance(resolution.get("provenance"))
+    return ref, raw, provenance
 
 
 def _load_core(cace_app_root: str):
@@ -234,7 +253,15 @@ def attest_merlin_artifact_ref(
 ) -> dict[str, Any]:
     """Independently resolve exact historical bytes, verify bundle, and sign bindings."""
     (Statement, key_id_fn, sign, _, _, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
-    ref, raw = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
+    ref, raw, provenance = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
+    expected_provenance = {
+        "schema": "merlin-artifact-provenance/1",
+        "source_repo": source_repo, "source_commit": source_commit,
+        "artifact_id": artifact_id, "artifact_kind": artifact_kind,
+        "artifact_schema": artifact_schema,
+    }
+    if provenance != expected_provenance:
+        raise PermissionError("caller-supplied source/artifact identity does not match Merlin's immutable provenance")
     bindings = _expected_bindings(
         artifact_ref=ref, source_repo=source_repo, source_commit=source_commit,
         artifact_id=artifact_id, artifact_kind=artifact_kind, artifact_schema=artifact_schema,
