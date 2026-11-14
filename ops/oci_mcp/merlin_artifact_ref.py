@@ -260,6 +260,7 @@ def _read_artifact_key_at(parent_fd: int, key_name: str) -> bytes | None:
 def load_merlin_artifact_ref_private_key(private_key_path: str) -> bytes:
     """Read the signer key through the same pinned directory and inode checks."""
     import fcntl
+    import os
 
     parent_fd, key_name, _ = _open_secure_artifact_key_parent(private_key_path)
     try:
