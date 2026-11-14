@@ -352,3 +352,57 @@ def test_artifact_ref_key_initialization_is_idempotent_and_refuses_symlink(tmp_p
         initialize_merlin_artifact_ref_attestor(
             private_key_path=str(symlink_path), cace_app_root=".",
         )
+
+
+def test_artifact_ref_key_initializer_rejects_symlinked_parent(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    real_parent = tmp_path / "real"
+    real_parent.mkdir()
+    symlink_parent = tmp_path / "linked"
+    symlink_parent.symlink_to(real_parent, target_is_directory=True)
+    with pytest.raises(PermissionError):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(symlink_parent / "artifact-ref.pem"),
+            cace_app_root=".",
+        )
+    assert not (real_parent / "artifact-ref.pem").exists()
+
+
+def test_artifact_ref_key_initializer_rejects_hard_linked_key(tmp_path):
+    import os
+
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    key_path = tmp_path / "keys" / "artifact-ref.pem"
+    initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    second_link = tmp_path / "copied-key-link.pem"
+    os.link(key_path, second_link)
+    with pytest.raises(PermissionError, match="one link"):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+
+
+def test_artifact_ref_key_initializer_is_race_safe_and_publishes_one_key(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    key_path = tmp_path / "keys" / "artifact-ref.pem"
+    def initialize():
+        return initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: initialize(), range(16)))
+    assert len({result["verifier_key_id"] for result in results}) == 1
+    assert sum(result["created"] for result in results) == 1
+    assert key_path.stat().st_mode & 0o777 == 0o600
+    assert sorted(p.name for p in key_path.parent.iterdir()) == ["artifact-ref.pem"]
