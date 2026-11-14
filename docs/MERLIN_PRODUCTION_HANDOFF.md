@@ -704,3 +704,12 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PR #107 exact head `18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6` passed CACE Collaboration Coordination Validation run `43607161208`; artifact `14118607025`, SHA-256 `503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff`.
 - PR #106 was closed as superseded because its divergent base overlapped the same signer files and could have regressed secure key loading. Do not merge it.
 - Both PR #103 and #107 remain draft/stacked. These CI passes do not prove actual OCI IAM separation, live Vault access, production key provisioning, protected OCI execution, Lean kernel compilation, or promotion qualification.
+
+
+## Latest Merlin qualification-DAG reliability and parity work (2026-11-14)
+
+- Known-failure regression guard: first run `43606190603` failed at the shared cross-repository CACE evidence-pin equality assertion. A diagnostic now reports the precise class and tuple on future drift; exact commit `d11d081397b4bc125fde5c2e156268ad94089835` passed CI run `43607173039`. Diagnostics artifact `14118646127`, SHA-256 `4c29f80428a1b9c0b4443623a6d63fb8f379238b9fa13a067fdca129be062548`. The prior discrepancy is not yet root-caused; do not claim the diagnostic change fixed the underlying pin drift.
+- Independent verifier PR #152 exact head `893978926f5b3d6758b59247c9495bb99b346275` passed CI run `43606008520`, diagnostics artifact `14117489219`, SHA-256 `0701f39e1109b10bf56f2f5daf8c809e1b0faa594f75eb61baac35a1b372f7a9`.
+- New draft PR #154 exact head `786ee70ef8e941c950039af4d3addc0de593ce27` extends differential testing to all nine v1 node types, twelve seeded permutations, and a rehashed invalid identity. Exact-head CI is not yet observed; no pass is claimed.
+- PR #154 is stacked on #152 and must not merge independently.
+- CACE PR #102 collaboration validation remains passed at exact code head `89d84525c2cc32ec5f87431130eab52c2d42d45e` (run `43605425667`, artifact `14117987843`, SHA-256 `4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089`). Companion Lean Source Sanity was cancelled. Protected exact-pin Lean kernel compile remains outstanding.
