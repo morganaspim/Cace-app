@@ -801,3 +801,10 @@ CACE:
 - PR #108 independent Ed25519 root + separately retrieved signed OCI Vault trust store passed exact code head `565be287fd6c9e1f71fbb4824f315fe1ae87db07`, run `43607177662`, artifact `14119240777`, SHA-256 `ce97a2a0ebb7db9b45c3966975497db14d11f0b0ffec0546f9909b755458f2bd`. Live IAM/source separation remains unqualified.
 - Protected exact-pin Lean kernel compilation remains outstanding. Source sanity and collaboration CI are not substitutes.
 - The production handoff now contains the ranked next gates: finish #110; rebase/validate #108 against secure signer custody; exact-pin Lean compile; provision independent root/signer; live historical ArtifactRef resolve/attest/verify; protected orchestrator-to-OCI binding; live OCI KMS/Object Storage round trip; separate-host restore and measured recovery.
+
+
+## New recovery evidence work
+- Merlin draft PR #164 https://github.com/Mannyspiro/expert-robot/pull/164 defines canonical integrity-only `merlin-backup-recovery-receipt/1`.
+- Exact head `a5fea014fdc6f5991add69996aa6a49252e94eba`; CI run `43611867463` pending at last check.
+- It binds the exact workflow run and retained evidence ArtifactRef, Vault/Object Storage audit digests, backup and restored manifest digests, encrypted object and KMS identities, distinct origin/restore host identities, measured timing, and explicit restore checks.
+- The receipt is unsigned; CACE must independently retrieve and attest its exact bytes. No live recovery claim is made.
