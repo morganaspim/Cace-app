@@ -753,3 +753,10 @@ No production secrets, signer key, trust material, environment variables, featur
 - Unified artifact 14119471619, SHA-256 27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123.
 - Snapshot history and its deterministic Hermes outbox notification now commit in one canonical-registry SQLite transaction; rollback, idempotent replay, same-DB enforcement and consumer acknowledgement are tested.
 - This does not yet qualify multi-host coordination, off-host backup, or remote event delivery.
+
+
+## Latest registry recovery and failure-class receipts
+- PR #157 exact head c392f07ef3c21663854914a7da14934d6287144b passed CI 43608784928; artifact 14119413202, SHA-256 06cf789f475a0f38c282c57ee7ad8734a7d87df20b5baca649c1bbab887946d7. Added a distinct failure class for archive tamper fixtures that alter size before digest.
+- PR #158 exact head 079c3c82f273a80dd4fa5deabb90aaa3154a8e27 passed native 43607987636 and unified 43607987604.
+- PR #159 exact head 32e877e8c5710cd9533b88b62530cee06b45a588 passed native CI 43608688270; artifact 14118834284, SHA-256 34ac98f600e47113c5ee602011cb32f38af14cba4c774c5061a0ae7d09c81aa8.
+- PR #159 is a local database-plus-blobs recovery package. Off-host encryption, transport, retention, key custody and separate-host restore remain unqualified.
