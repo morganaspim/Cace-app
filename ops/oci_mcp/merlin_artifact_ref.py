@@ -174,6 +174,7 @@ def initialize_merlin_artifact_ref_attestor(
     The key is published with a no-overwrite hard-link operation only after
     the complete temporary file has been flushed to disk.
     """
+    import fcntl
     import os
     import secrets
     import stat
@@ -192,6 +193,7 @@ def initialize_merlin_artifact_ref_attestor(
     # Walk from / using directory descriptors. A symlink in any parent
     # component is rejected instead of being followed by Path.mkdir/chmod.
     dir_fd = os.open(os.path.sep, directory_flags)
+    directory_locked = False
     try:
         for component in path.parent.parts[1:]:
             try:
@@ -213,6 +215,10 @@ def initialize_merlin_artifact_ref_attestor(
         if not stat.S_ISDIR(directory_info.st_mode) or directory_info.st_uid != os.geteuid():
             raise PermissionError("ArtifactRef key directory must be owned by the service identity")
         os.fchmod(dir_fd, 0o700)
+        # Serialize initializers so no reader observes the brief two-name
+        # publication interval between link(temp, final) and unlink(temp).
+        fcntl.flock(dir_fd, fcntl.LOCK_EX)
+        directory_locked = True
 
         def read_existing_key() -> bytes:
             try:
