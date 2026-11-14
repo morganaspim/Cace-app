@@ -733,7 +733,8 @@ No production secrets, signer key, trust material, environment variables, featur
 
 
 ## Latest regression guard and type-parity status
-- Known-failure guard run 43606190603 failed at shared external CACE evidence-pin equality; a diagnostic now emits the exact class and tuple. Exact commit d11d081397b4bc125fde5c2e156268ad94089835 passed CI run 43607173039, artifact 14118646127, SHA-256 4c29f80428a1b9c0b4443623a6d63fb8f379238b9fa13a067fdca129be062548. The prior mismatch remains unexplained; do not call it fixed without a reproduced root cause.
-- Independent DAG verifier PR #152 passed exact-head CI 43606008520 at 893978926f5b3d6758b59247c9495bb99b346275.
-- Draft PR #154 adds all-nine-type cross-language checks and twelve seeded graph permutations at head 786ee70ef8e941c950039af4d3addc0de593ce27. Exact-head CI remains pending/unobserved.
+- Known-failure guard run 43606190603 failed because a local regression-test path pointed to a file available only on stacked PR #150 and absent from the guard workflow checkout. It was not external CACE pin drift.
+- Corrected registry commit 591a5533aeab4415ac6a8e7fc456ab0d1788b0ea uses `external_regression_test` and passed exact-head CI 43607463075; artifact 14119390852, SHA-256 ec482a7c2c0ac8aac07061decffaf8322d074b16914d92af03aa5d1db1c4eacc.
+- Latest independent DAG verifier PR #152 head de22b9b080da3e7d6301565453e25661f3f199b4 passed exact-head CI 43606623064; artifact 14117589685, SHA-256 aaa759f329396b3a26070b3856d5ea38d43ea3639a6570cbce13949450670458. It includes all-nine-type identity validation, randomized DAG property vectors, Unicode identity handling, duplicate-key rejection, and ArtifactRef negative cases.
+- Draft PR #154 was closed as redundant; its test scope is already present on the latest PR #152 branch.
 - CACE PR #102 still lacks the protected exact-pin Lean kernel compile. Its collaboration validation pass does not substitute for that gate.
