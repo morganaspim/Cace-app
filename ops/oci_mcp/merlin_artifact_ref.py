@@ -497,12 +497,17 @@ def verify_merlin_artifact_ref(
     artifact_ref: Mapping[str, Any], source_repo: str, source_commit: str,
     artifact_id: str, artifact_kind: str, artifact_schema: str,
     resolver: Callable[[dict[str, Any]], Mapping[str, Any]],
-    trust_store_json: str, trust_store_sha256: str,
+    trust_root_provider: Callable[[], Mapping[str, Any]],
+    trust_store_provider: Callable[[], Mapping[str, Any]],
     cace_app_root: str = "/opt/cace-web/current",
 ) -> dict[str, Any]:
-    """Re-resolve bytes and verify the signed statement against pinned CACE trust."""
-    ( _, _, _, from_payload, verify_sig, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
-    approved = _approved_artifact_ref_keys(trust_store_json, trust_store_sha256)
+    """Re-resolve bytes and verify the signed statement against an independent trust root."""
+    ( _, public_key_id_fn, _, from_payload, verify_sig, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
+    approved, trust_receipt = _independent_trust_material(
+        trust_root_provider=trust_root_provider,
+        trust_store_provider=trust_store_provider,
+        public_key_id=public_key_id_fn,
+    )
     ref, raw, provenance = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
     expected_provenance = {
         "schema": "merlin-artifact-provenance/1",
@@ -539,5 +544,6 @@ def verify_merlin_artifact_ref(
         "verified": True, "verifier_id": "cace", "verifier_key_id": key_id,
         "artifact_ref": ref, "artifact_id": artifact_id, "bundle_sha256": bundle_sha,
         "content_sha256": _sha256(raw), "size_bytes": len(raw),
+        **trust_receipt,
         "purpose": PURPOSE, "proof_effect": "none", "authority": "verification-only",
     }
