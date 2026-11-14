@@ -605,3 +605,33 @@ https://github.com/Mannyspiro/expert-robot/pull/148
 - The schema was parsed successfully as JSON; this is not runtime validation.
 - Runtime DAG construction, deterministic snapshot hashing, cycle detection, selective transitive invalidation, and property tests remain future implementation gates.
 - PR #148 is stacked on Merlin PR #144 and remains draft. It does not qualify evidence or expand authority.
+
+
+## 2026-11-14 downstream reliability and qualification-DAG update
+
+### CACE ArtifactRef signer custody
+- CACE PR #103 exact head `00ffff17d97508b9df9ec1386404343e1d9f9dae` passed Collaboration Coordination Validation run `43604033624`.
+- Artifact `14117581229`, SHA-256 `7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477`.
+- PR #103 remains draft/stacked on PR #102. This is not production key custody qualification.
+- CACE issue #104 tracks independently administered trust-root provisioning. Trust-store payload and digest from one mutable source remain insufficient.
+
+### Merlin failure-class memory
+- Merlin PR #147 exact head `694968f9558d6075be536909bf197d3ead6dd59b` passed CI run `43604488928`.
+- Five signer-custody failure classes now extend the existing known-failure registry and point to exact CACE regression tests plus a pinned CACE evidence receipt.
+- Diagnostics artifact `14117811826`, SHA-256 `ab7e725abf7a41ceab298f10680a8877a92758af373599df02807c51754007d2`.
+- The initial CI failures were useful regressions: qualified test-path mismatch and stale CACE evidence pin. Both were repaired; latest exact-head guardrails pass.
+- PR #147 remains draft and stacked on PR #144.
+
+### Qualification evidence DAG
+- Merlin PR #148 introduces a v1 design/schema for typed qualification evidence dependencies.
+- Runtime DAG construction, canonical dependency digesting, cycle rejection, invalidation propagation, and property tests are still outstanding.
+- Keep ArtifactRef integrity, trust-root verification, signer attestation, OCI execution, protected orchestrator linkage, and Lean kernel compilation as separate evidence types.
+
+### Remaining production blockers
+1. Independently administer and provision the trust root (issue #104).
+2. Obtain protected exact-pin Lean kernel compilation on Lean `v4.32.1` and Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`.
+3. Exercise a real authenticated Merlin resolve → CACE attest → independent CACE verify round trip against historical bytes.
+4. Qualify a distinct protected orchestrator run linked to the exact OCI execution receipt.
+5. Migrate Hermes/Avrea/OCI/CACE producer-consumer schemas to the same exact `(project_id, logical_path, version, digest)` reference.
+6. Implement the evidence DAG runtime and test stale/revoked/replayed/mismatched evidence invalidation.
+No production secret, signer key, trust root, deployment, merge, or promotion was changed.
