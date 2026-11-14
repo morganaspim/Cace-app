@@ -612,3 +612,13 @@ Next six gates remain:
 6. Keep RP²/SNF and persistence results tied to exact source bytes; treat current independent Python/C++ evidence as finite engineering evidence, not a formal proof or promotion.
 
 No production secrets, signer key, trust material, environment variables, feature flag, host/IAM configuration, live resolver call, protected orchestrator run, or deployment has been provisioned/executed. PR #102 remains OPEN/DRAFT and stacked.
+
+ 
+## 2026-11-14 live continuation checkpoint
+
+- Merlin PR #144 source branch head: `5c61749cb1083e55804e0a3a9df2bad41f901f1b`. Native CI #3883/run `43602313717` and unified platform #518/run `43602313718` both succeeded. Unified evidence artifact `14116637887`, SHA-256 `d359aa6d268aaea2287d4575f138abf856f4f359fd3802c3b4504f921a6b36b9`.
+- CACE PR #102 current branch head: `f0263f83390a9979b9254cd5b7dcfe0b28df9c5c`. Exact-head Collaboration Validation #712/run `43602061080` succeeded; artifact `14116563014`, SHA-256 `f6855853743a6043defd8c07f89afa4b8075486edc201fc3dfc1435fc589444c`.
+- CACE current head is docs-only beyond code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe). The four intervening commits changed only the two handoff documents. Lean Source Sanity #308/run `43602060984` was cancelled before a job started; the unchanged code head `24bfc5b9` previously passed the source-sanity check on run `43601889638`.
+- Both PRs remain unmerged/draft; no promotion or deployment.
+- Still blocked: deployed source identity and resolver credentials; protected signer key and independent trust pin; live resolve/attest/verify; protected main-only orchestrator run; manual exact-pin Lean kernel compile; formal qualification. No secrets, host/IAM settings, or production variables have been changed.
+- Continue with the six gates in `docs/MERLIN_PRODUCTION_HANDOFF.md`. Re-query live GitHub state before acting; do not treat handoff snapshots as evidence.
