@@ -677,6 +677,16 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - This is collaboration/formal-preflight engineering validation only. It does not constitute the manual protected exact-pin Lean kernel compile, and it does not close the root import graph or theorem qualification.
 - No workflow_dispatch or protected OCI run was available through the connected GitHub actions; no claim of dispatch or Lean compilation is made.
 
+
+## 2026-11-14 DAG backup and independent implementation follow-through
+
+- Merlin PR #150 latest validated code head `4af3be9f75491c7ff0d76cd033a35182580ab778` passed CI run `43605877291`; diagnostics artifact `14117578731`, SHA-256 `dadbef6c593862e655813d2e4a3e16662b7fc778aa4258d7fa84031549b75621`.
+- The backup-tamper regression initially failed because its fixture removed an append-only trigger; the test now restores the expected trigger after tampering. The verifier was not weakened. The corrected exact-head run passed.
+- Merlin PR #152 exact head `893978926f5b3d6758b59247c9495bb99b346275` passed CI run `43606008520`; diagnostics artifact `14117489219`, SHA-256 `0701f39e1109b10bf56f2f5daf8c809e1b0faa594f75eb61baac35a1b372f7a9`.
+- PR #152 adds an independent Node.js verifier for node identity hashes, graph structure, cycle rejection, canonical array ordering, and snapshot digest. The Python suite checks tampered, noncanonical numeric, and unsorted-array rejection.
+- The independent verifier is not yet equivalent to Python's full type-specific identity validator; extend it and add randomized cross-language property vectors before claiming independent equivalence.
+- PRs #150 and #152 remain draft/stacked. No production qualification or promotion authority is implied.
+
 ## 2026-11-14 independent ArtifactRef trust-root implementation
 
 CACE PR branch `feat/independent-merlin-trust-root-20261114` adds a new fail-closed trust verification path for Merlin ArtifactRef attestations:
