@@ -352,3 +352,62 @@ def test_artifact_ref_key_initialization_is_idempotent_and_refuses_symlink(tmp_p
         initialize_merlin_artifact_ref_attestor(
             private_key_path=str(symlink_path), cace_app_root=".",
         )
+
+
+def test_artifact_ref_key_initializer_rejects_symlinked_parent(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    real_parent = tmp_path / "real"
+    real_parent.mkdir()
+    link_parent = tmp_path / "linked"
+    link_parent.symlink_to(real_parent, target_is_directory=True)
+    with pytest.raises(PermissionError):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(link_parent / "nested" / "artifact-ref.pem"),
+            cace_app_root=".",
+        )
+
+
+def test_artifact_ref_key_initializer_rejects_unsafe_directory_and_hardlinks(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    unsafe_parent = tmp_path / "unsafe"
+    unsafe_parent.mkdir()
+    unsafe_parent.chmod(0o777)
+    with pytest.raises(PermissionError):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(unsafe_parent / "artifact-ref.pem"),
+            cace_app_root=".",
+        )
+
+    safe_parent = tmp_path / "safe"
+    key_path = safe_parent / "artifact-ref.pem"
+    initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    second_link = safe_parent / "unexpected-hardlink.pem"
+    second_link.hardlink_to(key_path)
+    with pytest.raises(PermissionError):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+
+
+def test_artifact_ref_key_initializer_serializes_concurrent_creation(tmp_path):
+    pytest.importorskip("cryptography")
+    from concurrent.futures import ThreadPoolExecutor
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    key_path = tmp_path / "concurrent" / "artifact-ref.pem"
+    def initialize():
+        return initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: initialize(), range(8)))
+    assert sum(result["created"] for result in results) == 1
+    assert len({result["verifier_key_id"] for result in results}) == 1
+    assert key_path.stat().st_mode & 0o777 == 0o600
+    assert key_path.stat().st_nlink == 1
