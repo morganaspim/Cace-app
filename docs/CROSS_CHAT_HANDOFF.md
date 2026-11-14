@@ -697,3 +697,12 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #150 adds append-only snapshot history in the existing MerlinRegistry SQLite database with local serialized writes and tamper-checked reads.
 - These remain draft stacked PRs. Multi-host coordination, backup/restore, event/outbox coupling, authenticated source adapters, API/HUD integration, independent implementation, and property/fuzz testing remain outstanding.
 - Production blockers remain independent trust-root provisioning (CACE issue #104), exact-pin Lean kernel compile, live historical resolve→attest→verify, and protected OCI/orchestrator linkage.
+
+
+## Latest 2026-11-14 exact-head DAG receipts
+
+- Merlin PR #147 exact head 7a78cd3e73ee57b7c605babfe843ade50f001942 passed CI 43605061762; artifact 14117564194, SHA-256 f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f.
+- Merlin PR #149 code head d5f0c7fe2c43599850aa980cbc08797ce9bfe482 passed CI 43604937482; artifact 14117398094, SHA-256 00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0.
+- Merlin PR #150 exact head 7ade0d22b7542c2e6aa4396f76a3fe0f91718be5 passed CI 43605312229; artifact 14117503140, SHA-256 b19e3bac900bf2f1b4cbcd4c9afe6b65968cab9da69178e0b3a498264a7458d7.
+- DAG snapshot persistence is in the existing MerlinRegistry DB, not a second registry. SQLite transaction serialization is single-host only.
+- All three Merlin PRs remain draft/stacked. Production blockers unchanged: independent trust root, protected Lean compile, live resolver-attestation-verification round trip, and distinct protected orchestrator/OCI linkage.
