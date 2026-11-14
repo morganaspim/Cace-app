@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import os
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -352,3 +354,87 @@ def test_artifact_ref_key_initialization_is_idempotent_and_refuses_symlink(tmp_p
         initialize_merlin_artifact_ref_attestor(
             private_key_path=str(symlink_path), cace_app_root=".",
         )
+
+
+def test_artifact_ref_key_initializer_rejects_symlinked_parent(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    real_parent = tmp_path / "real"
+    real_parent.mkdir(mode=0o700)
+    symlink_parent = tmp_path / "linked"
+    symlink_parent.symlink_to(real_parent, target_is_directory=True)
+    with pytest.raises(PermissionError, match="symlink"):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(symlink_parent / "artifact-ref.pem"),
+            cace_app_root=".",
+        )
+
+
+def test_artifact_ref_key_initializer_rejects_unsafe_directory_and_hardlinks(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    unsafe_parent = tmp_path / "unsafe"
+    unsafe_parent.mkdir(mode=0o700)
+    unsafe_parent.chmod(0o755)
+    with pytest.raises(PermissionError, match="group/other"):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(unsafe_parent / "artifact-ref.pem"),
+            cace_app_root=".",
+        )
+
+    secure_parent = tmp_path / "secure"
+    secure_parent.mkdir(mode=0o700)
+    key_path = secure_parent / "artifact-ref.pem"
+    initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    alias = secure_parent / "hardlink.pem"
+    os.link(key_path, alias)
+    with pytest.raises(PermissionError, match="hard-link"):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+
+
+def test_artifact_ref_key_initializer_serializes_concurrent_creation(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    key_path = tmp_path / "concurrent" / "artifact-ref.pem"
+    def initialize(_):
+        return initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(initialize, range(8)))
+    assert sum(result["created"] for result in results) == 1
+    assert len({result["verifier_key_id"] for result in results}) == 1
+    assert key_path.stat().st_nlink == 1
+    assert key_path.stat().st_mode & 0o777 == 0o600
+
+
+def test_artifact_ref_key_initializer_cleans_partial_temp_on_write_failure(tmp_path, monkeypatch):
+    pytest.importorskip("cryptography")
+    import ops.oci_mcp.merlin_artifact_ref as module
+
+    key_path = tmp_path / "interrupted" / "artifact-ref.pem"
+    original_write = os.write
+    calls = 0
+
+    def interrupted_write(fd, data):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return original_write(fd, data[:8])
+        raise OSError("simulated interrupted key write")
+
+    monkeypatch.setattr(os, "write", interrupted_write)
+    with pytest.raises(OSError, match="interrupted"):
+        module.initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+    assert not key_path.exists()
+    assert list(key_path.parent.glob(".artifact-ref.pem.tmp-*")) == []
