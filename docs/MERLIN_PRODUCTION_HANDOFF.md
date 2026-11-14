@@ -722,3 +722,12 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - Merlin PR #157 now registers two additional cross-chat failure classes: stale stacked-child base drift that drops upstream invariants, and cross-PR signer-file overlap that can regress the hardened key loader.
 - Exact head `88e7bed9af0e1cda0264eef6dcc3bf700d31e857` passed CI run `43607743085`; diagnostics artifact `14119451467`, SHA-256 `1c4f7967b530daedba622a1d7f43298c65e0c191e9f9c77043219c0f255bc252`.
 - The guardrail test verifies the registered prevention requirements; it does not authorize merging out of dependency order.
+
+
+## Atomic DAG snapshot-to-Hermes outbox bridge (2026-11-14)
+
+- Merlin draft PR #158 exact head `079c3c82f273a80dd4fa5deabb90aaa3154a8e27` passed native CI run `43607987636` and unified platform run `43607987604`.
+- Native diagnostics artifact `14119396821`, SHA-256 `1426c1bb2c81a10b956d9cacdf723cc8bd1f04aab2d9f3b6a399cf7473c80f96`.
+- Unified evidence artifact `14119471619`, SHA-256 `27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123`.
+- Snapshot append and deterministic Hermes notification now share one canonical MerlinRegistry SQLite transaction. Tests cover idempotent replay, rollback on outbox conflict, cross-database rejection, and Hermes consumption/acknowledgement resolving the exact snapshot digest.
+- This is local single-database consistency only; multi-host coordination, encrypted off-host backup/restore, and remote delivery semantics remain unqualified.
