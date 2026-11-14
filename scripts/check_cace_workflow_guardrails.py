@@ -80,7 +80,7 @@ def main() -> int:
         raise SystemExit(
             "Rejected: runnable exact-pin workflow differs from canonical byte-for-byte template"
         )
-    if re.search(r"rm\\s+-rf[^\\n]*(?:backup|staging|failed)", text):
+    if re.search(r"rm\s+-rf[^\n]*(?:backup|staging|failed)", text):
         raise SystemExit("Rejected: exact-pin prewarm must never delete prior cache backup/staging/failed data")
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
