@@ -331,3 +331,17 @@ Inspected the actual CACE signer/verifier and OCI MCP registration rather than a
 Next CACE implementation should add a distinct Merlin ArtifactRef attestation/verification contract, not broaden the RSI verifier: validate exact `merlin-artifact-ref/1` fields (project, normalized logical path, positive chronological version, SHA-256); bind the whole ref plus source repo/commit and artifact schema/kind in the signed statement; require exactly corresponding EvidenceBundle artifact(s); independently resolve bytes from the authenticated Merlin read-only resolver and compare returned ref, declared size and SHA-256; then call CACE core `verify_bundle` and sign purpose `artifact-integrity`. The matching verifier must validate signature against independently digest-pinned CACE trust material and exact bindings. Mutation tests must cover ref/path/version/digest substitution, stale version, byte mismatch, wrong signer, trust-store digest/key substitution, and RSI-vs-integrity purpose confusion. Keep proof effect none and promotion authority absent.
 
 At this point this is a reviewed implementation design, not an implemented or configured end-to-end connection. The Merlin source endpoint exists in PR #144 but no production URL/token has been provisioned; CACE signer feature flag/key/trust configuration remains unverified. No credentials, secrets, host services, or deployments were modified.
+
+
+## 2026-11-14 exact-head Merlin regression continuation
+
+Expert Robot PR #144 remains OPEN/DRAFT and stacked on PR #143. Exact source head beaf612da6d049518fda6f67b3ebb8cb2e3d9de9 fixes the two remaining regressions observed on preceding exact head 2cb255baf086d41aa02eb06658d5ac7210572529: the Forge HTTP fixture now asserts the actual Expert Robot README identity, and the merge-commit rebase fixture advances protected main only through the explicit test-only allow_protected=True setup hook. Production protected-branch enforcement is unchanged.
+
+On preceding head 2cb255b, native CI #3869 succeeded, unified run #504 completed with 229 passed / 2 failed. Fresh exact-head native CI #3870 and unified platform run #505 are IN_PROGRESS on beaf612d; do not claim success until both complete on that exact SHA. Related voice/HUD qualification run #506 and representation spectrum run #622 were cancelled; do not transfer earlier results.
+
+Latest exact source state and run links:
+- Commit: https://github.com/Mannyspiro/expert-robot/commit/beaf612da6d049518fda6f67b3ebb8cb2e3d9de9
+- Native CI: https://github.com/Mannyspiro/expert-robot/actions/runs/43600074262
+- Unified platform: https://github.com/Mannyspiro/expert-robot/actions/runs/43600074355
+
+Next: inspect exact-head #505 logs if it fails; otherwise verify the artifact and commit binding from its uploaded evidence. Continue CACE ArtifactRef implementation only after re-reading actual source paths at current CACE branch head. The earlier inspected ops/oci_mcp/merlin_rsi_verifier.py and ops/oci_mcp/server.py locations were described in the handoff, but a fresh fetch against the currently selected CACE PR branch returned 404; re-discover exact current paths before editing. Do not infer the path exists from an older snapshot. No production signer, trust key, secret, feature flag, host, IAM or endpoint configuration was changed.
