@@ -445,3 +445,36 @@ Still not production-qualified:
 6. Preserve the independent RP²/SNF result as engineering evidence only until CACE signs the exact source/artifact binding and the formal target is independently qualified.
 
 No production secret, signer key, trust store, environment variable, feature flag, OCI host/IAM state, live resolver request, protected orchestrator run, or deployment was changed by this work. PR #102 remains OPEN/DRAFT and stacked.
+
+
+## 2026-11-14 live exact-head continuation
+
+Live GitHub state was re-queried after the previous handoff snapshot.
+
+### Paired Merlin source PR #144
+- Source repository: `Mannyspiro/expert-robot`.
+- Current branch: `feat/merlin-artifact-version-lineage-20261113`.
+- Exact current head: `5c61749cb1083e55804e0a3a9df2bad41f901f1b`.
+- Native CI #3883, run `43602313717`: **SUCCESS**. Build, focused Hermes/CACE/research groups, C++ tests, independent machine-readable RP² and persistence homology audit, engineering IR/CAD, guardrails, and smoke tests completed.
+- Unified platform #518, run `43602313718`: **SUCCESS**. Compile, HUD syntax, unified platform tests, and evidence upload completed.
+- Unified evidence artifact `14116637887`, SHA-256 `d359aa6d268aaea2287d4575f138abf856f4f359fd3802c3b4504f921a6b36b9`, bound to the exact head above.
+- These are engineering CI results. They do not establish CACE signing, Lean kernel qualification, deployment, or promotion.
+
+### CACE PR #102
+- Current branch: `fix/lean-proof-hole-guard-regex-20261113`.
+- Current PR head: `f0263f83390a9979b9254cd5b7dcfe0b28df9c5c`.
+- The current head is four documentation-only commits beyond code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe`; a live compare confirmed only `docs/CROSS_CHAT_HANDOFF.md` and `docs/MERLIN_PRODUCTION_HANDOFF.md` changed in those four commits.
+- Exact-current-head Collaboration Validation #712, run `43602061080`: **SUCCESS**. The exact checkout, repository-wide Actions policy, collaboration lifecycle, read-only OCI inventory/protocol probe, collaboration/formal-preflight tests, exact-byte EvidenceBundle build, baseline ancestry check, and artifact upload all passed.
+- Retained artifact `14116563014`, SHA-256 `f6855853743a6043defd8c07f89afa4b8075486edc201fc3dfc1435fc589444c`, bound to exact PR head `f0263f83390a9979b9254cd5b7dcfe0b28df9c5c`.
+- Lean Source Sanity #308, run `43602060984`, was **CANCELLED before a job started**; no pass is claimed for that workflow on the current docs-only head. The unchanged code head `24bfc5b9` previously passed both Collaboration Validation #686/run `43601889665` and Lean Source Sanity #? / run `43601889638`; those results remain bound to `24bfc5b9`.
+- PR #102 remains OPEN/DRAFT and stacked on PR #101. Do not merge independently.
+
+### Remaining six production gates
+1. Configure and review deployed Merlin source identity (`MERLIN_SOURCE_REPO`, full `MERLIN_SOURCE_COMMIT`) and CACE authenticated resolver URL/token.
+2. Provision the separate ArtifactRef signing key and independently pinned trust material within the protected OCI boundary.
+3. Perform live authenticated historical resolution, independent byte/size/digest checks, CACE attestation, and a separate verification; retain the signed receipt.
+4. Run the distinct protected main-only orchestrator validator linked to that exact OCI execution.
+5. Dispatch the manual exact-pin Lean preflight for `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, Lean `v4.32.1`, Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`; no kernel compile receipt exists yet.
+6. Preserve RP²/SNF and persistence evidence against exact source bytes; these remain engineering results, not formal qualification.
+
+No production secret, signer key, trust store, service environment variable, feature flag, OCI host/IAM setting, live resolver request, protected orchestrator run, deployment, merge, or promotion was changed or performed in this continuation. Missing production configuration remains an external authorization/provisioning gate, not a reason to weaken fail-closed behavior.
