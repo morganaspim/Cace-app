@@ -543,3 +543,10 @@ Latest source update: Expert Robot PR #144 head `d64a932d6cae3ba1fdc5250cee494f7
 
 
 CACE signer boundary reviewed: `attest_merlin_rsi_bundle` can produce CACE-core `artifact-integrity` signatures over exact EvidenceBundle bytes, but does not yet enforce Merlin `merlin-artifact-ref/1`; the existing verifier is RSI-specific and must not be reused as a generic verifier. Add a separate ArtifactRef-specific attestation/verification contract with authenticated registry resolution, independent byte hashing, full ref + source commit bindings, and pinned CACE trust. No production token, signing key, trust store, feature flag or deployment was configured. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for exact code locations and mutation-test requirements.
+
+
+## 2026-11-14 exact-head Merlin regression continuation
+
+Expert Robot PR #144 is OPEN/DRAFT and stacked on PR #143. Latest observed source head beaf612da6d049518fda6f67b3ebb8cb2e3d9de9 fixes two test-fixture defects from exact-head unified run #504 (229 passed / 2 failed on predecessor 2cb255b). Fresh native CI #3870 and unified platform #505 are IN_PROGRESS on the exact latest head. Links and full failure analysis are in docs/MERLIN_PRODUCTION_HANDOFF.md. No exact-head pass is claimed yet.
+
+CACE PR #102 remains OPEN/DRAFT, stacked on its paired-continuum/OCI parent. Continue by inspecting the actual current CACE branch tree before implementation; do not assume previously mentioned signer/verifier paths still exist. CACE production signer/trust configuration and Merlin resolver credentials remain untouched. End-to-end ArtifactRef verification is NOT COMPLETE.
