@@ -540,3 +540,6 @@ Expert Robot PR #144 latest source head `57e74bae65237e86d6efbcde3dab0e518e5b8b8
 
 
 Latest source update: Expert Robot PR #144 head `d64a932d6cae3ba1fdc5250cee494f7351c58d42` includes the authenticated artifact resolver plus a fix for a duplicate `artifact_ref_validator` keyword in `tests/test_research_dispatch.py`; that test module is now included in the unified platform suite. Latest native CI #43545472615 is IN_PROGRESS and unified platform #43545472669 is QUEUED. No exact-head pass is claimed. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for the endpoint contract and earlier compileall diagnosis.
+
+
+CACE signer boundary reviewed: `attest_merlin_rsi_bundle` can produce CACE-core `artifact-integrity` signatures over exact EvidenceBundle bytes, but does not yet enforce Merlin `merlin-artifact-ref/1`; the existing verifier is RSI-specific and must not be reused as a generic verifier. Add a separate ArtifactRef-specific attestation/verification contract with authenticated registry resolution, independent byte hashing, full ref + source commit bindings, and pinned CACE trust. No production token, signing key, trust store, feature flag or deployment was configured. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for exact code locations and mutation-test requirements.
