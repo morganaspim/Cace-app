@@ -695,3 +695,12 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - That exact head independently validates all nine v1 evidence node identity types and nested ArtifactRefs, including positive versions, normalized paths, digests, and Git commit IDs. New follow-on commit adds twelve randomized DAG vectors, Unicode identity serialization, and duplicate JSON-key rejection; its exact-head CI is still pending.
 - PRs #150, #152 and #153 remain draft/stacked; no merge or production promotion is authorized.
 - These are graph/projection and CI guardrails only. They do not replace CACE's separate source-byte retrieval, signer/trust-root verification, protected OCI execution, or Lean kernel compile.
+
+
+## Signer custody and independent trust-root stack (2026-11-14)
+
+- PR #103 exact head `00ffff17d97508b9df9ec1386404343e1d9f9dae` passed CACE Collaboration Coordination Validation run `43604033624`; artifact `14117581229`, SHA-256 `7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477`.
+- PR #107 is correctly stacked on PR #103. It preserves the secure directory-FD signer loader in both capability readiness and attestation use while adding the independent protected-deployment trust root and OCI Vault signed trust-store receipt.
+- PR #107 exact head `18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6` passed CACE Collaboration Coordination Validation run `43607161208`; artifact `14118607025`, SHA-256 `503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff`.
+- PR #106 was closed as superseded because its divergent base overlapped the same signer files and could have regressed secure key loading. Do not merge it.
+- Both PR #103 and #107 remain draft/stacked. These CI passes do not prove actual OCI IAM separation, live Vault access, production key provisioning, protected OCI execution, Lean kernel compilation, or promotion qualification.
