@@ -514,3 +514,19 @@ A separate draft PR is stacked on this PR's branch; do not merge it independentl
 3. Provision production signer/trust material only through the protected OCI secret/host boundary after review.
 4. Perform independent live resolve → attest → separate verify, preserving the full signed receipt and trust-root provenance.
 5. Bind the protected orchestrator receipt to the exact OCI execution and source/artifact identities.
+
+
+## Cross-repository follow-through: canonical failure classes and evidence DAG
+
+Merlin issues opened to extend existing canonical systems rather than create parallel registries:
+
+- Issue #145: https://github.com/Mannyspiro/expert-robot/issues/145 — add CACE ArtifactRef signer-custody failure classes to Merlin's existing `config/known_failure_classes.json`, linked to exact CACE regression tests and CI evidence.
+- Issue #146: https://github.com/Mannyspiro/expert-robot/issues/146 — add typed transitive evidence dependency invalidation to the existing source-binding and append-only artifact lineage architecture.
+
+Relevant existing work:
+- Merlin PR #10 contains the directional theorem-dependency regression and known-failure registry precedent.
+- Merlin PR #46 binds qualification evidence to exact source.
+- Merlin PR #130 contains authenticated Hermes failure ingestion and RSI candidate lineage.
+- Merlin PR #144 carries append-only artifact version identity into research, Hermes, and Avrea references.
+
+Do not duplicate these canonical systems. New failure classes must link to executable guards; evidence DAG nodes must preserve exact source/artifact/trust/runner identities and invalidate only dependent downstream qualifications.
