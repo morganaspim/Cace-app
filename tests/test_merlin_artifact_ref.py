@@ -33,6 +33,14 @@ def _fixture():
             "verified": True,
             "is_current": False,
             "size_bytes": len(raw),
+            "provenance": {
+                "schema": "merlin-artifact-provenance/1",
+                "source_repo": "Mannyspiro/expert-robot",
+                "source_commit": "a" * 40,
+                "artifact_id": "artifact-123",
+                "artifact_kind": "research-result",
+                "artifact_schema": "research-result/1",
+            },
         },
         "authority": "read_only_artifact_bytes",
         "size_bytes": len(raw),
@@ -44,11 +52,12 @@ def _fixture():
 
 def test_resolves_exact_historical_bytes():
     raw, ref, response = _fixture()
-    resolved_ref, resolved = resolve_merlin_artifact_bytes(
+    resolved_ref, resolved, provenance = resolve_merlin_artifact_bytes(
         ref, resolver=lambda requested: response
     )
     assert resolved_ref == ref
     assert resolved == raw
+    assert provenance["source_commit"] == "a" * 40
 
 
 @pytest.mark.parametrize("field,value", [
@@ -301,3 +310,21 @@ def test_rejects_nested_reference_substitution():
     }
     with pytest.raises(PermissionError):
         resolve_merlin_artifact_bytes(ref, resolver=lambda _: bad)
+
+
+def test_resolver_provenance_is_mandatory_and_exact():
+    _, ref, response = _fixture()
+    missing = {**response, "resolution": {
+        key: value for key, value in response["resolution"].items() if key != "provenance"
+    }}
+    with pytest.raises(PermissionError):
+        resolve_merlin_artifact_bytes(ref, resolver=lambda _: missing)
+    substituted = {**response, "resolution": {
+        **response["resolution"],
+        "provenance": {
+            **response["resolution"]["provenance"],
+            "source_commit": "b" * 40,
+        },
+    }}
+    _, _, provenance = resolve_merlin_artifact_bytes(ref, resolver=lambda _: substituted)
+    assert provenance["source_commit"] == "b" * 40
