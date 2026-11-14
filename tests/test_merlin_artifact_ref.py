@@ -122,3 +122,51 @@ def test_binding_covers_full_ref_source_and_artifact_identity():
     assert bindings["artifact_id"] == "artifact-123"
     assert bindings["authority"] == "verification-only"
     assert bindings["content_sha256"] == ref["sha256"]
+
+
+def test_manifest_must_bind_path_role_and_schema():
+    from types import SimpleNamespace
+    from ops.oci_mcp.merlin_artifact_ref import _artifact_map
+    _, ref, _ = _fixture()
+    item = SimpleNamespace(
+        artifact_id="artifact-123", role="research-result",
+        path=ref["logical_path"], metadata={"artifact_schema": "research-result/1"},
+        sha256=ref["sha256"],
+    )
+    bundle = SimpleNamespace(artifacts=(item,))
+    assert _artifact_map(
+        bundle, artifact_ref=ref, artifact_id="artifact-123",
+        artifact_kind="research-result", artifact_schema="research-result/1",
+    ) == {"artifact-123": item}
+    for field, bad in (
+        ("role", "other-kind"),
+        ("path", "substituted/path"),
+        ("metadata", {"artifact_schema": "other-schema"}),
+        ("sha256", "0" * 64),
+    ):
+        changed = dict(vars(item))
+        changed[field] = bad
+        altered = SimpleNamespace(**changed)
+        with pytest.raises(PermissionError):
+            _artifact_map(
+                SimpleNamespace(artifacts=(altered,)), artifact_ref=ref,
+                artifact_id="artifact-123", artifact_kind="research-result",
+                artifact_schema="research-result/1",
+            )
+
+
+def test_manifest_rejects_extra_artifacts():
+    from types import SimpleNamespace
+    from ops.oci_mcp.merlin_artifact_ref import _artifact_map
+    _, ref, _ = _fixture()
+    item = SimpleNamespace(
+        artifact_id="artifact-123", role="research-result",
+        path=ref["logical_path"], metadata={"artifact_schema": "research-result/1"},
+        sha256=ref["sha256"],
+    )
+    with pytest.raises(PermissionError):
+        _artifact_map(
+            SimpleNamespace(artifacts=(item, item)), artifact_ref=ref,
+            artifact_id="artifact-123", artifact_kind="research-result",
+            artifact_schema="research-result/1",
+        )
