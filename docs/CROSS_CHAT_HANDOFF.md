@@ -723,3 +723,10 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #152 adds an independent Node verifier and tests for canonical bytes, sorted arrays, digest reproduction, and tamper rejection. Type-specific identity equivalence and randomized cross-language property vectors remain.
 - CACE PR #102 branch exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed collaboration run 43605425667; artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089. Lean Source Sanity run 43605425559 was CANCELLED.
 - Protected exact-pin Lean compile, independent trust root, live resolve→attest→verify, and OCI/protected orchestrator run remain outstanding.
+
+
+## Correctly stacked CACE signer/trust gates
+- PR #103 signer custody exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed CI run 43604033624; artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- PR #107 independent trust root is stacked on PR #103 and preserves its secure directory-FD signer loader. Exact head 18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6 passed CI run 43607161208; artifact 14118607025, SHA-256 503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff.
+- PR #106 was superseded and closed because its divergent branch overlapped signer files without carrying PR #103's hardened key loader.
+- Actual OCI IAM separation, live Vault retrieval, production root/key provisioning, protected OCI execution, and exact-pin Lean kernel compile remain outstanding.
