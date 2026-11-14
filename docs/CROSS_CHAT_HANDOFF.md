@@ -713,3 +713,13 @@ No production secrets, signer key, trust material, environment variables, featur
 - Artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089.
 - Companion Lean Source Sanity run 43605425559 was CANCELLED, not passed.
 - Manual protected exact-pin Lean kernel compilation remains outstanding; no workflow dispatch or OCI run is claimed.
+
+
+## Latest DAG persistence and independent verifier receipts
+
+- Merlin PR #150 exact code head 4af3be9f75491c7ff0d76cd033a35182580ab778 passed CI 43605877291; diagnostics artifact 14117578731, SHA-256 dadbef6c593862e655813d2e4a3e16662b7fc778aa4258d7fa84031549b75621.
+- Its backup-tamper test fixture was corrected to restore the append-only trigger after tampering, so CI reaches the intended stored-snapshot integrity assertion. No verifier guard was weakened.
+- Merlin PR #152 exact head 893978926f5b3d6758b59247c9495bb99b346275 passed CI 43606008520; diagnostics artifact 14117489219, SHA-256 0701f39e1109b10bf56f2f5daf8c809e1b0faa594f75eb61baac35a1b372f7a9.
+- PR #152 adds an independent Node verifier and tests for canonical bytes, sorted arrays, digest reproduction, and tamper rejection. Type-specific identity equivalence and randomized cross-language property vectors remain.
+- CACE PR #102 branch exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed collaboration run 43605425667; artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089. Lean Source Sanity run 43605425559 was CANCELLED.
+- Protected exact-pin Lean compile, independent trust root, live resolve→attest→verify, and OCI/protected orchestrator run remain outstanding.
