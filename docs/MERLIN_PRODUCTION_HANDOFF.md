@@ -492,3 +492,25 @@ A fresh live query confirms the current CACE PR #102 branch head before this doc
 - The targeted module is explicitly quarantined from the audited root import graph. A successful standalone compile would qualify only that target under the pinned toolchain; it does not qualify the full root or prove any broader theorem.
 - No production secrets, signer key, trust material, endpoint/token, OCI host/IAM configuration, feature flag, deployment, merge, or promotion was changed.
 
+
+
+## 2026-11-14: ArtifactRef signer-key custody hardening PR #103
+
+A separate draft PR is stacked on this PR's branch; do not merge it independently.
+
+- PR: https://github.com/morganaspim/Cace-app/pull/103
+- Branch: `security/artifact-ref-key-custody-20261114`
+- Exact tested head: `7a1d9a0d473897e55cc698c59fd60359fae529b1`
+- CACE Collaboration Coordination Validation run `43603317438`: **SUCCESS** on that exact head. It executed the repository's targeted `tests/test_merlin_artifact_ref.py` along with the canonical collaboration/formal-preflight regression suite and exact-byte EvidenceBundle build.
+- Retained engineering artifact `14117181753`, SHA-256 `7d52b73c7b5d3b0aa63039ce156fa61c10f137dd3b380eb2cf4d7a6dff8365f0`.
+- Changes: symlink-resistant directory-fd traversal; parent ownership/write-mode checks; regular-file/owner/single-hardlink/size checks; exclusive directory flock; 0600 temp-file write + fsync + atomic no-overwrite link + unlink + parent fsync; regression coverage for symlinked parents, unsafe permissions, hard-link substitution, and concurrent initializers.
+- This is engineering validation only. It does not prove production OCI behavior, signer custody, external trust-root independence, live resolver operation, CACE end-to-end qualification, or Lean kernel correctness.
+- Review remains necessary for crash interruption between final link and temporary-name unlink (safe fail-closed on the resulting extra hard link), platform support for directory flock/linkat semantics, and protected-runner execution.
+- PR #103 remains DRAFT and stacked on PR #102; no merge or production signer initialization was performed.
+
+### Next exact gates
+1. Review PR #103 source diff and run results; add crash-interruption/recovery tests if needed.
+2. Run the exact-pin Lean preflight separately; source-sanity and collaboration validation are not kernel compilation.
+3. Provision production signer/trust material only through the protected OCI secret/host boundary after review.
+4. Perform independent live resolve → attest → separate verify, preserving the full signed receipt and trust-root provenance.
+5. Bind the protected orchestrator receipt to the exact OCI execution and source/artifact identities.
