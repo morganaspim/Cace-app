@@ -662,3 +662,5 @@ with `ci/cace-exact-pin-lean-preflight.canonical.yml`; the comparison is exercis
 drift; it was corrected in commits `2716d0c4` and `1f958a07`. The follow-up collaboration
 validation passed on `acc77735efaea10bf7179313ecba514a628297c7`, run
 [43601511700](https://github.com/morganaspim/Cace-app/actions/runs/43601511700).
+
+**Exact-head follow-up:** source-sanity run `43601438723` on `923d423f` failed only because the canonical mirror was one line behind the runnable workflow. The canonical mirror was synchronized in `1f958a07`. A fresh source-sanity run on the post-repair head is required before this defect class can be marked closed; the collaboration pass alone is not a substitute.
