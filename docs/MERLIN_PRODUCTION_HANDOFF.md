@@ -778,7 +778,8 @@ Merlin-side exact-head gates:
 - Regression tests cover symlinked parents, hard-linked keys, and 16 concurrent initializers.
 - The first run `43610222590` exposed a legitimate race in the temporary hard-link publication window; the lock fixed the race without relaxing the one-link invariant.
 - Equivalent code/test content passed run `43610362239` at `230b4e90e9b40267ac78ba16c03d1c704907f033`; the follow-up passed run `43610495149` at `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed`, artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`.
-- PR #110's rebased code/test head is `a607c9576b762fa9bbe2616b9a5a2ca00910af0a`; latest branch head before this handoff refresh was `b3af13bbd8716db6c1d2ded6455a4c9bd45c2ab5`. The new handoff commit requires its own exact-head CI.
+- PR #110 rebased code/test head `b3af13bbd8716db6c1d2ded6455a4c9bd45c2ab5` passed exact-head CI `43610865331`, artifact `14120336873`, SHA-256 `97ee7842b177f5e5a4ff3c57b9c876ee00348459a0493066bb0646d8ec51e5eb`.
+- Latest handoff head `f4241703a41dd88a3db33cc8e2387c2b3bae1eb8` also passed exact-head CI `43611072054`, artifact `14120201359`, SHA-256 `7b569f101f87bc09b23837987d9c356c0a97aff85ccbb87e74d4b1b6d5deae3a`.
 - PR #110 remains draft and stacked on PR #102. Do not merge independently.
 
 All engineering CI passes above are not live cloud or production qualification. Still outstanding: protected exact-pin Lean kernel compile; deployed Merlin source identity and authenticated resolver configuration; production signer key and independently provisioned trust pin; live historical-byte resolve/attest/verify; protected orchestrator bound to exact OCI execution; real OCI Vault/KMS and Object Storage upload/download; retention/IAM audit; separate-host restore drill. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
