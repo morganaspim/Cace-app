@@ -767,3 +767,9 @@ No production secrets, signer key, trust material, environment variables, featur
 - Diagnostics artifact 14118708504, SHA-256 95ed5e471f2336b9fda1af887ee244edb5bbb6a8e675e5a427a0ed9e0228def6.
 - Implements injected KMS data-key provider and chunked AES-256-GCM; CI verifies round-trip, header/ciphertext tampering, truncation, wrong key version and full backup verification after decryption.
 - Only a fake KMS provider is used in tests. Production OCI Vault/KMS, independent key provisioning, object storage, retention and separate-host restore remain unqualified.
+
+
+## OCI Vault/KMS backup adapter
+- Merlin PR #161 exact head cdc22ab861ff71a27f4707887c2ef3772583398c passed native CI 43609808622; diagnostics artifact 14119489951, SHA-256 b6f7cf1d54609b8110fe19b7e65b0d898bd8dbff6f48d357d6612c2da356604c.
+- OCI SDK 2.191.0 model contract passes; adapter uses instance-principal auth and one configured AES key OCID/crypto endpoint, limited to DEK generation/decryption.
+- No live OCI key, IAM policy, endpoint or round trip has been qualified. Object Storage, retention and separate-host recovery remain outstanding.
