@@ -646,3 +646,13 @@ No production secrets, signer key, trust material, environment variables, featur
 - CACE issue #104 tracks independently administered trust-root custody: https://github.com/morganaspim/Cace-app/issues/104.
 - Trust-store JSON plus digest from the same mutable runtime environment is not an independent trust root.
 - Exact-pin Lean kernel preflight, production trust provisioning, live resolver round trip, and protected orchestrator run remain outstanding.
+
+
+## 2026-11-14 latest CACE signer custody result
+
+- PR #103 exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed Collaboration Coordination Validation run 43604033624.
+- Artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- The passing run includes signer parent traversal, atomic initialization, read-path revalidation, and read-only readiness permission tests.
+- PR #103 remains draft/stacked; no production key has been initialized.
+- CACE issue #104 independently tracks trust-root custody. Trust payload and digest supplied by one mutable source are not independent.
+- Exact-pin Lean kernel compilation, live resolve→attest→verify, and protected orchestrator linkage remain outstanding.
