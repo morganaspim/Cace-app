@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from datetime import datetime, timedelta, timezone
+import json
 
 import pytest
 
@@ -181,13 +183,14 @@ def test_manifest_rejects_extra_artifacts():
         )
 
 
-def test_full_attestation_round_trip_and_pinned_trust(tmp_path):
+def test_full_attestation_round_trip_and_independent_trust_root(tmp_path):
     pytest.importorskip("cryptography")
-    import json
+    from cryptography.hazmat.primitives import serialization
     from cace_studio.core.attestation import generate_ed25519_keypair_pem, public_key_id
     from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
     from ops.oci_mcp.merlin_artifact_ref import (
-        _expected_bindings, attest_merlin_artifact_ref, verify_merlin_artifact_ref,
+        _canonical_trust_json, _expected_bindings,
+        attest_merlin_artifact_ref, verify_merlin_artifact_ref,
     )
 
     raw, ref, response = _fixture()
@@ -206,7 +209,8 @@ def test_full_attestation_round_trip_and_pinned_trust(tmp_path):
         metadata={"artifact_schema": artifact_schema},
     )
     bundle = EvidenceBundle(artifacts=(artifact,), bindings=bindings)
-    private_pem, public_pem = generate_ed25519_keypair_pem()
+    signing_private_pem, signing_public_pem = generate_ed25519_keypair_pem()
+    root_private_pem, root_public_pem = generate_ed25519_keypair_pem()
     resolver = lambda requested: response
 
     signed = attest_merlin_artifact_ref(
@@ -214,28 +218,56 @@ def test_full_attestation_round_trip_and_pinned_trust(tmp_path):
         source_repo="Mannyspiro/expert-robot", source_commit=source_commit,
         artifact_id=artifact_id, artifact_kind=artifact_kind,
         artifact_schema=artifact_schema, resolver=resolver,
-        private_key_pem=private_pem, cace_app_root=".",
+        private_key_pem=signing_private_pem, cace_app_root=".",
     )
-    trust = {
-        "schema": "merlin-cace-trust-store-v1",
+    now = datetime.now(timezone.utc)
+    payload = {
+        "schema": "merlin-cace-trust-store-v2",
+        "authority_id": "merlin-independent-security-root",
+        "version": 7,
+        "issued_at_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "expires_at_utc": (now + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "keys": [{
-            "key_id": public_key_id(public_pem),
+            "key_id": public_key_id(signing_public_pem),
             "verifier_id": "cace", "status": "active",
         }],
     }
-    trust_json = json.dumps(trust, sort_keys=True, separators=(",", ":"))
+    payload_bytes = _canonical_trust_json(payload)
+    root_key_id = public_key_id(root_public_pem)
+    root_private_key = serialization.load_pem_private_key(root_private_pem, password=None)
+    receipt = {
+        "schema": "merlin-cace-signed-trust-store-receipt-v1",
+        "payload": payload,
+        "payload_sha256": hashlib.sha256(payload_bytes).hexdigest(),
+        "signature_b64": base64.b64encode(root_private_key.sign(payload_bytes)).decode("ascii"),
+        "root_key_id": root_key_id,
+        "source_authority": "oci-vault://trust-store-secret",
+        "retrieval_identity": "oci-instance:artifact-verifier",
+    }
+    root = {
+        "schema": "merlin-independent-trust-root-v1",
+        "authority_id": payload["authority_id"],
+        "version": 2,
+        "key_id": root_key_id,
+        "public_key_pem": root_public_pem.decode("ascii"),
+        "source_authority": "protected-deployment-config://trust-root",
+        "retrieval_identity": "protected-deployment:merlin-verifier",
+    }
     result = verify_merlin_artifact_ref(
         bundle_payload=bundle.payload(), attestation_payload=signed["attestation"],
         artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
         source_commit=source_commit, artifact_id=artifact_id,
         artifact_kind=artifact_kind, artifact_schema=artifact_schema,
-        resolver=resolver, trust_store_json=trust_json,
-        trust_store_sha256=hashlib.sha256(trust_json.encode()).hexdigest(),
-        cace_app_root=".",
+        resolver=resolver, trust_root_provider=lambda: root,
+        trust_store_provider=lambda: receipt, cace_app_root=".",
     )
     assert result["verified"] is True
     assert result["proof_effect"] == "none"
     assert result["authority"] == "verification-only"
+    assert result["trust_root_authority_id"] == payload["authority_id"]
+    assert result["trust_root_version"] == 2
+    assert result["trust_store_version"] == 7
+    assert result["trust_store_sha256"] == receipt["payload_sha256"]
 
     with pytest.raises(PermissionError):
         verify_merlin_artifact_ref(
@@ -243,9 +275,38 @@ def test_full_attestation_round_trip_and_pinned_trust(tmp_path):
             artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
             source_commit="b" * 40, artifact_id=artifact_id,
             artifact_kind=artifact_kind, artifact_schema=artifact_schema,
-            resolver=resolver, trust_store_json=trust_json,
-            trust_store_sha256=hashlib.sha256(trust_json.encode()).hexdigest(),
-            cace_app_root=".",
+            resolver=resolver, trust_root_provider=lambda: root,
+            trust_store_provider=lambda: receipt, cace_app_root=".",
+        )
+
+    changed_payload = {**payload, "keys": []}
+    changed_bytes = _canonical_trust_json(changed_payload)
+    substituted_receipt = {
+        **receipt, "payload": changed_payload,
+        "payload_sha256": hashlib.sha256(changed_bytes).hexdigest(),
+    }
+    with pytest.raises(PermissionError, match="signature verification"):
+        verify_merlin_artifact_ref(
+            bundle_payload=bundle.payload(), attestation_payload=signed["attestation"],
+            artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
+            source_commit=source_commit, artifact_id=artifact_id,
+            artifact_kind=artifact_kind, artifact_schema=artifact_schema,
+            resolver=resolver, trust_root_provider=lambda: root,
+            trust_store_provider=lambda: substituted_receipt, cace_app_root=".",
+        )
+
+    same_authority_receipt = {
+        **receipt, "source_authority": root["source_authority"],
+        "retrieval_identity": root["retrieval_identity"],
+    }
+    with pytest.raises(PermissionError, match="distinct authorities"):
+        verify_merlin_artifact_ref(
+            bundle_payload=bundle.payload(), attestation_payload=signed["attestation"],
+            artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
+            source_commit=source_commit, artifact_id=artifact_id,
+            artifact_kind=artifact_kind, artifact_schema=artifact_schema,
+            resolver=resolver, trust_root_provider=lambda: root,
+            trust_store_provider=lambda: same_authority_receipt, cace_app_root=".",
         )
 
 
