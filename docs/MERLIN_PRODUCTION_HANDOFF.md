@@ -775,7 +775,7 @@ Merlin-side exact-head gates:
 - PR #109 was closed as a stale-base predecessor. Current draft is PR #110, rebased on the latest CACE PR #102 handoff branch.
 - The implementation walks parent directories with no-follow directory descriptors, enforces service ownership and 0700 directory mode, rejects symlink/non-regular/foreign-owned/hard-linked key files, and enforces 0600.
 - It writes and fsyncs a private temporary key, publishes with no-overwrite semantics, fsyncs the directory, and serializes concurrent initializers using `flock` on the verified directory descriptor.
-- Regression tests cover symlinked parents, hard-linked keys, and 16 concurrent initializers.
+- Regression tests cover symlinked parents, hard-linked keys, 16 concurrent initializers, and crash recovery when the process stops after publishing the final hard link but before removing its temporary alias. Recovery removes only a same-inode, service-owned file with the exact temporary-name prefix; unknown hard links still fail closed.
 - The first run `43610222590` exposed a legitimate race in the temporary hard-link publication window; the lock fixed the race without relaxing the one-link invariant.
 - Equivalent code/test content passed run `43610362239` at `230b4e90e9b40267ac78ba16c03d1c704907f033`; the follow-up passed run `43610495149` at `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed`, artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`.
 - PR #110 rebased code/test head `b3af13bbd8716db6c1d2ded6455a4c9bd45c2ab5` passed exact-head CI `43610865331`, artifact `14120336873`, SHA-256 `97ee7842b177f5e5a4ff3c57b9c876ee00348459a0493066bb0646d8ec51e5eb`.
