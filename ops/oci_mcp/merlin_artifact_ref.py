@@ -279,28 +279,31 @@ def initialize_merlin_artifact_ref_attestor(
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
             temp_fd = os.open(temp_name, flags, 0o600, dir_fd=parent_fd)
             try:
-                view = memoryview(candidate)
-                while view:
-                    written = os.write(temp_fd, view)
-                    if written <= 0:
-                        raise OSError("short write while creating ArtifactRef signing key")
-                    view = view[written:]
-                os.fsync(temp_fd)
-            finally:
-                os.close(temp_fd)
-            try:
+                try:
+                    view = memoryview(candidate)
+                    while view:
+                        written = os.write(temp_fd, view)
+                        if written <= 0:
+                            raise OSError("short write while creating ArtifactRef signing key")
+                        view = view[written:]
+                    os.fsync(temp_fd)
+                finally:
+                    os.close(temp_fd)
                 # link() is atomic and refuses to replace an existing key.
-                os.link(
-                    temp_name, key_name, src_dir_fd=parent_fd,
-                    dst_dir_fd=parent_fd, follow_symlinks=False,
-                )
-                created = True
-                private_pem = candidate
-            except FileExistsError:
-                private_pem = _read_artifact_key_at(parent_fd, key_name)
-                if private_pem is None:
-                    raise PermissionError("ArtifactRef key creation raced with an invalid replacement")
+                try:
+                    os.link(
+                        temp_name, key_name, src_dir_fd=parent_fd,
+                        dst_dir_fd=parent_fd, follow_symlinks=False,
+                    )
+                    created = True
+                    private_pem = candidate
+                except FileExistsError:
+                    private_pem = _read_artifact_key_at(parent_fd, key_name)
+                    if private_pem is None:
+                        raise PermissionError("ArtifactRef key creation raced with an invalid replacement")
             finally:
+                # Also clean up on write/fsync/link exceptions; a crash may leave
+                # an orphan, but no incomplete final key is ever published.
                 try:
                     os.unlink(temp_name, dir_fd=parent_fd)
                 except FileNotFoundError:
