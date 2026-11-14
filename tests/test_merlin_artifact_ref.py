@@ -114,7 +114,7 @@ def test_binding_covers_full_ref_source_and_artifact_identity():
         artifact_id="artifact-123",
         artifact_kind="research-result",
         artifact_schema="research-result/1",
-        size_bytes=24,
+        size_bytes=25,
         content_sha256=ref["sha256"],
     )
     assert bindings["artifact_ref"] == ref
