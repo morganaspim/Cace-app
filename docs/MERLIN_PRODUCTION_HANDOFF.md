@@ -686,3 +686,12 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PR #152 adds an independent Node.js verifier for node identity hashes, graph structure, cycle rejection, canonical array ordering, and snapshot digest. The Python suite checks tampered, noncanonical numeric, and unsorted-array rejection.
 - The independent verifier is not yet equivalent to Python's full type-specific identity validator; extend it and add randomized cross-language property vectors before claiming independent equivalence.
 - PRs #150 and #152 remain draft/stacked. No production qualification or promotion authority is implied.
+
+
+## Latest Merlin reliability and cross-language qualification update (2026-11-14)
+
+- PR #153 fixes the stale local regression-test path by basing the failure-class guardrails on the current PR #150 snapshot-history branch. Exact head `3309c14cf29724468b91dcc532ec87380e15688e` passed CI run `43606391290`; diagnostics artifact `14118550395`, SHA-256 `7fc8e2f59d316f8bbedf217585e6a1763048544b5c73eb151de499816c11d299`.
+- PR #152's expanded independent Node verifier passed exact head `3de491ddfdbfc44bbf0dd9b9109237c7690fe818` in CI run `43606501755`; diagnostics artifact `14118229129`, SHA-256 `fb7806575f537b20d432b171269f80d9f3e32aeab17f283a85248f09f9510b7e`.
+- That exact head independently validates all nine v1 evidence node identity types and nested ArtifactRefs, including positive versions, normalized paths, digests, and Git commit IDs. New follow-on commit adds twelve randomized DAG vectors, Unicode identity serialization, and duplicate JSON-key rejection; its exact-head CI is still pending.
+- PRs #150, #152 and #153 remain draft/stacked; no merge or production promotion is authorized.
+- These are graph/projection and CI guardrails only. They do not replace CACE's separate source-byte retrieval, signer/trust-root verification, protected OCI execution, or Lean kernel compile.
