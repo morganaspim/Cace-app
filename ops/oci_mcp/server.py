@@ -66,6 +66,18 @@ def _merlin_artifact_resolver(artifact_ref: dict[str, Any]) -> dict[str, Any]:
 
 
 @mcp.tool()
+def initialize_merlin_artifact_ref_attestor() -> dict[str, Any]:
+    """Create a distinct ArtifactRef Ed25519 key once; never overwrite an existing key."""
+    if not ALLOW_MERLIN_ARTIFACT_REF:
+        raise PermissionError("Merlin ArtifactRef capability is disabled")
+    from .merlin_artifact_ref import initialize_merlin_artifact_ref_attestor as initialize
+    return initialize(
+        private_key_path=MERLIN_ARTIFACT_REF_SIGNING_KEY,
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
+@mcp.tool()
 def attest_merlin_artifact_ref(
     bundle_payload: dict[str, Any],
     artifact_ref: dict[str, Any],
@@ -134,6 +146,7 @@ mcp = MCPServer(
         "or arbitrary OCI API execution is exposed."
     ),
 )
+
 
 
 def _imds_json(url: str) -> Any:
