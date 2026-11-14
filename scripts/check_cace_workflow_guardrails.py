@@ -22,6 +22,7 @@ EXPECTED_STEPS = (
     "Validate requested target and audited-root reachability",
     "Validate permanent proof guardrails and freeze proof plan",
     "Reject malformed Lean source seams",
+    "Read-only exact-pin runner cache readiness gate",
     "Restore pinned Lean and exact Mathlib package tree",
     "Explicitly prewarm pinned Mathlib artifacts",
     "Verify normal proof run is cache-local",
@@ -42,6 +43,16 @@ REQUIRED_SNIPPETS = (
     "python3 scripts/cace_proof_guardrails.py plan-hash",
     "python3 scripts/check_cace_known_failure_regressions.py",
     "CACE_QUARANTINED_STANDALONE_TARGET_OK",
+    "CACE_EXACT_PIN_RUNNER_CACHE_READY",
+    "CACE_CACHE_MATHLIB_ACTUAL",
+    "CACE_CACHE_MATHLIB_OLEAN_COUNT",
+    'test ! -e "$staging"',
+    'test ! -e "$backup"',
+    'test ! -e "$failed"',
+    "CACE_MATHLIB_CACHE_BACKUP_RETAINED",
+    "CACE_MATHLIB_CACHE_FAILED_PROMOTION_PRESERVED",
+    "trap restore_previous_cache EXIT",
+    "Read-only exact-pin runner cache readiness gate",
     "standalone quarantine compilation requires compile_root=false",
     'test "$COMPILE_ROOT" = "false"',
     "quarantined_root_imports",
@@ -69,6 +80,8 @@ def main() -> int:
         raise SystemExit(
             "Rejected: runnable exact-pin workflow differs from canonical byte-for-byte template"
         )
+    if re.search(r"rm\s+-rf[^\n]*(?:backup|staging|failed)", text):
+        raise SystemExit("Rejected: exact-pin prewarm must never delete prior cache backup/staging/failed data")
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 

@@ -184,6 +184,33 @@ jobs:
             python3 scripts/check_lean_source_sanity.py "formal/cace_formal/$TARGET"
           fi
 
+      - name: Read-only exact-pin runner cache readiness gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          printf 'CACE_RUNNER_CACHE_ROOT=%s\n' "$(realpath -e /var/lib/cace-cache)"
+          printf 'CACE_RUNNER_CACHE_FILESYSTEM='
+          df -P /var/lib/cace-cache | tail -n 1
+          for path in "$ELAN_HOME/bin/elan" "$CACE_PACKAGE_CACHE/mathlib/.git" "$CACE_PACKAGE_CACHE/mathlib/.lake/build"
+          do
+            if ! test -e "$path"; then
+              printf 'CACE_CACHE_READINESS_MISSING path=%s\n' "$path" >&2
+              exit 24
+            fi
+            printf 'CACE_CACHE_READINESS_PATH path=%s resolved=%s\n' "$path" "$(realpath -e "$path")"
+          done
+          test -x "$ELAN_HOME/bin/elan"
+          actual_mathlib="$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)"
+          printf 'CACE_CACHE_MATHLIB_ACTUAL=%s\n' "$actual_mathlib"
+          printf 'CACE_CACHE_MATHLIB_EXPECTED=%s\n' "$CACE_MATHLIB_COMMIT"
+          test "$actual_mathlib" = "$CACE_MATHLIB_COMMIT"
+          olean_count="$(find "$CACE_PACKAGE_CACHE/mathlib/.lake/build" -type f -name '*.olean' -printf . | wc -c)"
+          printf 'CACE_CACHE_MATHLIB_OLEAN_COUNT=%s\n' "$olean_count"
+          test "$olean_count" -gt 0
+          "$ELAN_HOME/bin/elan" toolchain list
+          echo "CACE_EXACT_PIN_RUNNER_CACHE_READY"
+  
       - name: Restore pinned Lean and exact Mathlib package tree
         shell: bash
         run: |
@@ -256,16 +283,39 @@ jobs:
 
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
           flock -x -w 900 9
-          staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}"
-          backup="${CACE_PACKAGE_CACHE}.backup-${GITHUB_RUN_ID}"
-          rm -rf "$staging" "$backup"
+          staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          backup="${CACE_PACKAGE_CACHE}.backup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          failed="${CACE_PACKAGE_CACHE}.failed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          # Never overwrite or delete a prior staging/backup/failed directory.
+          # Unique run/attempt paths preserve all recovery evidence across retries.
+          test ! -e "$staging"
+          test ! -e "$backup"
+          test ! -e "$failed"
           cp -a --reflink=auto .lake/packages "$staging"
           test "$(git -C "$staging/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          restore_previous_cache() {
+            status="$?"
+            if test "$status" -ne 0 && test -d "$backup"; then
+              if test -e "$CACE_PACKAGE_CACHE"; then
+                mv "$CACE_PACKAGE_CACHE" "$failed"
+                echo "CACE_MATHLIB_CACHE_FAILED_PROMOTION_PRESERVED=$failed"
+              fi
+              if test ! -e "$CACE_PACKAGE_CACHE"; then
+                mv "$backup" "$CACE_PACKAGE_CACHE"
+                echo "CACE_MATHLIB_CACHE_ROLLBACK_RESTORED=$CACE_PACKAGE_CACHE"
+              fi
+            fi
+            return "$status"
+          }
+          trap restore_previous_cache EXIT
           if test -d "$CACE_PACKAGE_CACHE"; then
             mv "$CACE_PACKAGE_CACHE" "$backup"
+            echo "CACE_MATHLIB_CACHE_BACKUP_RETAINED=$backup"
           fi
           mv "$staging" "$CACE_PACKAGE_CACHE"
-          rm -rf "$backup"
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          echo "CACE_MATHLIB_CACHE_PROMOTED=$CACE_PACKAGE_CACHE"
+          trap - EXIT
           flock -u 9
 
       - name: Verify normal proof run is cache-local

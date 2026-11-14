@@ -591,3 +591,17 @@ codomain with the image of zero under the continuous linear embedding at that ap
 - reject the fragile direct application `complexL2ToDistribution_injective n hgDist`.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
+
+
+## F-034 — run-scoped collaboration virtual environment path drift
+
+**Fingerprint:** the collaboration pytest suite passed, but the subsequent bug-sweep command exited 127 because it referenced a nonexistent fixed virtual-environment path.
+
+**Root cause:** the bootstrap step had correctly moved to a run/attempt-scoped `CACE_COLLABORATION_TEST_VENV`, while the later bug-sweep invocation retained the former shared `$RUNNER_TEMP/cace-collaboration-tests/bin/python` path.
+
+**Permanent prevention:**
+- both pytest and bug-sweep commands use the exact same exported `CACE_COLLABORATION_TEST_VENV`;
+- the workflow regression test requires the run-scoped path and rejects the obsolete fixed path;
+- run-specific environments remain isolated across persistent-runner executions.
+
+**Regression guard:** `tests/test_actions_policy_audit.py::test_collaboration_bug_sweep_uses_explicit_repository_import_root` and exact-head collaboration validation.

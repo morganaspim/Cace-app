@@ -71,9 +71,10 @@ def test_collaboration_bug_sweep_uses_explicit_repository_import_root() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
     safe = (
         'PYTHONPATH="$GITHUB_WORKSPACE" '
-        '"$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py'
+        '"$CACE_COLLABORATION_TEST_VENV/bin/python" scripts/check_bug_sweep.py'
     )
     assert safe in text
+    assert '$RUNNER_TEMP/cace-collaboration-tests/bin/python' not in text
 
 
 def test_collaboration_qualified_baseline_is_derived_from_canonical_provenance() -> None:
