@@ -493,7 +493,7 @@ Next: exact-head scanner/collaboration validation; then manually dispatch the ex
 
 ## 2026-11-13 production Merlin artifact-lineage continuation
 
-Source implementation is being developed in [Expert Robot PR #144](https://github.com/Mannyspiro/expert-robot/pull/144), stacked on Expert Robot PR #143. Live source branch: `feat/merlin-artifact-version-lineage-20261113`; latest observed head: `b44bcf9ebaf18d0ce05786e12f43b7661f410367`. PR #144 remains OPEN/DRAFT and unmerged.
+Source implementation is being developed in [Expert Robot PR #144](https://github.com/Mannyspiro/expert-robot/pull/144), stacked on Expert Robot PR #143. Live source branch: `feat/merlin-artifact-version-lineage-20261113`; latest observed head: `7593b782d688132b206fc16f83ddf131b919a496`. PR #144 remains OPEN/DRAFT and unmerged.
 
 The source branch extends the existing canonical `MerlinRegistry` with append-only per-project/per-logical-path artifact versions and strict `merlin-artifact-ref/1` identities. The reference binds project ID, normalized logical path, chronological version and SHA-256. Resolution re-hashes exact bytes and checks size; historical versions remain resolvable. Currentness is based on version identity, not digest equality, including the A -> B -> A reversion case.
 
@@ -505,7 +505,7 @@ Artifact references have been propagated source-side through:
 - Avrea dispatch receipts and exact-byte input transfer, capped at 25 MiB per artifact / 50 MiB aggregate;
 - Avrea collected output receipts and durable outbox events.
 
-The source branch adds regressions for historical versions/reversions, tampered blobs, Hermes reference validation, missing-validator fail-closed behavior, Avrea input resolution and exact-byte transfer. Exact current-head native CI run `43534769292` and unified platform run `43534769261` were pending/queued at the last live check. Earlier native CI passed on prior commits but does not validate the latest head. Do not claim the unified suite passed until a completed success for the exact current head is observed.
+The source branch adds regressions for historical versions/reversions, tampered blobs, Hermes reference validation, missing-validator fail-closed behavior, Avrea input resolution and exact-byte transfer. Exact current-head native CI run `43534991502` and unified platform run `43534991526` were pending/queued at the latest live check. Earlier native CI passed on prior commits but does not validate the latest head. Do not claim the unified suite passed until a completed success for the exact current head is observed.
 
 Critical remaining boundary: CACE's actual signed EvidenceBundle contract has not yet been updated to include the complete artifact reference (especially chronological version) in its signed statement and independent verification. Source-side digest checks are not a substitute. The next coordinated change must update the CACE verifier/signer producer and Merlin adapter together, require exact reference equality, re-resolve the referenced bytes independently, and retain pinned trust verification. Until then, end-to-end CACE artifact-version verification is NOT COMPLETE.
 
