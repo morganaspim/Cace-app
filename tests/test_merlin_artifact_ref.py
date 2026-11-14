@@ -277,3 +277,27 @@ def test_mcp_server_is_initialized_before_tool_registration():
     assert server_line is not None
     assert tool_lines
     assert server_line < min(tool_lines)
+
+@pytest.mark.parametrize("change", [
+    {"schema": "merlin-artifact-resolution/0"},
+    {"verified": False},
+    {"is_current": 1},
+    {"size_bytes": True},
+])
+def test_rejects_noncanonical_historical_resolution_metadata(change):
+    _, ref, response = _fixture()
+    bad = {**response, "resolution": {**response["resolution"], **change}}
+    with pytest.raises(PermissionError):
+        resolve_merlin_artifact_bytes(ref, resolver=lambda _: bad)
+
+
+def test_rejects_nested_reference_substitution():
+    _, ref, response = _fixture()
+    nested = dict(response["resolution"]["artifact_ref"])
+    nested["project_id"] = "different-project"
+    bad = {
+        **response,
+        "resolution": {**response["resolution"], "artifact_ref": nested},
+    }
+    with pytest.raises(PermissionError):
+        resolve_merlin_artifact_bytes(ref, resolver=lambda _: bad)
