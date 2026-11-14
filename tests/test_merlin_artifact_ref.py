@@ -406,3 +406,27 @@ def test_artifact_ref_key_initializer_is_race_safe_and_publishes_one_key(tmp_pat
     assert sum(result["created"] for result in results) == 1
     assert key_path.stat().st_mode & 0o777 == 0o600
     assert sorted(p.name for p in key_path.parent.iterdir()) == ["artifact-ref.pem"]
+
+
+def test_artifact_ref_key_initializer_recovers_its_orphaned_publish_link(tmp_path):
+    import os
+
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    key_path = tmp_path / "keys" / "artifact-ref.pem"
+    first = initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    # Simulate process death after link(temp, final) but before unlink(temp).
+    orphan = key_path.parent / ".artifact-ref.pem.new-crash-recovery"
+    os.link(key_path, orphan)
+    assert key_path.stat().st_nlink == 2
+
+    recovered = initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    assert recovered["created"] is False
+    assert recovered["verifier_key_id"] == first["verifier_key_id"]
+    assert key_path.stat().st_nlink == 1
+    assert not orphan.exists()
