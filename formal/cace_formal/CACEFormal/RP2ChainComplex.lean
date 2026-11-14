@@ -86,6 +86,22 @@ def faceBoundary (a b c : Vertex) : C1 :=
       - (if e = edgeIndex a c then 1 else 0)
       + (if e = edgeIndex a b then 1 else 0)
 
+/-- Every oriented facet edge resolves to the intended member of the
+15-edge basis; the fallback branch of edgeIndex is never used by a facet. -/
+theorem face_edges_are_basis_edges (f : Facet) :
+    edgeVertices (edgeIndex (faceVertices f).2.1 (faceVertices f).2.2) =
+        ((faceVertices f).2.1, (faceVertices f).2.2) ∧
+    edgeVertices (edgeIndex (faceVertices f).1 (faceVertices f).2.2) =
+        ((faceVertices f).1, (faceVertices f).2.2) ∧
+    edgeVertices (edgeIndex (faceVertices f).1 (faceVertices f).2.1) =
+        ((faceVertices f).1, (faceVertices f).2.1) := by
+  fin_cases f <;> norm_num [faceVertices, edgeIndex, edgeVertices]
+
+/-- The edge basis has no duplicate oriented endpoint pairs. -/
+theorem edgeVertices_injective : Function.Injective edgeVertices := by
+  intro e₁ e₂ h
+  fin_cases e₁ <;> fin_cases e₂ <;> norm_num [edgeVertices] at h ⊢
+
 /-- Integral boundary map ∂₁ : C₁ → C₀. -/
 def boundary1 (z : C1) : C0 :=
   fun v => ∑ e : Edge, z e * edgeBoundary (edgeVertices e).1 (edgeVertices e).2 v
