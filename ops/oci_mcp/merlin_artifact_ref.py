@@ -219,6 +219,8 @@ def initialize_merlin_artifact_ref_attestor(
                 fd = os.open(
                     path.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dir_fd,
                 )
+            except FileNotFoundError:
+                raise
             except OSError as exc:
                 raise PermissionError("unable to open ArtifactRef key without following symlinks") from exc
             try:
