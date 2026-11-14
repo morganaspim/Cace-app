@@ -328,3 +328,27 @@ def test_resolver_provenance_is_mandatory_and_exact():
     }}
     _, _, provenance = resolve_merlin_artifact_bytes(ref, resolver=lambda _: substituted)
     assert provenance["source_commit"] == "b" * 40
+
+def test_artifact_ref_key_initialization_is_idempotent_and_refuses_symlink(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    key_path = tmp_path / "keys" / "artifact-ref.pem"
+    first = initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    second = initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    assert first["created"] is True
+    assert second["created"] is False
+    assert first["verifier_key_id"] == second["verifier_key_id"]
+    assert key_path.stat().st_mode & 0o777 == 0o600
+    assert key_path.parent.stat().st_mode & 0o777 == 0o700
+
+    symlink_path = tmp_path / "keys" / "attacker.pem"
+    symlink_path.symlink_to(key_path)
+    with pytest.raises(PermissionError):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(symlink_path), cace_app_root=".",
+        )
