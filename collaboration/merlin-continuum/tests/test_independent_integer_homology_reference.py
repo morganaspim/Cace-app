@@ -178,8 +178,7 @@ def _chain_complex_payload() -> dict:
     return {
         "coefficient_ring": "Z",
         "basis_order": {
-            "C0": [list(vertex_tuple) if isinstance(vertex_tuple, tuple) else vertex_tuple
-                   for vertex_tuple in ((vertex,) for vertex in vertices)],
+            "C0": list(vertices),
             "C1": [list(edge) for edge in edges],
             "C2": [list(face) for face in FACETS],
         },
@@ -284,7 +283,7 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     vertices, edges, d1, d2 = _boundary_matrices()
     chain_complex = _chain_complex_payload()
     assert chain_complex["coefficient_ring"] == "Z"
-    assert chain_complex["basis_order"]["C0"] == [[0], [1], [2], [3], [4], [5]]
+    assert chain_complex["basis_order"]["C0"] == list(range(6))
     assert chain_complex["basis_order"]["C1"] == [list(edge) for edge in combinations(range(6), 2)]
     assert chain_complex["basis_order"]["C2"] == [list(face) for face in FACETS]
     assert chain_complex["boundary_matrices"]["d1_C1_to_C0"] == d1
