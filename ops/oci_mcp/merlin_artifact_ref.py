@@ -231,14 +231,35 @@ def initialize_merlin_artifact_ref_attestor(
                 raise PermissionError("unable to open ArtifactRef key without following symlinks") from exc
             try:
                 info = os.fstat(fd)
-                if (
-                    not stat.S_ISREG(info.st_mode)
-                    or info.st_uid != os.geteuid()
-                    or info.st_nlink != 1
-                ):
+                if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid():
                     raise PermissionError(
-                        "ArtifactRef signing key must be a service-owned regular file with one link"
+                        "ArtifactRef signing key must be a service-owned regular file"
                     )
+                if info.st_nlink != 1:
+                    # Recover only the known temporary hard-link alias left by
+                    # a crash between link(temp, final) and unlink(temp). Unknown
+                    # hard links remain a hard failure.
+                    temp_prefix = f".{path.name}.new-"
+                    for entry in os.listdir(dir_fd):
+                        if not entry.startswith(temp_prefix):
+                            continue
+                        try:
+                            candidate = os.stat(entry, dir_fd=dir_fd, follow_symlinks=False)
+                        except FileNotFoundError:
+                            continue
+                        if (
+                            stat.S_ISREG(candidate.st_mode)
+                            and candidate.st_uid == os.geteuid()
+                            and candidate.st_dev == info.st_dev
+                            and candidate.st_ino == info.st_ino
+                        ):
+                            os.unlink(entry, dir_fd=dir_fd)
+                    os.fsync(dir_fd)
+                    info = os.fstat(fd)
+                    if info.st_nlink != 1:
+                        raise PermissionError(
+                            "ArtifactRef signing key must be a service-owned regular file with one link"
+                        )
                 os.fchmod(fd, 0o600)
                 chunks: list[bytes] = []
                 total = 0
