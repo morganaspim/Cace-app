@@ -165,7 +165,9 @@ def _artifact_map(
     return {artifact_id: item}
 
 
-def _open_secure_artifact_key_parent(private_key_path: str):
+def _open_secure_artifact_key_parent(
+    private_key_path: str, *, create_parents: bool = True, tighten_final_dir: bool = True,
+):
     """Open/create every parent component without following symlinks."""
     import os
     import stat
@@ -183,7 +185,9 @@ def _open_secure_artifact_key_parent(private_key_path: str):
         for component in path.parent.parts[1:]:
             try:
                 child = os.open(component, flags, dir_fd=fd)
-            except FileNotFoundError:
+            except FileNotFoundError as missing:
+                if not create_parents:
+                    raise PermissionError("ArtifactRef key parent directory is not provisioned") from missing
                 try:
                     os.mkdir(component, 0o700, dir_fd=fd)
                     os.fsync(fd)
@@ -212,14 +216,19 @@ def _open_secure_artifact_key_parent(private_key_path: str):
             raise PermissionError("ArtifactRef key directory has an unexpected owner")
         if final_info.st_mode & 0o022:
             raise PermissionError("ArtifactRef key directory must not be group/world writable")
-        os.fchmod(fd, 0o700)
+        if tighten_final_dir:
+            os.fchmod(fd, 0o700)
+        elif final_info.st_mode & 0o077:
+            raise PermissionError("ArtifactRef key directory must be private (0700)")
         return fd, path.name, path
     except Exception:
         os.close(fd)
         raise
 
 
-def _read_artifact_key_at(parent_fd: int, key_name: str) -> bytes | None:
+def _read_artifact_key_at(
+    parent_fd: int, key_name: str, *, repair_mode: bool = False,
+) -> bytes | None:
     """Read an existing key through its pinned directory descriptor."""
     import os
     import stat
@@ -241,7 +250,11 @@ def _read_artifact_key_at(parent_fd: int, key_name: str) -> bytes | None:
             raise PermissionError("ArtifactRef signing key must not have additional hard links")
         if info.st_size < 1 or info.st_size > 65536:
             raise PermissionError("ArtifactRef signing key file has an invalid size")
-        os.fchmod(fd, 0o600)
+        if info.st_mode & 0o077:
+            if repair_mode:
+                os.fchmod(fd, 0o600)
+            else:
+                raise PermissionError("ArtifactRef signing key must have private mode 0600")
         chunks = []
         total = 0
         while True:
@@ -262,10 +275,12 @@ def load_merlin_artifact_ref_private_key(private_key_path: str) -> bytes:
     import fcntl
     import os
 
-    parent_fd, key_name, _ = _open_secure_artifact_key_parent(private_key_path)
+    parent_fd, key_name, _ = _open_secure_artifact_key_parent(
+        private_key_path, create_parents=False, tighten_final_dir=False,
+    )
     try:
         fcntl.flock(parent_fd, fcntl.LOCK_SH)
-        key = _read_artifact_key_at(parent_fd, key_name)
+        key = _read_artifact_key_at(parent_fd, key_name, repair_mode=False)
         if key is None:
             raise PermissionError("CACE ArtifactRef signing key is not provisioned")
         return key
@@ -291,7 +306,7 @@ def initialize_merlin_artifact_ref_attestor(
     try:
         # All initializers for this private directory serialize on its pinned fd.
         fcntl.flock(parent_fd, fcntl.LOCK_EX)
-        private_pem = _read_artifact_key_at(parent_fd, key_name)
+        private_pem = _read_artifact_key_at(parent_fd, key_name, repair_mode=True)
         if private_pem is None:
             candidate, _ = generate_ed25519_keypair_pem()
             temp_name = f".{key_name}.tmp-{secrets.token_hex(16)}"
@@ -317,7 +332,7 @@ def initialize_merlin_artifact_ref_attestor(
                     created = True
                     private_pem = candidate
                 except FileExistsError:
-                    private_pem = _read_artifact_key_at(parent_fd, key_name)
+                    private_pem = _read_artifact_key_at(parent_fd, key_name, repair_mode=True)
                     if private_pem is None:
                         raise PermissionError("ArtifactRef key creation raced with an invalid replacement")
             finally:
