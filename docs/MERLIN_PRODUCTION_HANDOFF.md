@@ -776,3 +776,15 @@ CACE signer custody:
 - PR #109 is stacked on this PR #102 branch and remains draft. Do not merge independently.
 
 All these passes are engineering CI, not live cloud or production qualification. Still outstanding: protected exact-pin Lean kernel compile; deployed Merlin source identity and authenticated resolver configuration; production signer key and independently provisioned trust pin; live historical-byte resolve/attest/verify; protected orchestrator bound to exact OCI execution; real OCI Vault/KMS and Object Storage upload/download; retention/IAM audit; separate-host restore drill. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
+
+
+## ArtifactRef signer key filesystem custody hardening (2026-11-14)
+- Draft implementation rebased on the latest CACE PR #102 handoff base.
+- Parent directory traversal uses directory descriptors and no-follow semantics; final directory must be service-owned and mode 0700.
+- Existing key files must be service-owned regular files with one link and mode 0600.
+- Key creation writes/fsyncs a private temporary file and atomically publishes it without overwrite.
+- An exclusive flock on the verified directory descriptor serializes initializers, avoiding the temporary hard-link alias race found in first CI.
+- Regression tests cover symlinked parent, hard-linked key rejection, and 16 concurrent initializers.
+- Prior equivalent code/test head `230b4e90e9b40267ac78ba16c03d1c704907f033` passed CI `43610362239`; the rebased exact head requires its own CI.
+- Prior handoff-only head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed CI `43610495149`, artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`. The new branch preserves the code/test content but must be independently validated after rebasing.
+- This does not provision a production signer or independent trust root, and does not perform a live resolver/sign/verify operation.
