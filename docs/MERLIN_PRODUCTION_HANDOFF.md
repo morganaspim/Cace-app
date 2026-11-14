@@ -397,3 +397,25 @@ Latest CACE code head: `ab6c146da6b990956fb64a53f78adee58abec69c`.
 Exact-pin math target clarification: the current CACE repository contains `formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean`, which is explicitly listed in `proof_guardrails.json` as `quarantined_root_imports`. The correct targeted preflight invocation is workflow `CACE Exact-Pin Lean Preflight` with module `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, and `prewarm_mathlib_cache=false` (unless a separate cache refresh is explicitly approved). The workflow pins `leanprover/lean4:v4.32.1` and mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`. This workflow is manual-dispatch on the protected CACE runner; no dispatch or kernel result has been obtained in this continuation. Do not confuse this file with the earlier proposed `SimplexBoundaryDistribution.lean`, which is not present in this CACE branch tree.
 
 Protected signer and orchestrator boundary: the MCP key-initialization tool and capability report are code-only. No key has been generated on OCI, no trust key has been independently provisioned, no feature flag enabled, no live Merlin resolver request made, and no production signer call performed. Existing `merlin-cace-protected-orchestrator.yml` requires manual dispatch on `main` with a successful OCI execution run ID; the PR is still stacked/draft and the workflow has not been dispatched. Thus steps 3–6 remain operationally blocked pending protected configuration, main integration and authorized workflow dispatch.
+
+
+## 2026-11-14 source-provenance binding requirement and exact-head validation
+
+A source-side gap was found: the original Merlin `resolve_artifact_ref` returned the exact version, bytes metadata and verification state, but did not store or return the source commit/artifact identity. Merely signing a caller-supplied source commit would not independently bind that commit to the stored artifact version.
+
+CACE now fails closed unless `resolution.provenance` is present and exactly matches:
+- schema `merlin-artifact-provenance/1`;
+- `source_repo` and full 40-character `source_commit`;
+- `artifact_id`, `artifact_kind`, `artifact_schema`.
+
+CACE compares this resolver-owned provenance against the caller's requested identity before both attestation and independent verification. The provenance is then bound in the signed statement and exact EvidenceBundle. Missing or substituted provenance is rejected.
+
+Merlin PR #144 now implements the corresponding immutable source-side table and resolver response. The generated preview/directive writers populate it only when deployment identity variables are configured. Existing versions without provenance remain unqualified; no retroactive mutation is allowed. Production still needs `MERLIN_SOURCE_REPO=Mannyspiro/expert-robot` and `MERLIN_SOURCE_COMMIT=<deployed full Git SHA>`.
+
+Latest CACE validation:
+- Collaboration validation #43601704421 SUCCESS on exact head `bb69228989e972756510a86ef0040999f66d6f9e`: https://github.com/morganaspim/Cace-app/actions/runs/43601704421
+- Lean Source Sanity #43601704583 SUCCESS on the same exact head: https://github.com/morganaspim/Cace-app/actions/runs/43601704583
+- Collaboration evidence artifact `14116493756`, SHA-256 `c6af772ddb022861c53a972bb0ef1deab42ad09a778fb912d39db08e2201f6b1`.
+- The collaboration run includes the provenance-required CACE round-trip and mutation tests. The source-sanity pass also confirms the F-032 exact-pin runnable/canonical workflow mirror is now byte-identical.
+
+This is still source/test validation only. No live authenticated resolver request, production source identity environment configuration, signer key generation, independent trust provisioning, protected signer call, protected orchestrator run or exact-pin Lean kernel compile has occurred.
