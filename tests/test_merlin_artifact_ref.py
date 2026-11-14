@@ -251,7 +251,7 @@ def test_full_attestation_round_trip_and_independent_trust_root(tmp_path):
         "key_id": root_key_id,
         "public_key_pem": root_public_pem.decode("ascii"),
         "source_authority": "protected-deployment-config://trust-root",
-        "retrieval_identity": "protected-deployment:merlin-verifier",
+        "provisioning_identity": "protected-deployment:merlin-trust-root-admin",
     }
     result = verify_merlin_artifact_ref(
         bundle_payload=bundle.payload(), attestation_payload=signed["attestation"],
@@ -297,7 +297,7 @@ def test_full_attestation_round_trip_and_independent_trust_root(tmp_path):
 
     same_authority_receipt = {
         **receipt, "source_authority": root["source_authority"],
-        "retrieval_identity": root["retrieval_identity"],
+        "retrieval_identity": root["provisioning_identity"],
     }
     with pytest.raises(PermissionError, match="distinct authorities"):
         verify_merlin_artifact_ref(
