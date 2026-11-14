@@ -2,6 +2,12 @@ name: CACE Collaboration Coordination Validation
 
 on:
   workflow_dispatch:
+    inputs:
+      runner_data_inventory:
+        description: "Run a read-only metadata inventory of known CACE runner cache roots"
+        required: false
+        default: false
+        type: boolean
   pull_request:
     # Keep automatic PR validation inexpensive. Heavy formal proof validation
     # is manual-only via CACE Exact-Pin Lean Preflight / canonical qualification.
@@ -56,6 +62,35 @@ jobs:
       - name: Validate collaboration lifecycle
         run: python scripts/validate_collaboration_lifecycle.py
 
+      - name: Inventory OCI runner cache metadata (read-only)
+        if: ${{ inputs.runner_data_inventory == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/cace_runner_data_inventory.py --output runner-data-inventory
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("runner-data-inventory/inventory.json").read_text())
+          print(json.dumps({
+              "roots": len(payload["roots"]),
+              "files": sum(root["file_count"] for root in payload["roots"]),
+              "bytes": sum(root["total_bytes"] for root in payload["roots"]),
+              "truncated": any(root["truncated"] for root in payload["roots"]),
+              "content_read": payload["content_read"],
+              "deletions_performed": payload["deletions_performed"],
+          }, indent=2))
+          PY
+
+      - name: Upload OCI runner inventory (planning evidence only)
+        if: ${{ inputs.runner_data_inventory == true }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cace-oci-runner-data-inventory
+          path: runner-data-inventory/inventory.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Bootstrap pinned formal-preflight Python environment
         shell: bash
         env:
@@ -85,6 +120,7 @@ jobs:
             tests/test_cace_batch_proof_targets.py \
             tests/test_lean_source_sanity.py \
             tests/test_oci_mcp_policy.py \
+            tests/test_cace_runner_data_inventory.py \
             tests/test_cli.py \
             tests/test_claim_registry_v331.py \
             tests/test_qualification_drift_v331.py \
@@ -103,7 +139,7 @@ jobs:
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
             tests/test_qualification_promotion_v339.py
-          PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
+          PYTHONPATH="$GITHUB_WORKSPACE" "$CACE_COLLABORATION_TEST_VENV/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
         shell: bash
