@@ -103,7 +103,7 @@
       "guard_refs": [
         {
           "path": ".github/workflows/cace-collaboration-validation.yml",
-          "contains": "PYTHONPATH=\"$GITHUB_WORKSPACE\" \"$RUNNER_TEMP/cace-collaboration-tests/bin/python\" scripts/check_bug_sweep.py"
+          "contains": "PYTHONPATH=\"$GITHUB_WORKSPACE\" \"$CACE_COLLABORATION_TEST_VENV/bin/python\" scripts/check_bug_sweep.py"
         },
         {
           "path": "tests/test_actions_policy_audit.py",
@@ -119,7 +119,7 @@
         }
       ],
       "closure_rule": "The isolated validator explicitly exports the repository root for bug-sweep imports, a policy test requires that safe invocation, and the content-addressed registry verifies both guards remain live.",
-      "fingerprint_sha256": "01d8aa18f7a5913c304750d7ba92d688c684f946b691c54f84f53b22a97192a3"
+      "fingerprint_sha256": "3dff79259d3d95dd67dc11f92fb2a2bb61dc3e53f84e75b7a54767f474a80a2b"
     },
     {
       "id": "proof-contract-transition-bootstrap-deadlock",
@@ -251,7 +251,7 @@
       "guard_refs": [
         {
           "path": ".github/workflows/cace-collaboration-validation.yml",
-          "contains": "$CACE_COLLABORATION_TEST_VENV/bin/python scripts/check_bug_sweep.py"
+          "contains": "PYTHONPATH=\"$GITHUB_WORKSPACE\" \"$CACE_COLLABORATION_TEST_VENV/bin/python\" scripts/check_bug_sweep.py"
         },
         {
           "path": "tests/test_actions_policy_audit.py",
@@ -263,7 +263,7 @@
         }
       ],
       "closure_rule": "The workflow pytest and bug-sweep invocations must use the exact same run/attempt-scoped CACE_COLLABORATION_TEST_VENV. A regression test asserts the bug-sweep command uses that variable and rejects the obsolete fixed RUNNER_TEMP path. Exact-head collaboration validation must pass, including bug sweep.",
-      "fingerprint_sha256": "a9b1e455823e92567b0e2a13bd3fe0fea8a4745fce215a507b6fc2c9e147268e"
+      "fingerprint_sha256": "7c6a44b730a2c0f11234409ee162d0c8f9d0d9768244123b47ec14208eaacfcc"
     }
   ]
 }
