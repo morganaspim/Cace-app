@@ -411,3 +411,30 @@ def test_artifact_ref_key_initializer_serializes_concurrent_creation(tmp_path):
     assert len({result["verifier_key_id"] for result in results}) == 1
     assert key_path.stat().st_mode & 0o777 == 0o600
     assert key_path.stat().st_nlink == 1
+
+
+def test_artifact_ref_key_initializer_cleans_partial_temp_on_write_failure(tmp_path, monkeypatch):
+    pytest.importorskip("cryptography")
+    import os
+    from ops.oci_mcp.merlin_artifact_ref import initialize_merlin_artifact_ref_attestor
+
+    parent = tmp_path / "interrupted"
+    key_path = parent / "artifact-ref.pem"
+    original_write = os.write
+    calls = 0
+
+    def interrupted_write(fd, payload):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return original_write(fd, payload[:8])
+        raise OSError("simulated interrupted key write")
+
+    monkeypatch.setattr(os, "write", interrupted_write)
+    with pytest.raises(OSError, match="simulated interrupted"):
+        initialize_merlin_artifact_ref_attestor(
+            private_key_path=str(key_path), cace_app_root=".",
+        )
+    monkeypatch.setattr(os, "write", original_write)
+    assert not key_path.exists()
+    assert list(parent.iterdir()) == []
