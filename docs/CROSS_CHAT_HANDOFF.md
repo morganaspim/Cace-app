@@ -736,3 +736,27 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #106 is draft and stacked on PR #102. The earlier PR #105 branch was closed as superseded before any merge.
 - Production IAM separation remains unproven: inspect protected deployment approvals, actual OCI dynamic-group/compartment policy, Vault secret OCID and read-only permission, then perform a protected OCI round trip. No production secret/key/IAM setting was changed.
 - Exact-pin Lean kernel compilation and protected orchestrator linkage remain independent blockers. Verification remains proof_effect=none and authority=verification-only.
+
+
+## 2026-11-14 cross-repository Merlin/CACE checkpoint
+
+### CACE independent ArtifactRef trust root
+- Draft PR #108 exact code head `565be287fd6c9e1f71fbb4824f315fe1ae87db07`.
+- CACE Collaboration Coordination Validation run `43607177662`: SUCCESS.
+- Artifact `14119240777`, SHA-256 `ce97a2a0ebb7db9b45c3966975497db14d11f0b0ffec0546f9909b755458f2bd`.
+- Trust-store receipt is root-signed; root comes from protected deployment config, receipt comes from a distinct OCI Vault secret fetched with instance principal. Provider source types are enforced in code.
+- Production IAM separation, protected environment approval, Vault OCID read-only access, and live protected OCI round trip remain unverified.
+
+### Merlin qualification evidence DAG
+- PR #150 exact code head `a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2`: CI `43606924625` SUCCESS; diagnostics `14118229843`, SHA-256 `c33548b4a88ba0ed709f9cdaa14230cc38209aa5a2a93eb51393d6d13b178275`.
+- PR #155 exact head `5b99b3069c35e7f91ba35c43f29e1aee3861ee70`: CI `43607472734` SUCCESS; diagnostics `14119445856`, SHA-256 `03c8bf6e0813d6799fb623d68c24ecd5198be6b9e92c6fb7b72877e84d76c610`.
+- PR #155 adds independent Node structural verification, nine node identity types, exact trust-root lineage, Unicode/canonical JSON checks, safe-integer-only values, and randomized DAG vectors.
+- PR #147 failure-registry smoke exact head `fe68b44b297f8c500f63645dd80e15cd0883a626`: CI `43607491781` SUCCESS; diagnostics `14119380963`, SHA-256 `32a0c169fbc12c1503f26a40b844c43d53b30a43491838a2bf924267a2d64f5d`.
+- PR #152 was closed as superseded by PR #155; no code was merged from the old branch.
+
+### Remaining production blockers
+- Exact-pin Lean kernel compile on the protected OCI runner remains undispatched; no compile pass is claimed.
+- CACE independent trust-root IAM and deployment identity require external policy inspection.
+- Live Merlin historical resolve → CACE attest → independent CACE verify and a distinct protected OCI orchestrator run are still required.
+- Multi-host coordination, off-host backup/restore drills, authenticated evidence source adapters, and API/HUD integration remain follow-up engineering.
+- No production signer, trust root, Vault secret, IAM policy, deployment, or promotion state was changed.
