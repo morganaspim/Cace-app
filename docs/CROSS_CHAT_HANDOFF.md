@@ -622,3 +622,16 @@ No production secrets, signer key, trust material, environment variables, featur
 - Both PRs remain unmerged/draft; no promotion or deployment.
 - Still blocked: deployed source identity and resolver credentials; protected signer key and independent trust pin; live resolve/attest/verify; protected main-only orchestrator run; manual exact-pin Lean kernel compile; formal qualification. No secrets, host/IAM settings, or production variables have been changed.
 - Continue with the six gates in `docs/MERLIN_PRODUCTION_HANDOFF.md`. Re-query live GitHub state before acting; do not treat handoff snapshots as evidence.
+
+
+## 2026-11-14 live continuation: ArtifactRef key custody
+
+- CACE PR #102 branch was refreshed with production handoff commit 47188d235747e9b0916b029bf0b0e8f12f7118ea.
+- New stacked draft PR #103: https://github.com/morganaspim/Cace-app/pull/103
+- Exact head 7a1d9a0d473897e55cc698c59fd60359fae529b1; CACE Collaboration Coordination Validation run 43603317438 **SUCCESS**.
+- Artifact 14117181753, SHA-256 7d52b73c7b5d3b0aa63039ce156fa61c10f137dd3b380eb2cf4d7a6dff8365f0.
+- PR #103 hardens ArtifactRef signer-key parent traversal, ownership/permissions, hard-link rejection, concurrent initialization, and atomic no-overwrite publication. Tests are in tests/test_merlin_artifact_ref.py.
+- PR #103 remains draft and stacked on PR #102. Do not merge independently. No production key, trust root, endpoint, secret, host configuration, deployment, or promotion was touched.
+- Exact-pin Lean kernel preflight remains outstanding. Collaboration validation and source sanity are not Lean compilation.
+- Failure-class registry and exact-source qualification lineage already exist in Merlin (config/known_failure_classes.json, PR #10, and source-binding PR #46); extend those canonical systems rather than creating parallel registries.
+- Next: inspect PR #103 run evidence and crash-recovery edge cases; exact-pin Lean preflight; protected signer/trust provisioning; live resolve→attest→verify; protected orchestrator receipt.
