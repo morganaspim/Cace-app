@@ -530,3 +530,22 @@ Relevant existing work:
 - Merlin PR #144 carries append-only artifact version identity into research, Hermes, and Avrea references.
 
 Do not duplicate these canonical systems. New failure classes must link to executable guards; evidence DAG nodes must preserve exact source/artifact/trust/runner identities and invalidate only dependent downstream qualifications.
+
+
+## 2026-11-14 follow-up: signer key read-path hardening
+
+PR #103 has been extended beyond the initially validated initializer-only changes.
+
+- Current PR #103 head: `3534a1906fc0ff8cb5c9f3b052e917cf23258800`.
+- Latest exact-head Collaboration Coordination Validation run `43603746084` is **IN PROGRESS**; do not reuse the earlier success as validation of this new head.
+- The new `load_merlin_artifact_ref_private_key` reads through the same no-follow directory descriptor and checks file owner, regular-file type, single-link identity, bounded size, and mode.
+- `ops/oci_mcp/server.py` now uses this checked loader for signer use and capability reporting. Capability reporting does not create directories or chmod the key.
+- Regression coverage now includes missing key and final symlink rejection, in addition to parent symlink, unsafe permissions, hardlink, concurrency, and interrupted-write cleanup.
+- Initial PR #103 head `7a1d9a0d473897e55cc698c59fd60359fae529b1` did pass run `43603317438`, but that pass does not cover subsequent server/read-path changes.
+- PR #103 remains draft, stacked on PR #102. No merge, key creation on production OCI, secret access, trust-store provisioning, or deployment occurred.
+
+### Trust-root independence remains a separate unresolved gate
+
+The current trust-store JSON and its expected SHA-256 are both read from runtime environment configuration. Matching them detects accidental mismatch but does not by itself prove independent custody if the same administrator can change both. Production qualification must establish a separately administered trust anchor (for example, a protected immutable deployment pin or independently authorized secret/trust service) and record its identity/version. Do not treat a digest supplied alongside its own payload as an independent trust root.
+
+Existing separate signer/orchestrator work is tracked in CACE PR #100; it remains draft and does not claim a real production OCI/orchestrator run pair or configured production key.
