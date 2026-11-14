@@ -760,3 +760,10 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #158 exact head 079c3c82f273a80dd4fa5deabb90aaa3154a8e27 passed native 43607987636 and unified 43607987604.
 - PR #159 exact head 32e877e8c5710cd9533b88b62530cee06b45a588 passed native CI 43608688270; artifact 14118834284, SHA-256 34ac98f600e47113c5ee602011cb32f38af14cba4c774c5061a0ae7d09c81aa8.
 - PR #159 is a local database-plus-blobs recovery package. Off-host encryption, transport, retention, key custody and separate-host restore remain unqualified.
+
+
+## Encrypted backup envelope
+- Merlin PR #160 exact head 594c9fb1ff7f31a511241669c7746bf0167bc089 passed native CI 43609184794.
+- Diagnostics artifact 14118708504, SHA-256 95ed5e471f2336b9fda1af887ee244edb5bbb6a8e675e5a427a0ed9e0228def6.
+- Implements injected KMS data-key provider and chunked AES-256-GCM; CI verifies round-trip, header/ciphertext tampering, truncation, wrong key version and full backup verification after decryption.
+- Only a fake KMS provider is used in tests. Production OCI Vault/KMS, independent key provisioning, object storage, retention and separate-host restore remain unqualified.
