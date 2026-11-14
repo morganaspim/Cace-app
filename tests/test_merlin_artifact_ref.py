@@ -413,3 +413,84 @@ def test_artifact_ref_key_initialization_is_idempotent_and_refuses_symlink(tmp_p
         initialize_merlin_artifact_ref_attestor(
             private_key_path=str(symlink_path), cace_app_root=".",
         )
+
+
+def test_independent_trust_root_rejects_expiry_revocation_and_root_swap():
+    pytest.importorskip("cryptography")
+    from cryptography.hazmat.primitives import serialization
+    from cace_studio.core.attestation import generate_ed25519_keypair_pem, public_key_id
+    from ops.oci_mcp.merlin_artifact_ref import (
+        _canonical_trust_json, _independent_trust_material,
+    )
+
+    root_private_pem, root_public_pem = generate_ed25519_keypair_pem()
+    _, other_root_public_pem = generate_ed25519_keypair_pem()
+    root_id = public_key_id(root_public_pem)
+    now = datetime.now(timezone.utc)
+    base_payload = {
+        "schema": "merlin-cace-trust-store-v2",
+        "authority_id": "merlin-independent-security-root",
+        "version": 9,
+        "issued_at_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "expires_at_utc": (now + timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "keys": [{
+            "key_id": "ed25519:" + "a" * 64,
+            "verifier_id": "cace", "status": "active",
+        }],
+    }
+    root_private = serialization.load_pem_private_key(root_private_pem, password=None)
+
+    def providers(payload, *, root_public=root_public_pem, key_id=root_id):
+        encoded = _canonical_trust_json(payload)
+        root = {
+            "schema": "merlin-independent-trust-root-v1",
+            "authority_id": "merlin-independent-security-root",
+            "version": 3, "key_id": key_id,
+            "public_key_pem": root_public.decode("ascii"),
+            "source_authority": "protected-deployment-config:trust-root",
+            "provisioning_identity": "security-admin:trust-root",
+        }
+        receipt = {
+            "schema": "merlin-cace-signed-trust-store-receipt-v1",
+            "payload": payload,
+            "payload_sha256": hashlib.sha256(encoded).hexdigest(),
+            "signature_b64": base64.b64encode(root_private.sign(encoded)).decode("ascii"),
+            "root_key_id": root_id,
+            "source_authority": "oci-vault-secret:trust-store",
+            "retrieval_identity": "oci-instance-principal:cace",
+        }
+        return root, receipt
+
+    stale_payload = {
+        **base_payload,
+        "issued_at_utc": (now - timedelta(days=10)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "expires_at_utc": (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    root, receipt = providers(stale_payload)
+    with pytest.raises(PermissionError, match="stale"):
+        _independent_trust_material(
+            trust_root_provider=lambda: root, trust_store_provider=lambda: receipt,
+            public_key_id=public_key_id,
+        )
+
+    revoked_payload = {
+        **base_payload,
+        "keys": [{**base_payload["keys"][0], "status": "revoked"}],
+    }
+    root, receipt = providers(revoked_payload)
+    with pytest.raises(PermissionError, match="invalid key entry"):
+        _independent_trust_material(
+            trust_root_provider=lambda: root, trust_store_provider=lambda: receipt,
+            public_key_id=public_key_id,
+        )
+
+    root, receipt = providers(base_payload)
+    swapped_root, _ = providers(
+        base_payload, root_public=other_root_public_pem,
+        key_id=public_key_id(other_root_public_pem),
+    )
+    with pytest.raises(PermissionError, match="different trust-root key"):
+        _independent_trust_material(
+            trust_root_provider=lambda: swapped_root, trust_store_provider=lambda: receipt,
+            public_key_id=public_key_id,
+        )
