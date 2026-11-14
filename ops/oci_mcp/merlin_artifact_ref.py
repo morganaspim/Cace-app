@@ -264,7 +264,7 @@ def initialize_merlin_artifact_ref_attestor(
             private_pem, _ = generate_ed25519_keypair_pem()
             temp_name = f".{path.name}.tmp-{secrets.token_hex(12)}"
             temp_fd = None
-            published = False
+            temp_created = False
             try:
                 temp_fd = os.open(
                     temp_name,
@@ -273,6 +273,7 @@ def initialize_merlin_artifact_ref_attestor(
                     0o600,
                     dir_fd=parent_fd,
                 )
+                temp_created = True
                 view = memoryview(private_pem)
                 while view:
                     written = os.write(temp_fd, view)
@@ -291,18 +292,19 @@ def initialize_merlin_artifact_ref_attestor(
                 except FileExistsError:
                     existing = read_existing_key()
                 else:
-                    published = True
                     created = True
                     existing = private_pem
                 os.unlink(temp_name, dir_fd=parent_fd)
+                temp_created = False
                 os.fsync(parent_fd)
             finally:
                 if temp_fd is not None:
                     os.close(temp_fd)
-                try:
-                    os.unlink(temp_name, dir_fd=parent_fd)
-                except FileNotFoundError:
-                    pass
+                if temp_created:
+                    try:
+                        os.unlink(temp_name, dir_fd=parent_fd)
+                    except FileNotFoundError:
+                        pass
             private_pem = existing
         else:
             private_pem = existing
