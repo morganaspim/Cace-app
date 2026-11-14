@@ -549,3 +549,19 @@ PR #103 has been extended beyond the initially validated initializer-only change
 The current trust-store JSON and its expected SHA-256 are both read from runtime environment configuration. Matching them detects accidental mismatch but does not by itself prove independent custody if the same administrator can change both. Production qualification must establish a separately administered trust anchor (for example, a protected immutable deployment pin or independently authorized secret/trust service) and record its identity/version. Do not treat a digest supplied alongside its own payload as an independent trust root.
 
 Existing separate signer/orchestrator work is tracked in CACE PR #100; it remains draft and does not claim a real production OCI/orchestrator run pair or configured production key.
+
+
+## 2026-11-14 exact-head result: ArtifactRef key custody PR #103
+
+The expanded signer-key initialization and read-path implementation has now passed its exact-head CACE collaboration validation.
+
+- PR #103 exact head: `3534a1906fc0ff8cb5c9f3b052e917cf23258800`.
+- Run `43603746084`: **SUCCESS**.
+- The exact run included `tests/test_merlin_artifact_ref.py`, the collaboration/formal-preflight regression suite, EvidenceBundle construction, and qualified-baseline ancestry verification.
+- Artifact `14116814715`, SHA-256 `237710f7b090997d231068084c9e8118cab98bee8e420784ae22d92659353657`.
+- PR #103 remains DRAFT and stacked on PR #102. This is not production OCI signer qualification.
+
+Independent trust-root custody is now tracked explicitly as CACE issue #104:
+https://github.com/morganaspim/Cace-app/issues/104
+
+Issue #104 addresses the limitation that trust-store JSON and its expected digest currently arrive from the same runtime configuration authority. A matching digest is not an independent trust anchor when both values can be replaced together. Production verification must record the independently administered root identity/version, not merely the co-located digest.
