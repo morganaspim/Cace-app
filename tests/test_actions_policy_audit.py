@@ -71,7 +71,7 @@ def test_collaboration_bug_sweep_uses_explicit_repository_import_root() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
     safe = (
         'PYTHONPATH="$GITHUB_WORKSPACE" '
-        '"$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py'
+        '"$CACE_COLLABORATION_TEST_VENV/bin/python" scripts/check_bug_sweep.py'
     )
     assert safe in text
 
