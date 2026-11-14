@@ -478,3 +478,17 @@ Live GitHub state was re-queried after the previous handoff snapshot.
 6. Preserve RP²/SNF and persistence evidence against exact source bytes; these remain engineering results, not formal qualification.
 
 No production secret, signer key, trust store, service environment variable, feature flag, OCI host/IAM setting, live resolver request, protected orchestrator run, deployment, merge, or promotion was changed or performed in this continuation. Missing production configuration remains an external authorization/provisioning gate, not a reason to weaken fail-closed behavior.
+
+
+## 2026-11-14 follow-up: exact-head source-sanity recovery
+
+A fresh live query confirms the current CACE PR #102 branch head before this documentation update was `024f8bf168263a5e21b971e833f51513e24fc69a`.
+
+- Lean Source Sanity #310, run `43602564488`: **SUCCESS** on that exact head. The `source-sanity` job completed checkout, exact-head establishment, self-validating source sanity/cheap proof guards, and evidence upload. This is not a Lean kernel compilation.
+- Collaboration Validation #714, run `43602564473`: **CANCELLED before a job started**. No validation pass is claimed for that run.
+- The prior exact-head Collaboration Validation #712/run `43602061080` passed on `f0263f83390a9979b9254cd5b7dcfe0b28df9c5c`; the later change to `024f8bf` corrected a documentation run number only.
+- Exact-pin Lean preflight remains a separate manual workflow on the protected self-hosted OCI runner. It has not been dispatched; do not infer a compile result from Source Sanity.
+- Next operational sequence: obtain a clean collaboration validation run on the latest documentation head when the serialized CACE Actions lane is clear; dispatch the targeted exact-pin preflight with `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, `prewarm_mathlib_cache=false`; inspect its compile receipt and runner identity; only then proceed to protected signer/trust provisioning and live resolve→attest→verify.
+- The targeted module is explicitly quarantined from the audited root import graph. A successful standalone compile would qualify only that target under the pinned toolchain; it does not qualify the full root or prove any broader theorem.
+- No production secrets, signer key, trust material, endpoint/token, OCI host/IAM configuration, feature flag, deployment, merge, or promotion was changed.
+
