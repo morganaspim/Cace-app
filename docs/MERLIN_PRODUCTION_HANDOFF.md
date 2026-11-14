@@ -756,3 +756,23 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - The pinned OCI Python SDK 2.191.0 model contract passes. The adapter uses an OCI instance-principal signer and is limited to data-key generation/decryption for one configured symmetric AES key.
 - The protected runbook records required runner configuration, IAM separation, live round-trip qualification, key-rotation retention and separate-host recovery steps.
 - No live OCI tenancy key/endpoint, IAM policy, network path or KMS round trip is configured or independently verified. Object Storage transport, retention lock, independent backup attestation and separate-host restore remain unqualified.
+
+
+## Merlin production continuity: DAG, backup and CACE signer hardening (2026-11-14)
+
+Merlin-side exact-head gates:
+- Expert Robot PR #150 snapshot-history/trust-lineage base: `a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2`, CI `43606924625` SUCCESS.
+- PR #156 independent trust-lineage DAG verifier: `5c211d57083c92cf81f6cf01c0c440bbf62a00b6`, CI `43607511800` SUCCESS; artifact `14119271206`, SHA-256 `d1bf8b7c54971dcd946339f199a789de0eb751e908c427abbebdfdf296370a74`.
+- PR #157 failure-class guardrails: `88e7bed9af0e1cda0264eef6dcc3bf700d31e857`, CI `43607743085` SUCCESS; artifact `14119451467`, SHA-256 `1c4f7967b530daedba622a1d7f43298c65e0c191e9f9c77043219c0f255bc252`.
+- PR #158 atomic snapshot-to-Hermes publication: `079c3c82f273a80dd4fa5deabb90aaa3154a8e27`, native `43607987636` and unified `43607987604` SUCCESS.
+- PR #159 complete local registry backup/restore: `32e877e8c5710cd9533b88b62530cee06b45a588`, CI `43608688270` SUCCESS.
+- PR #161 OCI Vault/KMS adapter and deployment runbook: `cdc22ab861ff71a27f4707887c2ef3772583398c`, CI `43609808622` SUCCESS.
+- PR #163 create-only OCI Object Storage transport: `d873e1e419e78f10b9de83c7f56cd259a80b22fc`, CI `43610431390` SUCCESS. It verifies the full bytes of an existing object on 412 replay, not only metadata/size. Older PR #162 was closed as superseded.
+
+CACE signer custody:
+- Draft PR #109 `security/artifact-ref-key-directory-custody-20261114` hardens parent traversal with no-follow directory descriptors, validates owner/mode and hard-link count, atomically publishes a complete key file, and serializes concurrent initializers.
+- First CI run `43610222590` exposed a real race in the temporary hard-link publication window. The fix uses an exclusive directory-descriptor flock; the strict one-link check remains.
+- Latest exact head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed CACE Collaboration Coordination Validation `43610495149`; artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`.
+- PR #109 is stacked on this PR #102 branch and remains draft. Do not merge independently.
+
+All these passes are engineering CI, not live cloud or production qualification. Still outstanding: protected exact-pin Lean kernel compile; deployed Merlin source identity and authenticated resolver configuration; production signer key and independently provisioned trust pin; live historical-byte resolve/attest/verify; protected orchestrator bound to exact OCI execution; real OCI Vault/KMS and Object Storage upload/download; retention/IAM audit; separate-host restore drill. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
