@@ -691,3 +691,20 @@ workflow and canonical template.
 **Repair:** both workflow representations now use
 `/var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock`.
 The old in-cache path was removed before the next exact-pin execution.
+
+## F-034 — pull-request exact-pin workflow left compile-root input empty
+
+**Fingerprint:** adding an automatic pull-request trigger to the exact-pin Lean preflight exposed a workflow-context difference: `inputs.compile_root` is populated for `workflow_dispatch`, but empty for `pull_request`. The target-classification step correctly defaulted to the quarantined standalone mode, while the later proof-plan hashing step still received an empty value and failed before Lean compilation.
+
+**Root cause:** the same security-critical input was read independently by two workflow steps, but only one step implemented the pull-request default.
+
+**Permanent prevention:**
+- use the explicit `pull_request` fallback `false` for both target classification and proof-plan hashing;
+- structurally require exactly two occurrences of the same fallback expression;
+- retain the independent target classifier check that the module is listed in `quarantined_root_imports`;
+- preserve `compile_root=false` so this automation cannot compile or promote the aggregate audited root;
+- rerun the exact-pin workflow on the corrected event head and retain its complete artifact.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` checks both fallback sites. The failure was reproduced by exact-pin run
+[43638851920](https://github.com/morganaspim/Cace-app/actions/runs/43638851920), which stopped in proof-plan validation before any Lean compilation. This failed run is diagnostic evidence only; it is not a proof failure and not a compilation result.
+
