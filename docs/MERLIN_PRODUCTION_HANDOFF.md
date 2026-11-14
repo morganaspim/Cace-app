@@ -768,3 +768,9 @@ A focused hardening branch now changes the CACE-owned ArtifactRef key initialize
 - Adds regression tests for symlinked parents, hard-linked keys, and 16 concurrent initializations.
 
 Branch: `security/artifact-ref-key-directory-custody-20261114`; latest code/test head `a0dff8cf67f9a434cee7c722b74550aeafa35971`. First CI run `43610222590` exposed a real concurrent-initialization race: a reader could see the temporary hard-link alias during publication. The fix serializes initializers with an exclusive lock on the verified directory descriptor; the hard-link rejection remains strict. Corrected exact-head CI is pending/not yet observed. This is stacked on CACE PR #102 and must not merge independently. It does not provision the production key, establish independent trust material, or perform a live signer operation.
+
+
+### Exact-head CI follow-up
+- Corrected head `230b4e90e9b40267ac78ba16c03d1c704907f033` passed CACE Collaboration Coordination Validation run `43610362239`.
+- Exact-head evidence artifact `14118884793`, SHA-256 `06ee7837b05bb126d0d70be2caae4e72354c4662ca18d2ddc5c4713fa22e9c80`.
+- The collaboration plus canonical formal-preflight test step passed, and the exact-byte CACE continuum EvidenceBundle step passed. This is engineering CI only; the protected exact-pin Lean kernel compile, production signer provisioning, independent trust-root provisioning, and live resolver/sign/verify remain outstanding.
