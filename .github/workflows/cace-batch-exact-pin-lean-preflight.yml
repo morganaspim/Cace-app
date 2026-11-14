@@ -109,6 +109,7 @@ jobs:
           cat cace-impacted-modules.txt
 
       - name: Reject malformed Lean source seams in every batch target
+        id: source_sanity
         shell: bash
         run: |
           set -euo pipefail
@@ -215,6 +216,7 @@ jobs:
           printf 'manifest_restore_completed=%s\n' "$(date -u +%FT%TZ)"
 
       - name: Explicitly prewarm pinned Mathlib artifacts
+        id: prewarm_cache
         if: ${{ inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -254,6 +256,7 @@ jobs:
           flock -u 9
 
       - name: Verify normal proof run is cache-local
+        id: cache_local
         if: ${{ ! inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -329,9 +332,19 @@ jobs:
           exit "$overall"
 
       - name: Aggregate batched preflight failures
+        id: diagnostic_aggregate
         if: always()
         shell: bash
         env:
+          TARGETS_OUTCOME: ${{ steps.targets.outcome }}
+          GUARDRAILS_OUTCOME: ${{ steps.guardrails.outcome }}
+          SOURCE_SANITY_OUTCOME: ${{ steps.source_sanity.outcome }}
+          CAPACITY_OUTCOME: ${{ steps.cache_capacity.outcome }}
+          TOOLCHAIN_OUTCOME: ${{ steps.install_toolchain.outcome }}
+          PACKAGES_OUTCOME: ${{ steps.restore_packages.outcome }}
+          MANIFEST_OUTCOME: ${{ steps.restore_manifest.outcome }}
+          PREWARM_OUTCOME: ${{ steps.prewarm_cache.outcome }}
+          CACHE_LOCAL_OUTCOME: ${{ steps.cache_local.outcome }}
           CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
           IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
           BATCH_OUTCOME: ${{ steps.batch_compile.outcome }}
@@ -339,18 +352,34 @@ jobs:
           set -euo pipefail
           failures=0
           : > cace-batch-diagnostic-sweep.txt
-          record() {
+          record_required() {
             label="$1"
             outcome="$2"
             printf '%s=%s\n' "$label" "$outcome" | tee -a cace-batch-diagnostic-sweep.txt
-            case "$outcome" in
-              success|skipped) ;;
-              *) failures=$((failures + 1)) ;;
-            esac
+            if test "$outcome" != "success"; then
+              failures=$((failures + 1))
+            fi
           }
-          record canary "$CANARY_OUTCOME"
-          record impacted "$IMPACTED_OUTCOME"
-          record batch_targets "$BATCH_OUTCOME"
+          record_required targets "$TARGETS_OUTCOME"
+          record_required guardrails "$GUARDRAILS_OUTCOME"
+          record_required source_sanity "$SOURCE_SANITY_OUTCOME"
+          record_required cache_capacity "$CAPACITY_OUTCOME"
+          record_required install_toolchain "$TOOLCHAIN_OUTCOME"
+          record_required restore_packages "$PACKAGES_OUTCOME"
+          record_required restore_manifest "$MANIFEST_OUTCOME"
+
+          if { test "$PREWARM_OUTCOME" = "success" && test "$CACHE_LOCAL_OUTCOME" = "skipped"; } ||
+             { test "$PREWARM_OUTCOME" = "skipped" && test "$CACHE_LOCAL_OUTCOME" = "success"; }; then
+            echo "cache_mode=valid" | tee -a cace-batch-diagnostic-sweep.txt
+          else
+            echo "cache_mode=invalid prewarm=$PREWARM_OUTCOME cache_local=$CACHE_LOCAL_OUTCOME" | tee -a cace-batch-diagnostic-sweep.txt
+            failures=$((failures + 1))
+          fi
+
+          record_required canary "$CANARY_OUTCOME"
+          record_required impacted "$IMPACTED_OUTCOME"
+          record_required batch_targets "$BATCH_OUTCOME"
+
           if test -s cace-batch-compile-failures.txt; then
             echo "Failed target modules:"
             cat cace-batch-compile-failures.txt
@@ -365,10 +394,13 @@ jobs:
               done
             done < cace-batch-compile-failures.txt
           fi
+
           if test "$failures" -ne 0; then
             echo "CACE_BATCH_PREFLIGHT_FAILURES=$failures"
+            echo "preflight_status=failure" | tee -a cace-batch-diagnostic-sweep.txt
             exit 40
           fi
+          echo "preflight_status=success" | tee -a cace-batch-diagnostic-sweep.txt
           echo "CACE_BATCH_PREFLIGHT_OK"
 
       - name: Emit batched non-qualification summary
@@ -392,6 +424,8 @@ jobs:
           batch_policy=all requested modules must be explicitly quarantined standalone targets
           note=One batched preflight compiles all requested quarantined modules and reports the complete target failure frontier. It never promotes modules or replaces canonical qualification.
           EOF
+          preflight_status="$(awk -F= '$1 == "preflight_status" { value=$2 } END { print value }' cace-batch-diagnostic-sweep.txt 2>/dev/null || true)"
+          printf 'preflight_status=%s\n' "${preflight_status:-not_reached}" >> cace-batch-preflight-summary.txt
           cat cace-batch-preflight-summary.txt
 
       - name: Upload batched preflight evidence
@@ -408,6 +442,7 @@ jobs:
             cace-batch-compile-status.tsv
             cace-batch-compile-failures.txt
             cace-batch-diagnostic-sweep.txt
+            cace-cache-capacity.txt
             cace-batch-canary-build.log
             cace-batch-impacted-build.log
             cace-batch-target-*.log
