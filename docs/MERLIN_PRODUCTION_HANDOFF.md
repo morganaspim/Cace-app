@@ -709,17 +709,9 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 ## Latest Merlin qualification-DAG reliability and parity work (2026-11-14)
 
 - The first known-failure guard failure (run `43606190603`) was a local-path assumption, not external CACE evidence-pin drift: a local `regression_test` entry pointed to a test file available only on stacked PR #150, which was absent from the guard workflow checkout.
-- Corrected registry commit `591a5533aeab4415ac6a8e7fc456ab0d1788b0ea` uses the explicit `external_regression_test` schema and passed exact-head CI run `43607463075`; diagnostics artifact `14119390852`, SHA-256 `ec482a7c2c0ac8aac07061decffaf8322d074b16914d92af03aa5d1db1c4eacc`.
-- The diagnostic-only commit `d11d081397b4bc125fde5c2e156268ad94089835` also passed run `43607173039`, but the pass preceded the root-cause correction and is not the qualifying receipt for the corrected registry.
-- The latest independent verifier PR #152 head is `de22b9b080da3e7d6301565453e25661f3f199b4`; exact-head CI run `43606623064` passed. Diagnostics artifact `14117589685`, SHA-256 `aaa759f329396b3a26070b3856d5ea38d43ea3639a6570cbce13949450670458`. The branch includes all-nine-type identity contracts, randomized DAG property vectors, Unicode identity handling, duplicate JSON-key rejection, noncanonical numeric/array checks, and ArtifactRef negative cases.
-- Draft PR #154 was closed as redundant after discovering those stronger tests already existed on the latest #152 head.
+- The corrected external reference was carried onto the latest trust-lineage base by PR #157. Exact head `e07744f11974555ab3ad2e65e88bfe93438e7609` passed CI run `43607555903`; diagnostics artifact `14119600389`, SHA-256 `b16083d8f4710f10feaf5a2a0977a4650f77adef930ce31acdf71a36f28bb863`.
+- PR #157 validates every local `regression_test` reference against an actual file and method in the current checkout, while CACE test evidence remains explicitly external and pinned to one canonical repository/PR/path/head/run/artifact tuple.
+- The latest independent verifier PR #156 is rebased onto PR #150 exact head `a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2`. Exact head `5c211d57083c92cf81f6cf01c0c440bbf62a00b6` passed CI run `43607511800`; diagnostics artifact `14119271206`, SHA-256 `d1bf8b7c54971dcd946339f199a789de0eb751e908c427abbebdfdf296370a74`.
+- PR #156 independently validates all nine v1 node types, trust-root and trust-store provenance, nested ArtifactRefs, canonical bytes, sorted arrays, duplicate-key rejection, digest/cycle/endpoint checks, Unicode content, and twelve randomized DAG vectors.
+- Stale PRs #147, #152, #153, and #155 were closed in favor of #157/#156; PR #154 was closed as a duplicate test expansion. Do not merge the stale branches.
 - CACE PR #102 collaboration validation remains passed at exact code head `89d84525c2cc32ec5f87431130eab52c2d42d45e` (run `43605425667`, artifact `14117987843`, SHA-256 `4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089`). Companion Lean Source Sanity was cancelled. Protected exact-pin Lean kernel compile remains outstanding.
-
-
-## Latest rebased Merlin qualification DAG receipts (2026-11-14)
-
-- PR #150 advanced to exact head `a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2` and passed CI run `43606924625`. This head includes trust-root/trust-store provenance in verification-receipt identities and exact SQLite trigger-definition checks for backup verification.
-- The independent Node verifier was rebased as PR #156 onto that newer base. Exact head `5c211d57083c92cf81f6cf01c0c440bbf62a00b6` passed CI run `43607511800`; diagnostics artifact `14119271206`, SHA-256 `d1bf8b7c54971dcd946339f199a789de0eb751e908c427abbebdfdf296370a74`.
-- The failure-class guardrails were rebased as PR #157 onto the same newer base. Exact head `e07744f11974555ab3ad2e65e88bfe93438e7609` passed CI run `43607555903`; diagnostics artifact `14119600389`, SHA-256 `b16083d8f4710f10feaf5a2a0977a4650f77adef930ce31acdf71a36f28bb863`.
-- Older PRs #152 and #153 were closed as stale after PR #150 advanced; use #156 and #157 only.
-- The CACE signer-custody/trust stack remains PR #103 then PR #107. PR #107 exact head `18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6` passed run `43607161208`, artifact `14118607025`, SHA-256 `503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff`.
