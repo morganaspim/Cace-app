@@ -301,6 +301,9 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
             tuple(sorted(set(face) - {vertex}))
             for face in FACETS if vertex in face
         ]
+        # A simplicial link is a simple graph: duplicate link edges would
+        # mean duplicate 2-simplices containing this vertex.
+        assert len(link_edges) == len(set(link_edges))
         link_adjacency = {other: set() for edge in link_edges for other in edge}
         for left, right in link_edges:
             link_adjacency[left].add(right)
@@ -334,8 +337,27 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     assert (len(vertices) - rank_d1, len(edges) - rank_d1 - rank_d2,
             len(FACETS) - rank_d2) == (1, 1, 1)
 
-    # The star at vertex 0 is a spanning tree, so the 1-skeleton is connected:
-    # H0(RP2; Z) = Z. The reduced 10x10 relation matrix presents H1.
+    # Check connectedness directly rather than relying only on the chosen
+    # vertex ordering or the later spanning-tree presentation.
+    one_skeleton = {vertex: set() for vertex in vertices}
+    for left, right in edges:
+        one_skeleton[left].add(right)
+        one_skeleton[right].add(left)
+    reached_vertices = {vertices[0]}
+    frontier_vertices = [vertices[0]]
+    while frontier_vertices:
+        current = frontier_vertices.pop()
+        for neighbor in one_skeleton[current]:
+            if neighbor not in reached_vertices:
+                reached_vertices.add(neighbor)
+                frontier_vertices.append(neighbor)
+    assert reached_vertices == set(vertices)
+
+    # The star at vertex 0 is a spanning tree, so collapsing it leaves the
+    # reduced 10x10 relation matrix presenting H1. Verify every tree edge is
+    # actually in the simplicial 1-skeleton before using that presentation.
+    spanning_tree = {(0, vertex) for vertex in range(1, 6)}
+    assert spanning_tree.issubset(set(edges))
     presentation = _rp2_h1_presentation(edges)
     assert len(presentation) == 10 and all(len(row) == 10 for row in presentation)
     assert bareiss_determinant(presentation) == -2
