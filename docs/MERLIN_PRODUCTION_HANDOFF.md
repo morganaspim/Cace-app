@@ -466,7 +466,7 @@ Live GitHub state was re-queried after the previous handoff snapshot.
 - The current head is four documentation-only commits beyond code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe`; a live compare confirmed only `docs/CROSS_CHAT_HANDOFF.md` and `docs/MERLIN_PRODUCTION_HANDOFF.md` changed in those four commits.
 - Exact-current-head Collaboration Validation #712, run `43602061080`: **SUCCESS**. The exact checkout, repository-wide Actions policy, collaboration lifecycle, read-only OCI inventory/protocol probe, collaboration/formal-preflight tests, exact-byte EvidenceBundle build, baseline ancestry check, and artifact upload all passed.
 - Retained artifact `14116563014`, SHA-256 `f6855853743a6043defd8c07f89afa4b8075486edc201fc3dfc1435fc589444c`, bound to exact PR head `f0263f83390a9979b9254cd5b7dcfe0b28df9c5c`.
-- Lean Source Sanity #308, run `43602060984`, was **CANCELLED before a job started**; no pass is claimed for that workflow on the current docs-only head. The unchanged code head `24bfc5b9` previously passed both Collaboration Validation #686/run `43601889665` and Lean Source Sanity #? / run `43601889638`; those results remain bound to `24bfc5b9`.
+- Lean Source Sanity #308, run `43602060984`, was **CANCELLED before a job started**; no pass is claimed for that workflow on the current docs-only head. The unchanged code head `24bfc5b9` previously passed both Collaboration Validation #686/run `43601889665` and Lean Source Sanity #305 / run `43601889638`; those results remain bound to `24bfc5b9`.
 - PR #102 remains OPEN/DRAFT and stacked on PR #101. Do not merge independently.
 
 ### Remaining six production gates
