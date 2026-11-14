@@ -75,10 +75,19 @@ def resolve_merlin_artifact_bytes(
     if response.get("authority") != "read_only_artifact_bytes":
         raise PermissionError("Merlin resolver authority is not read-only artifact bytes")
     resolution = response.get("resolution")
-    if not isinstance(resolution, Mapping) or resolution.get("verified") is not True:
-        raise PermissionError("Merlin did not verify the historical artifact row")
-    if resolution.get("artifact_ref") != ref or resolution.get("is_current") not in (True, False):
-        raise PermissionError("Merlin historical resolution does not bind the exact reference")
+    if (
+        not isinstance(resolution, Mapping)
+        or resolution.get("schema") != "merlin-artifact-resolution/1"
+        or resolution.get("verified") is not True
+    ):
+        raise PermissionError("Merlin did not return a verified canonical historical resolution")
+    if (
+        resolution.get("artifact_ref") != ref
+        or type(resolution.get("is_current")) is not bool
+        or isinstance(resolution.get("size_bytes"), bool)
+        or not isinstance(resolution.get("size_bytes"), int)
+    ):
+        raise PermissionError("Merlin historical resolution does not bind the exact reference metadata")
     if isinstance(response.get("size_bytes"), bool) or not isinstance(response.get("size_bytes"), int):
         raise PermissionError("Merlin resolver size is invalid")
     if response["size_bytes"] < 0 or response["size_bytes"] > MAX_ARTIFACT_BYTES:
