@@ -299,3 +299,6 @@ Fresh exact-head workflows on `67013dd151b6a3c5839bec72d6f94ff327c16a98`:
 No pass is claimed yet.
 
 Keep PR #144 OPEN/DRAFT and stacked on PR #143. The CACE artifact-reference/signing boundary remains unimplemented; the corrected CACE repository inspection and strict next-gate design are in the preceding section of this handoff. No runner, IAM, credential, signer, deployment or promotion change occurred.
+
+
+Latest source follow-up: the first repair commit's unified run #43544593226 reached 220 passed / 1 failed; the remaining failure was only a newline-escaping error in the revised README assertion. Source commit `53d0f18d0f0cd15acd15dae2f8a19ced0509a5db` removed that brittle newline check. Fresh exact-head workflows on this commit are native CI #43544767097 and unified platform #43544767303, both IN_PROGRESS at last observation. Earlier head `67013dd151b6a3c5839bec72d6f94ff327c16a98` native CI #43544593135 passed, but unified #43544593226 failed; do not transfer its native success to the latest head.
