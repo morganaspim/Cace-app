@@ -674,3 +674,14 @@ No production secrets, signer key, trust material, environment variables, featur
 - Adds a typed read-only qualification evidence DAG v1 design and JSON Schema.
 - JSON schema syntax was parsed successfully; runtime graph construction, deterministic digest, cycle rejection, selective invalidation and property tests are not yet implemented.
 - PR #148 remains draft and stacked on PR #144.
+
+
+## 2026-11-14 latest production Merlin continuation
+
+- CACE PR #103 exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed run 43604033624; artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- Merlin PR #147 exact head 694968f9558d6075be536909bf197d3ead6dd59b passed CI run 43604488928; diagnostics artifact 14117811826, SHA-256 ab7e725abf7a41ceab298f10680a8877a92758af373599df02807c51754007d2.
+- PR #147 registers five signer custody failure classes in the existing failure registry and pins each to CACE's exact test/evidence. Earlier failed attempts exposed and fixed stale test-path and evidence-pin guards.
+- Merlin PR #148 introduces the qualification evidence DAG v1 design/schema only; runtime DAG evaluation, digesting, cycle detection, invalidation, and property tests remain.
+- CACE issue #104 is the independent trust-root custody gate.
+- Remaining gates: protected exact-pin Lean kernel compile; independently administered trust root; live historical resolve→attest→verify; protected OCI/orchestrator linkage; end-to-end ArtifactRef schema migration across Hermes/Avrea/OCI/CACE.
+- No production secrets, keys, trust roots, deployments, merges, or promotion were changed.
