@@ -172,7 +172,6 @@ jobs:
           printf 'impacted_count=%s\n' "$impacted_count" >> "$GITHUB_OUTPUT"
 
       - name: Reject malformed Lean source seams
-        id: source_sanity
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
@@ -186,7 +185,6 @@ jobs:
           fi
 
       - name: Restore pinned Lean and exact Mathlib package tree
-        id: restore_pinned
         shell: bash
         run: |
           set -euo pipefail
@@ -229,7 +227,6 @@ jobs:
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
 
       - name: Explicitly prewarm pinned Mathlib artifacts
-        id: prewarm_cache
         if: ${{ inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -272,7 +269,6 @@ jobs:
           flock -u 9
 
       - name: Verify normal proof run is cache-local
-        id: cache_local
         if: ${{ ! inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -382,69 +378,41 @@ jobs:
         if: always()
         shell: bash
         env:
-          TARGET_OUTCOME: ${{ steps.target.outcome }}
-          GUARDRAILS_OUTCOME: ${{ steps.guardrails.outcome }}
-          SOURCE_SANITY_OUTCOME: ${{ steps.source_sanity.outcome }}
-          RESTORE_OUTCOME: ${{ steps.restore_pinned.outcome }}
-          PREWARM_OUTCOME: ${{ steps.prewarm_cache.outcome }}
-          CACHE_LOCAL_OUTCOME: ${{ steps.cache_local.outcome }}
           CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
           IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
-          MODULE_OUTCOME: ${{ steps.target_compile.outcome }}
+          TARGET_OUTCOME: ${{ steps.target_compile.outcome }}
           PLAN_RECHECK_OUTCOME: ${{ steps.plan_recheck.outcome }}
           ROOT_OUTCOME: ${{ steps.root_compile.outcome }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
         run: |
           set -euo pipefail
           : > cace-diagnostic-sweep.txt
           : > cace-compile-failures.txt
           failures=0
-          record_required() {
+          record() {
             label="$1"
             outcome="$2"
-            printf '%s=%s\n' "$label" "$outcome" | tee -a cace-diagnostic-sweep.txt
-            if test "$outcome" != "success"; then
-              printf '%s=%s\n' "$label" "$outcome" >> cace-compile-failures.txt
-              failures=$((failures + 1))
-            fi
+            printf '%s=%s\n' "$label" "$outcome" >> cace-diagnostic-sweep.txt
+            case "$outcome" in
+              success|skipped) ;;
+              *)
+                printf '%s=%s\n' "$label" "$outcome" >> cace-compile-failures.txt
+                failures=$((failures + 1))
+                ;;
+            esac
           }
-          record_required target "$TARGET_OUTCOME"
-          record_required guardrails "$GUARDRAILS_OUTCOME"
-          record_required source_sanity "$SOURCE_SANITY_OUTCOME"
-          record_required restore_pinned "$RESTORE_OUTCOME"
-          record_required canary "$CANARY_OUTCOME"
-          record_required impacted "$IMPACTED_OUTCOME"
-          record_required target_compile "$MODULE_OUTCOME"
-
-          if { test "$PREWARM_OUTCOME" = "success" && test "$CACHE_LOCAL_OUTCOME" = "skipped"; } ||
-             { test "$PREWARM_OUTCOME" = "skipped" && test "$CACHE_LOCAL_OUTCOME" = "success"; }; then
-            echo "cache_mode=valid" | tee -a cace-diagnostic-sweep.txt
-          else
-            echo "cache_mode=invalid prewarm=$PREWARM_OUTCOME cache_local=$CACHE_LOCAL_OUTCOME" | tee -a cace-diagnostic-sweep.txt
-            failures=$((failures + 1))
-          fi
-
-          if test "$COMPILE_ROOT" = "true"; then
-            record_required plan_recheck "$PLAN_RECHECK_OUTCOME"
-            record_required root_compile "$ROOT_OUTCOME"
-          else
-            if test "$PLAN_RECHECK_OUTCOME" = "skipped" && test "$ROOT_OUTCOME" = "skipped"; then
-              echo "root_qualification=not_requested" | tee -a cace-diagnostic-sweep.txt
-            else
-              echo "root_qualification=unexpected_outcome plan_recheck=$PLAN_RECHECK_OUTCOME root=$ROOT_OUTCOME" | tee -a cace-diagnostic-sweep.txt
-              failures=$((failures + 1))
-            fi
-          fi
-
+          record canary "$CANARY_OUTCOME"
+          record impacted "$IMPACTED_OUTCOME"
+          record target "$TARGET_OUTCOME"
+          record plan_recheck "$PLAN_RECHECK_OUTCOME"
+          record root "$ROOT_OUTCOME"
           cat cace-diagnostic-sweep.txt
           if test "$failures" -ne 0; then
             echo "CACE_DIAGNOSTIC_SWEEP_FAILURES=$failures"
-            echo "preflight_status=failure" | tee -a cace-diagnostic-sweep.txt
             cat cace-compile-failures.txt
             exit 40
           fi
-          echo "preflight_status=success" | tee -a cace-diagnostic-sweep.txt
           echo "CACE_DIAGNOSTIC_SWEEP_OK"
+
       - name: Emit non-qualification summary
         if: always()
         shell: bash
