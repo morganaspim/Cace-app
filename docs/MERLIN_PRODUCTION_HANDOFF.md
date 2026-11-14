@@ -593,3 +593,15 @@ https://github.com/Mannyspiro/expert-robot/pull/147
 - Merlin issue #145 tracks the work; issue #146 tracks transitive evidence DAG invalidation.
 
 PR #147 is draft and stacked on Merlin PR #144. Native CI is the relevant exact-head gate for this registry/config-only change; no unified platform pass is claimed for #147.
+
+
+## Evidence DAG design continuation
+
+Merlin draft PR #148 now specifies the typed, read-only qualification evidence DAG:
+https://github.com/Mannyspiro/expert-robot/pull/148
+
+- Exact head: `f037341acb54417352c42d26924ac79447590b8c`.
+- Adds the v1 DAG design contract and JSON Schema.
+- The schema was parsed successfully as JSON; this is not runtime validation.
+- Runtime DAG construction, deterministic snapshot hashing, cycle detection, selective transitive invalidation, and property tests remain future implementation gates.
+- PR #148 is stacked on Merlin PR #144 and remains draft. It does not qualify evidence or expand authority.
