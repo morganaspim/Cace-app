@@ -723,3 +723,16 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #152 adds an independent Node verifier and tests for canonical bytes, sorted arrays, digest reproduction, and tamper rejection. Type-specific identity equivalence and randomized cross-language property vectors remain.
 - CACE PR #102 branch exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed collaboration run 43605425667; artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089. Lean Source Sanity run 43605425559 was CANCELLED.
 - Protected exact-pin Lean compile, independent trust root, live resolve→attest→verify, and OCI/protected orchestrator run remain outstanding.
+
+
+## 2026-11-14 independent ArtifactRef trust-root progress
+
+- Draft CACE PR #106: https://github.com/morganaspim/Cace-app/pull/106
+- Exact tested code head: `128e43513f3565f769231642f5fc222139273190`.
+- CACE Collaboration Coordination Validation run `43606285010`: SUCCESS.
+- Retained artifact `14118358494`, SHA-256 `9cfd205ef56999b2dc5d11cdfbf0d8ceccb2c6ef0a7d2667c7a7da592df53311`.
+- The new verifier replaces co-located trust-store JSON/digest input with a canonical, root-signed v2 trust-store receipt. It binds an independently provisioned Ed25519 root from protected deployment configuration to a separate OCI Vault secret fetched with the instance principal.
+- Verification results bind root authority/version/key ID/digest and trust-store version/digest/source/retrieval identity. Tests cover signature substitution, source co-location, stale trust, revoked keys, and root-key swaps.
+- PR #106 is draft and stacked on PR #102. The earlier PR #105 branch was closed as superseded before any merge.
+- Production IAM separation remains unproven: inspect protected deployment approvals, actual OCI dynamic-group/compartment policy, Vault secret OCID and read-only permission, then perform a protected OCI round trip. No production secret/key/IAM setting was changed.
+- Exact-pin Lean kernel compilation and protected orchestrator linkage remain independent blockers. Verification remains proof_effect=none and authority=verification-only.
