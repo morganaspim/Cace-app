@@ -234,3 +234,45 @@ The source branch adds regressions for historical versions/reversions, tampered 
 Critical remaining boundary: CACE's actual signed EvidenceBundle contract has not yet been updated to include the complete artifact reference (especially chronological version) in its signed statement and independent verification. Source-side digest checks are not a substitute. The next coordinated change must update the CACE verifier/signer producer and Merlin adapter together, require exact reference equality, re-resolve the referenced bytes independently, and retain pinned trust verification. Until then, end-to-end CACE artifact-version verification is NOT COMPLETE.
 
 PR #144 has not changed any runner host, IAM, credentials, signer keys, deployment, or production configuration. It grants no promotion authority. Keep PR #144 draft and stacked; do not merge it independently. Keep signing, verification and promotion as distinct transitions.
+
+
+## 2026-11-14 live continuation: artifact lineage CI and CACE integration boundary
+
+Live recheck of Expert Robot PR #144:
+- PR #144 remains OPEN/DRAFT, stacked on PR #143, head `7593b782d688132b206fc16f83ddf131b919a496`.
+- Exact-head native CI run [43534991502](https://github.com/Mannyspiro/expert-robot/actions/runs/43534991502) completed SUCCESS on that exact SHA.
+- Exact-head unified platform run [43534991526](https://github.com/Mannyspiro/expert-robot/actions/runs/43534991526) completed CANCELLED, not success. Do not claim unified integration acceptance.
+- No merge, deployment, runner-host mutation, IAM change, credential change, signer configuration or promotion occurred.
+
+### CACE implementation inspection (current main snapshot)
+
+The previously assumed path `ops/oci_mcp/merlin_rsi_verifier.py` is not present in the current `morganaspim/Cace-app` main tree. Do not build against that stale path or assume the OCI MCP server is the signer.
+
+Observed existing primitives:
+- `cace_studio/core/attestation.py` implements canonical domain-separated Ed25519 signed statements. `AttestationStatement.bindings` is included in the signed canonical payload.
+- `cace_studio/attest_cli.py` currently constructs only `qualified_commit` and `proof_artifact_sha256` bindings in its sign command. It has no artifact-ref input option.
+- `verify_attestation` cryptographically checks the embedded public key/signature and key-id consistency. That alone does not establish trust in the embedded key; the consumer must compare the key identity against independently pinned trust material.
+- `cace_studio/core/evidence_ledger.py` and `schema/evidence-bundle-v1.schema.json` define a manifest/Merkle bundle with artifact digest, size, role, media type, path and metadata. The bundle manifest does not itself provide a canonical Merlin registry resolver or independently fetch the bytes behind a versioned artifact reference.
+- `ops/oci_mcp/server.py` is a narrow OCI operational control plane. Its documented tools cover runtime status, logs, instance/VNIC/NSG reads and explicitly gated network/service operations; it does not expose a Merlin artifact verifier or signing endpoint.
+
+### Correct CACE integration design (do not skip the missing boundary)
+
+The next CACE change must be a coordinated verifier/producer contract, not merely adding a free-form binding:
+1. Define a strict versioned request schema that requires the complete `merlin-artifact-ref/1` tuple: project ID, logical path, chronological version and SHA-256, plus source repository/commit and artifact/tool identity.
+2. Require CACE to independently resolve the project/path/version in the canonical registry and retrieve the exact bytes; re-hash bytes and verify size against registry metadata. Reject stale/missing/malformed references and all mismatches.
+3. Bind the complete reference and the independent-resolution result into the EvidenceBundle and signed statement. Do not accept caller-supplied digest-only claims as independent resolution.
+4. Add a consumer verifier that checks exact expected bindings and compares the signing key ID against independently pinned trust material; embedded-key self-verification is insufficient.
+5. Add mutation tests for version/path/project/digest substitution, missing registry resolution, byte/size mismatch, signature mutation and trust-key substitution.
+6. Keep `proof_effect: none`; signed integrity/provenance is not theorem proof, qualification, approval or promotion.
+
+No signer endpoint or independently pinned external trust configuration was discovered in this inspection. Do not generate a production key, configure a host key, expose a new endpoint, change secrets/IAM, or claim signed end-to-end verification without the separately approved external signer and trust setup.
+
+### Immediate next gates
+
+1. Re-run the exact-head unified platform workflow for PR #144 and retain its full logs/artifacts; inspect cancellation cause before retrying.
+2. Implement the strict CACE artifact-ref resolver/attestation request path against the actual canonical registry interface; first identify the registry transport contract rather than inventing an endpoint.
+3. Extend the Merlin CACE HTTP adapter to send the full ref and validate the signed response against independently pinned trust.
+4. Persist the verified receipt against the same ArtifactRef/version in the existing registry/event graph/outbox; do not create a parallel receipt store.
+5. Add lineage/fault-injection coverage: concurrent writes, interrupted blob writes, restart, duplicate outbox delivery, backup/restore and orphan blob handling.
+6. Keep PR #144 and the CACE PR chain draft/stacked until exact-head validation and integration review; no independent merge or promotion.
+
