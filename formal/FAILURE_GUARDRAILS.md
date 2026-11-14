@@ -664,3 +664,30 @@ validation passed on `acc77735efaea10bf7179313ecba514a628297c7`, run
 [43601511700](https://github.com/morganaspim/Cace-app/actions/runs/43601511700).
 
 **Exact-head follow-up:** source-sanity run `43601438723` on `923d423f` failed only because the canonical mirror was one line behind the runnable workflow. The canonical mirror was synchronized in `1f958a07`. A fresh source-sanity run on the post-repair head is required before this defect class can be marked closed; the collaboration pass alone is not a substitute.
+
+
+## F-033 — cache lock moved with the cache directory during atomic replacement
+
+**Fingerprint:** the Lean package-cache lock was initially placed inside the versioned package-cache
+directory. The prewarm workflow atomically renames that directory to a backup and replaces it with
+a staging directory. A lock descriptor opened before the rename would continue to refer to the old
+inode, while a second process could open a new lock file at the replacement path and enter the
+critical section concurrently.
+
+**Root cause:** the lock's filesystem location shared the lifecycle of the resource it was intended
+to serialize.
+
+**Permanent prevention:**
+- place the lock in a stable sibling directory outside the replaceable package-cache tree;
+- create the lock directory before both shared and exclusive acquisitions;
+- namespace the lock by exact Lean toolchain and Mathlib commit;
+- structurally reject lock paths nested under the package cache and require both acquisition sites
+  to create the external lock directory.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` enforces the external path,
+the exact pin namespace, the two directory-creation guards, and byte equality between the runnable
+workflow and canonical template.
+
+**Repair:** both workflow representations now use
+`/var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock`.
+The old in-cache path was removed before the next exact-pin execution.
