@@ -276,3 +276,26 @@ No signer endpoint or independently pinned external trust configuration was disc
 5. Add lineage/fault-injection coverage: concurrent writes, interrupted blob writes, restart, duplicate outbox delivery, backup/restore and orphan blob handling.
 6. Keep PR #144 and the CACE PR chain draft/stacked until exact-head validation and integration review; no independent merge or promotion.
 
+
+
+## 2026-11-14 exact-head continuation: unified-suite failures and repair
+
+Expert Robot PR #144 has advanced to head `67013dd151b6a3c5839bec72d6f94ff327c16a98`. The prior head `7593b782d688132b206fc16f83ddf131b919a496` passed native CI (#43534991502), but its unified suite (#43534991526) was cancelled after its test step reported **210 passed / 10 failed**. The retained log was reviewed. The failure set comprised:
+- over-escaped ngspice version parser;
+- ambiguous CACE proof-effect validation error;
+- stale CACE trusted-key fixture shape;
+- Hermes missing-validator test accidentally using a helper that injected a permissive validator;
+- missing app/EventStore imports in Hermes runtime tests;
+- case-sensitive urllib request-header assertion;
+- Forge conflict test not satisfying required independent-check gates;
+- merge-commit rebase test not advancing its target branch;
+- stale Forge API README expectation.
+
+Regression repairs are committed in source commits `3f37e01579bb2edd691a749f6350b39ff1d8fa4a` and `67013dd151b6a3c5839bec72d6f94ff327c16a98`. The ngspice version parser now has explicit positive/negative banner fixtures. Several failures were test-fixture/expectation errors exposing stale assumptions; the ngspice parser and CACE error specificity were implementation fixes. Re-run all tests on the new exact head before classifying any residual failures.
+
+Fresh exact-head workflows on `67013dd151b6a3c5839bec72d6f94ff327c16a98`:
+- Native CI run `43544593135`: PENDING at last observation.
+- Unified platform run `43544593226`: IN_PROGRESS at last observation.
+No pass is claimed yet.
+
+Keep PR #144 OPEN/DRAFT and stacked on PR #143. The CACE artifact-reference/signing boundary remains unimplemented; the corrected CACE repository inspection and strict next-gate design are in the preceding section of this handoff. No runner, IAM, credential, signer, deployment or promotion change occurred.
