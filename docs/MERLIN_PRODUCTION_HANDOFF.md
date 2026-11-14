@@ -419,3 +419,29 @@ Latest CACE validation:
 - The collaboration run includes the provenance-required CACE round-trip and mutation tests. The source-sanity pass also confirms the F-032 exact-pin runnable/canonical workflow mirror is now byte-identical.
 
 This is still source/test validation only. No live authenticated resolver request, production source identity environment configuration, signer key generation, independent trust provisioning, protected signer call, protected orchestrator run or exact-pin Lean kernel compile has occurred.
+
+
+## 2026-11-14 exact-head CACE ArtifactRef + continuum validation and cache-lock hardening
+
+CACE code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe` passed:
+- Collaboration validation #43601889665 — SUCCESS: https://github.com/morganaspim/Cace-app/actions/runs/43601889665
+- Lean Source Sanity #43601889638 — SUCCESS: https://github.com/morganaspim/Cace-app/actions/runs/43601889638
+- Collaboration evidence artifact `14117195243`, digest `sha256:c9450d12ede4db886d52e4a309f3e0b37ab3a7e75471ec2af92b433b23fc49a5`.
+
+The collaboration suite includes the separate ArtifactRef CACE attestor/verifier, resolver-owned immutable provenance checks, exact historical bytes, CACE Ed25519 sign/verify round-trip and mutation tests, one-time signer key creation/symlink rejection, C++ exact-byte continuum smoke tests, and the independent pure-Python RP²/SNF reference. The run also built the exact-byte CACE continuum EvidenceBundle and confirmed the canonical qualified baseline remains an ancestor.
+
+Defect classes added:
+- F-032: runnable exact-pin workflow and canonical template drift; byte-equality guard retained.
+- F-033: cache lock inside an atomically replaced package directory; moved to stable `/var/lib/cace-cache/locks/` namespace and structural guard added.
+
+The follow-up head `24bfc5b9` includes both fixes; the two checks above passed on that exact head. PR #102 later advanced with documentation-only commits to `33e8303ae40c5677e23e747cdb86cf72c2807719`; code-validation evidence remains bound to `24bfc5b9`.
+
+Still not production-qualified:
+1. Configure and independently review `MERLIN_SOURCE_REPO` and `MERLIN_SOURCE_COMMIT` on the deployed Merlin service, plus the CACE resolver URL/token.
+2. Provision the dedicated ArtifactRef signer key and digest-pinned CACE trust material in the protected OCI secret/host boundary.
+3. Execute a live historical resolve → CACE attest → independent verify and retain the signed receipt.
+4. Run the protected main-only orchestrator validator against the exact successful OCI execution; no such run is recorded.
+5. Run the manual exact-pin Lean preflight on `CACEFormal/ContinuumSimplexCore.lean` with `compile_root=false`, Lean `v4.32.1`, Mathlib commit `520045ab14e26149ee970e2e617ca04b09bde5d6`; no kernel compile receipt exists yet.
+6. Preserve the independent RP²/SNF result as engineering evidence only until CACE signs the exact source/artifact binding and the formal target is independently qualified.
+
+No production secret, signer key, trust store, environment variable, feature flag, OCI host/IAM state, live resolver request, protected orchestrator run, or deployment was changed by this work. PR #102 remains OPEN/DRAFT and stacked.
