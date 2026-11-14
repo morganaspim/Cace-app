@@ -189,7 +189,12 @@ def _open_secure_artifact_key_parent(private_key_path: str):
                     os.fsync(fd)
                 except FileExistsError:
                     pass
-                child = os.open(component, flags, dir_fd=fd)
+                try:
+                    child = os.open(component, flags, dir_fd=fd)
+                except OSError as exc:
+                    raise PermissionError("ArtifactRef key parent changed during secure traversal") from exc
+            except OSError as exc:
+                raise PermissionError("ArtifactRef key parent contains a symlink or unsafe component") from exc
             info = os.fstat(child)
             if not stat.S_ISDIR(info.st_mode):
                 os.close(child)
