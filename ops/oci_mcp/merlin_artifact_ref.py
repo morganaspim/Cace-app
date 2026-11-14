@@ -336,7 +336,15 @@ def verify_merlin_artifact_ref(
     """Re-resolve bytes and verify the signed statement against pinned CACE trust."""
     ( _, _, _, from_payload, verify_sig, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
     approved = _approved_artifact_ref_keys(trust_store_json, trust_store_sha256)
-    ref, raw = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
+    ref, raw, provenance = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
+    expected_provenance = {
+        "schema": "merlin-artifact-provenance/1",
+        "source_repo": source_repo, "source_commit": source_commit,
+        "artifact_id": artifact_id, "artifact_kind": artifact_kind,
+        "artifact_schema": artifact_schema,
+    }
+    if provenance != expected_provenance:
+        raise PermissionError("caller-supplied source/artifact identity does not match Merlin's immutable provenance")
     bindings = _expected_bindings(
         artifact_ref=ref, source_repo=source_repo, source_commit=source_commit,
         artifact_id=artifact_id, artifact_kind=artifact_kind, artifact_schema=artifact_schema,
