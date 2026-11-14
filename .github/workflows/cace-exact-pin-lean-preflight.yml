@@ -1,6 +1,16 @@
 name: CACE Exact-Pin Lean Preflight
 
 on:
+  pull_request:
+    paths:
+      - 'formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean'
+      - 'formal/cace_formal/proof_guardrails.json'
+      - 'formal/cace_formal/lean-toolchain'
+      - 'formal/cace_formal/lakefile.lean'
+      - 'scripts/cace_proof_guardrails.py'
+      - 'scripts/check_lean_source_sanity.py'
+      - '.github/workflows/cace-exact-pin-lean-preflight.yml'
+      - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
   workflow_dispatch:
     inputs:
       module:
@@ -65,8 +75,8 @@ jobs:
         id: target
         shell: bash
         env:
-          REQUESTED_MODULE_RAW: ${{ inputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}
+          COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}
         run: |
           set -euo pipefail
           REQUESTED_MODULE="$(printf '%s' "$REQUESTED_MODULE_RAW" | sed -E 's/^Module:[[:space:]]*//; s/[[:space:]]+compile_root:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
