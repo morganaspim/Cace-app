@@ -739,3 +739,11 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PR #158 exact head `079c3c82f273a80dd4fa5deabb90aaa3154a8e27` passed native CI `43607987636` and unified CI `43607987604`; native artifact `14119396821` (SHA-256 `1426c1bb2c81a10b956d9cacdf723cc8bd1f04aab2d9f3b6a399cf7473c80f96`), unified artifact `14119471619` (SHA-256 `27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123`).
 - PR #159 exact head `32e877e8c5710cd9533b88b62530cee06b45a588` passed native CI run `43608688270`; diagnostics artifact `14118834284`, SHA-256 `34ac98f600e47113c5ee602011cb32f38af14cba4c774c5061a0ae7d09c81aa8`. It packages the SQLite registry and referenced blobs, verifies the exact manifest/inventory, snapshot/outbox pointers and provenance, and tests non-overwriting restore.
 - PR #159 is a local recovery package only. Encryption, authenticated off-host transport, immutable retention, independent key custody and separate-host restore remain unqualified.
+
+
+## KMS-wrapped backup envelope qualification (2026-11-14)
+
+- Merlin PR #160 exact head `594c9fb1ff7f31a511241669c7746bf0167bc089` passed native CI run `43609184794`.
+- Diagnostics artifact `14118708504`, SHA-256 `95ed5e471f2336b9fda1af887ee244edb5bbb6a8e675e5a427a0ed9e0228def6`.
+- The envelope uses injected KMS data-key generation/unwrap, chunked AES-256-GCM, authenticated header/chunk index, and re-verifies the full backup after decryption.
+- CI uses a deterministic fake KMS provider. No production OCI Vault/KMS adapter, independently provisioned key, object-storage transport, retention lock, or separate-host restore drill has been qualified.
