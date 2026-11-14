@@ -119,28 +119,80 @@ jobs:
           done
           python3 scripts/check_lean_source_sanity.py "${args[@]}"
 
-      - name: Restore pinned Lean and exact Mathlib package tree
+      - name: Measure OCI cache and workspace capacity
+        id: cache_capacity
+        shell: bash
+        env:
+          ELAN_HOME: ${{ env.CACE_PERSISTENT_ELAN_HOME }}
+        run: |
+          set -euo pipefail
+          test -x "$ELAN_HOME/bin/elan"
+          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
+          actual_mathlib="$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)"
+          test "$actual_mathlib" = "$CACE_MATHLIB_COMMIT"
+          cache_bytes="$(du -sb "$CACE_PACKAGE_CACHE" | awk '{print $1}')"
+          workspace_free="$(df -B1 --output=avail "$GITHUB_WORKSPACE" | awk 'NR==2 {print $1}')"
+          elan_free="$(df -B1 --output=avail "$ELAN_HOME" | awk 'NR==2 {print $1}')"
+          reserve_bytes=$((8 * 1024 * 1024 * 1024))
+          required_workspace=$((cache_bytes + reserve_bytes))
+          printf 'cache_bytes=%s\nworkspace_free_bytes=%s\nelan_free_bytes=%s\nrequired_workspace_bytes=%s\n' "$cache_bytes" "$workspace_free" "$elan_free" "$required_workspace" | tee cace-cache-capacity.txt
+          if (( workspace_free < required_workspace )); then
+            echo "CACE_CACHE_CAPACITY_REJECTED: package copy requires cache_bytes plus an 8 GiB safety reserve; no copy was attempted." >&2
+            exit 22
+          fi
+          if (( elan_free < reserve_bytes )); then
+            echo "CACE_ELAN_CAPACITY_REJECTED: less than 8 GiB free on the persistent toolchain filesystem." >&2
+            exit 23
+          fi
+
+      - name: Install and verify pinned Lean toolchain
+        id: install_toolchain
+        timeout-minutes: 20
+        shell: bash
+        env:
+          ELAN_HOME: ${{ env.CACE_PERSISTENT_ELAN_HOME }}
+        run: |
+          set -euo pipefail
+          export PATH="$ELAN_HOME/bin:$PATH"
+          printf 'toolchain_install_started=%s\n' "$(date -u +%FT%TZ)"
+          if ! elan toolchain list | grep -Fq "$CACE_TOOLCHAIN"; then
+            elan toolchain install "$CACE_TOOLCHAIN"
+          fi
+          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
+          lean --version
+          lake --version
+          printf 'toolchain_install_completed=%s\n' "$(date -u +%FT%TZ)"
+
+      - name: Restore exact pinned Mathlib package tree
+        id: restore_packages
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'package_restore_started=%s\n' "$(date -u +%FT%TZ)"
+          mkdir -p formal/cace_formal/.lake
+          rm -rf formal/cace_formal/.lake/packages
+          mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"
+          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
+          flock -s -w 900 9
+          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
+          test "$(git -C formal/cace_formal/.lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          flock -u 9
+          du -sh formal/cace_formal/.lake/packages
+          df -h "$GITHUB_WORKSPACE"
+          printf 'package_restore_completed=%s\n' "$(date -u +%FT%TZ)"
+
+      - name: Restore or generate pinned Lake manifest
+        id: restore_manifest
+        timeout-minutes: 15
         shell: bash
         run: |
           set -euo pipefail
           export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
           export PATH="$ELAN_HOME/bin:$PATH"
-          test -x "$ELAN_HOME/bin/elan"
-          elan toolchain install "$CACE_TOOLCHAIN"
-          test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
-          mkdir -p formal/cace_formal/.lake
-          rm -rf formal/cace_formal/.lake/packages
-          exec 9>"$CACE_PACKAGE_CACHE_LOCK"
-          flock -s -w 900 9
-          test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
-          test "$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-          cp -a --reflink=auto "$CACE_PACKAGE_CACHE" formal/cace_formal/.lake/packages
-          flock -u 9
           cd formal/cace_formal
-          lean --version
-          lake --version
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
-
           mkdir -p "$CACE_MANIFEST_CACHE_DIR"
           manifest_key="$(
             {
@@ -154,12 +206,13 @@ jobs:
             echo "CACE_MANIFEST_CACHE_HIT key=$manifest_key"
           else
             echo "CACE_MANIFEST_CACHE_MISS key=$manifest_key"
-            MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
+            timeout --signal=TERM --kill-after=30s 10m env MATHLIB_NO_CACHE_ON_UPDATE=1 lake update
             test -s lake-manifest.json
             install -m 0644 lake-manifest.json "$manifest_cache.tmp-$GITHUB_RUN_ID"
             mv "$manifest_cache.tmp-$GITHUB_RUN_ID" "$manifest_cache"
           fi
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
+          printf 'manifest_restore_completed=%s\n' "$(date -u +%FT%TZ)"
 
       - name: Explicitly prewarm pinned Mathlib artifacts
         if: ${{ inputs.prewarm_mathlib_cache }}
