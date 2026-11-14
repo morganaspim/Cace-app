@@ -74,7 +74,7 @@ def main() -> int:
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 
-    lock_match = re.search(r"^\\s*CACE_PACKAGE_CACHE_LOCK:\\s*(.+?)\\s*$", text, flags=re.MULTILINE)
+    lock_match = re.search(r"^\s*CACE_PACKAGE_CACHE_LOCK:\s*(.+?)\s*$", text, flags=re.MULTILINE)
     if not lock_match:
         raise SystemExit("Rejected: exact-pin workflow is missing its package-cache lock path")
     lock_path = lock_match.group(1)
