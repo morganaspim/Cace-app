@@ -115,15 +115,71 @@ def _load_core(cace_app_root: str):
             attestation_from_payload, verify_attestation, bundle_from_payload, verify_bundle)
 
 
-def _artifact_map(bundle: Any) -> dict[str, Any]:
+def _artifact_map(
+    bundle: Any, *, artifact_ref: Mapping[str, Any], artifact_id: str,
+    artifact_kind: str, artifact_schema: str,
+) -> dict[str, Any]:
     items = list(bundle.artifacts)
     if len(items) != 1:
         raise PermissionError("ArtifactRef attestation requires exactly one EvidenceBundle artifact")
     item = items[0]
-    artifact_id = getattr(item, "artifact_id", None)
-    if not isinstance(artifact_id, str) or not artifact_id:
-        raise PermissionError("EvidenceBundle artifact identity is malformed")
+    if getattr(item, "artifact_id", None) != artifact_id:
+        raise PermissionError("EvidenceBundle artifact ID does not match requested identity")
+    if getattr(item, "role", None) != artifact_kind:
+        raise PermissionError("EvidenceBundle artifact role does not match artifact_kind")
+    if getattr(item, "path", None) != artifact_ref["logical_path"]:
+        raise PermissionError("EvidenceBundle artifact path does not match ArtifactRef logical_path")
+    metadata = getattr(item, "metadata", None)
+    if not isinstance(metadata, Mapping) or metadata.get("artifact_schema") != artifact_schema:
+        raise PermissionError("EvidenceBundle artifact metadata does not bind artifact_schema")
+    if getattr(item, "sha256", None) != artifact_ref["sha256"]:
+        raise PermissionError("EvidenceBundle artifact digest does not match ArtifactRef")
     return {artifact_id: item}
+
+
+def initialize_merlin_artifact_ref_attestor(
+    *, private_key_path: str, cace_app_root: str = "/opt/cace-web/current",
+) -> dict[str, Any]:
+    """Create a separate Ed25519 ArtifactRef key once; never overwrite it."""
+    import os
+    from pathlib import Path
+    ( _, _, _, _, _, _, _ ) = _load_core(cace_app_root)
+    from cace_studio.core.attestation import generate_ed25519_keypair_pem, public_key_id
+    path = Path(private_key_path)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(path.parent, 0o700)
+    created = False
+    if not path.exists():
+        private_pem, public_pem = generate_ed25519_keypair_pem()
+        try:
+            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            private_pem = path.read_bytes()
+        else:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(private_pem)
+                stream.flush()
+                os.fsync(stream.fileno())
+            created = True
+    else:
+        if path.is_symlink():
+            raise PermissionError("refusing symlink ArtifactRef signing key")
+        private_pem = path.read_bytes()
+    from cryptography.hazmat.primitives import serialization
+    key = serialization.load_pem_private_key(private_pem, password=None)
+    public_pem = key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    key_id = public_key_id(public_pem)
+    os.chmod(path, 0o600)
+    return {
+        "schema": "cace-merlin-artifact-ref-key-initialization-v1",
+        "created": created, "key_path": str(path),
+        "verifier_id": "cace", "verifier_key_id": key_id,
+        "public_key_pem": public_pem.decode("ascii"),
+        "private_key_mode": "0600", "proof_effect": "none",
+    }
 
 
 def _expected_bindings(
@@ -178,9 +234,7 @@ def attest_merlin_artifact_ref(
     bundle = bundle_from_payload(bundle_payload)
     if dict(bundle.bindings) != bindings:
         raise PermissionError("EvidenceBundle bindings do not exactly match ArtifactRef identity")
-    artifacts = _artifact_map(bundle)
-    if set(artifacts) != {artifact_id}:
-        raise PermissionError("EvidenceBundle artifact ID does not match requested artifact")
+    artifacts = _artifact_map(bundle, artifact_ref=ref, artifact_id=artifact_id, artifact_kind=artifact_kind, artifact_schema=artifact_schema)
     bundle_sha = verify_bundle(bundle, artifact_bytes={artifact_id: raw})
     if not isinstance(private_key_pem, (str, bytes)) or not private_key_pem:
         raise PermissionError("CACE ArtifactRef signing key is not configured")
@@ -242,7 +296,7 @@ def verify_merlin_artifact_ref(
         size_bytes=len(raw), content_sha256=_sha256(raw),
     )
     bundle = bundle_from_payload(bundle_payload)
-    if dict(bundle.bindings) != bindings or set(_artifact_map(bundle)) != {artifact_id}:
+    if dict(bundle.bindings) != bindings or set(_artifact_map(bundle, artifact_ref=ref, artifact_id=artifact_id, artifact_kind=artifact_kind, artifact_schema=artifact_schema)) != {artifact_id}:
         raise PermissionError("EvidenceBundle does not bind the exact ArtifactRef")
     bundle_sha = verify_bundle(bundle, artifact_bytes={artifact_id: raw})
     attestation = from_payload(attestation_payload)
