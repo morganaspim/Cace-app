@@ -261,6 +261,34 @@ def attest_merlin_artifact_ref(
     }
 
 
+def _approved_artifact_ref_keys(trust_store_json: str, trust_store_sha256: str) -> set[str]:
+    if not isinstance(trust_store_json, str) or not trust_store_json:
+        raise PermissionError("CACE ArtifactRef trust store is not configured")
+    if not isinstance(trust_store_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", trust_store_sha256):
+        raise PermissionError("CACE ArtifactRef trust store digest is invalid")
+    if _sha256(trust_store_json.encode("utf-8")) != trust_store_sha256:
+        raise PermissionError("CACE ArtifactRef trust store digest mismatch")
+    try:
+        trust = json.loads(trust_store_json)
+    except ValueError as exc:
+        raise PermissionError("CACE ArtifactRef trust store is invalid JSON") from exc
+    if not isinstance(trust, Mapping) or set(trust) != {"schema", "keys"} or trust.get("schema") != "merlin-cace-trust-store-v1" or not isinstance(trust.get("keys"), list):
+        raise PermissionError("CACE ArtifactRef trust store schema mismatch")
+    approved: set[str] = set()
+    for entry in trust["keys"]:
+        if not isinstance(entry, Mapping) or set(entry) != {"key_id", "verifier_id", "status"} or entry.get("verifier_id") != "cace" or entry.get("status") != "active":
+            raise PermissionError("CACE ArtifactRef trust store contains invalid key entry")
+        key_id = entry.get("key_id")
+        if not isinstance(key_id, str) or not re.fullmatch(r"ed25519:[0-9a-f]{64}", key_id):
+            raise PermissionError("CACE ArtifactRef trust key ID is invalid")
+        if key_id in approved:
+            raise PermissionError("CACE ArtifactRef trust store contains duplicate key IDs")
+        approved.add(key_id)
+    if not approved:
+        raise PermissionError("CACE ArtifactRef trust store has no active keys")
+    return approved
+
+
 def verify_merlin_artifact_ref(
     *, bundle_payload: Mapping[str, Any], attestation_payload: Mapping[str, Any],
     artifact_ref: Mapping[str, Any], source_repo: str, source_commit: str,
@@ -271,24 +299,7 @@ def verify_merlin_artifact_ref(
 ) -> dict[str, Any]:
     """Re-resolve bytes and verify the signed statement against pinned CACE trust."""
     ( _, _, _, from_payload, verify_sig, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
-    if not trust_store_json or _sha256(trust_store_json.encode("utf-8")) != trust_store_sha256:
-        raise PermissionError("CACE ArtifactRef trust store is missing or digest-mismatched")
-    try:
-        trust = json.loads(trust_store_json)
-    except ValueError as exc:
-        raise PermissionError("CACE ArtifactRef trust store is invalid JSON") from exc
-    if not isinstance(trust, Mapping) or set(trust) != {"schema", "keys"} or trust.get("schema") != "merlin-cace-trust-store-v1" or not isinstance(trust.get("keys"), list):
-        raise PermissionError("CACE ArtifactRef trust store schema mismatch")
-    approved = set()
-    for entry in trust["keys"]:
-        if not isinstance(entry, Mapping) or set(entry) != {"key_id", "verifier_id", "status"} or entry.get("verifier_id") != "cace" or entry.get("status") != "active":
-            raise PermissionError("CACE ArtifactRef trust store contains invalid key entry")
-        key_id = entry.get("key_id")
-        if not isinstance(key_id, str) or not re.fullmatch(r"ed25519:[0-9a-f]{64}", key_id):
-            raise PermissionError("CACE ArtifactRef trust key ID is invalid")
-        approved.add(key_id)
-    if not approved:
-        raise PermissionError("CACE ArtifactRef trust store has no active keys")
+    approved = _approved_artifact_ref_keys(trust_store_json, trust_store_sha256)
     ref, raw = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
     bindings = _expected_bindings(
         artifact_ref=ref, source_repo=source_repo, source_commit=source_commit,
