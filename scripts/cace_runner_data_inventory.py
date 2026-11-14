@@ -61,50 +61,51 @@ def inventory_root(root: Path, max_entries: int = DEFAULT_MAX_ENTRIES) -> dict[s
     while stack:
         directory = stack.pop()
         try:
-            entries = list(os.scandir(directory))
+            entries = os.scandir(directory)
         except OSError as exc:
             result["warnings"].append(f"cannot scan {directory}: {type(exc).__name__}")
             continue
 
-        for entry in entries:
-            visited += 1
-            if visited > max_entries:
-                result["truncated"] = True
-                stack.clear()
-                break
+        with entries:
+            for entry in entries:
+                visited += 1
+                if visited > max_entries:
+                    result["truncated"] = True
+                    stack.clear()
+                    break
 
-            path = Path(entry.path)
-            try:
-                if _is_sensitive_path(path.relative_to(root)):
+                path = Path(entry.path)
+                try:
+                    if _is_sensitive_path(path.relative_to(root)):
+                        continue
+                    info = entry.stat(follow_symlinks=False)
+                except OSError as exc:
+                    result["warnings"].append(f"cannot stat {path}: {type(exc).__name__}")
                     continue
-                info = entry.stat(follow_symlinks=False)
-            except OSError as exc:
-                result["warnings"].append(f"cannot stat {path}: {type(exc).__name__}")
-                continue
 
-            if stat.S_ISLNK(info.st_mode):
-                result["symlink_count"] += 1
-                continue
-            if stat.S_ISDIR(info.st_mode):
-                result["directory_count"] += 1
-                stack.append(path)
-                continue
-            if not stat.S_ISREG(info.st_mode):
-                continue
+                if stat.S_ISLNK(info.st_mode):
+                    result["symlink_count"] += 1
+                    continue
+                if stat.S_ISDIR(info.st_mode):
+                    result["directory_count"] += 1
+                    stack.append(path)
+                    continue
+                if not stat.S_ISREG(info.st_mode):
+                    continue
 
-            size = int(info.st_size)
-            mtime = int(info.st_mtime)
-            rel = path.relative_to(root).as_posix()
-            top = rel.split("/", 1)[0]
-            bucket = result["top_level"].setdefault(top, {"file_count": 0, "bytes": 0})
-            bucket["file_count"] += 1
-            bucket["bytes"] += size
-            result["file_count"] += 1
-            result["total_bytes"] += size
+                size = int(info.st_size)
+                mtime = int(info.st_mtime)
+                rel = path.relative_to(root).as_posix()
+                top = rel.split("/", 1)[0]
+                bucket = result["top_level"].setdefault(top, {"file_count": 0, "bytes": 0})
+                bucket["file_count"] += 1
+                bucket["bytes"] += size
+                result["file_count"] += 1
+                result["total_bytes"] += size
 
-            item = {"path": rel, "bytes": size, "mtime_epoch": mtime}
-            largest.append(item)
-            newest.append(item)
+                item = {"path": rel, "bytes": size, "mtime_epoch": mtime}
+                largest.append(item)
+                newest.append(item)
 
     result["largest_files"] = sorted(
         largest, key=lambda item: (item["bytes"], item["path"]), reverse=True
