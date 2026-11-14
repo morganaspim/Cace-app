@@ -190,7 +190,7 @@ jobs:
           )
           tracked = subprocess.check_output(['git', 'ls-files', '-z'])
           files = set()
-          for raw in tracked.split(b'\\0'):
+          for raw in tracked.split(b'\0'):
             if not raw:
               continue
             rel = raw.decode('utf-8')
@@ -205,6 +205,8 @@ jobs:
                 raise SystemExit(f'tracked validation source missing from checkout: {rel}')
               files.add(path)
           files = sorted(files)
+          if not files:
+            raise SystemExit('no tracked validation sources were selected; refusing empty source-coverage evidence')
 
           claim_id='cace.v330.continuum-proof-strengthening'
           claims=json.loads(pathlib.Path('cace_studio/data/claim_registry.json').read_text())['claims']
