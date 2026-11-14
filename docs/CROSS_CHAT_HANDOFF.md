@@ -510,3 +510,20 @@ The source branch adds regressions for historical versions/reversions, tampered 
 Critical remaining boundary: CACE's actual signed EvidenceBundle contract has not yet been updated to include the complete artifact reference (especially chronological version) in its signed statement and independent verification. Source-side digest checks are not a substitute. The next coordinated change must update the CACE verifier/signer producer and Merlin adapter together, require exact reference equality, re-resolve the referenced bytes independently, and retain pinned trust verification. Until then, end-to-end CACE artifact-version verification is NOT COMPLETE.
 
 PR #144 has not changed any runner host, IAM, credentials, signer keys, deployment, or production configuration. It grants no promotion authority. Keep PR #144 draft and stacked; do not merge it independently. Keep signing, verification and promotion as distinct transitions.
+
+
+## 2026-11-14 production Merlin continuation
+
+Read `docs/MERLIN_PRODUCTION_HANDOFF.md` for the full exact state. Live source recheck:
+- Expert Robot PR #144 head `7593b782d688132b206fc16f83ddf131b919a496`, OPEN/DRAFT and stacked on #143.
+- Exact-head native CI #43534991502: SUCCESS.
+- Exact-head unified platform run #43534991526: CANCELLED. It is not a pass; inspect cancellation cause and obtain a fresh exact-head run.
+- No merge, deployment, runner/IAM/credential change, signer setup or promotion.
+
+CACE architecture clarification from current repository inspection:
+- The generic Ed25519 statement supports signed `bindings`, but the current CLI sign path binds only qualified commit and proof-artifact digest.
+- Generic signature verification validates the embedded key/signature but does not independently trust-pin the key.
+- EvidenceBundle v1 is a digest/size/Merkle manifest; it does not independently resolve a Merlin project/path/version reference or fetch canonical registry bytes.
+- The current OCI MCP server is an operational control plane, not a Merlin verifier/signer endpoint. The previously assumed `ops/oci_mcp/merlin_rsi_verifier.py` path is absent from current main; re-discover actual implementation paths before coding.
+
+Next production gate: strict CACE request schema + independent canonical-registry byte resolution + full ArtifactRef binding in EvidenceBundle/signed statement + consumer trust-pin verification. Keep `proof_effect=none`. Do not claim end-to-end verification until the actual resolver, signer, pinned trust and Merlin response validation work together. Do not create/configure keys, secrets, endpoints, IAM or host services without separate authorization.
