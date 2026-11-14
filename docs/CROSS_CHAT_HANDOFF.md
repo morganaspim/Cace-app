@@ -773,3 +773,13 @@ No production secrets, signer key, trust material, environment variables, featur
 - Merlin PR #161 exact head cdc22ab861ff71a27f4707887c2ef3772583398c passed native CI 43609808622; diagnostics artifact 14119489951, SHA-256 b6f7cf1d54609b8110fe19b7e65b0d898bd8dbff6f48d357d6612c2da356604c.
 - OCI SDK 2.191.0 model contract passes; adapter uses instance-principal auth and one configured AES key OCID/crypto endpoint, limited to DEK generation/decryption.
 - No live OCI key, IAM policy, endpoint or round trip has been qualified. Object Storage, retention and separate-host recovery remain outstanding.
+
+
+## 2026-11-14 continuation: trust-lineage, backups and signer custody
+- Expert Robot PR #156 (exact head `5c211d57083c92cf81f6cf01c0c440bbf62a00b6`) passed CI `43607511800`; PR #157 (exact head `88e7bed9af0e1cda0264eef6dcc3bf700d31e857`) passed `43607743085`.
+- PR #158 atomic snapshot/Hermes outbox publication passed native `43607987636` and unified `43607987604`.
+- PR #159 complete local registry backup/restore passed `43608688270`.
+- PR #161 OCI Vault/KMS adapter and runbook passed `43609808622`.
+- PR #163 create-only OCI Object Storage transport passed `43610431390`; 412 replay now verifies exact downloaded bytes, with version/ETag pinning and full digest. PR #162 was closed as superseded.
+- CACE PR #109 key custody hardening exact head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed `43610495149`; artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`. The first run exposed a concurrent temporary-hardlink race; exclusive directory-descriptor flock fixed it without weakening hardlink checks.
+- These are engineering CI passes only. Live OCI Vault/KMS, Object Storage, retention/IAM, separate-host restore, CACE signer/trust provisioning, live historical resolve/attest/verify, protected orchestrator, and exact-pin Lean kernel compile remain unqualified.
