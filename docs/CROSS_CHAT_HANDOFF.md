@@ -527,3 +527,8 @@ CACE architecture clarification from current repository inspection:
 - The current OCI MCP server is an operational control plane, not a Merlin verifier/signer endpoint. The previously assumed `ops/oci_mcp/merlin_rsi_verifier.py` path is absent from current main; re-discover actual implementation paths before coding.
 
 Next production gate: strict CACE request schema + independent canonical-registry byte resolution + full ArtifactRef binding in EvidenceBundle/signed statement + consumer trust-pin verification. Keep `proof_effect=none`. Do not claim end-to-end verification until the actual resolver, signer, pinned trust and Merlin response validation work together. Do not create/configure keys, secrets, endpoints, IAM or host services without separate authorization.
+
+
+## 2026-11-14 latest Merlin CI continuation
+
+Expert Robot PR #144 latest exact head: `53d0f18d0f0cd15acd15dae2f8a19ced0509a5db` (OPEN/DRAFT, stacked). The previous exact head `67013dd151b6a3c5839bec72d6f94ff327c16a98` passed native CI but unified tests had 220 passed / 1 failed due a newline-escaping issue in a test assertion. That assertion was simplified in the latest source commit. Fresh exact-head native CI #43544767097 and unified platform #43544767303 are IN_PROGRESS; no success is claimed yet. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for the full failure analysis and CACE signing boundary.
