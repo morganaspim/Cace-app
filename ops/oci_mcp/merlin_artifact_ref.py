@@ -365,7 +365,7 @@ def _independent_trust_material(
         raise PermissionError("independent trust material retrieval failed") from exc
     root_fields = {
         "schema", "authority_id", "version", "key_id", "public_key_pem",
-        "source_authority", "retrieval_identity",
+        "source_authority", "provisioning_identity",
     }
     receipt_fields = {
         "schema", "payload", "payload_sha256", "signature_b64", "root_key_id",
@@ -380,7 +380,7 @@ def _independent_trust_material(
     if receipt.get("schema") != "merlin-cace-signed-trust-store-receipt-v1":
         raise PermissionError("unsupported signed trust-store receipt schema")
     for obj, fields in (
-        (root, ("authority_id", "source_authority", "retrieval_identity", "key_id", "public_key_pem")),
+        (root, ("authority_id", "source_authority", "provisioning_identity", "key_id", "public_key_pem")),
         (receipt, ("source_authority", "retrieval_identity", "root_key_id", "signature_b64")),
     ):
         for field in fields:
@@ -388,7 +388,7 @@ def _independent_trust_material(
                 raise PermissionError(f"trust material {field} is required")
     if (
         root["source_authority"] == receipt["source_authority"]
-        or root["retrieval_identity"] == receipt["retrieval_identity"]
+        or root["provisioning_identity"] == receipt["retrieval_identity"]
     ):
         raise PermissionError("trust root and trust store must use distinct authorities and retrieval identities")
     if isinstance(root["version"], bool) or not isinstance(root["version"], int) or root["version"] < 1:
