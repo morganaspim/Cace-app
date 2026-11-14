@@ -666,3 +666,13 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PRs #147, #149, and #150 remain draft/stacked. These CI passes do not constitute production qualification or signer trust.
 - Next DAG gates: source adapters that independently retrieve canonical evidence, explicit required-prerequisite policies, multi-host/backup qualification, event/outbox coupling, API/HUD integration, independent implementation and fuzz/property testing.
 - CACE gates remain independent trust-root provisioning (issue #104), exact-pin Lean kernel compilation, live historical resolve→attest→verify, and a distinct protected orchestrator run linked to exact OCI execution.
+
+
+## CACE PR #102 latest exact-head validation (2026-11-14)
+
+- Latest PR #102 branch head: `89d84525c2cc32ec5f87431130eab52c2d42d45e`.
+- CACE Collaboration Coordination Validation run `43605425667`: **SUCCESS**.
+- Artifact `14117987843`, SHA-256 `4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089`.
+- The companion CACE Lean Source Sanity run `43605425559` was **CANCELLED**; do not count it as a pass.
+- This is collaboration/formal-preflight engineering validation only. It does not constitute the manual protected exact-pin Lean kernel compile, and it does not close the root import graph or theorem qualification.
+- No workflow_dispatch or protected OCI run was available through the connected GitHub actions; no claim of dispatch or Lean compilation is made.
