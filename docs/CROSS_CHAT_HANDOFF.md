@@ -733,17 +733,9 @@ No production secrets, signer key, trust material, environment variables, featur
 
 
 ## Latest regression guard and type-parity status
-- Known-failure guard run 43606190603 failed because a local regression-test path pointed to a file available only on stacked PR #150 and absent from the guard workflow checkout. It was not external CACE pin drift.
-- Corrected registry commit 591a5533aeab4415ac6a8e7fc456ab0d1788b0ea uses `external_regression_test` and passed exact-head CI 43607463075; artifact 14119390852, SHA-256 ec482a7c2c0ac8aac07061decffaf8322d074b16914d92af03aa5d1db1c4eacc.
-- Latest independent DAG verifier PR #152 head de22b9b080da3e7d6301565453e25661f3f199b4 passed exact-head CI 43606623064; artifact 14117589685, SHA-256 aaa759f329396b3a26070b3856d5ea38d43ea3639a6570cbce13949450670458. It includes all-nine-type identity validation, randomized DAG property vectors, Unicode identity handling, duplicate-key rejection, and ArtifactRef negative cases.
-- Draft PR #154 was closed as redundant; its test scope is already present on the latest PR #152 branch.
+- The first known-failure guard failure (run 43606190603) was a local-path assumption: a local `regression_test` referenced a test file present only on stacked PR #150 and absent from that workflow checkout. It was not external CACE pin drift.
+- The corrected trust-lineage-based failure registry is PR #157, exact head e07744f11974555ab3ad2e65e88bfe93438e7609, passed CI 43607555903; artifact 14119600389, SHA-256 b16083d8f4710f10feaf5a2a0977a4650f77adef930ce31acdf71a36f28bb863.
+- Independent verifier PR #156 is based on latest PR #150 head a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2. Exact head 5c211d57083c92cf81f6cf01c0c440bbf62a00b6 passed CI 43607511800; artifact 14119271206, SHA-256 d1bf8b7c54971dcd946339f199a789de0eb751e908c427abbebdfdf296370a74.
+- PR #156 covers all nine types, trust-root/trust-store provenance, nested ArtifactRefs, canonical bytes, duplicate keys, Unicode, twelve randomized DAG vectors, and tamper rejection.
+- Stale PRs #147/#152/#153/#155 and duplicate PR #154 are closed; use #156 and #157.
 - CACE PR #102 still lacks the protected exact-pin Lean kernel compile. Its collaboration validation pass does not substitute for that gate.
-
-
-## Latest rebased Merlin DAG and CACE trust receipts
-- PR #150 current exact head a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2 passed CI 43606924625 and includes trust-root lineage plus exact SQLite trigger SQL verification.
-- PR #156 rebased independent Node verifier exact head 5c211d57083c92cf81f6cf01c0c440bbf62a00b6 passed CI 43607511800; diagnostics artifact 14119271206, SHA-256 d1bf8b7c54971dcd946339f199a789de0eb751e908c427abbebdfdf296370a74.
-- PR #157 rebased failure-class guard exact head e07744f11974555ab3ad2e65e88bfe93438e7609 passed CI 43607555903; diagnostics artifact 14119600389, SHA-256 b16083d8f4710f10feaf5a2a0977a4650f77adef930ce31acdf71a36f28bb863.
-- PRs #152 and #153 are stale and closed; use #156 and #157.
-- CACE PR #103 then PR #107 is the required signer-custody/trust-root order; PR #107 exact head 18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6 passed run 43607161208, artifact 14118607025, SHA-256 503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff.
-- Protected OCI/IAM/Vault qualification and exact-pin Lean kernel compilation remain open.
