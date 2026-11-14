@@ -46,6 +46,10 @@ REQUIRED_SNIPPETS = (
     "CACE_EXACT_PIN_RUNNER_CACHE_READY",
     "CACE_CACHE_MATHLIB_ACTUAL",
     "CACE_CACHE_MATHLIB_OLEAN_COUNT",
+    'test ! -e "$staging"',
+    'test ! -e "$backup"',
+    "CACE_MATHLIB_CACHE_BACKUP_RETAINED",
+    "trap restore_previous_cache EXIT",
     "Read-only exact-pin runner cache readiness gate",
     "standalone quarantine compilation requires compile_root=false",
     'test "$COMPILE_ROOT" = "false"',
@@ -74,6 +78,8 @@ def main() -> int:
         raise SystemExit(
             "Rejected: runnable exact-pin workflow differs from canonical byte-for-byte template"
         )
+    if 'rm -rf "$backup"' in text or 'rm -rf "$staging" "$backup"' in text:
+        raise SystemExit("Rejected: exact-pin prewarm must never delete prior cache backup/staging data")
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 
