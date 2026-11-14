@@ -391,6 +391,13 @@ def _independent_trust_material(
         or root["provisioning_identity"] == receipt["retrieval_identity"]
     ):
         raise PermissionError("trust root and trust store must use distinct authorities and retrieval identities")
+    if (
+        not root["source_authority"].startswith("protected-deployment-config:")
+        or not root["provisioning_identity"].startswith("protected-deployment:")
+        or not receipt["source_authority"].startswith("oci-vault-secret:")
+        or not receipt["retrieval_identity"].startswith("oci-instance-principal:")
+    ):
+        raise PermissionError("trust-root and trust-store provider identities do not match the required deployment/Vault authorities")
     if isinstance(root["version"], bool) or not isinstance(root["version"], int) or root["version"] < 1:
         raise PermissionError("independent trust-root version is invalid")
     if receipt["root_key_id"] != root["key_id"]:
