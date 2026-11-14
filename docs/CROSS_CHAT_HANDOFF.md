@@ -745,3 +745,11 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #157 registers stale parent-base drift and cross-PR signer-loader overlap as persistent failure classes.
 - Exact head 88e7bed9af0e1cda0264eef6dcc3bf700d31e857 passed CI 43607743085; diagnostics artifact 14119451467, SHA-256 1c4f7967b530daedba622a1d7f43298c65e0c191e9f9c77043219c0f255bc252.
 - The regression guard checks that prevention rules require current parent SHA revalidation, fresh child CI, correct dependency order, and secure signer-loader retention.
+
+
+## Atomic snapshot-to-Hermes bridge
+- Merlin PR #158 exact head 079c3c82f273a80dd4fa5deabb90aaa3154a8e27 passed native CI 43607987636 and unified CI 43607987604.
+- Native artifact 14119396821, SHA-256 1426c1bb2c81a10b956d9cacdf723cc8bd1f04aab2d9f3b6a399cf7473c80f96.
+- Unified artifact 14119471619, SHA-256 27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123.
+- Snapshot history and its deterministic Hermes outbox notification now commit in one canonical-registry SQLite transaction; rollback, idempotent replay, same-DB enforcement and consumer acknowledgement are tested.
+- This does not yet qualify multi-host coordination, off-host backup, or remote event delivery.
