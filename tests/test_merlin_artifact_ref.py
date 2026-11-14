@@ -170,3 +170,71 @@ def test_manifest_rejects_extra_artifacts():
             artifact_id="artifact-123", artifact_kind="research-result",
             artifact_schema="research-result/1",
         )
+
+
+def test_full_attestation_round_trip_and_pinned_trust(tmp_path):
+    pytest.importorskip("cryptography")
+    import json
+    from cace_studio.core.attestation import generate_ed25519_keypair_pem, public_key_id
+    from cace_studio.core.evidence_ledger import EvidenceArtifact, EvidenceBundle
+    from ops.oci_mcp.merlin_artifact_ref import (
+        _expected_bindings, attest_merlin_artifact_ref, verify_merlin_artifact_ref,
+    )
+
+    raw, ref, response = _fixture()
+    source_commit = "a" * 40
+    artifact_id = "artifact-123"
+    artifact_kind = "research-result"
+    artifact_schema = "research-result/1"
+    bindings = _expected_bindings(
+        artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
+        source_commit=source_commit, artifact_id=artifact_id,
+        artifact_kind=artifact_kind, artifact_schema=artifact_schema,
+        size_bytes=len(raw), content_sha256=ref["sha256"],
+    )
+    artifact = EvidenceArtifact.from_bytes(
+        artifact_id, raw, role=artifact_kind, path=ref["logical_path"],
+        metadata={"artifact_schema": artifact_schema},
+    )
+    bundle = EvidenceBundle(artifacts=(artifact,), bindings=bindings)
+    private_pem, public_pem = generate_ed25519_keypair_pem()
+    resolver = lambda requested: response
+
+    signed = attest_merlin_artifact_ref(
+        bundle_payload=bundle.payload(), artifact_ref=ref,
+        source_repo="Mannyspiro/expert-robot", source_commit=source_commit,
+        artifact_id=artifact_id, artifact_kind=artifact_kind,
+        artifact_schema=artifact_schema, resolver=resolver,
+        private_key_pem=private_pem, cace_app_root=".",
+    )
+    trust = {
+        "schema": "merlin-cace-trust-store-v1",
+        "keys": [{
+            "key_id": public_key_id(public_pem),
+            "verifier_id": "cace", "status": "active",
+        }],
+    }
+    trust_json = json.dumps(trust, sort_keys=True, separators=(",", ":"))
+    result = verify_merlin_artifact_ref(
+        bundle_payload=bundle.payload(), attestation_payload=signed["attestation"],
+        artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
+        source_commit=source_commit, artifact_id=artifact_id,
+        artifact_kind=artifact_kind, artifact_schema=artifact_schema,
+        resolver=resolver, trust_store_json=trust_json,
+        trust_store_sha256=hashlib.sha256(trust_json.encode()).hexdigest(),
+        cace_app_root=".",
+    )
+    assert result["verified"] is True
+    assert result["proof_effect"] == "none"
+    assert result["authority"] == "verification-only"
+
+    with pytest.raises(PermissionError):
+        verify_merlin_artifact_ref(
+            bundle_payload=bundle.payload(), attestation_payload=signed["attestation"],
+            artifact_ref=ref, source_repo="Mannyspiro/expert-robot",
+            source_commit="b" * 40, artifact_id=artifact_id,
+            artifact_kind=artifact_kind, artifact_schema=artifact_schema,
+            resolver=resolver, trust_store_json=trust_json,
+            trust_store_sha256=hashlib.sha256(trust_json.encode()).hexdigest(),
+            cace_app_root=".",
+        )
