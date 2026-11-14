@@ -103,7 +103,7 @@ jobs:
             tests/test_qualification_bundle_verifier_v338.py \
             tests/test_qualification_source_binding_v339.py \
             tests/test_qualification_promotion_v339.py
-          PYTHONPATH="$GITHUB_WORKSPACE" "$RUNNER_TEMP/cace-collaboration-tests/bin/python" scripts/check_bug_sweep.py
+          PYTHONPATH="$GITHUB_WORKSPACE" "$CACE_COLLABORATION_TEST_VENV/bin/python" scripts/check_bug_sweep.py
 
       - name: Verify canonical qualified baseline remains an ancestor
         shell: bash
