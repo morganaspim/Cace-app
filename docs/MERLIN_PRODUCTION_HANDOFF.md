@@ -302,3 +302,16 @@ Keep PR #144 OPEN/DRAFT and stacked on PR #143. The CACE artifact-reference/sign
 
 
 Latest source follow-up: the first repair commit's unified run #43544593226 reached 220 passed / 1 failed; the remaining failure was only a newline-escaping error in the revised README assertion. Source commit `53d0f18d0f0cd15acd15dae2f8a19ced0509a5db` removed that brittle newline check. Fresh exact-head workflows on this commit are native CI #43544767097 and unified platform #43544767303, both IN_PROGRESS at last observation. Earlier head `67013dd151b6a3c5839bec72d6f94ff327c16a98` native CI #43544593135 passed, but unified #43544593226 failed; do not transfer its native success to the latest head.
+
+
+## 2026-11-14 authenticated artifact-resolution API implementation
+
+Expert Robot PR #144 now contains an initial read-only resolver boundary on source head `57e74bae65237e86d6efbcde3dab0e518e5b8b8d`:
+- `MerlinRegistry.read_artifact_ref` resolves an exact historical version, enforces a hard 25 MiB per-artifact ceiling, and rechecks the returned byte length and SHA-256.
+- `POST /api/artifacts/resolve` accepts only `merlin-artifact-resolution-request/1` with the complete ArtifactRef; returns `merlin-artifact-resolution/2` with the immutable ref, resolution metadata and base64 bytes.
+- The route requires a separate `MERLIN_ARTIFACT_READ_TOKEN` (minimum 32 ASCII characters), compares bearer tokens in constant time, and fails closed if token or canonical registry is absent. It is read-only.
+- API tests cover historical-version retrieval after the path advances, invalid/unconfigured token behavior, forged digest rejection, byte ceilings and strict request schema. These tests are included in the existing unified platform test invocation.
+
+Fresh workflows triggered on the latest source head include unified run `43545218628` (queued at last check); native CI and related integration workflows are also queued. Exact-head success is NOT YET CONFIRMED. No production token was created, no host or deployment configuration changed, and no external endpoint has been exposed/configured.
+
+CACE still must consume this API through a configured authenticated transport, independently decode and re-hash exact bytes, bind the full project/path/version/digest reference into EvidenceBundle and signed statement, and verify the signature against independently pinned trust. The Merlin endpoint is a prerequisite boundary, not an independent CACE receipt. Keep end-to-end verification NOT COMPLETE until all these pieces pass together.
