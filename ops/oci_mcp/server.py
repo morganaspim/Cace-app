@@ -27,6 +27,99 @@ ALLOW_NETWORK_WRITE = os.getenv("CACE_OCI_MCP_ALLOW_NETWORK_WRITE", "").lower() 
 ALLOW_MERLIN_RSI_SIGNING = os.getenv("CACE_OCI_MCP_ALLOW_MERLIN_RSI_SIGNING", "").lower() == "true"
 MERLIN_RSI_SIGNING_KEY = Path("/var/lib/cace-oci-mcp/keys/merlin-rsi-attestor-ed25519.pem")
 CACE_SERVICE = "cace-web"
+ALLOW_MERLIN_ARTIFACT_REF = os.getenv("CACE_OCI_MCP_ALLOW_MERLIN_ARTIFACT_REF", "").lower() == "true"
+MERLIN_ARTIFACT_REF_SIGNING_KEY = Path("/var/lib/cace-oci-mcp/keys/merlin-artifact-ref-attestor-ed25519.pem")
+
+
+def _merlin_artifact_resolver(artifact_ref: dict[str, Any]) -> dict[str, Any]:
+    """Authenticated read-only transport; endpoint and bearer token are runtime secrets."""
+    import urllib.error
+    import urllib.request
+
+    endpoint = os.getenv("MERLIN_ARTIFACT_RESOLVER_URL", "").strip()
+    token = os.getenv("MERLIN_ARTIFACT_RESOLVER_TOKEN", "")
+    if not endpoint.startswith("https://") or not token:
+        raise RuntimeError("authenticated Merlin ArtifactRef resolver is not configured")
+    if endpoint.rstrip("/").endswith("/api/artifacts/resolve") is False:
+        raise RuntimeError("Merlin resolver endpoint must terminate in /api/artifacts/resolve")
+    body = json.dumps({
+        "schema": "merlin-artifact-resolution-request/1",
+        "artifact_ref": artifact_ref,
+    }, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    request = Request(endpoint, data=body, method="POST", headers={
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "CACE-Merlin-ArtifactRef-Verifier/1",
+    })
+    try:
+        with urlopen(request, timeout=15) as response:
+            raw = response.read(14_000_001)
+    except Exception as exc:
+        raise RuntimeError(f"authenticated Merlin artifact resolution failed: {type(exc).__name__}") from None
+    if len(raw) > 14_000_000:
+        raise RuntimeError("Merlin resolver response exceeded the accepted size")
+    payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("Merlin resolver response must be an object")
+    return payload
+
+
+@mcp.tool()
+def attest_merlin_artifact_ref(
+    bundle_payload: dict[str, Any],
+    artifact_ref: dict[str, Any],
+    source_repo: str,
+    source_commit: str,
+    artifact_id: str,
+    artifact_kind: str,
+    artifact_schema: str,
+) -> dict[str, Any]:
+    """Resolve exact historical Merlin bytes independently and sign ArtifactRef identity.
+
+    Separate opt-in capability; integrity only, proof_effect=none, no promotion authority.
+    """
+    if not ALLOW_MERLIN_ARTIFACT_REF:
+        raise PermissionError("Merlin ArtifactRef attestation is unavailable; its separate capability is disabled")
+    from .merlin_artifact_ref import attest_merlin_artifact_ref as attest
+    key_path = MERLIN_ARTIFACT_REF_SIGNING_KEY
+    if not key_path.is_file() or key_path.is_symlink():
+        raise PermissionError("CACE ArtifactRef signing key is not provisioned")
+    return attest(
+        bundle_payload=bundle_payload, artifact_ref=artifact_ref,
+        source_repo=source_repo, source_commit=source_commit,
+        artifact_id=artifact_id, artifact_kind=artifact_kind,
+        artifact_schema=artifact_schema, resolver=_merlin_artifact_resolver,
+        private_key_pem=key_path.read_bytes(),
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
+@mcp.tool()
+def verify_merlin_artifact_ref(
+    bundle_payload: dict[str, Any],
+    attestation_payload: dict[str, Any],
+    artifact_ref: dict[str, Any],
+    source_repo: str,
+    source_commit: str,
+    artifact_id: str,
+    artifact_kind: str,
+    artifact_schema: str,
+) -> dict[str, Any]:
+    """Re-resolve historical bytes and verify the signed ArtifactRef against pinned trust."""
+    from .merlin_artifact_ref import verify_merlin_artifact_ref as verify
+    return verify(
+        bundle_payload=bundle_payload, attestation_payload=attestation_payload,
+        artifact_ref=artifact_ref, source_repo=source_repo,
+        source_commit=source_commit, artifact_id=artifact_id,
+        artifact_kind=artifact_kind, artifact_schema=artifact_schema,
+        resolver=_merlin_artifact_resolver,
+        trust_store_json=os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_JSON", ""),
+        trust_store_sha256=os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SHA256", ""),
+        cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
+    )
+
+
 IMDS_INSTANCE = "http://169.254.169.254/opc/v2/instance/"
 IMDS_VNICS = "http://169.254.169.254/opc/v2/vnics/"
 MANAGED_RULE_PREFIX = "CACE-MCP-MANAGED"
@@ -271,6 +364,7 @@ def get_control_capabilities() -> dict[str, Any]:
         "secret_access_exposed": False,
         "instance_termination_exposed": False,
         "merlin_rsi_signing_enabled": ALLOW_MERLIN_RSI_SIGNING,
+        "merlin_artifact_ref_attestation": "configured" if ALLOW_MERLIN_ARTIFACT_REF and os.getenv("MERLIN_ARTIFACT_RESOLVER_URL", "").startswith("https://") and bool(os.getenv("MERLIN_ARTIFACT_RESOLVER_TOKEN")) and MERLIN_ARTIFACT_REF_SIGNING_KEY.is_file() else "unavailable",
         "private_signing_key_read_enabled": ALLOW_MERLIN_RSI_SIGNING,
         "merlin_rsi_attestation": "independent-reproduction verification; separate opt-in artifact-integrity attestor; no proof or promotion authority",
         "mcp_listen": f"{MCP_HOST}:{MCP_PORT}",
