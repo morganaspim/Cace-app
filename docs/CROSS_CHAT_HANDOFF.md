@@ -797,7 +797,7 @@ Read `docs/MERLIN_PRODUCTION_HANDOFF.md` first, then re-query exact GitHub heads
 - #163 create-only OCI Object Storage transport passed native CI. No live OCI tenancy, bucket, IAM, retention, or remote restore is qualified.
 
 CACE:
-- PR #110 signer filesystem custody is the current successor to #109. Current exact head `24d540ea8ea625aad92f9b530d357c65728daae1`, run `43611326761` was in progress at last check; its validation job was running the collaboration and canonical formal-preflight tests. Do not transfer prior passes to this head.
+- PR #110 signer filesystem custody is the current successor to #109. Exact head `24d540ea8ea625aad92f9b530d357c65728daae1` passed CACE Collaboration Coordination Validation run `43611326761`; artifact `14120222700`, SHA-256 `d168b1b07e66dc0692b014d17b6640fe9e97d07fc69c5bf04e190a67d9f1625c`.
 - PR #108 independent Ed25519 root + separately retrieved signed OCI Vault trust store passed exact code head `565be287fd6c9e1f71fbb4824f315fe1ae87db07`, run `43607177662`, artifact `14119240777`, SHA-256 `ce97a2a0ebb7db9b45c3966975497db14d11f0b0ffec0546f9909b755458f2bd`. Live IAM/source separation remains unqualified.
 - Protected exact-pin Lean kernel compilation remains outstanding. Source sanity and collaboration CI are not substitutes.
 - The production handoff now contains the ranked next gates: finish #110; rebase/validate #108 against secure signer custody; exact-pin Lean compile; provision independent root/signer; live historical ArtifactRef resolve/attest/verify; protected orchestrator-to-OCI binding; live OCI KMS/Object Storage round trip; separate-host restore and measured recovery.
