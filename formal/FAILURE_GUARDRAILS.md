@@ -632,3 +632,33 @@ CACE collaboration validation and Lean Source Sanity on exact head
 The subsequent multiline mutation-test fixture correction is commit
 `f66eaa63c5480bc49db2d377019087d4e1643475`; its exact-head CI result is pending.
 Neither result is a Lean kernel compilation or proof qualification.
+
+
+## F-032 — exact-pin workflow canonical-template drift
+
+**Fingerprint:** the source-sanity gate rejected an otherwise valid exact-pin workflow after a
+toolchain-specific package-cache lock path was corrected in the runnable workflow but not in its
+canonical template. The guard compares the two files byte-for-byte, so the drift was detected
+before the exact-pin workflow could be trusted.
+
+**Root cause:** a safety-critical workflow is maintained as both an executable file and a
+canonical source template; a one-file edit left those two representations inconsistent.
+
+**Permanent prevention:**
+- change the runnable workflow and canonical template in the same change set;
+- keep the lock path namespaced by the exact Lean toolchain and Mathlib commit, rather than
+  reusing a stale cache-lock name from a different toolchain generation;
+- preserve the byte-for-byte comparison in the structural guard;
+- run the source-sanity gate after any exact-pin workflow change and do not count a cancelled
+  or stale-head run as validation.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` compares the runnable workflow
+with `ci/cace-exact-pin-lean-preflight.canonical.yml`; the comparison is exercised by
+`scripts/check_cace_workflow_guardrails.py` in both source-sanity and collaboration validation.
+
+**Observed repair:** the runnable and canonical files now both use the lock namespace
+`v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6`. The failed exact-head run
+[43601413924](https://github.com/morganaspim/Cace-app/actions/runs/43601413924) identified the
+drift; it was corrected in commits `2716d0c4` and `1f958a07`. The follow-up collaboration
+validation passed on `acc77735efaea10bf7179313ecba514a628297c7`, run
+[43601511700](https://github.com/morganaspim/Cace-app/actions/runs/43601511700).
