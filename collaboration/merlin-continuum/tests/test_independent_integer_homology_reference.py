@@ -301,11 +301,27 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
             tuple(sorted(set(face) - {vertex}))
             for face in FACETS if vertex in face
         ]
-        link_degrees = {other: 0 for edge in link_edges for other in edge}
+        link_adjacency = {other: set() for edge in link_edges for other in edge}
         for left, right in link_edges:
-            link_degrees[left] += 1
-            link_degrees[right] += 1
-        assert link_degrees and all(degree == 2 for degree in link_degrees.values())
+            link_adjacency[left].add(right)
+            link_adjacency[right].add(left)
+        assert link_adjacency and all(
+            len(neighbors) == 2 for neighbors in link_adjacency.values()
+        )
+
+        # A 2-regular link may be a disjoint union of cycles. A vertex link
+        # must be one connected cycle to establish a disk neighborhood.
+        start = min(link_adjacency)
+        reached = {start}
+        frontier = [start]
+        while frontier:
+            current = frontier.pop()
+            for neighbor in link_adjacency[current]:
+                if neighbor not in reached:
+                    reached.add(neighbor)
+                    frontier.append(neighbor)
+        assert reached == set(link_adjacency)
+        assert len(link_edges) == len(link_adjacency)
     assert _multiply(d1, d2) == [[0 for _ in FACETS] for _ in vertices]
     assert len(vertices) - len(edges) + len(FACETS) == 1
 
