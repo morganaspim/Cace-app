@@ -635,3 +635,23 @@ https://github.com/Mannyspiro/expert-robot/pull/148
 5. Migrate Hermes/Avrea/OCI/CACE producer-consumer schemas to the same exact `(project_id, logical_path, version, digest)` reference.
 6. Implement the evidence DAG runtime and test stale/revoked/replayed/mismatched evidence invalidation.
 No production secret, signer key, trust root, deployment, merge, or promotion was changed.
+
+
+## 2026-11-14 latest verified Merlin reliability increments
+
+### Cross-repository failure-class memory
+- Merlin PR #147 exact head `7a78cd3e73ee57b7c605babfe843ade50f001942` passed CI run `43605061762`.
+- Diagnostics artifact `14117564194`, SHA-256 `f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f`.
+- Five CACE signer-custody regressions plus two integration failure classes are now in the existing canonical failure registry.
+- External CACE evidence pins are single-source registry data; smoke tests validate full path-qualified test references and pin consistency without duplicating mutable head/run/digest values.
+
+### Qualification evidence DAG runtime
+- Merlin PR #149 exact head `d5f0c7fe2c43599850aa980cbc08797ce9bfe482` passed CI run `43604937482`; diagnostics artifact `14117398094`, SHA-256 `00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0`.
+- Runtime covers canonical JSON, type-bound node IDs, strict ArtifactRef binding, duplicate/unknown/self/cycle rejection, snapshot digests, prerequisite-first order, selective transitive invalidation, and conservative status propagation.
+
+### Persistent snapshot history
+- Merlin PR #150 code head `97107bbf38f2e68823fe7c3c7c18599656b7005f` passed CI run `43605192756`; diagnostics artifact `14118372468`, SHA-256 `aad40e4f92affdf10927f3e7c40bce8bc8fad534078add67b56d087a6582324d`.
+- The snapshot store is an append-only table inside the existing MerlinRegistry SQLite DB, with local serialized writers, idempotent replay, digest-verified reads, and update/delete guards.
+- This is not distributed multi-host coordination. Backup/restore, event/outbox coupling, authenticated source adapters, and API/HUD integration remain.
+
+All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and does not verify signatures or grant proof, signing, deployment, or promotion authority. Exact-pin Lean kernel compilation, independent trust-root provisioning, live resolver round trip, and protected orchestrator linkage remain production blockers.
