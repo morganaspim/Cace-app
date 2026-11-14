@@ -783,3 +783,21 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #163 create-only OCI Object Storage transport passed `43610431390`; 412 replay now verifies exact downloaded bytes, with version/ETag pinning and full digest. PR #162 was closed as superseded.
 - CACE PR #109 key custody hardening exact head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed `43610495149`; artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`. The first run exposed a concurrent temporary-hardlink race; exclusive directory-descriptor flock fixed it without weakening hardlink checks.
 - These are engineering CI passes only. Live OCI Vault/KMS, Object Storage, retention/IAM, separate-host restore, CACE signer/trust provisioning, live historical resolve/attest/verify, protected orchestrator, and exact-pin Lean kernel compile remain unqualified.
+
+
+## Production continuation checkpoint — 2026-11-14 08:25 local
+
+Read `docs/MERLIN_PRODUCTION_HANDOFF.md` first, then re-query exact GitHub heads and workflow runs before acting. Current high-value Merlin stack:
+- #150 immutable DAG snapshot history/trust lineage passed exact-head CI.
+- #156 independent trust-lineage-aware DAG verifier passed exact-head CI.
+- #157 failure-class registry/local-test-reference guard passed exact-head CI, including the backup archive fixture class.
+- #158 atomic snapshot + Hermes outbox publication passed native and unified CI.
+- #159 complete local registry + blob backup/restore passed native CI.
+- #161 OCI Vault/KMS adapter contract passed native CI.
+- #163 create-only OCI Object Storage transport passed native CI. No live OCI tenancy, bucket, IAM, retention, or remote restore is qualified.
+
+CACE:
+- PR #110 signer filesystem custody is the current successor to #109. Current exact head `24d540ea8ea625aad92f9b530d357c65728daae1`, run `43611326761` was in progress at last check; its validation job was running the collaboration and canonical formal-preflight tests. Do not transfer prior passes to this head.
+- PR #108 independent Ed25519 root + separately retrieved signed OCI Vault trust store passed exact code head `565be287fd6c9e1f71fbb4824f315fe1ae87db07`, run `43607177662`, artifact `14119240777`, SHA-256 `ce97a2a0ebb7db9b45c3966975497db14d11f0b0ffec0546f9909b755458f2bd`. Live IAM/source separation remains unqualified.
+- Protected exact-pin Lean kernel compilation remains outstanding. Source sanity and collaboration CI are not substitutes.
+- The production handoff now contains the ranked next gates: finish #110; rebase/validate #108 against secure signer custody; exact-pin Lean compile; provision independent root/signer; live historical ArtifactRef resolve/attest/verify; protected orchestrator-to-OCI binding; live OCI KMS/Object Storage round trip; separate-host restore and measured recovery.
