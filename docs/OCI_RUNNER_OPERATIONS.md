@@ -102,3 +102,19 @@ If the runner is offline:
 6. After approved recovery, run inventory, MCP read-only probe, and a no-op Actions job; retain receipts.
 
 Never print or upload runner `.credentials`, `.credentials_rsaparams`, registration tokens, OCI private keys, environment-file secret values, or process command lines that may contain secrets.
+
+
+## Merlin ArtifactRef independent trust-root inputs (2026-11-14)
+
+The ArtifactRef verifier no longer accepts a trust-store JSON payload and digest supplied together by the caller. Its verifier now requires:
+- `CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PUBLIC_KEY_PEM`: public Ed25519 trust-root PEM, provisioned through the protected deployment configuration path;
+- `CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_AUTHORITY_ID`: stable trust authority identifier;
+- `CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_VERSION`: positive root configuration version;
+- `CACE_MERLIN_ARTIFACT_REF_TRUST_ROOT_PROVISIONING_IDENTITY`: separately administered provisioning identity;
+- `CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SECRET_OCID`: OCI Vault secret OCID containing the root-signed trust-store receipt.
+
+The OCI instance principal reads the trust-store secret. The secret payload is a canonical signed receipt containing the v2 trust-store payload, its SHA-256, root key ID, and Ed25519 signature. The verifier checks expiry and key status and returns trust-root and trust-store version/digest metadata.
+
+**Required OCI IAM separation:** the CACE instance principal receives only `read secret-bundles` for the designated trust-store secret. It must not receive secret create/update/delete or vault/key administration permissions. Trust-store updates belong to a separate trust administration identity. The protected deployment pipeline controls the root public-key pin and its provisioning identity. Review actual compartment scope, dynamic-group membership, policies, secret OCID, and deployment environment protections before enabling the feature.
+
+The configuration labels are not themselves an IAM proof. Production qualification requires inspecting OCI policy and protected deployment settings, then running a protected end-to-end test. Do not paste private keys, bearer tokens, secret payloads, or OCIDs into chat or logs. Until configured and independently inspected, report the capability as unavailable/unqualified.

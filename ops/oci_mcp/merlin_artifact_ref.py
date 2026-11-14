@@ -454,6 +454,156 @@ def attest_merlin_artifact_ref(
     }
 
 
+def _canonical_trust_json(value: Mapping[str, Any]) -> bytes:
+    try:
+        return json.dumps(
+            dict(value), ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise PermissionError("trust material is not canonical JSON") from exc
+
+
+def _utc_timestamp(value: Any, field: str) -> datetime:
+    if not isinstance(value, str):
+        raise PermissionError(f"{field} must be a UTC timestamp")
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError as exc:
+        raise PermissionError(f"{field} must use canonical UTC timestamp format") from exc
+    if parsed.strftime("%Y-%m-%dT%H:%M:%SZ") != value:
+        raise PermissionError(f"{field} must use canonical UTC timestamp format")
+    return parsed
+
+
+def _independent_trust_material(
+    *,
+    trust_root_provider: Callable[[], Mapping[str, Any]],
+    trust_store_provider: Callable[[], Mapping[str, Any]],
+    public_key_id: Callable[[bytes], str],
+) -> tuple[set[str], dict[str, Any]]:
+    """Verify a root-signed trust store fetched from a distinct authority.
+
+    Provider metadata is supplied by deployment-owned adapters. Production
+    adapters must derive it from protected configuration and authenticated
+    provider responses; caller-provided labels are not proof of independence.
+    """
+    if not callable(trust_root_provider) or not callable(trust_store_provider):
+        raise PermissionError("independent trust-root and trust-store providers are required")
+    try:
+        root = trust_root_provider()
+        receipt = trust_store_provider()
+    except Exception as exc:
+        raise PermissionError("independent trust material retrieval failed") from exc
+    root_fields = {
+        "schema", "authority_id", "version", "key_id", "public_key_pem",
+        "source_authority", "provisioning_identity",
+    }
+    receipt_fields = {
+        "schema", "payload", "payload_sha256", "signature_b64", "root_key_id",
+        "source_authority", "retrieval_identity",
+    }
+    if not isinstance(root, Mapping) or set(root) != root_fields:
+        raise PermissionError("independent trust-root provider returned an invalid envelope")
+    if not isinstance(receipt, Mapping) or set(receipt) != receipt_fields:
+        raise PermissionError("trust-store provider returned an invalid signed receipt")
+    if root.get("schema") != "merlin-independent-trust-root-v1":
+        raise PermissionError("unsupported independent trust-root schema")
+    if receipt.get("schema") != "merlin-cace-signed-trust-store-receipt-v1":
+        raise PermissionError("unsupported signed trust-store receipt schema")
+    for obj, fields in (
+        (root, ("authority_id", "source_authority", "provisioning_identity", "key_id", "public_key_pem")),
+        (receipt, ("source_authority", "retrieval_identity", "root_key_id", "signature_b64")),
+    ):
+        for field in fields:
+            if not isinstance(obj.get(field), str) or not obj[field].strip():
+                raise PermissionError(f"trust material {field} is required")
+    if (
+        root["source_authority"] == receipt["source_authority"]
+        or root["provisioning_identity"] == receipt["retrieval_identity"]
+    ):
+        raise PermissionError("trust root and trust store must use distinct authorities and retrieval identities")
+    if (
+        not root["source_authority"].startswith("protected-deployment-config:")
+        or not root["provisioning_identity"].startswith("protected-deployment:")
+        or not receipt["source_authority"].startswith("oci-vault-secret:")
+        or not receipt["retrieval_identity"].startswith("oci-instance-principal:")
+    ):
+        raise PermissionError("trust-root and trust-store provider identities do not match the required deployment/Vault authorities")
+    if isinstance(root["version"], bool) or not isinstance(root["version"], int) or root["version"] < 1:
+        raise PermissionError("independent trust-root version is invalid")
+    if receipt["root_key_id"] != root["key_id"]:
+        raise PermissionError("trust-store receipt names a different trust-root key")
+    payload = receipt["payload"]
+    payload_fields = {
+        "schema", "authority_id", "version", "issued_at_utc", "expires_at_utc", "keys",
+    }
+    if not isinstance(payload, Mapping) or set(payload) != payload_fields:
+        raise PermissionError("signed trust-store payload has an invalid field set")
+    if payload.get("schema") != "merlin-cace-trust-store-v2":
+        raise PermissionError("unsupported signed trust-store payload schema")
+    if payload.get("authority_id") != root["authority_id"]:
+        raise PermissionError("trust-store authority does not match the independent root")
+    if isinstance(payload.get("version"), bool) or not isinstance(payload.get("version"), int) or payload["version"] < 1:
+        raise PermissionError("trust-store version is invalid")
+    issued = _utc_timestamp(payload.get("issued_at_utc"), "trust-store issued_at_utc")
+    expires = _utc_timestamp(payload.get("expires_at_utc"), "trust-store expires_at_utc")
+    now = datetime.now(timezone.utc)
+    if issued > now + timedelta(minutes=5) or expires <= now or expires <= issued:
+        raise PermissionError("trust-store receipt is stale or not yet valid")
+    if expires - issued > timedelta(days=90):
+        raise PermissionError("trust-store validity exceeds the 90-day maximum")
+    encoded = _canonical_trust_json(payload)
+    digest = _sha256(encoded)
+    if receipt.get("payload_sha256") != digest:
+        raise PermissionError("signed trust-store payload digest mismatch")
+    try:
+        signature = base64.b64decode(receipt["signature_b64"].encode("ascii"), validate=True)
+        if base64.b64encode(signature).decode("ascii") != receipt["signature_b64"]:
+            raise ValueError("noncanonical base64")
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        public_key = serialization.load_pem_public_key(root["public_key_pem"].encode("ascii"))
+        if not isinstance(public_key, Ed25519PublicKey):
+            raise ValueError("trust root is not Ed25519")
+        actual_key_id = public_key_id(root["public_key_pem"].encode("ascii"))
+        if actual_key_id != root["key_id"]:
+            raise ValueError("trust-root key ID mismatch")
+        public_key.verify(signature, encoded)
+    except Exception as exc:
+        raise PermissionError("signed trust-store receipt failed independent-root signature verification") from exc
+    keys = payload.get("keys")
+    if not isinstance(keys, list) or not keys:
+        raise PermissionError("signed trust store has no active keys")
+    approved: set[str] = set()
+    for entry in keys:
+        if (
+            not isinstance(entry, Mapping)
+            or set(entry) != {"key_id", "verifier_id", "status"}
+            or entry.get("verifier_id") != "cace"
+            or entry.get("status") != "active"
+        ):
+            raise PermissionError("signed trust store contains an invalid key entry")
+        key_id = entry.get("key_id")
+        if not isinstance(key_id, str) or not re.fullmatch(r"ed25519:[0-9a-f]{64}", key_id):
+            raise PermissionError("signed trust-store key ID is invalid")
+        if key_id in approved:
+            raise PermissionError("signed trust store contains duplicate key IDs")
+        approved.add(key_id)
+    trust_root_sha256 = _sha256(root["public_key_pem"].encode("ascii"))
+    return approved, {
+        "trust_root_authority_id": root["authority_id"],
+        "trust_root_version": root["version"],
+        "trust_root_key_id": root["key_id"],
+        "trust_root_sha256": trust_root_sha256,
+        "trust_store_version": payload["version"],
+        "trust_store_sha256": digest,
+        "trust_store_source_authority": receipt["source_authority"],
+        "trust_store_retrieval_identity": receipt["retrieval_identity"],
+    }
+
+
+
 def _approved_artifact_ref_keys(trust_store_json: str, trust_store_sha256: str) -> set[str]:
     if not isinstance(trust_store_json, str) or not trust_store_json:
         raise PermissionError("CACE ArtifactRef trust store is not configured")
@@ -487,12 +637,17 @@ def verify_merlin_artifact_ref(
     artifact_ref: Mapping[str, Any], source_repo: str, source_commit: str,
     artifact_id: str, artifact_kind: str, artifact_schema: str,
     resolver: Callable[[dict[str, Any]], Mapping[str, Any]],
-    trust_store_json: str, trust_store_sha256: str,
+    trust_root_provider: Callable[[], Mapping[str, Any]],
+    trust_store_provider: Callable[[], Mapping[str, Any]],
     cace_app_root: str = "/opt/cace-web/current",
 ) -> dict[str, Any]:
-    """Re-resolve bytes and verify the signed statement against pinned CACE trust."""
-    ( _, _, _, from_payload, verify_sig, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
-    approved = _approved_artifact_ref_keys(trust_store_json, trust_store_sha256)
+    """Re-resolve bytes and verify the signed statement against an independent trust root."""
+    ( _, public_key_id_fn, _, from_payload, verify_sig, bundle_from_payload, verify_bundle) = _load_core(cace_app_root)
+    approved, trust_receipt = _independent_trust_material(
+        trust_root_provider=trust_root_provider,
+        trust_store_provider=trust_store_provider,
+        public_key_id=public_key_id_fn,
+    )
     ref, raw, provenance = resolve_merlin_artifact_bytes(artifact_ref, resolver=resolver)
     expected_provenance = {
         "schema": "merlin-artifact-provenance/1",
@@ -529,5 +684,6 @@ def verify_merlin_artifact_ref(
         "verified": True, "verifier_id": "cace", "verifier_key_id": key_id,
         "artifact_ref": ref, "artifact_id": artifact_id, "bundle_sha256": bundle_sha,
         "content_sha256": _sha256(raw), "size_bytes": len(raw),
+        **trust_receipt,
         "purpose": PURPOSE, "proof_effect": "none", "authority": "verification-only",
     }
