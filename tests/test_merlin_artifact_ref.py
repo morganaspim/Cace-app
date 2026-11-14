@@ -238,3 +238,42 @@ def test_full_attestation_round_trip_and_pinned_trust(tmp_path):
             trust_store_sha256=hashlib.sha256(trust_json.encode()).hexdigest(),
             cace_app_root=".",
         )
+
+
+def test_trust_store_rejects_duplicate_keys_and_digest_mismatch():
+    import json
+    from ops.oci_mcp.merlin_artifact_ref import _approved_artifact_ref_keys
+    entry = {
+        "key_id": "ed25519:" + "a" * 64,
+        "verifier_id": "cace", "status": "active",
+    }
+    trust = {"schema": "merlin-cace-trust-store-v1", "keys": [entry, entry]}
+    encoded = json.dumps(trust, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(encoded.encode()).hexdigest()
+    with pytest.raises(PermissionError):
+        _approved_artifact_ref_keys(encoded, digest)
+    with pytest.raises(PermissionError):
+        _approved_artifact_ref_keys(encoded, "0" * 64)
+
+
+def test_mcp_server_is_initialized_before_tool_registration():
+    import ast
+    from pathlib import Path
+    source = Path(__file__).parents[1] / "ops" / "oci_mcp" / "server.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    server_line = None
+    tool_lines = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "mcp"
+            for target in node.targets
+        ) and isinstance(node.value, ast.Call) and getattr(node.value.func, "id", None) == "MCPServer":
+            server_line = node.lineno
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for decorator in node.decorator_list:
+                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute):
+                    if isinstance(decorator.func.value, ast.Name) and decorator.func.value.id == "mcp":
+                        tool_lines.append(node.lineno)
+    assert server_line is not None
+    assert tool_lines
+    assert server_line < min(tool_lines)
