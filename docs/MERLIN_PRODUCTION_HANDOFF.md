@@ -655,3 +655,14 @@ No production secret, signer key, trust root, deployment, merge, or promotion wa
 - This is not distributed multi-host coordination. Backup/restore, event/outbox coupling, authenticated source adapters, and API/HUD integration remain.
 
 All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and does not verify signatures or grant proof, signing, deployment, or promotion authority. Exact-pin Lean kernel compilation, independent trust-root provisioning, live resolver round trip, and protected orchestrator linkage remain production blockers.
+
+
+## 2026-11-14 final exact-head refresh for current iteration
+
+- Merlin PR #147 exact head `7a78cd3e73ee57b7c605babfe843ade50f001942` passed CI `43605061762`; diagnostics artifact `14117564194`, SHA-256 `f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f`.
+- Merlin PR #149 exact code head `d5f0c7fe2c43599850aa980cbc08797ce9bfe482` passed CI `43604937482`; diagnostics artifact `14117398094`, SHA-256 `00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0`.
+- Merlin PR #150 latest exact head `7ade0d22b7542c2e6aa4396f76a3fe0f91718be5` passed CI `43605312229`; diagnostics artifact `14117503140`, SHA-256 `b19e3bac900bf2f1b4cbcd4c9afe6b65968cab9da69178e0b3a498264a7458d7`.
+- PR #150 persists deterministic DAG snapshots append-only in the existing MerlinRegistry SQLite DB; its tests include concurrent local writers, replay idempotency, tamper detection, and update/delete rejection.
+- PRs #147, #149, and #150 remain draft/stacked. These CI passes do not constitute production qualification or signer trust.
+- Next DAG gates: source adapters that independently retrieve canonical evidence, explicit required-prerequisite policies, multi-host/backup qualification, event/outbox coupling, API/HUD integration, independent implementation and fuzz/property testing.
+- CACE gates remain independent trust-root provisioning (issue #104), exact-pin Lean kernel compilation, live historical resolve→attest→verify, and a distinct protected orchestrator run linked to exact OCI execution.
