@@ -170,6 +170,25 @@ def _multiply(left: list[list[int]], right: list[list[int]]) -> list[list[int]]:
     ]
 
 
+def _chain_complex_payload() -> dict:
+    """Canonical ordered integral chain bases and boundary matrices for RP2."""
+    vertices, edges, d1, d2 = _boundary_matrices()
+    product = _multiply(d1, d2)
+    zero = [[0 for _ in FACETS] for _ in vertices]
+    return {
+        "coefficient_ring": "Z",
+        "basis_order": {
+            "C0": [list(vertex_tuple) if isinstance(vertex_tuple, tuple) else vertex_tuple
+                   for vertex_tuple in ((vertex,) for vertex in vertices)],
+            "C1": [list(edge) for edge in edges],
+            "C2": [list(face) for face in FACETS],
+        },
+        "boundary_matrices": {"d1_C1_to_C0": d1, "d2_C2_to_C1": d2},
+        "composition_d1_d2": product,
+        "boundary_squared_zero": product == zero,
+    }
+
+
 def _rp2_h1_presentation(edges: tuple[tuple[int, int], ...]) -> list[list[int]]:
     # Collapse the explicit spanning tree {0-i | i=1..5}. Its five edges
     # generate no H1 generators; each triangle boundary becomes a relation
@@ -231,6 +250,7 @@ def test_emit_independent_reference_receipt() -> None:
             "workflow_sha": os.environ.get("GITHUB_WORKFLOW_SHA", ""),
         },
         "implementation": "pure-python-bareiss-determinants-and-tree-collapse",
+        "chain_complex": _chain_complex_payload(),
         "rp2": {
             "vertices": len(vertices),
             "edges": len(edges),
@@ -262,6 +282,15 @@ def test_emit_independent_reference_receipt() -> None:
 
 def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     vertices, edges, d1, d2 = _boundary_matrices()
+    chain_complex = _chain_complex_payload()
+    assert chain_complex["coefficient_ring"] == "Z"
+    assert chain_complex["basis_order"]["C0"] == [[0], [1], [2], [3], [4], [5]]
+    assert chain_complex["basis_order"]["C1"] == [list(edge) for edge in combinations(range(6), 2)]
+    assert chain_complex["basis_order"]["C2"] == [list(face) for face in FACETS]
+    assert chain_complex["boundary_matrices"]["d1_C1_to_C0"] == d1
+    assert chain_complex["boundary_matrices"]["d2_C2_to_C1"] == d2
+    assert chain_complex["boundary_squared_zero"] is True
+    assert chain_complex["composition_d1_d2"] == [[0] * 10 for _ in range(6)]
     assert len(vertices) == 6
     assert len(edges) == 15
     assert len(FACETS) == 10
