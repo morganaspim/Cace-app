@@ -461,3 +461,25 @@ def test_artifact_ref_key_loader_rejects_final_symlink_and_missing_key(tmp_path)
     alias.symlink_to(key_path)
     with pytest.raises(PermissionError):
         load_merlin_artifact_ref_private_key(str(alias))
+
+
+def test_artifact_ref_key_readiness_checks_do_not_repair_permissions(tmp_path):
+    pytest.importorskip("cryptography")
+    from ops.oci_mcp.merlin_artifact_ref import (
+        initialize_merlin_artifact_ref_attestor, load_merlin_artifact_ref_private_key,
+    )
+
+    key_path = tmp_path / "readonly-check" / "artifact-ref.pem"
+    initialize_merlin_artifact_ref_attestor(
+        private_key_path=str(key_path), cace_app_root=".",
+    )
+    key_path.chmod(0o640)
+    with pytest.raises(PermissionError):
+        load_merlin_artifact_ref_private_key(str(key_path))
+    assert key_path.stat().st_mode & 0o777 == 0o640
+    key_path.chmod(0o600)
+
+    key_path.parent.chmod(0o750)
+    with pytest.raises(PermissionError):
+        load_merlin_artifact_ref_private_key(str(key_path))
+    assert key_path.parent.stat().st_mode & 0o777 == 0o750
