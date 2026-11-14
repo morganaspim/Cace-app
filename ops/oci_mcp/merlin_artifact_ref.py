@@ -170,19 +170,46 @@ def initialize_merlin_artifact_ref_attestor(
 ) -> dict[str, Any]:
     """Create a separate Ed25519 ArtifactRef key once; never overwrite it."""
     import os
+    import stat
     from pathlib import Path
     ( _, _, _, _, _, _, _ ) = _load_core(cace_app_root)
     from cace_studio.core.attestation import generate_ed25519_keypair_pem, public_key_id
     path = Path(private_key_path)
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(path.parent, 0o700)
+
+    def read_existing_key() -> bytes:
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            fd = os.open(str(path), flags)
+        except OSError as exc:
+            raise PermissionError("unable to open ArtifactRef key without following symlinks") from exc
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode):
+                raise PermissionError("ArtifactRef signing key must be a regular file")
+            chunks = []
+            while True:
+                chunk = os.read(fd, 65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                if sum(map(len, chunks)) > 65536:
+                    raise PermissionError("ArtifactRef signing key file is unexpectedly large")
+            return b"".join(chunks)
+        finally:
+            os.close(fd)
+
     created = False
     if not path.exists():
-        private_pem, public_pem = generate_ed25519_keypair_pem()
+        private_pem, _ = generate_ed25519_keypair_pem()
         try:
-            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            fd = os.open(
+                str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
         except FileExistsError:
-            private_pem = path.read_bytes()
+            private_pem = read_existing_key()
         else:
             with os.fdopen(fd, "wb") as stream:
                 stream.write(private_pem)
@@ -190,9 +217,7 @@ def initialize_merlin_artifact_ref_attestor(
                 os.fsync(stream.fileno())
             created = True
     else:
-        if path.is_symlink():
-            raise PermissionError("refusing symlink ArtifactRef signing key")
-        private_pem = path.read_bytes()
+        private_pem = read_existing_key()
     from cryptography.hazmat.primitives import serialization
     key = serialization.load_pem_private_key(private_pem, password=None)
     public_pem = key.public_key().public_bytes(
