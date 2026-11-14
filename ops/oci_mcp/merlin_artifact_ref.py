@@ -168,72 +168,149 @@ def _artifact_map(
 def initialize_merlin_artifact_ref_attestor(
     *, private_key_path: str, cace_app_root: str = "/opt/cace-web/current",
 ) -> dict[str, Any]:
-    """Create a separate Ed25519 ArtifactRef key once; never overwrite it."""
+    """Create a separate Ed25519 ArtifactRef key once; never overwrite it.
+
+    Parent traversal is descriptor-relative and rejects symlink components.
+    The key is published with a no-overwrite hard-link operation only after
+    the complete temporary file has been flushed to disk.
+    """
     import os
+    import secrets
     import stat
     from pathlib import Path
-    ( _, _, _, _, _, _, _ ) = _load_core(cace_app_root)
+
+    (_, _, _, _, _, _, _) = _load_core(cace_app_root)
     from cace_studio.core.attestation import generate_ed25519_keypair_pem, public_key_id
-    path = Path(private_key_path)
-    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(path.parent, 0o700)
 
-    def read_existing_key() -> bytes:
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-        try:
-            fd = os.open(str(path), flags)
-        except OSError as exc:
-            raise PermissionError("unable to open ArtifactRef key without following symlinks") from exc
-        try:
-            info = os.fstat(fd)
-            if not stat.S_ISREG(info.st_mode):
-                raise PermissionError("ArtifactRef signing key must be a regular file")
-            os.fchmod(fd, 0o600)
-            chunks = []
-            while True:
-                chunk = os.read(fd, 65536)
-                if not chunk:
-                    break
-                chunks.append(chunk)
-                if sum(map(len, chunks)) > 65536:
-                    raise PermissionError("ArtifactRef signing key file is unexpectedly large")
-            return b"".join(chunks)
-        finally:
-            os.close(fd)
+    path = Path(os.path.abspath(os.fspath(private_key_path)))
+    if path.name in ("", ".", ".."):
+        raise ValueError("ArtifactRef key path must name a file")
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    if not getattr(os, "O_DIRECTORY", 0) or not getattr(os, "O_NOFOLLOW", 0):
+        raise RuntimeError("platform lacks no-follow directory opening required for key custody")
 
-    created = False
-    if not path.exists():
-        private_pem, _ = generate_ed25519_keypair_pem()
+    # Walk from / using directory descriptors. A symlink in any parent
+    # component is rejected instead of being followed by Path.mkdir/chmod.
+    dir_fd = os.open(os.path.sep, directory_flags)
+    try:
+        for component in path.parent.parts[1:]:
+            try:
+                next_fd = os.open(component, directory_flags, dir_fd=dir_fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(component, 0o700, dir_fd=dir_fd)
+                except FileExistsError:
+                    pass
+                next_fd = os.open(component, directory_flags, dir_fd=dir_fd)
+            except OSError as exc:
+                raise PermissionError(
+                    f"ArtifactRef key parent contains an unsafe or inaccessible component: {component}"
+                ) from exc
+            os.close(dir_fd)
+            dir_fd = next_fd
+
+        directory_info = os.fstat(dir_fd)
+        if not stat.S_ISDIR(directory_info.st_mode) or directory_info.st_uid != os.geteuid():
+            raise PermissionError("ArtifactRef key directory must be owned by the service identity")
+        os.fchmod(dir_fd, 0o700)
+
+        def read_existing_key() -> bytes:
+            try:
+                fd = os.open(
+                    path.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dir_fd,
+                )
+            except OSError as exc:
+                raise PermissionError("unable to open ArtifactRef key without following symlinks") from exc
+            try:
+                info = os.fstat(fd)
+                if (
+                    not stat.S_ISREG(info.st_mode)
+                    or info.st_uid != os.geteuid()
+                    or info.st_nlink != 1
+                ):
+                    raise PermissionError(
+                        "ArtifactRef signing key must be a service-owned regular file with one link"
+                    )
+                os.fchmod(fd, 0o600)
+                chunks: list[bytes] = []
+                total = 0
+                while True:
+                    chunk = os.read(fd, 65536)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > 65536:
+                        raise PermissionError("ArtifactRef signing key file is unexpectedly large")
+                    chunks.append(chunk)
+                return b"".join(chunks)
+            finally:
+                os.close(fd)
+
+        created = False
         try:
-            fd = os.open(
-                str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                0o600,
-            )
-        except FileExistsError:
             private_pem = read_existing_key()
-        else:
-            with os.fdopen(fd, "wb") as stream:
-                stream.write(private_pem)
-                stream.flush()
-                os.fsync(stream.fileno())
-            created = True
-    else:
-        private_pem = read_existing_key()
-    from cryptography.hazmat.primitives import serialization
-    key = serialization.load_pem_private_key(private_pem, password=None)
-    public_pem = key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    )
-    key_id = public_key_id(public_pem)
-    return {
-        "schema": "cace-merlin-artifact-ref-key-initialization-v1",
-        "created": created, "key_path": str(path),
-        "verifier_id": "cace", "verifier_key_id": key_id,
-        "public_key_pem": public_pem.decode("ascii"),
-        "private_key_mode": "0600", "proof_effect": "none",
-    }
+        except FileNotFoundError:
+            private_pem, _ = generate_ed25519_keypair_pem()
+            temp_name = f".{path.name}.new-{secrets.token_hex(16)}"
+            temp_fd = os.open(
+                temp_name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                0o600,
+                dir_fd=dir_fd,
+            )
+            try:
+                view = memoryview(private_pem)
+                while view:
+                    written = os.write(temp_fd, view)
+                    if written <= 0:
+                        raise OSError("short write while creating ArtifactRef signing key")
+                    view = view[written:]
+                os.fsync(temp_fd)
+            except BaseException:
+                os.close(temp_fd)
+                try:
+                    os.unlink(temp_name, dir_fd=dir_fd)
+                except FileNotFoundError:
+                    pass
+                raise
+            else:
+                os.close(temp_fd)
+            try:
+                try:
+                    os.link(
+                        temp_name, path.name,
+                        src_dir_fd=dir_fd, dst_dir_fd=dir_fd,
+                        follow_symlinks=False,
+                    )
+                    created = True
+                except FileExistsError:
+                    # Another initializer won the race. Discard our complete
+                    # candidate and verify the winner through the same checks.
+                    private_pem = read_existing_key()
+                os.fsync(dir_fd)
+            finally:
+                try:
+                    os.unlink(temp_name, dir_fd=dir_fd)
+                    os.fsync(dir_fd)
+                except FileNotFoundError:
+                    pass
 
+        from cryptography.hazmat.primitives import serialization
+        key = serialization.load_pem_private_key(private_pem, password=None)
+        public_pem = key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        key_id = public_key_id(public_pem)
+        return {
+            "schema": "cace-merlin-artifact-ref-key-initialization-v1",
+            "created": created, "key_path": str(path),
+            "verifier_id": "cace", "verifier_key_id": key_id,
+            "public_key_pem": public_pem.decode("ascii"),
+            "private_key_mode": "0600", "proof_effect": "none",
+        }
+    finally:
+        os.close(dir_fd)
 
 def _expected_bindings(
     *, artifact_ref: Mapping[str, Any], source_repo: str, source_commit: str,
