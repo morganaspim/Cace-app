@@ -789,3 +789,12 @@ CACE signer custody and independent trust:
 8. After the above gates, merge the dependency chain in order and run a protected integrated production-readiness suite. No deployment or promotion follows from CI alone.
 
 All listed passes remain engineering CI, not live cloud or production qualification. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
+
+
+## Backup recovery evidence receipt contract (2026-11-14)
+
+- Merlin draft PR #164: https://github.com/Mannyspiro/expert-robot/pull/164
+- Exact head `a5fea014fdc6f5991add69996aa6a49252e94eba`; exact-head CI run `43611867463` was pending at handoff update. No pass is claimed.
+- Adds a canonical integrity-only `merlin-backup-recovery-receipt/1` binding the source commit, exact protected workflow run/attempt/head, retained evidence artifact ID/digest and full Merlin ArtifactRef, separate Vault/Object Storage audit-export digests, backup package/manifest digest, restored manifest digest, encrypted envelope digest/size, content-addressed Object Storage object/version/ETag, KMS key and opaque key-version identity, distinct origin/restore host identity digests, timing and restore checks/counts.
+- The receipt is unsigned and does not prove that checks occurred. CACE must independently retrieve and attest the exact receipt/evidence artifact; this is not a substitute for live OCI or separate-host recovery.
+- This is stacked on Merlin PR #163 -> #161 -> #159 -> #158 -> #150 -> #149/#148 -> #144; keep draft and merge only in dependency order.
