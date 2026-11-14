@@ -756,3 +756,15 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - The pinned OCI Python SDK 2.191.0 model contract passes. The adapter uses an OCI instance-principal signer and is limited to data-key generation/decryption for one configured symmetric AES key.
 - The protected runbook records required runner configuration, IAM separation, live round-trip qualification, key-rotation retention and separate-host recovery steps.
 - No live OCI tenancy key/endpoint, IAM policy, network path or KMS round trip is configured or independently verified. Object Storage transport, retention lock, independent backup attestation and separate-host restore remain unqualified.
+
+
+## ArtifactRef signer key filesystem custody hardening (2026-11-14)
+
+A focused hardening branch now changes the CACE-owned ArtifactRef key initializer:
+- Walks every parent directory component through directory file descriptors with `O_DIRECTORY|O_NOFOLLOW`, rejecting symlinked parent components rather than following them through `Path.mkdir`/path-based operations.
+- Requires the final key directory to be owned by the service effective UID and enforces mode `0700`.
+- Opens existing keys relative to the verified directory descriptor, rejects symlinks, non-regular files, foreign ownership and hard links, and enforces mode `0600`.
+- Creates a fully written/fsynced temporary key, publishes it atomically with a no-overwrite hard link, fsyncs the directory, and handles concurrent initializers by verifying the winner's key.
+- Adds regression tests for symlinked parents, hard-linked keys, and 16 concurrent initializations.
+
+Branch: `security/artifact-ref-key-directory-custody-20261114`; code/test head `78cf57dbbe7d3adf7ed06876ff3332dc08694672`. This is an unvalidated draft until exact-head CI passes. It is stacked on CACE PR #102 and must not merge independently. It does not provision the production key, establish independent trust material, or perform a live signer operation.
