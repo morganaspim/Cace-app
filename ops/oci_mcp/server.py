@@ -46,13 +46,19 @@ def _merlin_artifact_resolver(artifact_ref: dict[str, Any]) -> dict[str, Any]:
     """Authenticated read-only transport; endpoint and bearer token are runtime secrets."""
     import urllib.error
     import urllib.request
+    from urllib.parse import urlsplit
 
     endpoint = os.getenv("MERLIN_ARTIFACT_RESOLVER_URL", "").strip()
     token = os.getenv("MERLIN_ARTIFACT_RESOLVER_TOKEN", "")
-    if not endpoint.startswith("https://") or not token:
-        raise RuntimeError("authenticated Merlin ArtifactRef resolver is not configured")
-    if endpoint.rstrip("/").endswith("/api/artifacts/resolve") is False:
-        raise RuntimeError("Merlin resolver endpoint must terminate in /api/artifacts/resolve")
+    parsed = urlsplit(endpoint)
+    if (
+        parsed.scheme != "https" or not parsed.hostname
+        or parsed.username is not None or parsed.password is not None
+        or parsed.query or parsed.fragment
+        or not parsed.path.rstrip("/").endswith("/api/artifacts/resolve")
+        or not token
+    ):
+        raise RuntimeError("authenticated Merlin ArtifactRef resolver endpoint is invalid or unconfigured")
     body = json.dumps({
         "schema": "merlin-artifact-resolution-request/1",
         "artifact_ref": artifact_ref,
@@ -64,7 +70,12 @@ def _merlin_artifact_resolver(artifact_ref: dict[str, Any]) -> dict[str, Any]:
         "User-Agent": "CACE-Merlin-ArtifactRef-Verifier/1",
     })
     try:
-        with urlopen(request, timeout=15) as response:
+        class _RejectRedirects(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                raise urllib.error.HTTPError(req.full_url, code, "resolver redirects are forbidden", headers, fp)
+
+        opener = urllib.request.build_opener(_RejectRedirects)
+        with opener.open(request, timeout=15) as response:
             raw = response.read(14_000_001)
     except Exception as exc:
         raise RuntimeError(f"authenticated Merlin artifact resolution failed: {type(exc).__name__}") from None
@@ -74,6 +85,35 @@ def _merlin_artifact_resolver(artifact_ref: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError("Merlin resolver response must be an object")
     return payload
+
+
+@mcp.tool()
+def get_merlin_artifact_ref_capability() -> dict[str, Any]:
+    """Report readiness without exposing resolver credentials or trust material."""
+    import hashlib
+    endpoint = os.getenv("MERLIN_ARTIFACT_RESOLVER_URL", "").strip()
+    token_configured = bool(os.getenv("MERLIN_ARTIFACT_RESOLVER_TOKEN", ""))
+    key_ready = MERLIN_ARTIFACT_REF_SIGNING_KEY.is_file() and not MERLIN_ARTIFACT_REF_SIGNING_KEY.is_symlink()
+    trust_json = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_JSON", "")
+    trust_digest = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SHA256", "")
+    trust_ready = bool(trust_json and trust_digest and hashlib.sha256(trust_json.encode("utf-8")).hexdigest() == trust_digest)
+    resolver_ready = endpoint.startswith("https://") and endpoint.rstrip("/").endswith("/api/artifacts/resolve") and token_configured
+    configured = ALLOW_MERLIN_ARTIFACT_REF and resolver_ready and key_ready and trust_ready
+    return {
+        "schema": "cace-capability-status-v1",
+        "capability_id": "merlin.artifact_ref.attestation",
+        "status": "unqualified" if configured else "unavailable",
+        "configuration": "configured" if configured else "incomplete",
+        "checks": {
+            "feature_flag_enabled": ALLOW_MERLIN_ARTIFACT_REF,
+            "https_resolver_and_token_configured": resolver_ready,
+            "separate_signing_key_present": key_ready,
+            "digest_pinned_trust_store_present": trust_ready,
+            "independent_protected_qualification_receipt": False,
+        },
+        "authority": "verification-only",
+        "proof_effect": "none",
+    }
 
 
 @mcp.tool()
