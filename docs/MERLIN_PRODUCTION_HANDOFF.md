@@ -769,10 +769,22 @@ Merlin-side exact-head gates:
 - PR #161 OCI Vault/KMS adapter and deployment runbook: `cdc22ab861ff71a27f4707887c2ef3772583398c`, CI `43609808622` SUCCESS.
 - PR #163 create-only OCI Object Storage transport: `d873e1e419e78f10b9de83c7f56cd259a80b22fc`, CI `43610431390` SUCCESS. It verifies the full bytes of an existing object on 412 replay, not only metadata/size. Older PR #162 was closed as superseded.
 
-CACE signer custody:
-- Draft PR #109 `security/artifact-ref-key-directory-custody-20261114` hardens parent traversal with no-follow directory descriptors, validates owner/mode and hard-link count, atomically publishes a complete key file, and serializes concurrent initializers.
-- First CI run `43610222590` exposed a real race in the temporary hard-link publication window. The fix uses an exclusive directory-descriptor flock; the strict one-link check remains.
-- Latest exact head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed CACE Collaboration Coordination Validation `43610495149`; artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`.
-- PR #109 is stacked on this PR #102 branch and remains draft. Do not merge independently.
+CACE signer custody and independent trust:
+- Earlier PR #109 was superseded by PR #110, which carries the signer filesystem custody implementation onto the latest PR #102 branch. It rejects symlinked parents, validates service ownership/modes and hard-link count, atomically publishes complete key material, serializes concurrent initialization, and recovers only the exact service-owned crash alias.
+- The first concurrency run exposed a reader race during the temporary hard-link publication window. The fix uses an exclusive lock on the verified directory descriptor without weakening the one-link invariant.
+- PR #110 previous exact head `b3af13bbd8716db6c1d2ded6455a4c9bd45c2ab5` passed run `43610865331`; its handoff-only head `f4241703a41dd88a3db33cc8e2387c2b3bae1eb8` passed `43611072054`. Latest code head `24d540ea8ea625aad92f9b530d357c65728daae1` has CI run `43611326761` in progress; no pass is claimed for that exact head yet.
+- PR #108 independently provisions the Ed25519 trust root from protected deployment configuration and retrieves a signed trust-store receipt from a separate OCI Vault source. Its exact code head `565be287fd6c9e1f71fbb4824f315fe1ae87db07` passed run `43607177662`; artifact `14119240777`, SHA-256 `ce97a2a0ebb7db9b45c3966975497db14d11f0b0ffec0546f9909b755458f2bd`. Later handoff-only commits do not alter that code.
+- PR #108's passing tests establish adapter and provenance contracts only. Protected deployment configuration, actual OCI dynamic-group/IAM separation, root custody, Vault secret read-only policy and live trust-store retrieval still require independent inspection.
+- Keep PR #110 and #108 draft until exact-head CI and dependency ordering are settled; do not merge either independently.
 
-All these passes are engineering CI, not live cloud or production qualification. Still outstanding: protected exact-pin Lean kernel compile; deployed Merlin source identity and authenticated resolver configuration; production signer key and independently provisioned trust pin; live historical-byte resolve/attest/verify; protected orchestrator bound to exact OCI execution; real OCI Vault/KMS and Object Storage upload/download; retention/IAM audit; separate-host restore drill. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
+## Next ranked production gates
+1. Finish exact-head CI for PR #110, then rebase the independent trust-root verifier (#108) on the secure signer-loader head where file overlap exists; run full CACE collaboration validation on the resulting exact head.
+2. Execute the protected exact-pin Lean 4.32.1 / Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6` kernel compile for the explicitly quarantined target. Capture exact source commit, module, toolchain, Mathlib revision, stdout/stderr, exit status and artifact digest. A source-sanity pass is not a kernel compile.
+3. Provision the CACE signer key and independent trust root through separate protected authorities; inspect actual ownership, permissions, IAM and trust-store source identities without exposing key material.
+4. Run live ArtifactRef resolution against Merlin's authenticated historical resolver: independently retrieve the exact project/path/version/digest bytes, compare bytes and metadata, then sign and verify the same complete reference in CACE.
+5. Run the protected orchestrator separately from the OCI execution and bind it to the exact OCI run ID, workflow digest and retained execution artifact; reject self-reported or unlinked receipts.
+6. Complete live OCI Vault/KMS generate→encrypt→decrypt and create-only Object Storage upload→download→decrypt→restore, then inspect Vault/Object Storage audit records and retention/IAM settings independently.
+7. Restore the full registry package on a separate clean host; verify database integrity, all blobs, ArtifactRefs, DAG snapshots, Hermes outbox pointers, trust lineage and measured recovery time. Only then consider off-host recovery qualified.
+8. After the above gates, merge the dependency chain in order and run a protected integrated production-readiness suite. No deployment or promotion follows from CI alone.
+
+All listed passes remain engineering CI, not live cloud or production qualification. No production secrets, cloud IAM, deployment, feature flags, or live signing configuration were changed.
