@@ -686,3 +686,16 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - PR #152 adds an independent Node.js verifier for node identity hashes, graph structure, cycle rejection, canonical array ordering, and snapshot digest. The Python suite checks tampered, noncanonical numeric, and unsorted-array rejection.
 - The independent verifier is not yet equivalent to Python's full type-specific identity validator; extend it and add randomized cross-language property vectors before claiming independent equivalence.
 - PRs #150 and #152 remain draft/stacked. No production qualification or promotion authority is implied.
+
+
+## 2026-11-14 independent ArtifactRef trust-root progress
+
+- Draft CACE PR #106: https://github.com/morganaspim/Cace-app/pull/106
+- Exact tested code head: `128e43513f3565f769231642f5fc222139273190`.
+- CACE Collaboration Coordination Validation run `43606285010`: SUCCESS.
+- Retained artifact `14118358494`, SHA-256 `9cfd205ef56999b2dc5d11cdfbf0d8ceccb2c6ef0a7d2667c7a7da592df53311`.
+- The new verifier replaces co-located trust-store JSON/digest input with a canonical, root-signed v2 trust-store receipt. It binds an independently provisioned Ed25519 root from protected deployment configuration to a separate OCI Vault secret fetched with the instance principal.
+- Verification results bind root authority/version/key ID/digest and trust-store version/digest/source/retrieval identity. Tests cover signature substitution, source co-location, stale trust, revoked keys, and root-key swaps.
+- PR #106 is draft and stacked on PR #102. The earlier PR #105 branch was closed as superseded before any merge.
+- Production IAM separation remains unproven: inspect protected deployment approvals, actual OCI dynamic-group/compartment policy, Vault secret OCID and read-only permission, then perform a protected OCI round trip. No production secret/key/IAM setting was changed.
+- Exact-pin Lean kernel compilation and protected orchestrator linkage remain independent blockers. Verification remains proof_effect=none and authority=verification-only.
