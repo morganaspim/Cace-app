@@ -739,3 +739,9 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #156 covers all nine types, trust-root/trust-store provenance, nested ArtifactRefs, canonical bytes, duplicate keys, Unicode, twelve randomized DAG vectors, and tamper rejection.
 - Stale PRs #147/#152/#153/#155 and duplicate PR #154 are closed; use #156 and #157.
 - CACE PR #102 still lacks the protected exact-pin Lean kernel compile. Its collaboration validation pass does not substitute for that gate.
+
+
+## New stacked-branch failure classes
+- PR #157 registers stale parent-base drift and cross-PR signer-loader overlap as persistent failure classes.
+- Exact head 88e7bed9af0e1cda0264eef6dcc3bf700d31e857 passed CI 43607743085; diagnostics artifact 14119451467, SHA-256 1c4f7967b530daedba622a1d7f43298c65e0c191e9f9c77043219c0f255bc252.
+- The regression guard checks that prevention rules require current parent SHA revalidation, fresh child CI, correct dependency order, and secure signer-loader retention.
