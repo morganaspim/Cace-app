@@ -685,3 +685,15 @@ No production secrets, signer key, trust material, environment variables, featur
 - CACE issue #104 is the independent trust-root custody gate.
 - Remaining gates: protected exact-pin Lean kernel compile; independently administered trust root; live historical resolve→attest→verify; protected OCI/orchestrator linkage; end-to-end ArtifactRef schema migration across Hermes/Avrea/OCI/CACE.
 - No production secrets, keys, trust roots, deployments, merges, or promotion were changed.
+
+
+## 2026-11-14 Merlin DAG and failure-memory implementation
+
+- Merlin PR #147 exact head 7a78cd3e73ee57b7c605babfe843ade50f001942 passed CI 43605061762; artifact 14117564194, SHA-256 f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f.
+- PR #147 now records five CACE signer-custody failure classes and two cross-repository integration classes. External pins are stored once in the canonical registry; tests no longer duplicate mutable commit/run/digest values.
+- Merlin PR #149 exact head d5f0c7fe2c43599850aa980cbc08797ce9bfe482 passed CI 43604937482; diagnostics artifact 14117398094, SHA-256 00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0.
+- Merlin PR #150 code head 97107bbf38f2e68823fe7c3c7c18599656b7005f passed CI 43605192756; diagnostics artifact 14118372468, SHA-256 aad40e4f92affdf10927f3e7c40bce8bc8fad534078add67b56d087a6582324d.
+- PR #149 implements deterministic DAG projection, identity and ArtifactRef validation, cycle rejection, selective invalidation, and status propagation.
+- PR #150 adds append-only snapshot history in the existing MerlinRegistry SQLite database with local serialized writes and tamper-checked reads.
+- These remain draft stacked PRs. Multi-host coordination, backup/restore, event/outbox coupling, authenticated source adapters, API/HUD integration, independent implementation, and property/fuzz testing remain outstanding.
+- Production blockers remain independent trust-root provisioning (CACE issue #104), exact-pin Lean kernel compile, live historical resolve→attest→verify, and protected OCI/orchestrator linkage.
