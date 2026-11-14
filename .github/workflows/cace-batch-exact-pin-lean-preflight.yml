@@ -123,10 +123,9 @@ jobs:
       - name: Measure OCI cache and workspace capacity
         id: cache_capacity
         shell: bash
-        env:
-          ELAN_HOME: ${{ env.CACE_PERSISTENT_ELAN_HOME }}
         run: |
           set -euo pipefail
+          ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
           test -x "$ELAN_HOME/bin/elan"
           test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
           actual_mathlib="$(git -C "$CACE_PACKAGE_CACHE/mathlib" rev-parse HEAD)"
