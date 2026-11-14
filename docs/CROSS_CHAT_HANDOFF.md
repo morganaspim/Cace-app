@@ -553,3 +553,12 @@ CACE PR #102 remains OPEN/DRAFT, stacked on its paired-continuum/OCI parent. Con
 
 
 Latest exact-head status (2026-11-14): Expert Robot PR #144 head beaf612da6d049518fda6f67b3ebb8cb2e3d9de9 has native CI #3870 and unified platform #505 both SUCCESS (runs 43600074262 and 43600074355). It remains OPEN/DRAFT and stacked on #143. CACE ArtifactRef signer/verifier is still not implemented: current RSI module paths are `ops/oci_mcp/merlin_rsi_verifier.py` and `ops/oci_mcp/server.py`; use a distinct ArtifactRef integrity contract, not RSI reproduction verification. See MERLIN_PRODUCTION_HANDOFF.md for exact resolver response schema and next mutation-test plan. No signer key, trust store, feature flag, endpoint/token, OCI host, IAM or deployment has been changed.
+
+
+## 2026-11-14 CACE ArtifactRef exact-head continuation
+
+Read the latest `docs/MERLIN_PRODUCTION_HANDOFF.md` section before continuing. CACE PR #102 head `7082e600105a41982e066d3bd9f39a8b49b3cd6f` has collaboration validation #43600934614 SUCCESS and Lean Source Sanity #43600934550 SUCCESS. The collaboration run explicitly includes `tests/test_merlin_artifact_ref.py`, including a CACE Ed25519 sign/verify round trip and mutation checks. Evidence artifact `14116262399`, digest `sha256:44e9263308b1660be4c5bf5ecd982f36995f8421f3e733ca3294fb9cafce47b2`.
+
+CACE ArtifactRef code is now implemented separately from RSI verification. Server initialization order was corrected before the MCP decorators; resolver transport is HTTPS-only, bearer-authenticated, endpoint-path constrained and redirect-rejecting. The signed binding ties full Merlin ArtifactRef + source commit + artifact identity to the single EvidenceBundle manifest. It remains verification-only and does not grant proof/promotion authority.
+
+The live Merlin endpoint source contract was compared with Expert Robot exact passing source head `beaf612da6d049518fda6f67b3ebb8cb2e3d9de9`; no live request was made because the production token/URL are not configured. Signer key/trust provisioning, protected signer run, distinct main-only protected orchestrator run, exact-pin Lean kernel compilation and independent RP²/SNF reproductions remain outstanding. Do not call the feature production-qualified until all six gates in the full handoff are evidenced. PR #102 remains OPEN/DRAFT and stacked; no secrets, OCI host/IAM or production deployment changed.
