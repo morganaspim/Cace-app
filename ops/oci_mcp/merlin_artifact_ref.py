@@ -257,6 +257,24 @@ def _read_artifact_key_at(parent_fd: int, key_name: str) -> bytes | None:
         os.close(fd)
 
 
+def load_merlin_artifact_ref_private_key(private_key_path: str) -> bytes:
+    """Read the signer key through the same pinned directory and inode checks."""
+    import fcntl
+
+    parent_fd, key_name, _ = _open_secure_artifact_key_parent(private_key_path)
+    try:
+        fcntl.flock(parent_fd, fcntl.LOCK_SH)
+        key = _read_artifact_key_at(parent_fd, key_name)
+        if key is None:
+            raise PermissionError("CACE ArtifactRef signing key is not provisioned")
+        return key
+    finally:
+        try:
+            fcntl.flock(parent_fd, fcntl.LOCK_UN)
+        finally:
+            os.close(parent_fd)
+
+
 def initialize_merlin_artifact_ref_attestor(
     *, private_key_path: str, cace_app_root: str = "/opt/cace-web/current",
 ) -> dict[str, Any]:
