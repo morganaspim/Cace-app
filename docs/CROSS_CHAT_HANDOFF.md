@@ -635,3 +635,14 @@ No production secrets, signer key, trust material, environment variables, featur
 - Exact-pin Lean kernel preflight remains outstanding. Collaboration validation and source sanity are not Lean compilation.
 - Failure-class registry and exact-source qualification lineage already exist in Merlin (config/known_failure_classes.json, PR #10, and source-binding PR #46); extend those canonical systems rather than creating parallel registries.
 - Next: inspect PR #103 run evidence and crash-recovery edge cases; exact-pin Lean preflight; protected signer/trust provisioning; live resolve→attest→verify; protected orchestrator receipt.
+
+
+## 2026-11-14 latest ArtifactRef custody gate
+
+- CACE PR #103 current exact head: 3534a1906fc0ff8cb5c9f3b052e917cf23258800.
+- Exact-head Collaboration Coordination Validation run 43603746084: SUCCESS.
+- Artifact 14116814715, SHA-256 237710f7b090997d231068084c9e8118cab98bee8e420784ae22d92659353657.
+- This pass includes the updated signer key loader and server integration, plus ArtifactRef regression tests. PR #103 remains draft and stacked on PR #102.
+- CACE issue #104 tracks independently administered trust-root custody: https://github.com/morganaspim/Cace-app/issues/104.
+- Trust-store JSON plus digest from the same mutable runtime environment is not an independent trust root.
+- Exact-pin Lean kernel preflight, production trust provisioning, live resolver round trip, and protected orchestrator run remain outstanding.
