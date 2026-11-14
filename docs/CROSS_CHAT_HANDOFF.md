@@ -730,3 +730,10 @@ No production secrets, signer key, trust material, environment variables, featur
 - PR #107 independent trust root is stacked on PR #103 and preserves its secure directory-FD signer loader. Exact head 18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6 passed CI run 43607161208; artifact 14118607025, SHA-256 503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff.
 - PR #106 was superseded and closed because its divergent branch overlapped signer files without carrying PR #103's hardened key loader.
 - Actual OCI IAM separation, live Vault retrieval, production root/key provisioning, protected OCI execution, and exact-pin Lean kernel compile remain outstanding.
+
+
+## Latest regression guard and type-parity status
+- Known-failure guard run 43606190603 failed at shared external CACE evidence-pin equality; a diagnostic now emits the exact class and tuple. Exact commit d11d081397b4bc125fde5c2e156268ad94089835 passed CI run 43607173039, artifact 14118646127, SHA-256 4c29f80428a1b9c0b4443623a6d63fb8f379238b9fa13a067fdca129be062548. The prior mismatch remains unexplained; do not call it fixed without a reproduced root cause.
+- Independent DAG verifier PR #152 passed exact-head CI 43606008520 at 893978926f5b3d6758b59247c9495bb99b346275.
+- Draft PR #154 adds all-nine-type cross-language checks and twelve seeded graph permutations at head 786ee70ef8e941c950039af4d3addc0de593ce27. Exact-head CI remains pending/unobserved.
+- CACE PR #102 still lacks the protected exact-pin Lean kernel compile. Its collaboration validation pass does not substitute for that gate.
