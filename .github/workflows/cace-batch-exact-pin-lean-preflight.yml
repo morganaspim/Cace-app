@@ -109,6 +109,7 @@ jobs:
           cat cace-impacted-modules.txt
 
       - name: Reject malformed Lean source seams in every batch target
+        id: source_sanity
         shell: bash
         run: |
           set -euo pipefail
@@ -120,6 +121,7 @@ jobs:
           python3 scripts/check_lean_source_sanity.py "${args[@]}"
 
       - name: Restore pinned Lean and exact Mathlib package tree
+        id: restore_pinned
         shell: bash
         run: |
           set -euo pipefail
@@ -162,6 +164,7 @@ jobs:
           test "$(git -C .lake/packages/mathlib rev-parse HEAD)" = "$CACE_MATHLIB_COMMIT"
 
       - name: Explicitly prewarm pinned Mathlib artifacts
+        id: prewarm_cache
         if: ${{ inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
@@ -201,6 +204,7 @@ jobs:
           flock -u 9
 
       - name: Verify normal proof run is cache-local
+        id: cache_local
         if: ${{ ! inputs.prewarm_mathlib_cache }}
         shell: bash
         run: |
