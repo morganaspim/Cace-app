@@ -188,6 +188,7 @@ def initialize_merlin_artifact_ref_attestor(
             info = os.fstat(fd)
             if not stat.S_ISREG(info.st_mode):
                 raise PermissionError("ArtifactRef signing key must be a regular file")
+            os.fchmod(fd, 0o600)
             chunks = []
             while True:
                 chunk = os.read(fd, 65536)
@@ -225,7 +226,6 @@ def initialize_merlin_artifact_ref_attestor(
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
     key_id = public_key_id(public_pem)
-    os.chmod(path, 0o600)
     return {
         "schema": "cace-merlin-artifact-ref-key-initialization-v1",
         "created": created, "key_path": str(path),
