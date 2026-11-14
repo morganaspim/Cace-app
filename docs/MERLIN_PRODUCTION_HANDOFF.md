@@ -356,3 +356,31 @@ The Merlin resolver response contract was verified from Expert Robot exact passi
 Expert Robot PR #144 exact head `beaf612da6d049518fda6f67b3ebb8cb2e3d9de9` now has both required gates SUCCESS: native CI #3870 / run `43600074262` and unified platform #505 / run `43600074355`. Unified evidence artifact ID `14115542251`, SHA-256 `ce920daec192e3c69b8eb748525cff773d6f74566b015651f8d4225381c6e375`. PR #144 remains OPEN/DRAFT and stacked on #143; no merge or production deployment is implied. This closes the source-side exact-head regression gate only.
 
 Next CACE code work: create a distinct `merlin-artifact-integrity` contract and verifier, not an extension of the RSI reproduction schema. Bind the entire ArtifactRef plus source repo/commit and artifact ID/kind/schema in both EvidenceBundle and signed statement; require exact artifact identity and no extra/unmatched bundle bytes; use an injected authenticated resolver transport with configured endpoint/token only at runtime; reject stale/substituted/mismatched response; verify signatures against independently digest-pinned CACE trust; keep `proof_effect=none` and authority `verification-only`. Add mutation tests for every reference field, historical version substitution, resolver response schema/bytes/size/digest, EvidenceBundle artifact identity, wrong signer/trust digest, and purpose confusion. Do not create a key, populate trust, enable feature flags, configure URL/token, or alter OCI host/IAM/service state as part of code-only work.
+
+
+## 2026-11-14 CACE ArtifactRef implementation and exact-head gate
+
+Current CACE PR #102 head at this handoff: `7082e600105a41982e066d3bd9f39a8b49b3cd6f` (OPEN/DRAFT, still stacked on its paired continuum/OCI parent). This supersedes older statements above that ArtifactRef code was not yet implemented.
+
+Implemented on the branch:
+- `ops/oci_mcp/merlin_artifact_ref.py`: separate ArtifactRef attestor/verifier; strict full reference validation; authenticated resolver injection; canonical base64 and independent byte size/SHA-256 checks; full source repo/commit + artifact identity binding; exact one-artifact EvidenceBundle requirement; manifest path/role/schema/digest binding; pinned CACE trust verification; 30-day signature freshness window; `proof_effect=none`, verification-only authority.
+- `ops/oci_mcp/server.py`: separate MCP tools for key initialization, attestation, verification and capability readiness. MCP server object is initialized before decorators register tools. Resolver transport requires HTTPS, bearer token, exact resolver path and rejects redirects.
+- Separate ArtifactRef signing key path: `/var/lib/cace-oci-mcp/keys/merlin-artifact-ref-attestor-ed25519.pem`; feature flag: `CACE_OCI_MCP_ALLOW_MERLIN_ARTIFACT_REF`. These remain disabled/unprovisioned unless an operator configures them.
+- `tests/test_merlin_artifact_ref.py`: reference-field substitution, stale/unverified resolution, canonical base64, digest/authority checks, full manifest binding, extra artifact rejection, and real CACE Ed25519 attestation→independent verification round trip with digest-pinned trust. The exact-head collaboration workflow now explicitly runs this test module.
+
+Exact-head CI on `7082e600105a41982e066d3bd9f39a8b49b3cd6f`:
+- Collaboration validation run #43600934614: SUCCESS — https://github.com/morganaspim/Cace-app/actions/runs/43600934614
+- Lean Source Sanity run #43600934550: SUCCESS — https://github.com/morganaspim/Cace-app/actions/runs/43600934550
+- Retained collaboration evidence artifact ID `14116262399`, SHA-256 `44e9263308b1660be4c5bf5ecd982f36995f8421f3e733ca3294fb9cafce47b2`.
+
+Merlin resolver contract was independently compared with Expert Robot source `python/merlin/app.py` at exact passing head `beaf612da6d049518fda6f67b3ebb8cb2e3d9de9`: request schema/path/auth and successful response fields match the CACE transport. This is source-contract verification only; no live authenticated request was made because production endpoint/token are not provisioned.
+
+Remaining gates (do not mark production qualified):
+1. Provision the dedicated resolver URL/token, separate signer key and independently pinned trust store on the protected OCI host; keep feature flag disabled until custody is reviewed.
+2. Run the protected signer initialization and verify key ID/public key against independently controlled trust material.
+3. Execute a real historical ArtifactRef resolve→CACE attest→separate verifier round trip using exact Merlin bytes and a retained signed receipt.
+4. Run a distinct protected orchestrator workflow on `main` linked to the exact successful OCI execution. Existing orchestrator workflow is manual-dispatch and main-only; no such run is evidenced yet.
+5. Run the exact-pin Lean workflow on the intended formal target and record toolchain `leanprover/lean4:v4.32.1`, mathlib commit `520045ab14e26149ee970e2e617ca04b09bde5d6`, source SHA, stdout/stderr, exit status and independent CACE receipt. No new exact-pin kernel compilation result was produced by the ArtifactRef CI runs.
+6. Independently reproduce RP²/SNF and expand persistence representatives/interacting cycles, then bind those results to the same exact source and evidence chain.
+
+No production secret, signing key, trust store, feature flag, resolver deployment, OCI host/IAM/service state or workflow-dispatch run was changed/created by this code-only work. PR #102 remains OPEN/DRAFT; do not merge independently or infer deployment.
