@@ -241,8 +241,8 @@ def test_full_attestation_round_trip_and_independent_trust_root(tmp_path):
         "payload_sha256": hashlib.sha256(payload_bytes).hexdigest(),
         "signature_b64": base64.b64encode(root_private_key.sign(payload_bytes)).decode("ascii"),
         "root_key_id": root_key_id,
-        "source_authority": "oci-vault://trust-store-secret",
-        "retrieval_identity": "oci-instance:artifact-verifier",
+        "source_authority": "oci-vault-secret://trust-store-secret",
+        "retrieval_identity": "oci-instance-principal:artifact-verifier",
     }
     root = {
         "schema": "merlin-independent-trust-root-v1",
