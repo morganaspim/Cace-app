@@ -583,3 +583,32 @@ CACE PR #102 latest validation head `bb69228989e972756510a86ef0040999f66d6f9e`:
 - Evidence artifact `14116493756`, digest `sha256:c6af772ddb022861c53a972bb0ef1deab42ad09a778fb912d39db08e2201f6b1`.
 
 No production env variables, secrets, signer key, trust root, feature flag, live resolver request, protected orchestrator run or exact-pin kernel compile have been provisioned/executed. PR #102 remains OPEN/DRAFT and stacked.
+
+
+## 2026-11-14 exact-head continuation after ArtifactRef provenance
+
+CACE exact code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe` passed both:
+- Collaboration validation #43601889665: SUCCESS.
+- Lean Source Sanity #43601889638: SUCCESS.
+- Retained collaboration evidence artifact `14117195243`, SHA-256 `c9450d12ede4db886d52e4a309f3e0b37ab3a7e75471ec2af92b433b23fc49a5`.
+
+This head includes:
+- resolver-owned `merlin-artifact-provenance/1` required by CACE before signing or verifying;
+- strict canonical historical-resolution metadata and nested ArtifactRef equality;
+- a dedicated Ed25519 key initializer that refuses symlinks and never overwrites an existing key;
+- separate ArtifactRef MCP tools and readiness reporting;
+- independent exact-byte RP²/SNF Python reference plus C++ exact-byte continuum smoke suite;
+- F-032 exact-pin workflow template drift prevention;
+- F-033 external lockfile protection against inode replacement during package-cache swap.
+
+The latest docs-only PR head is `d890187227e3611dd72dc58885037c6467a5a711`; code test evidence remains bound to `24bfc5b9`.
+
+Next six gates remain:
+1. Set deployed Merlin `MERLIN_SOURCE_REPO` / `MERLIN_SOURCE_COMMIT` and CACE resolver URL/token.
+2. Provision the separate ArtifactRef signer key and independently digest-pinned trust store on the protected OCI host.
+3. Perform a live exact historical-byte resolve → CACE attest → separate verification; retain signed receipt.
+4. Run the protected main-only orchestrator validator against that exact OCI execution.
+5. Manually dispatch the exact-pin Lean preflight for `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, Lean `v4.32.1`, Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`.
+6. Keep RP²/SNF and persistence results tied to exact source bytes; treat current independent Python/C++ evidence as finite engineering evidence, not a formal proof or promotion.
+
+No production secrets, signer key, trust material, environment variables, feature flag, host/IAM configuration, live resolver call, protected orchestrator run, or deployment has been provisioned/executed. PR #102 remains OPEN/DRAFT and stacked.
