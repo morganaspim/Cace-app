@@ -569,3 +569,17 @@ The live Merlin endpoint source contract was compared with Expert Robot exact pa
 CACE PR #102 latest code head `ab6c146da6b990956fb64a53f78adee58abec69c` passed collaboration validation #43601156993. The exact-head test list includes `tests/test_merlin_artifact_ref.py` and covers the CACE ArtifactRef sign/verify round trip, mutation checks, trust-key uniqueness and MCP initialization-order regression. Evidence artifact `14115733300`, digest `sha256:1a789b77b7ce40febd2a00615cd1f4a05c04108dc872847df76a7cbcce99b87e`.
 
 The paired-continuum Lean target present in this CACE branch is `CACEFormal/ContinuumSimplexCore.lean`; guardrails quarantine it from the audited root. The manual exact-pin preflight should target this module with `compile_root=false`, Lean `v4.32.1`, mathlib commit `520045ab14e26149ee970e2e617ca04b09bde5d6`. No exact-pin kernel compilation was run. The protected orchestrator is manual-dispatch on `main`; no protected orchestrator run or live signer/trust configuration exists yet. Do not infer production qualification from the passing engineering test suite.
+
+
+## 2026-11-14 immutable source provenance is now required
+
+The initial CACE verifier could sign a caller-supplied source commit without Merlin independently associating that commit with the exact historical ArtifactRef. That was not sufficient. CACE now requires exact resolver-owned `resolution.provenance` (`merlin-artifact-provenance/1`) and compares source repo/commit and artifact ID/kind/schema before signing and verifying.
+
+The matching Merlin registry implementation is on PR #144: immutable per-version provenance table, append-only triggers, canonical JSON digest, resolver response field, and generated-artifact writers that attach deployed source identity only when `MERLIN_SOURCE_REPO` and `MERLIN_SOURCE_COMMIT` are configured. Historical versions lacking provenance remain unqualified; no backfill or mutation is permitted.
+
+CACE PR #102 latest validation head `bb69228989e972756510a86ef0040999f66d6f9e`:
+- Collaboration validation #43601704421 SUCCESS.
+- Lean Source Sanity #43601704583 SUCCESS.
+- Evidence artifact `14116493756`, digest `sha256:c6af772ddb022861c53a972bb0ef1deab42ad09a778fb912d39db08e2201f6b1`.
+
+No production env variables, secrets, signer key, trust root, feature flag, live resolver request, protected orchestrator run or exact-pin kernel compile have been provisioned/executed. PR #102 remains OPEN/DRAFT and stacked.
