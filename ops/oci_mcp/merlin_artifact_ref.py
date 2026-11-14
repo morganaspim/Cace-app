@@ -318,7 +318,10 @@ def initialize_merlin_artifact_ref_attestor(
             "private_key_mode": "0600", "proof_effect": "none",
         }
     finally:
+        if directory_locked:
+            fcntl.flock(dir_fd, fcntl.LOCK_UN)
         os.close(dir_fd)
+
 
 def _expected_bindings(
     *, artifact_ref: Mapping[str, Any], source_repo: str, source_commit: str,
