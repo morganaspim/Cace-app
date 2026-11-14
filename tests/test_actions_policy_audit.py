@@ -76,6 +76,14 @@ def test_collaboration_bug_sweep_uses_explicit_repository_import_root() -> None:
     assert safe in text
 
 
+
+def test_collaboration_source_coverage_uses_nul_delimited_git_paths_and_fails_closed() -> None:
+    text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
+    assert r"tracked.split(b'\\0')" in text
+    assert "if not files:" in text
+    assert "refusing empty source-coverage evidence" in text
+
+
 def test_collaboration_qualified_baseline_is_derived_from_canonical_provenance() -> None:
     text = (WORKFLOWS / "cace-collaboration-validation.yml").read_text(encoding="utf-8")
     assert "cace_studio/data/claim_registry.json" in text
