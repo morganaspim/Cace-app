@@ -731,3 +731,11 @@ All three Merlin PRs remain draft/stacked. The DAG is a read-only projection and
 - Unified evidence artifact `14119471619`, SHA-256 `27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123`.
 - Snapshot append and deterministic Hermes notification now share one canonical MerlinRegistry SQLite transaction. Tests cover idempotent replay, rollback on outbox conflict, cross-database rejection, and Hermes consumption/acknowledgement resolving the exact snapshot digest.
 - This is local single-database consistency only; multi-host coordination, encrypted off-host backup/restore, and remote delivery semantics remain unqualified.
+
+
+## Latest registry recovery and failure-class receipts (2026-11-14)
+
+- PR #157 latest exact head `c392f07ef3c21663854914a7da14934d6287144b` passed CI run `43608784928`; diagnostics artifact `14119413202`, SHA-256 `06cf789f475a0f38c282c57ee7ad8734a7d87df20b5baca649c1bbab887946d7`. It adds a failure class for backup archive tamper fixtures that change size before digest, and pins the external regression test on PR #159.
+- PR #158 exact head `079c3c82f273a80dd4fa5deabb90aaa3154a8e27` passed native CI `43607987636` and unified CI `43607987604`; native artifact `14119396821` (SHA-256 `1426c1bb2c81a10b956d9cacdf723cc8bd1f04aab2d9f3b6a399cf7473c80f96`), unified artifact `14119471619` (SHA-256 `27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123`).
+- PR #159 exact head `32e877e8c5710cd9533b88b62530cee06b45a588` passed native CI run `43608688270`; diagnostics artifact `14118834284`, SHA-256 `34ac98f600e47113c5ee602011cb32f38af14cba4c774c5061a0ae7d09c81aa8`. It packages the SQLite registry and referenced blobs, verifies the exact manifest/inventory, snapshot/outbox pointers and provenance, and tests non-overwriting restore.
+- PR #159 is a local recovery package only. Encryption, authenticated off-host transport, immutable retention, independent key custody and separate-host restore remain unqualified.
