@@ -256,6 +256,7 @@ def initialize_merlin_artifact_ref_attestor(
     *, private_key_path: str, cace_app_root: str = "/opt/cace-web/current",
 ) -> dict[str, Any]:
     """Create a separate Ed25519 ArtifactRef key atomically, once, without path traversal."""
+    import fcntl
     import os
     import secrets
     ( _, _, _, _, _, _, _ ) = _load_core(cace_app_root)
@@ -264,6 +265,8 @@ def initialize_merlin_artifact_ref_attestor(
     parent_fd, key_name, path = _open_secure_artifact_key_parent(private_key_path)
     created = False
     try:
+        # All initializers for this private directory serialize on its pinned fd.
+        fcntl.flock(parent_fd, fcntl.LOCK_EX)
         private_pem = _read_artifact_key_at(parent_fd, key_name)
         if private_pem is None:
             candidate, _ = generate_ed25519_keypair_pem()
@@ -286,7 +289,6 @@ def initialize_merlin_artifact_ref_attestor(
                     temp_name, key_name, src_dir_fd=parent_fd,
                     dst_dir_fd=parent_fd, follow_symlinks=False,
                 )
-                os.fsync(parent_fd)
                 created = True
                 private_pem = candidate
             except FileExistsError:
@@ -298,10 +300,14 @@ def initialize_merlin_artifact_ref_attestor(
                     os.unlink(temp_name, dir_fd=parent_fd)
                 except FileNotFoundError:
                     pass
+                os.fsync(parent_fd)
         if private_pem is None:
             raise PermissionError("ArtifactRef signing key could not be initialized")
     finally:
-        os.close(parent_fd)
+        try:
+            fcntl.flock(parent_fd, fcntl.LOCK_UN)
+        finally:
+            os.close(parent_fd)
 
     from cryptography.hazmat.primitives import serialization
     key = serialization.load_pem_private_key(private_pem, password=None)
