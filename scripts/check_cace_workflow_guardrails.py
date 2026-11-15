@@ -43,6 +43,7 @@ REQUIRED_SNIPPETS = (
     "REQUESTED_MODULE_RAW: ${{ inputs.module || ((github.event_name == 'pull_request' || github.event_name == 'push') && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
     "COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}",
     "fetch-depth: 0",
+    "scripts/cace_actions_serialization_guard.py",
     "python3 scripts/cace_proof_guardrails.py validate",
     "python3 scripts/cace_proof_guardrails.py impacted",
     "python3 scripts/cace_proof_guardrails.py plan-hash",
