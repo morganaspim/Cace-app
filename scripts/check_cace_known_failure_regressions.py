@@ -366,7 +366,7 @@ def main() -> int:
             problems.append(f"missing CACE workflow for concurrency guard: {workflow_path}")
             continue
         workflow_text = workflow_path.read_text(encoding="utf-8")
-        group_match = re.search(r"(?m)^  group:\\s*([^\\s#]+)\\s*$", workflow_text)
+        group_match = re.search(r"(?m)^  group:\s*([^\s#]+)\s*$", workflow_text)
         if group_match is None:
             problems.append(f"{workflow_path}: missing dedicated concurrency group")
             continue
@@ -376,7 +376,7 @@ def main() -> int:
                 f"{workflow_path}: concurrency group collides with {observed_groups[group]}"
             )
         observed_groups[group] = label
-        if re.search(r"(?m)^  cancel-in-progress:\\s*false\\s*$", workflow_text) is None:
+        if re.search(r"(?m)^  cancel-in-progress:\s*false\s*$", workflow_text) is None:
             problems.append(f"{workflow_path}: cancel-in-progress must remain false")
 
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
