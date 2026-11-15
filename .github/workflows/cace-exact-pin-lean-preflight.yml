@@ -56,7 +56,7 @@ jobs:
       - name: Checkout exact event commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           clean: true
           persist-credentials: false
@@ -67,10 +67,10 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=no)"
           python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID"
-          printf 'exact_head=%s\n' "$GITHUB_SHA"
+          printf 'exact_head=%s\n' "$CACE_EXPECTED_HEAD"
 
       - name: Validate requested target and audited-root reachability
         id: target
@@ -304,7 +304,7 @@ jobs:
           start="$(date +%s)"
           lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/cace-canary-build.log"
           stop="$(date +%s)"
-          printf 'CACE_GUARDRAIL_CANARY_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_GUARDRAIL_CANARY_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Compile changed modules and audited reverse dependents
         id: impacted_compile
@@ -327,7 +327,7 @@ jobs:
             lake build "${targets[@]}" 2>&1 | tee "$GITHUB_WORKSPACE/cace-impacted-build.log"
             stop="$(date +%s)"
             printf 'CACE_IMPACTED_COMPILE_OK modules=%s elapsed_seconds=%s exact_head=%s\n' \
-              "${#modules[@]}" "$((stop-start))" "$GITHUB_SHA"
+              "${#modules[@]}" "$((stop-start))" "$CACE_EXPECTED_HEAD"
           fi
 
       - name: Compile requested Lean module
@@ -345,7 +345,7 @@ jobs:
           start="$(date +%s)"
           lake build "+$TARGET_MODULE" 2>&1 | tee "$GITHUB_WORKSPACE/cace-target-build.log"
           stop="$(date +%s)"
-          printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Compile quarantined RP2 chain complex
         id: rp2_compile
@@ -371,7 +371,7 @@ jobs:
           start="$(date +%s)"
           lake build +CACEFormal.RP2ChainComplex 2>&1 | tee "$GITHUB_WORKSPACE/cace-rp2-build.log"
           stop="$(date +%s)"
-          printf 'CACE_RP2_STANDALONE_COMPILE_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_RP2_STANDALONE_COMPILE_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Reverify frozen proof plan before audited root
         id: plan_recheck
@@ -393,9 +393,9 @@ jobs:
             > cace-proof-plan-recheck.json
           actual="$(python3 -c 'import json; print(json.load(open("cace-proof-plan-recheck.json"))["plan_sha256"])')"
           test "$actual" = "$EXPECTED_PLAN_SHA256"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=no)"
-          printf 'CACE_PROOF_PLAN_RECHECK_OK sha256=%s exact_head=%s\n' "$actual" "$GITHUB_SHA"
+          printf 'CACE_PROOF_PLAN_RECHECK_OK sha256=%s exact_head=%s\n' "$actual" "$CACE_EXPECTED_HEAD"
 
       - name: Compile audited root
         id: root_compile
@@ -410,7 +410,7 @@ jobs:
           start="$(date +%s)"
           lake build CACEFormal 2>&1 | tee "$GITHUB_WORKSPACE/cace-root-build.log"
           stop="$(date +%s)"
-          printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Aggregate diagnostic sweep failures
         id: diagnostic_aggregate
@@ -461,7 +461,7 @@ jobs:
           cat > cace-exact-pin-preflight-summary.txt <<EOF
           evidence_class=engineering/formal-preflight
           qualification=false
-          exact_head=$GITHUB_SHA
+          exact_head=$CACE_EXPECTED_HEAD
           lean_toolchain=$CACE_TOOLCHAIN
           mathlib_commit=$CACE_MATHLIB_COMMIT
           target=${{ inputs.module }}
