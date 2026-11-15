@@ -710,7 +710,7 @@ The old in-cache path was removed before the next exact-pin execution.
 
 
 
-## F-034 — RP2 finite-sum scalar factoring and chain-map extensionality
+## F-035 — RP2 finite-sum scalar factoring and chain-map extensionality
 
 **Fingerprint:** standalone compilation of `CACEFormal.RP2ChainComplex` failed in the scalar-linearity proofs for both boundary maps because a Finset rewrite was applied directly to a Fintype sum. The chain-composition proof also used a two-variable `ext` sequence that reduced the goal to basis-generated maps rather than an arbitrary 2-chain.
 
