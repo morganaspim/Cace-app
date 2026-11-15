@@ -724,3 +724,17 @@ The old in-cache path was removed before the next exact-pin execution.
 - retain the RP2 module in the explicit quarantine list until standalone compilation and subsequent independent homology classification gates pass.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py` checks Fintype-to-Finset normalization, product association, scalar factoring, absence of `sorry`, arbitrary-chain extensionality, and the RP2 quarantine entry.
+
+
+## F-036 — Shared concurrency group cancels pending CACE validations
+
+**Fingerprint:** PR head updates trigger exact-pin preflight, source sanity and collaboration validation together. When all three workflows share one GitHub Actions concurrency group, only one pending run is retained; later events can cancel/replace the exact-pin run before it starts.
+
+**Root cause:** independent validation workflows used the same static concurrency group even though GitHub permits only one running and one pending workflow run per group. `cancel-in-progress: false` does not prevent an older pending run from being replaced by a newer pending run.
+
+**Permanent prevention:**
+- assign distinct concurrency groups to exact-pin, source-sanity and collaboration workflows;
+- retain `cancel-in-progress: false` within each workflow-specific group;
+- keep the group separation under a regression guard so a future workflow edit cannot silently reintroduce pending-run starvation.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` verifies the three group names are present, unique and non-cancelling.
