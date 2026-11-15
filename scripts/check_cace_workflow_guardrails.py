@@ -40,7 +40,7 @@ REQUIRED_SNIPPETS = (
     "pull_request:",
     "CACEFormal/ContinuumSimplexCore.lean",
     "CACEFormal/RP2ChainComplex.lean",
-    "REQUESTED_MODULE_RAW: ${{ inputs.module || ((github.event_name == 'pull_request' || github.event_name == 'push') && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
+    "REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
     "COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}",
     "fetch-depth: 0",
     "scripts/cace_actions_serialization_guard.py",
@@ -84,8 +84,94 @@ def main() -> int:
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 
-    compile_root_policy = "CACE_COMPILE_ROOT: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 'false' || inputs.compile_root }}"
+    compile_root_policy = "CACE_COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}"
+    if text.count("types: [opened, reopened, ready_for_review, synchronize]") != 1 or "\n  push:\n" in text:
+        raise SystemExit("Rejected: exact-pin preflight must be PR-only and run on synchronize")
+
     if text.count(compile_root_policy) != 1:
+        raise SystemExit(
+            "Rejected: push and pull_request runs must keep quarantined standalone targets "
+            "at compile_root=false; only explicit workflow_dispatch may opt into root compilation"
+        )
+    if text.count("COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}") != 4:
+        raise SystemExit(
+            "Rejected: target classification, proof-plan hashing, and recheck stages "
+            "must all consume the single job-level compile_root policy"
+        )
+
+    lock_match = re.search(r"^\s*CACE_PACKAGE_CACHE_LOCK:\s*(.+?)\s*$", text, flags=re.MULTILINE)
+    if not lock_match:
+        raise SystemExit("Rejected: exact-pin workflow is missing its package-cache lock path")
+    lock_path = lock_match.group(1)
+    if not lock_path.startswith("/var/lib/cace-cache/locks/") or "/packages/" in lock_path:
+        raise SystemExit("Rejected: package-cache lock must live outside the replaceable package tree")
+    if text.count('mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"') != 2:
+        raise SystemExit("Rejected: both package-cache lock acquisitions must create the external lock directory")
+
+    names = tuple(
+        match.group(1).strip()
+        for match in re.finditer(r"^\s+- name:\s+(.+?)\s*$", text, flags=re.MULTILINE)
+    )
+    counts = Counter(names)
+    duplicates = sorted(name for name, count in counts.items() if count != 1)
+    if duplicates:
+        raise SystemExit(f"Rejected: duplicate/missing-unique workflow steps: {duplicates}")
+
+    missing = [name for name in EXPECTED_STEPS if name not in counts]
+    extras = [name for name in names if name not in EXPECTED_STEPS]
+    if missing or extras:
+        raise SystemExit(
+            f"Rejected: exact-pin step surface drift; missing={missing}, extras={extras}"
+        )
+
+    positions = [names.index(name) for name in EXPECTED_STEPS]
+    if positions != sorted(positions):
+        raise SystemExit("Rejected: exact-pin safety steps are out of required order")
+
+    missing_snippets = [snippet for snippet in REQUIRED_SNIPPETS if snippet not in text]
+    if missing_snippets:
+        raise SystemExit(
+            f"Rejected: exact-pin workflow lost guardrail snippets: {missing_snippets}"
+        )
+
+    if text.count("continue-on-error: true") != 6:
+        raise SystemExit(
+            "Rejected: diagnostic sweep must have exactly five continue-on-error stages"
+        )
+
+    diagnostic_ids = (
+        "canary_compile",
+        "impacted_compile",
+        "target_compile",
+        "rp2_compile",
+        "plan_recheck",
+        "root_compile",
+    )
+    for step_id in diagnostic_ids:
+        if f"id: {step_id}" not in text:
+            raise SystemExit(f"Rejected: missing diagnostic step id: {step_id}")
+
+    aggregate_pos = text.find("- name: Aggregate diagnostic sweep failures")
+    root_pos = text.find("- name: Compile audited root")
+    summary_pos = text.find("- name: Emit non-qualification summary")
+    if not (root_pos < aggregate_pos < summary_pos):
+        raise SystemExit("Rejected: diagnostic aggregate gate is out of required order")
+
+    if text.count("jobs:") != 1 or text.count("exact-pin-lean-preflight:") != 1:
+        raise SystemExit("Rejected: malformed/duplicated exact-pin job structure")
+
+    print(
+        "CACE_WORKFLOW_GUARDRAILS_OK",
+        {
+            "workflow": str(WORKFLOW.relative_to(ROOT)),
+            "step_count": len(names),
+        },
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
         raise SystemExit(
             "Rejected: push and pull_request runs must keep quarantined standalone targets "
             "at compile_root=false; only explicit workflow_dispatch may opt into root compilation"
