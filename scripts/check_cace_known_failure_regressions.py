@@ -379,6 +379,19 @@ def main() -> int:
         if re.search(r"(?m)^  cancel-in-progress:\s*false\s*$", workflow_text) is None:
             problems.append(f"{workflow_path}: cancel-in-progress must remain false")
 
+    canonical_exact_pin = ROOT / "ci/cace-exact-pin-lean-preflight.canonical.yml"
+    if not canonical_exact_pin.is_file():
+        problems.append(f"missing canonical exact-pin workflow template: {canonical_exact_pin}")
+    else:
+        canonical_text = canonical_exact_pin.read_text(encoding="utf-8")
+        canonical_group_match = re.search(r"(?m)^  group:\\s*([^\\s#]+)\\s*$", canonical_text)
+        if canonical_group_match is None:
+            problems.append("canonical exact-pin template is missing its concurrency group")
+        elif observed_groups.get(canonical_group_match.group(1)) != "exact-pin":
+            problems.append(
+                "canonical exact-pin template concurrency group must match the unique exact-pin workflow group"
+            )
+
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
     if not source_sanity_path.is_file():
         problems.append(f"missing regression source: {SOURCE_SANITY_WORKFLOW}")
