@@ -138,4 +138,85 @@ theorem one_skeleton_connected (v : Vertex) :
   · exact Or.inr ⟨⟨3, by decide⟩, rfl⟩
   · exact Or.inr ⟨⟨4, by decide⟩, rfl⟩
 
+
+/-! ## Linear chain maps and integral homology objects
+
+The coordinate boundary functions are exposed as genuine integral linear
+maps. Homology is defined as kernel modulo image; these definitions do not
+assert the desired group classifications.
+-/
+
+/-- The first integral boundary as a linear map. -/
+def boundary1Linear : C1 →ₗ[ℤ] C0 where
+  toFun := boundary1
+  map_add' := by
+    intro x y
+    funext v
+    simp [boundary1, Finset.sum_add_distrib, add_mul]
+  map_smul' := by
+    intro c x
+    funext v
+    simp only [boundary1, Pi.smul_apply, smul_eq_mul]
+    rw [← Finset.mul_sum]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro e he
+    ring
+
+/-- The second integral boundary as a linear map. -/
+def boundary2Linear : C2 →ₗ[ℤ] C1 where
+  toFun := boundary2
+  map_add' := by
+    intro x y
+    funext e
+    simp [boundary2, Finset.sum_add_distrib, add_mul]
+  map_smul' := by
+    intro c x
+    funext e
+    simp only [boundary2, Pi.smul_apply, smul_eq_mul]
+    rw [← Finset.mul_sum]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro f hf
+    ring
+
+/-- The two linear boundary maps compose to the zero map. -/
+theorem boundaryLinear_comp_zero :
+    boundary1Linear.comp boundary2Linear = 0 := by
+  ext z v
+  exact congrFun (boundary_squared_zero z) v
+
+/-- Integral 1-cycles: the kernel of the first boundary. -/
+def Z1 : Submodule ℤ C1 := LinearMap.ker boundary1Linear
+
+/-- Integral 1-boundaries: the image of the second boundary. -/
+def B1 : Submodule ℤ C1 := LinearMap.range boundary2Linear
+
+/-- Every integral 1-boundary is a 1-cycle. -/
+theorem B1_le_Z1 : B1 ≤ Z1 := by
+  intro z hz
+  rcases hz with ⟨w, rfl⟩
+  change boundary1 (boundary2 w) = 0
+  exact boundary_squared_zero w
+
+/-- Boundaries, viewed inside the cycle module. -/
+def B1InZ1 : Submodule ℤ Z1 where
+  carrier := {z | (z : C1) ∈ B1}
+  zero_mem' := by simp
+  add_mem' := by
+    intro x y hx hy
+    exact B1.add_mem hx hy
+  smul_mem' := by
+    intro c x hx
+    exact B1.smul_mem c hx
+
+/-- Integral first homology, defined as cycles modulo boundaries. -/
+abbrev H1 : Type := Z1 ⧸ B1InZ1
+
+/-- Integral zeroth homology, defined as 0-chains modulo 1-boundaries. -/
+abbrev H0 : Type := C0 ⧸ LinearMap.range boundary1Linear
+
+/-- Integral second homology for this 2-dimensional complex.
+There are no 3-chains, so it is the kernel of the second boundary. -/
+abbrev H2 : Type := LinearMap.ker boundary2Linear
 end CACEFormal.RP2
