@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean'
+      - 'formal/cace_formal/CACEFormal/RP2ChainComplex.lean'
       - 'formal/cace_formal/proof_guardrails.json'
       - 'formal/cace_formal/lean-toolchain'
       - 'formal/cace_formal/lakefile.lean'
@@ -346,6 +347,32 @@ jobs:
           stop="$(date +%s)"
           printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
 
+      - name: Compile quarantined RP2 chain complex
+        id: rp2_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_MODULE="CACEFormal.RP2ChainComplex" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          quarantined = set(json.loads(
+              Path("formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8")
+          ).get("quarantined_root_imports", ()))
+          target = os.environ["TARGET_MODULE"]
+          if target not in quarantined:
+              raise SystemExit("RP2 module must remain quarantined during standalone compilation")
+          print(f"CACE_RP2_QUARANTINE_CONFIRMED target={target}")
+          PY
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          start="$(date +%s)"
+          lake build +CACEFormal.RP2ChainComplex 2>&1 | tee "$GITHUB_WORKSPACE/cace-rp2-build.log"
+          stop="$(date +%s)"
+          printf 'CACE_RP2_STANDALONE_COMPILE_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+
       - name: Reverify frozen proof plan before audited root
         id: plan_recheck
         continue-on-error: true
@@ -393,6 +420,7 @@ jobs:
           CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
           IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
           TARGET_OUTCOME: ${{ steps.target_compile.outcome }}
+          RP2_OUTCOME: ${{ steps.rp2_compile.outcome }}
           PLAN_RECHECK_OUTCOME: ${{ steps.plan_recheck.outcome }}
           ROOT_OUTCOME: ${{ steps.root_compile.outcome }}
         run: |
@@ -415,6 +443,7 @@ jobs:
           record canary "$CANARY_OUTCOME"
           record impacted "$IMPACTED_OUTCOME"
           record target "$TARGET_OUTCOME"
+          record rp2_standalone "$RP2_OUTCOME"
           record plan_recheck "$PLAN_RECHECK_OUTCOME"
           record root "$ROOT_OUTCOME"
           cat cace-diagnostic-sweep.txt
@@ -442,7 +471,7 @@ jobs:
           proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}
           merge_base=${{ steps.guardrails.outputs.merge_base }}
           impacted_module_count=${{ steps.guardrails.outputs.impacted_count }}
-          guardrail_policy=validate -> canary -> reverse-dependents -> plan-recheck -> audited-root
+          guardrail_policy=validate -> canary -> reverse-dependents -> target -> quarantined-RP2-standalone -> plan-recheck -> audited-root
           cache_policy=ordinary proof runs are network-free; only explicit prewarm may download Mathlib artifacts
           note=This preflight catches policy drift, API canary failures, impacted-module failures, Lean elaboration/typechecking/import failures, and exact-plan drift. It never replaces canonical exact-current-head qualification, theorem metadata, kernel axiom audit, or attestation.
           EOF
@@ -463,6 +492,7 @@ jobs:
             cace-canary-build.log
             cace-impacted-build.log
             cace-target-build.log
+            cace-rp2-build.log
             cace-root-build.log
           if-no-files-found: warn
           retention-days: 14
