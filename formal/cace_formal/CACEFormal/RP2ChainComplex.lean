@@ -116,9 +116,10 @@ theorem basis_cardinalities :
     Fintype.card Vertex = 6 ∧ Fintype.card Edge = 15 ∧ Fintype.card Facet = 10 := by
   simp [Vertex, Edge, Facet]
 
+set_option maxHeartbeats 5000000
+
 /-- The simplicial boundary operators compose to zero over the integers.
 The finite expansion is deliberately given a larger local heartbeat budget. -/
-set_option maxHeartbeats 5000000
 theorem boundary_squared_zero (z : C2) : boundary1 (boundary2 z) = 0 := by
   funext v
   fin_cases v <;>
