@@ -1,7 +1,21 @@
 name: CACE Exact-Pin Lean Preflight
 
 on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean'
+      - 'formal/cace_formal/CACEFormal/RP2ChainComplex.lean'
+      - 'formal/cace_formal/proof_guardrails.json'
+      - 'formal/cace_formal/lean-toolchain'
+      - 'formal/cace_formal/lakefile.lean'
+      - 'scripts/cace_proof_guardrails.py'
+      - 'scripts/check_lean_source_sanity.py'
+      - '.github/workflows/cace-exact-pin-lean-preflight.yml'
+      - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
   pull_request:
+    types: [opened, reopened, ready_for_review]
     paths:
       - 'formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean'
       - 'formal/cace_formal/CACEFormal/RP2ChainComplex.lean'
@@ -43,6 +57,7 @@ jobs:
     timeout-minutes: 45
     env:
       CACE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      CACE_COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || (github.event_name == 'push' && 'true' || inputs.compile_root) }}
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
@@ -77,8 +92,8 @@ jobs:
         id: target
         shell: bash
         env:
-          REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}
-          COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}
+          REQUESTED_MODULE_RAW: ${{ inputs.module || ((github.event_name == 'pull_request' || github.event_name == 'push') && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
         run: |
           set -euo pipefail
           REQUESTED_MODULE="$(printf '%s' "$REQUESTED_MODULE_RAW" | sed -E 's/^Module:[[:space:]]*//; s/[[:space:]]+compile_root:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
@@ -140,7 +155,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
-          COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
@@ -187,7 +202,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
         run: |
           set -euo pipefail
           if test "$COMPILE_ROOT" = "true"; then
@@ -377,11 +392,11 @@ jobs:
       - name: Reverify frozen proof plan before audited root
         id: plan_recheck
         continue-on-error: true
-        if: ${{ inputs.compile_root }}
+        if: ${{ env.CACE_COMPILE_ROOT == 'true' }}
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
           EXPECTED_PLAN_SHA256: ${{ steps.guardrails.outputs.plan_sha256 }}
         run: |
           set -euo pipefail
@@ -401,7 +416,7 @@ jobs:
       - name: Compile audited root
         id: root_compile
         continue-on-error: true
-        if: ${{ inputs.compile_root }}
+        if: ${{ env.CACE_COMPILE_ROOT == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -467,7 +482,7 @@ jobs:
           mathlib_commit=$CACE_MATHLIB_COMMIT
           target=${{ inputs.module }}
           target_class=${{ steps.target.outputs.target_class }}
-          compile_root=${{ inputs.compile_root }}
+          compile_root=$CACE_COMPILE_ROOT
           prewarm_mathlib_cache=${{ inputs.prewarm_mathlib_cache }}
           proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}
           merge_base=${{ steps.guardrails.outputs.merge_base }}
