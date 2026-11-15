@@ -100,7 +100,7 @@ theorem face_edges_are_basis_edges (f : Facet) :
 /-- The edge basis has no duplicate oriented endpoint pairs. -/
 theorem edgeVertices_injective : Function.Injective edgeVertices := by
   intro e₁ e₂ h
-  fin_cases e₁ <;> fin_cases e₂ <;> norm_num [edgeVertices] at h ⊢
+  fin_cases e₁ <;> fin_cases e₂ <;> simp_all [edgeVertices]
 
 /-- Integral boundary map ∂₁ : C₁ → C₀. -/
 def boundary1 (z : C1) : C0 :=
@@ -116,7 +116,9 @@ theorem basis_cardinalities :
     Fintype.card Vertex = 6 ∧ Fintype.card Edge = 15 ∧ Fintype.card Facet = 10 := by
   simp [Vertex, Edge, Facet]
 
-/-- The simplicial boundary operators compose to zero over the integers. -/
+/-- The simplicial boundary operators compose to zero over the integers.
+The finite expansion is deliberately given a larger local heartbeat budget. -/
+set_option maxHeartbeats 1000000 in
 theorem boundary_squared_zero (z : C2) : boundary1 (boundary2 z) = 0 := by
   funext v
   fin_cases v <;>
