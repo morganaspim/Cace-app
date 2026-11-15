@@ -12,6 +12,7 @@ on:
       - 'formal/cace_formal/lakefile.lean'
       - 'scripts/cace_proof_guardrails.py'
       - 'scripts/check_lean_source_sanity.py'
+      - 'scripts/check_cace_workflow_guardrails.py'
       - '.github/workflows/cace-exact-pin-lean-preflight.yml'
       - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
   pull_request:
@@ -24,6 +25,7 @@ on:
       - 'formal/cace_formal/lakefile.lean'
       - 'scripts/cace_proof_guardrails.py'
       - 'scripts/check_lean_source_sanity.py'
+      - 'scripts/check_cace_workflow_guardrails.py'
       - '.github/workflows/cace-exact-pin-lean-preflight.yml'
       - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
   workflow_dispatch:
