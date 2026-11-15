@@ -384,7 +384,7 @@ def main() -> int:
         problems.append(f"missing canonical exact-pin workflow template: {canonical_exact_pin}")
     else:
         canonical_text = canonical_exact_pin.read_text(encoding="utf-8")
-        canonical_group_match = re.search(r"(?m)^  group:\\s*([^\\s#]+)\\s*$", canonical_text)
+        canonical_group_match = re.search(r"(?m)^  group:\s*([^\s#]+)\s*$", canonical_text)
         if canonical_group_match is None:
             problems.append("canonical exact-pin template is missing its concurrency group")
         elif observed_groups.get(canonical_group_match.group(1)) != "exact-pin":
