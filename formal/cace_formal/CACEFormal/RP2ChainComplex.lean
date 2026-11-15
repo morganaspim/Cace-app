@@ -161,10 +161,8 @@ def boundary1Linear : C1 →ₗ[ℤ] C0 where
       c * x e * edgeBoundary (edgeVertices e).1 (edgeVertices e).2 v) =
       c * ∑ e ∈ (Finset.univ : Finset Edge),
         x e * edgeBoundary (edgeVertices e).1 (edgeVertices e).2 v
+    simp_rw [mul_assoc]
     rw [← Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro e he
-    ring
 
 /-- The second integral boundary as a linear map. -/
 def boundary2Linear : C2 →ₗ[ℤ] C1 where
@@ -183,10 +181,8 @@ def boundary2Linear : C2 →ₗ[ℤ] C1 where
       c * ∑ f ∈ (Finset.univ : Finset Facet),
         x f * faceBoundary (faceVertices f).1 (faceVertices f).2.1
           (faceVertices f).2.2 e
+    simp_rw [mul_assoc]
     rw [← Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro f hf
-    ring
 
 /-- The two linear boundary maps compose to the zero map. -/
 theorem boundaryLinear_comp_zero :
