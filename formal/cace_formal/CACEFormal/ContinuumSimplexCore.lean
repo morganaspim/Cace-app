@@ -142,7 +142,9 @@ def firstChannel (f : PairEdgeField) : ℝ → ℝ := fun t => (f t).1
 
 def secondChannel (f : PairEdgeField) : ℝ → ℝ := fun t => (f t).2
 
-/-- Recombining the two projections recovers the original paired field. -/
+/-- Recombining the two projections recovers the original paired field.
+The proof destructs the evaluated pair explicitly so both projections reduce
+through the same constructor fields. -/
 theorem pair_channels_reconstruct (f : PairEdgeField) (t : ℝ) :
     (firstChannel f t, secondChannel f t) = f t := by
   cases h : f t with
