@@ -297,7 +297,7 @@ def main() -> int:
                     "normalize the distributional zero equality before injectivity"
                 )
 
-    # F-034: keep Fintype-to-Finset sum normalization explicit in the
+    # F-035: keep Fintype-to-Finset sum normalization explicit in the
     # quarantined RP2 linearity proofs, and use arbitrary-chain LinearMap.ext.
     rp2_path = ROOT / RP2_CHAIN_SOURCE
     if not rp2_path.is_file():
