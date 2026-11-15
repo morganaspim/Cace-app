@@ -281,6 +281,7 @@ jobs:
             collaboration/merlin-continuum/tests/test_independent_integer_homology_reference.py \
             tests/test_merlin_continuum_simplex_lean_contract.py \
             tests/test_qualification_promotion_v339.py
+          "$TEST_ENV/bin/python" scripts/check_cace_known_failure_regressions.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$TEST_ENV/bin/python" scripts/check_bug_sweep.py
 
       - name: Build exact-byte CACE continuum EvidenceBundle
