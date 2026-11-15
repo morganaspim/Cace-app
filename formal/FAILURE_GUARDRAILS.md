@@ -712,13 +712,15 @@ The old in-cache path was removed before the next exact-pin execution.
 
 ## F-035 — RP2 finite-sum scalar factoring and chain-map extensionality
 
-**Fingerprint:** standalone compilation of `CACEFormal.RP2ChainComplex` failed in the scalar-linearity proofs for both boundary maps because a Finset rewrite was applied directly to a Fintype sum. The chain-composition proof also used a two-variable `ext` sequence that reduced the goal to basis-generated maps rather than an arbitrary 2-chain.
+**Fingerprint:** standalone compilation of `CACEFormal.RP2ChainComplex` failed in both boundary-map scalar-linearity proofs because the product association did not match the `Finset.mul_sum` rewrite pattern after Fintype-to-Finset normalization. The chain-composition proof must also be checked for arbitrary-chain extensionality and absence of proof holes.
 
-**Root cause:** the proof did not make the Fintype-to-`Finset.univ` representation boundary explicit, and it relied on tactic-selected extensionality levels instead of the linear-map extensionality contract.
+**Root cause:** the proof made the Fintype-to-`Finset.univ` representation boundary explicit but did not normalize `c * x * boundary` to `c * (x * boundary)` before scalar factoring. Lean's error recovery also emitted downstream `sorry` warnings after the two scalar proof failures.
 
 **Permanent prevention:**
-- normalize each finite sum explicitly to `Finset.univ` before applying `Finset.mul_sum`;
+- normalize each finite sum explicitly to `Finset.univ`;
+- normalize product association with `simp_rw [mul_assoc]` before applying `Finset.mul_sum`;
 - prove boundary composition with `LinearMap.ext` over an arbitrary 2-chain, then reuse `boundary_squared_zero`;
+- reject `sorry` in both scalar-linearity blocks and the chain-composition proof;
 - retain the RP2 module in the explicit quarantine list until standalone compilation and subsequent independent homology classification gates pass.
 
-**Regression guard:** `scripts/check_cace_known_failure_regressions.py` checks both scalar-linearity proof shapes, the arbitrary-chain extensionality proof, and the RP2 quarantine entry.
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` checks Fintype-to-Finset normalization, product association, scalar factoring, absence of `sorry`, arbitrary-chain extensionality, and the RP2 quarantine entry.
