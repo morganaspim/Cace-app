@@ -352,6 +352,33 @@ def main() -> int:
         if "CACEFormal.RP2ChainComplex" not in (ROOT / "formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8"):
             problems.append("RP2 chain complex must remain quarantined from the audited root")
 
+    # F-036: independent CACE workflows need distinct concurrency groups.
+    # GitHub retains only one pending run per group; a shared group can silently
+    # replace the exact-pin preflight with source-sanity/collaboration runs.
+    workflow_group_paths = {
+        "exact-pin": ROOT / ".github/workflows/cace-exact-pin-lean-preflight.yml",
+        "source-sanity": ROOT / ".github/workflows/cace-lean-source-sanity.yml",
+        "collaboration": ROOT / ".github/workflows/cace-collaboration-validation.yml",
+    }
+    observed_groups: dict[str, str] = {}
+    for label, workflow_path in workflow_group_paths.items():
+        if not workflow_path.is_file():
+            problems.append(f"missing CACE workflow for concurrency guard: {workflow_path}")
+            continue
+        workflow_text = workflow_path.read_text(encoding="utf-8")
+        group_match = re.search(r"(?m)^  group:\\s*([^\\s#]+)\\s*$", workflow_text)
+        if group_match is None:
+            problems.append(f"{workflow_path}: missing dedicated concurrency group")
+            continue
+        group = group_match.group(1)
+        if group in observed_groups:
+            problems.append(
+                f"{workflow_path}: concurrency group collides with {observed_groups[group]}"
+            )
+        observed_groups[group] = label
+        if re.search(r"(?m)^  cancel-in-progress:\\s*false\\s*$", workflow_text) is None:
+            problems.append(f"{workflow_path}: cancel-in-progress must remain false")
+
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
     if not source_sanity_path.is_file():
         problems.append(f"missing regression source: {SOURCE_SANITY_WORKFLOW}")
