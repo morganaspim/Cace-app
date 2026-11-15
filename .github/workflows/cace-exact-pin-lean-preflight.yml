@@ -42,6 +42,7 @@ jobs:
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 45
     env:
+      CACE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
