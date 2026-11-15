@@ -708,3 +708,17 @@ The old in-cache path was removed before the next exact-pin execution.
 **Regression guard:** `scripts/check_cace_workflow_guardrails.py` checks both fallback sites. The failure was reproduced by exact-pin run
 [43638851920](https://github.com/morganaspim/Cace-app/actions/runs/43638851920), which stopped in proof-plan validation before any Lean compilation. This failed run is diagnostic evidence only; it is not a proof failure and not a compilation result.
 
+
+
+## F-034 — RP2 finite-sum scalar factoring and chain-map extensionality
+
+**Fingerprint:** standalone compilation of `CACEFormal.RP2ChainComplex` failed in the scalar-linearity proofs for both boundary maps because a Finset rewrite was applied directly to a Fintype sum. The chain-composition proof also used a two-variable `ext` sequence that reduced the goal to basis-generated maps rather than an arbitrary 2-chain.
+
+**Root cause:** the proof did not make the Fintype-to-`Finset.univ` representation boundary explicit, and it relied on tactic-selected extensionality levels instead of the linear-map extensionality contract.
+
+**Permanent prevention:**
+- normalize each finite sum explicitly to `Finset.univ` before applying `Finset.mul_sum`;
+- prove boundary composition with `LinearMap.ext` over an arbitrary 2-chain, then reuse `boundary_squared_zero`;
+- retain the RP2 module in the explicit quarantine list until standalone compilation and subsequent independent homology classification gates pass.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` checks both scalar-linearity proof shapes, the arbitrary-chain extensionality proof, and the RP2 quarantine entry.
