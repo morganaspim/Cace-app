@@ -324,10 +324,15 @@ def main() -> int:
                 problems.append(f"{RP2_CHAIN_SOURCE}: unable to locate {label} regression block")
                 continue
             body = rp2_text[start:end]
-            if expected not in body or "rw [← Finset.mul_sum]" not in body:
+            if (
+                expected not in body
+                or "simp_rw [mul_assoc]" not in body
+                or "rw [← Finset.mul_sum]" not in body
+                or "sorry" in body
+            ):
                 problems.append(
-                    f"{RP2_CHAIN_SOURCE}: {label} must explicitly normalize the Fintype "
-                    "sum to Finset.univ before factoring scalar multiplication"
+                    f"{RP2_CHAIN_SOURCE}: {label} must normalize product association, "
+                    "convert the Fintype sum to Finset.univ, factor the scalar, and contain no sorry"
                 )
         comp_start = rp2_text.find("theorem boundaryLinear_comp_zero")
         comp_end = rp2_text.find("/-- Integral 1-cycles", comp_start) if comp_start >= 0 else -1
@@ -335,10 +340,14 @@ def main() -> int:
             problems.append(f"{RP2_CHAIN_SOURCE}: unable to locate boundaryLinear_comp_zero")
         else:
             comp_body = rp2_text[comp_start:comp_end]
-            if "apply LinearMap.ext" not in comp_body or "boundary_squared_zero z" not in comp_body:
+            if (
+                "apply LinearMap.ext" not in comp_body
+                or "boundary_squared_zero z" not in comp_body
+                or "sorry" in comp_body
+            ):
                 problems.append(
                     f"{RP2_CHAIN_SOURCE}: chain-map composition must use extensionality "
-                    "over an arbitrary 2-chain, not a basis-index extensionality goal"
+                    "over an arbitrary 2-chain and contain no sorry"
                 )
         if "CACEFormal.RP2ChainComplex" not in (ROOT / "formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8"):
             problems.append("RP2 chain complex must remain quarantined from the audited root")
