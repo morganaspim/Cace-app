@@ -20,7 +20,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: cace-canonical-qualification-oci
+  group: cace-canonical-qualification-oci-collaboration
   cancel-in-progress: false
 
 jobs:
