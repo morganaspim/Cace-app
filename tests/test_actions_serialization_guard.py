@@ -18,9 +18,14 @@ def test_free_lane():
     assert mod.blockers([run(1, "CACE regression", "completed")]) == []
 
 
-def test_queued_cace_blocks():
-    found = mod.blockers([run(1, "CACE canonical qualification", "queued")])
-    assert [item["id"] for item in found] == [1]
+def test_queued_and_waiting_cace_runs_do_not_block_the_active_lane():
+    runs = [
+        run(1, "CACE canonical qualification", "queued"),
+        run(2, "CACE collaboration validation", "waiting"),
+        run(3, "CACE exact-pin preflight", "pending"),
+        run(4, "CACE manual dispatch", "requested"),
+    ]
+    assert mod.blockers(runs) == []
 
 
 def test_in_progress_cace_blocks():
@@ -37,7 +42,7 @@ def test_current_run_is_excluded():
 
 
 def test_other_cace_run_still_blocks_when_current_excluded():
-    runs = [run(4, "CACE validation", "in_progress"), run(5, "CACE formal", "queued")]
+    runs = [run(4, "CACE validation", "in_progress"), run(5, "CACE formal", "in_progress")]
     found = mod.blockers(runs, current_run_id=4)
     assert [item["id"] for item in found] == [5]
 
@@ -45,7 +50,7 @@ def test_other_cace_run_still_blocks_when_current_excluded():
 def test_explicitly_ignored_cheap_workflow_does_not_block():
     runs = [
         run(6, "CACE Lean Source Sanity", "in_progress"),
-        run(7, "CACE canonical qualification", "queued"),
+        run(7, "CACE canonical qualification", "in_progress"),
     ]
     found = mod.blockers(
         runs,
@@ -55,7 +60,7 @@ def test_explicitly_ignored_cheap_workflow_does_not_block():
 
 
 def test_ignore_name_is_exact_and_does_not_broaden_cace_lane():
-    runs = [run(8, "CACE Lean Source Sanity extended", "queued")]
+    runs = [run(8, "CACE Lean Source Sanity extended", "in_progress")]
     found = mod.blockers(
         runs,
         ignored_workflow_names={"CACE Lean Source Sanity"},
