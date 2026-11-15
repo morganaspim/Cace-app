@@ -708,3 +708,44 @@ The old in-cache path was removed before the next exact-pin execution.
 **Regression guard:** `scripts/check_cace_workflow_guardrails.py` checks both fallback sites. The failure was reproduced by exact-pin run
 [43638851920](https://github.com/morganaspim/Cace-app/actions/runs/43638851920), which stopped in proof-plan validation before any Lean compilation. This failed run is diagnostic evidence only; it is not a proof failure and not a compilation result.
 
+## F-035 — Fintype sums rewritten with Finset-only lemmas in RP² linearity proofs
+
+**Fingerprint:** exact-pin standalone compilation of `CACEFormal.RP2ChainComplex` on
+`88da2a15a9ed22b23c988354658a328a759a1b70` failed in the scalar-linearity proofs
+for `boundary1Linear` and `boundary2Linear`. At lines 160 and 177,
+`rw [← Finset.mul_sum]` could not match because the expressions are unrestricted
+`Fintype` sums (`∑ e, ...` / `∑ f, ...`), not sums over an explicitly supplied
+finite set. Line 187 also failed because a pointwise function equality was supplied
+where the goal was an equality of composed `LinearMap` applications to a basis
+vector.
+
+**Root cause:** the proof crossed three representation layers—dependent finite types,
+coordinate functions, and linear maps—without normalizing the sum representation
+or proving the composition statement at the correct abstraction boundary.
+
+**Permanent prevention:**
+- prove scalar-linearity for finite-type sums using a lemma whose type matches
+  `Fintype`/universe sums, or explicitly convert the sum to `Finset.univ.sum`
+  before applying a `Finset` lemma;
+- prefer the canonical linear-map extensionality route: establish the pointwise
+  composition theorem, then use the appropriate `LinearMap.ext`/basis evaluation
+  lemma to connect it to the composed map; do not pass a function equality directly
+  into a goal whose codomain is a linear map;
+- isolate each boundary-map scalar-linearity proof and the composition-zero proof
+  as separate compile canaries before rerunning the full standalone target;
+- retain the exact Lean and Mathlib pins when selecting sum and linear-map APIs.
+
+**Regression guard:** add focused Lean canaries for both boundary maps'
+`map_smul'` fields and for `boundary1Linear.comp boundary2Linear = 0`.
+The canaries must compile under Lean `leanprover/lean4:v4.32.1` and Mathlib
+`520045ab14e26149ee970e2e617ca04b09bde5d6`. A source-text pattern alone is
+insufficient; the pinned compiler must exercise the theorem statements.
+
+**Observed run:** exact-pin preflight
+[43741255348](https://github.com/morganaspim/Cace-app/actions/runs/43741255348),
+job `132894779215`, artifact
+[14172905900](https://github.com/morganaspim/Cace-app/actions/runs/43741255348/artifacts/14172905900).
+The earlier API canaries, impacted-module compile, and requested module compile passed;
+the quarantined RP² module failed at the three locations above. The audited root was
+skipped by design. The run explicitly emitted `qualification=false`. This entry
+records a compile failure and a proposed prevention; it does not claim a repair.
