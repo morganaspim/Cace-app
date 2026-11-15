@@ -798,3 +798,19 @@ All listed passes remain engineering CI, not live cloud or production qualificat
 - Adds a canonical integrity-only `merlin-backup-recovery-receipt/1` binding the source commit, exact protected workflow run/attempt/head, retained evidence artifact ID/digest and full Merlin ArtifactRef, separate Vault/Object Storage audit-export digests, backup package/manifest digest, restored manifest digest, encrypted envelope digest/size, content-addressed Object Storage object/version/ETag, KMS key and opaque key-version identity, distinct origin/restore host identity digests, timing and restore checks/counts.
 - The receipt is unsigned and does not prove that checks occurred. CACE must independently retrieve and attest the exact receipt/evidence artifact; this is not a substitute for live OCI or separate-host recovery.
 - This is stacked on Merlin PR #163 -> #161 -> #159 -> #158 -> #150 -> #149/#148 -> #144; keep draft and merge only in dependency order.
+
+
+## 2026-11-14 exact-pin failure diagnosis and corrected-source checkpoint
+
+- Failed exact-pin preflight run `43638964321` compiled event head `6be2e390aadfc8c6d17f3fb463a58b7b27058b5a`, target `CACEFormal.ContinuumSimplexCore`, Lean `leanprover/lean4:v4.32.1`, Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`. Job `132581989358` diagnostics:
+  - Pair-channel reconstruction did not close by definitional equality.
+  - `orientedEdgeBoundary`, `orientedTriangleBoundarySquared`, `orientedFaceBoundary`, and `orientedTetrahedronBoundarySquared` depended on noncomputable Finsupp instances.
+  - The triangle boundary proof emitted `No goals to be solved` from an unconditional trailing tactic.
+  - The requested target failed; plan recheck and audited-root compile were skipped. The artifact is engineering preflight only, not qualification.
+- Corrected source is present on this PR branch at exact head `3c78f8a938bbd171db9ae3f2be4f9be889ad0c5e`: pair reconstruction uses explicit pair cases and simplification; Finsupp chain definitions are marked `noncomputable`; boundary proofs use goal-aware tactic sequencing. The module remains quarantined.
+- The PR-triggered exact-pin workflow run `43664872661` on `3c78f8a938bbd171db9ae3f2be4f9be889ad0c5e` was cancelled before a job was created (jobs endpoint returned an empty list). Therefore the corrected source has **not** yet been shown to compile. Do not transfer the earlier failure or any unrelated pass to this head.
+- PR #102 remains OPEN/DRAFT and stacked on PR #101 / base `feat/merlin-continuum-oci-reproduction-20261112`. Do not merge it independently.
+- Next math gate: obtain a fresh exact-head run for `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, `prewarm_mathlib_cache=false`, preserving the Lean/Mathlib pins above. Retain stdout, stderr, exact commit, toolchain, Mathlib revision, exit status and artifact digest. The available GitHub connector does not expose workflow dispatch; a cancelled run with no jobs cannot be treated as a rerun or a compile.
+- Continue keeping the RP² module quarantined until its own standalone kernel compilation and actual chain/homology proofs pass. Python/C++ reference calculations remain independent engineering evidence, not Lean theorems.
+- Cloudflare is not an approved runtime/deployment target for Merlin. Ignore preview/deployment bot noise; do not re-enable or deploy Cloudflare.
+
