@@ -28,6 +28,7 @@ EXPECTED_STEPS = (
     "Compile proof API canaries",
     "Compile changed modules and audited reverse dependents",
     "Compile requested Lean module",
+    "Compile quarantined RP2 chain complex",
     "Reverify frozen proof plan before audited root",
     "Compile audited root",
     "Aggregate diagnostic sweep failures",
@@ -38,6 +39,7 @@ EXPECTED_STEPS = (
 REQUIRED_SNIPPETS = (
     "pull_request:",
     "CACEFormal/ContinuumSimplexCore.lean",
+    "CACEFormal/RP2ChainComplex.lean",
     "REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
     "COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}",
     "fetch-depth: 0",
@@ -58,12 +60,15 @@ REQUIRED_SNIPPETS = (
     'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
     "proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}",
     "continue-on-error: true",
+    "lake build +CACEFormal.RP2ChainComplex",
+    "CACE_RP2_QUARANTINE_CONFIRMED",
     "CACE_DIAGNOSTIC_SWEEP_FAILURES",
     "CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock",
     'mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"',
     "cace-canary-build.log",
     "cace-impacted-build.log",
     "cace-target-build.log",
+    "cace-rp2-build.log",
     "cace-root-build.log",
 )
 
@@ -120,7 +125,7 @@ def main() -> int:
             f"Rejected: exact-pin workflow lost guardrail snippets: {missing_snippets}"
         )
 
-    if text.count("continue-on-error: true") != 5:
+    if text.count("continue-on-error: true") != 6:
         raise SystemExit(
             "Rejected: diagnostic sweep must have exactly five continue-on-error stages"
         )
@@ -129,6 +134,7 @@ def main() -> int:
         "canary_compile",
         "impacted_compile",
         "target_compile",
+        "rp2_compile",
         "plan_recheck",
         "root_compile",
     )
