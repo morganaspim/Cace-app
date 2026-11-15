@@ -737,4 +737,4 @@ The old in-cache path was removed before the next exact-pin execution.
 - retain `cancel-in-progress: false` within each workflow-specific group;
 - keep the group separation under a regression guard so a future workflow edit cannot silently reintroduce pending-run starvation.
 
-**Regression guard:** `scripts/check_cace_known_failure_regressions.py` verifies the three group names are present, unique and non-cancelling.
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` verifies the three group names are present, unique and non-cancelling, and that the runnable exact-pin workflow's group matches its byte-for-byte canonical template. The exact-pin canonical template is updated in lockstep because `check_cace_workflow_guardrails.py` rejects any runnable/template drift.
