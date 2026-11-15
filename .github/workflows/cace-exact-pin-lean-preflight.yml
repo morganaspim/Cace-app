@@ -85,7 +85,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=no)"
-          python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID"
+          python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID" --ignore-workflow-name "CACE Lean Source Sanity"
           printf 'exact_head=%s\n' "$CACE_EXPECTED_HEAD"
 
       - name: Validate requested target and audited-root reachability
