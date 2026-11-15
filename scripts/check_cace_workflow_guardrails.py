@@ -40,8 +40,8 @@ REQUIRED_SNIPPETS = (
     "pull_request:",
     "CACEFormal/ContinuumSimplexCore.lean",
     "CACEFormal/RP2ChainComplex.lean",
-    "REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
-    "COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}",
+    "REQUESTED_MODULE_RAW: ${{ inputs.module || ((github.event_name == 'pull_request' || github.event_name == 'push') && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
+    "COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}",
     "fetch-depth: 0",
     "python3 scripts/cace_proof_guardrails.py validate",
     "python3 scripts/cace_proof_guardrails.py impacted",
@@ -57,7 +57,7 @@ REQUIRED_SNIPPETS = (
     "lake build +CACEFormal.GuardrailCanaries",
     'lake build "${targets[@]}"',
     'test "$actual" = "$EXPECTED_PLAN_SHA256"',
-    'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+    'test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"',
     "proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}",
     "continue-on-error: true",
     "lake build +CACEFormal.RP2ChainComplex",
@@ -83,11 +83,16 @@ def main() -> int:
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
 
-    compile_root_fallback = "COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}"
-    if text.count(compile_root_fallback) != 2:
+    compile_root_policy = "CACE_COMPILE_ROOT: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 'false' || inputs.compile_root }}"
+    if text.count(compile_root_policy) != 1:
         raise SystemExit(
-            "Rejected: both standalone target classification and proof-plan hashing "
-            "must force compile_root=false for pull_request events"
+            "Rejected: push and pull_request runs must keep quarantined standalone targets "
+            "at compile_root=false; only explicit workflow_dispatch may opt into root compilation"
+        )
+    if text.count("COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}") != 4:
+        raise SystemExit(
+            "Rejected: target classification, proof-plan hashing, and recheck stages "
+            "must all consume the single job-level compile_root policy"
         )
 
     lock_match = re.search(r"^\s*CACE_PACKAGE_CACHE_LOCK:\s*(.+?)\s*$", text, flags=re.MULTILINE)
