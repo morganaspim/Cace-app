@@ -814,3 +814,39 @@ All listed passes remain engineering CI, not live cloud or production qualificat
 - Continue keeping the RP² module quarantined until its own standalone kernel compilation and actual chain/homology proofs pass. Python/C++ reference calculations remain independent engineering evidence, not Lean theorems.
 - Cloudflare is not an approved runtime/deployment target for Merlin. Ignore preview/deployment bot noise; do not re-enable or deploy Cloudflare.
 
+
+
+## 2026-11-15 continuation checkpoint — creative intake and exact current gates
+
+This section supersedes older snapshots only where it explicitly identifies a newer exact head or status. Re-query live refs and Actions before further work.
+
+### CACE RP² exact-pin status
+
+- Live CACE PR #102 remains OPEN/DRAFT, stacked on the continuum OCI reproduction branch. Current head at this checkpoint: `03709c8c2c3f0fa6515a5f7aaecebb50a451c7cc`.
+- Current RP² Lean source blob: `formal/cace_formal/CACEFormal/RP2ChainComplex.lean`, blob `de38d861809496cd9624e63ce776048ad3e79d1d`.
+- The latest actual Lean compile remains run [43757339510](https://github.com/morganaspim/Cace-app/actions/runs/43757339510) on earlier head `ee929fd708131fa5b85483395da2ee128e434fcc`. The RP² standalone target failed in the two scalar-linearity proofs because multiplication association prevented the `Finset.mul_sum` rewrite.
+- The current source contains the subsequent `simp_rw [mul_assoc]` correction in both `map_smul'` proofs, plus the general-chain `LinearMap.ext` composition proof. These are source-reviewed but **not compiled on the current head**.
+- The exact-pin workflow was then blocked before Lean by F-036 canonical-template drift. Concurrency groups and the canonical template were corrected in commits ending at current head `03709c8c...`. The follow-up commits used `[skip ci]` to respect the no-additional-Actions-quota constraint. There is no exact-head Lean compile, source-sanity, or collaboration pass on `03709c8c...`.
+- Do not dispatch another run, consume runner/cache capacity, or claim qualification without a fresh owner-approved execution window. Do not transfer older CI success to this head. RP² remains quarantined and unqualified; the file defines H0/H1/H2 objects but does not yet prove their integral group classifications.
+- The CACEFormal.ContinuumSimplexCore compile success on an older run does not establish RP² compilation or homology.
+
+### Expert Robot and PR chain
+
+- Expert Robot PR #144 remains OPEN/DRAFT on exact head `5c61749cb1083e55804e0a3a9df2bad41f901f1b`. Native CI, unified platform, voice/HUD hosted evidence, learning identity, and learning platform runs recorded in PR #144 passed on that exact head. Avrea-specific hybrid voice and representation-spectrum jobs were cancelled; do not claim those capabilities qualified.
+- PR #144 remains stacked on PR #143; PR #143 and bootstrap PR #138 remain OPEN/DRAFT. No merge, deployment, signer provisioning, or production source-identity configuration is implied.
+- A new documentation-only creative-toolchain intake PR is open: [Expert Robot PR #173](https://github.com/Mannyspiro/expert-robot/pull/173), branch `docs/merlin-creative-toolchain-intake-20261115`, based on the PR #144 artifact-lineage branch. It records Blender and ComfyUI archive digests, licenses, architecture and qualification gaps. It intentionally does not commit the binary archives or model weights.
+
+### Creative toolchain intake
+
+- Blender 5.3.0 Linux x86-64 archive SHA-256: `dacb8264197a3f7fda6001285a5a506fc97ee943881261c2c3bd63c882f22e05`. The executable header is ELF64 little-endian x86-64 (e_machine 62). Archive expands to about 1.29 GB.
+- ComfyUI source archive SHA-256: `d04633f43a85041453f21c7970b4ec3881c3dd2acf4e78b535c7b44eeeeed62b`; `pyproject.toml` declares version 0.45.0 and Python >=3.10. The ZIP has no Git metadata, contains no model weights, and has only the example and websocket image-save custom-node files. Pin the upstream source revision before production use.
+- Both archives passed structural member-path checks for absolute and parent-traversal entries. This is not a malware scan, installation test, or runtime qualification.
+- The target creative runtime remains Linux x86-64. The current CACE OCI operations guide documents the existing `cace-oci-a1` runner as Linux ARM64/AArch64. Do not run the Blender x86-64 executable on that runner. Use an actual qualified x86-64 worker for Blender and production ComfyUI runtime tests.
+- No GPU/CUDA compatibility, model licensing, workflow correctness, application launch, deployment, or CACE verification is claimed.
+
+### Operational constraints
+
+- Continue assuming Avrea is unavailable until 2026-12-01.
+- Preserve original uploaded archives. Any external copy must be checked against the recorded SHA-256 before the original is deleted.
+- Prefer cheap source inspection and deterministic local checks; avoid repeated or speculative expensive Actions runs.
+- The next proof work is to obtain an owner-approved exact-head run on a single fixed SHA after the F-035/F-036 guards are reviewed. If no execution window is approved, continue source review and formal proof design without changing qualification state.
