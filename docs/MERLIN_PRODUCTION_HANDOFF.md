@@ -932,3 +932,12 @@ The first PR-triggered preflight on commit `fe56ba0cb339d587c1ce1ce237e46006f56f
 Correction committed as `e1f1a9834f6fca0d17fd1c29789c091517feaf66`: restore `.github/workflows/cace-exact-pin-lean-preflight.yml` from `ci/cace-exact-pin-lean-preflight.canonical.yml` byte-for-byte. The canonical workflow already contains a dedicated `Compile quarantined RP2 chain complex` step that runs `lake build +CACEFormal.RP2ChainComplex` after guardrail validation, so no custom workflow-target override is needed.
 
 The next exact-head run must first pass `check_cace_workflow_guardrails.py`, then execute the standalone RP² Lean compile. Do not count run 43910176895 as a Lean compile attempt.
+
+
+### F-035 regression caught the attempted simplification; source restored
+
+The second exact-pin run on `e1f1a9834f6fca0d17fd1c29789c091517feaf66` passed the workflow-template byte comparison and source/target classification, but stopped in `scripts/check_cace_known_failure_regressions.py` before Lean setup. The specific F-035 regression guard requires the explicit Fintype-to-`Finset.univ` sum conversion, product reassociation, scalar factoring via `Finset.mul_sum`, and arbitrary-chain `LinearMap.ext` proof. The simplified proof attempt removed those required seams.
+
+Correction committed as `9de2622a468163b58eae17ba4c21874b41cd5f9c`: restore the three boundary-map proof blocks from the exact PR #102 source snapshot, preserving the established F-035 structure. The prior simplification is rejected and must not be treated as a viable Lean fix.
+
+The next synchronized PR run should pass the F-035 source regression guard and proceed to the actual pinned Lean build. If the compiler then reports a proof error, diagnose that exact message and update the failure ledger and regression guard together; do not weaken or bypass F-035.
