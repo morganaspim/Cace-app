@@ -155,14 +155,8 @@ def boundary1Linear : C1 →ₗ[ℤ] C0 where
     simp [boundary1, Finset.sum_add_distrib, add_mul]
   map_smul' := by
     intro c x
-    funext v
-    simp only [boundary1, Pi.smul_apply, smul_eq_mul]
-    change (∑ e ∈ (Finset.univ : Finset Edge),
-      c * x e * edgeBoundary (edgeVertices e).1 (edgeVertices e).2 v) =
-      c * ∑ e ∈ (Finset.univ : Finset Edge),
-        x e * edgeBoundary (edgeVertices e).1 (edgeVertices e).2 v
-    simp_rw [mul_assoc]
-    rw [← Finset.mul_sum]
+    ext v
+    simp [boundary1, Finset.mul_sum, mul_assoc]
 
 /-- The second integral boundary as a linear map. -/
 def boundary2Linear : C2 →ₗ[ℤ] C1 where
@@ -173,23 +167,14 @@ def boundary2Linear : C2 →ₗ[ℤ] C1 where
     simp [boundary2, Finset.sum_add_distrib, add_mul]
   map_smul' := by
     intro c x
-    funext e
-    simp only [boundary2, Pi.smul_apply, smul_eq_mul]
-    change (∑ f ∈ (Finset.univ : Finset Facet),
-      c * x f * faceBoundary (faceVertices f).1 (faceVertices f).2.1
-        (faceVertices f).2.2 e) =
-      c * ∑ f ∈ (Finset.univ : Finset Facet),
-        x f * faceBoundary (faceVertices f).1 (faceVertices f).2.1
-          (faceVertices f).2.2 e
-    simp_rw [mul_assoc]
-    rw [← Finset.mul_sum]
+    ext e
+    simp [boundary2, Finset.mul_sum, mul_assoc]
 
 /-- The two linear boundary maps compose to the zero map. -/
 theorem boundaryLinear_comp_zero :
     boundary1Linear.comp boundary2Linear = 0 := by
-  apply LinearMap.ext
-  intro z
-  simpa [boundary1Linear, boundary2Linear] using boundary_squared_zero z
+  ext z v
+  exact congrFun (boundary_squared_zero z) v
 
 /-- Integral 1-cycles: the kernel of the first boundary. -/
 def Z1 : Submodule ℤ C1 := LinearMap.ker boundary1Linear
