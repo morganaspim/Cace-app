@@ -850,3 +850,12 @@ This section supersedes older snapshots only where it explicitly identifies a ne
 - Preserve original uploaded archives. Any external copy must be checked against the recorded SHA-256 before the original is deleted.
 - Prefer cheap source inspection and deterministic local checks; avoid repeated or speculative expensive Actions runs.
 - The next proof work is to obtain an owner-approved exact-head run on a single fixed SHA after the F-035/F-036 guards are reviewed. If no execution window is approved, continue source review and formal proof design without changing qualification state.
+
+
+## 2026-11-16 creative-toolchain intake CI and archive integrity
+
+- Expert Robot PR #173 exact head `10e52ea57d3542a1c303cf11e049a2cd8eb222b8` completed full native CI run [43790408866](https://github.com/Mannyspiro/expert-robot/actions/runs/43790408866): **SUCCESS**. The `build-and-smoke` job completed the repository's focused Python groups, C++ configure/build/tests, independent RP²/persistence homology audit, research/API contracts, engineering IR/CAD checks, CACE return-bridge guardrails, and remaining smoke groups. This is repository regression evidence on the exact PR head; it does not install or qualify Blender or ComfyUI.
+- Retained artifacts from that run: CI diagnostics artifact `14192560392`, SHA-256 `321956efd2adf7c4d558a4b94400d0a4f7f161f2fb97cc3f2f4b0dbf5203d1e1`; cross-domain benchmark `14191819454`, SHA-256 `4a37f0f894daada020ddec465b70bfd53e3e15107fc2eae822721f3415f2b927`; equation-atlas baseline `14191814346`, SHA-256 `26ad914c5cc683ed134a9d3220fa9ae8dfd2968dd5d62627ffed0577eb8174d1`. These are GitHub Actions artifacts with their normal expiration; preserve them in durable storage if needed.
+- The Blender XZ/TAR archive was fully streamed through all 6,672 members (1,292,440,678 uncompressed bytes), exercising the compressed-stream integrity check. The ComfyUI ZIP CRC test passed for all entries. Both archives had no absolute or parent-traversal member paths. These are archive-integrity checks, not malware scanning.
+- The creative intake PR remains documentation/manifest only; no binary archives or model weights were committed. ComfyUI has 116 bundled JSON workflow blueprints and no common model-weight files. Its ZIP has no Git metadata, so an upstream commit still must be pinned before production use.
+- No Blender or ComfyUI process was launched. No target x86-64 runtime, GPU, CUDA, model, workflow, or CACE verification qualification is claimed.
