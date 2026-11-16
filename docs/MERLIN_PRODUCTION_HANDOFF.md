@@ -822,7 +822,7 @@ This section supersedes older snapshots only where it explicitly identifies a ne
 
 ### CACE RP² exact-pin status
 
-- Live CACE PR #102 remains OPEN/DRAFT, stacked on the continuum OCI reproduction branch. Current head at this checkpoint: `03709c8c2c3f0fa6515a5f7aaecebb50a451c7cc`.
+- Live CACE PR #102 remains OPEN/DRAFT, stacked on the continuum OCI reproduction branch. Current PR head after this handoff refresh: `d8dffba8b5a8274853391eda566658b0223b33f9` (documentation-only commit with `[skip ci]`); the latest source-code head reviewed for the RP² correction is `03709c8c2c3f0fa6515a5f7aaecebb50a451c7cc`.
 - Current RP² Lean source blob: `formal/cace_formal/CACEFormal/RP2ChainComplex.lean`, blob `de38d861809496cd9624e63ce776048ad3e79d1d`.
 - The latest actual Lean compile remains run [43757339510](https://github.com/morganaspim/Cace-app/actions/runs/43757339510) on earlier head `ee929fd708131fa5b85483395da2ee128e434fcc`. The RP² standalone target failed in the two scalar-linearity proofs because multiplication association prevented the `Finset.mul_sum` rewrite.
 - The current source contains the subsequent `simp_rw [mul_assoc]` correction in both `map_smul'` proofs, plus the general-chain `LinearMap.ext` composition proof. These are source-reviewed but **not compiled on the current head**.
