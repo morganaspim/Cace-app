@@ -859,3 +859,46 @@ This section supersedes older snapshots only where it explicitly identifies a ne
 - The Blender XZ/TAR archive was fully streamed through all 6,672 members (1,292,440,678 uncompressed bytes), exercising the compressed-stream integrity check. The ComfyUI ZIP CRC test passed for all entries. Both archives had no absolute or parent-traversal member paths. These are archive-integrity checks, not malware scanning.
 - The creative intake PR remains documentation/manifest only; no binary archives or model weights were committed. ComfyUI has 116 bundled JSON workflow blueprints and no common model-weight files. Its ZIP has no Git metadata, so an upstream commit still must be pinned before production use.
 - No Blender or ComfyUI process was launched. No target x86-64 runtime, GPU, CUDA, model, workflow, or CACE verification qualification is claimed.
+
+
+## RP² integral homology — concrete Lean decomposition candidate (not yet formalized)
+
+The independent Python reference in `collaboration/merlin-continuum/tests/test_independent_integer_homology_reference.py` constructs the integral boundaries directly and collapses the spanning tree `{(0,i) | i=1..5}` to obtain a square presentation for H1. The following exact integer data was reconstructed from its ordered facet list as a source-review aid. It must be reproduced by the pinned reference and then proved in Lean before qualification.
+
+### H0
+
+Use the augmentation map `ε : C0 → ℤ`, `ε(v-chain) = sum of coefficients`. Each edge boundary has augmentation zero. The five star-edge boundaries `∂[0,i] = e_i - e_0` form a basis of the augmentation kernel. This gives the intended quotient `H0 ≅ ℤ`; formalize both inclusions and the explicit inverse.
+
+### H1
+
+Use the ten non-tree edges, ordered:
+`(1,2),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5),(3,4),(3,5),(4,5)`.
+
+For each non-tree edge `(i,j)`, define the cycle
+`z_ij = [i,j] + [0,i] - [0,j]`.
+Its boundary is zero. These cycles are the candidate integral basis of `ker ∂1): coefficients on non-tree edges determine a cycle uniquely, and the five tree-edge coefficients are then forced.
+
+In this cycle basis, the ten facet boundaries give the following 10×10 relation matrix (rows are the listed non-tree edges; columns follow the ten facet order in `RP2ChainComplex.lean`):
+
+```text
+[ 1  0  0  0  0  1  0  0  0  0 ]
+[ 0  1  0  0  0  0  1  0  0  0 ]
+[ 0  0  0  0  0  0 -1  1  0  0 ]
+[ 0  0  0  0  0 -1  0 -1  0  0 ]
+[ 0  0  0  0  0  0  0  0  1  1 ]
+[ 0  0  1  0  0  0  0  0 -1  0 ]
+[ 0  0  0  0  0  1  0  0  0 -1 ]
+[ 0  0  0  0  0  0  1  0  1  0 ]
+[ 0  0  0  1  0  0  0  0  0  1 ]
+[ 0  0  0  0  1  0  0  1  0  0 ]
+```
+
+Exact integer calculation gives determinant `-2`. Deleting zero-based row 2 and column 0 gives a 9×9 minor with determinant `-1`. Thus the first nine determinantal divisors are 1 and the tenth is 2; the Smith factors are `1,1,1,1,1,1,1,1,1,2`, yielding the intended `H1 ≅ ℤ/2ℤ`. The Lean development should either prove an explicit unimodular equivalence to `diag(1,…,1,2)` or formalize the determinantal-divisor theorem and this witness. Do not merely import the Python result as a theorem.
+
+### H2
+
+The 15×10 matrix for `∂2` has a 10×10 minor on zero-based edge rows `(0,1,2,3,5,6,7,9,10,12)` with determinant `-2`. A nonzero maximal minor establishes injectivity over `ℚ`, hence the kernel on the free integral chain group is zero. Formalize the selected minor and the torsion-free argument to obtain `H2=0`.
+
+### Proof and qualification boundary
+
+This decomposition is a concrete proof plan backed by exact finite integer calculations and the existing independent-reference implementation. It is **not** a Lean proof, and no current RP² Lean classification theorem follows from it. The present Lean file still defines the homology objects without proving these isomorphisms. Keep RP² quarantined until the scalar-linearity correction compiles on an exact head and all three classifications are proved in the pinned Lean environment.
