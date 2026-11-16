@@ -370,3 +370,11 @@ def control_run(job_id: str, action: str) -> dict[str, Any]:
         else:
             control.cancel()
         return _job_snapshot(job)
+
+
+# Authenticated, provenance-only artifact integrity endpoint. This router is
+# deliberately separate from proof qualification and fails closed when its
+# dedicated credentials, GitHub read token, or pinned signer are absent.
+from cace_studio.core.artifact_integrity_api import router as artifact_integrity_router
+
+app.include_router(artifact_integrity_router)
