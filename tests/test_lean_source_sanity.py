@@ -26,6 +26,13 @@ def literal : String := "/-- not a comment inside a string"
     assert scan_text(Path("Fixture.lean"), text) == []
 
 
+def test_proof_hole_tokens_are_rejected_but_comments_and_strings_are_ignored() -> None:
+    assert "proof-hole-token" in _kinds("theorem bad : True := by\n  sorry\n")
+    assert "proof-hole-token" in _kinds("theorem bad : True := by\n  admit\n")
+    safe = '-- sorry\n/- admit -/\ndef safe : String := "sorry admit"\n'
+    assert "proof-hole-token" not in _kinds(safe)
+
+
 def test_unterminated_block_comment_is_rejected() -> None:
     assert "unterminated-block-comment" in _kinds("/-- broken\ntheorem x : True := by trivial\n")
 

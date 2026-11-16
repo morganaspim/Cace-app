@@ -24,6 +24,7 @@ RCASES_PAT_RE = re.compile(r"\brcases\b.*?\bwith\b.*?⟨(?P<body>[^⟩]*)⟩")
 RCASES_RESERVED = {
     "by", "fun", "match", "let", "where", "do", "if", "then", "else", "in", "end"
 }
+PROOF_HOLE_RE = re.compile(r"\b(?:sorry|admit)\b")
 
 
 def _issue(path: Path, line: int, column: int, kind: str, detail: str) -> dict:
@@ -134,7 +135,19 @@ def scan_text(path: Path, text: str) -> list[dict]:
         issues.append(_issue(path, string_start[0], string_start[1], "unterminated-string",
             "string literal remains open at EOF"))
 
-    for lineno, source_line in enumerate("".join(cleaned).splitlines(), start=1):
+    cleaned_text = "".join(cleaned)
+    for match in PROOF_HOLE_RE.finditer(cleaned_text):
+        line_number = cleaned_text.count("\n", 0, match.start()) + 1
+        line_start = cleaned_text.rfind("\n", 0, match.start()) + 1
+        issues.append(_issue(
+            path,
+            line_number,
+            match.start() - line_start + 1,
+            "proof-hole-token",
+            f"forbidden Lean proof-hole token {match.group(0)!r}",
+        ))
+
+    for lineno, source_line in enumerate(cleaned_text.splitlines(), start=1):
         glued = GLUED_DECL_RE.search(source_line)
         if glued:
             issues.append(_issue(path, lineno, glued.start() + 2, "glued-declaration-keyword",

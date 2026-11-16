@@ -20,7 +20,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: cace-canonical-qualification-oci
+  group: cace-canonical-qualification-oci-collaboration
   cancel-in-progress: false
 
 jobs:
@@ -257,6 +257,7 @@ jobs:
             tests/test_lean_source_sanity.py \
             tests/test_oci_mcp_policy.py \
             tests/test_merlin_rsi_cace_verifier.py \
+            tests/test_merlin_artifact_ref.py \
             tests/test_oci_mcp_runner_inventory.py \
             tests/test_oci_mcp_health_probe.py \
             tests/test_cli.py \
@@ -280,6 +281,7 @@ jobs:
             collaboration/merlin-continuum/tests/test_independent_integer_homology_reference.py \
             tests/test_merlin_continuum_simplex_lean_contract.py \
             tests/test_qualification_promotion_v339.py
+          "$TEST_ENV/bin/python" scripts/check_cace_known_failure_regressions.py
           PYTHONPATH="$GITHUB_WORKSPACE" "$TEST_ENV/bin/python" scripts/check_bug_sweep.py
 
       - name: Build exact-byte CACE continuum EvidenceBundle

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Fail closed when another CACE GitHub Actions run is active or queued.
+"""Fail closed when another CACE GitHub Actions run is executing on the shared OCI lane.
 
+GitHub concurrency serializes queued/waiting runs. They do not own the runner and
+must not block the active run, or the serialization guard deadlocks its own queue.
 Engineering coordination only. This guard does not create proof evidence.
 """
 from __future__ import annotations
@@ -11,7 +13,7 @@ import os
 import sys
 import urllib.request
 
-ACTIVE = {"queued", "in_progress", "waiting", "pending", "requested"}
+ACTIVE = {"in_progress"}
 
 
 def fetch_runs(repository: str, token: str) -> list[dict]:

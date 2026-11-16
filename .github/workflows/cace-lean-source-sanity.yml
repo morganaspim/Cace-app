@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cace-canonical-qualification-oci
+  group: cace-canonical-qualification-oci-source-sanity
   cancel-in-progress: false
 
 jobs:

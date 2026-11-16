@@ -142,11 +142,14 @@ def firstChannel (f : PairEdgeField) : ℝ → ℝ := fun t => (f t).1
 
 def secondChannel (f : PairEdgeField) : ℝ → ℝ := fun t => (f t).2
 
-/-- Recombining the two projections recovers the original paired field. -/
+/-- Recombining the two projections recovers the original paired field.
+The proof destructs the evaluated pair explicitly so both projections reduce
+through the same constructor fields. -/
 theorem pair_channels_reconstruct (f : PairEdgeField) (t : ℝ) :
     (firstChannel f t, secondChannel f t) = f t := by
-  cases h : f t
-  rfl
+  cases h : f t with
+  | mk x y =>
+      simp [firstChannel, secondChannel, h]
 
 
 /-! ## Oriented triangle boundary cancellation
@@ -160,13 +163,13 @@ the continuity and state-field assumptions above.
 
 /-- Boundary of an oriented 1-simplex [a,b], represented as an integer
 0-chain. -/
-def orientedEdgeBoundary {V : Type*} [DecidableEq V] (a b : V) :
+noncomputable def orientedEdgeBoundary {V : Type*} [DecidableEq V] (a b : V) :
     V →₀ ℤ :=
   Finsupp.single b 1 - Finsupp.single a 1
 
 /-- Apply the vertex boundary to the alternating oriented boundary of
 the triangle [a,b,c]. -/
-def orientedTriangleBoundarySquared {V : Type*} [DecidableEq V]
+noncomputable def orientedTriangleBoundarySquared {V : Type*} [DecidableEq V]
     (a b c : V) : V →₀ ℤ :=
   orientedEdgeBoundary b c -
     orientedEdgeBoundary a c +
@@ -177,8 +180,7 @@ theorem oriented_triangle_boundary_squared_zero
     {V : Type*} [DecidableEq V] (a b c : V) :
     orientedTriangleBoundarySquared a b c = 0 := by
   ext v
-  simp [orientedTriangleBoundarySquared, orientedEdgeBoundary]
-  ring
+  simp [orientedTriangleBoundarySquared, orientedEdgeBoundary] <;> ring
 
 
 
@@ -193,7 +195,7 @@ chain identity and does not depend on the paired-continuum fields.
 
 /-- Boundary of an oriented 2-simplex [a,b,c], represented as an integer
 1-chain on ordered vertex pairs. -/
-def orientedFaceBoundary {V : Type*} [DecidableEq V] (a b c : V) :
+noncomputable def orientedFaceBoundary {V : Type*} [DecidableEq V] (a b c : V) :
     (V × V) →₀ ℤ :=
   Finsupp.single (b, c) 1 -
     Finsupp.single (a, c) 1 +
@@ -201,7 +203,7 @@ def orientedFaceBoundary {V : Type*} [DecidableEq V] (a b c : V) :
 
 /-- Apply the edge boundary to the alternating oriented face boundary
 of a tetrahedron [a,b,c,d]. -/
-def orientedTetrahedronBoundarySquared {V : Type*} [DecidableEq V]
+noncomputable def orientedTetrahedronBoundarySquared {V : Type*} [DecidableEq V]
     (a b c d : V) : (V × V) →₀ ℤ :=
   orientedFaceBoundary b c d -
     orientedFaceBoundary a c d +
@@ -214,8 +216,7 @@ theorem oriented_tetrahedron_boundary_squared_zero
     {V : Type*} [DecidableEq V] (a b c d : V) :
     orientedTetrahedronBoundarySquared a b c d = 0 := by
   ext edge
-  simp [orientedTetrahedronBoundarySquared, orientedFaceBoundary]
-  ring
+  simp [orientedTetrahedronBoundarySquared, orientedFaceBoundary] <;> ring
 
 
 

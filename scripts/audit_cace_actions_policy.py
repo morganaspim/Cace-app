@@ -4,7 +4,8 @@
 This is engineering coordination only. It does not create proof evidence. The audit
 fails closed if the self-hosted workflows broaden their automatic triggers, lose the
 shared serialization group, or if collaboration validation expands beyond the explicit
-lightweight automatic surface. Heavy formal-proof paths are manual-dispatch only.
+lightweight automatic surface. The exact-pin preflight is PR-scoped to the single
+quarantined continuum module and remains non-qualification evidence.
 """
 from __future__ import annotations
 
@@ -38,8 +39,9 @@ EXPECTED_AUTOMATIC = {
     "cace-collaboration-validation.yml": {"pull_request"},
     "cace-formal-v336-theorem-metadata.yml": {"push"},
     "cace-python-regression.yml": {"push"},
-    # Manual-only exact-pin typecheck lane; never qualification evidence.
-    "cace-exact-pin-lean-preflight.yml": set(),
+    # PR-scoped exact-pin typecheck of the quarantined continuum module;
+    # never qualification evidence.
+    "cace-exact-pin-lean-preflight.yml": {"pull_request"},
     "cace-batch-exact-pin-lean-preflight.yml": set(),
     "cace-lean-source-sanity.yml": {"pull_request"},
     # Read-only protected-branch OCI receipt validator; manual dispatch only.

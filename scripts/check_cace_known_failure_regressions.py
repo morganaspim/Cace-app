@@ -62,6 +62,7 @@ EXECUTABLE_RATIONAL_SOURCE = (
 SOURCE_SANITY_WORKFLOW = ".github/workflows/cace-lean-source-sanity.yml"
 POSITIVE_LAPLACIAN_SOURCE = "formal/cace_formal/CACEFormal/PositiveLaplacianAnnihilator.lean"
 HDIV_ANNIHILATOR_SOURCE = "formal/cace_formal/CACEFormal/HDivGraphAnnihilator.lean"
+RP2_CHAIN_SOURCE = "formal/cace_formal/CACEFormal/RP2ChainComplex.lean"
 RECENTER_TO_REAL_RE = re.compile(
     r"theorem\s+recenterMap_toReal\b(?P<body>[\s\S]*?)(?=\n@\[simp\] theorem inverseEdgeLinear_toReal)"
 )
@@ -295,6 +296,101 @@ def main() -> int:
                     f"{HDIV_ANNIHILATOR_SOURCE}: reversed-H1 zero proof must explicitly "
                     "normalize the distributional zero equality before injectivity"
                 )
+
+    # F-035: keep Fintype-to-Finset sum normalization explicit in the
+    # quarantined RP2 linearity proofs, and use arbitrary-chain LinearMap.ext.
+    rp2_path = ROOT / RP2_CHAIN_SOURCE
+    if not rp2_path.is_file():
+        problems.append(f"missing regression source: {RP2_CHAIN_SOURCE}")
+    else:
+        rp2_text = rp2_path.read_text(encoding="utf-8")
+        for label, start_token, end_token, expected in (
+            (
+                "boundary1Linear.map_smul'",
+                "def boundary1Linear",
+                "/-- The second integral boundary",
+                "change (∑ e ∈ (Finset.univ : Finset Edge),",
+            ),
+            (
+                "boundary2Linear.map_smul'",
+                "def boundary2Linear",
+                "/-- The two linear boundary maps",
+                "change (∑ f ∈ (Finset.univ : Finset Facet),",
+            ),
+        ):
+            start = rp2_text.find(start_token)
+            end = rp2_text.find(end_token, start + len(start_token)) if start >= 0 else -1
+            if start < 0 or end <= start:
+                problems.append(f"{RP2_CHAIN_SOURCE}: unable to locate {label} regression block")
+                continue
+            body = rp2_text[start:end]
+            if (
+                expected not in body
+                or "simp_rw [mul_assoc]" not in body
+                or "rw [← Finset.mul_sum]" not in body
+                or "sorry" in body
+            ):
+                problems.append(
+                    f"{RP2_CHAIN_SOURCE}: {label} must normalize product association, "
+                    "convert the Fintype sum to Finset.univ, factor the scalar, and contain no sorry"
+                )
+        comp_start = rp2_text.find("theorem boundaryLinear_comp_zero")
+        comp_end = rp2_text.find("/-- Integral 1-cycles", comp_start) if comp_start >= 0 else -1
+        if comp_start < 0 or comp_end <= comp_start:
+            problems.append(f"{RP2_CHAIN_SOURCE}: unable to locate boundaryLinear_comp_zero")
+        else:
+            comp_body = rp2_text[comp_start:comp_end]
+            if (
+                "apply LinearMap.ext" not in comp_body
+                or "boundary_squared_zero z" not in comp_body
+                or "sorry" in comp_body
+            ):
+                problems.append(
+                    f"{RP2_CHAIN_SOURCE}: chain-map composition must use extensionality "
+                    "over an arbitrary 2-chain and contain no sorry"
+                )
+        if "CACEFormal.RP2ChainComplex" not in (ROOT / "formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8"):
+            problems.append("RP2 chain complex must remain quarantined from the audited root")
+
+    # F-036: independent CACE workflows need distinct concurrency groups.
+    # GitHub retains only one pending run per group; a shared group can silently
+    # replace the exact-pin preflight with source-sanity/collaboration runs.
+    workflow_group_paths = {
+        "exact-pin": ROOT / ".github/workflows/cace-exact-pin-lean-preflight.yml",
+        "source-sanity": ROOT / ".github/workflows/cace-lean-source-sanity.yml",
+        "collaboration": ROOT / ".github/workflows/cace-collaboration-validation.yml",
+    }
+    observed_groups: dict[str, str] = {}
+    for label, workflow_path in workflow_group_paths.items():
+        if not workflow_path.is_file():
+            problems.append(f"missing CACE workflow for concurrency guard: {workflow_path}")
+            continue
+        workflow_text = workflow_path.read_text(encoding="utf-8")
+        group_match = re.search(r"(?m)^  group:\s*([^\s#]+)\s*$", workflow_text)
+        if group_match is None:
+            problems.append(f"{workflow_path}: missing dedicated concurrency group")
+            continue
+        group = group_match.group(1)
+        if group in observed_groups:
+            problems.append(
+                f"{workflow_path}: concurrency group collides with {observed_groups[group]}"
+            )
+        observed_groups[group] = label
+        if re.search(r"(?m)^  cancel-in-progress:\s*false\s*$", workflow_text) is None:
+            problems.append(f"{workflow_path}: cancel-in-progress must remain false")
+
+    canonical_exact_pin = ROOT / "ci/cace-exact-pin-lean-preflight.canonical.yml"
+    if not canonical_exact_pin.is_file():
+        problems.append(f"missing canonical exact-pin workflow template: {canonical_exact_pin}")
+    else:
+        canonical_text = canonical_exact_pin.read_text(encoding="utf-8")
+        canonical_group_match = re.search(r"(?m)^  group:\s*([^\s#]+)\s*$", canonical_text)
+        if canonical_group_match is None:
+            problems.append("canonical exact-pin template is missing its concurrency group")
+        elif observed_groups.get(canonical_group_match.group(1)) != "exact-pin":
+            problems.append(
+                "canonical exact-pin template concurrency group must match the unique exact-pin workflow group"
+            )
 
     source_sanity_path = ROOT / SOURCE_SANITY_WORKFLOW
     if not source_sanity_path.is_file():

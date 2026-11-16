@@ -28,6 +28,7 @@ EXPECTED_STEPS = (
     "Compile proof API canaries",
     "Compile changed modules and audited reverse dependents",
     "Compile requested Lean module",
+    "Compile quarantined RP2 chain complex",
     "Reverify frozen proof plan before audited root",
     "Compile audited root",
     "Aggregate diagnostic sweep failures",
@@ -36,7 +37,13 @@ EXPECTED_STEPS = (
 )
 
 REQUIRED_SNIPPETS = (
+    "pull_request:",
+    "CACEFormal/ContinuumSimplexCore.lean",
+    "CACEFormal/RP2ChainComplex.lean",
+    "REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}",
+    "COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}",
     "fetch-depth: 0",
+    "scripts/cace_actions_serialization_guard.py",
     "python3 scripts/cace_proof_guardrails.py validate",
     "python3 scripts/cace_proof_guardrails.py impacted",
     "python3 scripts/cace_proof_guardrails.py plan-hash",
@@ -51,13 +58,18 @@ REQUIRED_SNIPPETS = (
     "lake build +CACEFormal.GuardrailCanaries",
     'lake build "${targets[@]}"',
     'test "$actual" = "$EXPECTED_PLAN_SHA256"',
-    'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+    'test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"',
     "proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}",
     "continue-on-error: true",
+    "lake build +CACEFormal.RP2ChainComplex",
+    "CACE_RP2_QUARANTINE_CONFIRMED",
     "CACE_DIAGNOSTIC_SWEEP_FAILURES",
+    "CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock",
+    'mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"',
     "cace-canary-build.log",
     "cace-impacted-build.log",
     "cace-target-build.log",
+    "cace-rp2-build.log",
     "cace-root-build.log",
 )
 
@@ -71,6 +83,30 @@ def main() -> int:
         )
     if "\t" in text:
         raise SystemExit("Rejected: tabs are forbidden in exact-pin workflow YAML")
+
+    compile_root_policy = "CACE_COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}"
+    if text.count("types: [opened, reopened, ready_for_review, synchronize]") != 1 or "\n  push:\n" in text:
+        raise SystemExit("Rejected: exact-pin preflight must be PR-only and run on synchronize")
+
+    if text.count(compile_root_policy) != 1:
+        raise SystemExit(
+            "Rejected: push and pull_request runs must keep quarantined standalone targets "
+            "at compile_root=false; only explicit workflow_dispatch may opt into root compilation"
+        )
+    if text.count("COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}") != 4:
+        raise SystemExit(
+            "Rejected: target classification, proof-plan hashing, and recheck stages "
+            "must all consume the single job-level compile_root policy"
+        )
+
+    lock_match = re.search(r"^\s*CACE_PACKAGE_CACHE_LOCK:\s*(.+?)\s*$", text, flags=re.MULTILINE)
+    if not lock_match:
+        raise SystemExit("Rejected: exact-pin workflow is missing its package-cache lock path")
+    lock_path = lock_match.group(1)
+    if not lock_path.startswith("/var/lib/cace-cache/locks/") or "/packages/" in lock_path:
+        raise SystemExit("Rejected: package-cache lock must live outside the replaceable package tree")
+    if text.count('mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"') != 2:
+        raise SystemExit("Rejected: both package-cache lock acquisitions must create the external lock directory")
 
     names = tuple(
         match.group(1).strip()
@@ -98,7 +134,7 @@ def main() -> int:
             f"Rejected: exact-pin workflow lost guardrail snippets: {missing_snippets}"
         )
 
-    if text.count("continue-on-error: true") != 5:
+    if text.count("continue-on-error: true") != 6:
         raise SystemExit(
             "Rejected: diagnostic sweep must have exactly five continue-on-error stages"
         )
@@ -107,6 +143,7 @@ def main() -> int:
         "canary_compile",
         "impacted_compile",
         "target_compile",
+        "rp2_compile",
         "plan_recheck",
         "root_compile",
     )

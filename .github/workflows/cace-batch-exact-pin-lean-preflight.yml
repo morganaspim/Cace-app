@@ -108,6 +108,12 @@ jobs:
           printf 'merge_base=%s\n' "$merge_base" >> "$GITHUB_OUTPUT"
           cat cace-impacted-modules.txt
 
+      - name: Scan the complete formal Lean tree for proof holes and malformed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_lean_source_sanity.py formal/cace_formal
+
       - name: Reject malformed Lean source seams in every batch target
         shell: bash
         run: |

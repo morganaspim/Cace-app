@@ -472,3 +472,339 @@ Science-module direction:
 - approximately 100 curated high-value examples as a long-term target.
 
 This program is architecture/implementation intent only and does not alter existing proof qualification state.
+
+
+## 2026-11-13 continuity and runner operations update
+
+The canonical Merlin/CACE cross-agent handoff is now `docs/MERLIN_PRODUCTION_HANDOFF.md`. Every AI/chat/agent must read it before work, then re-query live GitHub state. It records the Merlin architecture and product goals, authority/security invariants, active PR chain, exact validation commits/runs, mathematical gates, bug-to-guardrail lifecycle, and next actions. It is a navigation snapshot, never proof evidence.
+
+Runner setup and operational safety are documented in `docs/OCI_RUNNER_OPERATIONS.md`. It covers the existing `cace-oci-a1` self-hosted lane, labels, ARM64 architecture, loopback-only OCI MCP service, least-privilege instance-principal model, safe replacement-runner procedure, health checks, resource gates, and recovery. Archived provisioning scripts are historical only; in particular, the archived unrestricted `ocarun` sudo grant must never be reused.
+
+Both documents are first-read entries in `CACE_AGENT_BOOTSTRAP.json` and linked from the repository README. The latest PR #102 head validation is run #655, exact head `a9b8a9c661c7271e40d8927c1622c67ced52ccdb`, successful engineering-only validation. Re-query current PR and run state before any action. PR #102 remains stacked on PR #101 and must not merge independently.
+
+
+## 2026-11-13 Merlin math continuation
+
+Read `docs/MERLIN_PRODUCTION_HANDOFF.md` first for the full canonical state. The F-031 proof-hole guard now has a second layer: `scripts/check_lean_source_sanity.py` masks comments/strings and scans the complete `formal/cace_formal` tree for whole-token `sorry` and `admit`; the exact-pin workflow invokes it before compilation. Regression fixtures are in `tests/test_lean_source_sanity.py`.
+
+Validation boundary: scanner implementation passed CACE collaboration run `43469516682` and Lean Source Sanity run `43469517086` on `dca948e89c8153693b287da8c8c31caa84a568eb`. The corrected final multiline mutation fixtures are in `f66eaa63c5480bc49db2d377019087d4e1643475` and need a fresh exact-head run. Earlier collaboration run `43468823050` validated `1739266a2a22fde3c2fbae07f3ec232027cf07fb`, before this scanner extension. None of these is a Lean kernel compile or proof qualification.
+
+Next: exact-head scanner/collaboration validation; then manually dispatch the exact-pin Lean standalone preflight for `CACEFormal.ContinuumSimplexCore` with Lean `v4.32.1` and Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`. Keep the module quarantined until every formal and independent CACE gate passes. PR #102 remains stacked on PR #101; do not merge independently.
+
+## 2026-11-13 production Merlin artifact-lineage continuation
+
+Source implementation is being developed in [Expert Robot PR #144](https://github.com/Mannyspiro/expert-robot/pull/144), stacked on Expert Robot PR #143. Live source branch: `feat/merlin-artifact-version-lineage-20261113`; latest observed head: `7593b782d688132b206fc16f83ddf131b919a496`. PR #144 remains OPEN/DRAFT and unmerged.
+
+The source branch extends the existing canonical `MerlinRegistry` with append-only per-project/per-logical-path artifact versions and strict `merlin-artifact-ref/1` identities. The reference binds project ID, normalized logical path, chronological version and SHA-256. Resolution re-hashes exact bytes and checks size; historical versions remain resolvable. Currentness is based on version identity, not digest equality, including the A -> B -> A reversion case.
+
+Artifact references have been propagated source-side through:
+- research evidence results, graph node metadata and graph-edge provenance (graph identity includes version);
+- `merlin-research-task/2` dispatch envelopes;
+- Hermes input context and `merlin-hermes-task-result/2` receipts;
+- the production Hermes runtime's injected canonical registry resolver, which revalidates input/output references;
+- Avrea dispatch receipts and exact-byte input transfer, capped at 25 MiB per artifact / 50 MiB aggregate;
+- Avrea collected output receipts and durable outbox events.
+
+The source branch adds regressions for historical versions/reversions, tampered blobs, Hermes reference validation, missing-validator fail-closed behavior, Avrea input resolution and exact-byte transfer. Exact current-head native CI run `43534991502` and unified platform run `43534991526` were pending/queued at the latest live check. Earlier native CI passed on prior commits but does not validate the latest head. Do not claim the unified suite passed until a completed success for the exact current head is observed.
+
+Critical remaining boundary: CACE's actual signed EvidenceBundle contract has not yet been updated to include the complete artifact reference (especially chronological version) in its signed statement and independent verification. Source-side digest checks are not a substitute. The next coordinated change must update the CACE verifier/signer producer and Merlin adapter together, require exact reference equality, re-resolve the referenced bytes independently, and retain pinned trust verification. Until then, end-to-end CACE artifact-version verification is NOT COMPLETE.
+
+PR #144 has not changed any runner host, IAM, credentials, signer keys, deployment, or production configuration. It grants no promotion authority. Keep PR #144 draft and stacked; do not merge it independently. Keep signing, verification and promotion as distinct transitions.
+
+
+## 2026-11-14 production Merlin continuation
+
+Read `docs/MERLIN_PRODUCTION_HANDOFF.md` for the full exact state. Live source recheck:
+- Expert Robot PR #144 head `7593b782d688132b206fc16f83ddf131b919a496`, OPEN/DRAFT and stacked on #143.
+- Exact-head native CI #43534991502: SUCCESS.
+- Exact-head unified platform run #43534991526: CANCELLED. It is not a pass; inspect cancellation cause and obtain a fresh exact-head run.
+- No merge, deployment, runner/IAM/credential change, signer setup or promotion.
+
+CACE architecture clarification from current repository inspection:
+- The generic Ed25519 statement supports signed `bindings`, but the current CLI sign path binds only qualified commit and proof-artifact digest.
+- Generic signature verification validates the embedded key/signature but does not independently trust-pin the key.
+- EvidenceBundle v1 is a digest/size/Merkle manifest; it does not independently resolve a Merlin project/path/version reference or fetch canonical registry bytes.
+- The current OCI MCP server is an operational control plane, not a Merlin verifier/signer endpoint. The previously assumed `ops/oci_mcp/merlin_rsi_verifier.py` path is absent from current main; re-discover actual implementation paths before coding.
+
+Next production gate: strict CACE request schema + independent canonical-registry byte resolution + full ArtifactRef binding in EvidenceBundle/signed statement + consumer trust-pin verification. Keep `proof_effect=none`. Do not claim end-to-end verification until the actual resolver, signer, pinned trust and Merlin response validation work together. Do not create/configure keys, secrets, endpoints, IAM or host services without separate authorization.
+
+
+## 2026-11-14 latest Merlin CI continuation
+
+Expert Robot PR #144 latest exact head: `53d0f18d0f0cd15acd15dae2f8a19ced0509a5db` (OPEN/DRAFT, stacked). The previous exact head `67013dd151b6a3c5839bec72d6f94ff327c16a98` passed native CI but unified tests had 220 passed / 1 failed due a newline-escaping issue in a test assertion. That assertion was simplified in the latest source commit. Fresh exact-head native CI #43544767097 and unified platform #43544767303 are IN_PROGRESS; no success is claimed yet. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for the full failure analysis and CACE signing boundary.
+
+
+## 2026-11-14 authenticated artifact resolver boundary
+
+Expert Robot PR #144 latest source head `57e74bae65237e86d6efbcde3dab0e518e5b8b8d` adds a read-only `POST /api/artifacts/resolve` endpoint backed by `MerlinRegistry.read_artifact_ref`. It requires a dedicated `MERLIN_ARTIFACT_READ_TOKEN`, is unavailable without token + canonical registry, and caps exact-byte reads at 25 MiB. The response contains the complete versioned ArtifactRef, resolution metadata and base64 bytes; CACE must independently re-hash those bytes and verify the reference. API tests are added to the unified suite. Exact-head CI is pending/queued; see `docs/MERLIN_PRODUCTION_HANDOFF.md` for run IDs. No production token or deployment configuration has been changed. CACE signing/independent trust verification remains outstanding.
+
+
+Latest source update: Expert Robot PR #144 head `d64a932d6cae3ba1fdc5250cee494f7351c58d42` includes the authenticated artifact resolver plus a fix for a duplicate `artifact_ref_validator` keyword in `tests/test_research_dispatch.py`; that test module is now included in the unified platform suite. Latest native CI #43545472615 is IN_PROGRESS and unified platform #43545472669 is QUEUED. No exact-head pass is claimed. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for the endpoint contract and earlier compileall diagnosis.
+
+
+CACE signer boundary reviewed: `attest_merlin_rsi_bundle` can produce CACE-core `artifact-integrity` signatures over exact EvidenceBundle bytes, but does not yet enforce Merlin `merlin-artifact-ref/1`; the existing verifier is RSI-specific and must not be reused as a generic verifier. Add a separate ArtifactRef-specific attestation/verification contract with authenticated registry resolution, independent byte hashing, full ref + source commit bindings, and pinned CACE trust. No production token, signing key, trust store, feature flag or deployment was configured. See `docs/MERLIN_PRODUCTION_HANDOFF.md` for exact code locations and mutation-test requirements.
+
+
+## 2026-11-14 exact-head Merlin regression continuation
+
+Expert Robot PR #144 is OPEN/DRAFT and stacked on PR #143. Latest observed source head beaf612da6d049518fda6f67b3ebb8cb2e3d9de9 fixes two test-fixture defects from exact-head unified run #504 (229 passed / 2 failed on predecessor 2cb255b). Fresh native CI #3870 and unified platform #505 are IN_PROGRESS on the exact latest head. Links and full failure analysis are in docs/MERLIN_PRODUCTION_HANDOFF.md. No exact-head pass is claimed yet.
+
+CACE PR #102 remains OPEN/DRAFT, stacked on its paired-continuum/OCI parent. Continue by inspecting the actual current CACE branch tree before implementation; do not assume previously mentioned signer/verifier paths still exist. CACE production signer/trust configuration and Merlin resolver credentials remain untouched. End-to-end ArtifactRef verification is NOT COMPLETE.
+
+
+Latest exact-head status (2026-11-14): Expert Robot PR #144 head beaf612da6d049518fda6f67b3ebb8cb2e3d9de9 has native CI #3870 and unified platform #505 both SUCCESS (runs 43600074262 and 43600074355). It remains OPEN/DRAFT and stacked on #143. CACE ArtifactRef signer/verifier is still not implemented: current RSI module paths are `ops/oci_mcp/merlin_rsi_verifier.py` and `ops/oci_mcp/server.py`; use a distinct ArtifactRef integrity contract, not RSI reproduction verification. See MERLIN_PRODUCTION_HANDOFF.md for exact resolver response schema and next mutation-test plan. No signer key, trust store, feature flag, endpoint/token, OCI host, IAM or deployment has been changed.
+
+
+## 2026-11-14 CACE ArtifactRef exact-head continuation
+
+Read the latest `docs/MERLIN_PRODUCTION_HANDOFF.md` section before continuing. CACE PR #102 head `7082e600105a41982e066d3bd9f39a8b49b3cd6f` has collaboration validation #43600934614 SUCCESS and Lean Source Sanity #43600934550 SUCCESS. The collaboration run explicitly includes `tests/test_merlin_artifact_ref.py`, including a CACE Ed25519 sign/verify round trip and mutation checks. Evidence artifact `14116262399`, digest `sha256:44e9263308b1660be4c5bf5ecd982f36995f8421f3e733ca3294fb9cafce47b2`.
+
+CACE ArtifactRef code is now implemented separately from RSI verification. Server initialization order was corrected before the MCP decorators; resolver transport is HTTPS-only, bearer-authenticated, endpoint-path constrained and redirect-rejecting. The signed binding ties full Merlin ArtifactRef + source commit + artifact identity to the single EvidenceBundle manifest. It remains verification-only and does not grant proof/promotion authority.
+
+The live Merlin endpoint source contract was compared with Expert Robot exact passing source head `beaf612da6d049518fda6f67b3ebb8cb2e3d9de9`; no live request was made because the production token/URL are not configured. Signer key/trust provisioning, protected signer run, distinct main-only protected orchestrator run, exact-pin Lean kernel compilation and independent RP²/SNF reproductions remain outstanding. Do not call the feature production-qualified until all six gates in the full handoff are evidenced. PR #102 remains OPEN/DRAFT and stacked; no secrets, OCI host/IAM or production deployment changed.
+
+
+## 2026-11-14 latest CACE code validation
+
+CACE PR #102 latest code head `ab6c146da6b990956fb64a53f78adee58abec69c` passed collaboration validation #43601156993. The exact-head test list includes `tests/test_merlin_artifact_ref.py` and covers the CACE ArtifactRef sign/verify round trip, mutation checks, trust-key uniqueness and MCP initialization-order regression. Evidence artifact `14115733300`, digest `sha256:1a789b77b7ce40febd2a00615cd1f4a05c04108dc872847df76a7cbcce99b87e`.
+
+The paired-continuum Lean target present in this CACE branch is `CACEFormal/ContinuumSimplexCore.lean`; guardrails quarantine it from the audited root. The manual exact-pin preflight should target this module with `compile_root=false`, Lean `v4.32.1`, mathlib commit `520045ab14e26149ee970e2e617ca04b09bde5d6`. No exact-pin kernel compilation was run. The protected orchestrator is manual-dispatch on `main`; no protected orchestrator run or live signer/trust configuration exists yet. Do not infer production qualification from the passing engineering test suite.
+
+
+## 2026-11-14 immutable source provenance is now required
+
+The initial CACE verifier could sign a caller-supplied source commit without Merlin independently associating that commit with the exact historical ArtifactRef. That was not sufficient. CACE now requires exact resolver-owned `resolution.provenance` (`merlin-artifact-provenance/1`) and compares source repo/commit and artifact ID/kind/schema before signing and verifying.
+
+The matching Merlin registry implementation is on PR #144: immutable per-version provenance table, append-only triggers, canonical JSON digest, resolver response field, and generated-artifact writers that attach deployed source identity only when `MERLIN_SOURCE_REPO` and `MERLIN_SOURCE_COMMIT` are configured. Historical versions lacking provenance remain unqualified; no backfill or mutation is permitted.
+
+CACE PR #102 latest validation head `bb69228989e972756510a86ef0040999f66d6f9e`:
+- Collaboration validation #43601704421 SUCCESS.
+- Lean Source Sanity #43601704583 SUCCESS.
+- Evidence artifact `14116493756`, digest `sha256:c6af772ddb022861c53a972bb0ef1deab42ad09a778fb912d39db08e2201f6b1`.
+
+No production env variables, secrets, signer key, trust root, feature flag, live resolver request, protected orchestrator run or exact-pin kernel compile have been provisioned/executed. PR #102 remains OPEN/DRAFT and stacked.
+
+
+## 2026-11-14 exact-head continuation after ArtifactRef provenance
+
+CACE exact code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe` passed both:
+- Collaboration validation #43601889665: SUCCESS.
+- Lean Source Sanity #43601889638: SUCCESS.
+- Retained collaboration evidence artifact `14117195243`, SHA-256 `c9450d12ede4db886d52e4a309f3e0b37ab3a7e75471ec2af92b433b23fc49a5`.
+
+This head includes:
+- resolver-owned `merlin-artifact-provenance/1` required by CACE before signing or verifying;
+- strict canonical historical-resolution metadata and nested ArtifactRef equality;
+- a dedicated Ed25519 key initializer that refuses symlinks and never overwrites an existing key;
+- separate ArtifactRef MCP tools and readiness reporting;
+- independent exact-byte RP²/SNF Python reference plus C++ exact-byte continuum smoke suite;
+- F-032 exact-pin workflow template drift prevention;
+- F-033 external lockfile protection against inode replacement during package-cache swap.
+
+The latest docs-only PR head is `d890187227e3611dd72dc58885037c6467a5a711`; code test evidence remains bound to `24bfc5b9`.
+
+Next six gates remain:
+1. Set deployed Merlin `MERLIN_SOURCE_REPO` / `MERLIN_SOURCE_COMMIT` and CACE resolver URL/token.
+2. Provision the separate ArtifactRef signer key and independently digest-pinned trust store on the protected OCI host.
+3. Perform a live exact historical-byte resolve → CACE attest → separate verification; retain signed receipt.
+4. Run the protected main-only orchestrator validator against that exact OCI execution.
+5. Manually dispatch the exact-pin Lean preflight for `CACEFormal/ContinuumSimplexCore.lean`, `compile_root=false`, Lean `v4.32.1`, Mathlib `520045ab14e26149ee970e2e617ca04b09bde5d6`.
+6. Keep RP²/SNF and persistence results tied to exact source bytes; treat current independent Python/C++ evidence as finite engineering evidence, not a formal proof or promotion.
+
+No production secrets, signer key, trust material, environment variables, feature flag, host/IAM configuration, live resolver call, protected orchestrator run, or deployment has been provisioned/executed. PR #102 remains OPEN/DRAFT and stacked.
+
+ 
+## 2026-11-14 live continuation checkpoint
+
+- Merlin PR #144 source branch head: `5c61749cb1083e55804e0a3a9df2bad41f901f1b`. Native CI #3883/run `43602313717` and unified platform #518/run `43602313718` both succeeded. Unified evidence artifact `14116637887`, SHA-256 `d359aa6d268aaea2287d4575f138abf856f4f359fd3802c3b4504f921a6b36b9`.
+- CACE PR #102 current branch head: `f0263f83390a9979b9254cd5b7dcfe0b28df9c5c`. Exact-head Collaboration Validation #712/run `43602061080` succeeded; artifact `14116563014`, SHA-256 `f6855853743a6043defd8c07f89afa4b8075486edc201fc3dfc1435fc589444c`.
+- CACE current head is docs-only beyond code head `24bfc5b920bfb2af6abf2de076f04c2c29bc95fe). The four intervening commits changed only the two handoff documents. Lean Source Sanity #308/run `43602060984` was cancelled before a job started; the unchanged code head `24bfc5b9` previously passed the source-sanity check on run `43601889638`.
+- Both PRs remain unmerged/draft; no promotion or deployment.
+- Still blocked: deployed source identity and resolver credentials; protected signer key and independent trust pin; live resolve/attest/verify; protected main-only orchestrator run; manual exact-pin Lean kernel compile; formal qualification. No secrets, host/IAM settings, or production variables have been changed.
+- Continue with the six gates in `docs/MERLIN_PRODUCTION_HANDOFF.md`. Re-query live GitHub state before acting; do not treat handoff snapshots as evidence.
+
+
+## 2026-11-14 live continuation: ArtifactRef key custody
+
+- CACE PR #102 branch was refreshed with production handoff commit 47188d235747e9b0916b029bf0b0e8f12f7118ea.
+- New stacked draft PR #103: https://github.com/morganaspim/Cace-app/pull/103
+- Exact head 7a1d9a0d473897e55cc698c59fd60359fae529b1; CACE Collaboration Coordination Validation run 43603317438 **SUCCESS**.
+- Artifact 14117181753, SHA-256 7d52b73c7b5d3b0aa63039ce156fa61c10f137dd3b380eb2cf4d7a6dff8365f0.
+- PR #103 hardens ArtifactRef signer-key parent traversal, ownership/permissions, hard-link rejection, concurrent initialization, and atomic no-overwrite publication. Tests are in tests/test_merlin_artifact_ref.py.
+- PR #103 remains draft and stacked on PR #102. Do not merge independently. No production key, trust root, endpoint, secret, host configuration, deployment, or promotion was touched.
+- Exact-pin Lean kernel preflight remains outstanding. Collaboration validation and source sanity are not Lean compilation.
+- Failure-class registry and exact-source qualification lineage already exist in Merlin (config/known_failure_classes.json, PR #10, and source-binding PR #46); extend those canonical systems rather than creating parallel registries.
+- Next: inspect PR #103 run evidence and crash-recovery edge cases; exact-pin Lean preflight; protected signer/trust provisioning; live resolve→attest→verify; protected orchestrator receipt.
+
+
+## 2026-11-14 latest ArtifactRef custody gate
+
+- CACE PR #103 current exact head: 3534a1906fc0ff8cb5c9f3b052e917cf23258800.
+- Exact-head Collaboration Coordination Validation run 43603746084: SUCCESS.
+- Artifact 14116814715, SHA-256 237710f7b090997d231068084c9e8118cab98bee8e420784ae22d92659353657.
+- This pass includes the updated signer key loader and server integration, plus ArtifactRef regression tests. PR #103 remains draft and stacked on PR #102.
+- CACE issue #104 tracks independently administered trust-root custody: https://github.com/morganaspim/Cace-app/issues/104.
+- Trust-store JSON plus digest from the same mutable runtime environment is not an independent trust root.
+- Exact-pin Lean kernel preflight, production trust provisioning, live resolver round trip, and protected orchestrator run remain outstanding.
+
+
+## 2026-11-14 latest CACE signer custody result
+
+- PR #103 exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed Collaboration Coordination Validation run 43604033624.
+- Artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- The passing run includes signer parent traversal, atomic initialization, read-path revalidation, and read-only readiness permission tests.
+- PR #103 remains draft/stacked; no production key has been initialized.
+- CACE issue #104 independently tracks trust-root custody. Trust payload and digest supplied by one mutable source are not independent.
+- Exact-pin Lean kernel compilation, live resolve→attest→verify, and protected orchestrator linkage remain outstanding.
+
+
+## 2026-11-14 Merlin reliability PR
+
+- Merlin PR #147 extends the existing failure-class registry with five CACE ArtifactRef signer-custody classes.
+- Exact head b3ed5a49ec81674b27e487a4f76223c2831108d8; native CI run 43604241877 SUCCESS.
+- Artifact 14118235088, SHA-256 09ac300e71c03a993c5b82c270c6d9e9504c785f00d4c36cd932c1ada7d9d695.
+- It is stacked on Merlin PR #144 and remains draft.
+- Merlin issue #146 covers transitive evidence dependency invalidation; CACE issue #104 covers independent trust-root custody.
+
+
+## 2026-11-14 evidence DAG design
+
+- Merlin PR #148: https://github.com/Mannyspiro/expert-robot/pull/148
+- Exact head f037341acb54417352c42d26924ac79447590b8c.
+- Adds a typed read-only qualification evidence DAG v1 design and JSON Schema.
+- JSON schema syntax was parsed successfully; runtime graph construction, deterministic digest, cycle rejection, selective invalidation and property tests are not yet implemented.
+- PR #148 remains draft and stacked on PR #144.
+
+
+## 2026-11-14 latest production Merlin continuation
+
+- CACE PR #103 exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed run 43604033624; artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- Merlin PR #147 exact head 694968f9558d6075be536909bf197d3ead6dd59b passed CI run 43604488928; diagnostics artifact 14117811826, SHA-256 ab7e725abf7a41ceab298f10680a8877a92758af373599df02807c51754007d2.
+- PR #147 registers five signer custody failure classes in the existing failure registry and pins each to CACE's exact test/evidence. Earlier failed attempts exposed and fixed stale test-path and evidence-pin guards.
+- Merlin PR #148 introduces the qualification evidence DAG v1 design/schema only; runtime DAG evaluation, digesting, cycle detection, invalidation, and property tests remain.
+- CACE issue #104 is the independent trust-root custody gate.
+- Remaining gates: protected exact-pin Lean kernel compile; independently administered trust root; live historical resolve→attest→verify; protected OCI/orchestrator linkage; end-to-end ArtifactRef schema migration across Hermes/Avrea/OCI/CACE.
+- No production secrets, keys, trust roots, deployments, merges, or promotion were changed.
+
+
+## 2026-11-14 Merlin DAG and failure-memory implementation
+
+- Merlin PR #147 exact head 7a78cd3e73ee57b7c605babfe843ade50f001942 passed CI 43605061762; artifact 14117564194, SHA-256 f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f.
+- PR #147 now records five CACE signer-custody failure classes and two cross-repository integration classes. External pins are stored once in the canonical registry; tests no longer duplicate mutable commit/run/digest values.
+- Merlin PR #149 exact head d5f0c7fe2c43599850aa980cbc08797ce9bfe482 passed CI 43604937482; diagnostics artifact 14117398094, SHA-256 00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0.
+- Merlin PR #150 code head 97107bbf38f2e68823fe7c3c7c18599656b7005f passed CI 43605192756; diagnostics artifact 14118372468, SHA-256 aad40e4f92affdf10927f3e7c40bce8bc8fad534078add67b56d087a6582324d.
+- PR #149 implements deterministic DAG projection, identity and ArtifactRef validation, cycle rejection, selective invalidation, and status propagation.
+- PR #150 adds append-only snapshot history in the existing MerlinRegistry SQLite database with local serialized writes and tamper-checked reads.
+- These remain draft stacked PRs. Multi-host coordination, backup/restore, event/outbox coupling, authenticated source adapters, API/HUD integration, independent implementation, and property/fuzz testing remain outstanding.
+- Production blockers remain independent trust-root provisioning (CACE issue #104), exact-pin Lean kernel compile, live historical resolve→attest→verify, and protected OCI/orchestrator linkage.
+
+
+## Latest 2026-11-14 exact-head DAG receipts
+
+- Merlin PR #147 exact head 7a78cd3e73ee57b7c605babfe843ade50f001942 passed CI 43605061762; artifact 14117564194, SHA-256 f380215aa510f6500aaa93bc4923092256960d8a0495ba6d360d6cda3a40ad6f.
+- Merlin PR #149 code head d5f0c7fe2c43599850aa980cbc08797ce9bfe482 passed CI 43604937482; artifact 14117398094, SHA-256 00e870bc5ccc0983fd05e8cf4178be0f2b5a0a5546c590693f343b7dd37758c0.
+- Merlin PR #150 exact head 7ade0d22b7542c2e6aa4396f76a3fe0f91718be5 passed CI 43605312229; artifact 14117503140, SHA-256 b19e3bac900bf2f1b4cbcd4c9afe6b65968cab9da69178e0b3a498264a7458d7.
+- DAG snapshot persistence is in the existing MerlinRegistry DB, not a second registry. SQLite transaction serialization is single-host only.
+- All three Merlin PRs remain draft/stacked. Production blockers unchanged: independent trust root, protected Lean compile, live resolver-attestation-verification round trip, and distinct protected orchestrator/OCI linkage.
+
+
+## Latest CACE PR #102 gate
+- Exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed CACE Collaboration Coordination Validation run 43605425667.
+- Artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089.
+- Companion Lean Source Sanity run 43605425559 was CANCELLED, not passed.
+- Manual protected exact-pin Lean kernel compilation remains outstanding; no workflow dispatch or OCI run is claimed.
+
+
+## Latest DAG persistence and independent verifier receipts
+
+- Merlin PR #150 exact code head 4af3be9f75491c7ff0d76cd033a35182580ab778 passed CI 43605877291; diagnostics artifact 14117578731, SHA-256 dadbef6c593862e655813d2e4a3e16662b7fc778aa4258d7fa84031549b75621.
+- Its backup-tamper test fixture was corrected to restore the append-only trigger after tampering, so CI reaches the intended stored-snapshot integrity assertion. No verifier guard was weakened.
+- Merlin PR #152 exact head 893978926f5b3d6758b59247c9495bb99b346275 passed CI 43606008520; diagnostics artifact 14117489219, SHA-256 0701f39e1109b10bf56f2f5daf8c809e1b0faa594f75eb61baac35a1b372f7a9.
+- PR #152 adds an independent Node verifier and tests for canonical bytes, sorted arrays, digest reproduction, and tamper rejection. Type-specific identity equivalence and randomized cross-language property vectors remain.
+- CACE PR #102 branch exact head 89d84525c2cc32ec5f87431130eab52c2d42d45e passed collaboration run 43605425667; artifact 14117987843, SHA-256 4fb1027bf3c8869ef32c197aec6ffeb3527b21b6a78278dd9858f463fd299089. Lean Source Sanity run 43605425559 was CANCELLED.
+- Protected exact-pin Lean compile, independent trust root, live resolve→attest→verify, and OCI/protected orchestrator run remain outstanding.
+
+
+## Correctly stacked CACE signer/trust gates
+- PR #103 signer custody exact head 00ffff17d97508b9df9ec1386404343e1d9f9dae passed CI run 43604033624; artifact 14117581229, SHA-256 7ed69cf936eefe810efc6c15341c48cb73b913408caa8badba8152ebb87cd477.
+- PR #107 independent trust root is stacked on PR #103 and preserves its secure directory-FD signer loader. Exact head 18fdc2d4349149b2ce0167cc2c66b3fe1384cfd6 passed CI run 43607161208; artifact 14118607025, SHA-256 503696cbbaa3606bfff2ea78465d428b25f26262ac26f36b28b8378449911aff.
+- PR #106 was superseded and closed because its divergent branch overlapped signer files without carrying PR #103's hardened key loader.
+- Actual OCI IAM separation, live Vault retrieval, production root/key provisioning, protected OCI execution, and exact-pin Lean kernel compile remain outstanding.
+
+
+## Latest regression guard and type-parity status
+- The first known-failure guard failure (run 43606190603) was a local-path assumption: a local `regression_test` referenced a test file present only on stacked PR #150 and absent from that workflow checkout. It was not external CACE pin drift.
+- The corrected trust-lineage-based failure registry is PR #157, exact head e07744f11974555ab3ad2e65e88bfe93438e7609, passed CI 43607555903; artifact 14119600389, SHA-256 b16083d8f4710f10feaf5a2a0977a4650f77adef930ce31acdf71a36f28bb863.
+- Independent verifier PR #156 is based on latest PR #150 head a89b42c7feffd88e4201cd68b3ebe90de2c3ecb2. Exact head 5c211d57083c92cf81f6cf01c0c440bbf62a00b6 passed CI 43607511800; artifact 14119271206, SHA-256 d1bf8b7c54971dcd946339f199a789de0eb751e908c427abbebdfdf296370a74.
+- PR #156 covers all nine types, trust-root/trust-store provenance, nested ArtifactRefs, canonical bytes, duplicate keys, Unicode, twelve randomized DAG vectors, and tamper rejection.
+- Stale PRs #147/#152/#153/#155 and duplicate PR #154 are closed; use #156 and #157.
+- CACE PR #102 still lacks the protected exact-pin Lean kernel compile. Its collaboration validation pass does not substitute for that gate.
+
+
+## New stacked-branch failure classes
+- PR #157 registers stale parent-base drift and cross-PR signer-loader overlap as persistent failure classes.
+- Exact head 88e7bed9af0e1cda0264eef6dcc3bf700d31e857 passed CI 43607743085; diagnostics artifact 14119451467, SHA-256 1c4f7967b530daedba622a1d7f43298c65e0c191e9f9c77043219c0f255bc252.
+- The regression guard checks that prevention rules require current parent SHA revalidation, fresh child CI, correct dependency order, and secure signer-loader retention.
+
+
+## Atomic snapshot-to-Hermes bridge
+- Merlin PR #158 exact head 079c3c82f273a80dd4fa5deabb90aaa3154a8e27 passed native CI 43607987636 and unified CI 43607987604.
+- Native artifact 14119396821, SHA-256 1426c1bb2c81a10b956d9cacdf723cc8bd1f04aab2d9f3b6a399cf7473c80f96.
+- Unified artifact 14119471619, SHA-256 27121f292f346ebd2eff6841386f418e97500b9aefa283fb38693e2e6bb25123.
+- Snapshot history and its deterministic Hermes outbox notification now commit in one canonical-registry SQLite transaction; rollback, idempotent replay, same-DB enforcement and consumer acknowledgement are tested.
+- This does not yet qualify multi-host coordination, off-host backup, or remote event delivery.
+
+
+## Latest registry recovery and failure-class receipts
+- PR #157 exact head c392f07ef3c21663854914a7da14934d6287144b passed CI 43608784928; artifact 14119413202, SHA-256 06cf789f475a0f38c282c57ee7ad8734a7d87df20b5baca649c1bbab887946d7. Added a distinct failure class for archive tamper fixtures that alter size before digest.
+- PR #158 exact head 079c3c82f273a80dd4fa5deabb90aaa3154a8e27 passed native 43607987636 and unified 43607987604.
+- PR #159 exact head 32e877e8c5710cd9533b88b62530cee06b45a588 passed native CI 43608688270; artifact 14118834284, SHA-256 34ac98f600e47113c5ee602011cb32f38af14cba4c774c5061a0ae7d09c81aa8.
+- PR #159 is a local database-plus-blobs recovery package. Off-host encryption, transport, retention, key custody and separate-host restore remain unqualified.
+
+
+## Encrypted backup envelope
+- Merlin PR #160 exact head 594c9fb1ff7f31a511241669c7746bf0167bc089 passed native CI 43609184794.
+- Diagnostics artifact 14118708504, SHA-256 95ed5e471f2336b9fda1af887ee244edb5bbb6a8e675e5a427a0ed9e0228def6.
+- Implements injected KMS data-key provider and chunked AES-256-GCM; CI verifies round-trip, header/ciphertext tampering, truncation, wrong key version and full backup verification after decryption.
+- Only a fake KMS provider is used in tests. Production OCI Vault/KMS, independent key provisioning, object storage, retention and separate-host restore remain unqualified.
+
+
+## OCI Vault/KMS backup adapter
+- Merlin PR #161 exact head cdc22ab861ff71a27f4707887c2ef3772583398c passed native CI 43609808622; diagnostics artifact 14119489951, SHA-256 b6f7cf1d54609b8110fe19b7e65b0d898bd8dbff6f48d357d6612c2da356604c.
+- OCI SDK 2.191.0 model contract passes; adapter uses instance-principal auth and one configured AES key OCID/crypto endpoint, limited to DEK generation/decryption.
+- No live OCI key, IAM policy, endpoint or round trip has been qualified. Object Storage, retention and separate-host recovery remain outstanding.
+
+
+## 2026-11-14 continuation: trust-lineage, backups and signer custody
+- Expert Robot PR #156 (exact head `5c211d57083c92cf81f6cf01c0c440bbf62a00b6`) passed CI `43607511800`; PR #157 (exact head `88e7bed9af0e1cda0264eef6dcc3bf700d31e857`) passed `43607743085`.
+- PR #158 atomic snapshot/Hermes outbox publication passed native `43607987636` and unified `43607987604`.
+- PR #159 complete local registry backup/restore passed `43608688270`.
+- PR #161 OCI Vault/KMS adapter and runbook passed `43609808622`.
+- PR #163 create-only OCI Object Storage transport passed `43610431390`; 412 replay now verifies exact downloaded bytes, with version/ETag pinning and full digest. PR #162 was closed as superseded.
+- CACE PR #109 key custody hardening exact head `ffa0db46ce9f4fc1d835fde6efdf677dd2c0faed` passed `43610495149`; artifact `14120410353`, SHA-256 `a40b1e1a7c1b6a814dc1630c654a91c6cf6899905ef8194c1dcc4f6e5a4ed2c4`. The first run exposed a concurrent temporary-hardlink race; exclusive directory-descriptor flock fixed it without weakening hardlink checks.
+- These are engineering CI passes only. Live OCI Vault/KMS, Object Storage, retention/IAM, separate-host restore, CACE signer/trust provisioning, live historical resolve/attest/verify, protected orchestrator, and exact-pin Lean kernel compile remain unqualified.
+
+
+## Production continuation checkpoint — 2026-11-14 08:25 local
+
+Read `docs/MERLIN_PRODUCTION_HANDOFF.md` first, then re-query exact GitHub heads and workflow runs before acting. Current high-value Merlin stack:
+- #150 immutable DAG snapshot history/trust lineage passed exact-head CI.
+- #156 independent trust-lineage-aware DAG verifier passed exact-head CI.
+- #157 failure-class registry/local-test-reference guard passed exact-head CI, including the backup archive fixture class.
+- #158 atomic snapshot + Hermes outbox publication passed native and unified CI.
+- #159 complete local registry + blob backup/restore passed native CI.
+- #161 OCI Vault/KMS adapter contract passed native CI.
+- #163 create-only OCI Object Storage transport passed native CI. No live OCI tenancy, bucket, IAM, retention, or remote restore is qualified.
+
+CACE:
+- PR #110 signer filesystem custody is the current successor to #109. Exact head `24d540ea8ea625aad92f9b530d357c65728daae1` passed CACE Collaboration Coordination Validation run `43611326761`; artifact `14120222700`, SHA-256 `d168b1b07e66dc0692b014d17b6640fe9e97d07fc69c5bf04e190a67d9f1625c`.
+- PR #108 independent Ed25519 root + separately retrieved signed OCI Vault trust store passed exact code head `565be287fd6c9e1f71fbb4824f315fe1ae87db07`, run `43607177662`, artifact `14119240777`, SHA-256 `ce97a2a0ebb7db9b45c3966975497db14d11f0b0ffec0546f9909b755458f2bd`. Live IAM/source separation remains unqualified.
+- Protected exact-pin Lean kernel compilation remains outstanding. Source sanity and collaboration CI are not substitutes.
+- The production handoff now contains the ranked next gates: finish #110; rebase/validate #108 against secure signer custody; exact-pin Lean compile; provision independent root/signer; live historical ArtifactRef resolve/attest/verify; protected orchestrator-to-OCI binding; live OCI KMS/Object Storage round trip; separate-host restore and measured recovery.
+
+
+## New recovery evidence work
+- Merlin draft PR #164 https://github.com/Mannyspiro/expert-robot/pull/164 defines canonical integrity-only `merlin-backup-recovery-receipt/1`.
+- Exact head `a5fea014fdc6f5991add69996aa6a49252e94eba`; CI run `43611867463` pending at last check.
+- It binds the exact workflow run and retained evidence ArtifactRef, Vault/Object Storage audit digests, backup and restored manifest digests, encrypted object and KMS identities, distinct origin/restore host identities, measured timing, and explicit restore checks.
+- The receipt is unsigned; CACE must independently retrieve and attest its exact bytes. No live recovery claim is made.

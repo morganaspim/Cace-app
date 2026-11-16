@@ -1,6 +1,20 @@
 name: CACE Exact-Pin Lean Preflight
 
 on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - 'formal/cace_formal/CACEFormal/ContinuumSimplexCore.lean'
+      - 'formal/cace_formal/CACEFormal/RP2ChainComplex.lean'
+      - 'formal/cace_formal/proof_guardrails.json'
+      - 'formal/cace_formal/lean-toolchain'
+      - 'formal/cace_formal/lakefile.lean'
+      - 'scripts/cace_proof_guardrails.py'
+      - 'scripts/check_lean_source_sanity.py'
+      - 'scripts/check_cace_workflow_guardrails.py'
+      - 'scripts/cace_actions_serialization_guard.py'
+      - '.github/workflows/cace-exact-pin-lean-preflight.yml'
+      - 'ci/cace-exact-pin-lean-preflight.canonical.yml'
   workflow_dispatch:
     inputs:
       module:
@@ -23,7 +37,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: cace-canonical-qualification-oci
+  group: cace-canonical-qualification-oci-exact-pin
   cancel-in-progress: false
 
 jobs:
@@ -31,11 +45,13 @@ jobs:
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 45
     env:
+      CACE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      CACE_COMPILE_ROOT: ${{ github.event_name == 'pull_request' && 'false' || inputs.compile_root }}
       CACE_TOOLCHAIN: leanprover/lean4:v4.32.1
       CACE_MATHLIB_COMMIT: 520045ab14e26149ee970e2e617ca04b09bde5d6
       CACE_PERSISTENT_ELAN_HOME: /var/lib/cace-cache/elan
       CACE_PACKAGE_CACHE: /var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages
-      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/mathlib/v330-prewarm.lock
+      CACE_PACKAGE_CACHE_LOCK: /var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock
       CACE_MANIFEST_CACHE_DIR: /var/lib/cace-cache/mathlib/manifests
       LAKE_ARTIFACT_CACHE: 'true'
       LAKE_CACHE_DIR: /var/lib/cace-cache/lake
@@ -45,7 +61,7 @@ jobs:
       - name: Checkout exact event commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           clean: true
           persist-credentials: false
@@ -56,17 +72,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=no)"
-          python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID"
-          printf 'exact_head=%s\n' "$GITHUB_SHA"
+          python scripts/cace_actions_serialization_guard.py --current-run-id "$GITHUB_RUN_ID" --ignore-workflow-name "CACE Lean Source Sanity"
+          printf 'exact_head=%s\n' "$CACE_EXPECTED_HEAD"
 
       - name: Validate requested target and audited-root reachability
         id: target
         shell: bash
         env:
-          REQUESTED_MODULE_RAW: ${{ inputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
         run: |
           set -euo pipefail
           REQUESTED_MODULE="$(printf '%s' "$REQUESTED_MODULE_RAW" | sed -E 's/^Module:[[:space:]]*//; s/[[:space:]]+compile_root:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
@@ -128,7 +144,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
@@ -175,7 +191,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
         run: |
           set -euo pipefail
           if test "$COMPILE_ROOT" = "true"; then
@@ -195,6 +211,7 @@ jobs:
           test "$(cat formal/cace_formal/lean-toolchain)" = "$CACE_TOOLCHAIN"
           mkdir -p formal/cace_formal/.lake
           rm -rf formal/cace_formal/.lake/packages
+          mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
           flock -s -w 900 9
           test -d "$CACE_PACKAGE_CACHE/mathlib/.git"
@@ -254,6 +271,7 @@ jobs:
 
           lake exe cache get
 
+          mkdir -p "$(dirname "$CACE_PACKAGE_CACHE_LOCK")"
           exec 9>"$CACE_PACKAGE_CACHE_LOCK"
           flock -x -w 900 9
           staging="${CACE_PACKAGE_CACHE}.staging-${GITHUB_RUN_ID}"
@@ -291,7 +309,7 @@ jobs:
           start="$(date +%s)"
           lake build +CACEFormal.GuardrailCanaries 2>&1 | tee "$GITHUB_WORKSPACE/cace-canary-build.log"
           stop="$(date +%s)"
-          printf 'CACE_GUARDRAIL_CANARY_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_GUARDRAIL_CANARY_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Compile changed modules and audited reverse dependents
         id: impacted_compile
@@ -314,7 +332,7 @@ jobs:
             lake build "${targets[@]}" 2>&1 | tee "$GITHUB_WORKSPACE/cace-impacted-build.log"
             stop="$(date +%s)"
             printf 'CACE_IMPACTED_COMPILE_OK modules=%s elapsed_seconds=%s exact_head=%s\n' \
-              "${#modules[@]}" "$((stop-start))" "$GITHUB_SHA"
+              "${#modules[@]}" "$((stop-start))" "$CACE_EXPECTED_HEAD"
           fi
 
       - name: Compile requested Lean module
@@ -332,16 +350,42 @@ jobs:
           start="$(date +%s)"
           lake build "+$TARGET_MODULE" 2>&1 | tee "$GITHUB_WORKSPACE/cace-target-build.log"
           stop="$(date +%s)"
-          printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_PREFLIGHT_TARGET_OK target=%s elapsed_seconds=%s exact_head=%s\n' "$TARGET" "$((stop-start))" "$CACE_EXPECTED_HEAD"
+
+      - name: Compile quarantined RP2 chain complex
+        id: rp2_compile
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_MODULE="CACEFormal.RP2ChainComplex" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          quarantined = set(json.loads(
+              Path("formal/cace_formal/proof_guardrails.json").read_text(encoding="utf-8")
+          ).get("quarantined_root_imports", ()))
+          target = os.environ["TARGET_MODULE"]
+          if target not in quarantined:
+              raise SystemExit("RP2 module must remain quarantined during standalone compilation")
+          print(f"CACE_RP2_QUARANTINE_CONFIRMED target={target}")
+          PY
+          export ELAN_HOME="$CACE_PERSISTENT_ELAN_HOME"
+          export PATH="$ELAN_HOME/bin:$PATH"
+          cd formal/cace_formal
+          start="$(date +%s)"
+          lake build +CACEFormal.RP2ChainComplex 2>&1 | tee "$GITHUB_WORKSPACE/cace-rp2-build.log"
+          stop="$(date +%s)"
+          printf 'CACE_RP2_STANDALONE_COMPILE_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Reverify frozen proof plan before audited root
         id: plan_recheck
         continue-on-error: true
-        if: ${{ inputs.compile_root }}
+        if: ${{ env.CACE_COMPILE_ROOT == 'true' }}
         shell: bash
         env:
           TARGET: ${{ steps.target.outputs.module }}
-          COMPILE_ROOT: ${{ inputs.compile_root }}
+          COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
           EXPECTED_PLAN_SHA256: ${{ steps.guardrails.outputs.plan_sha256 }}
         run: |
           set -euo pipefail
@@ -354,14 +398,14 @@ jobs:
             > cace-proof-plan-recheck.json
           actual="$(python3 -c 'import json; print(json.load(open("cace-proof-plan-recheck.json"))["plan_sha256"])')"
           test "$actual" = "$EXPECTED_PLAN_SHA256"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$CACE_EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=no)"
-          printf 'CACE_PROOF_PLAN_RECHECK_OK sha256=%s exact_head=%s\n' "$actual" "$GITHUB_SHA"
+          printf 'CACE_PROOF_PLAN_RECHECK_OK sha256=%s exact_head=%s\n' "$actual" "$CACE_EXPECTED_HEAD"
 
       - name: Compile audited root
         id: root_compile
         continue-on-error: true
-        if: ${{ inputs.compile_root }}
+        if: ${{ env.CACE_COMPILE_ROOT == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -371,7 +415,7 @@ jobs:
           start="$(date +%s)"
           lake build CACEFormal 2>&1 | tee "$GITHUB_WORKSPACE/cace-root-build.log"
           stop="$(date +%s)"
-          printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$GITHUB_SHA"
+          printf 'CACE_PREFLIGHT_ROOT_OK elapsed_seconds=%s exact_head=%s\n' "$((stop-start))" "$CACE_EXPECTED_HEAD"
 
       - name: Aggregate diagnostic sweep failures
         id: diagnostic_aggregate
@@ -381,6 +425,7 @@ jobs:
           CANARY_OUTCOME: ${{ steps.canary_compile.outcome }}
           IMPACTED_OUTCOME: ${{ steps.impacted_compile.outcome }}
           TARGET_OUTCOME: ${{ steps.target_compile.outcome }}
+          RP2_OUTCOME: ${{ steps.rp2_compile.outcome }}
           PLAN_RECHECK_OUTCOME: ${{ steps.plan_recheck.outcome }}
           ROOT_OUTCOME: ${{ steps.root_compile.outcome }}
         run: |
@@ -403,6 +448,7 @@ jobs:
           record canary "$CANARY_OUTCOME"
           record impacted "$IMPACTED_OUTCOME"
           record target "$TARGET_OUTCOME"
+          record rp2_standalone "$RP2_OUTCOME"
           record plan_recheck "$PLAN_RECHECK_OUTCOME"
           record root "$ROOT_OUTCOME"
           cat cace-diagnostic-sweep.txt
@@ -420,17 +466,17 @@ jobs:
           cat > cace-exact-pin-preflight-summary.txt <<EOF
           evidence_class=engineering/formal-preflight
           qualification=false
-          exact_head=$GITHUB_SHA
+          exact_head=$CACE_EXPECTED_HEAD
           lean_toolchain=$CACE_TOOLCHAIN
           mathlib_commit=$CACE_MATHLIB_COMMIT
           target=${{ inputs.module }}
           target_class=${{ steps.target.outputs.target_class }}
-          compile_root=${{ inputs.compile_root }}
+          compile_root=$CACE_COMPILE_ROOT
           prewarm_mathlib_cache=${{ inputs.prewarm_mathlib_cache }}
           proof_plan_sha256=${{ steps.guardrails.outputs.plan_sha256 }}
           merge_base=${{ steps.guardrails.outputs.merge_base }}
           impacted_module_count=${{ steps.guardrails.outputs.impacted_count }}
-          guardrail_policy=validate -> canary -> reverse-dependents -> plan-recheck -> audited-root
+          guardrail_policy=validate -> canary -> reverse-dependents -> target -> quarantined-RP2-standalone -> plan-recheck -> audited-root
           cache_policy=ordinary proof runs are network-free; only explicit prewarm may download Mathlib artifacts
           note=This preflight catches policy drift, API canary failures, impacted-module failures, Lean elaboration/typechecking/import failures, and exact-plan drift. It never replaces canonical exact-current-head qualification, theorem metadata, kernel axiom audit, or attestation.
           EOF
@@ -451,6 +497,7 @@ jobs:
             cace-canary-build.log
             cace-impacted-build.log
             cace-target-build.log
+            cace-rp2-build.log
             cace-root-build.log
           if-no-files-found: warn
           retention-days: 14

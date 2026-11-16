@@ -591,3 +591,150 @@ codomain with the image of zero under the continuous linear embedding at that ap
 - reject the fragile direct application `complexL2ToDistribution_injective n hgDist`.
 
 **Regression guard:** `scripts/check_cace_known_failure_regressions.py`.
+
+
+## F-031 — proof-hole regex used literal backslash escapes
+
+**Fingerprint:** the Lean source-contract test intended to reject the proof-hole tokens
+`sorry` and `admit`, but the regular expressions used doubled backslashes
+(`\\\\b`), matching a literal backslash sequence rather than word boundaries.
+The guard therefore failed to detect ordinary proof-hole tokens in Lean source.
+
+**Root cause:** regex escaping was reviewed as source text without a mutation test
+that demonstrated rejection of the actual forbidden tokens.
+
+**Permanent prevention:**
+- define the forbidden-token patterns as compiled Python regexes using actual
+  word-boundary expressions: `re.compile(r"\\bsorry\\b")` and
+  `re.compile(r"\\badmit\\b")`;
+- exercise the detector with mutation canaries for `by sorry` and `by admit`;
+- include positive controls for a valid proof token and an identifier such as
+  `admitted_theorem`, preventing an overbroad substring check;
+- keep the canaries in the ordinary CACE collaboration/formal-preflight test suite.
+
+**Regression guard:**
+`tests/test_merlin_continuum_simplex_lean_contract.py::test_proof_hole_detector_rejects_sorry_and_admit_tokens`.
+
+The original detector fix and focused canaries passed CACE OCI collaboration validation on exact
+head `84b4dae2c725b86a094396f62ae614b4ac433fc5`, run
+[43466879333](https://github.com/morganaspim/Cace-app/actions/runs/43466879333).
+
+**Tree-wide defense-in-depth extension (2026-11-13):** `scripts/check_lean_source_sanity.py`
+now scans the comment/string-masked Lean source for whole-token `sorry` and `admit` occurrences,
+so comments and string literals do not create false positives. The exact-pin preflight workflow
+runs the scanner over `formal/cace_formal` before compilation, in addition to scanning each
+selected batch target. `tests/test_lean_source_sanity.py` adds positive/negative token fixtures.
+This extends the F-031 guardrail; it is not a new defect class. The scanner implementation passed
+CACE collaboration validation and Lean Source Sanity on exact head
+`dca948e89c8153693b287da8c8c31caa84a568eb`, runs
+[43469516682](https://github.com/morganaspim/Cace-app/actions/runs/43469516682) and
+[43469517086](https://github.com/morganaspim/Cace-app/actions/runs/43469517086).
+The subsequent multiline mutation-test fixture correction is commit
+`f66eaa63c5480bc49db2d377019087d4e1643475`; its exact-head CI result is pending.
+Neither result is a Lean kernel compilation or proof qualification.
+
+
+## F-032 — exact-pin workflow canonical-template drift
+
+**Fingerprint:** the source-sanity gate rejected an otherwise valid exact-pin workflow after a
+toolchain-specific package-cache lock path was corrected in the runnable workflow but not in its
+canonical template. The guard compares the two files byte-for-byte, so the drift was detected
+before the exact-pin workflow could be trusted.
+
+**Root cause:** a safety-critical workflow is maintained as both an executable file and a
+canonical source template; a one-file edit left those two representations inconsistent.
+
+**Permanent prevention:**
+- change the runnable workflow and canonical template in the same change set;
+- keep the lock path namespaced by the exact Lean toolchain and Mathlib commit, rather than
+  reusing a stale cache-lock name from a different toolchain generation;
+- preserve the byte-for-byte comparison in the structural guard;
+- run the source-sanity gate after any exact-pin workflow change and do not count a cancelled
+  or stale-head run as validation.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` compares the runnable workflow
+with `ci/cace-exact-pin-lean-preflight.canonical.yml`; the comparison is exercised by
+`scripts/check_cace_workflow_guardrails.py` in both source-sanity and collaboration validation.
+
+**Observed repair:** the runnable and canonical files now both use the lock namespace
+`v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6`. The failed exact-head run
+[43601413924](https://github.com/morganaspim/Cace-app/actions/runs/43601413924) identified the
+drift; it was corrected in commits `2716d0c4` and `1f958a07`. The follow-up collaboration
+validation passed on `acc77735efaea10bf7179313ecba514a628297c7`, run
+[43601511700](https://github.com/morganaspim/Cace-app/actions/runs/43601511700).
+
+**Exact-head follow-up:** source-sanity run `43601438723` on `923d423f` failed only because the canonical mirror was one line behind the runnable workflow. The canonical mirror was synchronized in `1f958a07`. A fresh source-sanity run on the post-repair head is required before this defect class can be marked closed; the collaboration pass alone is not a substitute.
+
+
+## F-033 — cache lock moved with the cache directory during atomic replacement
+
+**Fingerprint:** the Lean package-cache lock was initially placed inside the versioned package-cache
+directory. The prewarm workflow atomically renames that directory to a backup and replaces it with
+a staging directory. A lock descriptor opened before the rename would continue to refer to the old
+inode, while a second process could open a new lock file at the replacement path and enter the
+critical section concurrently.
+
+**Root cause:** the lock's filesystem location shared the lifecycle of the resource it was intended
+to serialize.
+
+**Permanent prevention:**
+- place the lock in a stable sibling directory outside the replaceable package-cache tree;
+- create the lock directory before both shared and exclusive acquisitions;
+- namespace the lock by exact Lean toolchain and Mathlib commit;
+- structurally reject lock paths nested under the package cache and require both acquisition sites
+  to create the external lock directory.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` enforces the external path,
+the exact pin namespace, the two directory-creation guards, and byte equality between the runnable
+workflow and canonical template.
+
+**Repair:** both workflow representations now use
+`/var/lib/cace-cache/locks/mathlib-v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6.lock`.
+The old in-cache path was removed before the next exact-pin execution.
+
+## F-034 — pull-request exact-pin workflow left compile-root input empty
+
+**Fingerprint:** adding an automatic pull-request trigger to the exact-pin Lean preflight exposed a workflow-context difference: `inputs.compile_root` is populated for `workflow_dispatch`, but empty for `pull_request`. The target-classification step correctly defaulted to the quarantined standalone mode, while the later proof-plan hashing step still received an empty value and failed before Lean compilation.
+
+**Root cause:** the same security-critical input was read independently by two workflow steps, but only one step implemented the pull-request default.
+
+**Permanent prevention:**
+- use the explicit `pull_request` fallback `false` for both target classification and proof-plan hashing;
+- structurally require exactly two occurrences of the same fallback expression;
+- retain the independent target classifier check that the module is listed in `quarantined_root_imports`;
+- preserve `compile_root=false` so this automation cannot compile or promote the aggregate audited root;
+- rerun the exact-pin workflow on the corrected event head and retain its complete artifact.
+
+**Regression guard:** `scripts/check_cace_workflow_guardrails.py` checks both fallback sites. The failure was reproduced by exact-pin run
+[43638851920](https://github.com/morganaspim/Cace-app/actions/runs/43638851920), which stopped in proof-plan validation before any Lean compilation. This failed run is diagnostic evidence only; it is not a proof failure and not a compilation result.
+
+
+
+## F-035 — RP2 finite-sum scalar factoring and chain-map extensionality
+
+**Fingerprint:** standalone compilation of `CACEFormal.RP2ChainComplex` failed in both boundary-map scalar-linearity proofs because the product association did not match the `Finset.mul_sum` rewrite pattern after Fintype-to-Finset normalization. The chain-composition proof must also be checked for arbitrary-chain extensionality and absence of proof holes.
+
+**Root cause:** the proof made the Fintype-to-`Finset.univ` representation boundary explicit but did not normalize `c * x * boundary` to `c * (x * boundary)` before scalar factoring. Lean's error recovery also emitted downstream `sorry` warnings after the two scalar proof failures.
+
+**Permanent prevention:**
+- normalize each finite sum explicitly to `Finset.univ`;
+- normalize product association with `simp_rw [mul_assoc]` before applying `Finset.mul_sum`;
+- prove boundary composition with `LinearMap.ext` over an arbitrary 2-chain, then reuse `boundary_squared_zero`;
+- reject `sorry` in both scalar-linearity blocks and the chain-composition proof;
+- retain the RP2 module in the explicit quarantine list until standalone compilation and subsequent independent homology classification gates pass.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` checks Fintype-to-Finset normalization, product association, scalar factoring, absence of `sorry`, arbitrary-chain extensionality, and the RP2 quarantine entry.
+
+
+## F-036 — Shared concurrency group cancels pending CACE validations
+
+**Fingerprint:** PR head updates trigger exact-pin preflight, source sanity and collaboration validation together. When all three workflows share one GitHub Actions concurrency group, only one pending run is retained; later events can cancel/replace the exact-pin run before it starts.
+
+**Root cause:** independent validation workflows used the same static concurrency group even though GitHub permits only one running and one pending workflow run per group. `cancel-in-progress: false` does not prevent an older pending run from being replaced by a newer pending run.
+
+**Permanent prevention:**
+- assign distinct concurrency groups to exact-pin, source-sanity and collaboration workflows;
+- retain `cancel-in-progress: false` within each workflow-specific group;
+- keep the group separation under a regression guard so a future workflow edit cannot silently reintroduce pending-run starvation.
+
+**Regression guard:** `scripts/check_cace_known_failure_regressions.py` verifies the three group names are present, unique and non-cancelling, and that the runnable exact-pin workflow's group matches its byte-for-byte canonical template. The exact-pin canonical template is updated in lockstep because `check_cace_workflow_guardrails.py` rejects any runnable/template drift.

@@ -19,6 +19,8 @@ The project deliberately separates software maturity from evidence strength. A n
 - `docs/GEMINI_AI_STUDIO_HANDOFF.md` — explicit web integration topology, ownership matrix and migration batches
 - `CACE_AGENT_BOOTSTRAP.json` — single machine-readable repository handoff
 - `docs/BUILD_AND_TRUST_GUIDE.md` — unified build, rigor, security, bug-flush and provenance architecture
+- `docs/MERLIN_PRODUCTION_HANDOFF.md` — durable Merlin/CACE cross-chat and cross-agent production context, live-gate snapshot, architecture, security invariants and next steps
+- `docs/OCI_RUNNER_OPERATIONS.md` — safe OCI Actions runner setup, MCP service operations, resource gates and recovery
 - `docs/STATUS.md` — current implementation and qualification state
 - `docs/ARCHITECTURE.md` — system boundaries and trusted-computing-base model
 - `docs/SECURITY_ARCHITECTURE.md` — security trust zones, threat boundaries and isolation policy

@@ -170,6 +170,24 @@ def _multiply(left: list[list[int]], right: list[list[int]]) -> list[list[int]]:
     ]
 
 
+def _chain_complex_payload() -> dict:
+    """Canonical ordered integral chain bases and boundary matrices for RP2."""
+    vertices, edges, d1, d2 = _boundary_matrices()
+    product = _multiply(d1, d2)
+    zero = [[0 for _ in FACETS] for _ in vertices]
+    return {
+        "coefficient_ring": "Z",
+        "basis_order": {
+            "C0": list(vertices),
+            "C1": [list(edge) for edge in edges],
+            "C2": [list(face) for face in FACETS],
+        },
+        "boundary_matrices": {"d1_C1_to_C0": d1, "d2_C2_to_C1": d2},
+        "composition_d1_d2": product,
+        "boundary_squared_zero": product == zero,
+    }
+
+
 def _rp2_h1_presentation(edges: tuple[tuple[int, int], ...]) -> list[list[int]]:
     # Collapse the explicit spanning tree {0-i | i=1..5}. Its five edges
     # generate no H1 generators; each triangle boundary becomes a relation
@@ -231,6 +249,7 @@ def test_emit_independent_reference_receipt() -> None:
             "workflow_sha": os.environ.get("GITHUB_WORKFLOW_SHA", ""),
         },
         "implementation": "pure-python-bareiss-determinants-and-tree-collapse",
+        "chain_complex": _chain_complex_payload(),
         "rp2": {
             "vertices": len(vertices),
             "edges": len(edges),
@@ -262,6 +281,15 @@ def test_emit_independent_reference_receipt() -> None:
 
 def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     vertices, edges, d1, d2 = _boundary_matrices()
+    chain_complex = _chain_complex_payload()
+    assert chain_complex["coefficient_ring"] == "Z"
+    assert chain_complex["basis_order"]["C0"] == list(range(6))
+    assert chain_complex["basis_order"]["C1"] == [list(edge) for edge in combinations(range(6), 2)]
+    assert chain_complex["basis_order"]["C2"] == [list(face) for face in FACETS]
+    assert chain_complex["boundary_matrices"]["d1_C1_to_C0"] == d1
+    assert chain_complex["boundary_matrices"]["d2_C2_to_C1"] == d2
+    assert chain_complex["boundary_squared_zero"] is True
+    assert chain_complex["composition_d1_d2"] == [[0] * 10 for _ in range(6)]
     assert len(vertices) == 6
     assert len(edges) == 15
     assert len(FACETS) == 10
@@ -273,11 +301,30 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
             tuple(sorted(set(face) - {vertex}))
             for face in FACETS if vertex in face
         ]
-        link_degrees = {other: 0 for edge in link_edges for other in edge}
+        # A simplicial link is a simple graph: duplicate link edges would
+        # mean duplicate 2-simplices containing this vertex.
+        assert len(link_edges) == len(set(link_edges))
+        link_adjacency = {other: set() for edge in link_edges for other in edge}
         for left, right in link_edges:
-            link_degrees[left] += 1
-            link_degrees[right] += 1
-        assert link_degrees and all(degree == 2 for degree in link_degrees.values())
+            link_adjacency[left].add(right)
+            link_adjacency[right].add(left)
+        assert link_adjacency and all(
+            len(neighbors) == 2 for neighbors in link_adjacency.values()
+        )
+
+        # A 2-regular link may be a disjoint union of cycles. A vertex link
+        # must be one connected cycle to establish a disk neighborhood.
+        start = min(link_adjacency)
+        reached = {start}
+        frontier = [start]
+        while frontier:
+            current = frontier.pop()
+            for neighbor in link_adjacency[current]:
+                if neighbor not in reached:
+                    reached.add(neighbor)
+                    frontier.append(neighbor)
+        assert reached == set(link_adjacency)
+        assert len(link_edges) == len(link_adjacency)
     assert _multiply(d1, d2) == [[0 for _ in FACETS] for _ in vertices]
     assert len(vertices) - len(edges) + len(FACETS) == 1
 
@@ -290,8 +337,27 @@ def test_six_vertex_triangulated_rp2_integral_homology() -> None:
     assert (len(vertices) - rank_d1, len(edges) - rank_d1 - rank_d2,
             len(FACETS) - rank_d2) == (1, 1, 1)
 
-    # The star at vertex 0 is a spanning tree, so the 1-skeleton is connected:
-    # H0(RP2; Z) = Z. The reduced 10x10 relation matrix presents H1.
+    # Check connectedness directly rather than relying only on the chosen
+    # vertex ordering or the later spanning-tree presentation.
+    one_skeleton = {vertex: set() for vertex in vertices}
+    for left, right in edges:
+        one_skeleton[left].add(right)
+        one_skeleton[right].add(left)
+    reached_vertices = {vertices[0]}
+    frontier_vertices = [vertices[0]]
+    while frontier_vertices:
+        current = frontier_vertices.pop()
+        for neighbor in one_skeleton[current]:
+            if neighbor not in reached_vertices:
+                reached_vertices.add(neighbor)
+                frontier_vertices.append(neighbor)
+    assert reached_vertices == set(vertices)
+
+    # The star at vertex 0 is a spanning tree, so collapsing it leaves the
+    # reduced 10x10 relation matrix presenting H1. Verify every tree edge is
+    # actually in the simplicial 1-skeleton before using that presentation.
+    spanning_tree = {(0, vertex) for vertex in range(1, 6)}
+    assert spanning_tree.issubset(set(edges))
     presentation = _rp2_h1_presentation(edges)
     assert len(presentation) == 10 and all(len(row) == 10 for row in presentation)
     assert bareiss_determinant(presentation) == -2
