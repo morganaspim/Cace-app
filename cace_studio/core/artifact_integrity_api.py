@@ -65,6 +65,8 @@ def _exact_keys(value: Mapping[str, Any], expected: set[str], label: str) -> Non
 
 def _safe_repo_path(value: Any) -> str:
     path = _nonempty_string(value, "artifact path")
+    if len(path) > 1024:
+        raise ArtifactIntegrityError("artifact path exceeds the 1024-character limit")
     if (
         path.startswith("/")
         or "\\" in path
@@ -150,6 +152,8 @@ def create_artifact_integrity_attestation(
         if bundle.bindings.get(key) != expected:
             raise ArtifactIntegrityError(f"bundle binding {key!r} does not match request")
 
+    if len(bundle.artifacts) > 64:
+        raise ArtifactIntegrityError("bundle exceeds the 64-artifact limit")
     artifact_ids = {item.artifact_id for item in bundle.artifacts}
     artifact_bytes = _decode_artifacts(payload["artifact_bytes_base64"], artifact_ids)
     bundle_digest = verify_bundle(bundle, artifact_bytes=artifact_bytes)
