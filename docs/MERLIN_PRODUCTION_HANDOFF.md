@@ -923,3 +923,12 @@ This is a source-level attempt to address the previously reported Lean 4.32.1 fa
 4. Once the file compiles, add the isolated RP² file to a non-default/quarantined compile gate; do not import it into `CACEFormal.lean`.
 5. Then formalize H₀ augmentation-kernel equivalence, H₂ maximal-minor injectivity, and H₁ fundamental-cycle basis plus the explicit Smith-normal-form witness. The Python reference and matrix determinants remain discovery evidence, not Lean theorems.
 6. Keep PR #102 open and draft, and keep RP² qualification false until all three integral classifications are proved and independently verified against the exact artifact digest.
+
+
+### Exact-pin preflight run 43910176895 — policy failure and correction
+
+The first PR-triggered preflight on commit `fe56ba0cb339d587c1ce1ce237e46006f56f0c38` did **not** reach Lean compilation. The exact-pin guardrail step rejected the runnable workflow because the workflow file had drifted from its byte-for-byte canonical template. The runner successfully checked out the exact head and validated the quarantined target, but the proof-plan/guardrail stage stopped before cache restoration and all Lean build steps were skipped. This is a workflow-policy failure, not evidence of a Lean source failure or success.
+
+Correction committed as `e1f1a9834f6fca0d17fd1c29789c091517feaf66`: restore `.github/workflows/cace-exact-pin-lean-preflight.yml` from `ci/cace-exact-pin-lean-preflight.canonical.yml` byte-for-byte. The canonical workflow already contains a dedicated `Compile quarantined RP2 chain complex` step that runs `lake build +CACEFormal.RP2ChainComplex` after guardrail validation, so no custom workflow-target override is needed.
+
+The next exact-head run must first pass `check_cace_workflow_guardrails.py`, then execute the standalone RP² Lean compile. Do not count run 43910176895 as a Lean compile attempt.
