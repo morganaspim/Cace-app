@@ -146,7 +146,20 @@ def test_rejects_generated_artifact_kind_on_source_snapshot_endpoint():
 def test_rejects_path_traversal_in_bundle_artifact_path():
     private_key, _ = generate_ed25519_keypair_pem()
     request = _request()
-    request["bundle"]["artifacts"][0]["path"] = "../outside.txt"
+    original = EvidenceArtifact.from_bytes(
+        "source-artifact", SOURCE, role="source", media_type="text/plain",
+        path="../outside.txt",
+    )
+    bundle = EvidenceBundle(
+        artifacts=(original,),
+        bindings={
+            "source_repository": REPOSITORY,
+            "source_commit": COMMIT,
+            "artifact_kind": SOURCE_FILE_KIND,
+            "tool_version": "test-tool/1.0",
+        },
+    )
+    request["bundle"] = bundle.payload()
 
     with pytest.raises(ArtifactIntegrityError, match="normalized repository-relative path"):
         _verify(request, private_key)
