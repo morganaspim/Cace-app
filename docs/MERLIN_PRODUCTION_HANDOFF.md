@@ -822,7 +822,7 @@ This section supersedes older snapshots only where it explicitly identifies a ne
 
 ### CACE RP² exact-pin status
 
-- Live CACE PR #102 remains OPEN/DRAFT, stacked on the continuum OCI reproduction branch. Current PR head after this handoff refresh: `d8dffba8b5a8274853391eda566658b0223b33f9` (documentation-only commit with `[skip ci]`); the latest source-code head reviewed for the RP² correction is `03709c8c2c3f0fa6515a5f7aaecebb50a451c7cc`.
+- Live CACE PR #102 remains OPEN/DRAFT, stacked on the continuum OCI reproduction branch. The latest source-code head reviewed for the RP² correction is `03709c8c2c3f0fa6515a5f7aaecebb50a451c7cc`. Subsequent commits in this branch only refresh this handoff and use `[skip ci]`; always re-query the live PR head before any action.
 - Current RP² Lean source blob: `formal/cace_formal/CACEFormal/RP2ChainComplex.lean`, blob `de38d861809496cd9624e63ce776048ad3e79d1d`.
 - The latest actual Lean compile remains run [43757339510](https://github.com/morganaspim/Cace-app/actions/runs/43757339510) on earlier head `ee929fd708131fa5b85483395da2ee128e434fcc`. The RP² standalone target failed in the two scalar-linearity proofs because multiplication association prevented the `Finset.mul_sum` rewrite.
 - The current source contains the subsequent `simp_rw [mul_assoc]` correction in both `map_smul'` proofs, plus the general-chain `LinearMap.ext` composition proof. These are source-reviewed but **not compiled on the current head**.
@@ -834,7 +834,7 @@ This section supersedes older snapshots only where it explicitly identifies a ne
 
 - Expert Robot PR #144 remains OPEN/DRAFT on exact head `5c61749cb1083e55804e0a3a9df2bad41f901f1b`. Native CI, unified platform, voice/HUD hosted evidence, learning identity, and learning platform runs recorded in PR #144 passed on that exact head. Avrea-specific hybrid voice and representation-spectrum jobs were cancelled; do not claim those capabilities qualified.
 - PR #144 remains stacked on PR #143; PR #143 and bootstrap PR #138 remain OPEN/DRAFT. No merge, deployment, signer provisioning, or production source-identity configuration is implied.
-- A new documentation-only creative-toolchain intake PR is open: [Expert Robot PR #173](https://github.com/Mannyspiro/expert-robot/pull/173), branch `docs/merlin-creative-toolchain-intake-20261115`, based on the PR #144 artifact-lineage branch. It records Blender and ComfyUI archive digests, licenses, architecture and qualification gaps. It intentionally does not commit the binary archives or model weights.
+- A new documentation-only creative-toolchain intake PR is open: [Expert Robot PR #173](https://github.com/Mannyspiro/expert-robot/pull/173), branch `docs/merlin-creative-toolchain-intake-20261115`, based on the PR #144 artifact-lineage branch. It records Blender and ComfyUI archive digests, licenses, architecture and qualification gaps, and inventories 116 bundled ComfyUI JSON workflow blueprints. It intentionally does not commit the binary archives or model weights.
 
 ### Creative toolchain intake
 
