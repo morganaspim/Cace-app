@@ -902,3 +902,24 @@ The 15×10 matrix for `∂2` has a 10×10 minor on zero-based edge rows `(0,1,2,
 ### Proof and qualification boundary
 
 This decomposition is a concrete proof plan backed by exact finite integer calculations and the existing independent-reference implementation. It is **not** a Lean proof, and no current RP² Lean classification theorem follows from it. The present Lean file still defines the homology objects without proving these isomorphisms. Keep RP² quarantined until the scalar-linearity correction compiles on an exact head and all three classifications are proved in the pinned Lean environment.
+
+
+## RP² Lean iteration — scalar-linearity canary patch (2026-11-16)
+
+A narrow follow-on branch was created from PR #102 exact head `c2af6c0f01babb3d89d4ef8972dd96535a71b422`:
+
+- Branch: `fix/rp2-linear-map-canaries-20261116`
+- Patch commit: `2b34a13eb3278d150d35eb42f5bca9e59e85c3f9`
+- File: `formal/cace_formal/CACEFormal/RP2ChainComplex.lean`
+- Change: simplify both `map_smul'` proofs to coordinate extensionality plus the finite-sum scalar-distribution simp rule; simplify `boundaryLinear_comp_zero` to extensionality over the chain and vertex coordinates, applying the already stated `boundary_squared_zero` theorem pointwise.
+
+This is a source-level attempt to address the previously reported Lean 4.32.1 failures around the two finite-sum rewrites and the linear-map composition goal. It has **not** been compiled. No Lean executable or Lake installation is available in the current execution environment, and no CI run was started. Do not infer that the patch compiles from the shape of the proof.
+
+### Exact next gate
+
+1. Run only the standalone pinned Lean target for `CACEFormal.RP2ChainComplex` on this exact patch commit with Lean 4.32.1 and the lockfile-pinned Mathlib revision.
+2. If the two scalar-linearity proofs fail, replace them with explicit `Finset.sum_congr` proofs over `Finset.univ`, after first exposing the Fintype sum as the underlying finite-set sum; do not add broad simp sets.
+3. If composition fails, retain the two-coordinate extensionality proof and inspect the exact coercion goal rather than unfolding all linear-map internals.
+4. Once the file compiles, add the isolated RP² file to a non-default/quarantined compile gate; do not import it into `CACEFormal.lean`.
+5. Then formalize H₀ augmentation-kernel equivalence, H₂ maximal-minor injectivity, and H₁ fundamental-cycle basis plus the explicit Smith-normal-form witness. The Python reference and matrix determinants remain discovery evidence, not Lean theorems.
+6. Keep PR #102 open and draft, and keep RP² qualification false until all three integral classifications are proved and independently verified against the exact artifact digest.
