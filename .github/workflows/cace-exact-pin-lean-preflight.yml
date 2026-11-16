@@ -81,19 +81,11 @@ jobs:
         id: target
         shell: bash
         env:
-          REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && '') || 'CACEFormal/P1RT0Element.lean' }}
+          REQUESTED_MODULE_RAW: ${{ inputs.module || (github.event_name == 'pull_request' && 'CACEFormal/ContinuumSimplexCore.lean') || 'CACEFormal/P1RT0Element.lean' }}
           COMPILE_ROOT: ${{ env.CACE_COMPILE_ROOT }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
         run: |
           set -euo pipefail
           REQUESTED_MODULE="$(printf '%s' "$REQUESTED_MODULE_RAW" | sed -E 's/^Module:[[:space:]]*//; s/[[:space:]]+compile_root:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
-          if test -z "$REQUESTED_MODULE" && test -n "$PR_BASE_SHA"; then
-            if git diff --name-only "$PR_BASE_SHA...HEAD" | grep -Fxq 'formal/cace_formal/CACEFormal/RP2ChainComplex.lean'; then
-              REQUESTED_MODULE='CACEFormal/RP2ChainComplex.lean'
-            else
-              REQUESTED_MODULE='CACEFormal/ContinuumSimplexCore.lean'
-            fi
-          fi
           echo "normalized_module=$REQUESTED_MODULE"
           case "$REQUESTED_MODULE" in
             CACEFormal/*.lean) ;;
