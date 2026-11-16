@@ -146,6 +146,7 @@ maps. Homology is defined as kernel modulo image; these definitions do not
 assert the desired group classifications.
 -/
 
+-- Keep the explicit Fintype-to-Finset normalization below: F-035 guards this proof shape.
 /-- The first integral boundary as a linear map. -/
 def boundary1Linear : C1 →ₗ[ℤ] C0 where
   toFun := boundary1

@@ -902,3 +902,42 @@ The 15×10 matrix for `∂2` has a 10×10 minor on zero-based edge rows `(0,1,2,
 ### Proof and qualification boundary
 
 This decomposition is a concrete proof plan backed by exact finite integer calculations and the existing independent-reference implementation. It is **not** a Lean proof, and no current RP² Lean classification theorem follows from it. The present Lean file still defines the homology objects without proving these isomorphisms. Keep RP² quarantined until the scalar-linearity correction compiles on an exact head and all three classifications are proved in the pinned Lean environment.
+
+
+## RP² Lean iteration — scalar-linearity canary patch (2026-11-16)
+
+A narrow follow-on branch was created from PR #102 exact head `c2af6c0f01babb3d89d4ef8972dd96535a71b422`:
+
+- Branch: `fix/rp2-linear-map-canaries-20261116`
+- Patch commit: `2b34a13eb3278d150d35eb42f5bca9e59e85c3f9`
+- File: `formal/cace_formal/CACEFormal/RP2ChainComplex.lean`
+- Change: simplify both `map_smul'` proofs to coordinate extensionality plus the finite-sum scalar-distribution simp rule; simplify `boundaryLinear_comp_zero` to extensionality over the chain and vertex coordinates, applying the already stated `boundary_squared_zero` theorem pointwise.
+
+This is a source-level attempt to address the previously reported Lean 4.32.1 failures around the two finite-sum rewrites and the linear-map composition goal. It has **not** been compiled. No Lean executable or Lake installation is available in the current execution environment, and no CI run was started. Do not infer that the patch compiles from the shape of the proof.
+
+### Exact next gate
+
+1. Run only the standalone pinned Lean target for `CACEFormal.RP2ChainComplex` on this exact patch commit with Lean 4.32.1 and the lockfile-pinned Mathlib revision.
+2. If the two scalar-linearity proofs fail, replace them with explicit `Finset.sum_congr` proofs over `Finset.univ`, after first exposing the Fintype sum as the underlying finite-set sum; do not add broad simp sets.
+3. If composition fails, retain the two-coordinate extensionality proof and inspect the exact coercion goal rather than unfolding all linear-map internals.
+4. Once the file compiles, add the isolated RP² file to a non-default/quarantined compile gate; do not import it into `CACEFormal.lean`.
+5. Then formalize H₀ augmentation-kernel equivalence, H₂ maximal-minor injectivity, and H₁ fundamental-cycle basis plus the explicit Smith-normal-form witness. The Python reference and matrix determinants remain discovery evidence, not Lean theorems.
+6. Keep PR #102 open and draft, and keep RP² qualification false until all three integral classifications are proved and independently verified against the exact artifact digest.
+
+
+### Exact-pin preflight run 43910176895 — policy failure and correction
+
+The first PR-triggered preflight on commit `fe56ba0cb339d587c1ce1ce237e46006f56f0c38` did **not** reach Lean compilation. The exact-pin guardrail step rejected the runnable workflow because the workflow file had drifted from its byte-for-byte canonical template. The runner successfully checked out the exact head and validated the quarantined target, but the proof-plan/guardrail stage stopped before cache restoration and all Lean build steps were skipped. This is a workflow-policy failure, not evidence of a Lean source failure or success.
+
+Correction committed as `e1f1a9834f6fca0d17fd1c29789c091517feaf66`: restore `.github/workflows/cace-exact-pin-lean-preflight.yml` from `ci/cace-exact-pin-lean-preflight.canonical.yml` byte-for-byte. The canonical workflow already contains a dedicated `Compile quarantined RP2 chain complex` step that runs `lake build +CACEFormal.RP2ChainComplex` after guardrail validation, so no custom workflow-target override is needed.
+
+The next exact-head run must first pass `check_cace_workflow_guardrails.py`, then execute the standalone RP² Lean compile. Do not count run 43910176895 as a Lean compile attempt.
+
+
+### F-035 regression caught the attempted simplification; source restored
+
+The second exact-pin run on `e1f1a9834f6fca0d17fd1c29789c091517feaf66` passed the workflow-template byte comparison and source/target classification, but stopped in `scripts/check_cace_known_failure_regressions.py` before Lean setup. The specific F-035 regression guard requires the explicit Fintype-to-`Finset.univ` sum conversion, product reassociation, scalar factoring via `Finset.mul_sum`, and arbitrary-chain `LinearMap.ext` proof. The simplified proof attempt removed those required seams.
+
+Correction committed as `9de2622a468163b58eae17ba4c21874b41cd5f9c`: restore the three boundary-map proof blocks from the exact PR #102 source snapshot, preserving the established F-035 structure. The prior simplification is rejected and must not be treated as a viable Lean fix.
+
+The next synchronized PR run should pass the F-035 source regression guard and proceed to the actual pinned Lean build. If the compiler then reports a proof error, diagnose that exact message and update the failure ledger and regression guard together; do not weaken or bypass F-035.
