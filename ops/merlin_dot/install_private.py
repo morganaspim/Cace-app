@@ -112,6 +112,28 @@ def unpack_verified(raw, expected_digest, destination):
     return manifest
 
 
+def seed_state(release, root, safe_env):
+    # -I removes the runner workspace/user-site/environment import paths. The
+    # only added package path is the root-owned, byte-verified release. -B is
+    # explicit because -I also ignores PYTHONDONTWRITEBYTECODE from the env.
+    code = """import sys
+from pathlib import Path
+source=Path(sys.argv[1]);root=Path(sys.argv[2])
+sys.path.insert(0,str(source/'python'))
+import json
+from merlin.project_registry import MerlinRegistry
+from dot_ai_os.bridge import DotContextBridge
+r=MerlinRegistry(root);b=DotContextBridge(r,project_id='dot-production-docs',namespaces=('merlin','expert-robot'))
+b.initialize()
+for doc in json.loads((source/'seed-documents.json').read_text()):
+ b.ingest(namespace=doc['namespace'],source_id=doc['source_id'],title=doc['title'],content=doc['content'].encode(),source_url=doc['source_url'],source_version=doc['source_version'],epistemic=doc['epistemic'],captured_at=doc['captured_at'])
+print(json.dumps(b.status()))
+"""
+    return subprocess.run(["/usr/bin/python3", "-I", "-B", "-c", code, str(release), str(root)],
+                          cwd=str(release), env=safe_env, check=True,
+                          capture_output=True, text=True, timeout=120)
+
+
 def install(bundle_path, expected_digest):
     if os.geteuid() != 0:
         raise PermissionError("dedicated service installation requires root")
@@ -152,19 +174,7 @@ def install(bundle_path, expected_digest):
     STATE.mkdir(mode=0o700)
     CONFIG.mkdir(mode=0o755)
     CONFIG.chmod(0o755)
-    code = """import json,sys
-from pathlib import Path
-from merlin.project_registry import MerlinRegistry
-from dot_ai_os.bridge import DotContextBridge
-source=Path(sys.argv[1]);root=Path(sys.argv[2])
-r=MerlinRegistry(root);b=DotContextBridge(r,project_id='dot-production-docs',namespaces=('merlin','expert-robot'))
-b.initialize()
-for doc in json.loads((source/'seed-documents.json').read_text()):
- b.ingest(namespace=doc['namespace'],source_id=doc['source_id'],title=doc['title'],content=doc['content'].encode(),source_url=doc['source_url'],source_version=doc['source_version'],epistemic=doc['epistemic'],captured_at=doc['captured_at'])
-print(json.dumps(b.status()))
-"""
-    env = dict(safe_env, PYTHONPATH=str(release / "python"), PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1")
-    seeded = subprocess.run(["/usr/bin/python3", "-s", "-c", code, str(release), str(STATE / "state")], env=env, check=True, capture_output=True, text=True, timeout=120)
+    seeded = seed_state(release, STATE / "state", safe_env)
     tools = ["health", "context_status", "context_search", "context_fetch", "session_handoff", "rsi_status", "virtual_circuit_demo"]
     config = {"schema": "merlin-private-host/1", "project_id": "dot-production-docs", "namespaces": ["merlin", "expert-robot"], "grants": [{"uid": runner.pw_uid, "principal": "local-runner-opc", "tools": tools}]}
     with (CONFIG / "config.json").open("x") as stream:
