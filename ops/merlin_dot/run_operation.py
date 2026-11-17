@@ -22,6 +22,18 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
     manifest = installer["unpack_verified"](raw, bundle_sha, release)
     env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8", "PYTHONPATH": str(release / "python"), "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1"}
     report = {"schema": "merlin-dot-operation-receipt/1", "operation": request["operation"], "request_id": request["request_id"], "bundle_git_blob": bundle_blob, "bundle_sha256": bundle_sha, "source_files": manifest["files"], "runner": os.environ.get("RUNNER_NAME"), "workflow_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"], "qualification": False, "promotion_authority": False, "host_configuration_changed": False}
+    if request["operation"] == "diagnose_research":
+        source, _ = fetch("ops/merlin_dot/diagnose_research.py")
+        root_code = "import hashlib,json;s=" + repr(source) + ";assert hashlib.sha256(s).hexdigest()=='85af472c3da6596e3cb545d04822bf4f30f743d208b547a095101db503403706';n={};exec(compile(s,'fixed-diagnostic','exec'),n);print(json.dumps(n['diagnose']()))"
+        result = subprocess.run(["/usr/bin/sudo", "-n", "/usr/bin/python3", "-I", "-c", root_code], env=env, cwd=str(release), capture_output=True, text=True, timeout=45)
+        (output / "diagnostic-log.txt").write_text(result.stdout + result.stderr)
+        if result.returncode:
+            raise RuntimeError("fixed diagnostic failed: " + result.stderr[-2000:])
+        report["diagnostic"] = json.loads(result.stdout)
+        report["status"] = "succeeded"
+        (output / "operation-receipt.json").write_text(json.dumps(report, indent=2))
+        print(json.dumps(report["diagnostic"],indent=2))
+        return report
     if request["operation"] in {"inspect", "tool_call"}:
         uid = pwd.getpwnam("merlin-dot").pw_uid
         client = "from dot_ai_os.private_runtime import call_socket;import json,sys;q=json.loads(sys.argv[1]);print(json.dumps(call_socket('/run/merlin-dot-private/tools.sock',q,expected_server_uid=" + str(uid) + ")))"
