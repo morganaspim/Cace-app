@@ -71,13 +71,37 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
         (output / "operation-receipt.json").write_text(json.dumps(report, indent=2, sort_keys=True))
         print(json.dumps({k: v for k, v in report.items() if k not in {"source_files", "live_tool_results"}}, indent=2))
         return report
+    recovery_sources = None
+    required_tests = 110
+    if request["operation"] == "recovery_drill":
+        recovery_source, recovery_blob = fetch("ops/merlin_dot/recovery.py")
+        recovery_tests, tests_blob = fetch("ops/merlin_dot/test_recovery.py")
+        drill_source, drill_blob = fetch("ops/merlin_dot/recovery_drill.py")
+        upgrade_source, upgrade_blob = fetch("ops/merlin_dot/upgrade_research.py")
+        drill_tests, drill_tests_blob = fetch("ops/merlin_dot/test_recovery_drill.py")
+        installer_source, installer_blob = fetch("ops/merlin_dot/install_private.py")
+        if (recovery_blob != "5a5c8029df55c50049c49030da5b13742cf4f4e3" or tests_blob != "f8b26f5f79e7b9a46ddb1d0e62aa1a8c5e6ed3c0"
+                or drill_blob != "4e03f12a199406755f39a08a8c01a2d3afa4f201" or upgrade_blob != "a68671122ce8e833ac340efa7cbb3a761562ab11"
+                or drill_tests_blob != "87dd99235242ab414e72079d2231db5d04ed8898" or installer_blob != "6a486e665f82c563d7746bcbac431ec63adedd0d"):
+            raise RuntimeError("isolated recovery source pin mismatch")
+        # These are new validation-only paths. Never modify the installed release.
+        recovery_path = release / "python" / "dot_ai_os" / "recovery.py"
+        recovery_test_path = release / "tests" / "test_recovery.py"
+        for path, source_bytes in ((recovery_path, recovery_source), (recovery_test_path, recovery_tests)):
+            with path.open("xb") as stream:
+                stream.write(source_bytes)
+        recovery_sources = (upgrade_source, drill_source, recovery_source, drill_tests, installer_source)
+        required_tests = 136
+        report["recovery_validation_only"] = True
+        report["recovery_source_sha256"] = hashlib.sha256(recovery_source).hexdigest()
+        report["recovery_drill_sha256"] = hashlib.sha256(drill_source).hexdigest()
     test_code = """import json,unittest,sys
 s=unittest.defaultTestLoader.discover('tests',pattern='test_*.py')
 r=unittest.TextTestRunner(verbosity=2).run(s)
-v={'tests':r.testsRun,'failures':len(r.failures),'errors':len(r.errors),'skipped':len(r.skipped),'passed':r.wasSuccessful() and not r.skipped and r.testsRun>=110}
+v={'tests':r.testsRun,'failures':len(r.failures),'errors':len(r.errors),'skipped':len(r.skipped),'passed':r.wasSuccessful() and not r.skipped and r.testsRun>=int(sys.argv[1])}
 print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passed'] else 1)
 """
-    tests = subprocess.run(["/usr/bin/python3", "-s", "-c", test_code], cwd=str(release), env=env, capture_output=True, text=True, timeout=180)
+    tests = subprocess.run(["/usr/bin/python3", "-s", "-c", test_code, str(required_tests)], cwd=str(release), env=env, capture_output=True, text=True, timeout=180)
     (output / "validation-tests.txt").write_text(tests.stdout + tests.stderr)
     lines = [line for line in tests.stdout.splitlines() if line.startswith("MERLIN_TEST_RESULT=")]
     report["tests"] = json.loads(lines[-1].split("=", 1)[1]) if lines else {"passed": False, "process_returncode": tests.returncode}
@@ -85,6 +109,43 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         report["status"] = "validation_failed"
         (output / "operation-receipt.json").write_text(json.dumps(report, indent=2))
         print(tests.stderr[-14000:])
+        return report
+    if request["operation"] == "recovery_drill":
+        upgrade_source, drill_source, recovery_source, drill_tests, installer_source = recovery_sources
+        ops_fixtures = output / "recovery-operation-tests"
+        ops_fixtures.mkdir(mode=0o700)
+        for name, source_bytes in (("recovery_drill.py", drill_source), ("recovery.py", recovery_source),
+                ("test_recovery_drill.py", drill_tests), ("install_private.py", installer_source),
+                ("merlin-dot-research-v2-qualified.zip", raw)):
+            with (ops_fixtures / name).open("xb") as stream:
+                stream.write(source_bytes)
+        operation_tests = subprocess.run(["/usr/bin/python3", "-s", "-c", test_code.replace("discover('tests',pattern='test_*.py')", "discover('.',pattern='test_recovery_drill.py')"), "9"],
+            env=env, cwd=str(ops_fixtures), capture_output=True, text=True, timeout=150)
+        (output / "recovery-operation-tests.txt").write_text(operation_tests.stdout + operation_tests.stderr)
+        lines = [line for line in operation_tests.stdout.splitlines() if line.startswith("MERLIN_TEST_RESULT=")]
+        report["recovery_operation_tests"] = json.loads(lines[-1].split("=", 1)[1]) if lines else {"passed": False, "process_returncode": operation_tests.returncode}
+        if operation_tests.returncode or not report["recovery_operation_tests"].get("passed"):
+            report["status"] = "recovery_operation_validation_failed"
+            (output / "operation-receipt.json").write_text(json.dumps(report, indent=2, sort_keys=True))
+            print(operation_tests.stdout[-4000:] + operation_tests.stderr[-14000:])
+            return report
+        root_code = "import hashlib,json;u=" + repr(upgrade_source) + ";assert hashlib.sha256(u).hexdigest()==" + repr(hashlib.sha256(upgrade_source).hexdigest()) + ";b={};exec(compile(u,'pinned-private-profile','exec'),b);d=" + repr(drill_source) + ";assert hashlib.sha256(d).hexdigest()==" + repr(hashlib.sha256(drill_source).hexdigest()) + ";n={};exec(compile(d,'pinned-isolated-recovery-drill','exec'),n);r=" + repr(recovery_source) + ";assert hashlib.sha256(r).hexdigest()==" + repr(hashlib.sha256(recovery_source).hexdigest()) + ";print(json.dumps(n['drill'](b,r.decode('utf-8'))))"
+        if len(root_code.encode()) > 100000:
+            raise RuntimeError("fixed root bootstrap exceeds reviewed argument ceiling")
+        isolated = subprocess.run(["/usr/bin/sudo", "-n", "/usr/bin/python3", "-I", "-B", "-c", root_code],
+            env=env, cwd=str(release), capture_output=True, text=True, timeout=180)
+        (output / "recovery-drill-log.txt").write_text(isolated.stdout + isolated.stderr)
+        report["host_configuration_changed"] = False
+        report["isolated_recovery_paths_created"] = True
+        if isolated.returncode:
+            report["status"] = "recovery_drill_failed"
+            report["error"] = {"class": "RootHelperProcessError", "returncode": isolated.returncode,
+                "stdout": isolated.stdout[-16000:], "stderr": isolated.stderr[-16000:]}
+        else:
+            report["recovery_drill"] = json.loads(isolated.stdout)
+            report["status"] = "succeeded" if report["recovery_drill"].get("status") == "passed" else "recovery_drill_failed"
+        (output / "operation-receipt.json").write_text(json.dumps(report, indent=2, sort_keys=True))
+        print(json.dumps({key: value for key, value in report.items() if key != "source_files"}, indent=2, sort_keys=True))
         return report
     if request["operation"] in {"deploy", "upgrade_research", "resume_research"}:
         validation = api("actions/runs/" + str(request["validation_run_id"]))

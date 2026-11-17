@@ -40,9 +40,9 @@ jobs:
         \ len(qraw)>16000: raise RuntimeError('request size limit')\nq=json.loads(qraw)\n\
         base={'schema','request_id','operation','created_at'}\nif not isinstance(q,dict)\
         \ or q.get('schema')!='merlin-dot-ops-request-v1' or q.get('operation') not\
-        \ in {'validate','deploy','upgrade_research','resume_research','diagnose_research','probe_research','inspect','tool_call'}\
+        \ in {'validate','deploy','upgrade_research','resume_research','diagnose_research','probe_research','recovery_drill','inspect','tool_call'}\
         \ or p!='merlin/dot-requests/'+q.get('request_id','')+'.json': raise RuntimeError('invalid\
-        \ request')\nexpected=base if q['operation'] in {'validate','inspect','diagnose_research','probe_research'}\
+        \ request')\nexpected=base if q['operation'] in {'validate','inspect','diagnose_research','probe_research','recovery_drill'}\
         \ else (base|{'tool','arguments'} if q['operation']=='tool_call' else base|{'validation_run_id','validation_commit'})\n\
         if set(q)!=expected: raise RuntimeError('request fields rejected')\nif q['operation']=='tool_call'\
         \ and (q['tool'] not in {'health','context_status','context_search','context_fetch','virtual_circuit_demo','research_contract','research_episode_demo','mathematical_lenses_demo'}\
@@ -53,7 +53,7 @@ jobs:
         \ raise RuntimeError('invalid validation binding')\ninstaller_source,sha=fetch('ops/merlin_dot/install_private.py')\n\
         if sha!='6a486e665f82c563d7746bcbac431ec63adedd0d': raise RuntimeError('installer\
         \ pin mismatch')\ninstaller={};exec(compile(installer_source,'pinned-installer','exec'),installer)\n\
-        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='254a5ff712652f12662c88adcfeb8ee1f3692da8':\
+        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='2e062d235f92e1260d051e5392991e7e3fd1eff9':\
         \ raise RuntimeError('operation pin mismatch')\noperation={};exec(compile(operation_source,'pinned-operations','exec'),operation)\n\
         if q['operation'] in {'upgrade_research','resume_research'}:\n upgrade_source,upgrade_sha=fetch('ops/merlin_dot/upgrade_research.py')\n\
         \ if upgrade_sha!='a68671122ce8e833ac340efa7cbb3a761562ab11': raise RuntimeError('upgrader\
