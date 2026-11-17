@@ -10,6 +10,13 @@ import time
 
 
 def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, output):
+    if request["operation"] == "validate_learning":
+        source, sha = fetch("ops/merlin_dot/run_learning_integration.py")
+        if sha != "42913fb3dc64f7146310507b5359763f51c55124":
+            raise RuntimeError("learning integration runner pin mismatch")
+        namespace = {}
+        exec(compile(source, "pinned-learning-integration", "exec"), namespace)
+        return namespace["run_learning_integration"](request, api, output)
     obj = api("git/blobs/" + bundle_blob)
     if obj.get("sha") != bundle_blob or obj.get("encoding") != "base64":
         raise RuntimeError("invalid pinned runtime blob")
