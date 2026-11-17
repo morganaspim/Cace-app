@@ -87,6 +87,11 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
             return report
         result = json.loads(installed.stdout)
         report["installation"] = result
+        if request["operation"] == "upgrade_research" and result.get("status") != "upgraded":
+            report["status"] = result.get("status", "upgrade_failed")
+            (output / "operation-receipt.json").write_text(json.dumps(report, indent=2, sort_keys=True))
+            print(json.dumps(report, indent=2, sort_keys=True))
+            return report
         from_client = "from dot_ai_os.private_runtime import call_socket;import json; q=json.loads(__import__('sys').argv[1]);r=call_socket('/run/merlin-dot-private/tools.sock',q,expected_server_uid=" + str(result["service_uid"]) + "); print(json.dumps(r)); raise SystemExit(0 if r['ok'] else 1)"
         reports = {}
         for tool, args in (("health", {}), ("context_status", {}), ("context_search", {"query": "virtual circuit power", "budget_bytes": 8000}), ("virtual_circuit_demo", {}), ("research_contract", {}), ("mathematical_lenses_demo", {}), ("research_episode_demo", {})):
