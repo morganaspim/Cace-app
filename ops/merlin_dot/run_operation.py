@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import pwd
 import subprocess
 import time
 
@@ -21,6 +22,31 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
     manifest = installer["unpack_verified"](raw, bundle_sha, release)
     env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8", "PYTHONPATH": str(release / "python"), "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1"}
     report = {"schema": "merlin-dot-operation-receipt/1", "operation": request["operation"], "request_id": request["request_id"], "bundle_git_blob": bundle_blob, "bundle_sha256": bundle_sha, "source_files": manifest["files"], "runner": os.environ.get("RUNNER_NAME"), "workflow_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"], "qualification": False, "promotion_authority": False, "host_configuration_changed": False}
+    if request["operation"] in {"inspect", "tool_call"}:
+        uid = pwd.getpwnam("merlin-dot").pw_uid
+        client = "from dot_ai_os.private_runtime import call_socket;import json,sys;q=json.loads(sys.argv[1]);print(json.dumps(call_socket('/run/merlin-dot-private/tools.sock',q,expected_server_uid=" + str(uid) + ")))"
+        calls = ((request["tool"], request["arguments"]),) if request["operation"] == "tool_call" else (("health", {}), ("context_status", {}), ("virtual_circuit_demo", {}), ("job_submit", {}))
+        reports = {}
+        for tool, args in calls:
+            q = {"schema": "merlin-private-call/1", "request_id": "inspection-" + tool, "tool": tool, "arguments": args}
+            result = subprocess.run(["/usr/bin/python3", "-s", "-c", client, json.dumps(q)], env=env, capture_output=True, text=True, timeout=30, check=True)
+            reply = json.loads(result.stdout)
+            expected_denial = request["operation"] == "inspect" and tool == "job_submit"
+            if expected_denial:
+                if reply.get("ok") is not False or reply.get("error", {}).get("code") != "tool_not_allowed":
+                    raise RuntimeError("live write denial check failed")
+            elif reply.get("ok") is not True:
+                raise RuntimeError("fixed live tool call failed")
+            reports[tool] = reply
+        report["live_tool_results"] = reports
+        status = subprocess.run(["/usr/bin/systemctl", "show", "merlin-dot-private.service", "--property=ActiveState,SubState,MainPID,UnitFileState,User,Group,PrivateNetwork,NoNewPrivileges,RestrictAddressFamilies"], env=env, capture_output=True, text=True, timeout=10, check=True)
+        report["service_properties"] = status.stdout
+        if "ActiveState=active" not in status.stdout:
+            raise RuntimeError("private service is not active")
+        report["status"] = "succeeded"
+        (output / "operation-receipt.json").write_text(json.dumps(report, indent=2, sort_keys=True))
+        print(json.dumps({k: v for k, v in report.items() if k not in {"source_files", "live_tool_results"}}, indent=2))
+        return report
     test_code = """import json,unittest,sys
 s=unittest.defaultTestLoader.discover('tests',pattern='test_*.py')
 r=unittest.TextTestRunner(verbosity=2).run(s)
