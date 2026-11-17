@@ -1,0 +1,35 @@
+name: Merlin dot OCI operations
+'on':
+  push:
+    branches:
+    - merlin/dot-ops/**
+    paths:
+    - merlin/dot-requests/**
+permissions:
+  contents: read
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+jobs:
+  fixed-operation:
+    runs-on:
+    - self-hosted
+    - cace
+    - oci
+    - aarch64
+    timeout-minutes: 5
+    steps:
+    - name: Run pinned deployment preflight
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      shell: bash
+      run: "set -euo pipefail\npython3 - <<'PY'\nimport base64,hashlib,json,os,re,urllib.request\nfrom pathlib import Path\nrepo=os.environ['GITHUB_REPOSITORY']; commit=os.environ['GITHUB_SHA']\ndef api(path):\n req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})\n with urllib.request.urlopen(req,timeout=15) as r:\n  raw=r.read(2*1024*1024+1)\n if len(raw)>2*1024*1024: raise RuntimeError('response limit')\n return json.loads(raw)\nif os.environ.get('RUNNER_NAME')!='cace-oci-a1': raise RuntimeError('wrong runner')\nfiles=api('commits/'+commit)['files']\nif len(files)!=1 or files[0]['status']!='added': raise RuntimeError('requires one new request')\np=files[0]['filename']\nif not re.fullmatch(r'merlin/dot-requests/[0-9a-f-]{36}\\.json',p): raise RuntimeError('invalid request path')\ndef fetch(path):\n obj=api('contents/'+path+'?ref='+commit)\n return base64.b64decode(obj['content']),obj['sha']\n\
+        raw,_=fetch(p); q=json.loads(raw)\nif set(q)!={'schema','request_id','operation','created_at'} or q['schema']!='merlin-dot-ops-request-v1' or q['operation']!='preflight' or p!='merlin/dot-requests/'+q['request_id']+'.json': raise RuntimeError('invalid request')\nsource,blob=fetch('ops/merlin_dot/preflight.py')\nif blob!='8d9fa2ff28b6ea93f5b7f94f9384d2f47dfdcd8e': raise RuntimeError('preflight source pin mismatch')\nns={}; exec(compile(source,'pinned-preflight','exec'),ns)\nreport=ns['collect']()\nreport.update({'request_id':q['request_id'],'request_sha256':hashlib.sha256(raw).hexdigest(),'workflow_commit':commit,'run_id':os.environ['GITHUB_RUN_ID'],'source_blob_sha':blob})\nout=Path(os.environ['RUNNER_TEMP'])/('merlin-dot-preflight-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT'])\nout.mkdir(exist_ok=False)\n(out/'preflight.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\\n')\nprint(json.dumps(report,indent=2,sort_keys=True))\nPY\n"
+    - name: Preserve preflight receipt
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: merlin-dot-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/merlin-dot-preflight-${{ github.run_id }}-${{ github.run_attempt }}/
+        if-no-files-found: warn
+        retention-days: 30
