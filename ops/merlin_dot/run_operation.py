@@ -34,6 +34,18 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
         (output / "operation-receipt.json").write_text(json.dumps(report, indent=2))
         print(json.dumps(report["diagnostic"],indent=2))
         return report
+    if request["operation"] == "probe_research":
+        source, _ = fetch("ops/merlin_dot/probe_research.py")
+        root_code = "import hashlib,json;s=" + repr(source) + ";assert hashlib.sha256(s).hexdigest()=='a1fb4f9cfb24903b7f11b55fe7827e22b7ae2a86cfca9ad43f97fee2381aac91';n={};exec(compile(s,'fixed-diagnostic','exec'),n);print(json.dumps(n['probe']()))"
+        result = subprocess.run(["/usr/bin/sudo", "-n", "/usr/bin/python3", "-I", "-c", root_code], env=env, cwd=str(release), capture_output=True, text=True, timeout=45)
+        (output / "diagnostic-log.txt").write_text(result.stdout + result.stderr)
+        if result.returncode:
+            raise RuntimeError("fixed diagnostic failed: " + result.stderr[-2000:])
+        report["diagnostic"] = json.loads(result.stdout)
+        report["status"] = "succeeded"
+        (output / "operation-receipt.json").write_text(json.dumps(report, indent=2))
+        print(json.dumps(report["diagnostic"],indent=2))
+        return report
     if request["operation"] in {"inspect", "tool_call"}:
         uid = pwd.getpwnam("merlin-dot").pw_uid
         client = "from dot_ai_os.private_runtime import call_socket;import json,sys;q=json.loads(sys.argv[1]);print(json.dumps(call_socket('/run/merlin-dot-private/tools.sock',q,expected_server_uid=" + str(uid) + ")))"
