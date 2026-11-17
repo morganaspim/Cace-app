@@ -86,7 +86,7 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         (output / "operation-receipt.json").write_text(json.dumps(report, indent=2))
         print(tests.stderr[-14000:])
         return report
-    if request["operation"] in {"deploy", "upgrade_research"}:
+    if request["operation"] in {"deploy", "upgrade_research", "resume_research"}:
         validation = api("actions/runs/" + str(request["validation_run_id"]))
         if (validation.get("status") != "completed" or validation.get("conclusion") != "success"
                 or validation.get("head_sha") != request["validation_commit"]
@@ -96,9 +96,12 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         # Root re-verifies the pinned installer bytes and the runtime ZIP before
         # creating new paths; no existing install is overwritten.
         source, _ = fetch("ops/merlin_dot/install_private.py")
-        if request["operation"] == "upgrade_research":
+        if request["operation"] in {"upgrade_research", "resume_research"}:
             upgrade_source, _ = fetch("ops/merlin_dot/upgrade_research.py")
             root_code = "import hashlib,json; s=" + repr(source) + "; assert hashlib.sha256(s).hexdigest()==" + repr(hashlib.sha256(source).hexdigest()) + "; n={};exec(compile(s,'pinned-installer','exec'),n);u=" + repr(upgrade_source) + "; assert hashlib.sha256(u).hexdigest()==" + repr(hashlib.sha256(upgrade_source).hexdigest()) + ";v={};exec(compile(u,'pinned-upgrader','exec'),v);print(json.dumps(v['upgrade'](" + repr(str(package)) + "," + repr(bundle_sha) + ",n['unpack_verified'])))"
+            if request["operation"] == "resume_research":
+                resume_source, _ = fetch("ops/merlin_dot/resume_research.py")
+                root_code = "import hashlib,json;s=" + repr(source) + ";assert hashlib.sha256(s).hexdigest()==" + repr(hashlib.sha256(source).hexdigest()) + ";n={};exec(compile(s,'pinned-installer','exec'),n);u=" + repr(upgrade_source) + ";assert hashlib.sha256(u).hexdigest()==" + repr(hashlib.sha256(upgrade_source).hexdigest()) + ";v={};exec(compile(u,'pinned-upgrader','exec'),v);r=" + repr(resume_source) + ";assert hashlib.sha256(r).hexdigest()==" + repr(hashlib.sha256(resume_source).hexdigest()) + ";w={};exec(compile(r,'pinned-resumer','exec'),w);print(json.dumps(w['resume'](" + repr(str(package)) + "," + repr(bundle_sha) + ",n['unpack_verified'],v)))"
         else:
             root_code = "import hashlib; s=" + repr(source) + "; assert hashlib.sha256(s).hexdigest()==" + repr(hashlib.sha256(source).hexdigest()) + "; n={};exec(compile(s,'pinned-installer','exec'),n);import json;print(json.dumps(n['install'](" + repr(str(package)) + "," + repr(bundle_sha) + ")))"
         installed = subprocess.run(["/usr/bin/sudo", "-n", "/usr/bin/python3", "-I", "-c", root_code], env=env, capture_output=True, text=True, timeout=180)
@@ -111,7 +114,7 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
             return report
         result = json.loads(installed.stdout)
         report["installation"] = result
-        if request["operation"] == "upgrade_research" and result.get("status") != "upgraded":
+        if request["operation"] in {"upgrade_research", "resume_research"} and result.get("status") != "upgraded":
             report["status"] = result.get("status", "upgrade_failed")
             (output / "operation-receipt.json").write_text(json.dumps(report, indent=2, sort_keys=True))
             print(json.dumps(report, indent=2, sort_keys=True))

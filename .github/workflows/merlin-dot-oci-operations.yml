@@ -40,7 +40,7 @@ jobs:
         \ len(qraw)>16000: raise RuntimeError('request size limit')\nq=json.loads(qraw)\n\
         base={'schema','request_id','operation','created_at'}\nif not isinstance(q,dict)\
         \ or q.get('schema')!='merlin-dot-ops-request-v1' or q.get('operation') not\
-        \ in {'validate','deploy','upgrade_research','diagnose_research','probe_research','inspect','tool_call'}\
+        \ in {'validate','deploy','upgrade_research','resume_research','diagnose_research','probe_research','inspect','tool_call'}\
         \ or p!='merlin/dot-requests/'+q.get('request_id','')+'.json': raise RuntimeError('invalid\
         \ request')\nexpected=base if q['operation'] in {'validate','inspect','diagnose_research','probe_research'}\
         \ else (base|{'tool','arguments'} if q['operation']=='tool_call' else base|{'validation_run_id','validation_commit'})\n\
@@ -48,15 +48,17 @@ jobs:
         \ and (q['tool'] not in {'health','context_status','context_search','context_fetch','virtual_circuit_demo','research_contract','research_episode_demo','mathematical_lenses_demo'}\
         \ or not isinstance(q['arguments'],dict) or len(json.dumps(q['arguments']))>8000):\
         \ raise RuntimeError('only bounded read/simulation tools are enabled')\nif\
-        \ q['operation'] in {'deploy','upgrade_research'} and (type(q['validation_run_id'])\
+        \ q['operation'] in {'deploy','upgrade_research','resume_research'} and (type(q['validation_run_id'])\
         \ is not int or q['validation_run_id']<=0 or not re.fullmatch('[0-9a-f]{40}',q['validation_commit'])):\
         \ raise RuntimeError('invalid validation binding')\ninstaller_source,sha=fetch('ops/merlin_dot/install_private.py')\n\
         if sha!='6a486e665f82c563d7746bcbac431ec63adedd0d': raise RuntimeError('installer\
         \ pin mismatch')\ninstaller={};exec(compile(installer_source,'pinned-installer','exec'),installer)\n\
-        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='45c08b5d6df9a1ad27d129c6384065a09e14fb21':\
+        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='254a5ff712652f12662c88adcfeb8ee1f3692da8':\
         \ raise RuntimeError('operation pin mismatch')\noperation={};exec(compile(operation_source,'pinned-operations','exec'),operation)\n\
-        if q['operation']=='upgrade_research':\n upgrade_source,upgrade_sha=fetch('ops/merlin_dot/upgrade_research.py')\n\
+        if q['operation'] in {'upgrade_research','resume_research'}:\n upgrade_source,upgrade_sha=fetch('ops/merlin_dot/upgrade_research.py')\n\
         \ if upgrade_sha!='a68671122ce8e833ac340efa7cbb3a761562ab11': raise RuntimeError('upgrader\
+        \ pin mismatch')\nif q['operation']=='resume_research':\n resume_source,resume_sha=fetch('ops/merlin_dot/resume_research.py')\n\
+        \ if resume_sha!='f9392dfab442230d00500fdb8dd59ada3a7edd89': raise RuntimeError('resumer\
         \ pin mismatch')\nout=Path(os.environ['RUNNER_TEMP'])/('merlin-dot-operation-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']);out.mkdir(exist_ok=False)\n\
         result=operation['run_operation'](q,api,fetch,installer,'1d55b9a94ff843d847b0be9322f22257a21a2dbf','efe57bada5cd86f45118cac0036faf497f9aa60972508e036aed09f7b8cf04db',out)\n\
         if result['status']!='succeeded': raise SystemExit('fixed operation failed;\
