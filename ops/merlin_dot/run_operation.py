@@ -25,7 +25,7 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
     if request["operation"] in {"inspect", "tool_call"}:
         uid = pwd.getpwnam("merlin-dot").pw_uid
         client = "from dot_ai_os.private_runtime import call_socket;import json,sys;q=json.loads(sys.argv[1]);print(json.dumps(call_socket('/run/merlin-dot-private/tools.sock',q,expected_server_uid=" + str(uid) + ")))"
-        calls = ((request["tool"], request["arguments"]),) if request["operation"] == "tool_call" else (("health", {}), ("context_status", {}), ("virtual_circuit_demo", {}), ("job_submit", {}))
+        calls = ((request["tool"], request["arguments"]),) if request["operation"] == "tool_call" else (("health", {}), ("context_status", {}), ("research_contract", {}), ("mathematical_lenses_demo", {}), ("research_episode_demo", {}), ("virtual_circuit_demo", {}), ("job_submit", {}))
         reports = {}
         for tool, args in calls:
             q = {"schema": "merlin-private-call/1", "request_id": "inspection-" + tool, "tool": tool, "arguments": args}
@@ -50,7 +50,7 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
     test_code = """import json,unittest,sys
 s=unittest.defaultTestLoader.discover('tests',pattern='test_*.py')
 r=unittest.TextTestRunner(verbosity=2).run(s)
-v={'tests':r.testsRun,'failures':len(r.failures),'errors':len(r.errors),'skipped':len(r.skipped),'passed':r.wasSuccessful() and not r.skipped and r.testsRun>=70}
+v={'tests':r.testsRun,'failures':len(r.failures),'errors':len(r.errors),'skipped':len(r.skipped),'passed':r.wasSuccessful() and not r.skipped and r.testsRun>=110}
 print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passed'] else 1)
 """
     tests = subprocess.run(["/usr/bin/python3", "-s", "-c", test_code], cwd=str(release), env=env, capture_output=True, text=True, timeout=180)
@@ -62,7 +62,7 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         (output / "operation-receipt.json").write_text(json.dumps(report, indent=2))
         print(tests.stderr[-14000:])
         return report
-    if request["operation"] == "deploy":
+    if request["operation"] in {"deploy", "upgrade_research"}:
         validation = api("actions/runs/" + str(request["validation_run_id"]))
         if (validation.get("status") != "completed" or validation.get("conclusion") != "success"
                 or validation.get("head_sha") != request["validation_commit"]
@@ -72,7 +72,11 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         # Root re-verifies the pinned installer bytes and the runtime ZIP before
         # creating new paths; no existing install is overwritten.
         source, _ = fetch("ops/merlin_dot/install_private.py")
-        root_code = "import hashlib; s=" + repr(source) + "; assert hashlib.sha256(s).hexdigest()==" + repr(hashlib.sha256(source).hexdigest()) + "; n={};exec(compile(s,'pinned-installer','exec'),n);import json;print(json.dumps(n['install'](" + repr(str(package)) + "," + repr(bundle_sha) + ")))"
+        if request["operation"] == "upgrade_research":
+            upgrade_source, _ = fetch("ops/merlin_dot/upgrade_research.py")
+            root_code = "import hashlib,json; s=" + repr(source) + "; assert hashlib.sha256(s).hexdigest()==" + repr(hashlib.sha256(source).hexdigest()) + "; n={};exec(compile(s,'pinned-installer','exec'),n);u=" + repr(upgrade_source) + "; assert hashlib.sha256(u).hexdigest()==" + repr(hashlib.sha256(upgrade_source).hexdigest()) + ";v={};exec(compile(u,'pinned-upgrader','exec'),v);print(json.dumps(v['upgrade'](" + repr(str(package)) + "," + repr(bundle_sha) + ",n['unpack_verified'])))"
+        else:
+            root_code = "import hashlib; s=" + repr(source) + "; assert hashlib.sha256(s).hexdigest()==" + repr(hashlib.sha256(source).hexdigest()) + "; n={};exec(compile(s,'pinned-installer','exec'),n);import json;print(json.dumps(n['install'](" + repr(str(package)) + "," + repr(bundle_sha) + ")))"
         installed = subprocess.run(["/usr/bin/sudo", "-n", "/usr/bin/python3", "-I", "-c", root_code], env=env, capture_output=True, text=True, timeout=180)
         (output / "installation-log.txt").write_text(installed.stdout + installed.stderr)
         report["host_configuration_changed"] = True
@@ -85,7 +89,7 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         report["installation"] = result
         from_client = "from dot_ai_os.private_runtime import call_socket;import json; q=json.loads(__import__('sys').argv[1]);r=call_socket('/run/merlin-dot-private/tools.sock',q,expected_server_uid=" + str(result["service_uid"]) + "); print(json.dumps(r)); raise SystemExit(0 if r['ok'] else 1)"
         reports = {}
-        for tool, args in (("health", {}), ("context_status", {}), ("context_search", {"query": "virtual circuit power", "budget_bytes": 8000}), ("virtual_circuit_demo", {})):
+        for tool, args in (("health", {}), ("context_status", {}), ("context_search", {"query": "virtual circuit power", "budget_bytes": 8000}), ("virtual_circuit_demo", {}), ("research_contract", {}), ("mathematical_lenses_demo", {}), ("research_episode_demo", {})):
             q = {"schema": "merlin-private-call/1", "request_id": "postdeploy-" + tool, "tool": tool, "arguments": args}
             for attempt in range(10):
                 called = subprocess.run(["/usr/bin/python3", "-s", "-c", from_client, json.dumps(q)], env=env, cwd=str(release), capture_output=True, text=True, timeout=30)
