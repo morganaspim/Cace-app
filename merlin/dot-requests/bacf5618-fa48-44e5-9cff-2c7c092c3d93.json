@@ -1,0 +1,8 @@
+{
+  "schema": "merlin-dot-ops-request-v1",
+  "request_id": "bacf5618-fa48-44e5-9cff-2c7c092c3d93",
+  "operation": "resume_research",
+  "created_at": "2026-11-17T18:28:15.855Z",
+  "validation_run_id": 44144790708,
+  "validation_commit": "3080cca6ab5f49f22b06a203f4e44f5d119536fd"
+}
