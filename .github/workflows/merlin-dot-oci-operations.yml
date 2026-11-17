@@ -7,6 +7,7 @@ name: Merlin dot OCI operations
     - merlin/dot-requests/**
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: merlin-dot-oci-operations
   cancel-in-progress: false
