@@ -93,7 +93,12 @@ def get_merlin_artifact_ref_capability() -> dict[str, Any]:
     import hashlib
     endpoint = os.getenv("MERLIN_ARTIFACT_RESOLVER_URL", "").strip()
     token_configured = bool(os.getenv("MERLIN_ARTIFACT_RESOLVER_TOKEN", ""))
-    key_ready = MERLIN_ARTIFACT_REF_SIGNING_KEY.is_file() and not MERLIN_ARTIFACT_REF_SIGNING_KEY.is_symlink()
+    from .merlin_artifact_ref import load_merlin_artifact_ref_private_key
+    try:
+        load_merlin_artifact_ref_private_key(str(MERLIN_ARTIFACT_REF_SIGNING_KEY))
+        key_ready = True
+    except (OSError, PermissionError, RuntimeError, ValueError):
+        key_ready = False
     trust_json = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_JSON", "")
     trust_digest = os.getenv("CACE_MERLIN_ARTIFACT_REF_TRUST_STORE_SHA256", "")
     trust_ready = bool(trust_json and trust_digest and hashlib.sha256(trust_json.encode("utf-8")).hexdigest() == trust_digest)
@@ -145,15 +150,14 @@ def attest_merlin_artifact_ref(
     if not ALLOW_MERLIN_ARTIFACT_REF:
         raise PermissionError("Merlin ArtifactRef attestation is unavailable; its separate capability is disabled")
     from .merlin_artifact_ref import attest_merlin_artifact_ref as attest
-    key_path = MERLIN_ARTIFACT_REF_SIGNING_KEY
-    if not key_path.is_file() or key_path.is_symlink():
-        raise PermissionError("CACE ArtifactRef signing key is not provisioned")
+    from .merlin_artifact_ref import load_merlin_artifact_ref_private_key
+    private_key_pem = load_merlin_artifact_ref_private_key(str(MERLIN_ARTIFACT_REF_SIGNING_KEY))
     return attest(
         bundle_payload=bundle_payload, artifact_ref=artifact_ref,
         source_repo=source_repo, source_commit=source_commit,
         artifact_id=artifact_id, artifact_kind=artifact_kind,
         artifact_schema=artifact_schema, resolver=_merlin_artifact_resolver,
-        private_key_pem=key_path.read_bytes(),
+        private_key_pem=private_key_pem,
         cace_app_root=os.getenv("CACE_APP_ROOT", "/opt/cace-web/current"),
     )
 
