@@ -29,7 +29,7 @@ def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, outpu
         reports = {}
         for tool, args in calls:
             q = {"schema": "merlin-private-call/1", "request_id": "inspection-" + tool, "tool": tool, "arguments": args}
-            result = subprocess.run(["/usr/bin/python3", "-s", "-c", client, json.dumps(q)], env=env, capture_output=True, text=True, timeout=30, check=True)
+            result = subprocess.run(["/usr/bin/python3", "-s", "-c", client, json.dumps(q)], env=env, cwd=str(release), capture_output=True, text=True, timeout=30, check=True)
             reply = json.loads(result.stdout)
             expected_denial = request["operation"] == "inspect" and tool == "job_submit"
             if expected_denial:
@@ -88,7 +88,7 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         for tool, args in (("health", {}), ("context_status", {}), ("context_search", {"query": "virtual circuit power", "budget_bytes": 8000}), ("virtual_circuit_demo", {})):
             q = {"schema": "merlin-private-call/1", "request_id": "postdeploy-" + tool, "tool": tool, "arguments": args}
             for attempt in range(10):
-                called = subprocess.run(["/usr/bin/python3", "-s", "-c", from_client, json.dumps(q)], env=env, capture_output=True, text=True, timeout=30)
+                called = subprocess.run(["/usr/bin/python3", "-s", "-c", from_client, json.dumps(q)], env=env, cwd=str(release), capture_output=True, text=True, timeout=30)
                 if called.returncode == 0:
                     break
                 if attempt < 9:
