@@ -12,7 +12,7 @@ import time
 def run_operation(request, api, fetch, installer, bundle_blob, bundle_sha, output):
     if request["operation"] == "validate_learning":
         source, sha = fetch("ops/merlin_dot/run_learning_integration.py")
-        if sha != "42913fb3dc64f7146310507b5359763f51c55124":
+        if sha != "4b0edc0bfc74122d097d8a886c42456d4651de36":
             raise RuntimeError("learning integration runner pin mismatch")
         namespace = {}
         exec(compile(source, "pinned-learning-integration", "exec"), namespace)
