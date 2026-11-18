@@ -155,12 +155,13 @@ print('MERLIN_TEST_RESULT='+json.dumps(v,sort_keys=True));sys.exit(0 if v['passe
         print(json.dumps({key: value for key, value in report.items() if key != "source_files"}, indent=2, sort_keys=True))
         return report
     if request["operation"] in {"deploy", "upgrade_research", "resume_research"}:
-        validation = api("actions/runs/" + str(request["validation_run_id"]))
-        if (validation.get("status") != "completed" or validation.get("conclusion") != "success"
-                or validation.get("head_sha") != request["validation_commit"]
-                or validation.get("path") != ".github/workflows/merlin-dot-oci-operations.yml"
-                or not validation.get("head_branch", "").startswith("merlin/dot-ops/")):
-            raise RuntimeError("successful exact validation run required")
+        binary, evidence_blob = fetch("ops/merlin_dot/validation_evidence.py")
+        if evidence_blob != "4519e2e90cd18a8ea5d5f0d2d667c9447898512d" or hashlib.sha1(f"blob {len(binary)}\0".encode() + binary).hexdigest() != evidence_blob:
+            raise RuntimeError("validation evidence verifier pin mismatch")
+        evidence = {}
+        exec(compile(binary, "pinned-validation-evidence", "exec"), evidence)
+        report["prior_validation"] = evidence["check_validation"](
+            request, api, bundle_blob, bundle_sha, manifest["files"], required_tests)
         # Root re-verifies the pinned installer bytes and the runtime ZIP before
         # creating new paths; no existing install is overwritten.
         source, _ = fetch("ops/merlin_dot/install_private.py")
