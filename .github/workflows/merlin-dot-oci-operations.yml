@@ -53,7 +53,7 @@ jobs:
         \ raise RuntimeError('invalid validation binding')\ninstaller_source,sha=fetch('ops/merlin_dot/install_private.py')\n\
         if sha!='6a486e665f82c563d7746bcbac431ec63adedd0d': raise RuntimeError('installer\
         \ pin mismatch')\ninstaller={};exec(compile(installer_source,'pinned-installer','exec'),installer)\n\
-        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='20ec14a4110161f0dfffc46173e36f9fd3a4c226':\
+        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='0977f3e60c94075384b8a75428ede54178242963':\
         \ raise RuntimeError('operation pin mismatch')\noperation={};exec(compile(operation_source,'pinned-operations','exec'),operation)\n\
         if q['operation'] in {'upgrade_research','resume_research'}:\n upgrade_source,upgrade_sha=fetch('ops/merlin_dot/upgrade_research.py')\n\
         \ if upgrade_sha!='a68671122ce8e833ac340efa7cbb3a761562ab11': raise RuntimeError('upgrader\
