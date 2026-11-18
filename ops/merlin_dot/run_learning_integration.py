@@ -11,17 +11,18 @@ import subprocess
 import sys
 import zipfile
 
-BLOB = "a4f905d276a73bb84b5727b1ea268c65c7061188"
-DIGEST = "f47abb758987c93160001ed72386f62ecf7618b9e6642f626c3e1c43c27feb40"
-SOURCE_COMMIT = "b6897ed3808dcd5a9cc097d5ae73710871ffeb56"
-MINIMUM_TESTS = 143
+BLOB = "ed668d9ebd37604aa827d06c5a6ea35d34152302"
+DIGEST = "fc1ba9893938176be76aae0068f3be33c7dcc3ebb16e858892f8e5e05568ceb3"
+SOURCE_COMMIT = "54973bd683021a5566aa197bdc510d4f3bca20a1"
+MINIMUM_TESTS = 154
 FIXTURE_PATH = "tests/fixtures/learning-evidence-eval-v1.json"
 PATTERNS = ["test_merlin_learning_platform.py", "test_learning_submission_binding.py",
     "test_learning_lab_bridge.py", "test_learning_titan_integration.py", "test_titan_crypto_lab.py",
     "test_titan_protocol_model.py", "test_titan_registry_integration.py", "test_titan_hermes_evidence_flow.py",
     "test_cace_adapter.py", "test_cace_attestation.py", "test_registry_concurrent_publication.py",
     "test_knowledge_graph_concurrency.py", "test_project_registry.py",
-    "test_dot_context.py", "test_learning_evidence.py", "test_learning_evidence_evaluation.py", "test_learning_research_api.py"]
+    "test_dot_context.py", "test_learning_evidence.py", "test_learning_evidence_evaluation.py", "test_learning_research_api.py",
+    "test_learning_research_config.py", "test_learning_host_startup.py"]
 
 TEST_CODE = """import unittest,json,sys
 s=unittest.TestSuite()
