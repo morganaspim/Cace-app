@@ -1,0 +1,77 @@
+{
+  "schema": "merlin-lightweight-research-evidence/1",
+  "episode": "lightweight-connected-research-20261119",
+  "study_source_commit": "214b529d77a60563980614cd6314ad753e76a240",
+  "study_source_sha256": {
+    "study.py": "a4e0d8895fb152c438fad274f84f2020c8d746cba01014ff52a0379908998024",
+    "test_study.py": "e6193eb83e972c5037356fc17d02c6c5457c15d532bd59415080ddf611e54411"
+  },
+  "local_tests": {"count": 36, "failures": 0, "errors": 0, "skips": 0},
+  "analytical_study": {
+    "case_count": 288,
+    "case_digest": "a5a3b4c1568deb16cd6d35b3b3b7323ca5a603649382d241c9ab86f3a38cc34b",
+    "cloud_local_results_equal": true,
+    "inference_executed": false,
+    "hardware_throughput_measured": false,
+    "calibration": "Toy model layouts and storage bandwidths are assumptions; bounds are not latency forecasts."
+  },
+  "ideonomy": {
+    "vendored_module_git_blob": "5c1315694377fd64e739d7d379193fe793f108b7",
+    "primitives": 8,
+    "pair_contracts": 11,
+    "examined_pairs_and_triples": 84,
+    "returned": 15,
+    "compatibility_rejected": 69,
+    "omitted": 0,
+    "unexamined_within_declared_space": 0,
+    "compatibility_and_costs": "assistant_authored_design_assumptions",
+    "global_novelty": "not_established"
+  },
+  "cloud_runs": [
+    {"run_id": 44587555030, "attempt": 1, "scope": "read_only_inventory", "artifact_id": 14562515222, "artifact_sha256": "3cb0f49af5b51f09587b1f4c0c16f786dac2231a653a04f20398d2a69b73bdc0", "status": "succeeded"},
+    {"run_id": 44589627595, "attempt": 1, "scope": "read_only_MCP_and_CACE_Studio_status", "source_commit": "d69a3ec1f1b7c43e0e6705b0ecdf7d26bbfa763f", "artifact_id": 14563260989, "artifact_sha256": "1787868fce098e2cf38b95bcc2045ba157a0d02678d781d24aa8964a65c67705", "status": "succeeded"},
+    {"run_id": 44589955769, "attempt": 1, "scope": "actual_private_Merlin_fixed_research_tools_and_write_denial", "source_commit": "dbf6cac31fe1ae3ada11ce5591eca4144561a237", "artifact_id": 14563271180, "artifact_sha256": "13259452bc8742ef5dd4ee185a0a668ee50b014003b44c73dfc145d44a155905", "status": "succeeded"},
+    {"run_id": 44591194275, "attempt": 1, "source_commit": "6ae54de4a528da2987ba3af7f718f907aa43d19d", "artifact_id": 14564116912, "artifact_sha256": "8e0cb4bd6b1dd933479b8ffabea26dafd80116f5fea7ba0e0765b579df22eabd", "status": "workflow_failed", "study_tests_passed": 36, "lean_status": "failed_before_proof_checking", "lean_log": "failed to create thread", "resource_cap_bytes": 3221225472},
+    {"run_id": 44591557934, "attempt": 1, "source_commit": "f24a8f8d8961064b82e285ac8b70ade3428fe85d", "artifact_id": 14563872565, "artifact_sha256": "2bd1524cc536e1c9fb2881b6eebf2ea72f166be09a986624cb81ca5a8e63c62a", "status": "workflow_failed", "study_tests_passed": 36, "lean_positive_core_control_exit": 0, "lean_status": "Mathlib_dependency_read_failed", "lean_log": "failed to read file '/var/oled/cace-cache/elan/toolchains/leanprover--lean4---v4.32.1/lib/lean/Lean/Structure.ir'", "false_theorem_logical_rejection": false, "thread_stack_kib": 16384, "resource_cap_bytes": 3221225472}
+  ],
+  "artifact_integrity": "All listed downloaded ZIP SHA256 values were recomputed locally and matched GitHub artifact metadata; this is integrity checking, not independent scientific verification.",
+  "live_scope": {
+    "instance_already_running": true,
+    "instance_wake_performed": false,
+    "runner": "cace-oci-a1",
+    "cpu_count": 2,
+    "memory_total_bytes": 11427774464,
+    "observed_filesystem_free_bytes": 104579764224,
+    "gpu_capability": "not_established",
+    "cace_studio": "active_HTTP_health_200",
+    "private_merlin": "active_unix_socket_fixed_tools",
+    "context_records": 2,
+    "context_scope": "explicit_synthetic_ingest_only",
+    "hermes_dispatch": "draft_only",
+    "general_job_execution": "unavailable",
+    "live_drive_sync": "not_configured",
+    "independent_cace": "not_configured",
+    "rsi_promotion": "unavailable"
+  },
+  "lean": {
+    "toolchain_observed": "Lean 4.32.1 aarch64 commit f054605aea4b840552cca2e725580bffd1e1b704",
+    "mathlib_revision_observed": "520045ab14e26149ee970e2e617ca04b09bde5d6",
+    "candidate_source_sha256": "c52626fa8e0752715152aee19bd2acf83d534b8013941c1b5e1bc8546037948a",
+    "candidate_count": 18,
+    "compiled_candidate_count": 0,
+    "axiom_audits_completed": 0,
+    "dependency_failure_root_cause": "not_yet_established"
+  },
+  "repairs": [
+    {"family": "empty_authenticated_scope", "pre_fix": "negative_test_failed", "post_fix": "explicit_bounded_nonempty_scope_validation_passed"},
+    {"family": "unhashable_untrusted_case_digest", "pre_fix": "negative_test_raised_TypeError", "post_fix": "digest_validation_before_set_conversion_passed"},
+    {"family": "Lean_default_stack_virtual_memory_conflict", "pre_fix": "thread_creation_failed", "post_fix": "core_canary_passed_under_unchanged_caps_but_Mathlib_dependency_unresolved"},
+    {"family": "false_theorem_control_conflated_with_environment_failure", "post_fix": "require_unsolved_goals_diagnostic_and_positive_control;_current_dependency_failure_remains_false"}
+  ],
+  "production_service_mutation": false,
+  "model_downloads": false,
+  "avrea_used": false,
+  "qualification": false,
+  "promotion_authority": false,
+  "independent_verification": "not_established"
+}
