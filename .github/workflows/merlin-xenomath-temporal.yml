@@ -23,7 +23,7 @@ jobs:
           python3 - <<'PY'
           import base64,hashlib,json,os,pathlib,platform,re,resource,signal,subprocess,sys,time,urllib.request
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/('merlin-temporal-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']);root.mkdir(exist_ok=False)
-          source='28557f065bff6805afad073c0769256d7d79fc48'
+          source='966cee1eee9d58e094f9602cbc87c5e59df3b833'
           url='https://api.github.com/repos/morganaspim/Cace-app/contents/research/xenomath-lean/TemporalWitness.lean?ref='+source
           q=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
           with urllib.request.urlopen(q,timeout=20) as r: body=r.read(128*1024+1)
@@ -32,7 +32,7 @@ jobs:
           if p.get('encoding')!='base64': raise RuntimeError('source encoding')
           raw=base64.b64decode(''.join(p['content'].split()),validate=True)
           blob=hashlib.sha1(('blob '+str(len(raw))+'\0').encode()+raw).hexdigest()
-          if blob!='0f825f5f316e1123606173900d07dafe996ef0cc' or p['sha']!=blob: raise RuntimeError('source pin')
+          if blob!='41608e663422e0c86bd7e036ec7b2eee900050d6' or p['sha']!=blob: raise RuntimeError('source pin')
           text=raw.decode('utf-8')
           if re.search(r'\b(sorry|admit|unsafe|run_cmd|native_decide|initialize)\b|(?m:^\s*axiom\s)',text): raise RuntimeError('proof source gate')
           names=re.findall(r'^#print axioms ([A-Za-z_][A-Za-z_0-9.]*)\s*$',text,re.M)
@@ -69,7 +69,7 @@ jobs:
               receipt.update({'positive':positive,'compile':compiled,'negative_arithmetic':negative,'negative_joint':negative_semantic,'negative_arithmetic_logical':logical_rejection(negative,nlog),'negative_joint_logical':logical_rejection(negative_semantic,slog),'axioms':audits,'theorem_count':len(names),'formal_status':'compiled_and_audited' if passed else 'failed'})
               diagnostics=[]
               for prefix in [base,base.resolve()]:
-                  for suffix in ['lib/lean/Lean/Structure.ir','lib/lean/Lean/Structure.olean']:
+                  for suffix in ['lib/lean/Lean/Structure.ir','lib/lean/Lean/Structure.olean','lib/lean/Lean/Data/Lsp/LanguageFeatures.olean.private']:
                       path=prefix/suffix;entry={'path':str(path)}
                       try:
                           st=path.stat();entry.update({'size':st.st_size,'mode':oct(st.st_mode & 4095)})
