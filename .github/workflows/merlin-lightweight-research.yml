@@ -66,7 +66,7 @@ jobs:
           if tested['exit_code']!=0: raise SystemExit('study failed; retained evidence')
           lean=pathlib.Path('/var/lib/cace-cache/elan/toolchains/leanprover--lean4---v4.32.1/bin/lean')
           packages=pathlib.Path('/var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages')
-          formal={'status':'not_run_missing_cache','qualification':False,'promotion_authority':False,'toolchain_expected':'4.32.1','mathlib_expected':'520045ab14e26149ee970e2e617ca04b09bde5d6'}
+          formal={'status':'not_run_missing_cache','qualification':False,'promotion_authority':False,'toolchain_expected':'4.32.1','mathlib_expected':'520045ab14e26149ee970e2e617ca04b09bde5d6','thread_stack_kib':16384,'virtual_memory_limit_bytes':3*1024**3}
           try:
               if lean.is_file() and (packages/'mathlib/.lake/build/lib/lean/Mathlib.olean').is_file():
                   check=subprocess.run(['/usr/bin/git','-C',str(packages/'mathlib'),'rev-parse','HEAD'],capture_output=True,text=True,env=env,timeout=10,check=True)
@@ -81,17 +81,24 @@ jobs:
                   if len(names)!=18 or len(set(names))!=18: raise RuntimeError('audit count')
                   (root/'XenoCore.lean').write_bytes(raw)
                   lp=':'.join(str(p/'.lake/build/lib/lean') for p in sorted(packages.iterdir()) if (p/'.lake/build/lib/lean').is_dir())
-                  process,log=run([str(lean),'-j','1','-M','2048','XenoCore.lean'],'lean',{'LEAN_PATH':lp})
+                  le={'LEAN_PATH':lp,'LEAN_STACK_SIZE_KB':'16384'}
+                  command=[str(lean),'-j','1','-s','16384','-M','2048']
+                  (root/'TrueControl.lean').write_text('theorem true_control : (0 : Nat) = 0 := rfl\n')
+                  canary,_=run(command+['TrueControl.lean'],'lean-positive',le,30)
+                  formal['positive_control']=canary
+                  if canary['exit_code']!=0: raise RuntimeError('Lean infrastructure canary failed')
+                  process,log=run(command+['XenoCore.lean'],'lean',le)
                   matches=re.findall(r"'([^']+)' (?:depends on axioms:\s*\[([^\]]*)\]|does not depend on any axioms)",log,re.S)
                   audits={n:[a.strip() for a in aa.split(',') if a.strip()] for n,aa in matches}
                   allowed={'propext','Classical.choice','Quot.sound'}
                   passed=(process['exit_code']==0 and len(matches)==18 and set(audits)==set(names) and all(set(a)<=allowed for a in audits.values()))
                   (root/'FalseControl.lean').write_text('import Mathlib\ntheorem false_control : (0 : Nat) = 1 := by norm_num\n')
-                  negative,_=run([str(lean),'-j','1','-M','2048','FalseControl.lean'],'lean-negative',{'LEAN_PATH':lp},60)
-                  passed=passed and negative['exit_code']!=0 and not negative['timed_out']
-                  formal.update({'status':'compiled_and_audited' if passed else 'failed','source_sha256':hashlib.sha256(raw).hexdigest(),'source_commit':'19b75dbd06c376ef54fd28bfce783e837015f971','process':process,'axioms':audits,'negative_control':negative,'theorem_count':len(names)})
+                  negative,neglog=run(command+['FalseControl.lean'],'lean-negative',le,60)
+                  logical_rejection=(negative['exit_code']!=0 and not negative['timed_out'] and 'unsolved goals' in neglog and 'failed to create thread' not in neglog)
+                  passed=passed and logical_rejection
+                  formal.update({'status':'compiled_and_audited' if passed else 'failed','source_sha256':hashlib.sha256(raw).hexdigest(),'source_commit':'19b75dbd06c376ef54fd28bfce783e837015f971','process':process,'axioms':audits,'negative_control':negative,'negative_logical_rejection':logical_rejection,'theorem_count':len(names)})
           except Exception as e:
-              formal.update({'status':'blocked_or_failed','error_class':type(e).__name__})
+              formal.update({'status':'blocked_or_failed','error_class':type(e).__name__,'error':str(e)[:180]})
           receipt['lean']=formal
           receipt['status']='study_passed_lean_'+formal['status']
           (root/'receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True))
