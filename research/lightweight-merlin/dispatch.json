@@ -1,0 +1,12 @@
+{
+  "schema": "merlin-lightweight-research-trigger/1",
+  "request_id": "lightweight-study-20261119-01",
+  "source_commit": "214b529d77a60563980614cd6314ad753e76a240",
+  "workflow_definition_commit": "fb3e550ca0dcb0a31396d9e289035ee16cb1edf7",
+  "scope": "fixed analytical study, 36 contract tests, optional pinned-cache Lean checks",
+  "created_at": "2026-11-19T18:45:21Z",
+  "model_downloads": false,
+  "production_service_mutation": false,
+  "avrea": false,
+  "promotion_authority": false
+}
