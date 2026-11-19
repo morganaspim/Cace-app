@@ -81,6 +81,7 @@ theorem trajectory_surjective_transport {X Y I T : Type}
       apply Exists.intro (f x)
       intro t i hi
       have h := hx t i hi
+      change accept t i (f (source t x)) at h
       rw [commutes t x] at h
       exact h
   . intro h
@@ -91,6 +92,7 @@ theorem trajectory_surjective_transport {X Y I T : Type}
         apply Exists.intro x
         intro t i hi
         have h := hy t i hi
+        change accept t i (f (source t x))
         rw [commutes t x, hxy]
         exact h
 
