@@ -1,0 +1,35 @@
+{
+  "schema": "merlin-master-plan-delta-proposal/1",
+  "proposal_id": "MERLIN-LIGHTWEIGHT-CONNECTED-20261119",
+  "status": "proposal_not_adopted",
+  "parent": {
+    "plan_id": "MERLIN-PRODUCTION-MASTER-20261117",
+    "version": 6,
+    "repository": "Mannyspiro/expert-robot",
+    "commit": "584b948332b76596311d75133c0430d761e2f67a",
+    "path": "config/merlin/production-master-plan.json",
+    "git_blob": "7ddac9a48ba61e8147a4edfd4550968a423b4d65"
+  },
+  "evidence_record": "research/lightweight-merlin/EVIDENCE.json",
+  "decision": "Thin cross-device clients, optional small resident inference, one canonical cloud coordinator and isolated task workers; streaming and mesh remain gated experiments.",
+  "confidence_scope": "Architecture hypothesis supported by inspected sources, live fixed-tool execution and analytic feasibility screens; no comparative real-model benchmark.",
+  "ranked_actions": [
+    {"rank": 1, "tracks": ["P00", "P04"], "id": "LW-CANONICAL-ROUNDTRIP", "reason": "Actual private service denies general dispatch; connect one bounded real task before expanding tool count.", "reuse": ["ArtifactRef", "canonical registry", "Hermes durable outbox", "host supervisor"], "acceptance": ["host-derived project and principal", "fresh capability and concurrency lease", "exact input and result hashes", "real worker execution and crash replay", "stale/denied/tampered/private-cross-tenant negatives", "cancel process tree and preserve failed receipt"], "state": "not_implemented_by_this_research_fixture"},
+    {"rank": 2, "tracks": ["P05", "P09"], "id": "LW-LEAN-CACHE-DEPENDENCY", "reason": "Pinned Lean core canary now works but Mathlib import fails on Lean/Structure.ir.", "acceptance": ["read-only stat and bounded read of exact failed dependency", "distinguish missing file from virtual-memory mapping failure", "test narrower imports before resource expansion", "all eighteen candidate declarations compile under exact pins", "positive canary and genuine false-theorem rejection", "complete axiom audit and separate source-to-formal linkage review"], "state": "blocked_dependency_access; no toolchain replacement authorized"},
+    {"rank": 3, "tracks": ["P07", "P08"], "id": "LW-ONE-DEVICE-ADAPTER", "reason": "Real device constraints and model quality are not measured.", "acceptance": ["optional no-model client works", "reviewed pinned llama.cpp or MLX-LM or WebLLM adapter", "actual device RAM/VRAM, thermal and storage admission", "cold/warm latency and quality against cloud baseline", "disconnect/resume and permission revocation", "private context never crosses disallowed boundary"], "state": "design_only"},
+    {"rank": 4, "tracks": ["P03"], "id": "LW-RSI-SINGLE-CHANGE", "reason": "Use training-only existing GEPA selection; current synthetic review checks do not establish independent gain.", "acceptance": ["baseline and candidate immutable", "content-disjoint and fresh heldout custody", "separate evaluator identity", "paired outcome/cost measurements with uncertainty", "regression/budget gates", "explicit approval and exact rollback"], "state": "research_review_fixture_only"},
+    {"rank": 5, "tracks": ["P04", "P08"], "id": "LW-OFFLOAD-MESH-ABLATION", "reason": "These alternatives may win on throughput-oriented or stable-LAN workloads but are not justified as mobile defaults.", "acceptance": ["same model/quality/context and hardware accounting", "storage/RAM/GPU/KV/buffer and prefill included", "per-sequence latency separate from aggregate throughput", "disconnect and cancellation fault injection", "no model downloads or paid providers without explicit bounded approval"], "state": "analytical_screen_only"}
+  ],
+  "lenses": {
+    "simplex": {"status": "applied", "invariant": "nonnegative normalized weights only rank already eligible costs; not a probability"},
+    "n_ality": {"status": "applied", "invariant": "joint device-engine-model-task-privacy-proof compatibility is not inferred from pairwise compatibility alone"},
+    "continuum": {"status": "applied", "invariant": "bandwidth/context sweeps are conditional analytic predictions, not observed throughput"},
+    "fuzzy": {"status": "deferred_to_UI", "reason": "hard admission and evidence gates remain Boolean"}
+  },
+  "rollback": "Leave research modules and draft workflow unused; production service/source unchanged. Preserve failed evidence. No bulk merge of parent stacks.",
+  "missing_capabilities": ["general private-service dispatch", "authenticated independent CACE verification", "live cloud Drive synchronization", "actual multi-device inference benchmarks", "pinned Mathlib dependency access"],
+  "avrea": "disabled_before_2026-12-01; no automatic later dispatch",
+  "production_mutation": false,
+  "promotion_authority": false,
+  "requires_independent_review": true
+}
