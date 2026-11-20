@@ -1,0 +1,98 @@
+name: Merlin platform acceptance
+'on':
+  push:
+    branches: [merlin/platform-acceptance-20261120]
+    paths: ['merlin/platform-checks/*.json']
+permissions:
+  contents: read
+concurrency:
+  group: merlin-platform-acceptance-20261120
+  cancel-in-progress: false
+jobs:
+  isolated-check:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 8
+    steps:
+      - name: Validate pinned code-only package in isolated temporary state
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, io, json, os, platform, re, shutil, stat, subprocess, sys, urllib.request, zipfile
+          from pathlib import Path, PurePosixPath
+          repo = os.environ['GITHUB_REPOSITORY']; commit = os.environ['GITHUB_SHA']
+          if repo != 'morganaspim/Cace-app' or os.environ['GITHUB_REF'] != 'refs/heads/merlin/platform-acceptance-20261120' or os.environ.get('RUNNER_NAME') != 'cace-oci-a1':
+              raise RuntimeError('unexpected execution identity')
+          out = Path(os.environ['RUNNER_TEMP']) / ('merlin-platform-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          out.mkdir(mode=0o700, exist_ok=False)
+          report = {'schema':'merlin-platform-baseline/1','run_id':os.environ['GITHUB_RUN_ID'],'workflow_commit':commit,'runner':os.environ['RUNNER_NAME'],'host_configuration_changed':False,'private_state_accessed':False,'qualification':False,'promotion_authority':False}
+          def unique(items):
+              result = {}
+              for key,value in items:
+                  if key in result: raise ValueError('duplicate JSON field')
+                  result[key] = value
+              return result
+          def api(path):
+              req = urllib.request.Request('https://api.github.com/repos/' + repo + '/' + path,headers={'Authorization':'Bearer ' + os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req,timeout=20) as response: raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024: raise ValueError('API response limit')
+              return json.loads(raw,object_pairs_hook=unique)
+          try:
+              change = api('commits/' + commit)['files']
+              if len(change)!=1 or change[0]['status']!='added' or not re.fullmatch(r'merlin/platform-checks/[0-9a-f-]{36}\.json',change[0]['filename']):
+                  raise ValueError('one additive bounded request required')
+              request_obj=api('contents/'+change[0]['filename']+'?ref='+commit)
+              request_bytes=base64.b64decode(''.join(request_obj['content'].split()),validate=True)
+              if len(request_bytes)>2048: raise ValueError('request size')
+              request=json.loads(request_bytes,object_pairs_hook=unique)
+              if set(request)!={'schema','operation','request_id','created_at'} or request['schema']!='merlin-platform-check/1' or request['operation']!='baseline' or change[0]['filename']!='merlin/platform-checks/'+request['request_id']+'.json':
+                  raise ValueError('request schema or fixed operation differs')
+              blob='ed668d9ebd37604aa827d06c5a6ea35d34152302'
+              expected='fc1ba9893938176be76aae0068f3be33c7dcc3ebb16e858892f8e5e05568ceb3'
+              obj=api('git/blobs/'+blob)
+              if obj.get('sha')!=blob or obj.get('encoding')!='base64': raise ValueError('source object identity')
+              raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
+              if len(raw)>1024*1024 or hashlib.sha256(raw).hexdigest()!=expected or hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()!=blob: raise ValueError('source bytes mismatch')
+              (out/'reviewed-source.zip').write_bytes(raw)
+              root=out/'source'; root.mkdir(mode=0o700)
+              with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                  infos=archive.infolist();names=[i.filename for i in infos]
+                  if len(names)!=len(set(names)) or len(names)>100 or sum(i.file_size for i in infos)>4*1024*1024: raise ValueError('archive bounds')
+                  manifest=json.loads(archive.read('manifest.json'),object_pairs_hook=unique)
+                  if manifest.get('schema')!='merlin-learning-integration/1' or manifest.get('source_commit')!='54973bd683021a5566aa197bdc510d4f3bca20a1' or manifest.get('raw_private_context_included') is not False or set(names)!=set(manifest['files'])|{'manifest.json'}: raise ValueError('manifest mismatch')
+                  for info in infos:
+                      name=info.filename;p=PurePosixPath(name)
+                      if p.is_absolute() or any(s in ('','.','..') for s in name.split('/')) or '\\' in name or info.is_dir() or stat.S_IFMT(info.external_attr>>16) not in (0,stat.S_IFREG) or info.flag_bits&1: raise ValueError('unsafe archive member')
+                      if name=='manifest.json': continue
+                      if not (name=='tests/fixtures/learning-evidence-eval-v1.json' or (name.endswith('.py') and name.startswith(('python/merlin/','python/dot_ai_os/','tests/')))): raise ValueError('non-code payload')
+                      body=archive.read(info)
+                      if hashlib.sha256(body).hexdigest()!=manifest['files'][name]: raise ValueError('source file mismatch')
+                      dest=root/name;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(body)
+              report.update(source_commit=manifest['source_commit'],source_package_sha256=expected,source_files=manifest['files'],python=sys.version,architecture=platform.machine())
+              report['available_tools']={name:shutil.which(name) for name in ('python3','git','cmake','g++','lean','lake','ngspice','FreeCADCmd','freecadcmd','blender','systemd-run')}
+              report['cgroup_v2']=Path('/sys/fs/cgroup/cgroup.controllers').is_file()
+              code="import sys,json,unittest;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'python'),str(r)];s=unittest.TestSuite();[s.addTests(unittest.defaultTestLoader.discover(str(r/'tests'),pattern=p)) for p in json.loads(sys.argv[2])];t=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':t.testsRun,'failures':len(t.failures),'errors':len(t.errors),'skipped':len(t.skipped),'passed':t.wasSuccessful() and not t.skipped and t.testsRun>=154};print('RESULT='+json.dumps(v));sys.exit(0 if v['passed'] else 1)"
+              result=subprocess.run(['/usr/bin/python3','-I','-B','-c',code,str(root),json.dumps(manifest['test_patterns'])],cwd=str(root),env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'},capture_output=True,text=True,timeout=210)
+              (out/'tests.txt').write_text(result.stdout+result.stderr)
+              lines=[line for line in result.stdout.splitlines() if line.startswith('RESULT=')]
+              report['tests']=json.loads(lines[-1][7:]) if lines else {'passed':False}
+              report['status']='succeeded' if result.returncode==0 and report['tests'].get('passed') else 'failed'
+          except Exception as exc:
+              report.update(status='failed',error_class=type(exc).__name__)
+          (out/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True))
+          print(json.dumps({key:value for key,value in report.items() if key!='source_files'},indent=2,sort_keys=True))
+          if report['status']!='succeeded': raise SystemExit(1)
+          PY
+      - name: Preserve code-only source and validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-platform-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/merlin-platform-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+            ${{ runner.temp }}/merlin-platform-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
+            ${{ runner.temp }}/merlin-platform-${{ github.run_id }}-${{ github.run_attempt }}/reviewed-source.zip
+          retention-days: 30
+          if-no-files-found: error
