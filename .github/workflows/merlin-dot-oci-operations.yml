@@ -68,6 +68,8 @@ jobs:
                   'evidence': ('ops/merlin_dot/validation_evidence.py', '4519e2e90cd18a8ea5d5f0d2d667c9447898512d'),
                   'controller': ('ops/merlin_dot/release_branch.py', 'd8bd73e45dbc7d69c90f1d3faa17cf7520db6d0c'),
                   'controls': ('ops/merlin_dot/test_release_branch.py', '579727cc0144ead5aefd70b7bb84296b9ac4ed93'),
+                  'extension': ('ops/merlin_dot/resume_extension.py', '884ced15daadf01074ccc9727e12226ead3893f6'),
+                  'resume_controls': ('ops/merlin_dot/test_resume_extension.py', 'cd43c05eddf2ab490ace4fb7b7cf07fe1d514457'),
               }
               sources = {}
               for key, (source_path, pin) in pins.items():
@@ -79,11 +81,16 @@ jobs:
               controls = out / 'controller-tests'; controls.mkdir()
               (controls / 'release_branch.py').write_bytes(sources['controller'])
               (controls / 'test_release_branch.py').write_bytes(sources['controls'])
-              code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_release_branch.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==13 else 1)"
+              composite = sources['controller'] + b'\n' + sources['extension']
+              if hashlib.sha256(composite).hexdigest() != '1e04412b25faa835da9ef5585af689afb76cdb0ca7cd4764332975dccc67e56c': raise RuntimeError('resume controller mismatch')
+              (controls / 'resume_branch.py').write_bytes(composite)
+              (controls / 'test_resume_extension.py').write_bytes(sources['resume_controls'])
+              code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_*.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==27 else 1)"
               result = subprocess.run(['/usr/bin/python3', '-I', '-B', '-c', code, str(controls)], cwd='/', env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}, capture_output=True, text=True, timeout=90)
               (out / 'controller-tests.txt').write_text(result.stdout + result.stderr)
               if result.returncode: raise RuntimeError('controller controls failed: ' + result.stderr[-2500:])
               print('CONTROLLER_TEST_RESULT=' + result.stdout.strip())
+              sources['controller'] = composite
               namespace = {}; exec(compile(sources['controller'], 'pinned-release-controller', 'exec'), namespace)
               namespace['run'](request, api, fetch, sources, out)
           except Exception as exc:
