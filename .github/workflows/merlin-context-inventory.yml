@@ -1,0 +1,105 @@
+name: Merlin runner context inventory
+'on':
+  push:
+    branches: [merlin/platform-acceptance-20261120]
+    paths: ['merlin/context-checks/*.json']
+permissions:
+  contents: read
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+jobs:
+  read-only-inventory:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 4
+    steps:
+      - name: Inspect fixed non-secret runtime and cache locations
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, json, os, platform, re, shutil, socket, stat, subprocess, sys, urllib.request
+          from pathlib import Path
+          from datetime import datetime, timezone
+          repo = os.environ['GITHUB_REPOSITORY']; commit = os.environ['GITHUB_SHA']
+          if repo != 'morganaspim/Cace-app' or os.environ['GITHUB_REF'] != 'refs/heads/merlin/platform-acceptance-20261120' or os.environ.get('RUNNER_NAME') != 'cace-oci-a1': raise RuntimeError('unexpected execution identity')
+          out = Path(os.environ['RUNNER_TEMP']) / ('merlin-context-' + os.environ['GITHUB_RUN_ID'])
+          out.mkdir(mode=0o700, exist_ok=False)
+          def api(path):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req,timeout=15) as r: raw=r.read(1024*1024+1)
+              if len(raw)>1024*1024: raise ValueError('response ceiling')
+              return json.loads(raw)
+          changes=api('commits/'+commit)['files']
+          if len(changes)!=1 or changes[0]['status']!='added' or not re.fullmatch(r'merlin/context-checks/[0-9a-f-]{36}\.json',changes[0]['filename']): raise ValueError('one additive request required')
+          obj=api('contents/'+changes[0]['filename']+'?ref='+commit)
+          raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
+          if len(raw)>2048: raise ValueError('request ceiling')
+          q=json.loads(raw)
+          if set(q)!={'schema','request_id','operation','created_at'} or q['schema']!='merlin-runner-context/1' or q['operation']!='inspect' or changes[0]['filename']!='merlin/context-checks/'+q['request_id']+'.json': raise ValueError('fixed request required')
+          env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','PYTHONDONTWRITEBYTECODE':'1'}
+          def command(argv, timeout=10):
+              try:
+                  r=subprocess.run(argv,env=env,cwd='/',capture_output=True,text=True,timeout=timeout)
+                  return {'returncode':r.returncode,'stdout':r.stdout[:12000],'stderr':r.stderr[:2000],'truncated':len(r.stdout)>12000 or len(r.stderr)>2000}
+              except (OSError,subprocess.TimeoutExpired) as exc:
+                  return {'error_class':type(exc).__name__}
+          def metadata(path):
+              try:
+                  st=path.lstat()
+                  value={'path':str(path),'mode':oct(stat.S_IMODE(st.st_mode)),'uid':st.st_uid,'gid':st.st_gid,'size_bytes':st.st_size,'kind':'directory' if path.is_dir() else 'symlink' if path.is_symlink() else 'file'}
+                  if path.is_symlink(): value['target']=os.readlink(path)
+                  return value
+              except OSError as exc: return {'path':str(path),'error_class':type(exc).__name__}
+          disk=shutil.disk_usage('/opt/actions-runner');fs=os.statvfs('/opt/actions-runner')
+          if disk.free<2*1024**3 or fs.f_favail<10000: raise RuntimeError('insufficient inspection headroom')
+          report={'schema':'merlin-runner-context/1','observed_at':datetime.now(timezone.utc).isoformat(),'run_id':os.environ['GITHUB_RUN_ID'],'workflow_commit':commit,'runner':os.environ['RUNNER_NAME'],'hostname':socket.gethostname(),'architecture':platform.machine(),'python':sys.version,'uid':os.getuid(),'disk':{'total':disk.total,'free':disk.free,'free_inodes':fs.f_favail},'scope':'Fixed public runtime metadata and cache executable versions; not a whole-filesystem inventory','host_configuration_changed':False,'private_state_accessed':False,'credentials_read':False,'qualification':False,'promotion_authority':False}
+          report['worker_process_names']=command(['/usr/bin/ps','-C','Runner.Worker','-o','comm='])
+          report['memory_kib']={}
+          for line in Path('/proc/meminfo').read_text().splitlines():
+              key=line.split(':')[0]
+              if key in {'MemTotal','MemAvailable','SwapTotal','SwapFree'}: report['memory_kib'][key]=int(line.split()[1])
+          report['cpu_count']=os.cpu_count()
+          report['os_release']={}
+          for line in Path('/etc/os-release').read_text().splitlines():
+              key,sep,value=line.partition('=')
+              if key in {'ID','VERSION_ID','PRETTY_NAME'}: report['os_release'][key]=value.strip('"')
+          report['services']={name:command(['/usr/bin/systemctl','show',name,'--property=ActiveState,SubState,UnitFileState,User,Group,PrivateNetwork,NoNewPrivileges,RestrictAddressFamilies,MainPID']) for name in ('merlin-dot-private.service','cace-oci-mcp.service','cace-web.service','cace-runner-watchdog.service')}
+          report['fixed_paths']=[metadata(Path(p)) for p in ('/opt/actions-runner','/opt/merlin-dot-private/current','/opt/cace-oci-mcp/current','/var/lib/cace-cache/elan','/var/lib/cace-cache/mathlib','/var/lib/cace-cache/xdg','/var/lib/cace-cache/telemetry/heartbeat')]
+          current=Path('/opt/merlin-dot-private/current')
+          try:
+              manifest=(current/'manifest.json').read_bytes()
+              if len(manifest)>131072: raise ValueError('manifest ceiling')
+              parsed=json.loads(manifest)
+              report['merlin_release']={'target':os.readlink(current),'manifest_sha256':hashlib.sha256(manifest).hexdigest(),'source_repository':parsed.get('source_repository'),'source_base_commit':parsed.get('source_base_commit'),'file_count':len(parsed.get('files',{}))}
+          except (OSError,ValueError) as exc: report['merlin_release']={'error_class':type(exc).__name__}
+          report['path_tools']={name:shutil.which(name) for name in ('lean','lake','ngspice','FreeCADCmd','freecadcmd','blender','cmake','g++','git','systemd-run')}
+          report['cached_toolchains']=[]
+          for root in (Path('/var/lib/cace-cache/elan/toolchains'),Path('/home/opc/.elan/toolchains')):
+              record={'root':str(root)}
+              try:
+                  children=sorted(root.iterdir(),key=lambda p:p.name)
+                  record.update(entry_count=len(children),examined=min(len(children),16),truncated=len(children)>16,entries=[])
+                  for child in children[:16]:
+                      entry=metadata(child)
+                      for binary in ('lean','lake'):
+                          exe=child/'bin'/binary
+                          if exe.is_file() and os.access(exe,os.X_OK): entry[binary]={'path':str(exe),'version_probe':command([str(exe),'--version'])}
+                      record['entries'].append(entry)
+              except OSError as exc: record['error_class']=type(exc).__name__
+              report['cached_toolchains'].append(record)
+          report['cgroup_v2']=Path('/sys/fs/cgroup/cgroup.controllers').is_file()
+          report['status']='succeeded'
+          (out/'runner-context.json').write_text(json.dumps(report,indent=2,sort_keys=True))
+          print(json.dumps(report,indent=2,sort_keys=True))
+          PY
+      - name: Preserve bounded non-secret inventory
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-context-${{ github.run_id }}
+          path: ${{ runner.temp }}/merlin-context-${{ github.run_id }}/runner-context.json
+          retention-days: 30
+          if-no-files-found: error
