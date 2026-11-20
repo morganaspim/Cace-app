@@ -20,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import base64, hashlib, json, os, platform, re, shutil, socket, stat, subprocess, sys, urllib.request
+          import base64, hashlib, json, os, platform, re, shutil, socket, stat, subprocess, sys, tempfile, urllib.request
           from pathlib import Path
           from datetime import datetime, timezone
           repo = os.environ['GITHUB_REPOSITORY']; commit = os.environ['GITHUB_SHA']
@@ -49,13 +49,25 @@ jobs:
           def metadata(path):
               try:
                   st=path.lstat()
-                  value={'path':str(path),'mode':oct(stat.S_IMODE(st.st_mode)),'uid':st.st_uid,'gid':st.st_gid,'size_bytes':st.st_size,'kind':'directory' if path.is_dir() else 'symlink' if path.is_symlink() else 'file'}
-                  if path.is_symlink(): value['target']=os.readlink(path)
+                  kind=('symlink' if stat.S_ISLNK(st.st_mode) else 'directory' if stat.S_ISDIR(st.st_mode) else 'file' if stat.S_ISREG(st.st_mode) else 'other')
+                  value={'path':str(path),'mode':oct(stat.S_IMODE(st.st_mode)),'uid':st.st_uid,'gid':st.st_gid,'size_bytes':st.st_size,'kind':kind}
+                  if kind=='symlink': value['target']=os.readlink(path)
                   return value
               except OSError as exc: return {'path':str(path),'error_class':type(exc).__name__}
+          classification=[]
+          with tempfile.TemporaryDirectory(prefix='kind-control-',dir=str(out)) as temp:
+              fixture=Path(temp)
+              (fixture/'directory').mkdir();(fixture/'file').write_text('synthetic')
+              (fixture/'directory-link').symlink_to(fixture/'directory',target_is_directory=True)
+              (fixture/'file-link').symlink_to(fixture/'file')
+              (fixture/'broken-link').symlink_to(fixture/'missing');os.mkfifo(fixture/'fifo')
+              for name,expected in {'directory':'directory','file':'file','directory-link':'symlink','file-link':'symlink','broken-link':'symlink','fifo':'other'}.items():
+                  actual=metadata(fixture/name).get('kind')
+                  classification.append({'case':name,'expected':expected,'actual':actual,'passed':actual==expected})
+              if not all(row['passed'] for row in classification):raise RuntimeError('path classification regression')
           disk=shutil.disk_usage('/opt/actions-runner');fs=os.statvfs('/opt/actions-runner')
           if disk.free<2*1024**3 or fs.f_favail<10000: raise RuntimeError('insufficient inspection headroom')
-          report={'schema':'merlin-runner-context/1','observed_at':datetime.now(timezone.utc).isoformat(),'run_id':os.environ['GITHUB_RUN_ID'],'workflow_commit':commit,'runner':os.environ['RUNNER_NAME'],'hostname':socket.gethostname(),'architecture':platform.machine(),'python':sys.version,'uid':os.getuid(),'disk':{'total':disk.total,'free':disk.free,'free_inodes':fs.f_favail},'scope':'Fixed public runtime metadata and cache executable versions; not a whole-filesystem inventory','host_configuration_changed':False,'private_state_accessed':False,'credentials_read':False,'qualification':False,'promotion_authority':False}
+          report={'schema':'merlin-runner-context/1','observed_at':datetime.now(timezone.utc).isoformat(),'run_id':os.environ['GITHUB_RUN_ID'],'workflow_commit':commit,'runner':os.environ['RUNNER_NAME'],'hostname':socket.gethostname(),'architecture':platform.machine(),'python':sys.version,'uid':os.getuid(),'disk':{'total':disk.total,'free':disk.free,'free_inodes':fs.f_favail},'scope':'Fixed public runtime metadata and cache executable versions; not a whole-filesystem inventory','host_configuration_changed':False,'private_state_accessed':False,'credentials_read':False,'qualification':False,'promotion_authority':False,'classification_controls':classification}
           report['worker_process_names']=command(['/usr/bin/ps','-C','Runner.Worker','-o','comm='])
           report['memory_kib']={}
           for line in Path('/proc/meminfo').read_text().splitlines():
