@@ -1,0 +1,67 @@
+name: Merlin canonical branch validation
+'on':
+  push:
+    branches: [merlin/platform-acceptance-20261120]
+    paths: ['merlin/canonical-checks/*.json']
+permissions:
+  contents: read
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+jobs:
+  isolated-candidate:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 8
+    steps:
+      - name: Validate fixed source with synthetic canonical stores
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,hashlib,json,os,re,shutil,urllib.request
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/platform-acceptance-20261120' or os.environ.get('RUNNER_NAME')!='cace-oci-a1':raise RuntimeError('unexpected execution identity')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-canonical-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']);out.mkdir(mode=0o700,exist_ok=False)
+          def unique(items):
+              result={}
+              for key,value in items:
+                  if key in result:raise ValueError('duplicate JSON field')
+                  result[key]=value
+              return result
+          def api(path):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req,timeout=20) as response:raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024:raise ValueError('API response limit')
+              return json.loads(raw,object_pairs_hook=unique)
+          try:
+              changes=api('commits/'+commit)['files']
+              if len(changes)!=1 or changes[0]['status']!='added' or not re.fullmatch(r'merlin/canonical-checks/[0-9a-f-]{36}\.json',changes[0]['filename']):raise ValueError('one additive request required')
+              obj=api('contents/'+changes[0]['filename']+'?ref='+commit)
+              raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
+              if len(raw)>2048:raise ValueError('request limit')
+              request=json.loads(raw,object_pairs_hook=unique)
+              if set(request)!={'schema','operation','request_id','created_at'} or request['schema']!='merlin-canonical-check/1' or request['operation']!='validate' or changes[0]['filename']!='merlin/canonical-checks/'+request['request_id']+'.json':raise ValueError('fixed request required')
+              if shutil.disk_usage('/opt/actions-runner').free<2*1024**3:raise RuntimeError('insufficient validation headroom')
+              obj=api('contents/ops/merlin_dot/validate_canonical_branch.py?ref='+commit)
+              source=base64.b64decode(''.join(obj['content'].split()),validate=True)
+              if obj.get('sha')!='2a4ae2bd7bf451ed18b57af9be28272831b67377' or hashlib.sha256(source).hexdigest()!='9b736a8d7671a05c7e8413aa8c43cdb1f4a3376abfe683dce6046766af24fa24':raise ValueError('controller identity mismatch')
+              controller={};exec(compile(source,'fixed-canonical-validation','exec'),controller)
+              controller['run'](api,out)
+          except Exception as exc:
+              (out/'error.json').write_text(json.dumps({'status':'failed','error_class':type(exc).__name__,'message':str(exc)[:1500],'run_id':os.environ['GITHUB_RUN_ID'],'workflow_commit':commit},indent=2))
+              raise
+          PY
+      - name: Preserve exact code and validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-canonical-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/merlin-canonical-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+            ${{ runner.temp }}/merlin-canonical-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
+            ${{ runner.temp }}/merlin-canonical-${{ github.run_id }}-${{ github.run_attempt }}/tested-source.zip
+          retention-days: 30
+          if-no-files-found: error
