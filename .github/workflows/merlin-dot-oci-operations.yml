@@ -1,77 +1,103 @@
 name: Merlin dot OCI operations
-'on':
+
+on:
   push:
-    branches:
-    - merlin/dot-ops/**
-    paths:
-    - merlin/dot-requests/**
+    branches: ["merlin/dot-ops/branch-release-20261120"]
+    paths: ["merlin/dot-requests/**"]
+
 permissions:
   contents: read
   actions: read
+
 concurrency:
   group: merlin-dot-oci-operations
   cancel-in-progress: false
+
 jobs:
   fixed-operation:
-    runs-on:
-    - self-hosted
-    - cace
-    - oci
-    - aarch64
+    runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 10
     steps:
-    - name: Validate pinned runtime and perform fixed operation
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      run: "set -euo pipefail\npython3 - <<'PY'\nimport base64,hashlib,json,os,re,urllib.request\n\
-        from pathlib import Path\nrepo=os.environ['GITHUB_REPOSITORY']; commit=os.environ['GITHUB_SHA']\n\
-        if repo!='morganaspim/Cace-app' or not os.environ['GITHUB_REF'].startswith('refs/heads/merlin/dot-ops/')\
-        \ or os.environ.get('RUNNER_NAME')!='cace-oci-a1': raise RuntimeError('unexpected\
-        \ execution identity')\ndef api(path):\n req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer\
-        \ '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})\n\
-        \ with urllib.request.urlopen(req,timeout=20) as r: raw=r.read(4*1024*1024+1)\n\
-        \ if len(raw)>4*1024*1024: raise RuntimeError('API response limit')\n return\
-        \ json.loads(raw)\ndef fetch(path):\n obj=api('contents/'+path+'?ref='+commit)\n\
-        \ return base64.b64decode(obj['content'],validate=False),obj['sha']\nfiles=api('commits/'+commit)['files']\n\
-        if len(files)!=1 or files[0]['status']!='added': raise RuntimeError('one additive\
-        \ request file required')\np=files[0]['filename']\nif not re.fullmatch(r'merlin/dot-requests/[0-9a-f-]{36}\\\
-        .json',p): raise RuntimeError('invalid request path')\nqraw,_=fetch(p)\nif\
-        \ len(qraw)>16000: raise RuntimeError('request size limit')\nq=json.loads(qraw)\n\
-        base={'schema','request_id','operation','created_at'}\nif not isinstance(q,dict)\
-        \ or q.get('schema')!='merlin-dot-ops-request-v1' or q.get('operation') not\
-        \ in {'validate','deploy','upgrade_research','resume_research','diagnose_research','probe_research','recovery_drill','validate_learning','inspect','tool_call'}\
-        \ or p!='merlin/dot-requests/'+q.get('request_id','')+'.json': raise RuntimeError('invalid\
-        \ request')\nexpected=base if q['operation'] in {'validate','inspect','diagnose_research','probe_research','recovery_drill','validate_learning'}\
-        \ else (base|{'tool','arguments'} if q['operation']=='tool_call' else base|{'validation_run_id','validation_commit'})\n\
-        if set(q)!=expected: raise RuntimeError('request fields rejected')\nif q['operation']=='tool_call'\
-        \ and (q['tool'] not in {'health','context_status','context_search','context_fetch','virtual_circuit_demo','research_contract','research_episode_demo','mathematical_lenses_demo'}\
-        \ or not isinstance(q['arguments'],dict) or len(json.dumps(q['arguments']))>8000):\
-        \ raise RuntimeError('only bounded read/simulation tools are enabled')\nif\
-        \ q['operation'] in {'deploy','upgrade_research','resume_research'} and (type(q['validation_run_id'])\
-        \ is not int or q['validation_run_id']<=0 or not re.fullmatch('[0-9a-f]{40}',q['validation_commit'])):\
-        \ raise RuntimeError('invalid validation binding')\ninstaller_source,sha=fetch('ops/merlin_dot/install_private.py')\n\
-        if sha!='6a486e665f82c563d7746bcbac431ec63adedd0d': raise RuntimeError('installer\
-        \ pin mismatch')\ninstaller={};exec(compile(installer_source,'pinned-installer','exec'),installer)\n\
-        operation_source,sha=fetch('ops/merlin_dot/run_operation.py')\nif sha!='a93236a9b8de257cb1771dc8537816323e2d4a74':\
-        \ raise RuntimeError('operation pin mismatch')\noperation={};exec(compile(operation_source,'pinned-operations','exec'),operation)\n\
-        if q['operation'] in {'upgrade_research','resume_research'}:\n upgrade_source,upgrade_sha=fetch('ops/merlin_dot/upgrade_research.py')\n\
-        \ if upgrade_sha!='a68671122ce8e833ac340efa7cbb3a761562ab11': raise RuntimeError('upgrader\
-        \ pin mismatch')\nif q['operation']=='resume_research':\n resume_source,resume_sha=fetch('ops/merlin_dot/resume_research.py')\n\
-        \ if resume_sha!='f9392dfab442230d00500fdb8dd59ada3a7edd89': raise RuntimeError('resumer\
-        \ pin mismatch')\nout=Path(os.environ['RUNNER_TEMP'])/('merlin-dot-operation-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']);out.mkdir(exist_ok=False)\n\
-        result=operation['run_operation'](q,api,fetch,installer,'1d55b9a94ff843d847b0be9322f22257a21a2dbf','efe57bada5cd86f45118cac0036faf497f9aa60972508e036aed09f7b8cf04db',out)\n\
-        if result['status']!='succeeded': raise SystemExit('fixed operation failed;\
-        \ inspect retained receipt/log')\nPY\n"
-    - name: Preserve operation receipt
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}
-        path: '${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt
-          }}/*.json
-
-          ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt
-          }}/*.txt'
-        if-no-files-found: warn
-        retention-days: 30
+      - name: Validate pinned additive release and perform fixed operation
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, json, os, re, shutil, subprocess, urllib.request
+          from pathlib import Path
+          repo = os.environ['GITHUB_REPOSITORY']; commit = os.environ['GITHUB_SHA']
+          if repo != 'morganaspim/Cace-app' or os.environ['GITHUB_REF'] != 'refs/heads/merlin/dot-ops/branch-release-20261120' or os.environ.get('RUNNER_NAME') != 'cace-oci-a1':
+              raise RuntimeError('unexpected execution identity')
+          def unique(items):
+              out = {}
+              for key, value in items:
+                  if key in out: raise ValueError('duplicate JSON field')
+                  out[key] = value
+              return out
+          def api(path):
+              req = urllib.request.Request('https://api.github.com/repos/' + repo + '/' + path, headers={'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(req, timeout=20) as response: raw = response.read(4 * 1024 * 1024 + 1)
+              if len(raw) > 4 * 1024 * 1024: raise RuntimeError('API response limit')
+              return json.loads(raw, object_pairs_hook=unique)
+          def fetch(path):
+              obj = api('contents/' + path + '?ref=' + commit)
+              raw = base64.b64decode(''.join(obj['content'].split()), validate=True)
+              actual = hashlib.sha1(('blob %d\0' % len(raw)).encode() + raw).hexdigest()
+              if obj.get('sha') != actual: raise RuntimeError('repository bytes mismatch')
+              return raw, actual
+          out = Path(os.environ['RUNNER_TEMP']) / ('merlin-dot-operation-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          out.mkdir(exist_ok=False)
+          try:
+              files = api('commits/' + commit)['files']
+              if len(files) != 1 or files[0]['status'] != 'added': raise RuntimeError('one additive request file required')
+              path = files[0]['filename']
+              if not re.fullmatch(r'merlin/dot-requests/[0-9a-f-]{36}\.json', path): raise RuntimeError('invalid request path')
+              raw, _ = fetch(path)
+              if len(raw) > 16000: raise RuntimeError('request size limit')
+              request = json.loads(raw, object_pairs_hook=unique)
+              base = {'schema', 'request_id', 'operation', 'created_at'}
+              if not isinstance(request, dict) or request.get('schema') != 'merlin-dot-ops-request-v1' or request.get('operation') not in {'validate', 'deploy', 'inspect'} or path != 'merlin/dot-requests/' + request.get('request_id', '') + '.json': raise RuntimeError('invalid request')
+              expected = base | {'validation_run_id', 'validation_commit'} if request['operation'] == 'deploy' else base
+              if set(request) != expected: raise RuntimeError('request fields rejected')
+              if request['operation'] == 'deploy' and (type(request['validation_run_id']) is not int or request['validation_run_id'] <= 0 or not re.fullmatch('[0-9a-f]{40}', request['validation_commit'])): raise RuntimeError('invalid validation binding')
+              pins = {
+                  'installer': ('ops/merlin_dot/install_private.py', '6a486e665f82c563d7746bcbac431ec63adedd0d'),
+                  'guards': ('ops/merlin_dot/upgrade_research.py', 'a68671122ce8e833ac340efa7cbb3a761562ab11'),
+                  'evidence': ('ops/merlin_dot/validation_evidence.py', '4519e2e90cd18a8ea5d5f0d2d667c9447898512d'),
+                  'controller': ('ops/merlin_dot/release_branch.py', 'd8bd73e45dbc7d69c90f1d3faa17cf7520db6d0c'),
+                  'controls': ('ops/merlin_dot/test_release_branch.py', '579727cc0144ead5aefd70b7bb84296b9ac4ed93'),
+              }
+              sources = {}
+              for key, (source_path, pin) in pins.items():
+                  body, identity = fetch(source_path)
+                  if identity != pin: raise RuntimeError('operation source pin mismatch: ' + key)
+                  sources[key] = body
+              if hashlib.sha256(sources['controller']).hexdigest() != 'e3a7ecf4ac137f6de288e18263aee531448bcd57053e70560b4790faa2fe1e9d': raise RuntimeError('controller SHA-256 mismatch')
+              if shutil.disk_usage('/opt/merlin-dot-private').free < 128 * 1024 * 1024 or os.statvfs('/opt/merlin-dot-private').f_favail < 1000: raise RuntimeError('insufficient release headroom')
+              controls = out / 'controller-tests'; controls.mkdir()
+              (controls / 'release_branch.py').write_bytes(sources['controller'])
+              (controls / 'test_release_branch.py').write_bytes(sources['controls'])
+              code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_release_branch.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==13 else 1)"
+              result = subprocess.run(['/usr/bin/python3', '-I', '-B', '-c', code, str(controls)], cwd='/', env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}, capture_output=True, text=True, timeout=90)
+              (out / 'controller-tests.txt').write_text(result.stdout + result.stderr)
+              if result.returncode: raise RuntimeError('controller controls failed: ' + result.stderr[-2500:])
+              print('CONTROLLER_TEST_RESULT=' + result.stdout.strip())
+              namespace = {}; exec(compile(sources['controller'], 'pinned-release-controller', 'exec'), namespace)
+              namespace['run'](request, api, fetch, sources, out)
+          except Exception as exc:
+              (out / 'operation-error.json').write_text(json.dumps({'status':'failed','type':type(exc).__name__,'message':str(exc)[:5000],'workflow_commit':commit,'run_id':os.environ['GITHUB_RUN_ID']}, indent=2))
+              raise
+          PY
+      - name: Preserve operation receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+            ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
+            ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}/runtime.zip
+          retention-days: 30
+          if-no-files-found: warn
