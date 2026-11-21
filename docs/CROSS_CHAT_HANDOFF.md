@@ -472,3 +472,15 @@ Science-module direction:
 - approximately 100 curated high-value examples as a long-term target.
 
 This program is architecture/implementation intent only and does not alter existing proof qualification state.
+
+## Merlin fixed process-recovery validation — November 21, 2026
+
+The explicitly authorized code-only transfer and fixed validation completed in [run 44899455087, attempt 1](https://github.com/morganaspim/Cace-app/actions/runs/44899455087), workflow commit `4ef0d6add206ba2d0cbd25eadcbc5f3c609a0f58`. The selected Merlin source is `Mannyspiro/expert-robot@4847d90dca4266d42651a8b9538c3eeae8a423b1`.
+
+All **386 software tests, eight kernel cases and six context cases passed** on `cace-oci-a1` (ARM64, Python 3.9.25). The downloaded artifact matched GitHub artifact `14704988710`, 529,239 bytes, SHA-256 `fbc803cef0c097bb8b43cdf2f3991d72b37c5a0ab80b3639e539130ead25457f`. Two same-team artifact reviews checked all 117 source files, actual test starts/stops, exact named cases, source/controller/loader identities and raw process receipts.
+
+Completed-process recovery recorded one original process launch, blocked ordinary retry, performed checker-only recovery, and returned the same recovered receipt on fresh-worker replay without relaunch. The monitored service fields remained active/running/enabled with MainPID 2507219 before and after the run; these fields are a bounded observation, not a comprehensive service audit.
+
+The exact checkpoint is `ops/merlin_dot/validation-results/process-recovery-20261121.json`. Critical runtime evidence is retained outside GitHub in an evidence-only archive (SHA-256 `81ef33bdfc7522646161d15249b88d34ee6064c34890814e9e45f2be43eb9cdd`); repository-backed source/controller copies remain in their repositories. No corrective native rerun was needed.
+
+This is Class B Merlin engineering acceptance of the declared fixed synthetic selection. It does not qualify CACE's scientific core, establish actual native model review or model quality, authorize merge/deployment, or complete Merlin's production plan. Production service configuration, permissions and private runtime state were not changed. Subsequent weight-binding or evidence-admission code requires its own source-specific validation.

@@ -1,0 +1,88 @@
+{
+  "schema": "merlin-plan-update/1",
+  "date_phoenix": "2026-11-21",
+  "status": "native_acceptance_passed_exact_selected_candidate",
+  "supersedes_native_status": "config/merlin/plan-updates/20261121-code-acceptance-checkpoint.json",
+  "source": {
+    "repository": "Mannyspiro/expert-robot",
+    "commit": "4847d90dca4266d42651a8b9538c3eeae8a423b1",
+    "selected_files": 117,
+    "source_map_sha256": "76b9e39f143c4eac83e360b30c53e9c64cdd0df761e711c493766d70c2f66926",
+    "observed_publication_head_before_checkpoint": "c1cbbca26fde8ab454b35600fbc87c271fa07226",
+    "selected_source_blobs_unchanged_at_observed_head": true
+  },
+  "native_validation": {
+    "repository": "morganaspim/Cace-app",
+    "workflow_commit": "4ef0d6add206ba2d0cbd25eadcbc5f3c609a0f58",
+    "controller_git_blob": "bf159b8476f1d67fb2dd69f2e9286a96290672c1",
+    "controller_sha256": "ab5b9955dc2f5962ffcf1700c2d225c30caa310adf4d00c8059c9fe72cbf5391",
+    "run_id": 44899455087,
+    "run_attempt": 1,
+    "url": "https://github.com/morganaspim/Cace-app/actions/runs/44899455087",
+    "conclusion": "success",
+    "runner": "cace-oci-a1",
+    "architecture": "aarch64",
+    "python": "3.9.25",
+    "software_tests": 386,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "software_seconds": 111.54,
+    "actual_test_starts": 386,
+    "actual_test_stops": 386,
+    "executed_inventory_sha256": "4631351ac7c61012dd7217552e2cd3a749dc8de9baa9e57637f60a7c66775569",
+    "kernel_cases": 8,
+    "context_cases": 6,
+    "exact_named_case_inventories": true,
+    "artifact_id": 14704988710,
+    "artifact_bytes": 529239,
+    "artifact_sha256": "fbc803cef0c097bb8b43cdf2f3991d72b37c5a0ab80b3639e539130ead25457f",
+    "source_package_sha256": "2e84f3cef17aec4fa3a93cc681761f3b134e8315770ed5010a42184cc8400475"
+  },
+  "recovery": {
+    "original_process_launches": 1,
+    "ordinary_retry_blocked": true,
+    "checker_only_recovery_completed": true,
+    "duplicate_fresh_worker_receipt_exact": true,
+    "process_checker_result_and_recovery_ref_hashes_recomputed": true
+  },
+  "service_observation": {
+    "before_after_equal": true,
+    "ActiveState": "active",
+    "SubState": "running",
+    "UnitFileState": "enabled",
+    "MainPID": "2507219",
+    "limit": "Bounded before/after metadata observation; not a comprehensive service audit."
+  },
+  "retained_evidence": {
+    "outside_github": true,
+    "filename": "Merlin_native_validation_20261121.zip",
+    "bytes": 104698,
+    "sha256": "81ef33bdfc7522646161d15249b88d34ee6064c34890814e9e45f2be43eb9cdd",
+    "contents": "Runtime reports, raw native receipts, software events/logs, API metadata, source identities and verification; repository-backed source/controller copies excluded."
+  },
+  "review": {
+    "reviewers": 2,
+    "kind": "same-team artifact consistency review",
+    "independent_external_verification": false,
+    "corrective_reruns": 0
+  },
+  "remaining": [
+    "Canonical production build evidence admission and decision persistence remain unwired in this tested candidate.",
+    "Native fresh-context model review and authenticated external-verifier evidence remain absent.",
+    "Weight binding and evidence-admission implementations under separate development are not covered by this native run.",
+    "No model-weight edit, model-quality gain, whole-platform track completion, merge or deployment is established."
+  ],
+  "authorization": "The earlier transfer block is historical; explicit user approval authorized the exact code-only overlay and pinned fixed validation controller.",
+  "actual_native_model_review_performed": false,
+  "model_weights_edited": false,
+  "model_quality_assessed": false,
+  "production_service_modified": false,
+  "permissions_modified": false,
+  "private_context_used": false,
+  "avrea_used": false,
+  "qualification": false,
+  "promotion_authority": false,
+  "merged": false,
+  "deployed": false
+}
