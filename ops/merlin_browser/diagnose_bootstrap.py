@@ -1,4 +1,4 @@
-"""Fixed read-only package inspection for native bootstrap run44942304091.
+"""Fixed read-only loader inspection for native bootstrap run44944424850.
 
 No installation, service transition, unit creation, policy change, model call,
 or browser episode is supported. All inspected paths and commands are fixed.
@@ -18,23 +18,34 @@ import sys
 import time
 import uuid
 
-TARGET_RUN=44942304091
+TARGET_RUN=44944424850
 TARGET_ATTEMPT=1
-TARGET_REQUEST='ef0c417a-4b58-4c5d-b44b-be7a237bedfa'
-TARGET_COMMIT='7f12c41b49f4be4ee46077afc03fd2e36a41830f'
-TARGET_UNIT='merlin-browser-bootstrap-44942304091-1.service'
-OPERATION='inspect-zvbi-44942304091'
+TARGET_REQUEST='04d38719-4c94-4059-988b-9081375fd209'
+TARGET_COMMIT='b11bf02997dc720535b7d729d60e3a7919892a9a'
+TARGET_UNIT='merlin-browser-bootstrap-44944424850-1.service'
+OPERATION='inspect-loader-44944424850'
 PRIOR_INTENT_SHA256='203c362c00fb7af0b6f02ac7b923d0894b7f09553eb031299822f62e35a1d305'
 PRIOR_RESULT_SHA256='8170ddc15aaf4630fc32440eb353da649c1c8bdfcf9a52cda1e8d7f2a0c30557'
-PACKAGE_FILENAME='zvbi-0.2.35-15.el9.aarch64.rpm'
-PACKAGE_SHA256='b2df1becc979d6b5faac7398808e262027aa64011704affa36ba3fac49398a29'
-PACKAGE_BYTES=446528
+SUCCESSOR_INTENT_SHA256='b641bd1d8f2d5d6f5a7a016e74f8cf942a92c15c2d7db0b1d752d66709d3801f'
+SUCCESSOR_RESULT_SHA256='0ce1241325e81b33e51d487bfd9e0c0b2b8f5531335fceb945e3155920bb8797'
+SUCCESSOR_LINEAGE_SHA256='2cbac1011c002262d8239c7e8b21c3623a6290e3d3b8e38f353c5e887687df09'
+FIXTURE_RECEIPT_SHA256='96f121315477fcc742cfbd6757b63fefdfec531551aa8ad4cc52fc30d968cfa2'
 STAGED=Path('/var/lib/merlin-browser-bootstrap')/TARGET_REQUEST
-BEFORE_SHA256='aa434fae4c1c28b10a94229ff226b9046410a3c0af23482bfead85d00e86294f'
-BEFORE_COUNT=921
+BEFORE_SHA256='498f3ea85fe0dfcebbd2871c5029e1f1216ea2a6031f4ef20bd0eefaa69d79fd'
+BEFORE_COUNT=971
 ACQUISITION_SHA256='a84f362035e170b904407004679b59c2675423fe6a64f8eb4cb92f5f344b9325'
-START='2026-11-21 19:41:40 UTC'
-END='2026-11-21 19:45:10 UTC'
+RELEASE=Path('/opt/merlin-public-browser/releases/58f9b4fee8b03db777a07e76149ef5fedcc8c1c9b3309c16499b3cadecfbac90')
+RUNTIME_MANIFEST_SHA256='51c68b5f7ceb10debb270ffdde2409648968dddd11e5e93c3f989802ca25b8d8'
+EXPECTED_HOST_SHA256='728199723582985bc21357e72059fab26a0220e01a6d109f36288b39ecbd8600'
+FIXTURE=Path('/var/lib/merlin-public-browser/episodes')/('bootstrap-fixture-'+TARGET_REQUEST)
+FIXTURE_UNIT='merlin-browser-fixture-bootstrap-fixture-'+TARGET_REQUEST+'.service'
+ELF_FILES=('/usr/bin/python3.9',str(RELEASE/'venv/bin/python'),str(RELEASE/'venv/bin/python3'),
+    str(RELEASE/'venv/bin/python3.9'),str(RELEASE/'venv/lib/python3.9/site-packages/playwright/driver/node'),
+    str(RELEASE/'venv/lib64/python3.9/site-packages/playwright/driver/node'),'/usr/lib64/chromium-browser/headless_shell')
+LOADER_FILES=('/lib/ld-linux-aarch64.so.1','/lib64/ld-linux-aarch64.so.1',
+    '/usr/lib/ld-linux-aarch64.so.1','/usr/lib64/ld-linux-aarch64.so.1')
+START='2026-11-21 20:05:40 UTC'
+END='2026-11-21 20:07:00 UTC'
 ENV={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
      'HOME':'/var/empty','SYSTEMD_PAGER':'','SYSTEMD_COLORS':'0'}
 RPM_FORMAT='%{NAME}\t%{EPOCHNUM}\t%{VERSION}\t%{RELEASE}\t%{ARCH}\n'
@@ -123,6 +134,51 @@ def describe(path,content=False,root_owned=False,maximum=4*1024*1024):
     return result
 
 
+def public_binary_identity(path):
+    """Resolve only fixed public runtime binaries; never execute their bytes."""
+    if str(path) not in ELF_FILES+LOADER_FILES:
+        raise ProbeError('fixed public binary path required')
+    path=Path(path);result={'path':str(path),'executed':False,'path_metadata':[]}
+    try:
+        resolved=path.resolve(strict=True)
+        allowed=(str(RELEASE/'venv')+'/', '/usr/lib64/', '/usr/lib/')
+        if (str(resolved) not in ('/usr/bin/python3.9','/usr/libexec/platform-python3.9')
+            and not str(resolved).startswith(allowed)):
+            raise ProbeError('resolved binary outside fixed public runtime roots')
+        paths=[]
+        for item in (path,resolved):
+            for node in reversed([item]+list(item.parents)):
+                if node not in paths: paths.append(node)
+        if len(paths)>32: raise ProbeError('bounded fixed link ancestry required')
+        for node in paths:
+            info=node.lstat();row={'path':str(node),'mode':oct(stat.S_IMODE(info.st_mode)),
+                'uid':info.st_uid,'gid':info.st_gid,'bytes':info.st_size}
+            if stat.S_ISLNK(info.st_mode): row['symlink_target']=os.readlink(node)
+            result['path_metadata'].append(row)
+        fd=os.open(str(resolved),os.O_RDONLY|os.O_NONBLOCK|os.O_NOFOLLOW)
+        try:
+            info=os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid!=0 or info.st_mode&0o022 or info.st_size>256*1024*1024:
+                raise ProbeError('bounded root-owned public binary required')
+            value=hashlib.sha256();size=0;prefix=b''
+            while True:
+                chunk=os.read(fd,1048576)
+                if not chunk: break
+                if not prefix: prefix=chunk[:64]
+                size+=len(chunk)
+                if size>256*1024*1024: raise ProbeError('public binary hash ceiling')
+                value.update(chunk)
+            after=os.fstat(fd)
+            if (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)!=(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns):
+                raise ProbeError('public binary changed while inspected')
+            result.update(exists=True,resolved_path=str(resolved),sha256=value.hexdigest(),bytes=size,
+                elf_magic=prefix[:4].hex(),elf_ident=prefix[:16].hex(),content_exported=False)
+        finally: os.close(fd)
+    except FileNotFoundError: result['exists']=False
+    except BaseException as exc: result['observation_error']={'type':type(exc).__name__,'message':str(exc)[:300]}
+    return result
+
+
 def command(argv,seconds=8,maximum=1024*1024):
     # No detached descendants: the workflow supplies an independent root
     # timeout process group around this entire read-only probe.
@@ -174,9 +230,7 @@ def fixed_commands():
     journal=['/usr/bin/journalctl','--no-pager','--all','--output=json',
              '--output-fields=__REALTIME_TIMESTAMP,__MONOTONIC_TIMESTAMP,_BOOT_ID,_SYSTEMD_UNIT,_PID,_COMM,MESSAGE',
              '--since='+START,'--until='+END,'--lines=512']
-    rpm=['/usr/bin/rpm','--dbpath',str(STAGED/'verification-rpmdb'),'-qp']
-    package=str(STAGED/'rpms'/PACKAGE_FILENAME)
-    return {
+    result={
       'failed_unit':['/usr/bin/systemctl','show',TARGET_UNIT,'--no-pager']+['--property='+key for key in UNIT_FIELDS],
       'private_unit':['/usr/bin/systemctl','show','merlin-dot-private.service','--no-pager']+['--property='+key for key in UNIT_FIELDS],
       'model_unit':['/usr/bin/systemctl','show','merlin-model-provider.service','--no-pager']+['--property='+key for key in UNIT_FIELDS],
@@ -184,11 +238,11 @@ def fixed_commands():
                    '--property=ActiveState','--property=SubState','--property=MainPID','--property=FragmentPath'],
       'installed_packages':['/usr/bin/rpm','-qa','--qf',RPM_FORMAT],
       'unit_journal':journal+['--unit='+TARGET_UNIT],
-      'zvbi_signature':['/usr/bin/rpmkeys','--dbpath',str(STAGED/'verification-rpmdb'),'--checksig','--verbose',package],
-      'zvbi_scripts':rpm+['--scripts',package],
-      'zvbi_triggers':rpm+['--triggers',package],
-      'zvbi_xml':rpm+['--xml',package],
-      'zvbi_file_metadata':rpm+['--dump',package]}
+      'fixture_unit':['/usr/bin/systemctl','show',FIXTURE_UNIT,'--no-pager']+['--property='+key for key in UNIT_FIELDS],
+      'zvbi_file_states':['/usr/bin/rpm','-q','--qf','[%{FILENAMES}\t%{FILESTATES}\n]','zvbi']}
+    for index,path in enumerate(ELF_FILES):
+        result['elf_metadata_%d'%index]=['/usr/bin/readelf','--wide','--file-header','--program-headers','--dynamic',path]
+    return result
 
 
 def run(request,execution,runner_temporary):
@@ -197,26 +251,37 @@ def run(request,execution,runner_temporary):
         raise ProbeError('actual native root inspection required')
     temporary=Path(runner_temporary)
     if not temporary.is_absolute() or '..' in temporary.parts: raise ProbeError('observed absolute runner temporary path required')
-    package=read_safe(STAGED/'rpms'/PACKAGE_FILENAME,PACKAGE_BYTES,root_owned=True)
-    if len(package)!=PACKAGE_BYTES or digest(package)!=PACKAGE_SHA256:
-        raise ProbeError('exact retained signed RPM identity differs')
     state=Path('/var/lib/merlin-browser-bootstrap')
     if (digest(read_safe(state/'bootstrap-intent.json',65536,root_owned=True))!=PRIOR_INTENT_SHA256
         or digest(read_safe(state/'bootstrap-result.json',4*1024*1024,root_owned=True))!=PRIOR_RESULT_SHA256):
         raise ProbeError('exact retained failed operation lineage differs')
+    expected={STAGED/'bootstrap-intent.json':SUCCESSOR_INTENT_SHA256,
+      STAGED/'bootstrap-result.json':SUCCESSOR_RESULT_SHA256,STAGED/'operation-receipt.json':SUCCESSOR_RESULT_SHA256,
+      STAGED/'successor-lineage.json':SUCCESSOR_LINEAGE_SHA256,STAGED/'acquisition.json':ACQUISITION_SHA256,
+      state/'successor-from-ef0c417a-4b58-4c5d-b44b-be7a237bedfa.json':SUCCESSOR_LINEAGE_SHA256,
+      FIXTURE/'launch-receipt.json':FIXTURE_RECEIPT_SHA256,RELEASE/'manifest.json':RUNTIME_MANIFEST_SHA256,
+      Path('/etc/merlin-public-browser/host.json'):EXPECTED_HOST_SHA256}
+    observed_pins=[]
+    for path,wanted in expected.items():
+        raw=read_safe(path,4*1024*1024,root_owned=True);actual=digest(raw)
+        observed_pins.append({'path':str(path),'sha256':actual,'bytes':len(raw),'matches_expected':actual==wanted})
+        if actual!=wanted: raise ProbeError('exact retained successor/runtime identity differs: '+str(path))
     result={'schema':'merlin-browser-bootstrap-reconciliation/1','status':'observations_collected',
        'request':request,'execution':execution,'target':{'run_id':TARGET_RUN,'run_attempt':TARGET_ATTEMPT,
        'workflow_commit':TARGET_COMMIT,'request_id':TARGET_REQUEST,'unit':TARGET_UNIT,
        'acquisition_sha256':ACQUISITION_SHA256},'model_calls':0,'browser_episodes':0,
        'software_installation':False,'service_transitions':False,'policy_changes':False,
        'automatic_retry':False,'observed_at_unix':time.time(),'uid':os.geteuid(),'commands':{}}
-    result['retained_rpm']={'path':str(STAGED/'rpms'/PACKAGE_FILENAME),'filename':PACKAGE_FILENAME,
-       'sha256':PACKAGE_SHA256,'bytes':PACKAGE_BYTES,'encoding':'base64',
-       'content':base64.b64encode(package).decode(),'payload_executed':False,
-       'purpose':'exact signed RPM retained for bounded local recovery of unit bytes and payload metadata'}
     result['prior_lineage']={'intent_sha256':PRIOR_INTENT_SHA256,'failed_result_sha256':PRIOR_RESULT_SHA256,
                              'actual_files_matched':True}
+    result['successor_identity_observations']=observed_pins
+    result['host_expected_pin_origin']='derived from exact prior constructor and receipt; this probe hashes the actual host file'
+    result['public_binaries']=[public_binary_identity(path) for path in ELF_FILES+LOADER_FILES]
+    inspected={row['path']:row for row in result['public_binaries']}
     for name,argv in fixed_commands().items():
+        if name.startswith('elf_metadata_') and (not inspected[argv[-1]].get('exists') or 'observation_error' in inspected[argv[-1]]):
+            result['commands'][name]={'argv':argv,'skipped':True,'reason':'fixed public binary absent or identity inspection rejected'}
+            continue
         observed=command(argv,seconds=8 if name.endswith('journal') else 5,
                          maximum=4*1024*1024 if name.endswith('journal') else 1024*1024)
         result['commands'][name]=observed
@@ -229,12 +294,13 @@ def run(request,execution,runner_temporary):
             rows.append(dict(zip(('name','epoch','version','release','arch'),fields)))
         rows.sort(key=lambda row:tuple(row[key] for key in ('name','epoch','version','release','arch')))
         result['package_reconciliation']={'count':len(rows),'sha256':digest(canonical(rows)),
-             'acquired_before_count':BEFORE_COUNT,'acquired_before_sha256':BEFORE_SHA256,
-             'equals_acquired_before':len(rows)==BEFORE_COUNT and digest(canonical(rows))==BEFORE_SHA256}
+             'retained_after_count':BEFORE_COUNT,'retained_after_sha256':BEFORE_SHA256,
+             'equals_retained_after':len(rows)==BEFORE_COUNT and digest(canonical(rows))==BEFORE_SHA256}
     paths=[state/'bootstrap-intent.json',state/'bootstrap-result.json',
-           state/TARGET_REQUEST/'operation-receipt.json',state/TARGET_REQUEST/'rpm-install-intent.json']
+           STAGED/'bootstrap-intent.json',STAGED/'bootstrap-result.json',STAGED/'operation-receipt.json',
+           STAGED/'rpm-install-intent.json',STAGED/'successor-lineage.json',FIXTURE/'launch-receipt.json']
     result['retained_operation_artifacts']=[describe(path,content=True,root_owned=True) for path in paths]
-    old_output=temporary/('merlin-browser-bootstrap-%d-%d'%(TARGET_RUN,TARGET_ATTEMPT))
+    old_output=temporary/('merlin-browser-bootstrap-%d-%d'%(TARGET_RUN,TARGET_ATTEMPT))/'root-evidence'
     result['runner_candidate_artifacts']=[describe(old_output/name,content=True) for name in
         ('root-candidate-plan.json','root-candidate-rejection.json')]
     result['browser_state']=[describe(path,content=path.name.endswith('.json'),root_owned=True,maximum=65536) for path in
@@ -254,8 +320,20 @@ def run(request,execution,runner_temporary):
         result['existing_private_hashes'].append({'path':path,'sha256':digest(raw),'bytes':len(raw),'content_exported':False})
     result['daemon_paths']=[describe(path) for path in ('/usr/lib/systemd/system/zvbid.service',
       '/etc/systemd/system/zvbid.service','/run/systemd/system/zvbid.service','/usr/sbin/zvbid')]
+    result['venv_configuration']=describe(RELEASE/'venv/pyvenv.cfg',content=True,root_owned=True,maximum=65536)
+    result['mount_ancestors']=[describe(path) for path in (Path('/lib'),Path('/lib64'),Path('/usr/lib'),
+        Path('/usr/lib64'),RELEASE,RELEASE/'venv',RELEASE/'venv/bin',RELEASE/'python',RELEASE/'bin')]
+    manifest=json.loads(read_safe(RELEASE/'manifest.json',1048576,root_owned=True));result['runtime_file_identities']=[]
+    for item in manifest['files']:
+        name=item['path']
+        if not re.fullmatch(r'(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+',name) or '..' in Path(name).parts:
+            raise ProbeError('frozen runtime member path differs')
+        raw=read_safe(RELEASE/name,2*1024*1024,root_owned=True)
+        result['runtime_file_identities'].append({'path':name,'bytes':len(raw),'sha256':digest(raw),
+            'matches_manifest':len(raw)==item['bytes'] and digest(raw)==item['sha256']})
     result['limitations']=['Read-only point-in-time observations do not authorize an automatic retry.',
       'A missing receipt does not prove the controller never began.',
-      'The raw RPM is data for inspection only; no payload file or scriptlet is executed.']
+      'Python, the Playwright driver, Chromium, and the dynamic loader are inspected as data, never executed.',
+      'No fixture is retried and no mount or isolation setting is changed.']
     if len(canonical(result))>24*1024*1024: raise ProbeError('complete reconciliation evidence ceiling')
     return result
