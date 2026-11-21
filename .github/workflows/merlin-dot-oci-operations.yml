@@ -1,9 +1,9 @@
-name: Merlin dot OCI operations
+name: Merlin fixed local model bootstrap
 
 on:
   push:
-    branches: ["merlin/dot-ops/branch-release-20261120"]
-    paths: ["merlin/dot-requests/**"]
+    branches: ["merlin/dot-ops/model-bootstrap-20261121"]
+    paths: ["merlin/model-requests/**"]
 
 permissions:
   contents: read
@@ -14,97 +14,99 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  fixed-operation:
+  fixed-model-operation:
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 10
+    timeout-minutes: 65
     steps:
-      - name: Validate pinned additive release and perform fixed operation
+      - name: Authenticate fixed request, test exact controller, and bootstrap pinned provider
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import base64, hashlib, json, os, re, shutil, subprocess, urllib.request
+          import base64, hashlib, json, os, re, subprocess, urllib.request
           from pathlib import Path
           repo = os.environ['GITHUB_REPOSITORY']; commit = os.environ['GITHUB_SHA']
-          if repo != 'morganaspim/Cace-app' or os.environ['GITHUB_REF'] != 'refs/heads/merlin/dot-ops/branch-release-20261120' or os.environ.get('RUNNER_NAME') != 'cace-oci-a1':
-              raise RuntimeError('unexpected execution identity')
+          if repo != 'morganaspim/Cace-app' or os.environ['GITHUB_REF'] != 'refs/heads/merlin/dot-ops/model-bootstrap-20261121' or os.environ.get('RUNNER_NAME') != 'cace-oci-a1':
+              raise RuntimeError('unexpected fixed execution identity')
+          if os.environ['GITHUB_RUN_ATTEMPT'] != '1': raise RuntimeError('automatic retry is not authorized')
+          out = Path(os.environ['RUNNER_TEMP']) / ('merlin-model-bootstrap-' + os.environ['GITHUB_RUN_ID'] + '-1')
+          out.mkdir(exist_ok=False)
           def unique(items):
-              out = {}
+              result = {}
               for key, value in items:
-                  if key in out: raise ValueError('duplicate JSON field')
-                  out[key] = value
-              return out
+                  if key in result: raise ValueError('duplicate JSON field')
+                  result[key] = value
+              return result
           def api(path):
-              req = urllib.request.Request('https://api.github.com/repos/' + repo + '/' + path, headers={'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'], 'Accept': 'application/vnd.github+json'})
-              with urllib.request.urlopen(req, timeout=20) as response: raw = response.read(4 * 1024 * 1024 + 1)
+              request = urllib.request.Request('https://api.github.com/repos/' + repo + '/' + path, headers={'Authorization':'Bearer ' + os.environ['GITHUB_TOKEN'], 'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request, timeout=20) as response: raw = response.read(4 * 1024 * 1024 + 1)
               if len(raw) > 4 * 1024 * 1024: raise RuntimeError('API response limit')
               return json.loads(raw, object_pairs_hook=unique)
           def fetch(path):
-              obj = api('contents/' + path + '?ref=' + commit)
-              raw = base64.b64decode(''.join(obj['content'].split()), validate=True)
-              actual = hashlib.sha1(('blob %d\0' % len(raw)).encode() + raw).hexdigest()
-              if obj.get('sha') != actual: raise RuntimeError('repository bytes mismatch')
-              return raw, actual
-          out = Path(os.environ['RUNNER_TEMP']) / ('merlin-dot-operation-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
-          out.mkdir(exist_ok=False)
+              value = api('contents/' + path + '?ref=' + commit)
+              raw = base64.b64decode(''.join(value['content'].split()), validate=True)
+              blob = hashlib.sha1(('blob %d\0' % len(raw)).encode() + raw).hexdigest()
+              if value.get('sha') != blob: raise RuntimeError('repository byte identity mismatch')
+              return raw, blob
+          root_output = Path('/var/lib/merlin-model-bootstrap/runs') / (os.environ['GITHUB_RUN_ID'] + '-1')
           try:
               files = api('commits/' + commit)['files']
-              if len(files) != 1 or files[0]['status'] != 'added': raise RuntimeError('one additive request file required')
+              if len(files) != 1 or files[0]['status'] != 'added': raise RuntimeError('one additive fixed request required')
               path = files[0]['filename']
-              if not re.fullmatch(r'merlin/dot-requests/[0-9a-f-]{36}\.json', path): raise RuntimeError('invalid request path')
-              raw, _ = fetch(path)
+              if not re.fullmatch(r'merlin/model-requests/[0-9a-f-]{36}\.json', path): raise RuntimeError('request path')
+              raw, request_blob = fetch(path)
               if len(raw) > 16000: raise RuntimeError('request size limit')
               request = json.loads(raw, object_pairs_hook=unique)
-              base = {'schema', 'request_id', 'operation', 'created_at'}
-              if not isinstance(request, dict) or request.get('schema') != 'merlin-dot-ops-request-v1' or request.get('operation') not in {'validate', 'deploy', 'inspect'} or path != 'merlin/dot-requests/' + request.get('request_id', '') + '.json': raise RuntimeError('invalid request')
-              expected = base | {'validation_run_id', 'validation_commit'} if request['operation'] == 'deploy' else base
-              if set(request) != expected: raise RuntimeError('request fields rejected')
-              if request['operation'] == 'deploy' and (type(request['validation_run_id']) is not int or request['validation_run_id'] <= 0 or not re.fullmatch('[0-9a-f]{40}', request['validation_commit'])): raise RuntimeError('invalid validation binding')
+              if path != 'merlin/model-requests/' + request.get('request_id', '') + '.json': raise RuntimeError('request filename binding')
               pins = {
-                  'installer': ('ops/merlin_dot/install_private.py', '6a486e665f82c563d7746bcbac431ec63adedd0d'),
-                  'guards': ('ops/merlin_dot/upgrade_research.py', 'a68671122ce8e833ac340efa7cbb3a761562ab11'),
-                  'evidence': ('ops/merlin_dot/validation_evidence.py', '4519e2e90cd18a8ea5d5f0d2d667c9447898512d'),
-                  'controller': ('ops/merlin_dot/release_branch.py', 'd8bd73e45dbc7d69c90f1d3faa17cf7520db6d0c'),
-                  'controls': ('ops/merlin_dot/test_release_branch.py', '579727cc0144ead5aefd70b7bb84296b9ac4ed93'),
-                  'extension': ('ops/merlin_dot/resume_extension.py', '884ced15daadf01074ccc9727e12226ead3893f6'),
-                  'resume_controls': ('ops/merlin_dot/test_resume_extension.py', 'cd43c05eddf2ab490ace4fb7b7cf07fe1d514457'),
+                  'controller': ('ops/merlin_dot/bootstrap_local_model.py', '84acdfab0615f54c98c6a80dd705fea9de2552c0', '5c2e6f5cda47a5128f9df2913a8cc693d79639264fd55034b4fd1479f86f0bae'),
+                  'tests': ('tests/test_bootstrap_local_model.py', 'ebb2a9277cf90b46faee63cba4b93f882201ce82', '092275b09000b0f3715f82a774a3f847daade28c2e5dcfc65d98e55f089dc298'),
               }
               sources = {}
-              for key, (source_path, pin) in pins.items():
-                  body, identity = fetch(source_path)
-                  if identity != pin: raise RuntimeError('operation source pin mismatch: ' + key)
-                  sources[key] = body
-              if hashlib.sha256(sources['controller']).hexdigest() != 'e3a7ecf4ac137f6de288e18263aee531448bcd57053e70560b4790faa2fe1e9d': raise RuntimeError('controller SHA-256 mismatch')
-              if shutil.disk_usage('/opt/merlin-dot-private').free < 128 * 1024 * 1024 or os.statvfs('/opt/merlin-dot-private').f_favail < 1000: raise RuntimeError('insufficient release headroom')
+              for label, (source_path, expected_blob, expected_sha) in pins.items():
+                  body, actual_blob = fetch(source_path)
+                  if actual_blob != expected_blob or hashlib.sha256(body).hexdigest() != expected_sha: raise RuntimeError('fixed source pin mismatch: ' + label)
+                  sources[label] = body
+              identity = {'run_id':int(os.environ['GITHUB_RUN_ID']), 'run_attempt':1, 'workflow_commit':commit,
+                          'controller_sha256':pins['controller'][2], 'runner':'cace-oci-a1'}
+              namespace = {'__name__':'pinned_model_bootstrap'}
+              exec(compile(sources['controller'], 'pinned-model-controller', 'exec'), namespace)
+              namespace['validate_request'](request, identity)
               controls = out / 'controller-tests'; controls.mkdir()
-              (controls / 'release_branch.py').write_bytes(sources['controller'])
-              (controls / 'test_release_branch.py').write_bytes(sources['controls'])
-              composite = sources['controller'] + b'\n' + sources['extension']
-              if hashlib.sha256(composite).hexdigest() != '1e04412b25faa835da9ef5585af689afb76cdb0ca7cd4764332975dccc67e56c': raise RuntimeError('resume controller mismatch')
-              (controls / 'resume_branch.py').write_bytes(composite)
-              (controls / 'test_resume_extension.py').write_bytes(sources['resume_controls'])
-              code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_*.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==27 else 1)"
-              result = subprocess.run(['/usr/bin/python3', '-I', '-B', '-c', code, str(controls)], cwd='/', env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}, capture_output=True, text=True, timeout=90)
-              (out / 'controller-tests.txt').write_text(result.stdout + result.stderr)
-              if result.returncode: raise RuntimeError('controller controls failed: ' + result.stderr[-2500:])
-              print('CONTROLLER_TEST_RESULT=' + result.stdout.strip())
-              sources['controller'] = composite
-              namespace = {}; exec(compile(sources['controller'], 'pinned-release-controller', 'exec'), namespace)
-              namespace['run'](request, api, fetch, sources, out)
-          except Exception as exc:
-              (out / 'operation-error.json').write_text(json.dumps({'status':'failed','type':type(exc).__name__,'message':str(exc)[:5000],'workflow_commit':commit,'run_id':os.environ['GITHUB_RUN_ID']}, indent=2))
+              (controls / 'bootstrap_local_model.py').write_bytes(sources['controller'])
+              (controls / 'test_bootstrap_local_model.py').write_bytes(sources['tests'])
+              test_code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_bootstrap_local_model.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==29 else 1)"
+              test = subprocess.run(['/usr/bin/python3','-I','-B','-c',test_code,str(controls)], cwd='/', env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
+              if len(test.stdout) > 256 * 1024: raise RuntimeError('controller test log limit')
+              (out / 'controller-tests.log').write_bytes(test.stdout)
+              if test.returncode: raise RuntimeError('fixed controller controls failed')
+              loader = "import base64,hashlib,json,sys;raw=open(sys.argv[1],'rb').read(131073);assert len(raw)<=131072 and hashlib.sha256(raw).hexdigest()==sys.argv[2];ns={'__name__':'pinned_model_bootstrap'};exec(compile(raw,'authenticated-fixed-model-controller','exec'),ns);request=json.loads(base64.b64decode(sys.argv[3],validate=True),object_pairs_hook=ns['unique']);identity=json.loads(base64.b64decode(sys.argv[4],validate=True),object_pairs_hook=ns['unique']);print(json.dumps(ns['run'](request,identity),sort_keys=True))"
+              args = ['/usr/bin/sudo','-n','/usr/bin/env','-i','PATH=/usr/sbin:/usr/bin:/sbin:/bin','LANG=C.UTF-8','/usr/bin/python3','-I','-B','-c',loader,str(controls / 'bootstrap_local_model.py'),pins['controller'][2],base64.b64encode(namespace['canonical'](request)).decode(),base64.b64encode(namespace['canonical'](identity)).decode()]
+              result = subprocess.run(args, cwd='/', env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=3800)
+              if len(result.stdout) > 65536: raise RuntimeError('bootstrap supervisor output limit')
+              (out / 'supervisor.log').write_bytes(result.stdout)
+              if result.returncode: raise RuntimeError('bootstrap rejected or failed; retained evidence records the phase')
+          except Exception as error:
+              (out / 'workflow-error.json').write_text(json.dumps({'status':'failed','type':type(error).__name__,'message':str(error)[:800],'workflow_commit':commit,'run_id':os.environ['GITHUB_RUN_ID']},indent=2))
               raise
+          finally:
+              names = ['bootstrap-receipt.json','manifest.json','failed-receipt.json','inspection.json','smoke-request.json','smoke-token-count.json','smoke-inference-intent.json','smoke-response.json','build.log','build-manager.log']
+              for name in names:
+                  source = root_output / name
+                  if source.is_file():
+                      with source.open('rb') as stream: data = stream.read(3 * 1024 * 1024 + 1)
+                      if len(data) > 3 * 1024 * 1024: raise RuntimeError('retained artifact file limit')
+                      (out / name).write_bytes(data)
           PY
-      - name: Preserve operation receipt
+      - name: Preserve bounded bootstrap evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}
+          name: merlin-model-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}/*.json
-            ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
-            ${{ runner.temp }}/merlin-dot-operation-${{ github.run_id }}-${{ github.run_attempt }}/runtime.zip
+            ${{ runner.temp }}/merlin-model-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+            ${{ runner.temp }}/merlin-model-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}/*.log
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
