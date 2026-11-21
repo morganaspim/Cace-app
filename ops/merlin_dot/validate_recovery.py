@@ -20,7 +20,7 @@ MAP = '9ae2a27181563bacaa57092a81d66a6866c1eb7e4c5508713b274da588841e5c'
 ROOT_FILES = {
  'python/merlin/hermes_process.py': 'e89c80659172b22f6db73dbe00abc880aa80bf4e4895801c5501a59b7fbd08b3',
  'python/merlin/hermes_systemd.py': '8fbf73d563745aea28f227f14fec9fa78d5c03a46bc0a4889cacbf333a211cf0',
- 'scripts/merlin/oci_cgroup_drill.py': '962c6bbbf6a524e62671a77b58549ad152ffa5c9eecfb0d077dc79618d75608b'}
+ 'scripts/merlin/oci_cgroup_drill.py': '578fbba1e8ac8dc081e8a9a7734310be6e85bcc7278c1bf92c9fa6a2794367b3'}
 ENV = {'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}
 
 
@@ -90,7 +90,7 @@ if os.geteuid()!=0: raise RuntimeError('existing host privilege required')
 raw=sys.stdin.buffer.read(65537)
 if len(raw)>65536: raise ValueError('fixed source input ceiling')
 files=json.loads(raw)
-pins={"python/merlin/hermes_process.py":"e89c80659172b22f6db73dbe00abc880aa80bf4e4895801c5501a59b7fbd08b3","python/merlin/hermes_systemd.py":"8fbf73d563745aea28f227f14fec9fa78d5c03a46bc0a4889cacbf333a211cf0","scripts/merlin/oci_cgroup_drill.py":"962c6bbbf6a524e62671a77b58549ad152ffa5c9eecfb0d077dc79618d75608b"}
+pins={"python/merlin/hermes_process.py":"e89c80659172b22f6db73dbe00abc880aa80bf4e4895801c5501a59b7fbd08b3","python/merlin/hermes_systemd.py":"8fbf73d563745aea28f227f14fec9fa78d5c03a46bc0a4889cacbf333a211cf0","scripts/merlin/oci_cgroup_drill.py":"578fbba1e8ac8dc081e8a9a7734310be6e85bcc7278c1bf92c9fa6a2794367b3"}
 if set(files)!=set(pins): raise ValueError('fixed source keys differ')
 verified={}
 for path,expected in pins.items():
@@ -121,13 +121,21 @@ def run(api,output):
         baseline,_=assembly['assemble']({n:blob(api,i) for n,(i,_) in assembly['PINS'].items()})
         parent=prior['apply_delta'](baseline,b''.join(blob(api,i,4500) for i in prior['PARTS']))
         files=apply(parent,b''.join(blob(api,i,4500) for i in PARTS))
+        name='scripts/merlin/oci_cgroup_drill.py'
+        old=files[name]
+        if sha(old)!='962c6bbbf6a524e62671a77b58549ad152ffa5c9eecfb0d077dc79618d75608b': raise ValueError('drill preimage differs')
+        files[name]=old.replace(b"['/usr/bin/systemd','--version']",b"['/usr/bin/systemctl','--version']")
+        if sha(files[name])!='578fbba1e8ac8dc081e8a9a7734310be6e85bcc7278c1bf92c9fa6a2794367b3': raise ValueError('drill path repair postimage differs')
+        final_map=sha(json.dumps({n:sha(b) for n,b in sorted(files.items())},sort_keys=True,separators=(',',':')).encode())
+        if final_map!='2bcc937d57e8bc95da422cf204284d359e1ddfa20f830a5e6021cfba8a8b4779': raise ValueError('repaired full source map differs')
+        report['source_map_sha256']=final_map
         root=output/'source';root.mkdir(mode=0o700)
         for name,body in files.items():
             path=root/name;path.parent.mkdir(parents=True,exist_ok=True)
             with path.open('xb') as stream:stream.write(body)
         manifest={'schema':'merlin-recovery-source/1','parent_source_commit':PARENT,
             'files':{n:sha(b) for n,b in sorted(files.items())},'git_blobs':{n:git(b) for n,b in sorted(files.items())},
-            'source_map_sha256':MAP,'qualification':False,'promotion_authority':False}
+            'source_map_sha256':final_map,'qualification':False,'promotion_authority':False}
         encoded=(json.dumps(manifest,sort_keys=True,indent=2)+'\n').encode()
         (output/'source-manifest.json').write_bytes(encoded)
         with zipfile.ZipFile(output/'tested-source.zip','w',zipfile.ZIP_DEFLATED) as z:
