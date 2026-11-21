@@ -1,0 +1,120 @@
+{
+  "deployed": false,
+  "expert_result_git_blob": "a0f711e0d2c31d010d9bf318b7e7596a5147513e",
+  "expert_result_path": "config/merlin/plan-updates/20261121-resource-solver-native-result.json",
+  "limits": [
+    "Local consistency review of retained provider metadata and actual bytes; no second native run or fresh API authentication.",
+    "Source identity covers exactly 126 selected files, not unselected repository content or commit ancestry.",
+    "Software and native cases use synthetic fixtures; no real model/TTS/weight load, model quality or independent model review is established.",
+    "Recovery process, checker result and recovery bodies are rehashed; decision, failure, request, intent and outcome bodies are not separately exported.",
+    "Launch counts and transient process/descendant observations remain outcomes of the exact retained drill; its deleted temporary state cannot be reread.",
+    "Service equality covers only the four recorded systemd properties.",
+    "No production evidence admission, qualification, permission expansion, promotion, merge or deployment is inferred."
+  ],
+  "merged": false,
+  "native_acceptance": {
+    "actual_process_receipts": 11,
+    "architecture": "aarch64",
+    "artifact_bytes": 616901,
+    "artifact_id": 14707979125,
+    "artifact_sha256": "3cfff05a8ca5bbeb9b15a990452d45d11a2c3670e8a3b59ca3ed89314dbeae23",
+    "context_cases": 6,
+    "controller": {
+      "bytes": 31427,
+      "git_blob": "66a699cbbc3f514feffc1fa347d24cb34bcee3e8",
+      "path": "ops/merlin_dot/validate_egm_context_v6.py",
+      "sha256": "7490f75cd6ef95a87e80bcdd36620aacb49e15cc6fb046d364fe263d681c5f89"
+    },
+    "controller_publication_commit": "a4bbf12c7390147c55eef4c6014c5292470ba329",
+    "errors": 0,
+    "expected_failures": 0,
+    "failures": 0,
+    "job_id": 136853599716,
+    "kernel_cases": 8,
+    "parent_root_loader_sha256": "70d9edb8514e01574da2cd2e5d9ea1e030fa8b29dce5334213d8858e8e09b54e",
+    "parent_v2_controller_git_blob": "d5ca4a312d47627ed274e4fb8d20e383103e670d",
+    "parent_v2_controller_sha256": "21bb9ad254eb60a1facd18f62cc198eb30a2c19a0dbd49ff84f8fbffbfc2504f",
+    "performance_limit": "This is software/native compatibility acceptance. The operation-level performance experiments were local x86_64 studies; they were not replicated on this ARM host. The earlier 548-test/157.052-second run used a different inventory and is not a controlled performance comparison.",
+    "python": "3.9.25 (main, Jul 15 2026, 00:00:00) \n[GCC 11.5.0 20240719 (Red Hat 11.5.0-14.0.1)]",
+    "reported_unittest_time_below_limit_seconds": 11.204,
+    "root_loader_sha256": "47f3e15c0da05e2bded516f02efce11dcb4ebc5b3fcf8e26e5e4f483076269d9",
+    "run_attempt": 1,
+    "run_id": 44906658290,
+    "run_url": "https://github.com/morganaspim/Cace-app/actions/runs/44906658290",
+    "service_after": {
+      "ActiveState": "active",
+      "MainPID": "2507219",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "service_before": {
+      "ActiveState": "active",
+      "MainPID": "2507219",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "service_observation_scope": "Only the four recorded properties; no service mutation.",
+    "skipped": 0,
+    "software_budget_seconds": 210,
+    "software_seconds": 198.796,
+    "software_tests": 569,
+    "source_files": 126,
+    "start_events": 569,
+    "status": "passed_within_recorded_scope",
+    "stop_events": 569,
+    "test_inventory_sha256": "4432dc519411340618c22c4c2a1ebcb756600f3ced79458a77609f51a8f9c35f",
+    "tested_source_zip_sha256": "da0572799d2f13cf9f3098a20c121fbdd7b058545bff6526f66114591bed0a63",
+    "time_margin_limit": "Arithmetic difference from the retained unittest duration; excludes setup/recording overhead and does not guarantee future runtime headroom.",
+    "unexpected_successes": 0,
+    "workflow": {
+      "git_blob": "890236ca190cc93073b63bec2d3b64a9e7ec7c21",
+      "path": ".github/workflows/merlin-egm-context.yml",
+      "sha256": "7c6eb23bf1f9cb55a034087c0b3a8785a29fb0bebdc2ee0efe69913b2ddc9f78"
+    },
+    "workflow_commit": "0be8e7dcb7b6ab8d3c1e630e4d3f200a93cc55ec"
+  },
+  "promotion_authority": false,
+  "qualification": false,
+  "retained_evidence": {
+    "bytes": 496958,
+    "library_file_id": "libfile_f8d8279faca88191be8c58ffc01bd3d3",
+    "manifest_sha256": "e976dd32f210dd442d530ad1c72aa61ecfb86689d6e015f7ad0a8dac13a9c10e",
+    "members": 181,
+    "path": "/workspace/scratch/5023195e1251/deliverables/Merlin_efficiency_research_evidence_20261121.zip",
+    "promotion_authority": false,
+    "qualification": false,
+    "sha256": "88f4f6a2e513ed91ccdf44358afebf90f8c177fe74c488a0332cb4657f300b5f",
+    "status": "created_and_all_members_read_back",
+    "url": "https://chatgpt.com/library?file_id=libfile_f8d8279faca88191be8c58ffc01bd3d3&account_id=1a23ba79-6d74-4595-b2a4-2dc87af5667f"
+  },
+  "reviews": [
+    {
+      "bytes": 6898,
+      "git_blob": "4c1110df772c148d733181122a1bdf1241f9bfc0",
+      "path": "oci-validation-v6/native-run-20261121/root-artifact-review.json",
+      "sha256": "e0aac09d7524143eaa72ca3393ec006b7b3de3595d069cc4c8b619a4a1e58358"
+    },
+    {
+      "bytes": 15181,
+      "git_blob": "5ff14a999b69fbea92cb0cb8bc7be843a917bc44",
+      "path": "oci-validation-v6/native-run-20261121/independent-native-review.json",
+      "sha256": "83dc1937d5fa51f41f93b9c182c72ae4c1e21ca84e6394ff866ed111b3cce79b"
+    }
+  ],
+  "schema": "merlin-native-result-checkpoint/1",
+  "source": {
+    "all_selected_git_blobs_verified": true,
+    "baseline_code_commit": "4b1d5e75916570e0a2d37cc2371b3dc27339ad9a",
+    "branch": "work/merlin-exact-solver-streaming-20261121",
+    "changed_file_byte_readbacks_verified": 4,
+    "documentation_relationship": "A separate documentation child retains all 126 tested source identities; this is not whole-repository acceptance.",
+    "parent_commit": "b3fdc56cd80e257829b5cbe7fba9c058ea87f25e",
+    "pull_request": 188,
+    "pull_request_url": "https://github.com/Mannyspiro/expert-robot/pull/188",
+    "repository": "Mannyspiro/expert-robot",
+    "selected_files": 126,
+    "source_map_sha256": "fddded3d28afeb9494831c301b8d6254328e424d3976bffae744e1d4e865e55f",
+    "tested_commit": "45e927b7918edb7fffc3e0731c09a1df3d858866",
+    "tree_sha": "54359bc7ed6e3c06a4cf409d3299fe74d1dbae8b"
+  }
+}

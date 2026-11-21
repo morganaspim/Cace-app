@@ -517,3 +517,22 @@ merge, deployment, permission change or service change is established.
 
 The next isolated candidate investigates exact solver arithmetic and bounded
 artifact-verification memory. This run does not cover those later source edits.
+
+
+## Merlin exact solver and streaming continuation — November 21, 2026
+
+[PR188](https://github.com/Mannyspiro/expert-robot/pull/188), source
+`45e927b7918edb7fffc3e0731c09a1df3d858866`, passed native run **44906658290**,
+attempt 1: **569 software / 8 kernel / 6 context** cases on the exact 126-file
+selection. Software duration: **198.796 seconds** within the unchanged
+210-second budget. Actual source/event/result evidence passed root and separate
+review; the four recorded service properties were unchanged.
+
+Exact provenance, artifact/controller identities and retained evidence are in
+`ops/merlin_dot/validation-results/resource-solver-20261121.json`.
+The source improves verification memory and exact circuit arithmetic in declared
+local workloads. Their timing ratios were not replicated on ARM; this full-suite
+duration is not a matched performance comparison with the earlier 548-test run.
+No model training/weight edit, autonomous disk deletion, qualification,
+production admission, merge, deployment, permissions or service mutation occurred.
+Master plan v6 remains unchanged.
