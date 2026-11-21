@@ -103,6 +103,18 @@ jobs:
               except OSError as exc: record['error_class']=type(exc).__name__
               report['cached_toolchains'].append(record)
           report['cgroup_v2']=Path('/sys/fs/cgroup/cgroup.controllers').is_file()
+          # Additive fixed metadata only: the collector cannot load models or run inference.
+          provider_blob = 'dced741b080c6e864ddae215a5b387fc5b303e8d'
+          provider_sha256 = '32f4fafb64f74b9789cab6d9c25490090d5f0128dbc68cbb71c5c383a7a9d087'
+          provider_object = api('contents/ops/merlin_dot/provider_inventory.py?ref=' + commit)
+          provider_raw = base64.b64decode(''.join(provider_object['content'].split()), validate=True)
+          if (len(provider_raw) > 32768 or provider_object.get('sha') != provider_blob
+                  or hashlib.sha1(('blob %d\0' % len(provider_raw)).encode() + provider_raw).hexdigest() != provider_blob
+                  or hashlib.sha256(provider_raw).hexdigest() != provider_sha256):
+              raise ValueError('fixed provider inventory source mismatch')
+          provider_namespace = {}
+          exec(compile(provider_raw, 'pinned-provider-inventory', 'exec'), provider_namespace)
+          report['provider_presence'] = provider_namespace['collect']()
           report['status']='succeeded'
           (out/'runner-context.json').write_text(json.dumps(report,indent=2,sort_keys=True))
           print(json.dumps(report,indent=2,sort_keys=True))
