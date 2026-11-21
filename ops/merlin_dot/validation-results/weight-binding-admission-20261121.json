@@ -1,0 +1,166 @@
+{
+  "schema": "merlin-weight-binding-admission-native-result/1",
+  "date": "2026-11-21",
+  "timezone": "America/Phoenix",
+  "status": "fixed_synthetic_acceptance_passed",
+  "task": "Merlin weight invocation binding and native build-evidence admission",
+  "classification": "Class B Merlin engineering; no CACE scientific-core qualification",
+  "source": {
+    "repository": "Mannyspiro/expert-robot",
+    "pull_request": 186,
+    "branch": "work/merlin-weight-binding-evidence-admission-20261121",
+    "tested_commit": "01016e832f763c76744e404041355b33d15fb621",
+    "observed_publication_head_before_this_checkpoint": "04523cf629edf8c21056576dd227dea9ea0ba189",
+    "selected_files": 121,
+    "source_map_sha256": "7dfff2dc84b43b9c3c35e0513c31052307ad71ce79f1211f59736bdfa446afe9",
+    "selected_git_blob_map_sha256": "6f7a6e02ae9a6e4b48d70cde7a34e62245717c0e38909c53dec9d4c02a85b775",
+    "relation": "identical_selected_files",
+    "whole_commit_equivalence": false,
+    "ancestry_verified_by_relation_check": false
+  },
+  "local": {
+    "software_tests": 473,
+    "existing_tests": 386,
+    "weight_binding_tests": 45,
+    "build_admission_tests": 42,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "elapsed_seconds": 33.112709604,
+    "architecture": "x86_64",
+    "python": "3.12.14",
+    "source_unchanged_during_execution": true,
+    "executed_inventory_sha256": "a70ce5d187c262cddc1a0c31d363d6be54bcb103cb47eae3b7bea87d7207f348"
+  },
+  "native": {
+    "repository": "morganaspim/Cace-app",
+    "run_id": 44901033194,
+    "attempt": 1,
+    "job_id": 136836768881,
+    "url": "https://github.com/morganaspim/Cace-app/actions/runs/44901033194",
+    "workflow_commit": "3ff164611e3fed46a3cbd3a23602a32bd2c219ff",
+    "runner": "cace-oci-a1",
+    "architecture": "aarch64",
+    "python": "3.9.25",
+    "conclusion": "success",
+    "software_tests": 473,
+    "kernel_cases": 8,
+    "context_cases": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "software_start_events": 473,
+    "software_stop_events": 473,
+    "software_unittest_seconds": 145.802,
+    "executed_inventory_sha256": "a70ce5d187c262cddc1a0c31d363d6be54bcb103cb47eae3b7bea87d7207f348",
+    "artifact": {
+      "id": 14706041876,
+      "name": "merlin-egm-44901033194-1",
+      "bytes": 576733,
+      "sha256": "ab1eb1b425a64ce2154c9a8e24ea05753084539bf8e79da0ec22c6bd921184fe"
+    },
+    "inner_source_archive_sha256": "5fa6775ef612db854577f6b32d749648e4a30f56193ca14c057c07cb249e99d4",
+    "corrective_native_reruns": 0,
+    "controller": {
+      "path": "ops/merlin_dot/validate_egm_context_v4.py",
+      "git_blob": "4cafc7d97152bcef0d5f83a082258f620034d1ef",
+      "sha256": "e739e9865d59055e1e0b6f61f9dc475f0d8b57ef97e422e781f49a0301c6a9b2"
+    },
+    "workflow": {
+      "git_blob": "bf4104c0b29651896308a4d2dc63482068f20fe4",
+      "sha256": "97e9981748a7012d3bd878fa46a36ab32968740129039cc8804275e8441b25ad"
+    },
+    "transfer": {
+      "chunks": 2,
+      "total_bytes": 44797,
+      "concatenated_sha256": "4e494eaf41e0435d6337591176fc4a9e6c3f3f18f0c97fe5497f415e7cbdae3e",
+      "actual_server_blobs_read_back": true
+    },
+    "recovery": {
+      "original_process_launches": 1,
+      "ordinary_retry_blocked": true,
+      "checker_only_recovery_completed": true,
+      "exact_fresh_worker_replay_without_relaunch": true,
+      "retained_process_checker_result_recovery_bodies_rehashed": true
+    },
+    "service": {
+      "before": {
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "MainPID": "2507219"
+      },
+      "after": {
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "MainPID": "2507219"
+      },
+      "scope": "four recorded properties only"
+    }
+  },
+  "actual_format_validation": {
+    "status": "passed",
+    "kind": "read-only pure validator compatibility against actual artifact and provider metadata",
+    "selected_publication_relation_checked": true,
+    "host_authentication_performed": false,
+    "canonical_admission_recorded": false,
+    "fixture_authenticator_used": false,
+    "production_registry_modified": false
+  },
+  "review": {
+    "actual_artifact_reviews": 2,
+    "kind": "root and separate same-team reviewer",
+    "second_reviewer_checks": 40,
+    "second_review_sha256": "5652353c5fbc4f4bec995db4263357836dee30d14f0a9ce663072143d1a50ff6",
+    "result": "accepted within retained scope",
+    "external_independent_verification": false,
+    "limits": [
+      "Only the 121 selected source files were compared; no whole-repository equivalence.",
+      "Process, checker-result and recovery bodies were rehashed; decision, original-failure, request, intent and outcome bodies were not independently re-resolved.",
+      "Transient launch/descendant observations depend on the retained exact drill.",
+      "Service equality covers four recorded properties, not a comprehensive service audit."
+    ]
+  },
+  "retained_evidence": {
+    "filename": "Merlin_production_candidate_validation_20261121.zip",
+    "bytes": 276966,
+    "sha256": "6aa02f3437a7cff12f023d8d4a77daf10affebbd9de741ed67c129ebe12dbd74",
+    "members": 60,
+    "persisted_outside_github": true,
+    "contents": "raw runtime reports, journals, logs, provider metadata, source identities, reviews and rejected-observation recovery metadata",
+    "repository_backed_source_controller_loader_and_patch_bytes_duplicated": false,
+    "rejected_component_recovery": {
+      "commit": "04523cf629edf8c21056576dd227dea9ea0ba189",
+      "path": "docs/merlin/evidence/20261121/rejected-source-patches/",
+      "reverse_patches": 4,
+      "exact_prior_hashes_matched": true,
+      "scope": "initial WSP module/test versions and two rejected admission module versions; no complete intermediate admission test snapshots claimed"
+    }
+  },
+  "current_boundaries": {
+    "host_authentication_custody_provisioned": false,
+    "live_service_integration_provisioned": false,
+    "actual_native_model_review_performed": false,
+    "editable_weight_runtime_verified": false,
+    "model_weights_loaded_or_edited": false,
+    "model_quality_improvement_measured": false,
+    "qualification": false,
+    "promotion_authority": false,
+    "merged": false,
+    "deployed": false,
+    "production_service_modified": false,
+    "permissions_modified": false,
+    "avrea_run": false
+  },
+  "next_gates": [
+    "Provision host authentication/custody and connect the exact existing registry and live service entry points.",
+    "Choose a permitted editable checkpoint or declared new-network architecture with a runtime that verifies actual loaded bytes.",
+    "Measure a representative baseline using an independent task oracle, freeze held-out evaluation and enforce candidate, forward-pass and cost limits before weight editing.",
+    "Complete remaining full-platform operational, model-review, restore/telemetry and domain integration gates separately."
+  ]
+}
