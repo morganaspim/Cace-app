@@ -45,6 +45,34 @@ class FixedBootstrapControls(unittest.TestCase):
         self.packages[0]['url']='https://example.net/'+self.packages[0]['filename']
         with self.assertRaises(bootstrap.BootstrapError): bootstrap.validate_transaction(self.packages,self.before,[])
 
+    def test_rejected_transaction_preserves_unvalidated_candidate(self):
+        self.packages[0]['url']='https://different.example/'+self.packages[0]['filename']
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            with self.assertRaisesRegex(bootstrap.BootstrapError,'package source prefix differs'):
+                bootstrap.checked_transaction(root,self.packages,self.before,[],{'effective_mirrors':['https://different.example/']})
+            candidate=json.loads((root/'candidate-plan.json').read_text())
+            rejection=json.loads((root/'candidate-rejection.json').read_text())
+            self.assertFalse(candidate['validated']);self.assertEqual(candidate['packages'],self.packages)
+            self.assertEqual(candidate['resolution_diagnostics']['effective_mirrors'],['https://different.example/'])
+            self.assertEqual(rejection['candidate_sha256'],hashlib.sha256((root/'candidate-plan.json').read_bytes()).hexdigest())
+            self.assertIn(self.packages[0]['url'],rejection['message'])
+
+    def test_source_metadata_and_derived_cache_have_separate_finite_caps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stage=Path(directory);source=stage/'cache'/'repo'/'repodata';source.mkdir(parents=True)
+            (source/'primary.xml.gz').write_bytes(b'x');(stage/'cache'/'repo.solv').write_bytes(b'x')
+            def fake_identity(path,maximum):
+                return {'sha256':'a'*64,'bytes':18 if 'repodata' in path.parts else 9}
+            with mock.patch.object(bootstrap,'MAX_METADATA_SOURCE',20),mock.patch.object(bootstrap,'MAX_DERIVED_CACHE',10),mock.patch.object(bootstrap,'identity',side_effect=fake_identity):
+                observed=bootstrap.metadata_identities(stage)
+                self.assertEqual(observed['bytes_by_category'],{'repository_source':18,'derived_solver_cache':9})
+                self.assertEqual(observed['overall_ceiling_bytes'],30)
+                with mock.patch.object(bootstrap,'MAX_METADATA_SOURCE',17):
+                    with self.assertRaisesRegex(bootstrap.BootstrapError,'repository_source'): bootstrap.metadata_identities(stage)
+                with mock.patch.object(bootstrap,'MAX_DERIVED_CACHE',8):
+                    with self.assertRaisesRegex(bootstrap.BootstrapError,'derived_solver_cache'): bootstrap.metadata_identities(stage)
+
     def test_arch_and_install_ceiling_are_strict(self):
         for field,value in (('arch','x86_64'),('install_bytes',bootstrap.MAX_INSTALLED+1),('bytes',True)):
             values=copy.deepcopy(self.packages);values[0][field]=value

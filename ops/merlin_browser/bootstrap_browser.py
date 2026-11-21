@@ -61,6 +61,8 @@ ENV={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
 MAX_PACKAGES=64
 MAX_DOWNLOAD=512*1024*1024
 MAX_INSTALLED=2*1024*1024*1024
+MAX_METADATA_SOURCE=512*1024*1024
+MAX_DERIVED_CACHE=384*1024*1024
 PREFIX=Path('/opt/merlin-public-browser')
 STATE=Path('/var/lib/merlin-public-browser')
 BOOTSTRAP_STATE=Path('/var/lib/merlin-browser-bootstrap')
@@ -297,8 +299,13 @@ def validate_transaction(packages,before,removed):
         names.add(key)
         if package['arch'] not in ('aarch64','noarch') or package['repository'] not in REPOS:
             raise BootstrapError('package architecture/repository differs')
-        if not package['url'].startswith(REPOS[package['repository']]) or not re.fullmatch(r'[A-Za-z0-9_.+~-]+\.rpm',package['filename']):
-            raise BootstrapError('package source/filename differs')
+        if not isinstance(package['url'],str) or not package['url'].startswith(REPOS[package['repository']]):
+            raise BootstrapError('package source prefix differs: '+json.dumps({
+                'repository':package['repository'],'url':package['url'],
+                'expected_prefix':REPOS[package['repository']],'filename':package['filename']},sort_keys=True)[:2000])
+        if not isinstance(package['filename'],str) or not re.fullmatch(r'[A-Za-z0-9_.+~-]+\.rpm',package['filename']):
+            raise BootstrapError('package filename differs: '+json.dumps({
+                'repository':package['repository'],'url':package['url'],'filename':package['filename']},sort_keys=True)[:2000])
         if urllib.parse.urlsplit(package['url']).path.rsplit('/',1)[-1]!=package['filename']:
             raise BootstrapError('RPM basename differs')
         if not re.fullmatch('[0-9a-f]{64}',package['sha256']): raise BootstrapError('SHA256 metadata required')
@@ -312,6 +319,52 @@ def validate_transaction(packages,before,removed):
             raise BootstrapError('exact Chromium root package absent')
     return {'new_packages':len(packages),'download_bytes':total_download,'installed_bytes':total_install,
             'upgrades':0,'downgrades':0,'removals':0,'reinstalls':0}
+
+
+def checked_transaction(directory,packages,before,removed,diagnostics=None,label='candidate',runner_readable=False):
+    """Persist exact unvalidated input before either transaction admission."""
+    directory=Path(directory)
+    candidate={'schema':'merlin-browser-unvalidated-package-plan/1','validated':False,
+               'packages':packages,'removed':removed,'repositories':REPOS,
+               'installed_packages_sha256':digest(canonical(before)),
+               'installed_package_count':len(before),'resolution_diagnostics':diagnostics}
+    raw=canonical(candidate);path=directory/(label+'-plan.json')
+    if len(raw)>2*1024*1024:
+        path=directory/(label+'-plan-oversize.json')
+        write(path,canonical({'validated':False,'bytes':len(raw),'sha256':digest(raw),
+            'packages':len(packages),'raw_repository_metadata_retained':True}))
+        if runner_readable: os.chown(path,1000,1000)
+        raise BootstrapError('unvalidated candidate plan evidence ceiling')
+    write(path,raw)
+    if runner_readable: os.chown(path,1000,1000)
+    try: return validate_transaction(packages,before,removed)
+    except BaseException as exc:
+        failure=directory/(label+'-rejection.json')
+        write(failure,canonical({'schema':'merlin-browser-package-plan-rejection/1','validated':False,
+            'candidate_sha256':digest(raw),'type':type(exc).__name__,'message':str(exc)[:4000]}))
+        if runner_readable: os.chown(failure,1000,1000)
+        raise
+
+
+def metadata_identities(stage):
+    """Keep source metadata and generated solver bytes separately bounded.
+
+    Native attempt44933072217 measured329,903,655 original repository bytes
+    and244,983,256 generated cache bytes. Both categories remain retained.
+    """
+    stage=Path(stage);rows=[];totals={'repository_source':0,'derived_solver_cache':0}
+    ceilings={'repository_source':MAX_METADATA_SOURCE,'derived_solver_cache':MAX_DERIVED_CACHE}
+    for directory,dirs,files in os.walk(stage/'cache',followlinks=False):
+        dirs.sort();files.sort()
+        for filename in files:
+            path=Path(directory)/filename
+            category='repository_source' if 'repodata' in path.relative_to(stage/'cache').parts else 'derived_solver_cache'
+            info=identity(path,256*1024*1024);totals[category]+=info['bytes']
+            if len(rows)>=256 or totals[category]>ceilings[category]:
+                raise BootstrapError('repository metadata '+category+' evidence ceiling')
+            rows.append({'path':str(path.relative_to(stage)),'category':category,**info})
+    return {'files':rows,'bytes_by_category':totals,'ceiling_bytes_by_category':ceilings,
+            'total_bytes':sum(totals.values()),'overall_ceiling_bytes':sum(ceilings.values())}
 
 
 def acquire(stage):
@@ -336,7 +389,14 @@ def acquire(stage):
         for name in ROOT_PACKAGES:
             base.install(name+'-'+CHROMIUM_VERSION+'-'+CHROMIUM_RELEASE+'.aarch64',reponame='merlin-ol9-epel',strict=True)
         base.resolve(allow_erasing=False)
-        packages=[]
+        packages=[];locations=[];repo_diagnostics={}
+        for repo in base.repos.iter_enabled():
+            try:
+                mirrors=list(repo._repo.getMirrors())
+                repo_diagnostics[repo.id]={'baseurl':list(repo.baseurl),'effective_mirrors':mirrors[:32],
+                                         'effective_mirror_count':len(mirrors),'mirrors_truncated':len(mirrors)>32}
+            except Exception as exc:
+                repo_diagnostics[repo.id]={'baseurl':list(repo.baseurl),'mirror_observation_error':type(exc).__name__}
         for package in base.transaction.install_set:
             checksum=package.chksum
             if not checksum or checksum[0]!=hawkey.CHKSUM_SHA256: raise BootstrapError('repository SHA256 required')
@@ -346,9 +406,13 @@ def acquire(stage):
                 'arch':package.arch,'repository':package.reponame,'url':url,'filename':urllib.parse.urlsplit(url).path.rsplit('/',1)[-1],
                 'sha256':sha,'bytes':int(package.downloadsize),'install_bytes':int(package.installsize),
                 'requires':sorted(str(item) for item in package.requires)})
+            locations.append({'name':package.name,'epoch':str(package.epoch),'version':package.version,
+                'release':package.release,'arch':package.arch,'repository':package.reponame,
+                'metadata_location':package.location,'package_baseurl':package.baseurl,'returned_url':url})
         packages.sort(key=lambda value:(value['name'],value['arch']))
         removed=[str(item) for item in base.transaction.remove_set]
-        bounds=validate_transaction(packages,before,removed)
+        bounds=checked_transaction(stage,packages,before,removed,
+            {'repositories':repo_diagnostics,'package_locations':sorted(locations,key=lambda value:(value['name'],value['arch']))})
         write(stage/'resolved-transaction.json',canonical({'packages':packages,'removed':removed,'bounds':bounds,'repositories':REPOS}))
         for package in packages:
             obtained=download(package['url'],stage/'rpms'/package['filename'],package['bytes'],package['sha256'])
@@ -363,14 +427,7 @@ def acquire(stage):
     for pin in WHEELS:
         got=download(pin['url'],stage/'wheels'/pin['filename'],64*1024*1024,pin['sha256'])
         wheels.append({**pin,**got})
-    metadata=[];metadata_bytes=0
-    for directory,dirs,files in os.walk(stage/'cache',followlinks=False):
-        dirs.sort();files.sort()
-        for filename in files:
-            path=Path(directory)/filename
-            info=identity(path,256*1024*1024);metadata_bytes+=info['bytes']
-            if len(metadata)>=256 or metadata_bytes>512*1024*1024: raise BootstrapError('repository metadata evidence ceiling')
-            metadata.append({'path':str(path.relative_to(stage)),**info})
+    metadata=metadata_identities(stage)
     manifest={'schema':'merlin-browser-acquisition/1','chromium_version':CHROMIUM_VERSION,'chromium_release':CHROMIUM_RELEASE,
        'python':'3.9','playwright':'1.60.0','repositories':REPOS,'packages':packages,'removed':removed,'bounds':bounds,
        'before_packages':before,'keys':keys,'wheels':wheels,'repository_metadata':metadata,
@@ -659,7 +716,8 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
     manifest=decode(raw)
     if manifest.get('schema')!='merlin-browser-acquisition/1' or manifest.get('repositories')!=REPOS:
         raise BootstrapError('fixed acquisition contract differs')
-    validate_transaction(manifest['packages'],manifest['before_packages'],manifest['removed'])
+    checked_transaction(output,manifest['packages'],manifest['before_packages'],manifest['removed'],
+                        label='root-candidate',runner_readable=True)
     rooted(BOOTSTRAP_STATE,0o700)
     lock=os.open(str(BOOTSTRAP_STATE/'operation.lock'),os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
