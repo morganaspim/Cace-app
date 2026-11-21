@@ -12,7 +12,7 @@ concurrency:
 jobs:
   real-model-research:
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 12
+    timeout-minutes: 70
     steps:
       - name: Run fixed actual-provider task and resume from committed state
         shell: bash
@@ -54,7 +54,7 @@ jobs:
               if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-real-research-request/1' or q['operation']!='execute' or changes[0]['filename']!='merlin/research-episodes/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
               if datetime.fromisoformat(q['created_at'].replace('Z','+00:00')).tzinfo is None: raise ValueError('timezone required')
               source,identity=fetch('ops/merlin_dot/run_research_episode.py')
-              if identity!='ae3071441232828469c0bc19b12c28b8cd96af0c' or hashlib.sha256(source).hexdigest()!='2645690ecb9dd514c66a8112f35d136f470a963a6060ad4415efd533aad6f076': raise ValueError('reviewed controller identity differs')
+              if identity!='b0b738085cc90bfe924bdb2309812a653d18db89' or hashlib.sha256(source).hexdigest()!='f2926275b4c680f2a138371f78aa0f7a56d609f217be28178ec78e871e5c06fc': raise ValueError('reviewed controller identity differs')
               (out/'controller-identity.json').write_text(json.dumps({'git_blob':identity,'sha256':hashlib.sha256(source).hexdigest(),'bytes':len(source),'workflow_commit':commit},indent=2))
               namespace={};exec(compile(source,'pinned-real-research-operation','exec'),namespace)
               namespace['run'](api,q,out)
