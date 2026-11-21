@@ -18,7 +18,7 @@ jobs:
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 10
     steps:
-      - name: Validate pinned additive release and perform fixed operation
+      - name: Validate native-bound private release and perform fixed operation
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -66,31 +66,25 @@ jobs:
                   'installer': ('ops/merlin_dot/install_private.py', '6a486e665f82c563d7746bcbac431ec63adedd0d'),
                   'guards': ('ops/merlin_dot/upgrade_research.py', 'a68671122ce8e833ac340efa7cbb3a761562ab11'),
                   'evidence': ('ops/merlin_dot/validation_evidence.py', '4519e2e90cd18a8ea5d5f0d2d667c9447898512d'),
-                  'controller': ('ops/merlin_dot/release_branch.py', 'd8bd73e45dbc7d69c90f1d3faa17cf7520db6d0c'),
-                  'controls': ('ops/merlin_dot/test_release_branch.py', '579727cc0144ead5aefd70b7bb84296b9ac4ed93'),
-                  'extension': ('ops/merlin_dot/resume_extension.py', '884ced15daadf01074ccc9727e12226ead3893f6'),
-                  'resume_controls': ('ops/merlin_dot/test_resume_extension.py', 'cd43c05eddf2ab490ace4fb7b7cf07fe1d514457'),
+                  'provider_inspector': ('ops/merlin_dot/bootstrap_local_model.py', '67c699c2f27c1acfdc202eeed5b0468cb12ae029'),
+                  'controller': ('ops/merlin_dot/release_branch.py', '498cacafe0b6e09522f4d335c7a5e5254fa1b7dd'),
+                  'controls': ('ops/merlin_dot/test_release_branch.py', '4d5106056fea4265132d345521be783f4087b12f'),
               }
               sources = {}
               for key, (source_path, pin) in pins.items():
                   body, identity = fetch(source_path)
                   if identity != pin: raise RuntimeError('operation source pin mismatch: ' + key)
                   sources[key] = body
-              if hashlib.sha256(sources['controller']).hexdigest() != 'e3a7ecf4ac137f6de288e18263aee531448bcd57053e70560b4790faa2fe1e9d': raise RuntimeError('controller SHA-256 mismatch')
+              if hashlib.sha256(sources['controller']).hexdigest() != 'cd7d231b809e0e836bb16e7b4960792b88d39dbeb5bfbdcb24a3944d51b6e51e': raise RuntimeError('controller SHA-256 mismatch')
               if shutil.disk_usage('/opt/merlin-dot-private').free < 128 * 1024 * 1024 or os.statvfs('/opt/merlin-dot-private').f_favail < 1000: raise RuntimeError('insufficient release headroom')
               controls = out / 'controller-tests'; controls.mkdir()
               (controls / 'release_branch.py').write_bytes(sources['controller'])
               (controls / 'test_release_branch.py').write_bytes(sources['controls'])
-              composite = sources['controller'] + b'\n' + sources['extension']
-              if hashlib.sha256(composite).hexdigest() != '1e04412b25faa835da9ef5585af689afb76cdb0ca7cd4764332975dccc67e56c': raise RuntimeError('resume controller mismatch')
-              (controls / 'resume_branch.py').write_bytes(composite)
-              (controls / 'test_resume_extension.py').write_bytes(sources['resume_controls'])
-              code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_*.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==27 else 1)"
+              code = "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_*.py');r=unittest.TextTestRunner(verbosity=2).run(s);v={'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};print(json.dumps(v));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==26 else 1)"
               result = subprocess.run(['/usr/bin/python3', '-I', '-B', '-c', code, str(controls)], cwd='/', env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8'}, capture_output=True, text=True, timeout=90)
               (out / 'controller-tests.txt').write_text(result.stdout + result.stderr)
               if result.returncode: raise RuntimeError('controller controls failed: ' + result.stderr[-2500:])
               print('CONTROLLER_TEST_RESULT=' + result.stdout.strip())
-              sources['controller'] = composite
               namespace = {}; exec(compile(sources['controller'], 'pinned-release-controller', 'exec'), namespace)
               namespace['run'](request, api, fetch, sources, out)
           except Exception as exc:
