@@ -1,0 +1,226 @@
+name: Merlin fixed public browser runtime completion
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/browser-runtime-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  fixed-browser-runtime:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 30
+    steps:
+      - name: Verify retained state and run the remaining native acceptance
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          import ast,base64,hashlib,io,json,os,re,selectors,signal,stat,subprocess,sys,time,urllib.request,zipfile
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if (repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000
+              or sys.version_info[:2]!=(3,9) or not re.fullmatch('[0-9a-f]{40}',commit)):
+              raise RuntimeError('unexpected native bootstrap execution identity')
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if run_id<=0 or attempt!=1: raise RuntimeError('first bootstrap attempt required')
+          pins={'bootstrap_browser.py': {'bytes': 75316, 'sha256': '1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474', 'git_blob': 'cc09a1fa02c653712a184c578aabbd28e10ac20c'}, 'finish_runtime.py': {'bytes': 21978, 'sha256': '6472f54038001fbe1aedac06e8ed480f8327d50709eb1755683e61488acf73d9', 'git_blob': '41368ef11d2b6abc6df2cd042de10a57230b22dc'}, 'launch_episode.py': {'bytes': 24942, 'sha256': '3f51b4506fbc740219daf7b4c52c68e81bea32b7e0a7757888581371d8996f5f', 'git_blob': '451eca582b3f65a1b4c90b7369409363269c2772'}, 'smoke_renderer.py': {'bytes': 8108, 'sha256': 'a9cc3ab7b67ec2511a7ed56b2af4d829a424ad3a00f2632e0e860ceddc59e2f9', 'git_blob': '9bd9849ab14bfbd443eded108f2807c6c857de3b'}, 'test_finish_runtime.py': {'bytes': 10106, 'sha256': '76ad9371232cc635554015ba7fa03797afcefe327b42bd5b11cc0d6d3d49df03', 'git_blob': '7daa1740fb854dd96ad8ecb1c90ff88d8883cafc'}}
+          runtime_pin={'bytes': 66202, 'expert_source_commit': '8e2f1d69371d5b4f7e01e3bbd5aa02a666ddd506', 'git_blob': '19754c4e50b46d32a05eee8c3a019d1cb450ee67', 'sha256': '5b967b6364bb8d3213c357e148c43073c309ab45d13338fe577d13565f8d0e9d'}
+          runtime_path='ops/merlin_browser/releases/'+runtime_pin['sha256']+'.zip'
+          clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
+                 'HOME':'/var/empty','XDG_CONFIG_HOME':'/var/empty','XDG_CACHE_HOME':'/var/empty',
+                 'XDG_DATA_HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1','PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD':'1'}
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON field')
+                  value[key]=item
+              return value
+          def api(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=20) as response: raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024: raise RuntimeError('bounded API response exceeded')
+              return json.loads(raw,object_pairs_hook=unique)
+          def blob(raw): return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          def fetch(path):
+              item=api('contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if blob(raw)!=item['sha']: raise RuntimeError('Git bytes differ')
+              return raw,item['sha']
+          def check(raw,pin):
+              if len(raw)!=pin['bytes'] or hashlib.sha256(raw).hexdigest()!=pin['sha256'] or blob(raw)!=pin['git_blob']:
+                  raise RuntimeError('fixed source/runtime pin differs')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-browser-runtime-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          def fixed(argv,name,seconds,maximum=8*1024*1024):
+              # No ambient GitHub credential, proxy or user configuration in children.
+              # Every byte of partial stdout/stderr is written before any failure is raised.
+              process=subprocess.Popen(argv,cwd='/',env=clean,stdin=subprocess.DEVNULL,
+                  stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
+              selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
+              start=time.monotonic();deadline=start+seconds;total=0;error=None
+              try:
+                  with (out/name).open('xb') as log:
+                      while selector.get_map():
+                          left=deadline-time.monotonic()
+                          if left<=0: raise TimeoutError('fixed child absolute process deadline')
+                          for key,_ in selector.select(min(.2,left)):
+                              raw=os.read(key.fd,65536)
+                              if not raw: selector.unregister(key.fileobj);continue
+                              if total+len(raw)>maximum: raise RuntimeError('fixed child output ceiling')
+                              log.write(raw);log.flush();total+=len(raw)
+                      code=process.wait(timeout=max(.01,deadline-time.monotonic()))
+                      if code: raise RuntimeError('fixed child exit '+str(code))
+              except BaseException as exc:
+                  error=exc
+                  if process.poll() is None:
+                      try: os.killpg(process.pid,signal.SIGTERM)
+                      except (PermissionError,ProcessLookupError):
+                          try: process.terminate()
+                          except (PermissionError,ProcessLookupError): pass
+                      try: process.wait(timeout=5)
+                      except subprocess.TimeoutExpired: pass
+                  # Kill every remaining unprivileged descendant even if its parent had
+                  # already exited before this handler. Root descendants are bounded by
+                  # the separately verified systemd control group below.
+                  try: os.killpg(process.pid,signal.SIGKILL)
+                  except (PermissionError,ProcessLookupError): pass
+                  raise
+              finally:
+                  selector.close();process.stdout.close()
+                  (out/(name+'.json')).write_text(json.dumps({'argv_sha256':hashlib.sha256(json.dumps(argv).encode()).hexdigest(),
+                    'returncode':process.returncode,'elapsed_seconds':time.monotonic()-start,'stdout_stderr_bytes':total,
+                    'absolute_deadline_seconds':seconds,'error_type':type(error).__name__ if error else None},indent=2))
+          try:
+              changed=api('commits/'+commit)['files']
+              if len(changed)!=1 or changed[0]['status']!='added': raise RuntimeError('one additive bootstrap request required')
+              path=changed[0]['filename']
+              if not re.fullmatch(r'merlin/browser-runtime-requests/[0-9a-f-]{36}\.json',path): raise RuntimeError('fixed request path required')
+              raw,_=fetch(path)
+              if len(raw)>16000: raise RuntimeError('request byte ceiling')
+              request=json.loads(raw,object_pairs_hook=unique)
+              if (not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}
+                  or request['schema']!='merlin-browser-runtime-request/1' or request['operation']!='finish-loader-44944424850'
+                  or path!='merlin/browser-runtime-requests/'+request['request_id']+'.json'):
+                  raise RuntimeError('fixed bootstrap request contract required')
+              (out/'request.json').write_bytes(raw)
+              for name,pin in pins.items():
+                  raw,_=fetch('ops/merlin_browser/'+name);check(raw,pin)
+                  ast.parse(raw,feature_version=(3,9));(out/name).write_bytes(raw)
+              workflow,workflow_blob=fetch('.github/workflows/merlin-browser-runtime.yml')
+              (out/'workflow-definition.yml').write_bytes(workflow)
+              runtime,_=fetch(runtime_path);check(runtime,runtime_pin);(out/'runtime.zip').write_bytes(runtime)
+              (out/'runtime-pins.json').write_text(json.dumps(runtime_pin,sort_keys=True,indent=2))
+              (out/'source-identities.json').write_text(json.dumps({'sources':pins,'runtime':runtime_pin,
+                 'workflow_git_blob':workflow_blob,'workflow_sha256':hashlib.sha256(workflow).hexdigest()},sort_keys=True,indent=2))
+              execution={'repository':repo,'ref':os.environ['GITHUB_REF'],'runner':os.environ['RUNNER_NAME'],
+                 'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt,'controller_sha256':pins['finish_runtime.py']['sha256'],
+                 'python':sys.version}
+              (out/'identity.json').write_text(json.dumps(execution,sort_keys=True,indent=2))
+              # Exact native package and host controls are prerequisites, not qualification.
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_finish_runtime.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==14 else 1)"
+              fixed(['/usr/bin/python3','-I','-B','-c',code,str(out)],'host-controls.txt',40)
+              product=out/'native-product';product.mkdir(mode=0o700)
+              with zipfile.ZipFile(io.BytesIO(runtime)) as archive:
+                  names=archive.namelist()
+                  if len(names)!=len(set(names)) or not 1<len(names)<=512: raise RuntimeError('bounded unique runtime ZIP required')
+                  manifest_raw=archive.read('manifest.json')
+                  if len(manifest_raw)>1048576: raise RuntimeError('runtime manifest byte ceiling')
+                  manifest=json.loads(manifest_raw,object_pairs_hook=unique)
+                  if manifest.get('schema')!='merlin-browser-runtime/1' or manifest.get('expert_source_commit')!=runtime_pin['expert_source_commit']:
+                      raise RuntimeError('published expert source binding differs')
+                  files=manifest.get('files')
+                  if not isinstance(files,list) or set(names)!={'manifest.json'}|{entry['path'] for entry in files}:
+                      raise RuntimeError('runtime exact source closure differs')
+                  total=0
+                  for entry in files:
+                      name=entry['path'];member=Path(name)
+                      if (member.is_absolute() or '..' in member.parts or not name.startswith(('python/','bin/'))
+                          or not re.fullmatch(r'(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+',name)):
+                          raise RuntimeError('unsafe runtime member path')
+                      info=archive.getinfo(name)
+                      if stat.S_IFMT(info.external_attr>>16) not in (0,stat.S_IFREG) or info.file_size>2*1024*1024:
+                          raise RuntimeError('runtime member type/size differs')
+                      body=archive.read(name);total+=len(body)
+                      check(body,entry)
+                      if total>16*1024*1024: raise RuntimeError('runtime decompressed byte ceiling')
+                      target=product/name;target.parent.mkdir(mode=0o700,parents=True,exist_ok=True);target.write_bytes(body)
+                  (product/'manifest.json').write_bytes(manifest_raw)
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[2],pattern='test_public_browser.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==33 else 1)"
+              fixed(['/usr/bin/python3','-I','-B','-c',code,str(product/'python'),str(product/'python'/'tests')],'native-product-tests.txt',60)
+              for name,pin in pins.items(): check((out/name).read_bytes(),pin)
+              check((out/'runtime.zip').read_bytes(),runtime_pin)
+              (out/'runtime-successor-plan.json').write_text(json.dumps({
+                 'operation':'finish-loader-44944424850','predecessor_request_id':'04d38719-4c94-4059-988b-9081375fd209',
+                 'predecessor_run_id':44944424850,'system_package_installs':0,'python_package_installs':0,
+                 'network_acquisition':False,'automatic_retry':False,'prior_failed_fixture_attempts':1,
+                 'remaining_acceptance_attempts':4,'original_failed_intents_results':'preserved'},sort_keys=True,indent=2))
+              helper=(out/'bootstrap_browser.py').read_bytes();check(helper,pins['bootstrap_browser.py'])
+              source=(out/'finish_runtime.py').read_bytes();check(source,pins['finish_runtime.py'])
+              check((out/'runtime.zip').read_bytes(),runtime_pin)
+              root_code='import hashlib,json,signal,sys,types;helper='+repr(helper)+';body='+repr(source)+';assert hashlib.sha256(helper).hexdigest()=='+repr(pins['bootstrap_browser.py']['sha256'])+';assert hashlib.sha256(body).hexdigest()=='+repr(pins['finish_runtime.py']['sha256'])+';m=types.ModuleType("bootstrap_browser");sys.modules["bootstrap_browser"]=m;exec(compile(helper,"pinned-bootstrap-helpers","exec"),m.__dict__);n={"__name__":"pinned_runtime_successor"};exec(compile(body,"pinned-runtime-successor","exec"),n)\n'
+              root_code+='def expire(signum,frame): raise m.BootstrapError("root controller absolute deadline")\nsignal.signal(signal.SIGALRM,expire);signal.alarm(900)\n'
+              root_code+='result=n["run"]('+','.join(repr(v) for v in (str(out/'runtime.zip'),runtime_pin,request,execution,str(out)))+');signal.alarm(0);print(json.dumps(result,sort_keys=True))\n'
+              if len(root_code.encode())>115000: raise RuntimeError('bounded fixed privileged code exceeded')
+              # PID1 owns a real whole-descendant cgroup, including detached RPM/pip
+              # process groups. The inner alarm first permits orderly evidence/cleanup.
+              unit='merlin-browser-bootstrap-%d-%d.service'%(run_id,attempt)
+              launch=['/usr/bin/sudo','-n','/usr/bin/systemd-run','--unit='+unit,'--quiet','--wait',
+                 '--service-type=exec','--property=RuntimeMaxSec=930','--property=TimeoutStopSec=15',
+                 '--property=KillMode=control-group','--property=MemoryMax=2G','--property=MemorySwapMax=0',
+                 '--property=CPUQuota=100%','--property=TasksMax=256','--property=UMask=0022',
+                 '--property=StandardOutput=journal','--property=StandardError=journal','--',
+                 '/usr/bin/env','-i','PATH=/usr/sbin:/usr/bin:/sbin:/bin','LANG=C.UTF-8','LC_ALL=C.UTF-8',
+                 'HOME=/var/empty','/usr/bin/python3','-I','-B','-c',root_code]
+              (out/'root-launch-input-identity.json').write_text(json.dumps({'unit':unit,
+                 'root_code_bytes':len(root_code.encode()),'root_code_sha256':hashlib.sha256(root_code.encode()).hexdigest(),
+                 'argv_count':len(launch),'maximum_argument_bytes':max(len(value.encode()) for value in launch),
+                 'total_argument_bytes':sum(len(value.encode())+1 for value in launch),
+                 'argv_sha256':hashlib.sha256(json.dumps(launch).encode()).hexdigest(),
+                 'stdio_transport':'journal; no caller file descriptors forwarded through the system bus'},sort_keys=True,indent=2))
+              launch_started=time.time();launch_error=None
+              try:
+                  fixed(launch,'root-operation-log.txt',950)
+              except BaseException as exc:
+                  launch_error=exc;raise
+              finally:
+                  # PID1 opens the journal stream. No SELinux policy is disabled, and
+                  # the original controller cgroup/lifetime limits are unchanged.
+                  # Capture this exact unit on both launch success and launch failure.
+                  journal=['/usr/bin/sudo','-n','/usr/bin/timeout','--signal=TERM','--kill-after=5s','20s',
+                     '/usr/bin/env','-i','PATH=/usr/sbin:/usr/bin:/sbin:/bin','LANG=C.UTF-8','LC_ALL=C.UTF-8',
+                     'HOME=/var/empty','/usr/bin/journalctl','--no-pager','--all','--output=json',
+                     '--output-fields=__REALTIME_TIMESTAMP,__MONOTONIC_TIMESTAMP,_BOOT_ID,_SYSTEMD_UNIT,_PID,_COMM,MESSAGE',
+                     '--unit='+unit,'--since='+time.strftime('%Y-%m-%d %H:%M:%S UTC',time.gmtime(launch_started-2)),
+                     '--until='+time.strftime('%Y-%m-%d %H:%M:%S UTC',time.gmtime(time.time()+2)),'--lines=4096']
+                  try: fixed(journal,'root-unit-journal.jsonl',30)
+                  except BaseException as exc:
+                      (out/'root-unit-journal-error.json').write_text(json.dumps({'status':'failed','unit':unit,
+                         'type':type(exc).__name__,'message':str(exc)[:2000],'launch_already_failed':launch_error is not None},indent=2))
+                      if launch_error is None: raise
+              print(json.dumps({'status':'fixed_browser_runtime_finished','run_id':run_id,'runtime_sha256':runtime_pin['sha256'],
+                'source_commit':runtime_pin['expert_source_commit'],'model_calls':0,'qualification':False},sort_keys=True))
+          except BaseException as exc:
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed','type':type(exc).__name__,
+                'message':str(exc)[:2000],'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt},indent=2))
+              raise
+          PYCODE
+      - name: Preserve complete runtime successor and native evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-browser-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-browser-runtime-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn

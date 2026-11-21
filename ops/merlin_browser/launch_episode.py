@@ -25,6 +25,8 @@ PREFIX = Path('/opt/merlin-public-browser')
 STATE = Path('/var/lib/merlin-public-browser')
 RUN = Path('/run/merlin-public-browser/episodes')
 CONFIG = Path('/etc/merlin-public-browser/host.json')
+ELF_LOADER = '/usr/lib/ld-linux-aarch64.so.1'
+ELF_LOADER_SHA256 = '49d528c1bc76e851bdc1db2ffcacd69b7f969c461a23741b9f5b8be4318c3403'
 ENV = {'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
        'HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'}
 CEILINGS = {'wall_seconds':60,'action_seconds':15,'request_seconds':10,'max_actions':8,
@@ -197,6 +199,8 @@ def load_runtime(require_active=True):
         raise LaunchError('fixed native browser required')
     if file_sha256(binary,512*1024*1024)!=config['executable_sha256']:
         raise LaunchError('native browser changed')
+    if file_sha256(Path(ELF_LOADER),2*1024*1024)!=ELF_LOADER_SHA256:
+        raise LaunchError('observed native ELF loader changed')
     return config,release
 
 
@@ -207,6 +211,7 @@ def sandbox(release,run,uid,gid,network=False):
           '--cap-drop','ALL','--proc','/proc','--dev','/dev','--bind',str(run/'scratch'/'tmp'),'/tmp',
           '--dir','/home','--dir','/usr','--dir','/usr/bin','--dir','/usr/lib',
           '--ro-bind','/usr/lib64','/usr/lib64','--symlink','usr/lib64','/lib64',
+          '--ro-bind',ELF_LOADER,ELF_LOADER,
           '--symlink','usr/lib','/lib','--symlink','usr/bin','/bin',
           '--ro-bind','/usr/bin/python3.9','/usr/bin/python3.9','--symlink','python3.9','/usr/bin/python3',
           '--dir','/etc','--dir','/usr/share','--dir','/work','--dir','/runtime',
