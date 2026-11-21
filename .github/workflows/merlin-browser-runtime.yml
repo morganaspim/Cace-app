@@ -173,8 +173,8 @@ jobs:
               root_code='import base64,hashlib,json,signal,sys,types,zlib\n'
               for module_name in ('bootstrap_browser','activate_browser','finish_runtime','recover_capture','complete_acceptance'):
                   name=module_name+'.py';source=(out/name).read_bytes();check(source,pins[name])
-                  capsule=base64.b85encode(zlib.compress(source,9)).decode()
-                  root_code+=('raw=zlib.decompress(base64.b85decode('+repr(capsule)+'));'
+                  capsule=base64.b64encode(zlib.compress(source,9)).decode()
+                  root_code+=('raw=zlib.decompress(base64.b64decode('+repr(capsule)+',validate=True));'
                       'assert len(raw)=='+repr(pins[name]['bytes'])+' and hashlib.sha256(raw).hexdigest()=='
                       +repr(pins[name]['sha256'])+';m=types.ModuleType('+repr(module_name)+');'
                       'sys.modules['+repr(module_name)+']=m;exec(compile(raw,'+repr('pinned-'+name)+',"exec"),m.__dict__)\n')

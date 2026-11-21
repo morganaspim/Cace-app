@@ -1,0 +1,30 @@
+{
+  "schema": "merlin-browser-transport-authoritative-locators/1",
+  "checked_on": "2026-11-21",
+  "sources": [
+    {
+      "url": "https://www.freedesktop.org/software/systemd/man/252/systemd.service.html#Command%20lines",
+      "section": "Command lines",
+      "relevant_behavior": "Braced environment substitution applies within a single argument. Unknown variable values become empty strings, while doubled dollars escape a literal dollar.",
+      "usage": "Relevant documented expansion subset used by the local regression; not a claim of the complete native parser or observed installed systemd version."
+    },
+    {
+      "url": "https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html",
+      "section": "Description and --expand-environment",
+      "relevant_behavior": "For a transient service, the service manager performs command-argument variable expansion. The explicit disabling option was introduced in version 254.",
+      "usage": "Supports the argument-transport explanation and the choice of an alphabet-safe repair without introducing a new host-version dependency."
+    }
+  ],
+  "upstream_source_fetch_attempts": [
+    {
+      "url": "https://raw.githubusercontent.com/systemd/systemd/v252/src/basic/env-util.c",
+      "result": "web source fetch unavailable: DisabledError; not used as inspected source evidence"
+    },
+    {
+      "url": "https://github.com/systemd/systemd/blob/v252/src/basic/env-util.c",
+      "result": "web source fetch unavailable: DisabledError; not used as inspected source evidence"
+    }
+  ],
+  "native_received_argv_captured": false,
+  "native_systemd_reexecution": false
+}

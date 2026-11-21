@@ -1,0 +1,256 @@
+{
+  "argument_bounds": {
+    "argv_count_unchanged": 29,
+    "corrected_root_code_bytes_at_same_runtime_metadata": 77805,
+    "corrected_total_argv_bytes_at_same_runtime_metadata": 78338,
+    "existing_root_code_limit": 115000,
+    "method": "exact encoded-literal/decoder delta added to observed original launch identity; future run metadata is checked at runtime",
+    "next_run_runtime_bound_check_retained": true,
+    "original_observed_root_code_bytes": 73049,
+    "serialization_byte_delta": 4756
+  },
+  "controller_executed": false,
+  "corrected_workflow_sha256": "2093b64ad89e68add600d4bbd7b70c933b26276bfd01eec1b19acc31cb55fc3f",
+  "embedded_modules_executed": false,
+  "errors": 0,
+  "failures": 0,
+  "host_actions": 0,
+  "mechanism": "documented braced environment substitution reproduces exact observed decode error; received native argv was not captured",
+  "model_calls": 0,
+  "modules": [
+    {
+      "base64": {
+        "after_expansion": {
+          "bytes": 75316,
+          "passed": true,
+          "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+        },
+        "capsule_bytes": 29396,
+        "dollar_count": 0,
+        "percent_count": 0,
+        "unchanged_by_expansion": true
+      },
+      "base85": {
+        "after_expansion": {
+          "message": "base85 overflow in hunk starting at byte 12805",
+          "passed": false,
+          "type": "ValueError"
+        },
+        "braced_segment_offsets": [
+          2239,
+          4178,
+          4529,
+          13082,
+          23151,
+          26892,
+          27158
+        ],
+        "capsule_bytes": 27557,
+        "dollar_count": 327,
+        "percent_count": 307,
+        "unaltered_decode": {
+          "bytes": 75316,
+          "passed": true,
+          "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+        }
+      },
+      "input": {
+        "bytes": 75316,
+        "git_blob": "cc09a1fa02c653712a184c578aabbd28e10ac20c",
+        "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+      },
+      "module": "bootstrap_browser",
+      "pin": {
+        "bytes": 75316,
+        "git_blob": "cc09a1fa02c653712a184c578aabbd28e10ac20c",
+        "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+      }
+    },
+    {
+      "base64": {
+        "after_expansion": {
+          "bytes": 31505,
+          "passed": true,
+          "sha256": "3514af927a28c77fe2c219248f15ffd88577561454bd4bbf09d842657cc9f979"
+        },
+        "capsule_bytes": 12700,
+        "dollar_count": 0,
+        "percent_count": 0,
+        "unchanged_by_expansion": true
+      },
+      "base85": {
+        "after_expansion": {
+          "message": "base85 overflow in hunk starting at byte 2285",
+          "passed": false,
+          "type": "ValueError"
+        },
+        "braced_segment_offsets": [
+          8137
+        ],
+        "capsule_bytes": 11907,
+        "dollar_count": 132,
+        "percent_count": 155,
+        "unaltered_decode": {
+          "bytes": 31505,
+          "passed": true,
+          "sha256": "3514af927a28c77fe2c219248f15ffd88577561454bd4bbf09d842657cc9f979"
+        }
+      },
+      "input": {
+        "bytes": 31505,
+        "git_blob": "e4ead06986afece2955be9ec47b0879b389dec14",
+        "sha256": "3514af927a28c77fe2c219248f15ffd88577561454bd4bbf09d842657cc9f979"
+      },
+      "module": "activate_browser",
+      "pin": {
+        "bytes": 31505,
+        "git_blob": "e4ead06986afece2955be9ec47b0879b389dec14",
+        "sha256": "3514af927a28c77fe2c219248f15ffd88577561454bd4bbf09d842657cc9f979"
+      }
+    },
+    {
+      "base64": {
+        "after_expansion": {
+          "bytes": 21978,
+          "passed": true,
+          "sha256": "6472f54038001fbe1aedac06e8ed480f8327d50709eb1755683e61488acf73d9"
+        },
+        "capsule_bytes": 9736,
+        "dollar_count": 0,
+        "percent_count": 0,
+        "unchanged_by_expansion": true
+      },
+      "base85": {
+        "after_expansion": {
+          "message": "base85 overflow in hunk starting at byte 3190",
+          "passed": false,
+          "type": "ValueError"
+        },
+        "braced_segment_offsets": [
+          8201
+        ],
+        "capsule_bytes": 9125,
+        "dollar_count": 118,
+        "percent_count": 102,
+        "unaltered_decode": {
+          "bytes": 21978,
+          "passed": true,
+          "sha256": "6472f54038001fbe1aedac06e8ed480f8327d50709eb1755683e61488acf73d9"
+        }
+      },
+      "input": {
+        "bytes": 21978,
+        "git_blob": "41368ef11d2b6abc6df2cd042de10a57230b22dc",
+        "sha256": "6472f54038001fbe1aedac06e8ed480f8327d50709eb1755683e61488acf73d9"
+      },
+      "module": "finish_runtime",
+      "pin": {
+        "bytes": 21978,
+        "git_blob": "41368ef11d2b6abc6df2cd042de10a57230b22dc",
+        "sha256": "6472f54038001fbe1aedac06e8ed480f8327d50709eb1755683e61488acf73d9"
+      }
+    },
+    {
+      "base64": {
+        "after_expansion": {
+          "bytes": 12724,
+          "passed": true,
+          "sha256": "b9f2d6bbd4bb879389332f2b4b87fdcd7748c108d07c98d746cad9d7f03f4c93"
+        },
+        "capsule_bytes": 6048,
+        "dollar_count": 0,
+        "percent_count": 0,
+        "unchanged_by_expansion": true
+      },
+      "base85": {
+        "after_expansion": {
+          "message": "base85 overflow in hunk starting at byte 540",
+          "passed": false,
+          "type": "ValueError"
+        },
+        "braced_segment_offsets": [
+          509
+        ],
+        "capsule_bytes": 5668,
+        "dollar_count": 63,
+        "percent_count": 54,
+        "unaltered_decode": {
+          "bytes": 12724,
+          "passed": true,
+          "sha256": "b9f2d6bbd4bb879389332f2b4b87fdcd7748c108d07c98d746cad9d7f03f4c93"
+        }
+      },
+      "input": {
+        "bytes": 12724,
+        "git_blob": "43e34860e35f071b689d756df0f41f9a29728515",
+        "sha256": "b9f2d6bbd4bb879389332f2b4b87fdcd7748c108d07c98d746cad9d7f03f4c93"
+      },
+      "module": "recover_capture",
+      "pin": {
+        "bytes": 12724,
+        "git_blob": "43e34860e35f071b689d756df0f41f9a29728515",
+        "sha256": "b9f2d6bbd4bb879389332f2b4b87fdcd7748c108d07c98d746cad9d7f03f4c93"
+      }
+    },
+    {
+      "base64": {
+        "after_expansion": {
+          "bytes": 45302,
+          "passed": true,
+          "sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf"
+        },
+        "capsule_bytes": 17020,
+        "dollar_count": 0,
+        "percent_count": 0,
+        "unchanged_by_expansion": true
+      },
+      "base85": {
+        "after_expansion": {
+          "message": "base85 overflow in hunk starting at byte 900",
+          "passed": false,
+          "type": "ValueError"
+        },
+        "braced_segment_offsets": [
+          7277
+        ],
+        "capsule_bytes": 15957,
+        "dollar_count": 159,
+        "percent_count": 177,
+        "unaltered_decode": {
+          "bytes": 45302,
+          "passed": true,
+          "sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf"
+        }
+      },
+      "input": {
+        "bytes": 45302,
+        "git_blob": "b60f8405cc1669e1ebc7e9c4cb150dc62b2bacf4",
+        "sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf"
+      },
+      "module": "complete_acceptance",
+      "pin": {
+        "bytes": 45302,
+        "git_blob": "b60f8405cc1669e1ebc7e9c4cb150dc62b2bacf4",
+        "sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf"
+      }
+    }
+  ],
+  "network_requests": 0,
+  "observed_root_error": "base85 overflow in hunk starting at byte 12805",
+  "original_workflow_sha256": "140122b0082f4e13237a140117a98427cb084498f252dcf8722c7d89e3202f98",
+  "passed": true,
+  "public_source_attempts": 0,
+  "schema": "merlin-browser-root-transport-regression/1",
+  "skipped": 0,
+  "source_artifact": {
+    "artifact_id": 14727870530,
+    "run_id": 44956001171,
+    "sha256": "aa1ae30cd94a72f011ea03ce58560bbd5044c4fce7adf7a77ee1a67c3feab9db"
+  },
+  "source_locators": [
+    "https://www.freedesktop.org/software/systemd/man/252/systemd.service.html#Command%20lines",
+    "https://www.freedesktop.org/software/systemd/man/latest/systemd-run.html"
+  ],
+  "tests": 4,
+  "validation_scope": "offline exact-source serialization and documented expansion model; not native systemd execution"
+}

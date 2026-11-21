@@ -1,0 +1,9 @@
+test_all_five_corrected_capsules_retain_exact_bytes_and_strict_decoder (__main__.main.<locals>.TransportRegression.test_all_five_corrected_capsules_retain_exact_bytes_and_strict_decoder) ... ok
+test_exact_original_inputs_and_two_line_only_workflow_delta (__main__.main.<locals>.TransportRegression.test_exact_original_inputs_and_two_line_only_workflow_delta) ... ok
+test_final_argument_preserves_existing_bound_and_service_recipe (__main__.main.<locals>.TransportRegression.test_final_argument_preserves_existing_bound_and_service_recipe) ... ok
+test_original_capsule_fails_at_exact_observed_host_offset (__main__.main.<locals>.TransportRegression.test_original_capsule_fails_at_exact_observed_host_offset) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.019s
+
+OK

@@ -1,0 +1,176 @@
+{
+  "artifact": {
+    "all_extracted_members_equal_archive": true,
+    "bytes": 239597,
+    "crc_passed": true,
+    "id": 14727870530,
+    "member_count": 40,
+    "name": "merlin-browser-runtime-44956001171-1",
+    "sha256": "aa1ae30cd94a72f011ea03ce58560bbd5044c4fce7adf7a77ee1a67c3feab9db"
+  },
+  "attempt_ledger": {
+    "fresh_ledger_read": "not_run",
+    "freshly_observed_remaining_public_attempts": null,
+    "ledger_plan_is_an_execution_plan_not_a_receipt": true,
+    "next_continuation_requires_fresh_retained-state_and_budget_preflight": true,
+    "planned_remaining_public_attempts": 2,
+    "same_request_rerun_permitted": false
+  },
+  "counting": "33 and41 host controls are executions of previously scoped suites, not additions to152 unique product cases. Four local follow-up serialization controls are separately scoped.",
+  "evidence": [
+    {
+      "bytes": 29021,
+      "path": "job-137004157597.log",
+      "sha256": "5b154e98dea7c9d6f9a9c94cf09e45cc8496ea31508243c527a99752944026ec"
+    },
+    {
+      "bytes": 7003,
+      "path": "artifact-retrieval.json",
+      "sha256": "d7177904523b136c90d22b756c10729d6c19ce7ec007588ad69051101869700b"
+    },
+    {
+      "bytes": 3049,
+      "path": "artifact/root-unit-journal.jsonl",
+      "sha256": "125819fb2efa18b6f4cdfe3dbb97ec639543e024caf87c900686affdf601ca94"
+    },
+    {
+      "bytes": 446,
+      "path": "artifact/root-launch-input-identity.json",
+      "sha256": "ce1b59db6f52ea9f0c3c97fa4beb4331a80419180d993c2cebbb099dfe0d6689"
+    },
+    {
+      "bytes": 195,
+      "path": "artifact/operation-error.json",
+      "sha256": "da4277e9c75c68d3a3556daff7f9915fe78e068eb0184d9102910407545b8981"
+    },
+    {
+      "bytes": 3977,
+      "path": "artifact/host-controls.txt",
+      "sha256": "4ac0c8a26cd077e5b5f2c41286150f2c69730bb3c672dcc1f08769db48a01ac8"
+    },
+    {
+      "bytes": 4502,
+      "path": "artifact/native-product-tests.txt",
+      "sha256": "43d8de018e37249ad683a154459456f1b31ed184215c52cb67c0adc2e5b3d65a"
+    }
+  ],
+  "generation_calls": 0,
+  "host_controls": {
+    "elapsed_seconds": 0.268984729424119,
+    "errors": 0,
+    "evidence": "artifact/host-controls.txt",
+    "failures": 0,
+    "returncode": 0,
+    "skipped": 0,
+    "tests": 33
+  },
+  "host_state_limit": {
+    "application_mutation_code_reached": false,
+    "fresh_launcher_provider_package_state_verified": false,
+    "note": "No blanket unchanged-host attestation: no fresh application snapshots were taken. The evidence establishes a failure before application code ran.",
+    "rollback_executed": false,
+    "rollback_required_by_reached_application_code": false,
+    "transient_root_unit_started_and_failed": true
+  },
+  "job": {
+    "completed_at": "2026-11-21T22:18:09Z",
+    "conclusion": "failure",
+    "id": 137004157597,
+    "labels": [
+      "self-hosted",
+      "cace",
+      "oci",
+      "aarch64"
+    ],
+    "name": "fixed-browser-runtime",
+    "runner_id": 22,
+    "runner_name": "cace-oci-a1",
+    "started_at": "2026-11-21T22:17:52Z"
+  },
+  "native_product_unit_controls": {
+    "elapsed_seconds": 3.511113972403109,
+    "errors": 0,
+    "evidence": "artifact/native-product-tests.txt",
+    "failures": 0,
+    "returncode": 0,
+    "scope": "Actual host Python3.9.25/aarch64 executes the41 scoped product tests; this is not live browser acceptance.",
+    "skipped": 0,
+    "tests": 41
+  },
+  "new_public_source_attempts": {
+    "basis": "Root failed decoding the first module before importing any controller or reaching any submission code.",
+    "value": 0
+  },
+  "not_run": [
+    "embedded module execution",
+    "complete_acceptance.run",
+    "root retained-state preflight",
+    "durable request marker creation",
+    "retained arXiv derivation and UID982 canonical read",
+    "runtime creation and launcher-pointer switch",
+    "browser supervisor activation",
+    "new NASA submission",
+    "new GitHub/OpenMDAO submission",
+    "three-source readback across restart",
+    "application rollback",
+    "private/provider/package before-after snapshots"
+  ],
+  "read_only_review": {
+    "downloaded_modules_executed": false,
+    "host_diagnostic_calls": 0,
+    "new_request_files": 0,
+    "provider_calls": 0,
+    "reruns": 0
+  },
+  "request": {
+    "created_at": "2026-11-21T22:17:31Z",
+    "operation": "complete-ledger-44946846703",
+    "request_id": "99cc5d7f-488f-4718-8257-5edda04726e4",
+    "schema": "merlin-browser-runtime-request/1"
+  },
+  "root_launch": {
+    "child_returncode": 1,
+    "command_elapsed_seconds": 0.1915584970265627,
+    "error_type": "ValueError",
+    "journal_retrieval_returncode": 0,
+    "message": "base85 overflow in hunk starting at byte 12805",
+    "phase": "first embedded module decoding",
+    "pid": 2713184,
+    "received_root_argv_captured": false,
+    "root_code_line": 2,
+    "status": "failed",
+    "unit": "merlin-browser-bootstrap-44956001171-1.service"
+  },
+  "run": {
+    "conclusion": "failure",
+    "created_at": "2026-11-21T22:17:50Z",
+    "event": "push",
+    "head_sha": "3e1e6ff1102838ed593587437828023d0e85fb5b",
+    "html_url": "https://github.com/morganaspim/Cace-app/actions/runs/44956001171",
+    "id": 44956001171,
+    "run_attempt": 1,
+    "status": "completed",
+    "updated_at": "2026-11-21T22:18:10Z"
+  },
+  "schema": "merlin-browser-continuation-result-interpretation/1",
+  "serialization_analysis": {
+    "documented_braced_expansion_model": "reproduces identical byte12805 error",
+    "followup_path": "../browser-transport-fix",
+    "followup_remote_publication": "not_performed_by_this_review",
+    "mechanism_confidence": "strongly supported inference; native received argv was not captured",
+    "original_first_capsule_roundtrip": "passed exact pinned SHA"
+  },
+  "source_binding": {
+    "helper_controller_test_files_verified": 8,
+    "native_manifest_verified": true,
+    "native_product_payload_files_verified": 14,
+    "note": "Retained runtime base identity and separately explicit producer-delta product successor are distinct pins.",
+    "passed": true,
+    "repair_product_commit": "74bd09166f338172f4af3854a124c12b5b07081a",
+    "retained_runtime_base_commit": "8e2f1d69371d5b4f7e01e3bbd5aa02a666ddd506",
+    "runtime_sha256": "ebdca90a42bbb243ac04872bdf3f1210ea20583cce9b4c34c7867af1873cb959",
+    "workflow_sha256": "140122b0082f4e13237a140117a98427cb084498f252dcf8722c7d89e3202f98"
+  },
+  "source_definition_commit": "dc8cc7ed1bdfd22c25a337d04985436d162c217b",
+  "status": "failed_before_controller"
+}
