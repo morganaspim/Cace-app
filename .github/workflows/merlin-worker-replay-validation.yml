@@ -1,0 +1,70 @@
+name: Merlin worker replay validation
+'on':
+  push:
+    branches: [merlin/platform-acceptance-20261120]
+    paths: ['merlin/worker-checks/*.json']
+permissions:
+  contents: read
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+jobs:
+  isolated-worker:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 8
+    steps:
+      - name: Validate exact worker source in synthetic temporary state
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,hashlib,json,os,re,shutil,urllib.request
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/platform-acceptance-20261120' or os.environ.get('RUNNER_NAME')!='cace-oci-a1': raise RuntimeError('execution identity differs')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-worker-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']);out.mkdir(mode=0o700,exist_ok=False)
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON field')
+                  value[key]=item
+              return value
+          def api(path):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req,timeout=20) as response: raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024: raise ValueError('API response ceiling')
+              return json.loads(raw,object_pairs_hook=unique)
+          def fetch(path):
+              obj=api('contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
+              if len(raw)>32000 or hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=obj['sha']: raise ValueError('source bytes differ')
+              return raw,obj['sha']
+          try:
+              if shutil.disk_usage('/opt/actions-runner').free<2*1024**3 or os.statvfs('/opt/actions-runner').f_favail<10000: raise RuntimeError('insufficient validation headroom')
+              changes=api('commits/'+commit)['files']
+              if len(changes)!=1 or changes[0]['status']!='added' or not re.fullmatch(r'merlin/worker-checks/[0-9a-f-]{36}\.json',changes[0]['filename']): raise ValueError('one additive fixed request required')
+              raw,_=fetch(changes[0]['filename'])
+              if len(raw)>2048: raise ValueError('request ceiling')
+              q=json.loads(raw,object_pairs_hook=unique)
+              if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-worker-check/1' or q['operation']!='validate' or changes[0]['filename']!='merlin/worker-checks/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
+              source,identity=fetch('ops/merlin_dot/validate_worker_replay.py')
+              if identity!='4983b4a2d503e843bb18fc4209087f06e8bf1d9d' or hashlib.sha256(source).hexdigest()!='363964b9f0299f01818926a1f0485fa39460eb1d5ad48c06b4c47c5f66d8f687': raise ValueError('controller pin differs')
+              namespace={};exec(compile(source,'pinned-worker-replay-validation','exec'),namespace)
+              namespace['run'](api,out)
+          except Exception as exc:
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed','error_class':type(exc).__name__,'message':str(exc)[:1500],'workflow_commit':commit,'run_id':os.environ['GITHUB_RUN_ID']},indent=2))
+              raise
+          PY
+      - name: Preserve exact source and acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-worker-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/merlin-worker-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+            ${{ runner.temp }}/merlin-worker-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
+            ${{ runner.temp }}/merlin-worker-${{ github.run_id }}-${{ github.run_attempt }}/tested-source.zip
+          retention-days: 30
+          if-no-files-found: error
