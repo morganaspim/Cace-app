@@ -1,0 +1,70 @@
+{
+  "af_unix_operations": 0,
+  "checked_python_sources": [
+    "controller.py",
+    "run_suite.py",
+    "source/python/dot_ai_os/__init__.py",
+    "source/python/dot_ai_os/bridge.py",
+    "source/python/merlin/__init__.py",
+    "source/python/merlin/artifact_ref.py",
+    "source/python/merlin/browser_client.py",
+    "source/python/merlin/browser_egress.py",
+    "source/python/merlin/browser_ingest.py",
+    "source/python/merlin/browser_policy.py",
+    "source/python/merlin/browser_service.py",
+    "source/python/merlin/project_registry.py",
+    "source/python/merlin/public_browser.py",
+    "source/static/acquire_inspect.py",
+    "source/static/test_acquire_inspect.py",
+    "source/tests/test_browser_service_lifecycle.py",
+    "source/tests/test_browser_service_lifecycle_controls.py",
+    "source/tests/test_public_browser.py"
+  ],
+  "deterministic_workflow": true,
+  "fixture_discovery_counts": {
+    "browser_lifecycle": 13,
+    "browser_lifecycle_controls": 12,
+    "browser_product": 41,
+    "python_static": 35
+  },
+  "fixture_tests_executed": 0,
+  "native_execution": false,
+  "native_owned_descendants_remaining": null,
+  "native_process_cleanup_execution": "not_run_local_proc_self_children_unavailable",
+  "network_calls": 0,
+  "passed": true,
+  "prior_local_failures": [
+    "Initial validator used order-sensitive repr comparison; changed to AST literal equivalence.",
+    "Actual cleanup preflight stopped before launching children: own /proc/<pid>/task/<pid>/children was absent."
+  ],
+  "process_ownership_model_controls": {
+    "adopted_owned_child": {
+      "absolute_deadline_seconds": 6,
+      "children": [
+        {
+          "pid": 5678,
+          "starttime_ticks": 100
+        }
+      ],
+      "complete": true
+    },
+    "changed_identity_no_signal": true,
+    "empty_owned_children": {
+      "absolute_deadline_seconds": 6,
+      "children": [],
+      "complete": true
+    },
+    "foreign_child_no_signal": true,
+    "suite_root_escalation": {
+      "absolute_deadline_seconds": 6,
+      "children": [],
+      "complete": true
+    }
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "python39_syntax": true,
+  "request_negative_controls": 4,
+  "schema": "merlin-repair-package-local-validation/1",
+  "strict_result_negative_controls": 4,
+  "workflow_sha256": "4046b2a04178d254ad1fa7a3b522ce01d0440e91da8e982f16b90c0b6b640cb3"
+}

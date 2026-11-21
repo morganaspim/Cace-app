@@ -1,0 +1,345 @@
+name: Merlin unprivileged repair fixtures
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/repair-validation-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  fixed-repair-fixtures:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 10
+    steps:
+      - name: Verify frozen sources and run isolated fixtures as UID1000
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          """Fixed unprivileged native fixture coordinator; imported by the frozen workflow."""
+          import ast
+          import base64
+          import ctypes
+          import datetime
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import selectors
+          import signal
+          import stat
+          import subprocess
+          import sys
+          import time
+          import urllib.request
+          import uuid
+
+
+          REPOSITORY = "morganaspim/Cace-app"
+          BRANCH = "refs/heads/merlin/browser-operations-20261121"
+          PREFIX = "merlin/repair-validation-requests/"
+          OPERATION = "validate-python-browser-repairs-20261121"
+          SCHEMA = "merlin-repair-validation-request/1"
+          WORKFLOW = ".github/workflows/merlin-repair-validation.yml"
+          REMOTE_ROOT = "ops/merlin_repair_validation/"
+          SUITES = (("python_static", 35), ("browser_product", 41),
+                    ("browser_lifecycle", 13), ("browser_lifecycle_controls", 12))
+
+
+          def unique(items):
+              result = {}
+              for key, value in items:
+                  if key in result:
+                      raise ValueError("duplicate JSON field")
+                  result[key] = value
+              return result
+
+
+          def git_blob(raw):
+              return hashlib.sha1(("blob %d\0" % len(raw)).encode() + raw).hexdigest()
+
+
+          def check(raw, pin):
+              if (len(raw) != pin["bytes"] or hashlib.sha256(raw).hexdigest() != pin["sha256"]
+                      or git_blob(raw) != pin["git_blob"]):
+                  raise RuntimeError("frozen source identity differs")
+
+
+          def validate_request(request, path):
+              if (not isinstance(request, dict)
+                      or set(request) != {"schema", "request_id", "operation", "created_at"}
+                      or request["schema"] != SCHEMA or request["operation"] != OPERATION
+                      or path != PREFIX + request["request_id"] + ".json"
+                      or str(uuid.UUID(request["request_id"])) != request["request_id"]
+                      or datetime.datetime.strptime(request["created_at"], "%Y-%m-%dT%H:%M:%SZ").strftime(
+                          "%Y-%m-%dT%H:%M:%SZ") != request["created_at"]):
+                  raise RuntimeError("fixed fixture-only request required")
+
+
+          def enable_subreaper():
+              libc = ctypes.CDLL(None, use_errno=True)
+              if libc.prctl(36, 1, 0, 0, 0) != 0:
+                  raise RuntimeError("unprivileged child-subreaper unavailable")
+              actual = ctypes.c_int()
+              if libc.prctl(37, ctypes.byref(actual), 0, 0, 0) != 0 or actual.value != 1:
+                  raise RuntimeError("child-subreaper setting not confirmed")
+              if not hasattr(os, "pidfd_open") or not hasattr(signal, "pidfd_send_signal"):
+                  raise RuntimeError("identity-bound child signalling unavailable")
+
+
+          def direct_children():
+              path = Path("/proc") / str(os.getpid()) / "task" / str(os.getpid()) / "children"
+              return [int(value) for value in path.read_text().split()]
+
+
+          def child_identity(pid):
+              root = Path("/proc") / str(pid)
+              fields = (root / "stat").read_text().rsplit(")", 1)[1].split()
+              if int(fields[1]) != os.getpid() or root.stat().st_uid != os.geteuid():
+                  raise RuntimeError("fixture child ownership changed")
+              return {"pid": pid, "starttime_ticks": int(fields[19])}
+
+
+          def cleanup_children(process, seconds=6):
+              """Reap suite root first; then identity-bind only our newly adopted children."""
+              deadline = time.monotonic() + seconds
+              receipt = {"absolute_deadline_seconds": seconds, "children": [], "complete": False}
+              if process.poll() is None:
+                  fd = os.pidfd_open(process.pid)
+                  try:
+                      signal.pidfd_send_signal(fd, signal.SIGTERM)
+                      try:
+                          process.wait(timeout=min(1, max(.01, deadline - time.monotonic())))
+                      except subprocess.TimeoutExpired:
+                          signal.pidfd_send_signal(fd, signal.SIGKILL)
+                          process.wait(timeout=max(.01, deadline - time.monotonic()))
+                  finally:
+                      os.close(fd)
+              # The subprocess root is reaped through Popen, never through waitpid(-1).
+              while time.monotonic() < deadline:
+                  children = direct_children()
+                  if not children:
+                      receipt["complete"] = True
+                      return receipt
+                  for pid in children:
+                      fd = None
+                      try:
+                          before = child_identity(pid)
+                          fd = os.pidfd_open(pid)
+                          if before != child_identity(pid) or pid not in direct_children():
+                              raise RuntimeError("fixture child identity changed")
+                          signal.pidfd_send_signal(fd, signal.SIGKILL)
+                          receipt["children"].append(before)
+                          try:
+                              os.waitpid(pid, os.WNOHANG)
+                          except ChildProcessError:
+                              pass
+                      except FileNotFoundError:
+                          continue
+                      except ProcessLookupError:
+                          try:
+                              os.waitpid(pid, os.WNOHANG)
+                          except ChildProcessError:
+                              pass
+                      finally:
+                          if fd is not None:
+                              os.close(fd)
+                  time.sleep(.01)
+              receipt["remaining_children"] = direct_children()
+              raise RuntimeError("fixture descendants remain after bounded cleanup")
+
+
+          def fixed(argv, output, cwd, environment, seconds):
+              process = subprocess.Popen(argv, cwd=str(cwd), env=environment,
+                                         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT, start_new_session=True)
+              selector = selectors.DefaultSelector()
+              selector.register(process.stdout, selectors.EVENT_READ)
+              started = time.monotonic()
+              deadline = started + seconds
+              size = 0
+              error = None
+              cleanup = None
+              try:
+                  with output.open("xb") as stream:
+                      while selector.get_map():
+                          remaining = deadline - time.monotonic()
+                          if remaining <= 0:
+                              raise TimeoutError("fixed fixture deadline")
+                          for key, _ in selector.select(min(.2, remaining)):
+                              raw = os.read(key.fd, 65536)
+                              if not raw:
+                                  selector.unregister(key.fileobj)
+                                  continue
+                              if size + len(raw) > 8 * 1024 * 1024:
+                                  raise RuntimeError("fixture output ceiling")
+                              stream.write(raw)
+                              stream.flush()
+                              size += len(raw)
+                      code = process.wait(timeout=max(.01, deadline - time.monotonic()))
+                      if code:
+                          raise RuntimeError("fixture process failed")
+              except BaseException as exc:
+                  error = type(exc).__name__
+                  raise
+              finally:
+                  selector.close()
+                  process.stdout.close()
+                  try:
+                      cleanup = cleanup_children(process)
+                  finally:
+                      output.with_suffix(output.suffix + ".json").write_text(json.dumps({
+                          "returncode": process.returncode, "error_type": error,
+                          "elapsed_seconds": time.monotonic() - started,
+                          "absolute_fixture_deadline_seconds": seconds,
+                          "stdout_stderr_bytes": size, "cleanup": cleanup,
+                          "argv_sha256": hashlib.sha256(json.dumps(argv).encode()).hexdigest(),
+                      }, sort_keys=True, indent=2) + "\n")
+
+
+          def main(pins):
+              env = os.environ
+              commit = env["GITHUB_SHA"]
+              if (env["GITHUB_REPOSITORY"] != REPOSITORY or env["GITHUB_REF"] != BRANCH
+                      or env.get("RUNNER_NAME") != "cace-oci-a1" or os.geteuid() != 1000
+                      or sys.version_info[:2] != (3, 9) or not re.fullmatch("[0-9a-f]{40}", commit)):
+                  raise RuntimeError("unexpected unprivileged fixture identity")
+              run_id, attempt = int(env["GITHUB_RUN_ID"]), int(env["GITHUB_RUN_ATTEMPT"])
+              if run_id <= 44960327067 or attempt != 1:
+                  raise RuntimeError("fresh first fixture-validation attempt required")
+              os.umask(0o077)
+              out = Path(env["RUNNER_TEMP"]) / ("merlin-repair-validation-%d-%d" % (run_id, attempt))
+              out.mkdir(mode=0o700, exist_ok=False)
+              stage = "request_validation"
+              class NoRedirect(urllib.request.HTTPRedirectHandler):
+                  def redirect_request(self, *args, **kwargs):
+                      raise RuntimeError("private source API redirect refused")
+              opener = urllib.request.build_opener(NoRedirect)
+              def api(path):
+                  request = urllib.request.Request("https://api.github.com/repos/" + REPOSITORY + "/" + path,
+                      headers={"Authorization": "Bearer " + env["GITHUB_TOKEN"], "Accept": "application/vnd.github+json"})
+                  with opener.open(request, timeout=20) as response:
+                      raw = response.read(4 * 1024 * 1024 + 1)
+                  if len(raw) > 4 * 1024 * 1024:
+                      raise RuntimeError("private API byte ceiling")
+                  return json.loads(raw, object_pairs_hook=unique)
+              def fetch(path):
+                  item = api("contents/" + path + "?ref=" + commit)
+                  raw = base64.b64decode("".join(item["content"].split()), validate=True)
+                  if git_blob(raw) != item["sha"]:
+                      raise RuntimeError("Git object identity differs")
+                  return raw, item["sha"]
+              try:
+                  changed = api("commits/" + commit)["files"]
+                  if len(changed) != 1 or changed[0]["status"] != "added":
+                      raise RuntimeError("one additive fixture request required")
+                  path = changed[0]["filename"]
+                  if not re.fullmatch(PREFIX + r"[0-9a-f-]{36}\.json", path):
+                      raise RuntimeError("fixed fixture request path required")
+                  raw, _ = fetch(path)
+                  if len(raw) > 16000:
+                      raise RuntimeError("request byte ceiling")
+                  request = json.loads(raw, object_pairs_hook=unique)
+                  validate_request(request, path)
+                  (out / "request.json").write_bytes(raw)
+                  stage = "source_verification"
+                  for name, pin in pins.items():
+                      raw, _ = fetch(REMOTE_ROOT + name)
+                      check(raw, pin)
+                      ast.parse(raw, feature_version=(3, 9))
+                      target = out / name
+                      target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                      target.write_bytes(raw)
+                  workflow, workflow_blob = fetch(WORKFLOW)
+                  (out / "workflow-definition.yml").write_bytes(workflow)
+                  (out / "source-identities.json").write_text(json.dumps({"sources": pins,
+                      "workflow_git_blob": workflow_blob, "workflow_sha256": hashlib.sha256(workflow).hexdigest()},
+                      sort_keys=True, indent=2) + "\n")
+                  (out / "identity.json").write_text(json.dumps({"repository": REPOSITORY,
+                      "commit": commit, "run_id": run_id, "attempt": attempt,
+                      "python": sys.version, "uid": os.geteuid(), "runner": env["RUNNER_NAME"],
+                      "qualification": False}, sort_keys=True, indent=2) + "\n")
+                  stage = "fixture_process_ownership"
+                  enable_subreaper()
+                  if direct_children():
+                      raise RuntimeError("unexpected preexisting fixture descendants")
+                  temporary = Path("/tmp") / ("merlin-rv-%d-%d" % (run_id, attempt))
+                  temporary.mkdir(mode=0o700, exist_ok=False)
+                  clean = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
+                      "HOME": "/var/empty", "XDG_CONFIG_HOME": "/var/empty", "XDG_CACHE_HOME": "/var/empty",
+                      "XDG_DATA_HOME": "/var/empty", "PYTHONDONTWRITEBYTECODE": "1",
+                      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"}
+                  stage = "four_frozen_fixture_suites"
+                  results = {}
+                  deadline = time.monotonic() + 360
+                  for name, expected in SUITES:
+                      per_suite = temporary / name
+                      per_suite.mkdir(mode=0o700)
+                      report = out / (name + "-result.json")
+                      argv = ["/usr/bin/python3", "-I", "-B", str(out / "run_suite.py"),
+                              "--suite", name, "--source", str(out / "source"), "--report", str(report),
+                              "--temporary-root", str(per_suite)]
+                      try:
+                          remaining = deadline - time.monotonic()
+                          if remaining <= 0:
+                              raise TimeoutError("total fixture deadline")
+                          fixed(argv, out / (name + ".txt"), per_suite, clean, min(90, remaining))
+                          value = json.loads(report.read_text(), object_pairs_hook=unique)
+                          if not value["passed"] or value["tests"] != expected or value["skipped"]:
+                              raise RuntimeError("fixed fixture result differs")
+                          results[name] = value
+                      except BaseException as exc:
+                          results[name] = {"passed": False, "error_type": type(exc).__name__}
+                      # No recursive cleanup: fixtures own their own leaves. Preserve any
+                      # unexpected residue and fail, rather than deleting unknown state.
+                      if any(per_suite.iterdir()):
+                          results[name]["passed"] = False
+                          results[name]["temporary_residue"] = True
+                      else:
+                          per_suite.rmdir()
+                      if direct_children():
+                          raise RuntimeError("owned fixture descendants remain")
+                  for name, pin in pins.items():
+                      check((out / name).read_bytes(), pin)
+                  if not any(temporary.iterdir()):
+                      temporary.rmdir()
+                  passed = all(value.get("passed") is True for value in results.values()) and len(results) == 4
+                  (out / "validation-receipt.json").write_text(json.dumps({
+                      "schema": "merlin-native-repair-validation/1", "passed": passed,
+                      "expected_total": 101, "results": results,
+                      "scope": "unprivileged frozen fixtures, including isolated local Unix sockets",
+                      "qualification": False, "production_application_mutations": 0,
+                      "installations": 0, "public_acquisitions": 0, "model_calls": 0,
+                      "existing_production_socket_cleanup": False,
+                  }, sort_keys=True, indent=2) + "\n")
+                  if not passed:
+                      raise RuntimeError("one or more exact fixture suites failed")
+                  print(json.dumps({"passed": True, "expected_total": 101, "qualification": False}))
+                  return 0
+              except BaseException as exc:
+                  (out / "operation-error.json").write_text(json.dumps({"stage": stage,
+                      "error_type": type(exc).__name__, "run_id": run_id, "attempt": attempt,
+                      "qualification": False, "production_application_mutations": 0}, sort_keys=True, indent=2) + "\n")
+                  print(json.dumps({"passed": False, "stage": stage, "error_type": type(exc).__name__}))
+                  return 2
+
+          sys.exit(main({'controller.py': {'bytes': 14170, 'sha256': '3f642f723791c78824530f777aeb5f67a0d89d62c1608f3ecf96dbb1a5a5ebf0', 'git_blob': 'a56f4f028ffb4cba7cb2f28039857c7951e855fe'}, 'run_suite.py': {'bytes': 3237, 'sha256': 'e6796c597348efc1b1caeafe632eb8d52312d5f24e00cf99b23e86a7fb2bda6a', 'git_blob': '1146da2db611ed97cb5c4843a6c5f1074ff2d608'}, 'source/python/dot_ai_os/__init__.py': {'bytes': 103, 'sha256': '5a54db6fddc5b1a178c7beaa42089ee95bdea81871560c8c5d1f868a2b16e487', 'git_blob': '78666698d33f10703883542945526d931ad578c0'}, 'source/python/dot_ai_os/bridge.py': {'bytes': 23013, 'sha256': '781447bcfb965e11b39d7cedfc1d4f1db3c6c67f502bffc6a07605af7cf085a3', 'git_blob': '2f2d13d0368ec0eeca98545a38f74c924f8bd49f'}, 'source/python/merlin/__init__.py': {'bytes': 275, 'sha256': '49f23ffa9b838de063cd88e4a60704d1989f55ff3aa70fe2ed850b0396fa8f93', 'git_blob': '0ad35f52071fb1537c1ffcb918a9a7148b411661'}, 'source/python/merlin/artifact_ref.py': {'bytes': 2542, 'sha256': '187e33ed4ab6e1a79e054ff31c07b383090dae94cb51c5eb9dd01dfb80227584', 'git_blob': 'aa3ce66edc8286668f4a01a0ee5e3f4c61fa0fd3'}, 'source/python/merlin/browser_client.py': {'bytes': 2963, 'sha256': 'b674d873e9f2f12b94339c7bc5c1df3d035433307248b595c27319632a87a58b', 'git_blob': 'd51ae4e1880e82eff94640a0e2fac0c539e9b73a'}, 'source/python/merlin/browser_egress.py': {'bytes': 16013, 'sha256': '93b018f113e004b4322f4702669015eb64190480145686954d4b46aabf34c4ff', 'git_blob': '08d9fb0080942a0ee346c80f1c3605029daa794c'}, 'source/python/merlin/browser_ingest.py': {'bytes': 20341, 'sha256': 'b4305956d5159482eb043e0bfdbca81bfd7cb353e6bc51f21437480f67f08d82', 'git_blob': '688334659bd1b87f9967a62082be419c0aee81f9'}, 'source/python/merlin/browser_policy.py': {'bytes': 6300, 'sha256': 'c0583bfd6309bd67cf33f6c9e92e4a39c7caab5bb2c3fd9a99fda578c53d30c8', 'git_blob': 'a346be5c7b6c18721eb1239af1399c2a85678805'}, 'source/python/merlin/browser_service.py': {'bytes': 20782, 'sha256': '33de7ccd0353ff56716daa08aa14b8c0dc41539aff72d7eb087a6eeeecb25135', 'git_blob': '3c772a2f130d3daf930a874e80f12c8f15678835'}, 'source/python/merlin/project_registry.py': {'bytes': 42079, 'sha256': 'c7fbd89ae99705f60a1ecd7f41df244742fe218a335b4a3e6d2fed11c96521c7', 'git_blob': 'b29687ce499d77e58e42207244dd4ec0dbb8b9d8'}, 'source/python/merlin/public_browser.py': {'bytes': 29083, 'sha256': '9bddbc4343b5c6acb88c9d5b12f869290056f1913b93a2203774129d8975e884', 'git_blob': 'c05e2299652698eb6b1003f71b15d8bfb8badd47'}, 'source/static/acquire_inspect.py': {'bytes': 35199, 'sha256': 'c3a5bd263d22a50a4872648e1a0934782c5f2cbb87d153b91adf84c67ce25ba2', 'git_blob': '893c863f6d7dcff42c2ae735f955a8d8a31d0ae7'}, 'source/static/test_acquire_inspect.py': {'bytes': 31860, 'sha256': '30f1a819dbb526622130b14a5579d203ede018300f8ed7d91c552b8df8d1ef3e', 'git_blob': '99f15d858c05a2cc477de89583135ad3b8c8b11c'}, 'source/tests/test_browser_service_lifecycle.py': {'bytes': 9617, 'sha256': '4ed0bad2fee5df8fb4772b2e9858de5859a00f6ef16c4f61f2714f2a7f6b78c6', 'git_blob': '80cbb98f2af768726a7ab05c8c69f556e1dbf1dd'}, 'source/tests/test_browser_service_lifecycle_controls.py': {'bytes': 10104, 'sha256': '88f7f6186783946c027c8afac2decb392338fbe9138f9fc501188bf96c855cb7', 'git_blob': '0da1c56b60062b8ec32e99c381b074e21d6cc139'}, 'source/tests/test_public_browser.py': {'bytes': 46706, 'sha256': '4e3c7fb0a708dd838d2305a4e185bd3e3d508f0ee4780e4bf848a5644642d269', 'git_blob': 'e6593fb87528b04d1104f2183c29ea6c3d7a4da6'}}))
+          PYCODE
+      - name: Preserve fixture logs and all failure receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-repair-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-repair-validation-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn

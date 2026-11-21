@@ -1,0 +1,88 @@
+{"tests": 5, "failures": 0, "errors": 5, "skipped": 0}
+test_no_explicit_directories_is_a_valid_archive_namespace (test_implicit_directories.ImplicitDirectoryTests.test_no_explicit_directories_is_a_valid_archive_namespace) ... ERROR
+test_missing_root_only_does_not_invent_root_metadata (test_implicit_directories.ImplicitDirectoryTests.test_missing_root_only_does_not_invent_root_metadata) ... ERROR
+test_mixed_explicit_implicit_ancestors_preserve_actual_member_count (test_implicit_directories.ImplicitDirectoryTests.test_mixed_explicit_implicit_ancestors_preserve_actual_member_count) ... ERROR
+test_symlink_can_resolve_to_directory_proven_by_a_descendant (test_implicit_directories.ImplicitDirectoryTests.test_symlink_can_resolve_to_directory_proven_by_a_descendant) ... ERROR
+test_serialized_inventory_stays_one_record_per_actual_member (test_implicit_directories.ImplicitDirectoryTests.test_serialized_inventory_stays_one_record_per_actual_member) ... ERROR
+
+======================================================================
+ERROR: test_no_explicit_directories_is_a_valid_archive_namespace (test_implicit_directories.ImplicitDirectoryTests.test_no_explicit_directories_is_a_valid_archive_namespace)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_implicit_directories.py", line 16, in test_no_explicit_directories_is_a_valid_archive_namespace
+    result, members, _, _ = inspect(raw)
+                            ^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_acquire_inspect.py", line 95, in inspect
+    result = module.inspect_tar(io.BytesIO(raw), members.append, notices.append, elfs.append)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 460, in inspect_tar
+    require(entries.get("python", {}).get("type") == "directory", "python_root_directory_missing")
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 72, in require
+    raise InspectionError(code)
+acquire_inspect.InspectionError: python_root_directory_missing
+
+======================================================================
+ERROR: test_missing_root_only_does_not_invent_root_metadata (test_implicit_directories.ImplicitDirectoryTests.test_missing_root_only_does_not_invent_root_metadata)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_implicit_directories.py", line 28, in test_missing_root_only_does_not_invent_root_metadata
+    result, members, _, _ = inspect(make_tar([entry for entry in base_members() if entry[0] != "python"]))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_acquire_inspect.py", line 95, in inspect
+    result = module.inspect_tar(io.BytesIO(raw), members.append, notices.append, elfs.append)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 460, in inspect_tar
+    require(entries.get("python", {}).get("type") == "directory", "python_root_directory_missing")
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 72, in require
+    raise InspectionError(code)
+acquire_inspect.InspectionError: python_root_directory_missing
+
+======================================================================
+ERROR: test_mixed_explicit_implicit_ancestors_preserve_actual_member_count (test_implicit_directories.ImplicitDirectoryTests.test_mixed_explicit_implicit_ancestors_preserve_actual_member_count)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_implicit_directories.py", line 34, in test_mixed_explicit_implicit_ancestors_preserve_actual_member_count
+    result, members, _, _ = inspect(make_tar(entries))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_acquire_inspect.py", line 95, in inspect
+    result = module.inspect_tar(io.BytesIO(raw), members.append, notices.append, elfs.append)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 474, in inspect_tar
+    require(entries.get(parent, {}).get("type") == "directory", "archive_ancestor_not_directory")
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 72, in require
+    raise InspectionError(code)
+acquire_inspect.InspectionError: archive_ancestor_not_directory
+
+======================================================================
+ERROR: test_symlink_can_resolve_to_directory_proven_by_a_descendant (test_implicit_directories.ImplicitDirectoryTests.test_symlink_can_resolve_to_directory_proven_by_a_descendant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_implicit_directories.py", line 44, in test_symlink_can_resolve_to_directory_proven_by_a_descendant
+    result, members, _, _ = inspect(make_tar(entries))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_acquire_inspect.py", line 95, in inspect
+    result = module.inspect_tar(io.BytesIO(raw), members.append, notices.append, elfs.append)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 460, in inspect_tar
+    require(entries.get("python", {}).get("type") == "directory", "python_root_directory_missing")
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 72, in require
+    raise InspectionError(code)
+acquire_inspect.InspectionError: python_root_directory_missing
+
+======================================================================
+ERROR: test_serialized_inventory_stays_one_record_per_actual_member (test_implicit_directories.ImplicitDirectoryTests.test_serialized_inventory_stays_one_record_per_actual_member)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/test_implicit_directories.py", line 98, in test_serialized_inventory_stays_one_record_per_actual_member
+    result = A.inspect_tar(io.BytesIO(make_tar(entries)), *(writer.emit for writer in writers))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 460, in inspect_tar
+    require(entries.get("python", {}).get("type") == "directory", "python_root_directory_missing")
+  File "/workspace/scratch/07cb10f977d8/python-inspection-repair/original/acquire_inspect.py", line 72, in require
+    raise InspectionError(code)
+acquire_inspect.InspectionError: python_root_directory_missing
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.005s
+
+FAILED (errors=5)

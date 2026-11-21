@@ -1,0 +1,53 @@
+{
+  "approved_review": {
+    "bytes": 912032,
+    "file": "Merlin_Production_Repairs_Review_20261121.zip",
+    "repository_entries": 53,
+    "sha256": "08b8d19977a2ac4adaec1031cbbf9c2bd7195b7c94b926e9fc2c14f13000e592"
+  },
+  "basis": "The user explicitly approved the preceding concrete review-package publication and single native fixture-operation request, and reiterated standing permission for routine Merlin production work.",
+  "excluded": [
+    "interpreter/provider/browser installation",
+    "existing production socket cleanup",
+    "service activation or reconfiguration",
+    "browser acceptance replay",
+    "public acquisitions",
+    "model calls",
+    "merge or production promotion",
+    "Avrea",
+    "ChatGPT account/site access"
+  ],
+  "operation": {
+    "attempt": 1,
+    "automatic_retries": 0,
+    "installations": 0,
+    "model_calls": 0,
+    "operation": "validate-python-browser-repairs-20261121",
+    "production_mutations": 0,
+    "public_acquisitions": 0,
+    "request_fields": [
+      "schema",
+      "request_id",
+      "operation",
+      "created_at"
+    ],
+    "request_prefix": "merlin/repair-validation-requests/",
+    "required_case_counts": {
+      "browser_lifecycle": 13,
+      "browser_lifecycle_controls": 12,
+      "browser_product": 41,
+      "python_static": 35
+    },
+    "runs": 1,
+    "total_required_cases": 101
+  },
+  "prior_automatic_review_denials": "Historical for the newly approved exact payload; no bypass or alternate destination used.",
+  "production_qualification": false,
+  "recorded_utc": "2026-11-21T23:33:35.460829+00:00",
+  "repositories": [
+    "Mannyspiro/expert-robot",
+    "morganaspim/Cace-app"
+  ],
+  "schema": "merlin-production-repairs-authorization/1",
+  "scope": "Publish these exact revised source/test/evidence packages to the two named private repositories, execute one fixed unprivileged101-case native fixture validation on OCI, and preserve its scoped raw result artifact including reviewed embedded source copies in private Mannyspiro/expert-robot."
+}

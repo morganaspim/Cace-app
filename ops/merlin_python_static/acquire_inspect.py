@@ -409,6 +409,30 @@ def is_notice(name):
             or re.fullmatch(r"(?:license|licence|copying|notice|copyright)(?:[._-].*)?", parts[-1]) is not None)
 
 
+def directory_namespace(entries):
+    """Infer only missing ancestors; tar need not carry directory headers.
+
+    This is a logical path namespace, not extracted filesystem state. Preserve
+    measured archive records separately: inferred directories have no observed
+    owner, mode, or bytes. Explicit non-directory ancestors still fail closed.
+    A link target alone never creates a directory or resolves a dangling link.
+    """
+    namespace = dict(entries)
+    inferred = set()
+    for name in entries:
+        parent = posixpath.dirname(name)
+        while parent:
+            if parent not in namespace:
+                require(len(namespace) < MAX_MEMBERS, "namespace_node_ceiling")
+                namespace[parent] = {"path": parent, "type": "directory",
+                                     "origin": "inferred_from_member_path"}
+                inferred.add(parent)
+            require(namespace[parent]["type"] == "directory", "archive_ancestor_not_directory")
+            parent = posixpath.dirname(parent)
+    require(namespace.get("python", {}).get("type") == "directory", "python_root_directory_missing")
+    return namespace, sorted(inferred)
+
+
 def inspect_tar(source, emit_member, emit_notice, emit_elf):
     """Inspect tar data; never call extract/extractall or apply archive modes/owners."""
     entries, elf_records = {}, {}
@@ -457,7 +481,7 @@ def inspect_tar(source, emit_member, emit_notice, emit_elf):
             entries[name] = record
             if kind != "symlink":
                 emit_member(record)
-    require(entries.get("python", {}).get("type") == "directory", "python_root_directory_missing")
+    namespace, inferred_directories = directory_namespace(entries)
     # Reject hidden concatenated archives/junk and missing POSIX terminator blocks.
     source.seek(end_of_members)
     tail_bytes = 0
@@ -468,15 +492,10 @@ def inspect_tar(source, emit_member, emit_notice, emit_elf):
         tail_bytes += len(chunk)
         require(not any(chunk), "nonzero_data_after_tar_members")
     require(tail_bytes >= 1024, "tar_terminator_missing")
-    for name in entries:
-        parent = posixpath.dirname(name)
-        while parent:
-            require(entries.get(parent, {}).get("type") == "directory", "archive_ancestor_not_directory")
-            parent = posixpath.dirname(parent)
     for name, record in entries.items():
         if record["type"] != "symlink":
             continue
-        record["resolved_target"] = resolve_link(name, entries)
+        record["resolved_target"] = resolve_link(name, namespace)
         emit_member(record)
     executable = entries.get(CANONICAL_EXECUTABLE)
     require(executable is not None and executable["type"] == "regular"
@@ -486,7 +505,10 @@ def inspect_tar(source, emit_member, emit_notice, emit_elf):
     require(elf_records[CANONICAL_EXECUTABLE]["interpreter"] == EXPECTED_LOADER,
             "versioned_executable_loader_missing")
     require(notice_count > 0, "license_notice_inventory_empty")
-    return {"members": len(entries), "regular_file_bytes": total_files, "elf_files": len(elf_records),
+    return {"members": len(entries), "namespace_nodes": len(namespace),
+            "inferred_directories": inferred_directories,
+            "directory_namespace_rule": "explicit_and_missing_ancestors_of_archive_members_only",
+            "regular_file_bytes": total_files, "elf_files": len(elf_records),
             "notice_files": notice_count, "notice_bytes": notice_bytes,
             "executable": {"path": CANONICAL_EXECUTABLE, "bytes": executable["bytes"], "sha256": executable["sha256"]},
             "dependency_names_observed": sorted({v for elf in elf_records.values() for v in elf["needed"]}),

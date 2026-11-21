@@ -283,7 +283,8 @@ class ArchiveAndElfTests(unittest.TestCase):
         with self.assertRaises(A.InspectionError):
             inspect(make_tar(base_members() + [("python/LICENSE", "regular", b"duplicate")]))
         with self.assertRaises(A.InspectionError):
-            inspect(make_tar(base_members() + [("python/missing/child", "regular", b"x")]))
+            inspect(make_tar(base_members() + [("python/file", "regular", b"x"),
+                                               ("python/file/child", "regular", b"x")]))
         with self.assertRaises(A.InspectionError):
             inspect(make_tar(base_members() + [("python/alias", "symlink", "lib"), ("python/alias/child", "regular", b"x")]))
 
@@ -464,6 +465,100 @@ p.join()
         self.assertEqual(stages.call_count, 1)
         self.assertEqual(result["status"], "failed")
         self.assertFalse(result["installation_allowed"])
+
+
+class ImplicitDirectoryTests(unittest.TestCase):
+    def test_no_explicit_directories_is_a_valid_archive_namespace(self):
+        raw = make_tar([entry for entry in base_members() if entry[1] != "directory"])
+        with patch.object(tarfile.TarFile, "extract", side_effect=AssertionError("no extraction")), \
+             patch.object(tarfile.TarFile, "extractall", side_effect=AssertionError("no extraction")):
+            result, members, _, _ = inspect(raw)
+        self.assertEqual(result["members"], 3)
+        self.assertEqual(result["namespace_nodes"], 5)
+        self.assertEqual(result["inferred_directories"], ["python", "python/bin"])
+        self.assertEqual(len(members), 3)
+        self.assertFalse(any(item["type"] == "directory" for item in members))
+        self.assertEqual(next(item for item in members if item["type"] == "symlink")["resolved_target"],
+                         A.CANONICAL_EXECUTABLE)
+        self.assertFalse(result["installation_allowed"])
+        self.assertEqual(result["fetched_code_executions"], 0)
+
+    def test_missing_root_only_does_not_invent_root_metadata(self):
+        result, members, _, _ = inspect(make_tar([entry for entry in base_members() if entry[0] != "python"]))
+        self.assertEqual(result["inferred_directories"], ["python"])
+        self.assertFalse(any(item["path"] == "python" for item in members))
+
+    def test_mixed_explicit_implicit_ancestors_preserve_actual_member_count(self):
+        entries = base_members() + [("python/lib/pkg/deep/module.py", "regular", b"value = 1\n")]
+        result, members, _, _ = inspect(make_tar(entries))
+        self.assertEqual(result["members"], len(entries))
+        self.assertEqual(result["inferred_directories"], ["python/lib/pkg", "python/lib/pkg/deep"])
+        self.assertEqual(result["namespace_nodes"], len(entries) + 2)
+        self.assertEqual(len(members), len(entries))
+
+    def test_symlink_can_resolve_to_directory_proven_by_a_descendant(self):
+        entries = [entry for entry in base_members() if entry[1] != "directory"]
+        entries += [("python/lib/pkg/value", "regular", b"x"),
+                    ("python/bin/pkg", "symlink", "../lib/pkg")]
+        result, members, _, _ = inspect(make_tar(entries))
+        alias = next(item for item in members if item["path"] == "python/bin/pkg")
+        self.assertEqual(alias["resolved_target"], "python/lib/pkg")
+        self.assertEqual(result["members"], len(entries))
+
+    def test_member_order_does_not_turn_explicit_directory_into_inferred_metadata(self):
+        entries = base_members()
+        directories = [entry for entry in entries if entry[1] == "directory"]
+        other = [entry for entry in entries if entry[1] != "directory"]
+        result, members, _, _ = inspect(make_tar(other + directories))
+        self.assertEqual(result["inferred_directories"], [])
+        self.assertEqual(result["members"], len(entries))
+        self.assertEqual(sum(item["type"] == "directory" for item in members), 4)
+
+    def test_explicit_non_directory_ancestor_is_rejected_in_either_order(self):
+        child = ("python/parent/child", "regular", b"x")
+        for kind, target in (("regular", b"x"), ("symlink", "lib")):
+            parent = ("python/parent", kind, target)
+            for extra in ((parent, child), (child, parent)):
+                with self.subTest(kind=kind, order=extra), self.assertRaisesRegex(
+                        A.InspectionError, "archive_ancestor_not_directory"):
+                    inspect(make_tar(base_members() + list(extra)))
+
+    def test_link_target_alone_cannot_infer_a_directory(self):
+        with self.assertRaisesRegex(A.InspectionError, "dangling_archive_link"):
+            inspect(make_tar(base_members() + [("python/alias", "symlink", "missing/subdir")]))
+
+    def test_componentwise_escape_is_still_rejected_with_implicit_ancestors(self):
+        entries = [entry for entry in base_members() if entry[1] != "directory"]
+        entries += [("python/lib/child", "regular", b"x"),
+                    ("python/bin/pivot", "symlink", "../lib"),
+                    ("python/escape", "symlink", "bin/pivot/../../etc")]
+        with self.assertRaisesRegex(A.InspectionError, "componentwise_link_escapes_python_tree"):
+            inspect(make_tar(entries))
+
+    def test_inferred_namespace_nodes_are_bounded(self):
+        entries = [entry for entry in base_members() if entry[1] != "directory"]
+        with patch.object(A, "MAX_MEMBERS", 4), self.assertRaisesRegex(
+                A.InspectionError, "namespace_node_ceiling"):
+            inspect(make_tar(entries))
+
+    def test_no_members_cannot_infer_a_python_root(self):
+        with self.assertRaisesRegex(A.InspectionError, "python_root_directory_missing"):
+            inspect(make_tar([]))
+
+    def test_explicit_root_cannot_be_a_file_or_symlink(self):
+        for entry in (("python", "regular", b"x"), ("python", "symlink", "python")):
+            with self.subTest(kind=entry[1]), self.assertRaises(A.InspectionError):
+                inspect(make_tar([item for item in base_members() if item[0] != "python"] + [entry]))
+
+    def test_serialized_inventory_stays_one_record_per_actual_member(self):
+        entries = [entry for entry in base_members() if entry[1] != "directory"]
+        outputs = [io.BytesIO(), io.BytesIO(), io.BytesIO()]
+        writers = [A.JsonLines(output) for output in outputs]
+        result = A.inspect_tar(io.BytesIO(make_tar(entries)), *(writer.emit for writer in writers))
+        measured = [json.loads(line) for line in outputs[0].getvalue().splitlines()]
+        self.assertEqual(len(measured), len(entries))
+        self.assertEqual(writers[0].records, result["members"])
+        self.assertFalse(any("origin" in item for item in measured))
 
 
 if __name__ == "__main__":

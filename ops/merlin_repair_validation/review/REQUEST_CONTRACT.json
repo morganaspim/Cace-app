@@ -1,0 +1,52 @@
+{
+  "schema": "merlin-repair-validation-contract/1",
+  "request_schema": "merlin-repair-validation-request/1",
+  "operation": "validate-python-browser-repairs-20261121",
+  "request_fields": ["schema", "request_id", "operation", "created_at"],
+  "request_prefix": "merlin/repair-validation-requests/",
+  "repository": "morganaspim/Cace-app",
+  "branch": "merlin/browser-operations-20261121",
+  "runner": "cace-oci-a1",
+  "uid": 1000,
+  "python_major_minor": [3, 9],
+  "runs": 1,
+  "attempt": 1,
+  "automatic_retries": 0,
+  "concurrency_group": "merlin-dot-oci-operations",
+  "suite_counts": {
+    "python_static": 35,
+    "browser_product": 41,
+    "browser_lifecycle": 13,
+    "browser_lifecycle_controls": 12
+  },
+  "suite_timeout_seconds": 90,
+  "total_fixture_timeout_seconds": 360,
+  "workflow_timeout_minutes": 10,
+  "fixture_log_byte_ceiling_per_suite": 8388608,
+  "forbidden_skips": true,
+  "forbidden_expected_failures": true,
+  "qualification": false,
+  "production_application_mutation": false,
+  "source_transfer": {
+    "from": "private Mannyspiro/expert-robot reviewed repair sources and tests",
+    "to": "private morganaspim/Cace-app isolated validation snapshot",
+    "includes": "Source, fixtures, exact identity metadata and fixed test-only workflow; no private conversation or corpus contents."
+  },
+  "allowed_effects": [
+    "Exact-commit private GitHub source/request reads and raw Actions artifact upload.",
+    "New private runner evidence directory and per-suite temporary fixture directories.",
+    "Reviewed tests may create local Unix sockets, fixture registries, inert fixtures, and bounded subprocesses; tests remove only their own temporary fixtures.",
+    "Root-admission and chown are test doubles inside lifecycle fixtures. The operation itself remains UID1000."
+  ],
+  "excluded": [
+    "sudo or root execution",
+    "service-manager calls or service changes",
+    "browser, provider or interpreter installation",
+    "public network acquisition or live model calls",
+    "existing production socket cleanup",
+    "browser acceptance replay",
+    "original downloaded interpreter archive or member execution",
+    "merge or production promotion",
+    "Avrea or ChatGPT account/site access"
+  ]
+}

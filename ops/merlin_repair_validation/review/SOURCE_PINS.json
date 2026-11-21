@@ -1,0 +1,104 @@
+{
+  "fixture_total": 101,
+  "native_execution": false,
+  "publication": "not_attempted",
+  "schema": "merlin-repair-validation-source-pins/1",
+  "source_transfer": "Reviewed private Merlin repair sources copied to a private Cace-app test-only namespace.",
+  "sources": {
+    "controller.py": {
+      "bytes": 14170,
+      "git_blob": "a56f4f028ffb4cba7cb2f28039857c7951e855fe",
+      "sha256": "3f642f723791c78824530f777aeb5f67a0d89d62c1608f3ecf96dbb1a5a5ebf0"
+    },
+    "run_suite.py": {
+      "bytes": 3237,
+      "git_blob": "1146da2db611ed97cb5c4843a6c5f1074ff2d608",
+      "sha256": "e6796c597348efc1b1caeafe632eb8d52312d5f24e00cf99b23e86a7fb2bda6a"
+    },
+    "source/python/dot_ai_os/__init__.py": {
+      "bytes": 103,
+      "git_blob": "78666698d33f10703883542945526d931ad578c0",
+      "sha256": "5a54db6fddc5b1a178c7beaa42089ee95bdea81871560c8c5d1f868a2b16e487"
+    },
+    "source/python/dot_ai_os/bridge.py": {
+      "bytes": 23013,
+      "git_blob": "2f2d13d0368ec0eeca98545a38f74c924f8bd49f",
+      "sha256": "781447bcfb965e11b39d7cedfc1d4f1db3c6c67f502bffc6a07605af7cf085a3"
+    },
+    "source/python/merlin/__init__.py": {
+      "bytes": 275,
+      "git_blob": "0ad35f52071fb1537c1ffcb918a9a7148b411661",
+      "sha256": "49f23ffa9b838de063cd88e4a60704d1989f55ff3aa70fe2ed850b0396fa8f93"
+    },
+    "source/python/merlin/artifact_ref.py": {
+      "bytes": 2542,
+      "git_blob": "aa3ce66edc8286668f4a01a0ee5e3f4c61fa0fd3",
+      "sha256": "187e33ed4ab6e1a79e054ff31c07b383090dae94cb51c5eb9dd01dfb80227584"
+    },
+    "source/python/merlin/browser_client.py": {
+      "bytes": 2963,
+      "git_blob": "d51ae4e1880e82eff94640a0e2fac0c539e9b73a",
+      "sha256": "b674d873e9f2f12b94339c7bc5c1df3d035433307248b595c27319632a87a58b"
+    },
+    "source/python/merlin/browser_egress.py": {
+      "bytes": 16013,
+      "git_blob": "08d9fb0080942a0ee346c80f1c3605029daa794c",
+      "sha256": "93b018f113e004b4322f4702669015eb64190480145686954d4b46aabf34c4ff"
+    },
+    "source/python/merlin/browser_ingest.py": {
+      "bytes": 20341,
+      "git_blob": "688334659bd1b87f9967a62082be419c0aee81f9",
+      "sha256": "b4305956d5159482eb043e0bfdbca81bfd7cb353e6bc51f21437480f67f08d82"
+    },
+    "source/python/merlin/browser_policy.py": {
+      "bytes": 6300,
+      "git_blob": "a346be5c7b6c18721eb1239af1399c2a85678805",
+      "sha256": "c0583bfd6309bd67cf33f6c9e92e4a39c7caab5bb2c3fd9a99fda578c53d30c8"
+    },
+    "source/python/merlin/browser_service.py": {
+      "bytes": 20782,
+      "git_blob": "3c772a2f130d3daf930a874e80f12c8f15678835",
+      "sha256": "33de7ccd0353ff56716daa08aa14b8c0dc41539aff72d7eb087a6eeeecb25135"
+    },
+    "source/python/merlin/project_registry.py": {
+      "bytes": 42079,
+      "git_blob": "b29687ce499d77e58e42207244dd4ec0dbb8b9d8",
+      "sha256": "c7fbd89ae99705f60a1ecd7f41df244742fe218a335b4a3e6d2fed11c96521c7"
+    },
+    "source/python/merlin/public_browser.py": {
+      "bytes": 29083,
+      "git_blob": "c05e2299652698eb6b1003f71b15d8bfb8badd47",
+      "sha256": "9bddbc4343b5c6acb88c9d5b12f869290056f1913b93a2203774129d8975e884"
+    },
+    "source/static/acquire_inspect.py": {
+      "bytes": 35199,
+      "git_blob": "893c863f6d7dcff42c2ae735f955a8d8a31d0ae7",
+      "sha256": "c3a5bd263d22a50a4872648e1a0934782c5f2cbb87d153b91adf84c67ce25ba2"
+    },
+    "source/static/test_acquire_inspect.py": {
+      "bytes": 31860,
+      "git_blob": "99f15d858c05a2cc477de89583135ad3b8c8b11c",
+      "sha256": "30f1a819dbb526622130b14a5579d203ede018300f8ed7d91c552b8df8d1ef3e"
+    },
+    "source/tests/test_browser_service_lifecycle.py": {
+      "bytes": 9617,
+      "git_blob": "80cbb98f2af768726a7ab05c8c69f556e1dbf1dd",
+      "sha256": "4ed0bad2fee5df8fb4772b2e9858de5859a00f6ef16c4f61f2714f2a7f6b78c6"
+    },
+    "source/tests/test_browser_service_lifecycle_controls.py": {
+      "bytes": 10104,
+      "git_blob": "0da1c56b60062b8ec32e99c381b074e21d6cc139",
+      "sha256": "88f7f6186783946c027c8afac2decb392338fbe9138f9fc501188bf96c855cb7"
+    },
+    "source/tests/test_public_browser.py": {
+      "bytes": 46706,
+      "git_blob": "e6593fb87528b04d1104f2183c29ea6c3d7a4da6",
+      "sha256": "4e3c7fb0a708dd838d2305a4e185bd3e3d508f0ee4780e4bf848a5644642d269"
+    }
+  },
+  "workflow": {
+    "bytes": 21578,
+    "git_blob": "fd3b6026dc52ae797c9666cc8a183cf4fda276fd",
+    "sha256": "4046b2a04178d254ad1fa7a3b522ce01d0440e91da8e982f16b90c0b6b640cb3"
+  }
+}

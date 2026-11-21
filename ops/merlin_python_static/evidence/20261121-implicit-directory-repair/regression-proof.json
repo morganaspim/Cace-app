@@ -1,0 +1,60 @@
+{
+  "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+  "fetched_code_executions": 0,
+  "installations": 0,
+  "native_runs": 0,
+  "new_archive_downloads": 0,
+  "original_controls": {
+    "errors": 0,
+    "exit_code": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 23
+  },
+  "original_failing_cases": [
+    "test_no_explicit_directories_is_a_valid_archive_namespace",
+    "test_missing_root_only_does_not_invent_root_metadata",
+    "test_mixed_explicit_implicit_ancestors_preserve_actual_member_count",
+    "test_symlink_can_resolve_to_directory_proven_by_a_descendant",
+    "test_serialized_inventory_stays_one_record_per_actual_member"
+  ],
+  "original_five_regressions": {
+    "errors": 5,
+    "exit_code": 1,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 5
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "python39_syntax_checked": true,
+  "repaired_controls": {
+    "errors": 0,
+    "exit_code": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 35
+  },
+  "schema": "merlin-python-implicit-directories-regression/1",
+  "sources": {
+    "original/acquire_inspect.py": {
+      "bytes": 34102,
+      "sha256": "68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf"
+    },
+    "original/test_acquire_inspect.py": {
+      "bytes": 26021,
+      "sha256": "173f55021c4d31bdc52160b4e40a9bb8b8ea6839354066ad642d90983712e358"
+    },
+    "original/test_implicit_directories.py": {
+      "bytes": 6056,
+      "sha256": "7656a649c9160d5b02a0b175013295037e5d1143a4876efd18da16f4151ea9b2"
+    },
+    "repaired/ops/merlin_python_static/acquire_inspect.py": {
+      "bytes": 35199,
+      "sha256": "c3a5bd263d22a50a4872648e1a0934782c5f2cbb87d153b91adf84c67ce25ba2"
+    },
+    "repaired/ops/merlin_python_static/test_acquire_inspect.py": {
+      "bytes": 31860,
+      "sha256": "30f1a819dbb526622130b14a5579d203ede018300f8ed7d91c552b8df8d1ef3e"
+    }
+  }
+}
