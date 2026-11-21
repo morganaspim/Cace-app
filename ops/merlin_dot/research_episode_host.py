@@ -22,7 +22,7 @@ import tempfile
 import time
 import zipfile
 
-PINS = {'native_validation': {'artifact_bytes': 647317, 'artifact_id': 14710933061, 'artifact_sha256': 'd464a0bf23b9bef73dc05af1b4bdfb105ed146b66c127d298e619ce74bc34ed9', 'controller_git_blob': 'f5c4be2c865134df736dde9fc8a1959f936fbedc', 'controller_sha256': '5eb556f897035185de6789aa476b0c9f2bcf844381f4676874ea41864903bbcc', 'report_sha256': '65d06eb8485450b2ecc919460f2be765cb394032425ca7584e9ee1413c3086e3', 'run_attempt': 1, 'run_id': 44913969951, 'software_tests': 596, 'source_commit': '6f4a3d169200955888b10ae4a8c77b71cb6e5584', 'source_map_sha256': '390188998480481f8f19ad438104a2099898bd24530e6b8c3fa4b621599b243b', 'source_package_sha256': '5ef4b0b02f09549d38a4d5548bc67c21df364edd3a5311a9c53f063d7131ff97', 'test_inventory_sha256': 'b702af542dc350f9cb23d1dc80e9b89605c813e99154ed5382075bb1e50bc4e9', 'workflow_commit': 'efe34ec4e407aab1306dff43fdf8164e6002d02e', 'workflow_git_blob': 'd83db6564a58ed58ffb51aa30e20e9badec24dd9'}, 'oracle_sha256': '73ad01b8443ab3e72ee3d54c43a75ff55104b75a3d4125cc17599cced87e9abb', 'source_commit': '6f4a3d169200955888b10ae4a8c77b71cb6e5584', 'source_file_count': 130, 'source_map_sha256': '390188998480481f8f19ad438104a2099898bd24530e6b8c3fa4b621599b243b', 'source_notes_sha256': 'ad412f724f95df30077a6fb21503a5f291478a0048f762e2c16bddefdbfb7192', 'source_package_sha256': '5ef4b0b02f09549d38a4d5548bc67c21df364edd3a5311a9c53f063d7131ff97', 'worker_sha256': '7f0947df45c3239cce48dd7e112886f4ccff98dd097673d0275844d227caf8f6'}
+PINS = {'native_validation': {'artifact_bytes': 648079, 'artifact_id': 14712123112, 'artifact_sha256': '77ad1e585dc978022515ef05683f2d59a5fd54b2f9bc576782ad600c72aeb75a', 'controller_git_blob': 'd4e3325a9d1c5c8c9d03b93c4b19b58e09232d04', 'controller_sha256': 'bb55bba0fe1fdf4b77e53c02d2f724f4301e550a96c75266092f11b3435503ef', 'report_sha256': '004c916100162ca83cd34dce50fc9704ea98cca058a4a20acd9660071910a271', 'run_attempt': 1, 'run_id': 44916652257, 'software_tests': 597, 'source_commit': 'ed6be62d577f0675d50a4487b7a9f43270bb515f', 'source_map_sha256': '85bc3c30d91c72c2f960a98539cdb72809a2ae0610df8e239018c77940452c2a', 'source_package_sha256': 'c4263a03ccfa9f728f186e0caf9f1382f8e4fc8501e4dc56f1cb2fde3b50cab6', 'test_inventory_sha256': '141f459fc85791b6cfca49001653847a32c1f08b30cbd865491c629e4c9ae1c8', 'workflow_commit': 'b2a7aacfcf73396ab92f2104245d70715fd2dd9d', 'workflow_git_blob': 'bb86a2d649d7ecaa2036dedf6622194f61f4b10d'}, 'oracle_sha256': '73ad01b8443ab3e72ee3d54c43a75ff55104b75a3d4125cc17599cced87e9abb', 'source_commit': 'ed6be62d577f0675d50a4487b7a9f43270bb515f', 'source_file_count': 130, 'source_map_sha256': '85bc3c30d91c72c2f960a98539cdb72809a2ae0610df8e239018c77940452c2a', 'source_notes_sha256': 'ad412f724f95df30077a6fb21503a5f291478a0048f762e2c16bddefdbfb7192', 'source_package_sha256': 'c4263a03ccfa9f728f186e0caf9f1382f8e4fc8501e4dc56f1cb2fde3b50cab6', 'worker_sha256': '7f0947df45c3239cce48dd7e112886f4ccff98dd097673d0275844d227caf8f6'}
 HOST_SOURCE_LIMIT = 48 * 1024
 SESSION = "merlin-exact-solver-20261121"
 PROJECT = "dot-production-docs"
@@ -318,7 +318,7 @@ def phase_main(stage, phase):
         put_once(registry, path, canonical(event))
     context = TaskExecutionContext(task_id=SESSION, hypothesis_id="exact-rational-solver-alternatives",
         resource_budget={"cpu_cores": 2, "memory_bytes": 4 * 1024**3,
-                         "max_wall_seconds": 540, "compute_budget_units": 1},
+                         "max_wall_seconds": 3900, "compute_budget_units": 1},
         approval_ref=capsule["admission_ref"]["sha256"], lease_ref=capsule["lease_ref"],
         artifact_refs=tuple(capsule["admitted_refs"]), idempotency_key=SESSION,
         deadline_epoch=capsule["deadline_epoch"],
@@ -524,7 +524,7 @@ def _root_run(incoming, output):
             "basis": "User explicitly authorized connecting the actual zero-cost providers, one real research task, native validation, restart/status and reviewed release.",
             "authority": "bounded_execution_only", "external_model_budget_usd": 0,
             "model_calls_max": 2, "model_output_tokens_per_call_max": 900,
-            "model_client_wall_seconds_max": 180, "episode_wall_seconds_max": 540,
+            "model_client_wall_seconds_max": 1800, "episode_wall_seconds_max": 3900,
             "promotion_authority": False, "independent_attestation": False}
         admission_ref = put_once(registry, HOST_PREFIX + "admission.json", canonical(admission))
         admitted_refs.append(admission_ref)
@@ -534,14 +534,14 @@ def _root_run(incoming, output):
             "provider_config": {key: provider[key] for key in ("endpoint", "model", "revision")},
             "provider_evidence_refs": {"manifest_ref": manifest_ref, "bootstrap_ref": bootstrap_ref},
             "admission_ref": admission_ref, "admitted_refs": admitted_refs,
-            "deadline_epoch": time.time() + 540, "lease_ref": sha(canonical(invocation))}
-        capsule["provider_config"]["client_timeout_seconds"] = 180
+            "deadline_epoch": time.time() + 3900, "lease_ref": sha(canonical(invocation))}
+        capsule["provider_config"]["client_timeout_seconds"] = 1800
         (stage / "capsule.json").write_bytes(canonical(capsule))
         (stage / "capsule.json").chmod(0o600)
         ownership = [repair_new_objects(registry, before, owner)]
         phase_rows, socket_rows = {}, {}
         try:
-            for phase, timeout in (("coder_a", 200), ("complete", 250), ("replay", 30)):
+            for phase, timeout in (("coder_a", 1840), ("complete", 1870), ("replay", 30)):
                 existing = inventory_rows(registry)
                 started = time.monotonic()
                 try:
