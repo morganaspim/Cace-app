@@ -1,0 +1,73 @@
+name: Merlin EGM context integration
+'on':
+  push:
+    branches: [merlin/platform-acceptance-20261120]
+    paths: ['merlin/egm-checks/*.json']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+jobs:
+  context-worker-kernel:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 8
+    steps:
+      - name: Validate fixed context source and actual worker process integration
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,hashlib,json,os,re,shutil,urllib.request
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/platform-acceptance-20261120' or os.environ.get('RUNNER_NAME')!='cace-oci-a1': raise RuntimeError('execution identity differs')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-egm-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']);out.mkdir(mode=0o700,exist_ok=False)
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON field')
+                  value[key]=item
+              return value
+          def api(path):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req,timeout=20) as response: raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024: raise ValueError('API response ceiling')
+              return json.loads(raw,object_pairs_hook=unique)
+          def fetch(path):
+              obj=api('contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
+              if len(raw)>32000 or hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!=obj['sha']: raise ValueError('source bytes differ')
+              return raw,obj['sha']
+          try:
+              if shutil.disk_usage('/opt/actions-runner').free<2*1024**3 or os.statvfs('/opt/actions-runner').f_favail<10000: raise RuntimeError('insufficient validation headroom')
+              changes=api('commits/'+commit)['files']
+              if len(changes)!=1 or changes[0]['status']!='added' or not re.fullmatch(r'merlin/egm-checks/[0-9a-f-]{36}\.json',changes[0]['filename']): raise ValueError('one additive fixed request required')
+              raw,_=fetch(changes[0]['filename'])
+              if len(raw)>2048: raise ValueError('request ceiling')
+              q=json.loads(raw,object_pairs_hook=unique)
+              if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-egm-check/1' or q['operation']!='validate' or changes[0]['filename']!='merlin/egm-checks/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
+              source,identity=fetch('ops/merlin_dot/validate_egm_context.py')
+              if identity!='03e9b885e9b1f7ca472d22f0d3e1008e5b46e7ef': raise ValueError('reviewed controller object differs')
+              (out/'controller.txt').write_bytes(source)
+              (out/'controller-identity.json').write_text(json.dumps({'git_blob':identity,'sha256':hashlib.sha256(source).hexdigest(),'bytes':len(source),'workflow_commit':commit},indent=2))
+              namespace={};exec(compile(source,'pinned-egm-validation','exec'),namespace)
+              namespace['run'](api,out)
+          except Exception as exc:
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed','error_class':type(exc).__name__,'message':str(exc)[:1500],'workflow_commit':commit,'run_id':os.environ['GITHUB_RUN_ID']},indent=2))
+              raise
+          PY
+      - name: Preserve exact source and every acceptance outcome
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-egm-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/merlin-egm-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+            ${{ runner.temp }}/merlin-egm-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
+            ${{ runner.temp }}/merlin-egm-${{ github.run_id }}-${{ github.run_attempt }}/tested-source.zip
+          retention-days: 30
+          if-no-files-found: error
