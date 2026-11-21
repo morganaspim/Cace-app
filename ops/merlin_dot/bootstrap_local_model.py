@@ -53,6 +53,18 @@ INTENT = STATE / "bootstrap-intent.json"
 CMAKE = "/home/opc/.local/bin/cmake"
 OS_RELEASE_PRIMARY = Path("/etc/os-release")
 OS_RELEASE_VENDOR = Path("/usr/lib/os-release")
+RECOVERY_ROOT_UID = 0
+# One reviewed recovery of the observed, pre-build extraction failure. These are
+# host-approved immutable pins, never values accepted from a request.
+SOURCE_PERMISSION_RECOVERY = {
+    "run_id": 44913427137, "run_attempt": 1,
+    "workflow_commit": "f29fb74b1fef2a71272876d46de562c5555ef54b",
+    "controller_sha256": "7c7c4dcd342b57890853474dc68cba62ba5600d03f10d80b5967df93d82a6b4f",
+    "request_id": "5f9ac2c0-ccf6-4ae2-96fa-50702b7abefa",
+    "request_sha256": "aa72cbc8d1fd3da6f56171350915eb294e976f42c84f90ea62cd3f7c337e28b3",
+    "failed_receipt_sha256": "16e99a0536de6ef609f8122dbf34fd57148aa1dc36d4c30913c1c766ceefa3a0",
+    "intent_sha256": "24e28ad922512260981fd64aed982c46fb856c2c2cb6e26d3a01668a781e2432",
+}
 CLEAN_ENV = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
 LIMITS = {"context_tokens": 4096, "parallel": 1, "threads": 2,
           "memory_max_bytes": 3221225472, "memory_swap_max_bytes": 0,
@@ -173,7 +185,7 @@ def rooted_directory(path):
 def validate_request(request, identity):
     if not isinstance(request, dict) or set(request) != {"schema", "request_id", "operation", "created_at"}:
         raise BootstrapError("request fields")
-    if request["schema"] != "merlin-model-bootstrap-request/1" or request["operation"] not in {"bootstrap", "inspect"}:
+    if request["schema"] != "merlin-model-bootstrap-request/1" or request["operation"] not in {"bootstrap", "inspect", "recover_source_permissions"}:
         raise BootstrapError("request operation")
     if not isinstance(request["request_id"], str) or str(uuid.UUID(request["request_id"])) != request["request_id"]:
         raise BootstrapError("request ID")
@@ -387,7 +399,7 @@ def extract_members(archive, target):
             raise BootstrapError("archive path")
         relative = "/".join(parts[1:])
         if not relative:
-            if not member.isdir():
+            if not member.isdir() or member.mode not in (0o755, 0o775):
                 raise BootstrapError("archive root")
             continue
         if relative in seen or (not member.isdir() and not member.isfile()) or member.issym() or member.islnk() or member.sparse:
@@ -395,9 +407,11 @@ def extract_members(archive, target):
         seen.add(relative)
         destination = target.joinpath(*parts[1:])
         if member.isdir():
+            if member.mode not in (0o755, 0o775):
+                raise BootstrapError("archive directory mode")
             destination.mkdir(mode=0o755, parents=True, exist_ok=True)
             continue
-        if member.mode not in (0o644, 0o755) or member.size < 0:
+        if member.mode not in (0o644, 0o664, 0o755, 0o775) or member.size < 0:
             raise BootstrapError("archive mode or size")
         total += member.size
         if total > 256 * 1024**2:
@@ -407,7 +421,9 @@ def extract_members(archive, target):
             raw = source.read(member.size + 1)
         if len(raw) != member.size:
             raise BootstrapError("archive member length")
-        write_new(destination, raw, member.mode)
+        # Git stores executable identity, not group-write archive permissions.
+        # Remove write bits only; never add permissions to a downloaded entry.
+        write_new(destination, raw, member.mode & ~0o022)
         files += 1
     return {"files": files, "uncompressed_bytes": total}
 
@@ -778,6 +794,96 @@ def inspect_ready():
             "qualification": False, "external_model_cost_usd": 0}
 
 
+def _recovery_root_path(path, directory=False):
+    info = Path(path).lstat()
+    correct_type = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
+    if (not correct_type or info.st_uid != RECOVERY_ROOT_UID or info.st_mode & 0o022
+            or (not directory and info.st_nlink != 1)):
+        raise BootstrapError("recovery evidence ownership or file type differs")
+
+
+def _recovery_paths():
+    pins = SOURCE_PERMISSION_RECOVERY
+    old = STATE / "runs" / (str(pins["run_id"]) + "-" + str(pins["run_attempt"]))
+    decision = STATE / ("source-permissions-recovery-" + str(pins["run_id"]) + ".json")
+    return old, decision
+
+
+def _original_source_failure():
+    """Authenticate the retained pre-build intent and failure, without effects."""
+    pins = SOURCE_PERMISSION_RECOVERY
+    old, decision = _recovery_paths()
+    for path in (STATE, STATE / "runs", old, old / "source"):
+        _recovery_root_path(path, directory=True)
+    for path in (INTENT, old / "failed-receipt.json", old / "llama-source.tar.gz"):
+        _recovery_root_path(path)
+    intent_raw = read_regular(INTENT, 16384)
+    failed_raw = read_regular(old / "failed-receipt.json", 65536)
+    if digest(intent_raw) != pins["intent_sha256"] or digest(failed_raw) != pins["failed_receipt_sha256"]:
+        raise BootstrapError("recovery original intent or failure identity differs")
+    original_identity = {key: pins[key] for key in ("run_id", "run_attempt", "workflow_commit", "controller_sha256")}
+    original_identity["runner"] = "cace-oci-a1"
+    expected_intent = {"schema": "merlin-local-model-bootstrap-intent/1", "request_sha256": pins["request_sha256"],
+                       "identity": original_identity, "output": str(old)}
+    failure = decode(failed_raw, 65536)
+    if (intent_raw != canonical(expected_intent) or failure.get("identity") != original_identity
+            or failure.get("schema") != "merlin-local-model-bootstrap-receipt/1" or failure.get("status") != "failed"
+            or failure.get("phases") != ["intent-recorded"]
+            or failure.get("error") != {"type": "BootstrapError", "message": "archive mode or size"}
+            or failure.get("request", {}).get("request_id") != pins["request_id"]
+            or failure.get("request", {}).get("operation") != "bootstrap"
+            or digest(canonical(failure.get("request"))) != pins["request_sha256"]
+            or failure.get("request_sha256") != pins["request_sha256"]
+            or failure.get("qualification") is not False or failure.get("promotion_authority") is not False
+            or type(failure.get("external_model_cost_usd")) is not int or failure["external_model_cost_usd"] != 0):
+        raise BootstrapError("recovery is not the exact reviewed pre-build failure")
+    acquisition = {"https_host": "codeload.github.com", "redirects": 0,
+                   "sha256": SOURCE_SHA, "size_bytes": SOURCE_BYTES}
+    if failure.get("source_acquisition") != acquisition:
+        raise BootstrapError("recovery source acquisition differs")
+    with os.scandir(old) as entries:
+        names = []
+        for entry in entries:
+            names.append(entry.name)
+            if len(names) > 3:
+                raise BootstrapError("recovery attempt has unexpected effect evidence")
+    if set(names) != {"source", "failed-receipt.json", "llama-source.tar.gz"}:
+        raise BootstrapError("recovery attempt file inventory differs")
+    with os.scandir(old / "source") as entries:
+        if next(entries, None) is not None:
+            raise BootstrapError("recovery requires the original empty extraction directory")
+    source = old / "llama-source.tar.gz"
+    if file_identity(source, SOURCE_BYTES) != {"sha256": SOURCE_SHA, "size_bytes": SOURCE_BYTES}:
+        raise BootstrapError("recovery retained source archive differs")
+    return failure, source, decision
+
+
+def _authorize_source_recovery(request, identity, before, out):
+    failure, source, decision = _original_source_failure()
+    pins = SOURCE_PERMISSION_RECOVERY
+    if (request["request_id"] == pins["request_id"] or identity["run_id"] == pins["run_id"]
+            or identity["controller_sha256"] == pins["controller_sha256"]
+            or identity["workflow_commit"] == pins["workflow_commit"]):
+        raise BootstrapError("recovery requires a new reviewed request and controller")
+    if before["private"] != failure["before"]["private"] or before["os_release"] != failure["before"]["os_release"]:
+        raise BootstrapError("recovery host prerequisite observations changed")
+    if decision.exists() or decision.is_symlink():
+        raise BootstrapError("recovery already has an intent; no automatic effects")
+    record = {"schema": "merlin-local-model-source-recovery-intent/1", "operation": "recover_source_permissions",
+              "request": request, "request_sha256": digest(canonical(request)), "identity": identity,
+              "original_intent": {"path": str(INTENT), "sha256": pins["intent_sha256"]},
+              "original_failure": {"path": str(source.parent / "failed-receipt.json"), "sha256": pins["failed_receipt_sha256"]},
+              "source_archive": {"path": str(source), "sha256": SOURCE_SHA, "size_bytes": SOURCE_BYTES},
+              "permitted_start_phase": "extract_verified_source", "previous_provider_state": "absent",
+              "no_previous_build_or_inference_evidence": True, "qualification": False, "promotion_authority": False}
+    raw = canonical(record)
+    write_new(decision, raw, 0o600)
+    write_new(out / "recovery-intent.json", raw)
+    return source, failure["source_acquisition"], {"path": str(decision), "sha256": digest(raw),
+                                                   "original_intent_sha256": pins["intent_sha256"],
+                                                   "original_failure_sha256": pins["failed_receipt_sha256"]}
+
+
 def run(request, identity):
     validate_request(request, identity)
     if os.geteuid() != 0:
@@ -798,7 +904,27 @@ def _run_validated(request, identity):
         write_new(out / "inspection.json", canonical(observed))
         return observed
     request_sha = digest(canonical(request))
-    if INTENT.exists():
+    recovering = request["operation"] == "recover_source_permissions"
+    if recovering:
+        _, decision = _recovery_paths()
+        if decision.exists() or decision.is_symlink():
+            _recovery_root_path(decision)
+            saved_raw = read_regular(decision, 16384)
+            saved = decode(saved_raw, 16384)
+            _original_source_failure()
+            if (saved.get("request_sha256") == request_sha and saved.get("request") == request
+                    and saved.get("identity", {}).get("controller_sha256") == identity["controller_sha256"]
+                    and MANIFEST.exists()):
+                _recovery_root_path(BOOTSTRAP_RECEIPT)
+                completed = decode(read_regular(BOOTSTRAP_RECEIPT, 65536), 65536)
+                if (completed.get("status") != "ready" or completed.get("request") != request
+                        or completed.get("request_sha256") != request_sha or completed.get("identity") != saved.get("identity")
+                        or completed.get("recovery", {}).get("path") != str(decision)
+                        or completed.get("recovery", {}).get("sha256") != digest(saved_raw)):
+                    raise BootstrapError("ready provider is not the exact completed recovery")
+                return inspect_ready()
+            raise BootstrapError("recovery intent requires reconciliation; no automatic effects")
+    elif INTENT.exists():
         previous = decode(read_regular(INTENT, 16384), 16384)
         if previous.get("request_sha256") == request_sha and MANIFEST.exists():
             return inspect_ready()
@@ -810,10 +936,14 @@ def _run_validated(request, identity):
     installed = None
     try:
         receipt["before"] = preflight()
-        write_new(INTENT, canonical({"schema": "merlin-local-model-bootstrap-intent/1", "request_sha256": request_sha, "identity": identity, "output": str(out)}), 0o600)
-        receipt["phases"].append("intent-recorded")
         source_archive, model_path = out / "llama-source.tar.gz", out / MODEL_FILENAME
-        receipt["source_acquisition"] = download(SOURCE_URL, source_archive, SOURCE_BYTES, SOURCE_SHA, 180)
+        if recovering:
+            source_archive, receipt["source_acquisition"], receipt["recovery"] = _authorize_source_recovery(request, identity, receipt["before"], out)
+            receipt["phases"].append("recovery-intent-recorded")
+        else:
+            write_new(INTENT, canonical({"schema": "merlin-local-model-bootstrap-intent/1", "request_sha256": request_sha, "identity": identity, "output": str(out)}), 0o600)
+            receipt["phases"].append("intent-recorded")
+            receipt["source_acquisition"] = download(SOURCE_URL, source_archive, SOURCE_BYTES, SOURCE_SHA, 180)
         source = out / "source"
         source.mkdir()
         with tarfile.open(source_archive, "r:gz") as archive:

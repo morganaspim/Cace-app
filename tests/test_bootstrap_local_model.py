@@ -47,6 +47,7 @@ class Fixture:
         for name, value in values.items():
             stack.enter_context(patch.object(b, name, value))
         stack.enter_context(patch.object(b.os, "geteuid", return_value=0))
+        stack.enter_context(patch.object(b, "RECOVERY_ROOT_UID", os.getuid()))
         stack.enter_context(patch.object(b, "rooted_directory", side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)))
         stack.enter_context(patch.object(b, "preflight", side_effect=self.preflight))
         stack.enter_context(patch.object(b, "download", side_effect=self.download))
@@ -64,7 +65,7 @@ class Fixture:
 
     def preflight(self):
         self.calls.append("preflight")
-        return {"private": {"unchanged": True}, "provider": {"LoadState": "not-found"}}
+        return {"private": {"unchanged": True}, "provider": {"LoadState": "not-found"}, "os_release": {"fixture_only": True}}
 
     def download(self, url, path, size, sha, seconds):
         self.calls.append("download-source" if url == b.SOURCE_URL else "download-model")
@@ -106,6 +107,38 @@ class Fixture:
     def rollback(self, installed):
         self.calls.append("rollback")
         return {"fixture_only": True, "installed": installed is not None}
+
+    def prepare_recovery(self, stack):
+        """Synthetic temp-only failure/pins, never the actual host authorization."""
+        old_request = dict(REQUEST, request_id="11111111-2222-4333-8444-555555555555")
+        old_identity = dict(IDENTITY, run_id=1001, workflow_commit="c" * 40, controller_sha256="d" * 64)
+        old = b.STATE / "runs/1001-1"
+        (old / "source").mkdir(parents=True)
+        raw = b"source"
+        (old / "llama-source.tar.gz").write_bytes(raw)
+        stack.enter_context(patch.object(b, "SOURCE_SHA", b.digest(raw)))
+        stack.enter_context(patch.object(b, "SOURCE_BYTES", len(raw)))
+        request_sha = b.digest(b.canonical(old_request))
+        intent = {"schema": "merlin-local-model-bootstrap-intent/1", "request_sha256": request_sha,
+                  "identity": old_identity, "output": str(old)}
+        intent_raw = b.canonical(intent)
+        b.write_new(b.INTENT, intent_raw, 0o600)
+        failure = {"schema": "merlin-local-model-bootstrap-receipt/1", "status": "failed",
+                   "identity": old_identity, "request": old_request, "request_sha256": request_sha,
+                   "before": self.preflight(), "phases": ["intent-recorded"],
+                   "source_acquisition": {"https_host": "codeload.github.com", "redirects": 0,
+                                          "sha256": b.digest(raw), "size_bytes": len(raw)},
+                   "error": {"type": "BootstrapError", "message": "archive mode or size"},
+                   "qualification": False, "promotion_authority": False, "external_model_cost_usd": 0,
+                   "fixture_only": True}
+        failure_raw = b.canonical(failure)
+        (old / "failed-receipt.json").write_bytes(failure_raw)
+        pins = {key: old_identity[key] for key in ("run_id", "run_attempt", "workflow_commit", "controller_sha256")}
+        pins.update(request_id=old_request["request_id"], request_sha256=request_sha,
+                    failed_receipt_sha256=b.digest(failure_raw), intent_sha256=b.digest(intent_raw))
+        stack.enter_context(patch.object(b, "SOURCE_PERMISSION_RECOVERY", pins))
+        self.calls.clear()
+        return old, intent_raw, failure_raw
 
 
 @contextmanager
@@ -219,9 +252,10 @@ class BootstrapControls(unittest.TestCase):
     def archive(self, entries):
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w") as archive:
-            for name, kind, content in entries:
+            for entry in entries:
+                name, kind, content = entry[:3]
                 member = tarfile.TarInfo(name)
-                member.type, member.mode, member.size = kind, 0o644, len(content)
+                member.type, member.mode, member.size = kind, entry[3] if len(entry) == 4 else 0o644, len(content)
                 member.linkname = "../outside"
                 archive.addfile(member, io.BytesIO(content) if kind == tarfile.REGTYPE else None)
         data.seek(0)
@@ -240,6 +274,23 @@ class BootstrapControls(unittest.TestCase):
         cases += [[(b.SOURCE_PREFIX + "/a", tarfile.REGTYPE, b"x")] * 2]
         for entries in cases:
             with self.subTest(entries=entries), tempfile.TemporaryDirectory() as folder, self.archive(entries) as archive, self.assertRaises(b.BootstrapError):
+                b.extract_members(archive, Path(folder))
+
+    def test_archive_normalizes_known_github_modes_without_adding_permissions(self):
+        entries = [(b.SOURCE_PREFIX + "/src", tarfile.DIRTYPE, b"", 0o775),
+                   (b.SOURCE_PREFIX + "/src/plain", tarfile.REGTYPE, b"plain", 0o664),
+                   (b.SOURCE_PREFIX + "/src/executable", tarfile.REGTYPE, b"exec", 0o775)]
+        with tempfile.TemporaryDirectory() as folder, self.archive(entries) as archive:
+            result = b.extract_members(archive, Path(folder))
+            self.assertEqual(result, {"files": 2, "uncompressed_bytes": 9})
+            for name, original, expected in (("src", 0o775, 0o755), ("src/plain", 0o664, 0o644), ("src/executable", 0o775, 0o755)):
+                actual = (Path(folder) / name).stat().st_mode & 0o7777
+                self.assertEqual(actual, expected)
+                self.assertEqual(actual & ~original, 0)
+
+    def test_archive_rejects_special_and_unknown_permission_modes(self):
+        for mode in (0o4755, 0o777, 0o600, 0o444, 0o666, 0o1775):
+            with self.subTest(mode=oct(mode)), tempfile.TemporaryDirectory() as folder, self.archive([(b.SOURCE_PREFIX + "/file", tarfile.REGTYPE, b"x", mode)]) as archive, self.assertRaises(b.BootstrapError):
                 b.extract_members(archive, Path(folder))
 
     def test_download_exact_hash_size_and_no_credentials(self):
@@ -514,6 +565,113 @@ class BootstrapControls(unittest.TestCase):
             self.assertEqual(result["status"], "not-ready")
             self.assertEqual(f.calls, [])
             self.assertFalse(b.INTENT.exists())
+
+    def test_explicit_recovery_reuses_source_preserves_old_intent_and_links_completion(self):
+        with fixture() as f, ExitStack() as stack:
+            old, intent_raw, failure_raw = f.prepare_recovery(stack)
+            request = dict(REQUEST, operation="recover_source_permissions")
+            result = b.run(request, IDENTITY)
+            self.assertEqual(result["status"], "ready")
+            self.assertNotIn("download-source", f.calls)
+            self.assertEqual(f.calls.count("download-model"), 1)
+            self.assertEqual(f.model_calls, 1)
+            self.assertEqual(b.INTENT.read_bytes(), intent_raw)
+            self.assertEqual((old / "failed-receipt.json").read_bytes(), failure_raw)
+            self.assertEqual(list((old / "source").iterdir()), [])
+            _, decision = b._recovery_paths()
+            self.assertEqual(decision.stat().st_mode & 0o777, 0o600)
+            receipt = json.loads(b.BOOTSTRAP_RECEIPT.read_bytes())
+            self.assertEqual(receipt["recovery"]["sha256"], b.digest(decision.read_bytes()))
+            self.assertEqual(receipt["recovery"]["original_intent_sha256"], b.digest(intent_raw))
+            before = list(f.calls)
+            with patch.object(b, "inspect_ready", return_value={"status": "ready", "inference_requests": 0}) as inspect:
+                replay = b.run(request, dict(IDENTITY, run_id=12346))
+            self.assertEqual(replay["inference_requests"], 0)
+            self.assertEqual(before, f.calls)
+            inspect.assert_called_once()
+
+    def test_ordinary_bootstrap_does_not_reconcile_the_source_failure(self):
+        with fixture() as f, ExitStack() as stack:
+            f.prepare_recovery(stack)
+            with self.assertRaisesRegex(b.BootstrapError, "no automatic effects"):
+                b.run(REQUEST, IDENTITY)
+            self.assertEqual(f.calls, [])
+
+    def test_recovery_tamper_partial_source_and_effect_evidence_block_before_build(self):
+        for change in ("intent", "failure", "source", "partial", "inference", "writable", "host"):
+            with self.subTest(change=change), fixture() as f, ExitStack() as stack:
+                old, _, _ = f.prepare_recovery(stack)
+                if change == "intent": b.INTENT.write_bytes(b.INTENT.read_bytes() + b" ")
+                elif change == "failure": (old / "failed-receipt.json").write_bytes((old / "failed-receipt.json").read_bytes() + b" ")
+                elif change == "source": (old / "llama-source.tar.gz").write_bytes(b"changed")
+                elif change == "partial": (old / "source/partial.py").write_bytes(b"partial")
+                elif change == "inference": (old / "smoke-inference-intent.json").write_bytes(b"{}")
+                elif change == "writable": (old / "llama-source.tar.gz").chmod(0o666)
+                else: stack.enter_context(patch.object(b, "preflight", return_value={"private": {"changed": True}, "os_release": {"fixture_only": True}}))
+                with self.assertRaises((b.BootstrapError, OSError)):
+                    b.run(dict(REQUEST, operation="recover_source_permissions"), IDENTITY)
+                self.assertFalse(b._recovery_paths()[1].exists())
+                self.assertNotIn("build", f.calls)
+                self.assertNotIn("download-model", f.calls)
+                self.assertEqual(f.model_calls, 0)
+
+    def test_recovery_requires_new_reviewed_request_controller_and_run(self):
+        for change in ("request", "controller", "workflow", "run"):
+            with self.subTest(change=change), fixture() as f, ExitStack() as stack:
+                f.prepare_recovery(stack)
+                request, identity = dict(REQUEST, operation="recover_source_permissions"), dict(IDENTITY)
+                pins = b.SOURCE_PERMISSION_RECOVERY
+                if change == "request": request["request_id"] = pins["request_id"]
+                elif change == "controller": identity["controller_sha256"] = pins["controller_sha256"]
+                elif change == "workflow": identity["workflow_commit"] = pins["workflow_commit"]
+                else: identity["run_id"] = pins["run_id"]
+                with self.assertRaises((b.BootstrapError, FileExistsError)):
+                    b.run(request, identity)
+                self.assertFalse(b._recovery_paths()[1].exists())
+                self.assertNotIn("build", f.calls)
+
+    def test_interrupted_recovery_retains_both_intents_and_never_automatically_restarts(self):
+        with fixture() as f, ExitStack() as stack:
+            _, original, _ = f.prepare_recovery(stack)
+            request = dict(REQUEST, operation="recover_source_permissions")
+            with patch.object(b, "extract_members", side_effect=SystemExit("synthetic interruption")), self.assertRaises(SystemExit):
+                b.run(request, IDENTITY)
+            self.assertEqual(b.INTENT.read_bytes(), original)
+            self.assertTrue(b._recovery_paths()[1].exists())
+            for following in (request, dict(request, request_id="8714c2c6-bc2d-4d4f-a683-4b734739507e")):
+                with self.assertRaisesRegex(b.BootstrapError, "no automatic effects"):
+                    b.run(following, dict(IDENTITY, run_id=12346))
+            self.assertNotIn("build", f.calls)
+            self.assertEqual(f.model_calls, 0)
+
+    def test_interruption_after_recovery_response_cannot_repeat_inference(self):
+        with fixture() as f, ExitStack() as stack:
+            _, original, _ = f.prepare_recovery(stack)
+            request = dict(REQUEST, operation="recover_source_permissions")
+            write = b.write_new
+            def interrupted(path, data, mode=0o644):
+                write(path, data, mode)
+                if path.name == "smoke-response.json": raise SystemExit("synthetic receipt interruption")
+            with patch.object(b, "write_new", side_effect=interrupted), self.assertRaises(SystemExit):
+                b.run(request, IDENTITY)
+            with self.assertRaises(b.BootstrapError):
+                b.run(request, dict(IDENTITY, run_id=12346))
+            self.assertEqual(f.model_calls, 1)
+            self.assertEqual(b.INTENT.read_bytes(), original)
+            self.assertTrue((b.STATE / "runs/12345-1/smoke-response.json").exists())
+
+    def test_recovery_replay_requires_its_exact_completed_receipt(self):
+        with fixture() as f, ExitStack() as stack:
+            f.prepare_recovery(stack)
+            request = dict(REQUEST, operation="recover_source_permissions")
+            b.run(request, IDENTITY)
+            completed = json.loads(b.BOOTSTRAP_RECEIPT.read_bytes())
+            completed["recovery"]["sha256"] = "f" * 64
+            b.BOOTSTRAP_RECEIPT.write_bytes(b.canonical(completed))
+            with patch.object(b, "inspect_ready") as inspect, self.assertRaisesRegex(b.BootstrapError, "exact completed recovery"):
+                b.run(request, dict(IDENTITY, run_id=12346))
+            inspect.assert_not_called()
+            self.assertEqual(f.model_calls, 1)
 
 
 if __name__ == "__main__":
