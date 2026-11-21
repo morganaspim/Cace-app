@@ -1,0 +1,138 @@
+{
+  "accepted_contract": [
+    "Only typed submit/status; no request-selected URLs, commands, registry paths, providers, program, source or budget.",
+    "Source module/tests/program and seven private dependencies are exact pinned bytes, imported only from the fixed staged and active private source roots.",
+    "Input publication and launch receipt bind the fixed project, exact episode, stopped workers, root-retained manifest/actions and canonical refs.",
+    "Prior native submit intents become status-only recovery; no repeated measurement after interruption or ambiguous partial native state.",
+    "Library result scope remains retained-source integrity and coverage; every recorded result receives actual separate-process status readback.",
+    "Canonical export is same-project/version-one and bounded; operation evidence is root-retained and copied through reviewed nofollow anchored descriptors with final parent/leaf inode checks.",
+    "Native process envelope is 130s alarm/150s cgroup/15s stop/170s outer;512MiB,zero swap,50%CPU,64tasks,PrivateNetwork and AF_UNIX only.",
+    "GitHub credentials remain only in the unprivileged source-fetch wrapper; root source and child environments are fixed and credential-free.",
+    "YAML generation requires actual successful native producer API/archive evidence, three public cases, caller/denial/restart checks and rendered sandbox fixture.",
+    "The embedded workflow product pin object must equal the exact product-pin source file being transported and tested."
+  ],
+  "current_gate_state": {
+    "actual_installed_browser_pins_accepted": false,
+    "native_controller_execution_observed": false,
+    "source_only_preparation_allowed": true,
+    "workflow_yaml_exists": false
+  },
+  "decision": "source_and_generator_accepted_pending_actual_installed_pins_and_final_emitted_workflow_review",
+  "independent_validation": {
+    "coordinator_tests": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -B -m unittest discover -s ops/merlin_research -p test_handoff_request.py -v",
+      "elapsed_seconds": 0.264,
+      "errors": 0,
+      "failures": 0,
+      "skips": 0,
+      "tests": 24
+    },
+    "copied_io_helpers": {
+      "all_ast_identical_to_reviewed_gateway": true,
+      "definitions": 13,
+      "original_sha256": "b5742034903beedd79fd0f6941cfe88f90449c6d87c7005012c473f15b9afa7e"
+    },
+    "generator_tests": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -B -m unittest test_build_handoff_workflow -v",
+      "elapsed_seconds": 0.035,
+      "errors": 0,
+      "failures": 0,
+      "latest_repeat_elapsed_seconds": 0.048,
+      "latest_repeat_reason": "Final wiring guard was re-read and the same final source hashes were confirmed before freezing this review.",
+      "skips": 0,
+      "tests": 13
+    },
+    "private_manifest_schema_and_dependencies": "independently checked against exact accepted ef5c8d65782e8b746d3002d1f407596b4d9c765059ec46271d446d4e9bc63f82 runtime archive",
+    "python_3_9_syntax": "all five Python files parse; local tests are not native execution"
+  },
+  "limitations": [
+    "A generated real-pin YAML still needs final hash/source/installed-evidence review before publication and dispatch.",
+    "Actual browser activation and admitted saved captures are still pending the separate loader runtime repair.",
+    "Synthetic controller/generator tests do not prove native production execution or scientific progress.",
+    "This route performs no new browser acquisition, model request, package installation, provider call, domain experiment, qualification or promotion."
+  ],
+  "remaining_concrete_source_blockers": [],
+  "review_finding_and_resolution": {
+    "finding": "The initial generator accepted arbitrary valid-shaped host_config_sha256 and runtime_manifest_sha256 values without binding them to actual native evidence.",
+    "regressions": "Both negative tests independently passed; incomplete/failed native evidence is also rejected.",
+    "repair": "Generator now reads the exact receipt-bound runtime.zip, derives the manifest digest/source identity, and reconstructs canonical host.json from bound producer fields before comparing both installed pins.",
+    "reproduction": "Independently supplied altered f*64 digests with an otherwise-consistent synthetic producer tuple; both were accepted."
+  },
+  "review_side_effects": {
+    "browser_calls": 0,
+    "model_calls": 0,
+    "native_operations": 0,
+    "remote_mutations": 0,
+    "source_edits": 0
+  },
+  "reviewed_at_utc": "2026-11-21T20:14:41.967124+00:00",
+  "reviewer": "/root/source_release_review",
+  "schema": "merlin-browser-handoff-coordinator-independent-review/1",
+  "source_bundle": {
+    "bytes": 22511,
+    "git_blob": "21557adf26ee934a4890f474e2ad4614c6f328c4",
+    "independent_exact_four_member_verification": true,
+    "manifest": {
+      "files": {
+        "browser_research_handoff.py": {
+          "bytes": 34674,
+          "git_blob": "1b0d4d026f781741d5f46f5d7ceff89df380c9a1",
+          "sha256": "d2bcfd849c40412479861f855378d40acfeb7f627ab3277a468b672c7c94c960"
+        },
+        "program.json": {
+          "bytes": 21307,
+          "git_blob": "9db5587afb6e8b0df3ae5ae0a923e4b67ae7ea9a",
+          "sha256": "f8f312e4ff968028385a636dcc15b1eec93659a4973b0a7c900d36c4cd27c49c"
+        },
+        "test_browser_research_handoff.py": {
+          "bytes": 19391,
+          "git_blob": "57b653f0248101827f8838e0ed9085182c985e11",
+          "sha256": "f49202a7e70a90cddf8bced9118aabc671b89b6c653fb96fe2bccf3ae32981b7"
+        }
+      },
+      "repository": "Mannyspiro/expert-robot",
+      "schema": "merlin-browser-handoff-transport/1",
+      "source_commit": "bc8a9b64638323791b761d26d1b7093203405626"
+    },
+    "path": "merlin/browser-handoff-source.zip",
+    "sha256": "8aa86d9ceaae32d1238dd9b1f834f275b7675e662ef4462c70951f0ef6010bdd"
+  },
+  "sources": [
+    {
+      "bytes": 33987,
+      "git_blob": "4a97207d540a7ad8b6a9ebe97101b13d0efe422b",
+      "path": "ops/merlin_research/handoff_request.py",
+      "sha256": "d2d525afb0f27b0c4479cdb4df82388edce0ea4fd474651c05b0a4c1ae6d957e"
+    },
+    {
+      "bytes": 9484,
+      "git_blob": "c6f9a3ce92773b5a0110c26d54ef4d467410f5e2",
+      "path": "ops/merlin_research/handoff_support.py",
+      "sha256": "3646a979ffc7b94d1ff999c93aa69d0e48c41328cd4a1f9e89c5ccd4277ea1dc"
+    },
+    {
+      "bytes": 16480,
+      "git_blob": "37102e920f378b2508df02813e3ecb6a5ba7295d",
+      "path": "ops/merlin_research/test_handoff_request.py",
+      "sha256": "af0dc7c4d4506915981609705cf7023994c344189f054a760bfd6841588a2c78"
+    },
+    {
+      "bytes": 3131,
+      "git_blob": "d7fcf4f8cd9e6cbab0221578a409812b70753eac",
+      "path": "ops/merlin_research/handoff_product_pins.json",
+      "sha256": "10f0d585975707c017c8c995e7a9ade060f7bfd69ee3a1ccedd76bcd2ab7f806"
+    },
+    {
+      "bytes": 27133,
+      "git_blob": "aa07850675538d52ae72f92f53f85cbbe0d37367",
+      "path": "build_handoff_workflow.py",
+      "sha256": "a01950794ff391ea66e6a31f2dc0d4347847f20417ef6d6417fc6c653378f684"
+    },
+    {
+      "bytes": 12205,
+      "git_blob": "c246b09ddaba41512cdd5481b0f6a4df6bce1306",
+      "path": "test_build_handoff_workflow.py",
+      "sha256": "f83064c8fdff516614955b78e81cadd11bed5f30e43ff29c36c08d3df703f555"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "copied_functions": [
+    {
+      "name": "OperationError",
+      "sha256": "67201b526e89935981ed837827eb36a85b570c8c1cfc353713739079ba9453f8"
+    },
+    {
+      "name": "canonical",
+      "sha256": "b1b449b2e67ce834f0f04f688c43eef835f58a5493407cdec23896e3bf9d0da1"
+    },
+    {
+      "name": "unique",
+      "sha256": "57292a6863b19cdbedcef6815280efbe04d111179d7be579827a9bc7599f0354"
+    },
+    {
+      "name": "decode",
+      "sha256": "368fc526acf028c2a77b256ccc9a3fced80ecf34b081fce0a32cfe5b8f07503b"
+    },
+    {
+      "name": "digest",
+      "sha256": "c36fee10252da2653bd4463a40c0b17609ec00a6c1c18c61ea743db668e851b1"
+    },
+    {
+      "name": "safe_episode",
+      "sha256": "6d3328f02c8485b839e54273772e6a3bc917703f25d4ffed92bdcba88b9fcd6c"
+    },
+    {
+      "name": "read",
+      "sha256": "ce92586ec40ecad5bcf9cc2d5f96d1b46294397dfe7679bdeb128319db9b7f04"
+    },
+    {
+      "name": "root_directory",
+      "sha256": "dc7bbb2b7f5532ff7791f827412b8f9683ac4dbf991f5edc6bc160191b2f7681"
+    },
+    {
+      "name": "write",
+      "sha256": "b8b6a35163bc108aad1384d33d5a53abfb711996088748bbd7329363b9aa8bb7"
+    },
+    {
+      "name": "command",
+      "sha256": "61a12d7f463b824d5ceddbd10b8e8d113305fc2ab1ae3bfd324d0e0480b0426f"
+    },
+    {
+      "name": "duration_us",
+      "sha256": "4855b6c42fef93b3c79740aa0df21af678e3c4cd778606009bf8e67b541b80e7"
+    },
+    {
+      "name": "directory_descriptor",
+      "sha256": "61ec7d948a09d195e18e1a7942d65b83682f8860dc0ac715a9447250f8d7b7de"
+    },
+    {
+      "name": "publish_evidence",
+      "sha256": "df40ed03210ff7f367a660fea154e357615f3b67f499ce949fc1ec1c6798e31b"
+    }
+  ],
+  "copied_publication_regressions": [
+    {
+      "change": "module alias route -> support only",
+      "name": "test_publication_anchors_writes_if_runner_replaces_destination",
+      "original_sha256": "032dc86d9b37f3cd714661b627847365bf953c2bbcf6715c40ccb1abe0ebe02b"
+    },
+    {
+      "change": "module alias route -> support only",
+      "name": "test_publication_rejects_preexisting_parent_symlink_before_creation",
+      "original_sha256": "1a4946b4e551b7a63ffff9586c6255e4b1f3c0a8354489b3a92ba0d50f83f057"
+    },
+    {
+      "change": "module alias route -> support only",
+      "name": "test_publication_reports_parent_rename_as_delivery_failure",
+      "original_sha256": "ed2d861fe1ac8b33114ef4078122c19f554b2af0c7450241023972bb2880417a"
+    }
+  ],
+  "modifications_to_original": false,
+  "schema": "merlin-handoff-helper-origin/1",
+  "source_path": "/workspace/scratch/abed42219434/browser-operations/ops/merlin_browser/episode_request.py",
+  "source_sha256": "b5742034903beedd79fd0f6941cfe88f90449c6d87c7005012c473f15b9afa7e"
+}

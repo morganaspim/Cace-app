@@ -1,0 +1,28 @@
+{
+  "bytes": 22511,
+  "git_blob": "21557adf26ee934a4890f474e2ad4614c6f328c4",
+  "manifest": {
+    "files": {
+      "browser_research_handoff.py": {
+        "bytes": 34674,
+        "git_blob": "1b0d4d026f781741d5f46f5d7ceff89df380c9a1",
+        "sha256": "d2bcfd849c40412479861f855378d40acfeb7f627ab3277a468b672c7c94c960"
+      },
+      "program.json": {
+        "bytes": 21307,
+        "git_blob": "9db5587afb6e8b0df3ae5ae0a923e4b67ae7ea9a",
+        "sha256": "f8f312e4ff968028385a636dcc15b1eec93659a4973b0a7c900d36c4cd27c49c"
+      },
+      "test_browser_research_handoff.py": {
+        "bytes": 19391,
+        "git_blob": "57b653f0248101827f8838e0ed9085182c985e11",
+        "sha256": "f49202a7e70a90cddf8bced9118aabc671b89b6c653fb96fe2bccf3ae32981b7"
+      }
+    },
+    "repository": "Mannyspiro/expert-robot",
+    "schema": "merlin-browser-handoff-transport/1",
+    "source_commit": "bc8a9b64638323791b761d26d1b7093203405626"
+  },
+  "path": "merlin/browser-handoff-source.zip",
+  "sha256": "8aa86d9ceaae32d1238dd9b1f834f275b7675e662ef4462c70951f0ef6010bdd"
+}

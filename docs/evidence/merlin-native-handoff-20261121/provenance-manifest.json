@@ -1,0 +1,147 @@
+{
+  "excluded_local_intermediates": [
+    "top-level helper-origin.json duplicate",
+    "top-level source-bundle-pin.json duplicate",
+    "Python caches"
+  ],
+  "files": [
+    {
+      "bytes": 27133,
+      "git_blob": "aa07850675538d52ae72f92f53f85cbbe0d37367",
+      "path": "build_handoff_workflow.py",
+      "sha256": "a01950794ff391ea66e6a31f2dc0d4347847f20417ef6d6417fc6c653378f684"
+    },
+    {
+      "bytes": 9844,
+      "git_blob": "47785cc05d0497aaa854779b9b8b079c950d6313",
+      "path": "docs/MERLIN_NATIVE_RESEARCH_HANDOFF.md",
+      "sha256": "d63b74c0898739a169514cc50c5d4f3ab40294641dbb79e13adefb244d224ae5"
+    },
+    {
+      "bytes": 2683,
+      "git_blob": "a0a0bc7fe97b288948acb2c1ae3445b90b8c93db",
+      "path": "docs/evidence/merlin-native-handoff-20261121/helper-origin.json",
+      "sha256": "46c96d18aff2219898565cc4463a936487ab61510323845ac22bc7e214d7f2da"
+    },
+    {
+      "bytes": 7266,
+      "git_blob": "0fdefb4395b2ce9451f2e74b261264b44725fe60",
+      "path": "docs/evidence/merlin-native-handoff-20261121/independent-review.json",
+      "sha256": "ad634d40e86d14f2f4d71be2c8227937c91eb5eb935deac407e48c4ed783b1c3"
+    },
+    {
+      "bytes": 6270,
+      "git_blob": "2f59d6fe1c198e9c87400e142bbfa4a31cd0f9f8",
+      "path": "docs/evidence/merlin-native-handoff-20261121/local-tests.txt",
+      "sha256": "63032a96d3f60d29e7d300a2e566577768b014b86179f4dd1534a7da3c88dccf"
+    },
+    {
+      "bytes": 4957,
+      "git_blob": "bf3629e862ca9b2ce727535933bd6384eb943a88",
+      "path": "docs/evidence/merlin-native-handoff-20261121/local-validation.json",
+      "sha256": "9ea22053ccb066f302d4ecfefb15617a4895116f94de9e1eb18569642e7f9f6b"
+    },
+    {
+      "bytes": 1062,
+      "git_blob": "5d34a107a940e7f9a45152ff2d8f6fea719e50d5",
+      "path": "docs/evidence/merlin-native-handoff-20261121/source-bundle-pin.json",
+      "sha256": "d17e6b16507293bd3593dd19283a9e3be07c95767cb1f5028dd4b2940a5aea3e"
+    },
+    {
+      "bytes": 22511,
+      "git_blob": "21557adf26ee934a4890f474e2ad4614c6f328c4",
+      "path": "merlin/browser-handoff-source.zip",
+      "sha256": "8aa86d9ceaae32d1238dd9b1f834f275b7675e662ef4462c70951f0ef6010bdd"
+    },
+    {
+      "bytes": 3131,
+      "git_blob": "d7fcf4f8cd9e6cbab0221578a409812b70753eac",
+      "path": "ops/merlin_research/handoff_product_pins.json",
+      "sha256": "10f0d585975707c017c8c995e7a9ade060f7bfd69ee3a1ccedd76bcd2ab7f806"
+    },
+    {
+      "bytes": 33987,
+      "git_blob": "4a97207d540a7ad8b6a9ebe97101b13d0efe422b",
+      "path": "ops/merlin_research/handoff_request.py",
+      "sha256": "d2d525afb0f27b0c4479cdb4df82388edce0ea4fd474651c05b0a4c1ae6d957e"
+    },
+    {
+      "bytes": 9484,
+      "git_blob": "c6f9a3ce92773b5a0110c26d54ef4d467410f5e2",
+      "path": "ops/merlin_research/handoff_support.py",
+      "sha256": "3646a979ffc7b94d1ff999c93aa69d0e48c41328cd4a1f9e89c5ccd4277ea1dc"
+    },
+    {
+      "bytes": 16480,
+      "git_blob": "37102e920f378b2508df02813e3ecb6a5ba7295d",
+      "path": "ops/merlin_research/test_handoff_request.py",
+      "sha256": "af0dc7c4d4506915981609705cf7023994c344189f054a760bfd6841588a2c78"
+    },
+    {
+      "bytes": 12205,
+      "git_blob": "c246b09ddaba41512cdd5481b0f6a4df6bce1306",
+      "path": "test_build_handoff_workflow.py",
+      "sha256": "f83064c8fdff516614955b78e81cadd11bed5f30e43ff29c36c08d3df703f555"
+    }
+  ],
+  "independent_review_decision": "source_and_generator_accepted_pending_actual_installed_pins_and_final_emitted_workflow_review",
+  "local_tests": {
+    "coordinator": 24,
+    "errors": 0,
+    "failures": 0,
+    "generator": 13,
+    "skips": 0,
+    "total": 37
+  },
+  "native23_handoff_gate": "required, not yet executed",
+  "native_browser_acceptance": "pending; no installed acceptance pins generated",
+  "native_handoff_executed": false,
+  "no_browser_runtime_hash_assumption": "Actual accepted repaired runtime digest is supplied in installed pins and rechecked against its exact archived runtime.zip.",
+  "payload_kind": "additive fixed coordinator and source-only transport",
+  "product_repository": "Mannyspiro/expert-robot",
+  "product_source_commit": "bc8a9b64638323791b761d26d1b7093203405626",
+  "repository_code_storage": "Repository-backed payload; no separate Library duplication.",
+  "schema": "merlin-native-handoff-source-provenance/1",
+  "scope": {
+    "browser_runtime_modified": false,
+    "domain_execution": "not_run",
+    "external_model_cost_usd": 0,
+    "model_calls": 0,
+    "new_browser_calls": 0,
+    "private_runtime_modified": false,
+    "remote_writes": 0,
+    "software_installation": false
+  },
+  "source_bundle": {
+    "bytes": 22511,
+    "git_blob": "21557adf26ee934a4890f474e2ad4614c6f328c4",
+    "independent_exact_four_member_verification": true,
+    "manifest": {
+      "files": {
+        "browser_research_handoff.py": {
+          "bytes": 34674,
+          "git_blob": "1b0d4d026f781741d5f46f5d7ceff89df380c9a1",
+          "sha256": "d2bcfd849c40412479861f855378d40acfeb7f627ab3277a468b672c7c94c960"
+        },
+        "program.json": {
+          "bytes": 21307,
+          "git_blob": "9db5587afb6e8b0df3ae5ae0a923e4b67ae7ea9a",
+          "sha256": "f8f312e4ff968028385a636dcc15b1eec93659a4973b0a7c900d36c4cd27c49c"
+        },
+        "test_browser_research_handoff.py": {
+          "bytes": 19391,
+          "git_blob": "57b653f0248101827f8838e0ed9085182c985e11",
+          "sha256": "f49202a7e70a90cddf8bced9118aabc671b89b6c653fb96fe2bccf3ae32981b7"
+        }
+      },
+      "repository": "Mannyspiro/expert-robot",
+      "schema": "merlin-browser-handoff-transport/1",
+      "source_commit": "bc8a9b64638323791b761d26d1b7093203405626"
+    },
+    "path": "merlin/browser-handoff-source.zip",
+    "sha256": "8aa86d9ceaae32d1238dd9b1f834f275b7675e662ef4462c70951f0ef6010bdd"
+  },
+  "target_branch": "merlin/browser-operations-20261121",
+  "target_repository": "morganaspim/Cace-app",
+  "workflow_yaml_emitted": false
+}
