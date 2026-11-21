@@ -1,0 +1,154 @@
+name: Merlin fixed browser bootstrap reconciliation
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/browser-diagnostic-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  fixed-browser-reconciliation:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 5
+    steps:
+      - name: Read fixed failed-operation state without replay or installation
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          import ast,base64,hashlib,json,os,re,selectors,signal,subprocess,sys,time,urllib.request
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if (repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000
+              or sys.version_info[:2]!=(3,9) or not re.fullmatch('[0-9a-f]{40}',commit)):
+              raise RuntimeError('unexpected reconciliation execution identity')
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if run_id<=0 or attempt!=1: raise RuntimeError('first fixed reconciliation attempt required')
+          pins={'diagnose_bootstrap.py': {'bytes': 13970, 'sha256': '13b6bd21d80318cd7da8ab893226ab606d978b6a176f28aaa3adbbe42cfe6a7b', 'git_blob': '3217850f6d0449e0e5a3e4395bfae1ccde6152ec'}, 'test_diagnose_bootstrap.py': {'bytes': 4076, 'sha256': '5f7981d1763fd32d7a37af6e053e17d67cf09a53ee5e6d42e3e1599d523501c8', 'git_blob': '6d3a8379d2ad875185f6e7408b2f49ee33b7ec28'}}
+          clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','HOME':'/var/empty',
+                 'PYTHONDONTWRITEBYTECODE':'1','SYSTEMD_PAGER':'','SYSTEMD_COLORS':'0'}
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON key')
+                  value[key]=item
+              return value
+          def api(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=20) as response: raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024: raise RuntimeError('bounded GitHub response exceeded')
+              return json.loads(raw,object_pairs_hook=unique)
+          def git_blob(raw): return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          def fetch(path):
+              item=api('contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if git_blob(raw)!=item['sha']: raise RuntimeError('Git bytes differ')
+              return raw,item['sha']
+          def check(raw,pin):
+              if len(raw)!=pin['bytes'] or hashlib.sha256(raw).hexdigest()!=pin['sha256'] or git_blob(raw)!=pin['git_blob']:
+                  raise RuntimeError('fixed diagnostic source pin differs')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-browser-diagnostic-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          def fixed(argv,name,seconds,maximum):
+              process=subprocess.Popen(argv,cwd='/',env=clean,stdin=subprocess.DEVNULL,
+                 stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
+              selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
+              started=time.monotonic();deadline=started+seconds;count=0;error=None
+              try:
+                  with (out/name).open('xb') as log:
+                      while selector.get_map():
+                          remaining=deadline-time.monotonic()
+                          if remaining<=0: raise TimeoutError('diagnostic outer process deadline')
+                          for key,_ in selector.select(min(.2,remaining)):
+                              raw=os.read(key.fd,65536)
+                              if not raw: selector.unregister(key.fileobj);continue
+                              if count+len(raw)>maximum: raise RuntimeError('diagnostic output ceiling')
+                              log.write(raw);log.flush();count+=len(raw)
+                      code=process.wait(timeout=max(.01,deadline-time.monotonic()))
+                      if code: raise RuntimeError('fixed diagnostic child exit '+str(code))
+              except BaseException as exc:
+                  error=exc
+                  try: os.killpg(process.pid,signal.SIGKILL)
+                  except (PermissionError,ProcessLookupError): pass
+                  raise
+              finally:
+                  selector.close();process.stdout.close()
+                  (out/(name+'.json')).write_text(json.dumps({'argv_sha256':hashlib.sha256(json.dumps(argv).encode()).hexdigest(),
+                    'argv_count':len(argv),'maximum_argument_bytes':max(len(v.encode()) for v in argv),
+                    'total_argument_bytes':sum(len(v.encode())+1 for v in argv),'returncode':process.returncode,
+                    'elapsed_seconds':time.monotonic()-started,'output_bytes':count,
+                    'absolute_outer_deadline_seconds':seconds,'error_type':type(error).__name__ if error else None},indent=2))
+          try:
+              files=api('commits/'+commit)['files']
+              if len(files)!=1 or files[0]['status']!='added': raise RuntimeError('one additive diagnostic request required')
+              path=files[0]['filename']
+              if not re.fullmatch(r'merlin/browser-diagnostic-requests/[0-9a-f-]{36}\.json',path):
+                  raise RuntimeError('fixed diagnostic request path required')
+              raw,_=fetch(path)
+              if len(raw)>16000: raise RuntimeError('diagnostic request byte ceiling')
+              request=json.loads(raw,object_pairs_hook=unique)
+              if not isinstance(request,dict) or path!='merlin/browser-diagnostic-requests/'+request.get('request_id','')+'.json':
+                  raise RuntimeError('diagnostic filename/identity differs')
+              (out/'request.json').write_bytes(raw)
+              for name,pin in pins.items():
+                  body,_=fetch('ops/merlin_browser/'+name);check(body,pin);ast.parse(body,feature_version=(3,9))
+                  (out/name).write_bytes(body)
+              workflow,workflow_blob=fetch('.github/workflows/merlin-browser-diagnostic.yml')
+              (out/'workflow-definition.yml').write_bytes(workflow)
+              (out/'source-identities.json').write_text(json.dumps({'sources':pins,'workflow_git_blob':workflow_blob,
+                 'workflow_sha256':hashlib.sha256(workflow).hexdigest()},sort_keys=True,indent=2))
+              execution={'repository':repo,'ref':os.environ['GITHUB_REF'],'runner':os.environ['RUNNER_NAME'],
+                 'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt,
+                 'controller_sha256':pins['diagnose_bootstrap.py']['sha256']}
+              label=Path('/proc')/str(os.getpid())/'attr/current'
+              try: execution['runner_selinux_context']=label.read_text()[:256]
+              except OSError as exc: execution['runner_context_error']=type(exc).__name__
+              (out/'identity.json').write_text(json.dumps(execution,sort_keys=True,indent=2))
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_diagnose_bootstrap.py');r=unittest.TextTestRunner(verbosity=2).run(s);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==7 else 1)"
+              fixed(['/usr/bin/python3','-I','-B','-c',code,str(out)],'diagnostic-controls.txt',30,1024*1024)
+              source=(out/'diagnose_bootstrap.py').read_bytes();check(source,pins['diagnose_bootstrap.py'])
+              namespace={'__name__':'validated_probe_protocol'};exec(compile(source,'validated-probe','exec'),namespace)
+              namespace['validate_request'](request,execution)
+              root_code='import hashlib,json,resource;resource.setrlimit(resource.RLIMIT_AS,(536870912,536870912));resource.setrlimit(resource.RLIMIT_CPU,(60,60));resource.setrlimit(resource.RLIMIT_NOFILE,(64,64));body='+repr(source)+';assert hashlib.sha256(body).hexdigest()=='+repr(pins['diagnose_bootstrap.py']['sha256'])+';n={"__name__":"pinned_reconciliation"};exec(compile(body,"pinned-reconciliation","exec"),n);result=n["run"]('+','.join(repr(value) for value in (request,execution,os.environ['RUNNER_TEMP']))+');print(json.dumps(result,sort_keys=True))'
+              if len(root_code.encode())>100000: raise RuntimeError('bounded diagnostic root source required')
+              (out/'launch-input-identity.json').write_text(json.dumps({'root_code_bytes':len(root_code.encode()),
+                 'root_code_sha256':hashlib.sha256(root_code.encode()).hexdigest(),'read_only':True,
+                 'root_timeout_seconds':90,'root_kill_after_seconds':5,'outer_wait_seconds':100},sort_keys=True,indent=2))
+              # This read-only probe deliberately does not create a transient service.
+              # GNU timeout owns the root process group; no child starts a new session.
+              fixed(['/usr/bin/sudo','-n','/usr/bin/timeout','--signal=TERM','--kill-after=5s','90s',
+                 '/usr/bin/env','-i','PATH=/usr/sbin:/usr/bin:/sbin:/bin','LANG=C.UTF-8','LC_ALL=C.UTF-8',
+                 'HOME=/var/empty','/usr/bin/python3','-I','-B','-c',root_code],
+                 'root-probe.txt',100,32*1024*1024)
+              observed=json.loads((out/'root-probe.txt').read_text(),object_pairs_hook=unique)
+              if (observed.get('schema')!='merlin-browser-bootstrap-reconciliation/1'
+                  or observed.get('target',{}).get('run_id')!=44941093952 or observed.get('model_calls')!=0
+                  or observed.get('software_installation') is not False or observed.get('automatic_retry') is not False):
+                  raise RuntimeError('fixed native reconciliation result differs')
+              (out/'reconciliation.json').write_text(json.dumps(observed,sort_keys=True,indent=2))
+              print(json.dumps({'status':'fixed_read_only_reconciliation_completed','run_id':run_id,
+                 'target_run_id':44941093952,'model_calls':0,'installation':False,'automatic_retry':False},sort_keys=True))
+          except BaseException as exc:
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed','type':type(exc).__name__,
+                 'message':str(exc)[:2000],'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt},indent=2))
+              raise
+          PYCODE
+      - name: Preserve complete scoped reconciliation observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-browser-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-browser-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn
