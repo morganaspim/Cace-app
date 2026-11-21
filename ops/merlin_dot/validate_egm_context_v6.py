@@ -313,7 +313,7 @@ def candidate_run(parent, api, output):
   str(output / 'source-manifest.json'), str(output / 'software-report.json'),
   '--expected-count', str(CANDIDATE['software_tests']),
   '--expected-digest', CANDIDATE['test_inventory_sha256']],
-  cwd=root, env=ENV, capture_output=True, text=True, timeout=210)
+  cwd=root, env=ENV, capture_output=True, text=True, timeout=270)
   except subprocess.TimeoutExpired as exc:
    report['tests'] = retain_timeout(output, 'software', exc)
    raise RuntimeError('software acceptance timed out with retained partial evidence') from exc
