@@ -1,4 +1,4 @@
-name: Merlin real research episode
+name: Merlin retained-response assessment
 'on':
   push:
     branches: [merlin/platform-acceptance-20261120]
@@ -10,11 +10,11 @@ concurrency:
   group: merlin-dot-oci-operations
   cancel-in-progress: false
 jobs:
-  real-model-research:
+  retained-assessment:
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 70
+    timeout-minutes: 10
     steps:
-      - name: Run fixed actual-provider task and resume from committed state
+      - name: Assess retained responses with zero model calls
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -51,10 +51,10 @@ jobs:
               raw,_=fetch(changes[0]['filename'])
               if len(raw)>2048: raise ValueError('request ceiling')
               q=json.loads(raw,object_pairs_hook=unique)
-              if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-real-research-request/1' or q['operation']!='execute_after_format_failure' or changes[0]['filename']!='merlin/research-episodes/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
+              if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-real-research-request/1' or q['operation']!='assess_retained_responses' or changes[0]['filename']!='merlin/research-episodes/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
               if datetime.fromisoformat(q['created_at'].replace('Z','+00:00')).tzinfo is None: raise ValueError('timezone required')
               source,identity=fetch('ops/merlin_dot/run_research_episode.py')
-              if identity!='85a5e4d50dac73a027748b5096a62d64cfcca880' or hashlib.sha256(source).hexdigest()!='60011336c60dd5238edafd15ab251b4e738caba691d346d0fad283e856bfab4d': raise ValueError('reviewed controller identity differs')
+              if identity!='5642d74ea341967a85263fa688d1c144e4e5f49a' or hashlib.sha256(source).hexdigest()!='69340cd9d5e02e9a2cfc2357ad7bb09379cb1aceebe1d2714575e40caaa441e0': raise ValueError('reviewed controller identity differs')
               (out/'controller-identity.json').write_text(json.dumps({'git_blob':identity,'sha256':hashlib.sha256(source).hexdigest(),'bytes':len(source),'workflow_commit':commit},indent=2))
               namespace={};exec(compile(source,'pinned-real-research-operation','exec'),namespace)
               namespace['run'](api,q,out)

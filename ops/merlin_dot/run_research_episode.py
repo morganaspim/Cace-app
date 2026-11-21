@@ -10,7 +10,7 @@ import urllib.request
 from urllib.parse import urlsplit
 import zipfile
 
-PINS = {'host': {'bytes': 48844, 'git_blob': 'a987382418e578942793ff4147b1a74f1b404747', 'sha256': '927651cd0499fe2b2ec6165abcaafb3025c82105748696cb95e56e0c2a91a1e9'}, 'native_validation': {'artifact_bytes': 650520, 'artifact_id': 14712858088, 'artifact_sha256': '8c0f034e899dc73ac6731f802a2f390aa1c80eb37c2f1216968da709a081598d', 'controller_git_blob': 'cf612303b8b74f91ff6eddec7dfcf1f32eb3a3c5', 'controller_sha256': '58d07437d683b617d8452af666025ace74b0395a7fa26708fc0423a4b468e258', 'report_sha256': 'b187142c4f522a3d4876f66a10c2d5792ee2b146e8d3a952e36bfe1e3755f43d', 'run_attempt': 1, 'run_id': 44919201279, 'software_tests': 599, 'source_commit': '761756025fb88f7e722c799ca91964e3ad24c53a', 'source_map_sha256': '548194d9fddd5a587feeb5384bf6b71f9fe7cee4976dab519725251fb2ca3654', 'source_package_sha256': '31afbda693cfcbe75bdfa56a3b47571271c7a6e817fd1264a56d6f23930da4ad', 'test_inventory_sha256': '8fea9b239870559acc888ddd7d003d8754234dfa1f8497020de5dc108c8cfd4b', 'workflow_commit': 'c1c901f320f45f4ed6b9b93fb886b18ffeb25bcf', 'workflow_git_blob': '86f5f0bb48d61972d778d078922cdb9855d49851'}, 'notes': {'bytes': 4708, 'git_blob': '733d47fad0ce6379420a42b85e2d95317f61a089', 'sha256': 'ad412f724f95df30077a6fb21503a5f291478a0048f762e2c16bddefdbfb7192'}, 'oracle': {'bytes': 11332, 'git_blob': '4c7d2fbe711224de5b391c8e12b5cf1a877136aa', 'sha256': '73ad01b8443ab3e72ee3d54c43a75ff55104b75a3d4125cc17599cced87e9abb'}}
+PINS = {'host': {'bytes': 48637, 'git_blob': 'b6130ef4455d264492745d3a69fd8b0cfc62b5ac', 'sha256': '635577ed0a09d274c1c24cfe6f0e74f919ea782c6b6741c7b2e0feb5652f5034'}, 'native_validation': {'artifact_bytes': 650520, 'artifact_id': 14712858088, 'artifact_sha256': '8c0f034e899dc73ac6731f802a2f390aa1c80eb37c2f1216968da709a081598d', 'controller_git_blob': 'cf612303b8b74f91ff6eddec7dfcf1f32eb3a3c5', 'controller_sha256': '58d07437d683b617d8452af666025ace74b0395a7fa26708fc0423a4b468e258', 'report_sha256': 'b187142c4f522a3d4876f66a10c2d5792ee2b146e8d3a952e36bfe1e3755f43d', 'run_attempt': 1, 'run_id': 44919201279, 'software_tests': 599, 'source_commit': '761756025fb88f7e722c799ca91964e3ad24c53a', 'source_map_sha256': '548194d9fddd5a587feeb5384bf6b71f9fe7cee4976dab519725251fb2ca3654', 'source_package_sha256': '31afbda693cfcbe75bdfa56a3b47571271c7a6e817fd1264a56d6f23930da4ad', 'test_inventory_sha256': '8fea9b239870559acc888ddd7d003d8754234dfa1f8497020de5dc108c8cfd4b', 'workflow_commit': 'c1c901f320f45f4ed6b9b93fb886b18ffeb25bcf', 'workflow_git_blob': '86f5f0bb48d61972d778d078922cdb9855d49851'}, 'notes': {'bytes': 4708, 'git_blob': '733d47fad0ce6379420a42b85e2d95317f61a089', 'sha256': 'ad412f724f95df30077a6fb21503a5f291478a0048f762e2c16bddefdbfb7192'}, 'oracle': {'bytes': 11332, 'git_blob': '4c7d2fbe711224de5b391c8e12b5cf1a877136aa', 'sha256': '73ad01b8443ab3e72ee3d54c43a75ff55104b75a3d4125cc17599cced87e9abb'}, 'retained': {'bytes': 24509, 'git_blob': '760303618b9558cb30cfe526e56660ab8810f9b7', 'sha256': '8f7a13740d46e2bb0150ffc365e7485ae463a1a158d2bb0221d60e424c1642f2'}}
 ENV = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8", "PYTHONDONTWRITEBYTECODE": "1"}
 
 
@@ -98,8 +98,9 @@ def run(api, request, output):
     host = exact_blob(api, PINS["host"], 48 * 1024)
     oracle = exact_blob(api, PINS["oracle"], 32000)
     notes = exact_blob(api, PINS["notes"], 32000)
+    retained = exact_blob(api, PINS["retained"], 32000)
     for name, raw in (("tested-source.zip", source), ("research_episode_host.py", host),
-                      ("oracle.json", oracle), ("source-notes.json", notes)):
+                      ("oracle.json", oracle), ("source-notes.json", notes), ("retained-inputs.json", retained)):
         (output / name).write_bytes(raw)
     invocation = {"request_id": request["request_id"], "run_id": int(os.environ["GITHUB_RUN_ID"]),
                   "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]), "workflow_commit": os.environ["GITHUB_SHA"]}
@@ -115,7 +116,7 @@ def run(api, request, output):
         raise ValueError("fixed privileged invocation byte ceiling")
     try:
         result = subprocess.run(["/usr/bin/sudo", "-n", "/usr/bin/python3", "-I", "-B", "-S", "-c", program],
-                                env=ENV, cwd="/", capture_output=True, timeout=4000)
+                                env=ENV, cwd="/", capture_output=True, timeout=300)
         if len(result.stdout) + len(result.stderr) > 128 * 1024:
             raise ValueError("supervisor diagnostic ceiling")
         (output / "host-process.txt").write_bytes(result.stdout + result.stderr)
@@ -125,5 +126,6 @@ def run(api, request, output):
         (output / "host-timeout.txt").write_bytes((exc.stdout or b"")[:65536] + (exc.stderr or b"")[:65536])
         raise
     receipt = json.loads((output / "host-receipt.json").read_bytes(), object_pairs_hook=unique)
-    if receipt.get("status") != "succeeded" or receipt.get("native_validation") != PINS["native_validation"]:
+    if (receipt.get("schema") != "merlin-retained-assessment-host-receipt/1"
+        or receipt.get("status") != "succeeded" or receipt.get("native_validation") != PINS["native_validation"]):
         raise ValueError("actual research operation receipt differs")
