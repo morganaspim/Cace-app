@@ -1,0 +1,28 @@
+{
+  "schema": "merlin-browser-state-inspection-independent-review/1",
+  "inspector_sha256": "6475078d88fb30ed8ef9afcfef0a4d1490cef3049150bdcca3be7ed3cc287bc6",
+  "test_sha256": "71e0d92a0e97b74346b4c9864503ce7e56fe0c64fbb3bf3871a1562c4752b1c3",
+  "workflow_sha256": "5b6f467df0a7e3bfdc218a6c731553a4db0e2d1bbc3528e7fac09e09ccb3661d",
+  "reviews": [
+    {
+      "reviewer": "studio_interface",
+      "scope": "Independent fixture controls, literal six paths, request scope, source pins, Python 3.9 grammar, generated workflow and action boundaries",
+      "focused_fixture_controls": 19,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "concrete_blockers": [],
+      "native_actions": 0
+    },
+    {
+      "reviewer": "local_state_audit",
+      "scope": "Full inspector and builder; no-follow parents and leaf metadata; marker descriptor/owner/inode stability; matching-only socket export; fixed bounded unit command; reused launch/evidence helpers; no acceptance path",
+      "concrete_blockers": [],
+      "tests_executed_by_reviewer": 0,
+      "native_actions": 0,
+      "limitations_confirmed": ["Cross-subsystem snapshot is not atomic", "Incomplete observations remain explicit", "No native result is claimed"]
+    }
+  ],
+  "acceptance_controller_unmodified_sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf",
+  "acceptance_workflow_unmodified_sha256": "2093b64ad89e68add600d4bbd7b70c933b26276bfd01eec1b19acc31cb55fc3f"
+}

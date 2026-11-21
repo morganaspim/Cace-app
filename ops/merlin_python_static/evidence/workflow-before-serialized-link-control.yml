@@ -1,0 +1,170 @@
+name: Merlin fixed CPython acquisition and static inspection
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/python-static-inspection-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  fixed-python-static-inspection:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 12
+    steps:
+      - name: Verify exact sources then acquire and inspect data as UID1000
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          import ast,base64,datetime,hashlib,json,os,re,selectors,signal,subprocess,sys,time,urllib.request,uuid,zlib
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if (repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000
+              or sys.version_info[:2]!=(3,9) or not re.fullmatch('[0-9a-f]{40}',commit)):
+              raise RuntimeError('unexpected unprivileged static-inspection identity')
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if run_id<=44955762960 or attempt!=1: raise RuntimeError('new first static-inspection attempt required')
+          pins={'acquire_inspect.py': {'bytes': 34102, 'sha256': '68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf', 'git_blob': '74596d32ff5de8d6689a9a06d9054df36a5bed48'}, 'test_acquire_inspect.py': {'bytes': 24812, 'sha256': 'cdb79bd94a6b78f27295da6680a2f22d7d290fe6be67d82d6eae8e865e8a5077', 'git_blob': '61bffbef10d8d018b8f932db389127c090aeb70c'}}
+          clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
+                 'HOME':'/var/empty','XDG_CONFIG_HOME':'/var/empty','XDG_CACHE_HOME':'/var/empty',
+                 'XDG_DATA_HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'}
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON field')
+                  value[key]=item
+              return value
+          def api(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=20) as response: raw=response.read(4*1024*1024+1)
+              if len(raw)>4*1024*1024: raise RuntimeError('bounded API response exceeded')
+              return json.loads(raw,object_pairs_hook=unique)
+          def blob(raw): return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          def fetch(path):
+              item=api('contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if blob(raw)!=item['sha']: raise RuntimeError('Git bytes differ')
+              return raw,item['sha']
+          def check(raw,pin):
+              if len(raw)!=pin['bytes'] or hashlib.sha256(raw).hexdigest()!=pin['sha256'] or blob(raw)!=pin['git_blob']:
+                  raise RuntimeError('fixed source/runtime pin differs')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-python-static-inspection-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          def fixed(argv,name,seconds,maximum=8*1024*1024):
+              # No ambient GitHub credential, proxy or user configuration in children.
+              # Every byte of partial stdout/stderr is written before any failure is raised.
+              process=subprocess.Popen(argv,cwd='/',env=clean,stdin=subprocess.DEVNULL,
+                  stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
+              selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
+              start=time.monotonic();deadline=start+seconds;total=0;error=None
+              try:
+                  with (out/name).open('xb') as log:
+                      while selector.get_map():
+                          left=deadline-time.monotonic()
+                          if left<=0: raise TimeoutError('fixed child absolute process deadline')
+                          for key,_ in selector.select(min(.2,left)):
+                              raw=os.read(key.fd,65536)
+                              if not raw: selector.unregister(key.fileobj);continue
+                              if total+len(raw)>maximum: raise RuntimeError('fixed child output ceiling')
+                              log.write(raw);log.flush();total+=len(raw)
+                      code=process.wait(timeout=max(.01,deadline-time.monotonic()))
+                      if code: raise RuntimeError('fixed child exit '+str(code))
+              except BaseException as exc:
+                  error=exc
+                  if process.poll() is None:
+                      try: os.killpg(process.pid,signal.SIGTERM)
+                      except (PermissionError,ProcessLookupError):
+                          try: process.terminate()
+                          except (PermissionError,ProcessLookupError): pass
+                      try: process.wait(timeout=5)
+                      except subprocess.TimeoutExpired: pass
+                  # Kill every remaining unprivileged descendant even if its parent had
+                  # already exited before this handler. Acquisition/inspection workers
+                  # remain in this same unprivileged controller process group.
+                  try: os.killpg(process.pid,signal.SIGKILL)
+                  except (PermissionError,ProcessLookupError): pass
+                  raise
+              finally:
+                  selector.close();process.stdout.close()
+                  (out/(name+'.json')).write_text(json.dumps({'argv_sha256':hashlib.sha256(json.dumps(argv).encode()).hexdigest(),
+                    'returncode':process.returncode,'elapsed_seconds':time.monotonic()-start,'stdout_stderr_bytes':total,
+                    'absolute_deadline_seconds':seconds,'error_type':type(error).__name__ if error else None},indent=2))
+          stage='request_validation'
+          try:
+              changed=api('commits/'+commit)['files']
+              if len(changed)!=1 or changed[0]['status']!='added': raise RuntimeError('one additive static-inspection request required')
+              path=changed[0]['filename']
+              if not re.fullmatch(r'merlin/python-static-inspection-requests/[0-9a-f-]{36}\.json',path):
+                  raise RuntimeError('fixed static-inspection request path required')
+              raw,_=fetch(path)
+              if len(raw)>16000: raise RuntimeError('request byte ceiling')
+              request=json.loads(raw,object_pairs_hook=unique)
+              if (not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}
+                  or request['schema']!='merlin-python-static-inspection-request/1'
+                  or request['operation']!='inspect-cpython-3.11.18-20261110-aarch64'
+                  or path!='merlin/python-static-inspection-requests/'+request['request_id']+'.json'
+                  or str(uuid.UUID(request['request_id']))!=request['request_id']
+                  or datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%dT%H:%M:%SZ')!=request['created_at']):
+                  raise RuntimeError('fixed acquisition-and-static-inspection contract required')
+              (out/'request.json').write_bytes(raw)
+              stage='source_verification'
+              for name,pin in pins.items():
+                  raw,_=fetch('ops/merlin_python_static/'+name);check(raw,pin)
+                  ast.parse(raw,feature_version=(3,9));(out/name).write_bytes(raw)
+              workflow,workflow_blob=fetch('.github/workflows/merlin-python-static-inspection.yml')
+              (out/'workflow-definition.yml').write_bytes(workflow)
+              (out/'source-identities.json').write_text(json.dumps({'sources':pins,
+                  'workflow_git_blob':workflow_blob,'workflow_sha256':hashlib.sha256(workflow).hexdigest()},sort_keys=True,indent=2))
+              execution={'repository':repo,'ref':os.environ['GITHUB_REF'],'runner':os.environ['RUNNER_NAME'],
+                  'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt,
+                  'controller_sha256':pins['acquire_inspect.py']['sha256'],'python':sys.version}
+              (out/'identity.json').write_text(json.dumps(execution,sort_keys=True,indent=2))
+              stage='local_fixture_controls'
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_acquire_inspect.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==22 else 1)"
+              fixed(['/usr/bin/python3','-I','-B','-c',code,str(out)],'static-inspection-controls.txt',60)
+              for name,pin in pins.items(): check((out/name).read_bytes(),pin)
+              stage='bounded_unprivileged_acquisition_and_inspection'
+              source=(out/'acquire_inspect.py').read_bytes();check(source,pins['acquire_inspect.py'])
+              capsule=base64.b64encode(zlib.compress(source,9)).decode()
+              code='import base64,hashlib,json,sys,types,zlib\n'
+              code+=('raw=zlib.decompress(base64.b64decode('+repr(capsule)+',validate=True));'
+                  'assert len(raw)=='+repr(len(source))+' and hashlib.sha256(raw).hexdigest()=='
+                  +repr(pins['acquire_inspect.py']['sha256'])+';m=types.ModuleType("pinned_static_inspector");'
+                  'sys.modules[m.__name__]=m;exec(compile(raw,"pinned-acquire_inspect.py","exec"),m.__dict__)\n')
+              code+='result=m.run('+','.join(repr(v) for v in (request,execution,str(out)))+');print(json.dumps({k:result[k] for k in ("status","installation_allowed","logical_acquisitions_attempted","fetched_code_executions")},sort_keys=True));sys.exit(0 if result["status"]=="static_observations_complete_installation_unapproved" else 2)\n'
+              if len(code.encode())>115000: raise RuntimeError('bounded static-inspection capsule exceeded')
+              (out/'execution-input-identity.json').write_text(json.dumps({'code_bytes':len(code.encode()),
+                  'code_sha256':hashlib.sha256(code.encode()).hexdigest(),'controller_sha256':pins['acquire_inspect.py']['sha256'],
+                  'uid':1000,'outer_deadline_seconds':340,'installation_allowed':False,'fetched_code_executions':0},indent=2,sort_keys=True))
+              fixed(['/usr/bin/python3','-I','-B','-c',code],'static-inspection-operation.txt',340)
+              print(json.dumps({'status':'fixed_static_inspection_finished','installation_allowed':False,
+                  'native_installations':0,'fetched_code_executions':0,'model_calls':0},sort_keys=True))
+          except BaseException as exc:
+              # Exception messages are deliberately excluded: third-party URL errors can
+              # contain signed redirect queries. Stage and type retain the failure scope.
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed','stage':stage,
+                  'error_type':type(exc).__name__,'workflow_commit':commit,'run_id':run_id,
+                  'run_attempt':attempt,'installation_allowed':False,'model_calls':0},indent=2))
+              print(json.dumps({'status':'failed','stage':stage,'error_type':type(exc).__name__,
+                  'installation_allowed':False},sort_keys=True))
+              sys.exit(2)
+          PYCODE
+      - name: Preserve bounded inspection data and all failure receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-python-static-inspection-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-python-static-inspection-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn

@@ -1,0 +1,30 @@
+{
+  "schema": "merlin-browser-state-inspection-contract/1",
+  "repository": "morganaspim/Cace-app",
+  "branch": "merlin/browser-operations-20261121",
+  "workflow_path": ".github/workflows/merlin-browser-state-inspection.yml",
+  "request_path_pattern": "merlin/browser-state-inspection-requests/<new-canonical-uuid>.json",
+  "required_changed_files": 1,
+  "required_file_status": "added",
+  "request_keys_exact": ["schema", "request_id", "operation", "created_at"],
+  "request_schema": "merlin-browser-state-inspection-request/1",
+  "operation": "inspect-state-44956695079",
+  "created_at_format": "YYYY-MM-DDTHH:MM:SSZ",
+  "first_attempt_only": true,
+  "minimum_run_id_exclusive": 44956695079,
+  "runner": "cace-oci-a1",
+  "concurrency_group": "merlin-dot-oci-operations",
+  "cancel_in_progress": false,
+  "failed_request_scope": "3eadad53-ba62-4a35-9578-eebe65420f76",
+  "excluded_request_ids": [
+    "3eadad53-ba62-4a35-9578-eebe65420f76",
+    "99cc5d7f-488f-4718-8257-5edda04726e4",
+    "18106dfc-0a56-4b68-9d30-5d334d7d6a69"
+  ],
+  "artifact_pattern": "merlin-browser-state-inspection-<run-id>-<attempt>",
+  "receipt_path": "root-evidence/state-inspection.json",
+  "acceptance_allowed": false,
+  "request_created": false,
+  "remote_mutation": false,
+  "native_inspection_executed": false
+}

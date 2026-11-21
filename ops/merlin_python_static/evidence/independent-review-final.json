@@ -1,0 +1,87 @@
+{
+  "schema": "merlin-python-static-inspection-independent-review/1",
+  "reviewer": "runtime_recovery",
+  "status": "no_remaining_concrete_blocker_within_local_preparation_scope",
+  "controller": {
+    "bytes": 34102,
+    "sha256": "68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf",
+    "git_blob": "74596d32ff5de8d6689a9a06d9054df36a5bed48"
+  },
+  "tests": {
+    "bytes": 26021,
+    "sha256": "173f55021c4d31bdc52160b4e40a9bb8b8ea6839354066ad642d90983712e358",
+    "git_blob": "c9dc8a35c18f01bf66e29f308645303c860141f1"
+  },
+  "workflow": {
+    "bytes": 12512,
+    "sha256": "51b8e251f338b829a27383e70be73af61d81ac86fd37f265d93c59710ef950e0",
+    "all_pinned_source_bytes_and_git_blobs_verified": true,
+    "source_and_generated_program_parse_as_python39": true
+  },
+  "controls": {
+    "final_exact_workflow_receipt": "fixture-controls-final.json",
+    "tests": 23,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "local_interpreter": "/usr/bin/python3, Python 3.13.5",
+    "local_platform": "Linux x86_64",
+    "evidence_class": "Synthetic transport/archive/ELF fixtures, mocked stage deadline, and one actual local sleeping-child process-group fixture",
+    "native_python39_aarch64_qualification": false,
+    "product_case_count_delta": 0
+  },
+  "reviewed_boundaries": [
+    "Exactly one added request file under the separate fixed prefix; four exact request fields; fixed operation/repository/ref/runner/UID1000/first-attempt checks",
+    "Pinned public asset URL and exact expected byte/hash identity; HTTPS only; fixed GitHub/release-assets origins; bounded redirects; no ambient proxy/auth/cookie forwarding",
+    "Critical response-header ambiguity rejection; exact content length; actual-body byte/hash checks; stage deadlines and no automatic retry",
+    "Signed redirect values and arbitrary exception messages are excluded from receipts; transport receipts contain origin/status/counters only",
+    "Compressed archive is reverified into immutable process-local bytes before bounded gzip decompression; tar is parsed only after the expanded-data ceiling",
+    "No extract/extractall, archive member execution, mode application, installer, root invocation, service/provider mutation, discovery symlink, or system Python change",
+    "Fixed-root member layout; duplicate/special/hardlink/setid rejection; ancestor-directory checks; bounded component-wise symlink resolution before parent traversal",
+    "Canonical Python executable is an AArch64 ELF of executable/shared-object type with the expected loader; dependency compatibility and license clearance remain unverified",
+    "The parent waits for the fixed worker to exit before reading its bounded regular receipt; no partial framed-pipe read remains",
+    "Workers remain in the outer controller process group; local cancellation fixture confirms group ownership and shutdown",
+    "Installation is prohibited in every success and failure receipt, and failed acquisition does not start inspection or retry"
+  ],
+  "concrete_defects_fixed": [
+    {
+      "id": "symlink_component_parent_escape",
+      "before": "Lexical normalization falsely accepted a target that escapes the python root when a preceding symlink is followed before '..'.",
+      "after": "Component-wise resolution rejects the same fixture with componentwise_link_escapes_python_tree."
+    },
+    {
+      "id": "relocatable_canonical_executable",
+      "before": "An ELF ET_REL object with an interpreter segment was accepted as the canonical Python executable.",
+      "after": "The same fixture is rejected with canonical_elf_not_executable; the canonical executable requires ET_EXEC or ET_DYN."
+    }
+  ],
+  "original_vs_corrected_proof": {
+    "path": "runtime-recovery-regression-proof.json",
+    "sha256": "44fe586adeb5b129e84dc7ae88857229c341e9587b35df7382a75055143cc3d2",
+    "original_controller_sha256": "42639871759fa2d792e576cc1eb104cb6ea3b5d1582fff07850d13aef23bf305",
+    "synthetic_tar_fixtures_retained": 2,
+    "case_count_overlap": "The two proof scenarios are already represented within the final 23 controls, not additional product cases.",
+    "historical_test_snapshot_note": "The original proof binds the earlier 22-control test snapshot. The final test adds a serialization-observation control without changing those fixture constructors."
+  },
+  "serialization_test_clarification": {
+    "current_controller_defect_found": false,
+    "description": "The reviewed 68723992 source already delays symlink emission until actual resolution. A production JsonLines callback now verifies serialized resolved_target values, closing the previous list-append reference-retention blind spot."
+  },
+  "unresolved_gates": [
+    "No actual candidate archive has been downloaded or statically inspected.",
+    "Publisher expected metadata is not a locally measured archive/executable/license identity.",
+    "Native transfer and process behavior on the OCI host remain unrun.",
+    "Native dependency compatibility, complete license clearance, installation design and product acceptance remain separate gates.",
+    "This local package creates no remote definition, request, dispatch or installation authority."
+  ],
+  "activity": {
+    "external_network_requests": 0,
+    "archive_downloads": 0,
+    "archive_extractions": 0,
+    "archive_member_executions": 0,
+    "native_host_actions": 0,
+    "remote_mutations": 0,
+    "installations": 0,
+    "model_calls": 0
+  }
+}

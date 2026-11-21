@@ -1,0 +1,52 @@
+{
+  "archive_extraction": false,
+  "archive_member_execution": false,
+  "cases": [
+    {
+      "case": "symlink_component_parent_escape",
+      "corrected": {
+        "accepted": false,
+        "code": "componentwise_link_escapes_python_tree"
+      },
+      "fixture_bytes": 10240,
+      "fixture_path": "regression-symlink_component_parent_escape.tar",
+      "fixture_sha256": "feb410ada74e5622950de4e2a809bbf51c05cdff84b909876ec05b59d9000331",
+      "original": {
+        "accepted": true,
+        "canonical_elf_type": 3,
+        "claimed_links_inside": true,
+        "installation_allowed": false
+      }
+    },
+    {
+      "case": "relocatable_canonical_executable",
+      "corrected": {
+        "accepted": false,
+        "code": "canonical_elf_not_executable"
+      },
+      "fixture_bytes": 10240,
+      "fixture_path": "regression-relocatable_canonical_executable.tar",
+      "fixture_sha256": "83b7eb23973e484cd933ab135e3d01e367e952c9495897c5f99c831a33cf8e13",
+      "original": {
+        "accepted": true,
+        "canonical_elf_type": 1,
+        "claimed_links_inside": true,
+        "installation_allowed": false
+      }
+    }
+  ],
+  "corrected_controller_sha256": "68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf",
+  "installations": 0,
+  "minimal_reproducer_functions": {
+    "relocatable_canonical_executable": "test_acquire_inspect.make_tar(test_acquire_inspect.base_members(test_acquire_inspect.elf_bytes(kind=1)))",
+    "symlink_component_parent_escape": "test_acquire_inspect.link_escape_tar()"
+  },
+  "native_host_actions": 0,
+  "network_calls": 0,
+  "original_controller_sha256": "42639871759fa2d792e576cc1eb104cb6ea3b5d1582fff07850d13aef23bf305",
+  "passed": true,
+  "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+  "schema": "merlin-python-static-concrete-regressions/1",
+  "scope": "Two synthetic tar scenarios already represented in22focused controls; original local controller functions invoked only as static parsers.",
+  "test_source_sha256": "cdb79bd94a6b78f27295da6680a2f22d7d290fe6be67d82d6eae8e865e8a5077"
+}

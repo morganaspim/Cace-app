@@ -1,0 +1,43 @@
+{
+  "archive_downloads": 0,
+  "elapsed_seconds": 0.22256523999931233,
+  "evidence_class": "local synthetic controls plus one local sleeping-child process-group fixture",
+  "external_network_requests": 0,
+  "fetched_code_executions": 0,
+  "installations": 0,
+  "invocation": "Exact generated workflow discovery code and /usr/bin/python3 -I -B flags; directory is the local prepared source tree",
+  "local_python_version": "Python 3.13.5",
+  "log": {
+    "bytes": 4059,
+    "sha256": "8f981e6140d787a5597d5b531f5bc17cc685fa119248de78293125c64a8beb71"
+  },
+  "model_calls": 0,
+  "native_execution": false,
+  "passed": true,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "product_case_count_delta": 0,
+  "recorded_at": "2026-11-21T22:52:38.779013+00:00",
+  "returncode": 0,
+  "schema": "merlin-python-static-inspection-local-controls/1",
+  "source_identities": {
+    "acquire_inspect.py": {
+      "bytes": 34102,
+      "sha256": "68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf"
+    },
+    "test_acquire_inspect.py": {
+      "bytes": 24812,
+      "sha256": "cdb79bd94a6b78f27295da6680a2f22d7d290fe6be67d82d6eae8e865e8a5077"
+    }
+  },
+  "source_unchanged_during_controls": true,
+  "summary": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 22
+  },
+  "workflow": {
+    "bytes": 12512,
+    "sha256": "cad94158c6a96c014ef1719f7a54c3eff49590b96c90bf0e705e4f8db919e302"
+  }
+}

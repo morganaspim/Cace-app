@@ -1,0 +1,79 @@
+{
+  "schema": "merlin-reviewed-native-inspections-authorization/1",
+  "recorded_utc": "2026-11-21T23:04:58Z",
+  "project": "Merlin personal AI assistant",
+  "confirmation": "yes",
+  "preceding_question": "Do you approve publishing the two exact packages in the review ZIP to private morganaspim/Cace-app, running one fixed browser-state inspection and one fixed unprivileged Python-archive inspection on OCI, and preserving their scoped raw results—including reviewed source copies contained in the original run artifacts—in private Mannyspiro/expert-robot?",
+  "authorization_status": "explicit_user_confirmation_received_for_this_exact_reviewed_scope",
+  "review_package": {
+    "filename": "Merlin_Native_Inspection_Review_20261121.zip",
+    "bytes": 116535,
+    "members": 39,
+    "sha256": "bb799822eee98a271558aff60bba58182655867573e45fb8ae651b937f29e2c5"
+  },
+  "repositories": {
+    "definitions_and_native_runs": "morganaspim/Cace-app",
+    "scoped_results_and_original_artifact_source_copies": "Mannyspiro/expert-robot"
+  },
+  "branch": "merlin/browser-operations-20261121",
+  "operations": [
+    {
+      "operation": "inspect-state-44956695079",
+      "manifest_sha256": "8768efcf1bba1f28e7baae0d56c950bff03f1dd9eae261acf219fd0020e916ca",
+      "definition_files": 9,
+      "runs": 1,
+      "request_prefix": "merlin/browser-state-inspection-requests/",
+      "scope": "Fixed six-path metadata, bounded successor-marker JSON, fixed browser-service properties and matching socket metadata. Allows the isolated transient root execution unit, existing lock and private runner evidence leaf; no acceptance fallthrough."
+    },
+    {
+      "operation": "inspect-cpython-3.11.18-20261110-aarch64",
+      "manifest_sha256": "bcda2d08f491b89e79207c1d980728d4b47faf01d64255bf7941647aa6d44a9e",
+      "definition_files": 17,
+      "runs": 1,
+      "request_prefix": "merlin/python-static-inspection-requests/",
+      "uid": 1000,
+      "archive_asset_id": 733710616,
+      "archive_expected_bytes": 49469868,
+      "archive_sha256": "623a370be4489d8c35c7a274be02f3007a030618cda29025780beb416c6c8861",
+      "logical_acquisitions": 1,
+      "automatic_retries": 0,
+      "redirect_ceiling": 2,
+      "acquisition_seconds": 180,
+      "inspection_seconds": 120,
+      "outer_seconds": 340,
+      "scope": "Exact public archive acquired as non-executable data and statically inspected; no archive-member execution, extraction into runtime paths, installation or activation."
+    }
+  ],
+  "authorized_result_preservation": "Scoped raw receipts, unchanged original run artifacts, source identity records and raw logs in the named private product repository; includes the reviewed source bytes contained in original run artifacts.",
+  "exclusions": [
+    "cleanup",
+    "guard relaxation",
+    "browser acceptance replay",
+    "changes to Merlin browser/provider services",
+    "Python or dependency installation",
+    "fetched-code execution",
+    "model calls",
+    "Avrea",
+    "ChatGPT website/account access",
+    "merge or production promotion"
+  ],
+  "canonical_master": {
+    "version": 6,
+    "immutable_ref": "6d4b5a4a3a5b81210d192554774316c04d2d88ff"
+  },
+  "preflight": {
+    "operations_head": "4eff6b2e910344fcddea8caa8bcf0d99f194d635",
+    "product_head": "cb09f176f6d3574d444590d693d8681d8f05a56a",
+    "main": "4c8491d23410c956779c76c6d733501df66e7f95",
+    "active_runs": 0,
+    "unrelated_old_queued_runs_left_unchanged": [
+      43097962890,
+      43097769929,
+      43097729564,
+      43097707897
+    ]
+  },
+  "historical_rejection_preserved": "approved-production-20261121/state-inspection-publication-rejection.json",
+  "automatic_review_status_at_record_creation": "New exact approval recorded; no new upload attempted yet.",
+  "execution_started_at_record_creation": false
+}

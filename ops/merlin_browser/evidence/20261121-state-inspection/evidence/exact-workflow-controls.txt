@@ -1,0 +1,25 @@
+test_all_absent_complete_observation_still_disallows_acceptance (test_inspect_state.InspectStateControls.test_all_absent_complete_observation_still_disallows_acceptance) ... ok
+test_disappearing_or_changed_path_is_unknown_after_first_observation (test_inspect_state.InspectStateControls.test_disappearing_or_changed_path_is_unknown_after_first_observation) ... ok
+test_fixed_scope_has_exact_failed_request_paths (test_inspect_state.InspectStateControls.test_fixed_scope_has_exact_failed_request_paths) ... ok
+test_incomplete_observation_or_present_path_cannot_be_promoted (test_inspect_state.InspectStateControls.test_incomplete_observation_or_present_path_cannot_be_promoted) ... ok
+test_marker_missing_and_permission_error_remain_distinct (test_inspect_state.InspectStateControls.test_marker_missing_and_permission_error_remain_distinct) ... ok
+test_marker_race_truncation_and_invalid_json_are_unverified (test_inspect_state.InspectStateControls.test_marker_race_truncation_and_invalid_json_are_unverified) ... ok
+test_missing_path_is_absent_without_claiming_other_paths (test_inspect_state.InspectStateControls.test_missing_path_is_absent_without_claiming_other_paths) ... ok
+test_path_permission_error_is_unknown_not_absent (test_inspect_state.InspectStateControls.test_path_permission_error_is_unknown_not_absent) ... ok
+test_present_metadata_preserves_type_owner_mode_without_opening (test_inspect_state.InspectStateControls.test_present_metadata_preserves_type_owner_mode_without_opening) ... ok
+test_readlink_error_or_overlimit_target_is_unknown (test_inspect_state.InspectStateControls.test_readlink_error_or_overlimit_target_is_unknown) ... ok
+test_real_local_parent_symlink_is_refused (test_inspect_state.InspectStateControls.test_real_local_parent_symlink_is_refused) ... ok
+test_request_requires_fixed_new_first_attempt_identity (test_inspect_state.InspectStateControls.test_request_requires_fixed_new_first_attempt_identity) ... ok
+test_socket_errors_bounds_and_bad_header_never_report_zero_matches (test_inspect_state.InspectStateControls.test_socket_errors_bounds_and_bad_header_never_report_zero_matches) ... ok
+test_socket_table_exports_only_exact_matching_path (test_inspect_state.InspectStateControls.test_socket_table_exports_only_exact_matching_path) ... ok
+test_supervisor_failure_or_incomplete_fields_are_unknown (test_inspect_state.InspectStateControls.test_supervisor_failure_or_incomplete_fields_are_unknown) ... ok
+test_supervisor_uses_only_fixed_bounded_show_command (test_inspect_state.InspectStateControls.test_supervisor_uses_only_fixed_bounded_show_command) ... ok
+test_symlink_reports_literal_target_without_following (test_inspect_state.InspectStateControls.test_symlink_reports_literal_target_without_following) ... ok
+test_trusted_marker_preserves_exact_json_bytes_and_hash_only (test_inspect_state.InspectStateControls.test_trusted_marker_preserves_exact_json_bytes_and_hash_only) ... ok
+test_untrusted_marker_is_never_opened_or_exported (test_inspect_state.InspectStateControls.test_untrusted_marker_is_never_opened_or_exported) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.032s
+
+OK
+{"tests": 19, "errors": 0, "failures": 0, "skipped": 0}

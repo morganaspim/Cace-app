@@ -1,0 +1,71 @@
+{
+  "all_sources_and_generated_program_parse_as_python39": true,
+  "fixture_controls": {
+    "errors": 0,
+    "failures": 0,
+    "invocation_argv": [
+      "/usr/bin/python3",
+      "-I",
+      "-B",
+      "-c",
+      "import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_inspect_state.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==19 else 1)",
+      "/workspace/scratch/e6b5ba62b1d9/approved-production-20261121/browser-state-diagnostic/ops/merlin_browser"
+    ],
+    "returncode": 0,
+    "skipped": 0,
+    "tests": 19
+  },
+  "local_python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "native_host_actions": 0,
+  "native_python39_execution": false,
+  "new_request_files": 0,
+  "original_acceptance_controller_sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf",
+  "original_acceptance_workflow_sha256": "2093b64ad89e68add600d4bbd7b70c933b26276bfd01eec1b19acc31cb55fc3f",
+  "passed": true,
+  "provider_calls": 0,
+  "remote_mutations": 0,
+  "root_assembly_fixture": {
+    "argv_count": 29,
+    "bytes": 37547,
+    "dollar_characters": 0,
+    "limit": 115000,
+    "percent_characters": 0,
+    "request_is_test_metadata_not_dispatch": true,
+    "root_code_executed": false,
+    "total_argv_bytes": 38087
+  },
+  "root_code_capsules": [
+    {
+      "bytes": 75316,
+      "name": "bootstrap_browser.py",
+      "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+    },
+    {
+      "bytes": 15587,
+      "name": "inspect_state.py",
+      "sha256": "6475078d88fb30ed8ef9afcfef0a4d1490cef3049150bdcca3be7ed3cc287bc6"
+    }
+  ],
+  "schema": "merlin-browser-state-inspection-local-review/1",
+  "service_launch_recipe_ast_equals_corrected_acceptance": true,
+  "source_acquisitions": 0,
+  "source_pins": {
+    "bootstrap_browser.py": {
+      "bytes": 75316,
+      "git_blob": "cc09a1fa02c653712a184c578aabbd28e10ac20c",
+      "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+    },
+    "inspect_state.py": {
+      "bytes": 15587,
+      "git_blob": "912381d91ab42e8b655e55a7dfc674503bc5bfb7",
+      "sha256": "6475078d88fb30ed8ef9afcfef0a4d1490cef3049150bdcca3be7ed3cc287bc6"
+    },
+    "test_inspect_state.py": {
+      "bytes": 18470,
+      "git_blob": "aa69ed813942fbf06585ebc371fe401961aec627",
+      "sha256": "71e0d92a0e97b74346b4c9864503ce7e56fe0c64fbb3bf3871a1562c4752b1c3"
+    }
+  },
+  "workflow_bytes": 14602,
+  "workflow_sha256": "5b6f467df0a7e3bfdc218a6c731553a4db0e2d1bbc3528e7fac09e09ccb3661d"
+}

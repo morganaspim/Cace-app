@@ -1,0 +1,35 @@
+{
+  "acceptance_invocation_present": false,
+  "frozen_seven_file_proposal_unchanged": true,
+  "native_execution": false,
+  "new_test_runs_by_this_static_review": 0,
+  "passed": true,
+  "python_3_9_grammar": "accepted for both modules and generated workflow program",
+  "recorded_at": "2026-11-21T22:54:29.613317+00:00",
+  "root_or_sudo_invocation_present": false,
+  "runtime_archive_not_downloaded": true,
+  "schema": "merlin-python-static-inspection-definition-review/1",
+  "shared_operations_concurrency": "merlin-dot-oci-operations",
+  "source_bindings": [
+    {
+      "bytes": 34102,
+      "file": "acquire_inspect.py",
+      "git_blob": "74596d32ff5de8d6689a9a06d9054df36a5bed48",
+      "pin_matches": true,
+      "sha256": "68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf"
+    },
+    {
+      "bytes": 26021,
+      "file": "test_acquire_inspect.py",
+      "git_blob": "c9dc8a35c18f01bf66e29f308645303c860141f1",
+      "pin_matches": true,
+      "sha256": "173f55021c4d31bdc52160b4e40a9bb8b8ea6839354066ad642d90983712e358"
+    }
+  ],
+  "tests_not_added_to_product_count": true,
+  "trigger_path": "merlin/python-static-inspection-requests/**",
+  "workflow": {
+    "bytes": 12512,
+    "sha256": "51b8e251f338b829a27383e70be73af61d81ac86fd37f265d93c59710ef950e0"
+  }
+}
