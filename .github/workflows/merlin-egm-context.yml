@@ -51,7 +51,7 @@ jobs:
               q=json.loads(raw,object_pairs_hook=unique)
               if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-egm-check/1' or q['operation']!='validate' or changes[0]['filename']!='merlin/egm-checks/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
               source,identity=fetch('ops/merlin_dot/validate_egm_context_v6.py')
-              if identity!='66a699cbbc3f514feffc1fa347d24cb34bcee3e8' or hashlib.sha256(source).hexdigest()!='7490f75cd6ef95a87e80bcdd36620aacb49e15cc6fb046d364fe263d681c5f89': raise ValueError('reviewed controller identity differs')
+              if identity!='bbf959bf664096d6a701f7d49192f25dff9f57bf' or hashlib.sha256(source).hexdigest()!='31fbdff176e3d4e62a8f852d866e175c83bb0c4267879e4ce731c8f37654e47a': raise ValueError('reviewed controller identity differs')
               (out/'controller.txt').write_bytes(source)
               (out/'controller-identity.json').write_text(json.dumps({'git_blob':identity,'sha256':hashlib.sha256(source).hexdigest(),'bytes':len(source),'workflow_commit':commit},indent=2))
               namespace={};exec(compile(source,'pinned-egm-validation','exec'),namespace)
