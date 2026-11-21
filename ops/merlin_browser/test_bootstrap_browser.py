@@ -45,6 +45,31 @@ class FixedBootstrapControls(unittest.TestCase):
         self.packages[0]['url']='https://example.net/'+self.packages[0]['filename']
         with self.assertRaises(bootstrap.BootstrapError): bootstrap.validate_transaction(self.packages,self.before,[])
 
+    def test_observed_rpm_snapshot_caret_filename_is_accepted(self):
+        # Exact filename and content identity from candidate-plan.json in
+        # native diagnostic run44934058026; no package bytes are installed.
+        filename='aribb24-1.0.3^20160216git5e9be27-1.el9.aarch64.rpm'
+        observed={'name':'aribb24','epoch':'0','version':'1.0.3^20160216git5e9be27','release':'1.el9',
+          'arch':'aarch64','repository':'merlin-ol9-epel','filename':filename,
+          'url':bootstrap.REPOS['merlin-ol9-epel']+'getPackage/'+filename,
+          'sha256':'095d686374bef68af175b1b07db1bb3473d414b5e1262c9c6fa99f82cf34b5d5',
+          'bytes':40987,'install_bytes':142054,'requires':[]}
+        bounds=bootstrap.validate_transaction(self.packages+[observed],self.before,[])
+        self.assertEqual(bounds['new_packages'],3)
+        with self.assertRaisesRegex(bootstrap.BootstrapError,'source prefix'):
+            bootstrap.validate_transaction(self.packages+[{**observed,'url':'https://foreign.example/'+filename}],self.before,[])
+
+    def test_snapshot_filename_admission_still_rejects_paths_and_delimiters(self):
+        for filename in ('../snapshot^1.rpm','dir/snapshot^1.rpm','dir\\snapshot^1.rpm',
+                         'snapshot%2f^1.rpm','snapshot^1?.rpm','snapshot^1#.rpm',
+                         'snapshot^1 .rpm','snapshot^1\n.rpm','snapshot^1;.rpm',
+                         'snapshot$(id)^1.rpm','snapshot^1\x00.rpm'):
+            values=copy.deepcopy(self.packages);values[0]['filename']=filename
+            values[0]['url']=bootstrap.REPOS['merlin-ol9-epel']+'getPackage/'+filename
+            with self.subTest(filename=filename):
+                with self.assertRaisesRegex(bootstrap.BootstrapError,'filename'):
+                    bootstrap.validate_transaction(values,self.before,[])
+
     def test_rejected_transaction_preserves_unvalidated_candidate(self):
         self.packages[0]['url']='https://different.example/'+self.packages[0]['filename']
         with tempfile.TemporaryDirectory() as directory:

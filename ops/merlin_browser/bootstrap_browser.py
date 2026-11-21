@@ -303,7 +303,9 @@ def validate_transaction(packages,before,removed):
             raise BootstrapError('package source prefix differs: '+json.dumps({
                 'repository':package['repository'],'url':package['url'],
                 'expected_prefix':REPOS[package['repository']],'filename':package['filename']},sort_keys=True)[:2000])
-        if not isinstance(package['filename'],str) or not re.fullmatch(r'[A-Za-z0-9_.+~-]+\.rpm',package['filename']):
+        # RPM uses caret for post-release snapshots. Native run44934058026
+        # observed it in aribb24; it is a literal basename byte, never shell.
+        if not isinstance(package['filename'],str) or not re.fullmatch(r'[A-Za-z0-9_.+~\^-]+\.rpm',package['filename']):
             raise BootstrapError('package filename differs: '+json.dumps({
                 'repository':package['repository'],'url':package['url'],'filename':package['filename']},sort_keys=True)[:2000])
         if urllib.parse.urlsplit(package['url']).path.rsplit('/',1)[-1]!=package['filename']:

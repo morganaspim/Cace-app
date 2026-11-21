@@ -33,7 +33,7 @@ jobs:
               raise RuntimeError('unexpected native bootstrap execution identity')
           run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
           if run_id<=0 or attempt!=1: raise RuntimeError('first bootstrap attempt required')
-          pins={'bootstrap_browser.py': {'bytes': 58576, 'sha256': '9709d2dc42c09cd71d5e454a984ebd2a9f51dab367778e33c6355fbf4f018bf8', 'git_blob': 'faaeec462490aa533f6def2f95095681906d2036'}, 'launch_episode.py': {'bytes': 24631, 'sha256': '621e2557785492e7de3c6c5b7161653f2a05fb8080f9711d7b72d11900d57bfe', 'git_blob': '4f18d4fcfba7e2fcbe6dda98a318a51b250dfe3e'}, 'smoke_renderer.py': {'bytes': 8108, 'sha256': 'a9cc3ab7b67ec2511a7ed56b2af4d829a424ad3a00f2632e0e860ceddc59e2f9', 'git_blob': '9bd9849ab14bfbd443eded108f2807c6c857de3b'}, 'test_bootstrap_browser.py': {'bytes': 11934, 'sha256': '3080a63c57f4fe00b0cd0f5d08024d9b31c8d41ffaed1f146d504365dac79d4c', 'git_blob': '32442ce0373e5b688a3cc336a24a407c7125aedb'}}
+          pins={'bootstrap_browser.py': {'bytes': 58731, 'sha256': 'b4382eddeeee1b8b83cef9fe3c41ef6e77297e92939e3f4221f2966981c3886b', 'git_blob': '1b7ff5ce4069657232761b7ba9f3ad23efd8946e'}, 'launch_episode.py': {'bytes': 24631, 'sha256': '621e2557785492e7de3c6c5b7161653f2a05fb8080f9711d7b72d11900d57bfe', 'git_blob': '4f18d4fcfba7e2fcbe6dda98a318a51b250dfe3e'}, 'smoke_renderer.py': {'bytes': 8108, 'sha256': 'a9cc3ab7b67ec2511a7ed56b2af4d829a424ad3a00f2632e0e860ceddc59e2f9', 'git_blob': '9bd9849ab14bfbd443eded108f2807c6c857de3b'}, 'test_bootstrap_browser.py': {'bytes': 13755, 'sha256': '4447cca3ee560ca961d129a66a6d3fc466840cf18075951cb4cb2f0ff7a3f080', 'git_blob': '57dbc9270c445ce33ea4d541259bb38c0f0c3c07'}}
           runtime_pin={'bytes': 66068, 'expert_source_commit': '8e2f1d69371d5b4f7e01e3bbd5aa02a666ddd506', 'git_blob': 'eef7ecfca629800726beae7eed46f4acd0a49a31', 'sha256': '58f9b4fee8b03db777a07e76149ef5fedcc8c1c9b3309c16499b3cadecfbac90'}
           runtime_path='ops/merlin_browser/releases/'+runtime_pin['sha256']+'.zip'
           clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
@@ -128,7 +128,7 @@ jobs:
                  'python':sys.version}
               (out/'identity.json').write_text(json.dumps(execution,sort_keys=True,indent=2))
               # Exact native package and host controls are prerequisites, not qualification.
-              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_bootstrap_browser.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==23 else 1)"
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_bootstrap_browser.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==25 else 1)"
               fixed(['/usr/bin/python3','-I','-B','-c',code,str(out)],'host-controls.txt',40)
               product=out/'native-product';product.mkdir(mode=0o700)
               with zipfile.ZipFile(io.BytesIO(runtime)) as archive:
