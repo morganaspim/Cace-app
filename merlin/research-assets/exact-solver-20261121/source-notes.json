@@ -1,0 +1,63 @@
+{
+  "schema": "merlin-research-source-notes/1",
+  "task": "Bounded exact-rational linear solver alternatives for Merlin",
+  "interpretation": "These are source-linked hypotheses. Performance and functional outcomes must be measured on the original task; no source guarantees an improvement.",
+  "sources": [
+    {
+      "source_id": "sympy-domainmatrix",
+      "url": "https://docs.sympy.org/latest/modules/polys/domainmatrix.html",
+      "title": "Introducing the domainmatrix of the poly module",
+      "publisher": "SymPy",
+      "retrieval": "Official documentation excerpt retrieved through web search; relevant rref, rref_den and solve_den sections observed.",
+      "source_reference": "turn228409086search2",
+      "notes": "SymPy distinguishes ordinary division-based elimination, fraction-free elimination using exact divisions, and denominator clearing before fraction-free elimination. Its guidance associates different choices with matrix sparsity and denominator complexity. This motivates two competing candidates rather than a universal speed claim. Merlin will retain its Fraction interface and evaluate exact output, pivoting, singular handling and input preservation independently.",
+      "implementation_scope": "No new SymPy dependency. Candidate algorithms use Python standard-library exact arithmetic."
+    },
+    {
+      "source_id": "python39-fractions",
+      "url": "https://docs.python.org/3.9/library/fractions.html",
+      "title": "fractions — Rational numbers",
+      "publisher": "Python Software Foundation",
+      "retrieval": "Official Python3.9.25 page opened successfully; constructor, normalization and ratio sections observed.",
+      "source_reference": "turn498836531view1",
+      "notes": "Constructing Fraction from numerator and denominator preserves a rational value. Python3.9 normalizes these components using gcd. Float input represents the binary floating-point value, so converting through floats would change the exact task. Candidate and reference inputs therefore remain integer pairs and Fraction objects."
+    },
+    {
+      "source_id": "bareiss-nasa-brief",
+      "url": "https://ntrs.nasa.gov/api/citations/19680000292/downloads/19680000292.pdf?attachment=true",
+      "title": "Linear Systems of Equations Solved Using Mathematical Algorithms",
+      "publisher": "AEC–NASA",
+      "publication": "August1968, Brief68-10292",
+      "retrieval": "Official one-page PDF opened successfully; all55 extracted lines available.",
+      "source_reference": "turn707251086view0",
+      "notes": "The brief attributes integer-preserving elimination methods to E.H.Bareiss and points to Argonne reportANL7213 and the1968 Mathematics of Computation paper. It motivates reducing intermediate coefficient growth. This historical claim is an algorithmic lead, not evidence that a Python implementation will outperform Merlin on these small systems."
+    },
+    {
+      "source_id": "bareiss-ams-paper",
+      "url": "https://www.ams.org/mcom/1968-22-103/S0025-5718-1968-0226829-0/S0025-5718-1968-0226829-0.pdf",
+      "title": "Sylvester’s Identity and Multistep Integer-Preserving Gaussian Elimination",
+      "author": "ErwinH.Bareiss",
+      "publication": "Mathematics of Computation22(103),1968,565–578",
+      "doi": "10.1090/S0025-5718-1968-0226829-0",
+      "retrieval": "Indexed abstract and snippets observed. Direct PDF fetch returned403; OSTI report fetch returned502. Full-paper reading is NOT claimed.",
+      "source_reference": "turn104238395search24",
+      "notes": "The indexed abstract describes integer-preserving elimination for linear systems and determinant computation. Use this as a source pointer only; the available primary documentation and independent original-task checks provide the concrete task basis."
+    }
+  ],
+  "baseline": {
+    "repository": "Mannyspiro/expert-robot",
+    "commit": "bb2e3f31d631ac587a43322b42566f7808cf7005",
+    "path": "python/dot_ai_os/simulation_research.py",
+    "function": "_solve",
+    "function_sha256": "72ba14b8f8b98475c3c25f885bc2edd88e05bd1d36422ab6b5e3ee20c2799798",
+    "observation": "Exact local AST source matched published selected source and the independently constructed18-case reference before model generation."
+  },
+  "limits": [
+    "No model has yet proposed or executed a candidate for this episode.",
+    "No final reference cases or expected values may enter coder prompts.",
+    "Finite functional checks are not formal CACE verification or a universal proof.",
+    "Retrieval metadata distinguishes successful full-page/brief reading from failed full-paper access."
+  ],
+  "retrieval_date_utc": "2026-11-21",
+  "record_created_at_utc": "2026-11-21 13:56:49 UTC"
+}
