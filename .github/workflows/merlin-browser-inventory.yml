@@ -1,0 +1,108 @@
+name: Merlin browser capability inventory
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/browser-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  fixed-browser-inventory:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 4
+    steps:
+      - name: Inspect fixed browser capabilities without credentials or installation
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          import base64,hashlib,json,os,re,subprocess,urllib.request
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if (repo!='morganaspim/Cace-app' or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000
+              or not re.fullmatch('[0-9a-f]{40}',commit)):
+              raise RuntimeError('unexpected inventory execution identity')
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON field')
+                  value[key]=item
+              return value
+          def api(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,
+                  headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=20) as response: raw=response.read(2*1024*1024+1)
+              if len(raw)>2*1024*1024: raise RuntimeError('bounded API response exceeded')
+              return json.loads(raw,object_pairs_hook=unique)
+          def fetch(path):
+              item=api('contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              blob=hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+              if blob!=item['sha']: raise RuntimeError('Git bytes differ')
+              return raw,blob
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if run_id<=0 or attempt<=0: raise RuntimeError('invalid run identity')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-browser-inventory-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          try:
+              files=api('commits/'+commit)['files']
+              if len(files)!=1 or files[0]['status']!='added': raise RuntimeError('one additive request file required')
+              path=files[0]['filename']
+              if not re.fullmatch(r'merlin/browser-requests/[0-9a-f-]{36}\.json',path): raise RuntimeError('request path rejected')
+              raw,_=fetch(path)
+              if len(raw)>16000: raise RuntimeError('request byte limit')
+              request=json.loads(raw,object_pairs_hook=unique)
+              if (not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}
+                  or request['schema']!='merlin-browser-inventory-request/1' or request['operation']!='inventory'
+                  or path!='merlin/browser-requests/'+request['request_id']+'.json'):
+                  raise RuntimeError('fixed inventory request required')
+              (out/'request.json').write_bytes(raw)
+              pins={'inventory.py': {'git_blob': '76c4daa76eb2e3eff72e6d3f3184c8fecd574062', 'sha256': 'bd0b44f45f359dd850ff13cfcf0c07bde6dee12c0b5fc3bd0769b9c34cda02c5', 'bytes': 13398}, 'test_inventory.py': {'git_blob': '45d8a8dffa9dc57a146b4f3f60b7737c1fc4d027', 'sha256': 'd499f3db66c37177f68b0ebde189468e36784743ca3e2e36e962ef27311cb62f', 'bytes': 6429}}
+              for name,pin in pins.items():
+                  body,blob=fetch('ops/merlin_browser/'+name)
+                  if (len(body)!=pin['bytes'] or blob!=pin['git_blob'] or hashlib.sha256(body).hexdigest()!=pin['sha256']):
+                      raise RuntimeError('inventory source pin mismatch')
+                  (out/name).write_bytes(body)
+              workflow,workflow_blob=fetch('.github/workflows/merlin-browser-inventory.yml')
+              (out/'workflow-definition.yml').write_bytes(workflow)
+              (out/'source-identities.json').write_text(json.dumps({'sources':pins,'workflow_git_blob':workflow_blob,
+                  'workflow_sha256':hashlib.sha256(workflow).hexdigest()},sort_keys=True,indent=2))
+              clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
+                  'HOME':'/var/empty','XDG_CONFIG_HOME':'/var/empty','XDG_CACHE_HOME':'/var/empty','XDG_DATA_HOME':'/var/empty'}
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_inventory.py');r=unittest.TextTestRunner(verbosity=2).run(s);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==12 else 1)"
+              controls=subprocess.run(['/usr/bin/python3','-I','-B','-c',code,str(out)],cwd='/',env=clean,capture_output=True,text=True,timeout=30)
+              (out/'controller-tests.txt').write_text(controls.stdout+controls.stderr)
+              if controls.returncode: raise RuntimeError('inventory controls failed')
+              for name,pin in pins.items():
+                  if hashlib.sha256((out/name).read_bytes()).hexdigest()!=pin['sha256']: raise RuntimeError('source changed during controls')
+              identity={'repository':repo,'ref':os.environ['GITHUB_REF'],'runner':os.environ['RUNNER_NAME'],
+                  'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt,'controller_sha256':pins['inventory.py']['sha256']}
+              (out/'identity.json').write_text(json.dumps(identity,sort_keys=True))
+              result=subprocess.run(['/usr/bin/python3','-I','-B',str(out/'inventory.py'),
+                  '--request',str(out/'request.json'),'--identity',str(out/'identity.json'),
+                  '--output',str(out/'inventory.json')],cwd='/',env=clean,capture_output=True,text=True,timeout=100)
+              (out/'inventory-log.txt').write_text(result.stdout+result.stderr)
+              if result.returncode: raise RuntimeError('fixed unprivileged inventory failed')
+              print(result.stdout)
+          except Exception as exc:
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed','type':type(exc).__name__,
+                  'message':str(exc)[:2000],'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt},indent=2))
+              raise
+          PYCODE
+      - name: Preserve complete inventory evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-browser-inventory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-browser-inventory-${{ github.run_id }}-${{ github.run_attempt }}/*
+          retention-days: 30
+          if-no-files-found: warn
