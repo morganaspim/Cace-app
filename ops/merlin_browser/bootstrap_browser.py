@@ -1,9 +1,11 @@
-"""Pinned, install-only Oracle browser bootstrap; no request-supplied commands.
+"""Pinned, install-only Oracle browser continuation; no supplied commands.
 
 Acquisition runs as the existing unprivileged runner. Installation receives the
 frozen manifest hash in authenticated fixed workflow code, recopies regular
 artifacts into root-owned staging, and rechecks every hash/signature. Existing
 packages are never upgraded, removed or replaced. Failure remains inspectable.
+This revision supports one explicit successor to inspected run44942304091.
+Its failed intent/result remain immutable and its retained closure is reused.
 """
 import base64
 import contextlib
@@ -71,6 +73,29 @@ SERVICE='merlin-public-browser.service'
 RPM_FORMAT='%{NAME}\t%{EPOCHNUM}\t%{VERSION}\t%{RELEASE}\t%{ARCH}\n'
 PRIVATE_CONFIG_SHA='a25921442e2d3e463ccd685de6c67d824140b8c1592ab4fe942fb50c5d3b22e8'
 PRIVATE_UNIT_SHA='f22462e9c91eedab99d4bd16d9e3bb14eb52fedbc1e9e3b9110bb3307a11e543'
+CONTINUATION_OPERATION='continue-zvbi-44942304091'
+PREDECESSOR={'request_id':'ef0c417a-4b58-4c5d-b44b-be7a237bedfa','run_id':44942304091,
+ 'workflow_commit':'7f12c41b49f4be4ee46077afc03fd2e36a41830f',
+ 'intent_sha256':'203c362c00fb7af0b6f02ac7b923d0894b7f09553eb031299822f62e35a1d305',
+ 'result_sha256':'8170ddc15aaf4630fc32440eb353da649c1c8bdfcf9a52cda1e8d7f2a0c30557',
+ 'acquisition_sha256':'a84f362035e170b904407004679b59c2675423fe6a64f8eb4cb92f5f344b9325',
+ 'before_packages_sha256':'aa434fae4c1c28b10a94229ff226b9046410a3c0af23482bfead85d00e86294f',
+ 'inspection_run_id':44943332796,'inspection_workflow_commit':'0cb0d0e9635fb72ed089af007c61b6d14347a5b3',
+ 'inspection_artifact_sha256':'a4afa1ad478d853f41dc03aa7ef78ac92a5cec156a59fb95d5ce98eef8458356',
+ 'dependency_artifact':{'id':14721824377,'bytes':642813625,
+    'sha256':'0d655e1153877176c3109a63710a784f0d7c99ab94ac573424941b21cbeac9e3',
+    'expires_at':'2026-12-21T19:44:37Z','retrieval_limit_bytes':536870912,
+    'local_retrieval':'tool size limit; original combined artifact retained by Actions'}}
+ZVBI={'name':'zvbi','epoch':'0','version':'0.2.35','release':'15.el9','arch':'aarch64',
+ 'filename':'zvbi-0.2.35-15.el9.aarch64.rpm','bytes':446528,
+ 'sha256':'b2df1becc979d6b5faac7398808e262027aa64011704affa36ba3fac49398a29',
+ 'files_sha256':'140aab352ad6c78c7eb12c079370128200705200549d118b9c13eca6e0660d00',
+ 'scripts_sha256':'2ad289a0f6330aa455823f9e48da1fd8222111db816dcc1d94b86db3a2bb81bb',
+ 'xml_sha256':'a44a491e76661a7d2474538c4debb86c74df8e05837dd298636ce8838abf24d0',
+ 'excluded_paths':('/usr/lib/systemd/system/zvbid.service','/usr/sbin/zvbid'),
+ 'scriptlet_policy':'--nopost for this exact RPM only; ordinary transaction triggers retained'}
+DAEMON_PATHS=ZVBI['excluded_paths']+('/etc/systemd/system/zvbid.service','/run/systemd/system/zvbid.service')
+PRIVILEGED_PREFIXES=('/etc/systemd/','/usr/lib/systemd/system/','/etc/sudoers','/etc/cron','/etc/pam.d/','/etc/ssh/')
 
 
 class BootstrapError(RuntimeError): pass
@@ -187,8 +212,10 @@ def command(argv,log,timeout=60,limit=8*1024*1024,allowed=(0,),user=None,group=N
 def validate_request(request,execution):
     if not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}:
         raise BootstrapError('fixed request fields')
-    if request['schema']!='merlin-browser-bootstrap-request/1' or request['operation']!='bootstrap':
-        raise BootstrapError('fixed bootstrap only')
+    if request['schema']!='merlin-browser-bootstrap-request/1' or request['operation']!=CONTINUATION_OPERATION:
+        raise BootstrapError('fixed inspected continuation only')
+    if request['request_id']==PREDECESSOR['request_id']:
+        raise BootstrapError('successor requires a new request identity')
     if str(uuid.UUID(request['request_id']))!=request['request_id']:
         raise BootstrapError('canonical request UUID required')
     if not isinstance(request['created_at'],str) or not re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ',request['created_at']):
@@ -438,6 +465,63 @@ def acquire(stage):
     write(stage/'acquisition.json',canonical(manifest));return manifest
 
 
+def payload_policy(package,files,scripts=None,triggers=None,xml=None):
+    """Admit the inspected library payload without admitting its daemon."""
+    paths=files.decode('utf-8').splitlines()
+    forbidden=[path for path in paths if path.startswith(PRIVILEGED_PREFIXES)]
+    if package.get('name')!='zvbi':
+        if forbidden: raise BootstrapError('dependency would install unrelated privileged service or policy')
+        return {'excluded_paths':[],'scriptlet_policy':'normal'}
+    fields=('name','epoch','version','release','arch','filename','bytes','sha256')
+    if any(package.get(key)!=ZVBI[key] for key in fields):
+        raise BootstrapError('exact inspected zvbi package required')
+    if (digest(files)!=ZVBI['files_sha256'] or forbidden!=[ZVBI['excluded_paths'][0]]
+        or any(path not in paths for path in ZVBI['excluded_paths'])):
+        raise BootstrapError('exact inspected zvbi file closure required')
+    if (scripts is None or digest(scripts)!=ZVBI['scripts_sha256'] or triggers!=b''
+        or xml is None or digest(xml)!=ZVBI['xml_sha256']):
+        raise BootstrapError('exact inspected zvbi scriptlet and trigger closure required')
+    return {'excluded_paths':list(ZVBI['excluded_paths']),'scriptlet_policy':ZVBI['scriptlet_policy'],
+            'inspected_scripts_sha256':ZVBI['scripts_sha256'],'inspected_xml_sha256':ZVBI['xml_sha256']}
+
+
+def install_stages(stage,packages):
+    matches=[item for item in packages if item['name']=='zvbi']
+    if len(matches)!=1 or any(matches[0].get(key)!=ZVBI[key] for key in ('filename','sha256','bytes')):
+        raise BootstrapError('one exact inspected library package required')
+    excluded=[]
+    for path in ZVBI['excluded_paths']: excluded.extend(['--excludepath',path])
+    first=['/usr/bin/rpm','--install','--nopost']+excluded+[str(stage/'rpms'/matches[0]['filename'])]
+    remaining=[str(stage/'rpms'/item['filename']) for item in packages if item['name']!='zvbi']
+    if len(remaining)!=48: raise BootstrapError('exact retained forty-eight package remainder required')
+    return [{'name':'zvbi-library-only','argv':first,'package_count':1},
+            {'name':'remaining-dependencies','argv':['/usr/bin/rpm','--install']+remaining,'package_count':48}]
+
+
+def daemon_absence(logs,tag,require_exclusion_states=False):
+    for value in DAEMON_PATHS:
+        path=Path(value)
+        if path.exists() or path.is_symlink(): raise BootstrapError('unrelated zvbi daemon path present')
+    raw=command(['/usr/bin/systemctl','show','zvbid.service','--no-pager',
+        '--property=LoadState','--property=ActiveState','--property=SubState','--property=MainPID',
+        '--property=FragmentPath'],logs/(tag+'-zvbi-unit.txt'))
+    unit=dict(line.split('=',1) for line in raw.decode().splitlines() if '=' in line)
+    if (unit.get('LoadState')!='not-found' or unit.get('ActiveState')!='inactive'
+        or unit.get('MainPID')!='0' or unit.get('FragmentPath')!=''):
+        raise BootstrapError('unrelated zvbi daemon unit is present or active')
+    result={'absent_paths':list(DAEMON_PATHS),'unit':unit}
+    if require_exclusion_states:
+        rows=command(['/usr/bin/rpm','-q','--qf','[%{FILENAMES}\t%{FILESTATES}\n]','zvbi'],
+                     logs/(tag+'-zvbi-file-states.txt'))
+        states=dict(line.split('\t',1) for line in rows.decode().splitlines())
+        # RPMFILE_STATE_NOTINSTALLED=2: the RPM database records intentional
+        # exclusion, while all signed package bytes remain preserved.
+        if any(states.get(path)!='2' for path in ZVBI['excluded_paths']):
+            raise BootstrapError('RPM did not record both exact payload exclusions')
+        result['excluded_file_states']={path:states[path] for path in ZVBI['excluded_paths']}
+    return result
+
+
 def verify_signatures(stage,manifest,logs):
     db=stage/'verification-rpmdb';db.mkdir(mode=0o700,exist_ok=False)
     command(['/usr/bin/rpm','--dbpath',str(db),'--initdb'],logs/'rpmdb-init.txt')
@@ -459,10 +543,14 @@ def verify_signatures(stage,manifest,logs):
         expected='\t'.join(str(package[k]) for k in ('name','epoch','version','release','arch'))+'\n'
         if meta.decode()!=expected: raise BootstrapError('signed RPM metadata differs from solver')
         files=command(['/usr/bin/rpm','--dbpath',str(db),'-qpl',str(path)],logs/('package-files-%02d.txt'%index))
-        if any(line.startswith(('/etc/systemd/','/usr/lib/systemd/system/','/etc/sudoers','/etc/cron','/etc/pam.d/','/etc/ssh/')) for line in files.decode().splitlines()):
-            raise BootstrapError('dependency would install unrelated privileged service or policy')
-        command(['/usr/bin/rpm','--dbpath',str(db),'-qp','--scripts',str(path)],logs/('package-scripts-%02d.txt'%index))
-        signatures.append({'filename':package['filename'],'verified_key_ids':found,'sha256':package['sha256']})
+        scripts=command(['/usr/bin/rpm','--dbpath',str(db),'-qp','--scripts',str(path)],logs/('package-scripts-%02d.txt'%index))
+        triggers=xml=None
+        if package['name']=='zvbi':
+            triggers=command(['/usr/bin/rpm','--dbpath',str(db),'-qp','--triggers',str(path)],logs/('package-triggers-%02d.txt'%index))
+            xml=command(['/usr/bin/rpm','--dbpath',str(db),'-qp','--xml',str(path)],logs/('package-xml-%02d.txt'%index))
+        policy=payload_policy(package,files,scripts,triggers,xml)
+        signatures.append({'filename':package['filename'],'verified_key_ids':found,'sha256':package['sha256'],
+                           'payload_policy':policy})
     return signatures
 
 
@@ -707,14 +795,125 @@ def export_tree(source,target,limit=256*1024*1024):
     return {'present':True,'files':count,'bytes':total}
 
 
+def predecessor_receipts(intent_raw,result_raw,manifest,bundle_pin):
+    if (digest(intent_raw)!=PREDECESSOR['intent_sha256']
+        or digest(result_raw)!=PREDECESSOR['result_sha256']):
+        raise BootstrapError('exact inspected failed intent/result required')
+    prior=decode(result_raw);initial=decode(intent_raw)
+    for item in (prior,initial):
+        if (item.get('request',{}).get('request_id')!=PREDECESSOR['request_id']
+            or item.get('execution',{}).get('run_id')!=PREDECESSOR['run_id']
+            or item.get('execution',{}).get('workflow_commit')!=PREDECESSOR['workflow_commit']
+            or item.get('runtime_pin')!=bundle_pin
+            or item.get('acquisition_sha256')!=PREDECESSOR['acquisition_sha256']):
+            raise BootstrapError('predecessor execution or source binding differs')
+    observed=prior.get('package_failure_observation',{})
+    if (prior.get('status')!='failed' or prior.get('rpm_install_attempted') is not False
+        or prior.get('rpm_install_completed') is not False
+        or prior.get('error')!={'type':'BootstrapError','message':'dependency would install unrelated privileged service or policy'}
+        or observed.get('added')!=[] or observed.get('removed')!=[]
+        or observed.get('partial_transaction_possible') is not False
+        or observed.get('installed_packages')!=manifest['before_packages']
+        or prior.get('before')!=prior.get('after_failure')
+        or not isinstance(prior.get('before'),dict)
+        or len(manifest['before_packages'])!=921
+        or digest(canonical(manifest['before_packages']))!=PREDECESSOR['before_packages_sha256']):
+        raise BootstrapError('ambiguous or mutated predecessor cannot be continued')
+    return prior
+
+
+def prepare_successor(manifest,bundle_pin,request):
+    """Bind retained failure; never delete or replace its global records."""
+    prior_stage=rooted(BOOTSTRAP_STATE/PREDECESSOR['request_id'],0o700)
+    original_intent=BOOTSTRAP_STATE/'bootstrap-intent.json'
+    original_result=BOOTSTRAP_STATE/'bootstrap-result.json'
+    for path in (original_intent,original_result,prior_stage/'operation-receipt.json',prior_stage/'acquisition.json'):
+        info=path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=0 or info.st_mode&0o022:
+            raise BootstrapError('root-owned retained predecessor required')
+    intent_raw=regular(original_intent,4*1024*1024);result_raw=regular(original_result,4*1024*1024)
+    prior=predecessor_receipts(intent_raw,result_raw,manifest,bundle_pin)
+    if (digest(regular(prior_stage/'operation-receipt.json',4*1024*1024))!=PREDECESSOR['result_sha256']
+        or digest(regular(prior_stage/'acquisition.json',2*1024*1024))!=PREDECESSOR['acquisition_sha256']):
+        raise BootstrapError('retained stage differs from inspected failure')
+    marker=BOOTSTRAP_STATE/('successor-from-'+PREDECESSOR['request_id']+'.json')
+    for path in (marker,prior_stage/'rpm-install-intent.json',PREFIX/'current',CONFIG/'host.json',
+                 CONFIG/'service.json',Path('/etc/systemd/system')/SERVICE,BOOTSTRAP_STATE/request['request_id']):
+        if path.exists() or path.is_symlink():
+            raise BootstrapError('existing or partial successor requires explicit reconciliation')
+    return prior,intent_raw,result_raw,marker
+
+
+def operation_directory(path,owner=1000):
+    """Hold the actual runner output inode before any privileged publication."""
+    path=Path(path)
+    if not path.is_absolute() or '..' in path.parts: raise BootstrapError('absolute output directory required')
+    fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        for part in path.parts[1:]:
+            child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            os.close(fd);fd=child
+        info=os.fstat(fd)
+        if info.st_uid!=owner or stat.S_IMODE(info.st_mode)!=0o700:
+            raise BootstrapError('exact private operation output ownership required')
+        return fd
+    except BaseException:
+        os.close(fd);raise
+
+
+def export_retained_closure(staged,manifest,output):
+    target=output/'acquisition';target.mkdir(mode=0o700,exist_ok=False)
+    count=0;total=0
+    for kind,items in (('rpms',manifest['packages']),('wheels',manifest['wheels']),('keys',manifest['keys'])):
+        directory=target/kind;directory.mkdir(mode=0o700)
+        for item in items:
+            pin={'bytes':item['bytes'],'sha256':item['sha256']};total+=pin['bytes'];count+=1
+            if total>256*1024*1024 or count>72: raise BootstrapError('retained closure export ceiling')
+            dest=directory/item['filename']
+            copy_verified(staged/kind/item['filename'],dest,pin,MAX_DOWNLOAD);os.chown(dest,1000,1000)
+        os.chown(directory,1000,1000)
+    write(target/'acquisition.json',regular(staged/'acquisition.json',2*1024*1024))
+    os.chown(target/'acquisition.json',1000,1000);os.chown(target,1000,1000)
+    return {'files':count,'bytes':total,'source':'root-owned retained predecessor closure, recopied and hash verified',
+            'network_acquisition':False,'prior_dependency_artifact':PREDECESSOR['dependency_artifact'],
+            'cache_retrieval':'no cache reacquisition; original repodata identities remain in acquisition.json'}
+
+
+def continue_install(bundle_pin,request,execution,output):
+    source=rooted(BOOTSTRAP_STATE/PREDECESSOR['request_id'],0o700)
+    return install(source,PREDECESSOR['acquisition_sha256'],source/'runtime.zip',bundle_pin,request,execution,output)
+
+
 def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,output):
     if os.geteuid()!=0 or platform.machine()!='aarch64' or sys.version_info[:2]!=(3,9):
         raise BootstrapError('fixed native root installation required')
     os.umask(0o022)
     validate_request(request,execution)
-    output=Path(output);source=Path(acquisition)
+    output_path=Path(output);parent_fd=operation_directory(output_path);output_fd=None;owned_leaf=False
+    try:
+        os.mkdir('root-evidence',mode=0o700,dir_fd=parent_fd)
+        output_fd=os.open('root-evidence',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=parent_fd)
+        info=os.fstat(output_fd)
+        if info.st_uid!=0 or stat.S_IMODE(info.st_mode)!=0o700 or os.listdir(output_fd):
+            raise BootstrapError('new empty root-owned evidence leaf required')
+        owned_leaf=True
+        return install_owned(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,
+                             output_path,parent_fd,output_fd)
+    finally:
+        # Restore readability only after all root writes are finished, even on
+        # an ordinary failure. All descendants remain protected by this leaf
+        # while any privileged nested copy/export is in progress.
+        if output_fd is not None:
+            if owned_leaf: os.fchown(output_fd,1000,1000)
+            os.close(output_fd)
+        os.close(parent_fd)
+
+
+def install_owned(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,output_path,parent_fd,output_fd):
+    output=Path('/proc/self/fd')/str(output_fd);source=Path(acquisition)
     raw=regular(source/'acquisition.json',2*1024*1024)
-    if digest(raw)!=acquisition_sha: raise BootstrapError('acquisition manifest pin differs')
+    if digest(raw)!=acquisition_sha or acquisition_sha!=PREDECESSOR['acquisition_sha256']:
+        raise BootstrapError('retained acquisition manifest pin differs')
     manifest=decode(raw)
     if manifest.get('schema')!='merlin-browser-acquisition/1' or manifest.get('repositories')!=REPOS:
         raise BootstrapError('fixed acquisition contract differs')
@@ -723,20 +922,34 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
     rooted(BOOTSTRAP_STATE,0o700)
     lock=os.open(str(BOOTSTRAP_STATE/'operation.lock'),os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-    intent=BOOTSTRAP_STATE/'bootstrap-intent.json';outcome=BOOTSTRAP_STATE/'bootstrap-result.json'
-    if any(path.exists() or path.is_symlink() for path in (intent,outcome,PREFIX/'current',CONFIG/'host.json')):
-        raise BootstrapError('existing bootstrap state requires explicit reconciliation')
+    prior,prior_intent,prior_result,marker=prepare_successor(manifest,bundle_pin,request)
     staged=BOOTSTRAP_STATE/request['request_id'];staged.mkdir(mode=0o700,exist_ok=False)
     logs=staged/'logs';logs.mkdir(mode=0o700)
+    intent=staged/'bootstrap-intent.json';outcome=staged/'bootstrap-result.json'
     receipt={'schema':'merlin-browser-bootstrap/1','request':request,'execution':execution,
       'runtime_pin':bundle_pin,'acquisition_sha256':acquisition_sha,'status':'started','model_calls':0,
       'external_model_cost_usd':0,'qualification':False,'promotion_authority':False,
-      'package_support_limit':manifest['support_scope'],'rpm_install_attempted':False,'rpm_install_completed':False}
+      'package_support_limit':manifest['support_scope'],'rpm_install_attempted':False,'rpm_install_completed':False,
+      'predecessor':PREDECESSOR,'original_global_records_preserved':True,'package_stages_completed':[]}
+    write(marker,canonical({'schema':'merlin-browser-explicit-successor/1','predecessor':PREDECESSOR,
+        'successor_request':request,'successor_execution':execution,'automatic_retry':False}))
+    write(staged/'predecessor-intent.json',prior_intent);write(staged/'predecessor-result.json',prior_result)
+    write(staged/'successor-lineage.json',regular(marker,65536))
     write(intent,canonical(receipt));write(staged/'acquisition.json',raw)
     changed=False
     try:
         receipt['controller_envelope']=controller_envelope(execution,logs)
         receipt['before']=snapshot(logs,'before')
+        if receipt['before']!=prior['before']:
+            raise BootstrapError('existing private/model state changed since inspected failure')
+        previous=command(['/usr/bin/systemctl','show','merlin-browser-bootstrap-44942304091-1.service',
+            '--no-pager','--property=MainPID','--property=ActiveState','--property=ControlGroup'],logs/'predecessor-unit.txt')
+        previous_unit=dict(line.split('=',1) for line in previous.decode().splitlines() if '=' in line)
+        if (previous_unit.get('MainPID')!='0' or previous_unit.get('ControlGroup')!=''
+            or previous_unit.get('ActiveState') not in ('failed','inactive')):
+            raise BootstrapError('predecessor controller is not confirmed stopped')
+        receipt['predecessor_unit']=previous_unit
+        receipt['daemon_before']=daemon_absence(logs,'before')
         opc=grp.getgrnam('opc');merlin=pwd.getpwuid(982)
         private=receipt['before']['services']['merlin-dot-private.service']
         pid=private.get('MainPID','')
@@ -770,17 +983,29 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
             raise BootstrapError('exact dependency/signing-key closure required')
         copy_verified(bundle,staged/'runtime.zip',{'sha256':bundle_pin['sha256'],'bytes':bundle_pin['bytes']},16*1024*1024)
         receipt['signatures']=verify_signatures(staged,manifest,logs)
+        receipt['retained_closure_export']=export_retained_closure(staged,manifest,output)
+        write(staged/'retained-closure-export.json',canonical(receipt['retained_closure_export']))
         paths=[str(staged/'rpms'/p['filename']) for p in manifest['packages']]
+        stages=install_stages(staged,manifest['packages'])
         for item in manifest['keys']:
             command(['/usr/bin/rpm','--import',str(staged/'keys'/item['filename'])],logs/('host-key-'+item['filename']+'.txt'))
         command(['/usr/bin/rpm','--install','--test']+paths,logs/'rpm-install-test.txt',timeout=90)
+        first=stages[0]['argv']
+        command(first[:2]+['--test']+first[2:],logs/'rpm-zvbi-only-test.txt',timeout=90)
         receipt['frozen_install_plan']={'packages':manifest['packages'],'signature_check':'all verified','rpm_test':'passed',
-                                       'before_packages_sha256':digest(canonical(manifest['before_packages']))}
+            'zvbi_standalone_dependency_test':'passed','stages':stages,'zvbi_policy':ZVBI,
+            'before_packages_sha256':digest(canonical(manifest['before_packages']))}
         write(staged/'frozen-install-plan.json',canonical(receipt['frozen_install_plan']))
         receipt['rpm_install_attempted']=True
-        write(staged/'rpm-install-intent.json',canonical({'packages':manifest['packages'],'operation':'install-only'}))
-        command(['/usr/bin/rpm','--install']+paths,logs/'rpm-install.txt',timeout=240)
-        changed=True;receipt['rpm_install_completed']=True
+        write(staged/'rpm-install-intent.json',canonical({'packages':manifest['packages'],
+            'operation':'install-only','stages':stages,'zvbi_policy':ZVBI,'predecessor':PREDECESSOR}))
+        command(first,logs/'rpm-zvbi-library-install.txt',timeout=90)
+        changed=True;receipt['package_stages_completed'].append(stages[0]['name'])
+        receipt['daemon_after_zvbi']=daemon_absence(logs,'after-zvbi',require_exclusion_states=True)
+        remaining=stages[1]['argv']
+        command(remaining[:2]+['--test']+remaining[2:],logs/'rpm-remaining-test.txt',timeout=90)
+        command(remaining,logs/'rpm-remaining-install.txt',timeout=240)
+        receipt['package_stages_completed'].append(stages[1]['name']);receipt['rpm_install_completed']=True
         after=installed(logs/'rpm-after.txt')
         old=[v for v in manifest['before_packages'] if v['name']!='gpg-pubkey']
         new=[{key:p[key] for key in ('name','epoch','version','release','arch')} for p in manifest['packages']]
@@ -789,6 +1014,7 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
         if observed!=expected: raise BootstrapError('installed package delta exceeds exact additive transaction')
         receipt['package_delta']={'added':new,'gpg_keys':[v for v in after if v['name']=='gpg-pubkey'],
                                   'prior_packages_preserved':True}
+        receipt['daemon_after_packages']=daemon_absence(logs,'after-packages',require_exclusion_states=True)
         command(['/usr/sbin/useradd','--system','--user-group','--no-create-home','--home-dir','/var/empty',
                  '--shell','/sbin/nologin','merlin-browser'],logs/'create-user.txt')
         account=pwd.getpwnam('merlin-browser')
@@ -835,6 +1061,10 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
         receipt['native_acceptance']=native_acceptance(release,opc.gr_gid,account.pw_uid,request['request_id'],logs)
         receipt['after']=snapshot(logs,'after')
         if receipt['after']!=receipt['before']: raise BootstrapError('existing private/model runtime changed')
+        receipt['daemon_after_acceptance']=daemon_absence(logs,'after-acceptance',require_exclusion_states=True)
+        if (digest(regular(BOOTSTRAP_STATE/'bootstrap-intent.json',4*1024*1024))!=PREDECESSOR['intent_sha256']
+            or digest(regular(BOOTSTRAP_STATE/'bootstrap-result.json',4*1024*1024))!=PREDECESSOR['result_sha256']):
+            raise BootstrapError('predecessor global records changed')
         receipt['service_config_sha256']=digest(canonical(service_config));receipt['unit_sha256']=digest(unit)
         receipt['status']='installed_native_passed' if receipt['native_acceptance']['status']=='passed' else 'installed_source_acceptance_incomplete'
         receipt['public_episode_acceptance']=receipt['native_acceptance']['status']
@@ -872,7 +1102,9 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
             write(export/path.name,regular(path,4*1024*1024))
         for path in sorted(logs.iterdir()):
             write(export/path.name,regular(path,8*1024*1024))
-        for name in ('preflight.json','frozen-install-plan.json','rpm-install-intent.json'):
+        for name in ('preflight.json','frozen-install-plan.json','rpm-install-intent.json',
+                     'predecessor-intent.json','predecessor-result.json','successor-lineage.json',
+                     'retained-closure-export.json'):
             frozen=staged/name
             if frozen.exists(): write(export/frozen.name,regular(frozen,4*1024*1024))
         for path in export.iterdir(): os.chown(path,1000,1000)
@@ -883,6 +1115,17 @@ def install(acquisition,acquisition_sha,bundle,bundle_pin,request,execution,outp
             exported[episode]=export_tree(STATE/'episodes'/episode,output/episode)
         exported['canonical_registry']=export_tree(STATE/'registry',output/'canonical-browser-registry')
         write(output/'raw-evidence-export.json',canonical(exported));os.chown(output/'raw-evidence-export.json',1000,1000)
+        # A renamed runner parent cannot turn safe inode-bound writes into a
+        # false delivery claim at the advertised absolute artifact path.
+        current_parent=operation_directory(output_path)
+        current_fd=operation_directory(output_path/'root-evidence',owner=0)
+        try:
+            original_parent=os.fstat(parent_fd);observed_parent=os.fstat(current_parent)
+            original_info=os.fstat(output_fd);current_info=os.fstat(current_fd)
+            if ((original_info.st_dev,original_info.st_ino)!=(current_info.st_dev,current_info.st_ino)
+                or (original_parent.st_dev,original_parent.st_ino)!=(observed_parent.st_dev,observed_parent.st_ino)):
+                raise BootstrapError('operation output directory moved during publication')
+        finally: os.close(current_fd);os.close(current_parent)
         os.close(lock)
     if receipt['status']=='failed': raise BootstrapError('bootstrap failed; raw evidence preserved')
     return receipt

@@ -194,12 +194,182 @@ class FixedBootstrapControls(unittest.TestCase):
 
     def test_request_cannot_choose_operation_or_package(self):
         request={'schema':'merlin-browser-bootstrap-request/1','request_id':'72efac38-891b-449e-b538-fd09dd2319c6',
-                 'operation':'bootstrap','created_at':'2026-11-21T00:00:00Z'}
+                 'operation':bootstrap.CONTINUATION_OPERATION,'created_at':'2026-11-21T00:00:00Z'}
         execution={'runner':'cace-oci-a1','run_id':1,'run_attempt':1,'workflow_commit':'a'*40}
         bootstrap.validate_request(request,execution)
         for extra in ('command','url','packages','budget'):
             with self.assertRaises(bootstrap.BootstrapError): bootstrap.validate_request({**request,extra:'value'},execution)
         with self.assertRaises(bootstrap.BootstrapError): bootstrap.validate_request(request,{**execution,'run_attempt':2})
+        with self.assertRaises(bootstrap.BootstrapError): bootstrap.validate_request({**request,'operation':'bootstrap'},execution)
+        with self.assertRaises(bootstrap.BootstrapError): bootstrap.validate_request({**request,'request_id':bootstrap.PREDECESSOR['request_id']},execution)
+
+    def inspected_payload(self):
+        package={key:bootstrap.ZVBI[key] for key in ('name','epoch','version','release','arch','filename','bytes','sha256')}
+        files=b'/usr/lib64/libzvbi.so.0.13.2\n/usr/lib/systemd/system/zvbid.service\n/usr/sbin/zvbid\n'
+        scripts=b'fixed systemd helper postinstall only';xml=b'fixed complete inspected header'
+        pin={**bootstrap.ZVBI,'files_sha256':bootstrap.digest(files),
+             'scripts_sha256':bootstrap.digest(scripts),'xml_sha256':bootstrap.digest(xml)}
+        return package,files,scripts,xml,pin
+
+    def test_exact_inspected_payload_has_two_exclusions_and_no_blanket_suppression(self):
+        package,files,scripts,xml,pin=self.inspected_payload()
+        with mock.patch.object(bootstrap,'ZVBI',pin):
+            observed=bootstrap.payload_policy(package,files,scripts,b'',xml)
+        self.assertEqual(observed['excluded_paths'],list(pin['excluded_paths']))
+        self.assertIn('--nopost',observed['scriptlet_policy'])
+        self.assertIn('triggers retained',observed['scriptlet_policy'])
+
+    def test_different_signed_package_does_not_inherit_zvbi_exception(self):
+        package,files,scripts,xml,pin=self.inspected_payload()
+        with mock.patch.object(bootstrap,'ZVBI',pin):
+            for change in ({'sha256':'f'*64},{'filename':'zvbi-other.rpm'},{'name':'different'}):
+                with self.subTest(change=change),self.assertRaises(bootstrap.BootstrapError):
+                    bootstrap.payload_policy({**package,**change},files,scripts,b'',xml)
+
+    def test_new_script_or_trigger_or_privileged_payload_remains_rejected(self):
+        package,files,scripts,xml,pin=self.inspected_payload()
+        with mock.patch.object(bootstrap,'ZVBI',pin):
+            for values in ((files,scripts+b' changed',b'',xml),(files,scripts,b'new trigger',xml),
+                           (files,scripts,b'',xml+b'changed'),(files+b'/etc/cron.d/unrelated\n',scripts,b'',xml)):
+                with self.subTest(values=values),self.assertRaises(bootstrap.BootstrapError):
+                    bootstrap.payload_policy(package,*values)
+
+    def test_only_exact_one_package_stage_suppresses_postinstall(self):
+        selected={key:bootstrap.ZVBI[key] for key in ('name','filename','bytes','sha256')}
+        packages=[selected]+[{'name':'dependency-'+str(i),'filename':'dependency-'+str(i)+'.rpm'} for i in range(48)]
+        stages=bootstrap.install_stages(Path('/fixed'),packages)
+        self.assertEqual([row['package_count'] for row in stages],[1,48])
+        self.assertIn('--nopost',stages[0]['argv']);self.assertEqual(stages[0]['argv'].count('--excludepath'),2)
+        self.assertEqual(len(stages[1]['argv']),50)
+        self.assertFalse(any(flag in row['argv'] for row in stages for flag in ('--noscripts','--notriggers','--nodeps')))
+        self.assertNotIn('--nopost',stages[1]['argv'])
+        with self.assertRaises(bootstrap.BootstrapError): bootstrap.install_stages(Path('/fixed'),packages[:-1])
+
+    def predecessor_fixture(self,change=None):
+        before=[{'name':'baseline-'+str(i)} for i in range(921)]
+        bundle={'sha256':'a'*64}
+        common={'request':{'request_id':bootstrap.PREDECESSOR['request_id']},
+          'execution':{'run_id':bootstrap.PREDECESSOR['run_id'],'workflow_commit':bootstrap.PREDECESSOR['workflow_commit']},
+          'runtime_pin':bundle,'acquisition_sha256':bootstrap.PREDECESSOR['acquisition_sha256']}
+        initial={**common,'status':'started'}
+        prior={**common,'status':'failed','rpm_install_attempted':False,'rpm_install_completed':False,
+          'error':{'type':'BootstrapError','message':'dependency would install unrelated privileged service or policy'},
+          'before':{'preserved':True},'after_failure':{'preserved':True},
+          'package_failure_observation':{'added':[],'removed':[],'partial_transaction_possible':False,'installed_packages':before}}
+        if change: change(prior)
+        intent=bootstrap.canonical(initial);result=bootstrap.canonical(prior)
+        pins={**bootstrap.PREDECESSOR,'intent_sha256':bootstrap.digest(intent),'result_sha256':bootstrap.digest(result),
+              'before_packages_sha256':bootstrap.digest(bootstrap.canonical(before))}
+        return intent,result,{'before_packages':before},bundle,pins
+
+    def test_predecessor_exact_receipts_are_required(self):
+        intent,result,manifest,bundle,pins=self.predecessor_fixture()
+        with mock.patch.object(bootstrap,'PREDECESSOR',pins):
+            prior=bootstrap.predecessor_receipts(intent,result,manifest,bundle)
+            self.assertEqual(prior['status'],'failed')
+            with self.assertRaises(bootstrap.BootstrapError): bootstrap.predecessor_receipts(intent+b' ',result,manifest,bundle)
+            with self.assertRaises(bootstrap.BootstrapError): bootstrap.predecessor_receipts(intent,result,manifest,{'sha256':'b'*64})
+
+    def test_interrupted_or_mutated_predecessor_never_continues_implicitly(self):
+        changes=(lambda x:x.update(rpm_install_attempted=True),
+                 lambda x:x['package_failure_observation'].update(partial_transaction_possible=True),
+                 lambda x:x['package_failure_observation'].update(added=[{'name':'new'}]),
+                 lambda x:x.update(after_failure={'preserved':False}))
+        for change in changes:
+            intent,result,manifest,bundle,pins=self.predecessor_fixture(change)
+            with mock.patch.object(bootstrap,'PREDECESSOR',pins),self.assertRaises(bootstrap.BootstrapError):
+                bootstrap.predecessor_receipts(intent,result,manifest,bundle)
+
+    def test_successor_guard_preserves_original_records_and_blocks_second_attempt(self):
+        from types import SimpleNamespace
+        intent,result,manifest,bundle,pins=self.predecessor_fixture()
+        acquisition=bootstrap.canonical(manifest);pins={**pins,'acquisition_sha256':bootstrap.digest(acquisition)}
+        # Rebind only this isolated receipt fixture; production constants stay
+        # tied to the independently inspected native files.
+        initial=bootstrap.decode(intent);initial['acquisition_sha256']=pins['acquisition_sha256']
+        prior=bootstrap.decode(result);prior['acquisition_sha256']=pins['acquisition_sha256']
+        intent=bootstrap.canonical(initial);result=bootstrap.canonical(prior)
+        pins.update(intent_sha256=bootstrap.digest(intent),result_sha256=bootstrap.digest(result))
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);stage=root/pins['request_id'];stage.mkdir()
+            (root/'bootstrap-intent.json').write_bytes(intent);(root/'bootstrap-result.json').write_bytes(result)
+            (stage/'operation-receipt.json').write_bytes(result);(stage/'acquisition.json').write_bytes(acquisition)
+            def fixture_lstat(path):
+                value=os.lstat(path)
+                return SimpleNamespace(st_mode=value.st_mode,st_uid=0)
+            with mock.patch.object(bootstrap,'PREDECESSOR',pins),mock.patch.object(bootstrap,'BOOTSTRAP_STATE',root),\
+                 mock.patch.object(bootstrap,'PREFIX',root/'prefix'),mock.patch.object(bootstrap,'CONFIG',root/'config'),\
+                 mock.patch.object(bootstrap,'rooted',side_effect=lambda path,mode:Path(path)),\
+                 mock.patch.object(Path,'lstat',new=fixture_lstat):
+                request={'request_id':'72efac38-891b-449e-b538-fd09dd2319c6'}
+                _,old_intent,old_result,marker=bootstrap.prepare_successor(manifest,bundle,request)
+                self.assertEqual(old_intent,intent);self.assertEqual(old_result,result)
+                marker.write_text('retained successor intent')
+                with self.assertRaisesRegex(bootstrap.BootstrapError,'existing or partial successor'):
+                    bootstrap.prepare_successor(manifest,bundle,request)
+            self.assertEqual((root/'bootstrap-intent.json').read_bytes(),intent)
+            self.assertEqual((root/'bootstrap-result.json').read_bytes(),result)
+
+    def test_exclusion_state_is_required_after_package_install(self):
+        unit=b'MainPID=0\nLoadState=not-found\nActiveState=inactive\nSubState=dead\nFragmentPath=\n'
+        states=(''.join(path+'\t2\n' for path in bootstrap.ZVBI['excluded_paths'])).encode()
+        with mock.patch.object(Path,'exists',return_value=False),mock.patch.object(Path,'is_symlink',return_value=False):
+            with mock.patch.object(bootstrap,'command',side_effect=[unit,states]):
+                result=bootstrap.daemon_absence(Path('/logs'),'test',True)
+                self.assertEqual(set(result['excluded_file_states'].values()),{'2'})
+            with mock.patch.object(bootstrap,'command',side_effect=[unit,states.replace(b'\t2',b'\t0')]):
+                with self.assertRaises(bootstrap.BootstrapError): bootstrap.daemon_absence(Path('/logs'),'test',True)
+
+    def test_output_ancestry_symlink_is_rejected_before_privileged_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);real=root/'real';real.mkdir();(root/'linked').symlink_to(real,target_is_directory=True)
+            with self.assertRaises(OSError): bootstrap.operation_directory(root/'linked')
+
+    def test_root_evidence_leaf_stays_private_during_nested_write_and_ordinary_failure(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);outside=root/'outside';outside.mkdir()
+            real_fstat=os.fstat
+            def root_info(fd):
+                value=real_fstat(fd);return SimpleNamespace(st_uid=0,st_mode=value.st_mode)
+            def operation(*args):
+                fd=args[-1];held=Path('/proc/self/fd')/str(fd)
+                self.assertEqual(os.stat(held).st_mode&0o777,0o700);ownership.assert_not_called()
+                (root/'root-evidence').rename(root/'retained-leaf')
+                (root/'root-evidence').symlink_to(outside,target_is_directory=True)
+                (held/'evidence.txt').write_bytes(b'fixed raw evidence')
+                self.assertEqual(list(outside.iterdir()),[])
+                raise bootstrap.BootstrapError('controlled failure')
+            old_umask=os.umask(0o022)
+            try:
+                with mock.patch.object(bootstrap.os,'geteuid',return_value=0),\
+                     mock.patch.object(bootstrap.platform,'machine',return_value='aarch64'),\
+                     mock.patch.object(bootstrap.sys,'version_info',(3,9)),mock.patch.object(bootstrap,'validate_request'),\
+                     mock.patch.object(bootstrap,'operation_directory',side_effect=lambda path:os.open(path,os.O_RDONLY|os.O_DIRECTORY)),\
+                     mock.patch.object(bootstrap.os,'fstat',side_effect=root_info),\
+                     mock.patch.object(bootstrap.os,'fchown') as ownership,\
+                     mock.patch.object(bootstrap,'install_owned',side_effect=operation):
+                    with self.assertRaisesRegex(bootstrap.BootstrapError,'controlled failure'):
+                        bootstrap.install(None,None,None,None,None,None,root)
+                    self.assertEqual(ownership.call_count,1);self.assertEqual(ownership.call_args.args[1:],(1000,1000))
+                self.assertEqual((root/'retained-leaf/evidence.txt').read_bytes(),b'fixed raw evidence')
+            finally: os.umask(old_umask)
+
+    def test_rejected_replaced_leaf_is_never_given_to_runner(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);old_umask=os.umask(0o022)
+            try:
+                with mock.patch.object(bootstrap.os,'geteuid',return_value=0),\
+                     mock.patch.object(bootstrap.platform,'machine',return_value='aarch64'),\
+                     mock.patch.object(bootstrap.sys,'version_info',(3,9)),mock.patch.object(bootstrap,'validate_request'),\
+                     mock.patch.object(bootstrap,'operation_directory',side_effect=lambda path:os.open(path,os.O_RDONLY|os.O_DIRECTORY)),\
+                     mock.patch.object(bootstrap.os,'fstat',return_value=SimpleNamespace(st_uid=999,st_mode=0o40700)),\
+                     mock.patch.object(bootstrap.os,'fchown') as ownership,mock.patch.object(bootstrap,'install_owned') as operation:
+                    with self.assertRaisesRegex(bootstrap.BootstrapError,'root-owned evidence leaf'):
+                        bootstrap.install(None,None,None,None,None,None,root)
+                    ownership.assert_not_called();operation.assert_not_called()
+            finally: os.umask(old_umask)
 
     def test_artifact_redirects_fail_closed(self):
         with self.assertRaises(bootstrap.BootstrapError):
