@@ -149,6 +149,73 @@ class BootstrapControls(unittest.TestCase):
                 b.write_new(path, b"other")
             self.assertEqual(path.read_bytes(), b"first")
 
+    def test_preflight_uses_observed_etc_regular_layout_without_vendor_file(self):
+        with tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
+            root = Path(folder)
+            primary, vendor = root / "etc/os-release", root / "usr/lib/os-release"
+            primary.parent.mkdir()
+            raw = b'ID="ol"\nVERSION_ID="9.8"\nNAME="Oracle Linux Server"\n'
+            primary.write_bytes(raw)
+            for name, value in {"OS_RELEASE_PRIMARY": primary, "OS_RELEASE_VENDOR": vendor,
+                                "UNIT_PATH": root / "etc/provider.service", "CONFIG": root / "etc/config",
+                                "INSTALL": root / "opt/releases"}.items():
+                stack.enter_context(patch.object(b, name, value))
+            stack.enter_context(patch.object(b.os, "geteuid", return_value=0))
+            stack.enter_context(patch.object(b.platform, "system", return_value="Linux"))
+            stack.enter_context(patch.object(b.platform, "machine", return_value="aarch64"))
+            stack.enter_context(patch.object(b.os, "cpu_count", return_value=2))
+            stack.enter_context(patch.object(b.Path, "read_text", return_value="MemAvailable: 9000000 kB\n"))
+            stack.enter_context(patch.object(b.shutil, "disk_usage", return_value=Mock(free=10 * 1024**3)))
+            stack.enter_context(patch.object(b.os, "access", return_value=True))
+            stack.enter_context(patch.object(b, "service", return_value={"LoadState": "not-found"}))
+            stack.enter_context(patch.object(b.pwd, "getpwnam", side_effect=KeyError))
+            stack.enter_context(patch.object(b.grp, "getgrnam", side_effect=KeyError))
+            stack.enter_context(patch.object(b, "private_observation", return_value={"fixture_only": True}))
+            probe = Mock()
+            stack.enter_context(patch.object(b.socket, "socket", return_value=Mock(__enter__=Mock(return_value=probe), __exit__=Mock(return_value=False))))
+            result = b.preflight()
+            self.assertFalse(vendor.exists())
+            self.assertEqual(result["os_release"], {"source_path": str(primary), "selection": "etc_regular", "sha256": b.digest(raw), "size_bytes": len(raw)})
+            self.assertEqual(result["os"], "Oracle Linux9")
+            probe.bind.assert_called_once_with(("127.0.0.1", 8080))
+
+    def test_os_release_allows_only_fixed_regular_or_canonical_alternatives(self):
+        cases = ["relative_link", "absolute_link", "absent_primary", "foreign_link", "directory_primary", "vendor_link"]
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                primary, vendor = root / "etc/os-release", root / "usr/lib/os-release"
+                primary.parent.mkdir(); vendor.parent.mkdir(parents=True)
+                vendor.write_bytes(b"ID=ol\nVERSION_ID=9.8\n")
+                if case == "relative_link": primary.symlink_to("../usr/lib/os-release")
+                elif case == "absolute_link": primary.symlink_to("/usr/lib/os-release")
+                elif case == "foreign_link": primary.symlink_to("/unrelated/file")
+                elif case == "directory_primary": primary.mkdir()
+                elif case == "vendor_link":
+                    vendor.unlink(); vendor.symlink_to(root / "elsewhere")
+                    (root / "elsewhere").write_bytes(b"ID=ol\nVERSION_ID=9.8\n")
+                with patch.object(b, "OS_RELEASE_PRIMARY", primary), patch.object(b, "OS_RELEASE_VENDOR", vendor):
+                    if case in ("foreign_link", "directory_primary", "vendor_link"):
+                        with self.assertRaises((b.BootstrapError, OSError)):
+                            b.os_release_identity()
+                    else:
+                        fields, identity = b.os_release_identity()
+                        self.assertEqual(fields["ID"], "ol")
+                        self.assertEqual(identity["source_path"], str(vendor))
+
+    def test_missing_os_metadata_failure_precedes_durable_intent(self):
+        with fixture() as f:
+            with patch.object(b, "OS_RELEASE_PRIMARY", f.root / "missing-etc"), patch.object(b, "OS_RELEASE_VENDOR", f.root / "missing-usr"), patch.object(b, "preflight", side_effect=b.os_release_identity):
+                with self.assertRaises(FileNotFoundError):
+                    b.run(REQUEST, IDENTITY)
+            self.assertFalse(b.INTENT.exists())
+            self.assertFalse(b.MANIFEST.exists())
+            self.assertEqual(f.model_calls, 0)
+            self.assertNotIn("build", f.calls)
+            failure = json.loads((b.STATE / "runs/12345-1/failed-receipt.json").read_bytes())
+            self.assertEqual(failure["phases"], [])
+            self.assertEqual(failure["error"]["type"], "FileNotFoundError")
+
     def archive(self, entries):
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w") as archive:

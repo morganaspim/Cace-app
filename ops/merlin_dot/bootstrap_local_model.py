@@ -51,6 +51,8 @@ INSTALL = Path("/opt/merlin-model-provider/releases")
 STATE = Path("/var/lib/merlin-model-bootstrap")
 INTENT = STATE / "bootstrap-intent.json"
 CMAKE = "/home/opc/.local/bin/cmake"
+OS_RELEASE_PRIMARY = Path("/etc/os-release")
+OS_RELEASE_VENDOR = Path("/usr/lib/os-release")
 CLEAN_ENV = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
 LIMITS = {"context_tokens": 4096, "parallel": 1, "threads": 2,
           "memory_max_bytes": 3221225472, "memory_swap_max_bytes": 0,
@@ -248,10 +250,30 @@ def private_observation():
             "current": os.readlink("/opt/merlin-dot-private/current")}
 
 
+def os_release_identity():
+    """Read the two standard fixed locations without following arbitrary links."""
+    selected, selection = OS_RELEASE_PRIMARY, "etc_regular"
+    try:
+        primary = OS_RELEASE_PRIMARY.lstat()
+    except FileNotFoundError:
+        selected, selection = OS_RELEASE_VENDOR, "usr_regular_fallback"
+    else:
+        if stat.S_ISLNK(primary.st_mode):
+            if os.readlink(OS_RELEASE_PRIMARY) not in ("../usr/lib/os-release", "/usr/lib/os-release"):
+                raise BootstrapError("unsupported OS release symlink")
+            selected, selection = OS_RELEASE_VENDOR, "etc_canonical_vendor_link"
+        elif not stat.S_ISREG(primary.st_mode):
+            raise BootstrapError("OS release metadata must be a regular file")
+    raw = read_regular(selected, 8192)
+    release = dict(line.split("=", 1) for line in raw.decode().splitlines() if "=" in line)
+    return release, {"source_path": str(selected), "selection": selection,
+                     "sha256": digest(raw), "size_bytes": len(raw)}
+
+
 def preflight():
     if os.geteuid() != 0 or platform.system() != "Linux" or platform.machine() != "aarch64":
         raise BootstrapError("fixed native root host required")
-    release = dict(line.split("=", 1) for line in read_regular("/usr/lib/os-release", 8192).decode().splitlines() if "=" in line)
+    release, release_identity = os_release_identity()
     if release.get("ID", "").strip('"') != "ol" or not release.get("VERSION_ID", "").strip('"').startswith("9."):
         raise BootstrapError("observed Oracle Linux9 ABI required")
     if (os.cpu_count() or 0) < 2:
@@ -282,7 +304,8 @@ def preflight():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         probe.bind(("127.0.0.1", 8080))
     return {"provider": before, "private": private_observation(), "available_memory_bytes": available,
-            "free_disk_bytes": free, "architecture": platform.machine(), "os": "Oracle Linux9"}
+            "free_disk_bytes": free, "architecture": platform.machine(), "os": "Oracle Linux9",
+            "os_release": release_identity}
 
 
 @contextmanager
