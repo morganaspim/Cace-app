@@ -1,0 +1,97 @@
+{
+  "acceptance_budget": {
+    "arxiv_reacquisitions": 0,
+    "automatic_retry": false,
+    "new_fixture_attempts": 0,
+    "original_ceiling": 5,
+    "previous_fixture_attempts": 2,
+    "previous_public_attempts": 1,
+    "remaining_public_attempts": 2
+  },
+  "branch": "merlin/browser-operations-20261121",
+  "dispatch": false,
+  "host_reboot": false,
+  "model_calls": 0,
+  "native_execution": false,
+  "native_prerequisites": {
+    "controller_controls": 33,
+    "exact_runtime_product_controls": 41,
+    "python": "3.9",
+    "skipped_tests_admitted": false
+  },
+  "observed_base_commit": "c8b61b30dfff6c1e3c7889595276d27adca7b5be",
+  "operation": "complete-ledger-44946846703",
+  "package_installs": 0,
+  "product_successor_commit": "74bd09166f338172f4af3854a124c12b5b07081a",
+  "remote_publication": false,
+  "request_fields": [
+    "schema",
+    "request_id",
+    "operation",
+    "created_at"
+  ],
+  "request_must_be_separate_single_added_file_commit": true,
+  "request_schema": "merlin-browser-runtime-request/1",
+  "request_trigger": "merlin/browser-runtime-requests/<new UUID>.json",
+  "root_envelope_seconds": {
+    "alarm": 900,
+    "kill_grace": 15,
+    "outer_wait": 950,
+    "systemd": 930
+  },
+  "runtime": {
+    "bytes": 68872,
+    "expert_source_commit": "8e2f1d69371d5b4f7e01e3bbd5aa02a666ddd506",
+    "git_blob": "0d1493e05a6710b8445bfb5fa453b372b86650c4",
+    "sha256": "ebdca90a42bbb243ac04872bdf3f1210ea20583cce9b4c34c7867af1873cb959"
+  },
+  "schema": "merlin-browser-ledger-publication/1",
+  "sources": {
+    "activate_browser.py": {
+      "bytes": 31505,
+      "git_blob": "e4ead06986afece2955be9ec47b0879b389dec14",
+      "sha256": "3514af927a28c77fe2c219248f15ffd88577561454bd4bbf09d842657cc9f979"
+    },
+    "bootstrap_browser.py": {
+      "bytes": 75316,
+      "git_blob": "cc09a1fa02c653712a184c578aabbd28e10ac20c",
+      "sha256": "1c5197a76fb66aaac19eb4bad92fce841e1e1aa43fb657d7c8590b0866683474"
+    },
+    "complete_acceptance.py": {
+      "bytes": 45302,
+      "git_blob": "b60f8405cc1669e1ebc7e9c4cb150dc62b2bacf4",
+      "sha256": "ed5fd38aa3c973bca243c840c74a15ab7035bab51f940ccb919381c7d58929cf"
+    },
+    "finish_runtime.py": {
+      "bytes": 21978,
+      "git_blob": "41368ef11d2b6abc6df2cd042de10a57230b22dc",
+      "sha256": "6472f54038001fbe1aedac06e8ed480f8327d50709eb1755683e61488acf73d9"
+    },
+    "launch_episode.py": {
+      "bytes": 24942,
+      "git_blob": "451eca582b3f65a1b4c90b7369409363269c2772",
+      "sha256": "3f51b4506fbc740219daf7b4c52c68e81bea32b7e0a7757888581371d8996f5f"
+    },
+    "recover_capture.py": {
+      "bytes": 12724,
+      "git_blob": "43e34860e35f071b689d756df0f41f9a29728515",
+      "sha256": "b9f2d6bbd4bb879389332f2b4b87fdcd7748c108d07c98d746cad9d7f03f4c93"
+    },
+    "smoke_renderer.py": {
+      "bytes": 8108,
+      "git_blob": "9bd9849ab14bfbd443eded108f2807c6c857de3b",
+      "sha256": "a9cc3ab7b67ec2511a7ed56b2af4d829a424ad3a00f2632e0e860ceddc59e2f9"
+    },
+    "test_complete_acceptance.py": {
+      "bytes": 37033,
+      "git_blob": "54e755a264344f32eaad6007c73fd8778b2bf7b0",
+      "sha256": "7d9084c76a7435dfcbb71abe11c8cd88b5ede581f00a683a0c2571227657be43"
+    }
+  },
+  "workflow": {
+    "bytes": 19915,
+    "git_blob": "b3c6e1f74caaeb02730ae97a5c8323833c37609c",
+    "path": ".github/workflows/merlin-browser-runtime.yml",
+    "sha256": "140122b0082f4e13237a140117a98427cb084498f252dcf8722c7d89e3202f98"
+  }
+}

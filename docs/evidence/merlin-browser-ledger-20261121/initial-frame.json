@@ -1,0 +1,54 @@
+{
+  "budget": {
+    "arxiv_reacquisitions": 0,
+    "automatic_retries": 0,
+    "model_calls": 0,
+    "new_fixture_attempts": 0,
+    "original_episode_ceiling": 5,
+    "prior_fixture_attempts": 2,
+    "prior_public_attempts": 1,
+    "remaining_public_attempts": 2
+  },
+  "cace_base_commit": "c8b61b30dfff6c1e3c7889595276d27adca7b5be",
+  "classification": "CACE builder class B; engineering/runtime orchestration, no scientific or formal semantics changed",
+  "current_native_frontier": "run44946846703 real arXiv acquisition succeeded; strict importer rejected resource byte ledger; supervisor rolled back inactive",
+  "dispatch": false,
+  "evidence_classes": {
+    "future_native_run": "not run",
+    "local_unit_controls": "simulation/contract evidence",
+    "recovered_capture": "explicit operator-derived accounting; no new browser execution",
+    "retained_archive": "original native capture and operation evidence"
+  },
+  "falsifiers": [
+    "current host or retained source identities differ",
+    "arXiv exact interval proof or unchanged importer rejects derivative",
+    "a new public attempt violates isolation, byte, source-content or shutdown checks",
+    "canonical reads differ after restart",
+    "private runtime/provider/package state changes"
+  ],
+  "lens_assessment": {
+    "analogy": "transaction recovery preserves journal before resuming uncompleted work",
+    "continuum": "not applicable: no continuum approximation",
+    "fuzzy": "not used for acceptance",
+    "lacuna": "retained bytes are sufficient; missing native publication and restart readback are the next discriminating measurements",
+    "n_ality": "independent source/runtime/isolation/accounting/persistence axes required",
+    "simplex": "not applicable: finite exact state and budget gates"
+  },
+  "live_checked_at": "2026-11-21T21:31:22Z",
+  "product_successor_commit": "74bd09166f338172f4af3854a124c12b5b07081a",
+  "question": "Can exact repaired browser acceptance complete without repeating fixture or arXiv acquisition?",
+  "remote_mutation": false,
+  "schema": "merlin-native-continuation-initial-frame/1",
+  "source_shard": "fixed browser operations modules and exact installed runtime only",
+  "target": "one exact-predecessor successor: verify retained state, derive canonical arXiv, reuse runtime dependencies/fixture, two remaining public attempts, canonical reads across restart",
+  "tracks": [
+    "B reliability and testing",
+    "C bounded production operations"
+  ],
+  "unknowns": [
+    "fresh host state not observed yet",
+    "new source native41 controls not executed yet",
+    "NASA/GitHub actual bounded capture results",
+    "Python>=3.10 Studio route outside this browser task"
+  ]
+}

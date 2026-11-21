@@ -1,0 +1,30 @@
+{
+  "schema": "merlin-reviewed-production-authorization/1",
+  "recorded_at_utc": "2026-11-21T22:10:47Z",
+  "operator_confirmation": "yes",
+  "confirmation_scope": "The operator answered yes to the immediately preceding explicit approval question for the reviewed Merlin source, runtime bundles, tests and scoped raw operational evidence to both named private repositories, including copies between them, and the fixed OCI source-validation, browser-continuation and model-acceptance checks.",
+  "approved_repositories": ["Mannyspiro/expert-robot", "morganaspim/Cace-app"],
+  "approved_review_artifact": {
+    "filename": "Merlin_Production_Operations_Review_20261121.zip",
+    "bytes": 2525828,
+    "sha256": "2cc4a72f00d49ce9a3f3c2ac1e5aeaeab68c1d11c3d3065073d7da7a437dc4ee"
+  },
+  "operations_branch": "merlin/browser-operations-20261121",
+  "operations_baseline": "c8b61b30dfff6c1e3c7889595276d27adca7b5be",
+  "fixed_runner": "cace-oci-a1",
+  "definition_files": {"browser": 21, "studio_source": 6, "model_acceptance": 11},
+  "historical_v12_publication_files": 33,
+  "fixed_operations": ["inspect-and-test-studio-8497597", "complete-ledger-44946846703", "accept-studio-model-8497597"],
+  "publication_sequence": "Publish and verify definitions without triggers; then create separate one-file fixed request commits after current prerequisites are checked.",
+  "model_generation_request_limit": 2,
+  "maximum_requested_output_tokens_total": 4096,
+  "automatic_model_retries": 0,
+  "remaining_browser_public_attempts": 2,
+  "external_model_budget_usd": 0,
+  "chatgpt_site_or_account_access": false,
+  "avrea_use": false,
+  "dependency_or_provider_installation": false,
+  "generic_deployment_or_auto_merge": false,
+  "historical_denial_records_preserved": true,
+  "new_execution_or_success_claimed_by_this_record": false
+}

@@ -1,0 +1,195 @@
+{
+  "application_bytes_equal_to": "3022e0fcfff8908718abafbd6684a8ac6d13765e",
+  "archive": {
+    "bytes": 104129,
+    "git_blob": "09d10789ab63c776cf47b8226cd0507e8cce1e49",
+    "sha256": "99964ba99ea41a3b3580b85574533e5aaa8a2e72cca111b1b2233c948bb1cf8b"
+  },
+  "commit": "8497597f297bba83189afef2026c27f9244537ce",
+  "files": {
+    "cpp/include/expert_robot/protocol.hpp": {
+      "bytes": 475,
+      "git_blob": "a1c45ee19e26aeefcb5dcc8c33c0cf98eb6b7ee6",
+      "sha256": "e7b16deadb034847f1526fca349aac965bd8ed1fe93bc9febf6f1092b0cc5509"
+    },
+    "cpp/include/expert_robot/runtime.hpp": {
+      "bytes": 185,
+      "git_blob": "2e75a3d503930d1adf4a3c2aef14723a540b8659",
+      "sha256": "b55f25dad55fbfb1354eedc8d12defd7f5ba5caa99e9df0a168882d1b35895b9"
+    },
+    "cpp/src/main.cpp": {
+      "bytes": 763,
+      "git_blob": "e7813a53e2f54f26a116a5a2bdc0188ef3d8216e",
+      "sha256": "09fb8cf3c5043a6a1c7fa7bd7e39e4d62d89ea949c0427e6e1f3d6d01eefdacf"
+    },
+    "cpp/src/runtime.cpp": {
+      "bytes": 3614,
+      "git_blob": "08dc1dd09096423fd1c372a39b8fcc823a9664e1",
+      "sha256": "ee6436af6225267faa0b8ff1fce3654d6f641984826875c7dac8ae121d18978b"
+    },
+    "portable/build_portable.py": {
+      "bytes": 8875,
+      "git_blob": "22aef3ae313d896477914e6ec19d04aaf7b711f3",
+      "sha256": "b336136e749dc7f99aa532c88e695aec996fac92585ae0431128ff18ad3f3216"
+    },
+    "portable/merlin_studio/MODEL_SETUP.md": {
+      "bytes": 4551,
+      "git_blob": "cc5069b0bdd20573b2a1da7401f2a278c3b588a4",
+      "sha256": "3ae246e90928ed4bcd799d53cc44e5b5d32184f3e6bfad771c5333109188ba61"
+    },
+    "portable/merlin_studio/README.md": {
+      "bytes": 7452,
+      "git_blob": "6b0b241b76d3f876f4f80dc5e363160a4429230a",
+      "sha256": "3daecdacc226f0075611419025a2c03794a70ddf2b8ebb2a40336522c51fc59a"
+    },
+    "portable/merlin_studio/START.bat": {
+      "bytes": 1117,
+      "git_blob": "1ba59334150c3ea45328ee2d83c9abb12d059195",
+      "sha256": "a47ebd3f3e1840f7e5354860da936ce617f2ea98877ec41d1f6f52554b17ca01"
+    },
+    "portable/merlin_studio/START.command": {
+      "bytes": 124,
+      "git_blob": "d651dbc33102f2aee65c131ca305a656cf00074d",
+      "sha256": "105ac3e6f5846e1b95201b26a39a43d401b9e912f04e63301a1ae5d2930e2b1b"
+    },
+    "portable/merlin_studio/START.sh": {
+      "bytes": 732,
+      "git_blob": "0157cafd5353ea0157dd12d2fab68b4c74fe08ac",
+      "sha256": "f272262171e00eb078e39be501464e72dedd8042052a029a3929eaf6a9a16266"
+    },
+    "portable/merlin_studio/bin/README.md": {
+      "bytes": 1081,
+      "git_blob": "89e9a29b3f09684cf5afea10177ce43e36906ff5",
+      "sha256": "47968d833cc21f816316ba4589704e70b75a824edf4c8d64afd6069747e446cc"
+    },
+    "portable/merlin_studio/engine.py": {
+      "bytes": 15885,
+      "git_blob": "c7233506253828f30ec971f1b288d23fe2113056",
+      "sha256": "367755e0c5a582827a09858bfaf836b949f2b535fb025ad9ff703e9c3e55967f"
+    },
+    "portable/merlin_studio/model.py": {
+      "bytes": 11086,
+      "git_blob": "1189682824149fb1a2bf1970b34a9b3b842d6397",
+      "sha256": "766814a1b16285453801a1b0ad26400b5c78698d253dedd2d012dc642195fbfa"
+    },
+    "portable/merlin_studio/models/README.md": {
+      "bytes": 760,
+      "git_blob": "4124bf12474f2707ad593018a782dae2178d9019",
+      "sha256": "b6218ec795ac515a17f6744ed49343549686f6ac6ad4a2ce653609ac2f77694a"
+    },
+    "portable/merlin_studio/public_web.py": {
+      "bytes": 19805,
+      "git_blob": "390734531c977c478b99f0aba34714536ad7dcef",
+      "sha256": "1a952559d1ea3b984256249f3e3768fcf9f132438ad6e75cba6b08f5e2bb8f63"
+    },
+    "portable/merlin_studio/server.py": {
+      "bytes": 9525,
+      "git_blob": "1054bb3935a70b384fe3e5f43a8239b839763a55",
+      "sha256": "62bb3b51d0c121370dbbd3b141dc2e722c915474e2e53988d3cc346386b7198b"
+    },
+    "portable/merlin_studio/storage.py": {
+      "bytes": 14019,
+      "git_blob": "5ce03a3ea6f07cc54196b966d256d24ce9e6a3de",
+      "sha256": "c0df72f1283b595c9b11f2c7a1cc45f83d50e0884345c7a2ad95e4d9c7ed1cee"
+    },
+    "portable/merlin_studio/tests/test_studio.py": {
+      "bytes": 33859,
+      "git_blob": "8dd5facf6e4d8b73485d5a08d75cd3d6e4a1bbaf",
+      "sha256": "f565dfe7a0885294f90651b930dab8b7752d1119931a6fc32f9cb842bdfe26a4"
+    },
+    "portable/merlin_studio/tools.py": {
+      "bytes": 13980,
+      "git_blob": "4756a0ce5c77c889a9488bf5c674fcb986a163a2",
+      "sha256": "5e3efb23322bfe9b2408f1469440c98401029148aa120fc840321a040f693b84"
+    },
+    "portable/merlin_studio/web/index.html": {
+      "bytes": 73060,
+      "git_blob": "a8831fc99fc488eaad4a360fa4cdc30aa0123c15",
+      "sha256": "c8139e25334f5924b48f460f60b5b0ec3934bd0ab293f60c91e6a70b2e210134"
+    },
+    "portable/merlin_studio/worker.py": {
+      "bytes": 599,
+      "git_blob": "9cca2f6c45c51150b200325cf8788ecfd80784da",
+      "sha256": "84c51da8ac94726a91f097c2d71e7c2d7488784d85e1babec28af08078f7a832"
+    },
+    "portable/tests/test_model_deadline.py": {
+      "bytes": 5090,
+      "git_blob": "1f0c3c973e70763ea95f4e1faf0591b6e60c1366",
+      "sha256": "cde0ce299fc9219e9d6735f5a2ac4ff44badecd720abbaf2a295f116f6d6fc81"
+    },
+    "portable/tests/test_public_web.py": {
+      "bytes": 19473,
+      "git_blob": "7b9931dcd7f3ea94f1571878b814c76ed7c39aa7",
+      "sha256": "8b16224e74a3e1b840456a10bd7782c15c849455ad199ecce47b919e5232d1af"
+    },
+    "python/experimental_fault_advisory.py": {
+      "bytes": 1197,
+      "git_blob": "426d2ee328fb40dc7a68cf4e43fc825b34bae0f5",
+      "sha256": "19d1454ae3f6a01be362ca29cfa493645bccd2ca5c9a3b8c12dbc8ca803fa2e7"
+    },
+    "python/experimental_self_healing.py": {
+      "bytes": 10126,
+      "git_blob": "48480832a8ee64788ccc572e7481252d792565e0",
+      "sha256": "1e006992c6f9615fde7044a5aa8cdeb942f4a8e16bb895090c432ba308cfaef6"
+    },
+    "python/merlin/__init__.py": {
+      "bytes": 275,
+      "git_blob": "0ad35f52071fb1537c1ffcb918a9a7148b411661",
+      "sha256": "49f23ffa9b838de063cd88e4a60704d1989f55ff3aa70fe2ed850b0396fa8f93"
+    },
+    "python/merlin/artifact_ref.py": {
+      "bytes": 2542,
+      "git_blob": "aa3ce66edc8286668f4a01a0ee5e3f4c61fa0fd3",
+      "sha256": "187e33ed4ab6e1a79e054ff31c07b383090dae94cb51c5eb9dd01dfb80227584"
+    },
+    "python/merlin/project_registry.py": {
+      "bytes": 42079,
+      "git_blob": "b29687ce499d77e58e42207244dd4ec0dbb8b9d8",
+      "sha256": "c7fbd89ae99705f60a1ecd7f41df244742fe218a335b4a3e6d2fed11c96521c7"
+    },
+    "python/merlin_research_browser.py": {
+      "bytes": 3747,
+      "git_blob": "f564732b4ea54d2a301092e340e8ec2422fa56d1",
+      "sha256": "201e4b1bb87319a40f4032ffb4156541f4a15cd01df2d0df263d2494d2e290bd"
+    },
+    "python/orchestrator.py": {
+      "bytes": 8184,
+      "git_blob": "453cfd5831cdb144dbc132b95ba9ce18cb24b726",
+      "sha256": "1e76d97df00ccda595723f303e534c55beffca5d0ba350070f0502748c43342a"
+    },
+    "python/runtime_supervisor.py": {
+      "bytes": 5355,
+      "git_blob": "95c47d91283deefe823cd2db2fa9468b1e5d7f89",
+      "sha256": "62701cd120f428146284f816d60a82eb835e43506e1bb1aeb9e8a75626469c2e"
+    },
+    "scripts/verify_portable.py": {
+      "bytes": 5563,
+      "git_blob": "840b49f0ffb0281c4db748a2a797f96e245569bd",
+      "sha256": "1e273e963d873ab0373f6242648229db366ac5bb90f07110a4f8779e1877572b"
+    },
+    "tests/test_experimental_self_healing.py": {
+      "bytes": 13434,
+      "git_blob": "eafbc9d4d9649d9b59631c87afd3c89ccafea853",
+      "sha256": "ad92568000d8918a590abe9890b592e551e40288ffe6846e3973b38c606df78d"
+    },
+    "tests/test_merlin_research_browser.py": {
+      "bytes": 1665,
+      "git_blob": "8ca71cf5f86fc57fdded00c3bb3691b00aa655f2",
+      "sha256": "f8ceb049edbe27974d1aecbffa8391f69a295d6f7fcbcadd98cd39c31d35cc76"
+    },
+    "tests/test_orchestrator_protocol.py": {
+      "bytes": 5392,
+      "git_blob": "cbe676fbe6d91ce29595c95de6152ffdb566191e",
+      "sha256": "e152267434a6b416266e7a7f890e498df87ce252f5e767424b2254b4ea69ee67"
+    },
+    "tests/test_runtime_supervisor.py": {
+      "bytes": 7351,
+      "git_blob": "9c574bc26fa56cbad4f22469750cfc27ff9308b4",
+      "sha256": "31f077a6555cebfdc913b931771286fc400d268ddaa6b73d93637ef8dff85e8c"
+    }
+  },
+  "repository": "Mannyspiro/expert-robot",
+  "schema": "merlin-studio-validation-source/1",
+  "scope": "36 explicit PR194 source/test/package inputs; not a complete repository checkout",
+  "separate_browser_commit": "74bd09166f338172f4af3854a124c12b5b07081a"
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "merlin-browser-live-reconciliation/1",
+  "observed_branch": "merlin/browser-operations-20261121",
+  "observed_head": "c8b61b30dfff6c1e3c7889595276d27adca7b5be",
+  "latest_repository_run": 44946846703,
+  "latest_run_status": "completed",
+  "latest_run_conclusion": "failure",
+  "no_later_repo_actions_visible_at_inspection": true,
+  "repository_state_is_not_fresh_host_state": true,
+  "unchanged_helper_remote_git_identities": {
+    "bootstrap_browser.py": {
+      "git_blob": "cc09a1fa02c653712a184c578aabbd28e10ac20c",
+      "display_url": "https://github.com/morganaspim/Cace-app/blob/c8b61b30dfff6c1e3c7889595276d27adca7b5be/ops/merlin_browser/bootstrap_browser.py"
+    },
+    "activate_browser.py": {
+      "git_blob": "e4ead06986afece2955be9ec47b0879b389dec14",
+      "display_url": "https://github.com/morganaspim/Cace-app/blob/c8b61b30dfff6c1e3c7889595276d27adca7b5be/ops/merlin_browser/activate_browser.py"
+    },
+    "launch_episode.py": {
+      "git_blob": "451eca582b3f65a1b4c90b7369409363269c2772",
+      "display_url": "https://github.com/morganaspim/Cace-app/blob/c8b61b30dfff6c1e3c7889595276d27adca7b5be/ops/merlin_browser/launch_episode.py"
+    },
+    "finish_runtime.py": {
+      "git_blob": "41368ef11d2b6abc6df2cd042de10a57230b22dc",
+      "display_url": "https://github.com/morganaspim/Cace-app/blob/c8b61b30dfff6c1e3c7889595276d27adca7b5be/ops/merlin_browser/finish_runtime.py"
+    },
+    "smoke_renderer.py": {
+      "git_blob": "9bd9849ab14bfbd443eded108f2807c6c857de3b",
+      "display_url": "https://github.com/morganaspim/Cace-app/blob/c8b61b30dfff6c1e3c7889595276d27adca7b5be/ops/merlin_browser/smoke_renderer.py"
+    }
+  },
+  "new_recovery_helper_remote_state": "404 at observed head; new file",
+  "product_source_commit": "74bd09166f338172f4af3854a124c12b5b07081a",
+  "product_source_blobs": {
+    "producer": "c05e2299652698eb6b1003f71b15d8bfb8badd47",
+    "regressions": "e6593fb87528b04d1104f2183c29ea6c3d7a4da6"
+  },
+  "remote_mutations": 0,
+  "dispatch": false
+}

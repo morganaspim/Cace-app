@@ -1,0 +1,64 @@
+{
+  "changed_runtime_payloads": [
+    "python/merlin/public_browser.py",
+    "python/tests/test_public_browser.py"
+  ],
+  "control_scope": "exact retained receipt + simulated host/transport ordering, budget and rollback",
+  "controller_controls": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 33
+  },
+  "fixture_replays": 0,
+  "freeze_sha256": "587229b3fa2e197e889340d7625e614f4554ce864ffd616391557cac0f490368",
+  "local_python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "model_calls": 0,
+  "native_41_product_controls": "not rerun locally; required on native Python3.9 before activation",
+  "native_execution": false,
+  "public_acquisitions": 0,
+  "python39_syntax_checked": true,
+  "recovery_coordinator_temporary_integration": {
+    "derived_episode_id": "recovered-arxiv-18106dfc-0a56-4b68-9d30-5d334d7d6a69",
+    "derived_manifest_sha256": "3cf87ae0920c1b30726cfda2ffad0f1acfbca2be6503b81dfcc2910ba80f0206",
+    "fresh_process_canonical_read": {
+      "episode_id": "recovered-arxiv-18106dfc-0a56-4b68-9d30-5d334d7d6a69",
+      "manifest_sha256": "3cf87ae0920c1b30726cfda2ffad0f1acfbca2be6503b81dfcc2910ba80f0206",
+      "model_calls": 0,
+      "original_failure_sha256": "f1c4bf5a5b5ef0e44de8328c0de78821ce05d653010cf3fbe7937b9a9719fe9c",
+      "qualified": false,
+      "text_bytes": 3184,
+      "text_sha256": "44cf16dd8d053ffb21659ed38cd5bfbd97359a58860c70ab70dd7b5461dc114d"
+    },
+    "host_execution": false,
+    "model_calls": 0,
+    "native_unix_route_tested": false,
+    "network_reacquired": false,
+    "new_browser_execution": false,
+    "original_bytes_modified": false,
+    "original_file_count": 48,
+    "original_input_files_unchanged": true,
+    "original_manifest_still_rejected": true,
+    "promotion_authority": false,
+    "provenance_sha256": "83add070bb91fc35f896626d7a3633f04dd3ad9471a0974d7ddc27de158a0add",
+    "qualification": false,
+    "schema": "merlin-browser-native-ledger-recovery/1",
+    "source_episode_id": "database-arxiv-18106dfc-0a56-4b68-9d30-5d334d7d6a69",
+    "source_manifest_sha256": "91d4756d9799cd633e78164cde97ed6be11381550171250d4109f156121f5541",
+    "temporary_copy_only": true
+  },
+  "remote_mutations": 0,
+  "root_capsule": {
+    "all_five_pinned_modules_loaded": true,
+    "argument_ceiling": 115000,
+    "bytes": 72806,
+    "python39_syntax": true,
+    "root_code_sha256_with_simulated_invocation": "0b705a8c88d773c154c28a81b1cf592c39d047b824100f19343b931b8cedd71a",
+    "run_function_invoked": false
+  },
+  "runtime_reproduced_byte_for_byte": true,
+  "runtime_sha256": "ebdca90a42bbb243ac04872bdf3f1210ea20583cce9b4c34c7867af1873cb959",
+  "schema": "merlin-browser-ledger-local-verification/1",
+  "source_and_workflow_hashes_checked": true,
+  "unchanged_runtime_payloads": 12
+}

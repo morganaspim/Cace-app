@@ -1,0 +1,50 @@
+{
+  "files": {
+    "app/engine.py": {
+      "bytes": 15885,
+      "sha256": "367755e0c5a582827a09858bfaf836b949f2b535fb025ad9ff703e9c3e55967f"
+    },
+    "app/model.py": {
+      "bytes": 11086,
+      "sha256": "766814a1b16285453801a1b0ad26400b5c78698d253dedd2d012dc642195fbfa"
+    },
+    "app/public_web.py": {
+      "bytes": 19805,
+      "sha256": "1a952559d1ea3b984256249f3e3768fcf9f132438ad6e75cba6b08f5e2bb8f63"
+    },
+    "app/server.py": {
+      "bytes": 9525,
+      "sha256": "62bb3b51d0c121370dbbd3b141dc2e722c915474e2e53988d3cc346386b7198b"
+    },
+    "app/storage.py": {
+      "bytes": 14019,
+      "sha256": "c0df72f1283b595c9b11f2c7a1cc45f83d50e0884345c7a2ad95e4d9c7ed1cee"
+    },
+    "app/tools.py": {
+      "bytes": 13980,
+      "sha256": "5e3efb23322bfe9b2408f1469440c98401029148aa120fc840321a040f693b84"
+    },
+    "app/web/index.html": {
+      "bytes": 73060,
+      "sha256": "c8139e25334f5924b48f460f60b5b0ec3934bd0ab293f60c91e6a70b2e210134"
+    },
+    "app/worker.py": {
+      "bytes": 599,
+      "sha256": "84c51da8ac94726a91f097c2d71e7c2d7488784d85e1babec28af08078f7a832"
+    },
+    "core/python/merlin/__init__.py": {
+      "bytes": 275,
+      "sha256": "49f23ffa9b838de063cd88e4a60704d1989f55ff3aa70fe2ed850b0396fa8f93"
+    },
+    "core/python/merlin/artifact_ref.py": {
+      "bytes": 2542,
+      "sha256": "187e33ed4ab6e1a79e054ff31c07b383090dae94cb51c5eb9dd01dfb80227584"
+    },
+    "core/python/merlin/project_registry.py": {
+      "bytes": 42079,
+      "sha256": "c7fbd89ae99705f60a1ecd7f41df244742fe218a335b4a3e6d2fed11c96521c7"
+    }
+  },
+  "repository_revision": "8497597f297bba83189afef2026c27f9244537ce",
+  "schema": "merlin-studio-exact-source/1"
+}
