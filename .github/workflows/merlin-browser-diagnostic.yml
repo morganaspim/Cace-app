@@ -33,7 +33,7 @@ jobs:
               raise RuntimeError('unexpected reconciliation execution identity')
           run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
           if run_id<=0 or attempt!=1: raise RuntimeError('first fixed reconciliation attempt required')
-          pins={'diagnose_bootstrap.py': {'bytes': 13970, 'sha256': '13b6bd21d80318cd7da8ab893226ab606d978b6a176f28aaa3adbbe42cfe6a7b', 'git_blob': '3217850f6d0449e0e5a3e4395bfae1ccde6152ec'}, 'test_diagnose_bootstrap.py': {'bytes': 4076, 'sha256': '5f7981d1763fd32d7a37af6e053e17d67cf09a53ee5e6d42e3e1599d523501c8', 'git_blob': '6d3a8379d2ad875185f6e7408b2f49ee33b7ec28'}}
+          pins={'diagnose_bootstrap.py': {'bytes': 15176, 'sha256': '36d192d0e7175499ced8a7c0843b836442f2c1ad71697b3bd201f3c9cbba2a1c', 'git_blob': 'd5cff8a450a46757b5bb59bd99481654ee9d0616'}, 'test_diagnose_bootstrap.py': {'bytes': 4136, 'sha256': '17be14e943073280b39f03f9fb43071413e16a18152627bb5ac1a3b44c6974d0', 'git_blob': 'c4a426c89063d34547ca0942d1089cf28fffb2e4'}}
           clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8','HOME':'/var/empty',
                  'PYTHONDONTWRITEBYTECODE':'1','SYSTEMD_PAGER':'','SYSTEMD_COLORS':'0'}
           def unique(items):
@@ -132,12 +132,12 @@ jobs:
                  'root-probe.txt',100,32*1024*1024)
               observed=json.loads((out/'root-probe.txt').read_text(),object_pairs_hook=unique)
               if (observed.get('schema')!='merlin-browser-bootstrap-reconciliation/1'
-                  or observed.get('target',{}).get('run_id')!=44941093952 or observed.get('model_calls')!=0
+                  or observed.get('target',{}).get('run_id')!=44942304091 or observed.get('model_calls')!=0
                   or observed.get('software_installation') is not False or observed.get('automatic_retry') is not False):
                   raise RuntimeError('fixed native reconciliation result differs')
               (out/'reconciliation.json').write_text(json.dumps(observed,sort_keys=True,indent=2))
               print(json.dumps({'status':'fixed_read_only_reconciliation_completed','run_id':run_id,
-                 'target_run_id':44941093952,'model_calls':0,'installation':False,'automatic_retry':False},sort_keys=True))
+                 'target_run_id':44942304091,'model_calls':0,'installation':False,'automatic_retry':False},sort_keys=True))
           except BaseException as exc:
               (out/'operation-error.json').write_text(json.dumps({'status':'failed','type':type(exc).__name__,
                  'message':str(exc)[:2000],'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt},indent=2))

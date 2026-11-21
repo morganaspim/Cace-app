@@ -11,8 +11,8 @@ import diagnose_bootstrap as probe
 class ReconciliationControls(unittest.TestCase):
     def setUp(self):
         self.request={'schema':'merlin-browser-diagnostic-request/1',
-          'request_id':'d2b87421-61d4-42f5-baa6-de0c2e6ed72e','operation':'reconcile-44941093952',
-          'created_at':'2026-11-21T19:34:00Z'}
+          'request_id':'d2b87421-61d4-42f5-baa6-de0c2e6ed72e','operation':'inspect-zvbi-44942304091',
+          'created_at':'2026-11-21T19:50:00Z'}
         self.execution={'repository':'morganaspim/Cace-app','ref':'refs/heads/merlin/browser-operations-20261121',
           'runner':'cace-oci-a1','run_id':123,'run_attempt':1,'workflow_commit':'a'*40}
 
@@ -35,12 +35,12 @@ class ReconciliationControls(unittest.TestCase):
 
     def test_commands_are_exact_read_only_queries(self):
         commands=probe.fixed_commands()
-        self.assertEqual(set(commands),{'failed_unit','manager','dbus_unit','installed_packages',
-                                        'unit_journal','broker_journal','audit_journal'})
+        self.assertEqual(set(commands),{'failed_unit','private_unit','model_unit','zvbi_unit','installed_packages',
+             'unit_journal','zvbi_signature','zvbi_scripts','zvbi_triggers','zvbi_xml','zvbi_file_metadata'})
         for argv in commands.values():
-            self.assertIn(argv[0],('/usr/bin/systemctl','/usr/bin/rpm','/usr/bin/journalctl'))
+            self.assertIn(argv[0],('/usr/bin/systemctl','/usr/bin/rpm','/usr/bin/rpmkeys','/usr/bin/journalctl'))
             self.assertFalse(set(argv)&{'start','restart','stop','enable','disable','set-property','--install','--import'})
-        self.assertEqual(commands['failed_unit'][2],'merlin-browser-bootstrap-44941093952-1.service')
+        self.assertEqual(commands['failed_unit'][2],'merlin-browser-bootstrap-44942304091-1.service')
         self.assertEqual(commands['installed_packages'][1:3],['-qa','--qf'])
         self.assertNotIn('--property=Environment',commands['failed_unit'])
         self.assertNotIn('--property=ExecStart',commands['failed_unit'])
@@ -61,9 +61,9 @@ class ReconciliationControls(unittest.TestCase):
         self.assertEqual(output['records_seen'],2);self.assertEqual(output['unrelated_records_omitted'],1)
 
     def test_fixed_target_binds_actual_failed_request(self):
-        self.assertEqual(probe.TARGET_RUN,44941093952)
-        self.assertEqual(probe.TARGET_REQUEST,'56b0aad3-17a6-4554-b07e-33e07515e37e')
-        self.assertEqual(probe.TARGET_COMMIT,'77618494ee3a728ac015f211776082700d8d2443')
+        self.assertEqual(probe.TARGET_RUN,44942304091)
+        self.assertEqual(probe.TARGET_REQUEST,'ef0c417a-4b58-4c5d-b44b-be7a237bedfa')
+        self.assertEqual(probe.TARGET_COMMIT,'7f12c41b49f4be4ee46077afc03fd2e36a41830f')
         self.assertEqual(probe.BEFORE_COUNT,921)
         self.assertEqual(len(probe.BEFORE_SHA256),64)
 
