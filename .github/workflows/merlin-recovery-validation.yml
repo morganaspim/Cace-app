@@ -50,7 +50,7 @@ jobs:
               q=json.loads(raw,object_pairs_hook=unique)
               if set(q)!={'schema','operation','request_id','created_at'} or q['schema']!='merlin-recovery-check/1' or q['operation']!='validate' or changes[0]['filename']!='merlin/recovery-checks/'+q['request_id']+'.json': raise ValueError('fixed request schema differs')
               source,identity=fetch('ops/merlin_dot/validate_recovery.py')
-              if identity!='7ca5de2a9e28bfb29f51b0741acb842941533214' or hashlib.sha256(source).hexdigest()!='058c00a532f0b46da62ec48b81aa383e15436bf18177b8502d49c8f69e810cee': raise ValueError('controller pin differs')
+              if identity!='bd5ad9d45b0757437072b7b16e20cde4e98aa2ef' or hashlib.sha256(source).hexdigest()!='ba135b6a8ff008924edd288f85d9bf85ce72f22379c0263de5d657b62c24f13d': raise ValueError('controller pin differs')
               namespace={};exec(compile(source,'pinned-recovery-validation','exec'),namespace)
               namespace['run'](api,out)
           except Exception as exc:
