@@ -498,3 +498,22 @@ Read-only pure admission validators passed against the actual downloaded native 
 The narrow checkpoint is `ops/merlin_dot/validation-results/weight-binding-admission-20261121.json`. Critical runtime evidence is retained outside GitHub in `Merlin_production_candidate_validation_20261121.zip` (276,966 bytes; SHA-256 `6aa02f3437a7cff12f023d8d4a77daf10affebbd9de741ed67c129ebe12dbd74`). Repository-backed source/controller/loader and rejected-patch copies remain in Git. Exact rejected component versions were recovered, matched prior hashes and retained as reverse patches in PR186.
 
 This remains Class B fixed synthetic Merlin engineering acceptance. Actual host authentication/custody, verified editable-model runtime, model efficacy and full-platform release gates remain open. No weights were loaded or edited, no model-quality gain or native model review was measured, no scientific core was qualified, and no merge/deployment occurred. The next weight-space experiment requires a permitted target/runtime, a representative baseline and independent oracle, frozen holdout evaluation and enforced resource limits.
+
+
+## Merlin selected-source native continuation — November 21, 2026
+
+PR187 source `4b1d5e75916570e0a2d37cc2371b3dc27339ad9a` passed exact
+125-file native acceptance in run **44904879833**, attempt 1: **548 software /
+8 kernel / 6 context** cases. Software duration was 157.052 seconds on aarch64
+Python 3.9.25. Root and a separate reviewer accepted the retained actual evidence
+within its synthetic scope. All four recorded service properties were unchanged.
+
+The exact run/artifact/source/controller identities, reviews, retained evidence
+and limitations are in
+`ops/merlin_dot/validation-results/transport-bound-status-20261121.json`.
+The previous local-only checkpoint remains historical. Master plan v6 is
+unchanged. No model loading/training, qualification, production admission,
+merge, deployment, permission change or service change is established.
+
+The next isolated candidate investigates exact solver arithmetic and bounded
+artifact-verification memory. This run does not cover those later source edits.
