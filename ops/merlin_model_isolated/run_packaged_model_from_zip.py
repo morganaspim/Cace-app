@@ -308,6 +308,10 @@ def _run(root, scratch, parent):
                      no_new_privileges=True,
                      request_count=1,
                      elapsed_seconds=round(time.monotonic()-started,3))
+    except BaseException as exc:
+        state["error_type"]=type(exc).__name__
+        state["error_reason"]=str(exc)[:180]
+        raise
     finally:
         state["model_process_terminated"]=_stop(process)
         state["scratch_model_log_bytes"]=(
@@ -359,9 +363,22 @@ def invoke(root,scratch):
              str(script),"setup",str(root),str(scratch),str(parent_ns)]
     proc=subprocess.run(command,cwd="/",env=env,stdin=subprocess.DEVNULL,
                         capture_output=True,timeout=370)
-    if (len(proc.stdout)>32768 or len(proc.stderr)>32768
-            or proc.returncode != 0):
-        raise RuntimeError("isolated private packaged model transport failed")
+    if len(proc.stdout)>32768 or len(proc.stderr)>32768:
+        raise RuntimeError("isolated private packaged model output exceeded bound")
+    if proc.returncode != 0:
+        # Only a typed, bounded status from our source-pinned child is retained;
+        # never print model logs, API bodies or raw file contents into CI.
+        report_path=scratch/"packaged-model-smoke.json"
+        reason="no typed child failure evidence"
+        if report_path.is_file() and not report_path.is_symlink() and report_path.stat().st_size <= 16384:
+            try:
+                diagnostic=json.loads(report_path.read_text(),object_pairs_hook=_unique_json)
+                if isinstance(diagnostic,dict):
+                    reason=(str(diagnostic.get("error_type","Error"))[:35]+":"
+                            +str(diagnostic.get("error_reason","unknown"))[:150])
+            except (ValueError,OSError,UnicodeError):
+                pass
+        raise RuntimeError("isolated private packaged model transport failed: "+reason)
     try:
         report=json.loads(proc.stdout.decode("utf-8").strip(),object_pairs_hook=_unique_json)
     except (ValueError,UnicodeDecodeError) as exc:
