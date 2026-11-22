@@ -12,6 +12,7 @@ name: Merlin browser socket quarantine contract (review only)
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   isolated-transaction-contract:
@@ -33,6 +34,53 @@ jobs:
             -p 'test_quarantine_stale_socket.py' -v 2>&1 | tee transaction-tests.txt
           sha256sum ops/merlin_browser/quarantine_stale_socket.py \
             ops/merlin_browser/test_quarantine_stale_socket.py > source-digests.txt
+      - name: Retrieve immutable first OCI inspection
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14763396209
+          run-id: 45045149558
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: inspection-first
+      - name: Retrieve independently repeated OCI inspection
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14765351602
+          run-id: 45050760629
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: inspection-second
+      - name: Prove root-evidence gate with both immutable raw OCI receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json, pathlib, sys
+          from unittest.mock import patch
+          sys.path.insert(0,"ops/merlin_browser")
+          import quarantine_stale_socket as recovery
+          first=pathlib.Path("inspection-first/root-evidence/state-inspection.json")
+          second=pathlib.Path("inspection-second/root-evidence/state-inspection.json")
+          assert first.is_file() and not first.is_symlink()
+          assert second.is_file() and not second.is_symlink()
+          sources={recovery.REVIEWED_RECEIPTS[0][0]:first.read_bytes(),
+                   recovery.REVIEWED_RECEIPTS[1][0]:second.read_bytes()}
+          def fake_regular(path,limit,owner=0):
+              assert path in sources and owner == 0 and len(sources[path]) <= limit
+              return sources[path]
+          with patch.object(recovery,"_trusted_regular",side_effect=fake_regular):
+              verified=recovery._trusted_historical_pair()
+          assert verified["status"] == "stable_candidate_for_locked_reinspection"
+          assert verified["authority_granted"] is False
+          assert verified["host_mutations"] == 0
+          assert verified["may_unlink_socket"] is False
+          pathlib.Path("historical-gate.json").write_text(json.dumps({
+              "schema":"merlin-browser-historical-gate-ci/1",
+              "status":"passed", "source_run_ids":[45045149558,45050760629],
+              "source_sha256":[recovery.EXPECTED_PRIOR_INSPECTIONS[i] for i in (45045149558,45050760629)],
+              "host_mutations":0,"authority_granted":False,
+              "native_browser_qualified":False},sort_keys=True,indent=2)+"\n")
+          PY
       - name: Retain bounded model-independent recovery evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -42,5 +90,6 @@ jobs:
             source-commit.txt
             transaction-tests.txt
             source-digests.txt
+            historical-gate.json
           retention-days: 14
           if-no-files-found: warn
