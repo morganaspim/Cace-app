@@ -364,6 +364,30 @@ def assemble(root, evidence, archive, details):
         archive_root=destination / "Merlin_Studio",
         expected_sha256=LLAMA_SHA, expected_bytes=14614984,
         runner=_run_packaged_version))
+    # The isolated GGUF test helper is a distinct exact-pinned Git source.
+    # No untrusted archive text may substitute the test program.
+    module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
+    require(module_path.is_file() and not module_path.is_symlink()
+            and module_path.stat().st_size == 16661
+            and hashlib.sha256(module_path.read_bytes()).hexdigest()
+            == "776d7c7a17a67b89c82ba68a7192099a9baa16c67c101cdac71ee751cf31d31c",
+            "packaged model isolated inference source pin differs")
+    sys.path.insert(0, str(module_path.parent))
+    from run_packaged_model_from_zip import invoke
+    model_scratch = root / "isolated-model-smoke"
+    model_scratch.mkdir(mode=0o700, exist_ok=False)
+    model_probe = invoke(destination / "Merlin_Studio", model_scratch)
+    require(model_probe["model_inference_executed"] is True
+            and model_probe["model_process_terminated"] is True
+            and model_probe["host_mutations"] == 0
+            and model_probe["external_network_allowed"] is False,
+            "private bundled model did not complete verified generation")
+    details["private_model_smoke_status"] = model_probe["status"]
+    details["model_inference_executed"] = True
+    details["packaged_model_answer_exact_42"] = model_probe["answer_exact_42"]
+    details["packaged_model_response_sha256"] = model_probe["answer_sha256"]
+    details["model_process_terminated"] = True
+    details["private_network_loopback_only"] = True
     return details
 
 
@@ -424,9 +448,11 @@ def main():
         prepared = assemble(scratch, evidence, py_archive, result)
         require(prepared["package_integrity_passed"]
                 and prepared["actual_packaged_python_executed"]
-                and prepared["native_llama_binary_started"],
+                and prepared["native_llama_binary_started"]
+                and prepared["model_inference_executed"] is True
+                and prepared["model_process_terminated"] is True,
                 "private bundle acceptance incomplete")
-        result["status"] = "private_package_python_and_llama_executable_passed"
+        result["status"] = "private_package_python_llama_and_gguf_smoke_passed"
         success = True
     except BaseException as exc:
         result["failure_type"] = type(exc).__name__
