@@ -77,6 +77,16 @@ class EvidenceContractTests(unittest.TestCase):
             with self.subTest(answer=answer[:24]), self.assertRaises(ToolEvidenceError):
                 self.evaluate(events(), answer)
 
+    def test_marker_substring_is_not_exact_format_compliance(self):
+        for answer in (
+            "Verification marker: " + MARKER,
+            MARKER + "\\n",
+            "The marker is " + MARKER,
+            "```" + MARKER + "```",
+        ):
+            with self.subTest(answer=answer[:28]), self.assertRaises(ToolEvidenceError):
+                self.evaluate(events(), answer)
+
     def test_tool_result_after_model_final_request_fails(self):
         bad = events()
         bad[3], bad[4] = bad[4], bad[3]
