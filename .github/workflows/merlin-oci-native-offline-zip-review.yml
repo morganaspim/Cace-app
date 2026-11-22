@@ -47,7 +47,7 @@ jobs:
               obj=json.loads(payload)
               if obj.get('encoding')!='base64':raise SystemExit('source encoding differs')
               raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
-              blob=hashlib.sha1(('blob %d\\0'%len(raw)).encode()+raw).hexdigest()
+              blob=hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
               if len(raw)!=expected_bytes or blob!=expected_blob or obj.get('sha')!=expected_blob:
                   raise SystemExit('exact controller or packaged GGUF smoke source differs')
               return raw
