@@ -280,13 +280,44 @@ jobs:
               # Reuse reviewed native test definitions and immutable source pins.
               stage='studio_source_custody'
               validation=root/'validation'
-              ns={'__name__':'pinned_studio112_controller'}
-              exec(compile((validation/'validate.py').read_bytes(),'pinned-validation','exec'),ns)
+              raw_controller=(validation/'validate.py').read_text(encoding='utf-8')
+              # Only the precise expected case counts change, never test logic,
+              # provider/network authority, or original source verification.
+              changes=(
+                ('("studio", "portable/merlin_studio/tests", "test_studio.py", 35)',
+                 '("studio", "portable/merlin_studio/tests", "test_studio.py", 36)'),
+                ('"expected_tests": 111','"expected_tests": 112'),
+                ('result["tests"] == 111','result["tests"] == 112'))
+              for previous,replacement in changes:
+                  require(raw_controller.count(previous)==1,'controller derivative anchor differs')
+                  raw_controller=raw_controller.replace(previous,replacement)
+              ns={'__name__':'pinned_studio112_derivative'}
+              exec(compile(raw_controller,'pinned-studio112-controller','exec'),ns)
+              (ev/'studio112-controller-derivative.json').write_text(json.dumps({
+                  'schema':'merlin-studio112-controller-derivative/1',
+                  'original_controller_sha256':'39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee',
+                  'derivative_controller_sha256':hashlib.sha256(raw_controller.encode()).hexdigest(),
+                  'exact_replacements':list(changes),'other_changes_permitted':False,
+                  'approval_or_production_authority':False},sort_keys=True,indent=2))
               pins=ns['parse_json']((validation/'source-pins.json').read_bytes())
               members=ns['validate_bundle'](pins,(validation/'product-source.zip').read_bytes())
               require(len(members)==36,'reviewed studio member count changed')
               product=root/'exact-product-source'
               ns['extract_bundle'](members,product)
+              overlay_pins=json.loads((ev/'overlay-source-identities.json').read_text())['verified_updated_files']
+              for name,pin in overlay_pins.items():
+                  target=product/name
+                  require(target.is_file() and not target.is_symlink(),'missing product overlay target')
+                  raw=(root/'product-overlays'/name.rsplit('/',1)[-1]).read_bytes()
+                  require(ns['identity'](raw)==pin,'overlay changed after admission')
+                  target.write_bytes(raw)
+                  pins['files'][name]=pin
+              (ev/'studio112-source-closure.json').write_text(json.dumps({
+                  'original_archive_sha256':pins['archive']['sha256'],
+                  'original_product_commit':pins['commit'],
+                  'overlay_commit':'d2c53ebce82e918ac5a246c8ef9416abc47032a1',
+                  'total_source_files':len(members),'overlaid_paths':sorted(overlay_pins),
+                  'expected_exact_tests':112,'qualification':False},sort_keys=True,indent=2))
               # The previous run retained five Python subprocess failures,
               # including one malformed bytecode cache. Freeze source/code
               # locations against generated pyc writes without weakening tests.
@@ -359,11 +390,11 @@ jobs:
                   if download.exists() and download.is_dir() and not download.is_symlink():
                       shutil.rmtree(download)
                   require(not download.exists(),'residual_archive')
-                  for dest in (root/'exact-product-source',root/'validation',root/'controller-temporary'):
+                  for dest in (root/'exact-product-source',root/'validation',root/'controller-temporary',root/'product-overlays'):
                       if dest.exists() and dest.is_dir() and not dest.is_symlink():
                           shutil.rmtree(dest)
                   require(not any((root/x).exists() for x in
-                          ('exact-product-source','validation','controller-temporary')),
+                          ('exact-product-source','validation','controller-temporary','product-overlays')),
                           'residual_temporary_product_sources')
                   cleaned=True
               except BaseException as exc:
