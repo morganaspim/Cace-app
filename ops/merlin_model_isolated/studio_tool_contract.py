@@ -29,8 +29,8 @@ def assess(events, *, expected_path, fixture_sha256, marker, answer):
             "exact fixture SHA256 required")
     require(isinstance(marker, str) and re.fullmatch(r"MERLIN_TOOL_[0-9a-f]{32}", marker),
             "unpredictable reference marker shape invalid")
-    require(isinstance(answer, str) and answer.count(marker) == 1,
-            "model final message did not reproduce file-only marker exactly once")
+    require(isinstance(answer, str) and answer == marker,
+            "model final message must equal the source-only marker with no prefix or suffix")
     for event in events:
         require(isinstance(event, dict) and isinstance(event.get("type"), str),
                 "malformed Studio event")
