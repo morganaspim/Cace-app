@@ -1,0 +1,168 @@
+name: Merlin OCI private unprivileged local-model inference acceptance
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-private-model-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  two-local-inferences:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 10
+    steps:
+      - name: Admit exact source and execute two budgeted model turns in zero-cap private loopback
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import ast,base64,datetime,hashlib,json,os,platform,re,shutil,signal,subprocess,time,urllib.request,uuid
+          from pathlib import Path
+
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app'
+              or os.environ.get('GITHUB_REF')!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run_id<=0 or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed unprivileged runner identity required')
+
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-private-model-%d-%d'%(run_id,attempt))
+          root.mkdir(mode=0o700,exist_ok=False)
+          evidence=root/'evidence';evidence.mkdir(mode=0o700)
+          src=root/'source';src.mkdir(mode=0o700)
+          state='blocked';launched=False;child=None;reason=None
+          def require(ok,why):
+              if not ok:raise RuntimeError(why)
+          def unique(items):
+              d={}
+              for k,v in items:
+                  if k in d:raise ValueError('duplicate JSON object field')
+                  d[k]=v
+              return d
+          def api(part):
+              r=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+part,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                'Accept':'application/vnd.github+json',
+                'User-Agent':'Merlin-one-shot-private-inference'})
+              with urllib.request.urlopen(r,timeout=20) as response:
+                  raw=response.read(1024*1024+1)
+              require(len(raw)<=1024*1024,'bounded GitHub API response exceeded')
+              return json.loads(raw,object_pairs_hook=unique)
+          def blob(raw):
+              return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          try:
+              changed=api('commits/'+commit).get('files',[])
+              require(len(changed)==1 and changed[0].get('status')=='added',
+                      'exact one additive fixed request required')
+              path=changed[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-private-model-requests/([0-9a-f-]{36})\.json',path)
+              require(match is not None,'request namespace differs')
+              item=api('contents/'+path+'?ref='+commit)
+              require(item.get('encoding')=='base64','request encoding differs')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)<=4096 and item.get('sha')==blob(raw),
+                      'request blob identity differs')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                  and request['schema']=='merlin-oci-private-model-request/1'
+                  and request['operation']=='two-fixed-private-local-model-generations'
+                  and request['request_id']==match.group(1)
+                  and str(uuid.UUID(request['request_id']))==request['request_id']
+                  and datetime.datetime.strptime(request['created_at'],
+                     '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%dT%H:%M:%SZ')==
+                     request['created_at'],'request schema rejected')
+              (evidence/'request.json').write_bytes(raw)
+              item=api('contents/ops/merlin_model_isolated/run_private_model.py?ref='+commit)
+              require(item.get('encoding')=='base64','source encoding differs')
+              source=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(source)==16616 and
+                  blob(source)=='65b0659425d6759dc291967c1d17e60f8c29c06e'
+                  and item.get('sha')=='65b0659425d6759dc291967c1d17e60f8c29c06e',
+                  'exact pinned model runner identity differs')
+              ast.parse(source,feature_version=(3,9))
+              runner=src/'run_private_model.py';runner.write_bytes(source)
+              runner.chmod(0o400)
+              (evidence/'source-identity.json').write_text(json.dumps({
+                'schema':'merlin-private-model-source/1',
+                'request_commit':commit,'controller_git_blob':item['sha'],
+                'controller_sha256':hashlib.sha256(source).hexdigest(),
+                'model_and_binary_sha256_guarded':True,
+                'model_generation_budget':2,'service_mutation_authority':False,
+                'root_sudo_authority':False,'production_qualified':False},
+                sort_keys=True,indent=2))
+              clean={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
+                     'HOME':str(root),'TMPDIR':str(root),
+                     'PYTHONDONTWRITEBYTECODE':'1'}
+              argv=['/usr/bin/unshare','--user','--map-current-user',
+                    '--net','--fork','--keep-caps','/usr/bin/python3','-I','-B',
+                    str(runner),'setup',str(evidence),
+                    str(os.stat('/proc/self/ns/net').st_ino)]
+              launched=True
+              child=subprocess.Popen(argv,cwd='/',env=clean,
+                 stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                 stderr=subprocess.PIPE,start_new_session=True)
+              expired=False
+              try:out,err=child.communicate(timeout=430)
+              except subprocess.TimeoutExpired:
+                  expired=True
+                  try:os.killpg(child.pid,signal.SIGKILL)
+                  except ProcessLookupError:pass
+                  out,err=child.communicate(timeout=8)
+              (evidence/'isolation-entry.stdout').write_bytes(out[:65536])
+              (evidence/'isolation-entry.stderr').write_bytes(err[:65536])
+              require(not expired and len(out)<=65536 and len(err)<=65536,
+                      'private model child timed out or emitted too much')
+              require(child.returncode==0,'model acceptance child exited nonzero')
+              result=json.loads((evidence/'result.json').read_text())
+              require(result.get('status')=='passed'
+                  and result.get('generation_requests')==2
+                  and result.get('correct_count')==2
+                  and result.get('worker_terminated') is True
+                  and result.get('existing_service_modified') is False
+                  and result.get('root_used') is False
+                  and result.get('production_qualified') is False
+                  and result.get('worker',{}).get('model_mmap_verified') is True
+                  and result.get('worker',{}).get('no_new_privs') is True
+                  and result.get('worker',{}).get('cap_effective')=='0000000000000000',
+                  'model worker identity, correctness or cleanup not accepted')
+              state='passed'
+          except BaseException as exc:
+              reason=type(exc).__name__+': '+str(exc)[:180]
+              (evidence/'failed.json').write_text(json.dumps({
+                 'status':'blocked','reason':reason,
+                 'model_execution_attempted':launched,
+                 'host_installation':False,'production_qualified':False}))
+              raise
+          finally:
+              # Evidence retained, temporary model caches and source deleted.
+              cache=evidence/'worker-home'
+              if cache.exists() and cache.is_dir() and not cache.is_symlink():
+                  shutil.rmtree(cache)
+              (evidence/'cleanup.json').write_text(json.dumps({
+                 'temporary_model_cache_removed':not cache.exists(),
+                 'system_installation':False,'production_qualified':False},
+                 sort_keys=True))
+              print(json.dumps({'status':state,'reason':reason,
+                 'model_worker_spawn_attempted':launched,
+                 'cleanup_verified':not cache.exists(),
+                 'production_qualified':False},sort_keys=True))
+          PY
+      - name: Retain private model startup, identity, answers, and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-private-model-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-private-model-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          retention-days: 30
+          include-hidden-files: true
+          if-no-files-found: warn
