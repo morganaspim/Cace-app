@@ -126,7 +126,8 @@ class CDP:
         require(isinstance(method, str) and method in {
             "Page.enable", "Runtime.enable", "Runtime.evaluate",
             "Input.dispatchMouseEvent", "Input.insertText",
-            "Emulation.setDeviceMetricsOverride", "Page.captureScreenshot",
+            "Emulation.setDeviceMetricsOverride", "Emulation.setTouchEmulationEnabled",
+            "Input.dispatchTouchEvent", "Page.captureScreenshot",
         }, "CDP method not allowlisted")
         self.next_id += 1
         ident = self.next_id
@@ -164,6 +165,32 @@ class CDP:
         for action in ("mousePressed", "mouseReleased"):
             self.call("Input.dispatchMouseEvent", {"type": action, "x": p["x"],
                     "y": p["y"], "button": "left", "clickCount": 1})
+
+    def tap(self, selector):
+        # Mobile emulation is not a physical mouse: emit a real CDP
+        # touchscreen press/release at a previously hit-tested DOM control.
+        target = self.evaluate("""(function(){const e=document.querySelector(""" +
+          json.dumps(selector) + """);if(!e)return null;
+          const r=e.getBoundingClientRect();
+          const x=r.left+r.width/2,y=r.top+r.height/2;
+          const at=document.elementFromPoint(x,y);
+          return {x,y,w:r.width,h:r.height,
+                  topButtonId:at?.closest('button')?.id??null};})()""")
+        require(isinstance(target, dict)
+                and target.get("topButtonId") == selector.lstrip("#")
+                and target.get("w", 0) > 2 and target.get("h", 0) > 2
+                and 0 <= target.get("x", -1) < 390
+                and 0 <= target.get("y", -1) < 844,
+                "mobile tap target is obscured or outside viewport")
+        self.call("Emulation.setTouchEmulationEnabled",
+                  {"enabled": True, "maxTouchPoints": 1})
+        point = {"x": target["x"], "y": target["y"], "id": 1,
+                 "radiusX": 1, "radiusY": 1, "force": 1}
+        self.call("Input.dispatchTouchEvent", {
+            "type": "touchStart", "touchPoints": [point]})
+        self.call("Input.dispatchTouchEvent", {
+            "type": "touchEnd", "touchPoints": []})
+        return target
 
     def screenshot(self, path, expected_size):
         response = self.call("Page.captureScreenshot",
@@ -318,9 +345,11 @@ def run(profile_parent, evidence):
         wait_for(client, """(function(){const e=document.getElementById('menu-toggle');
           return getComputedStyle(e).display!=='none' && window.innerWidth===390;})()""",
           5, "emulated 390px CSS viewport")
-        client.click("#menu-toggle")
+        tapped = client.tap("#menu-toggle")
+        (evidence / "studio-mobile-tap-target.json").write_text(
+            json.dumps(tapped, sort_keys=True, indent=2))
         wait_for(client, "document.getElementById('sidebar').classList.contains('open')",
-                 5, "mobile hamburger expanded")
+                 5, "mobile touch hamburger expanded")
         mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
         result = {"schema": "merlin-oci-studio-cdp-gui/1",
                   "status": "passed", "source_page": STUDIO,
@@ -333,6 +362,7 @@ def run(profile_parent, evidence):
                   "settings_dialog_open_close": True,
                   "workspace_dialog_open_close": True,
                   "mobile_sidebar_opened": True,
+                  "mobile_input_method": "CDP Input.dispatchTouchEvent",
                   "desktop_screenshot": desktop, "mobile_screenshot": mobile,
                   "token_in_evidence": False, "model_generation_calls": 0,
                   "system_installation": False, "production_qualified": False}
