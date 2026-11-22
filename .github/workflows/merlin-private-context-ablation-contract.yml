@@ -1,0 +1,44 @@
+name: Merlin private GGUF context ablation contracts
+"on":
+  push:
+    branches: ["fix/merlin-native-offline-zip-source-20261122"]
+    paths:
+      - ops/merlin_model_isolated/run_packaged_studio_smoke.py
+      - ops/merlin_model_isolated/test_packaged_studio_smoke.py
+      - .github/workflows/merlin-private-context-ablation-contract.yml
+  pull_request:
+    paths:
+      - ops/merlin_model_isolated/run_packaged_studio_smoke.py
+      - ops/merlin_model_isolated/test_packaged_studio_smoke.py
+      - .github/workflows/merlin-private-context-ablation-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  context-ablation-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Test fixed private inference control and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m py_compile ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/test_packaged_studio_smoke.py
+          python3 -B -m unittest discover -s ops/merlin_model_isolated -p 'test_packaged_studio_smoke.py' -v 2>&1 | tee merlin-context-contract-tests.log
+          sha256sum ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/test_packaged_studio_smoke.py | tee merlin-context-source-sha256.txt
+          wc -c ops/merlin_model_isolated/run_packaged_studio_smoke.py | tee merlin-context-source-size.txt
+      - name: Retain no model or transcript bytes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-context-contract-${{ github.run_id }}
+          path: |
+            merlin-context-contract-tests.log
+            merlin-context-source-sha256.txt
+            merlin-context-source-size.txt
+          if-no-files-found: warn
+          retention-days: 14
