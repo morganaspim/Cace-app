@@ -24,7 +24,9 @@ def observed():
         if path == SOCKET:
             value.update({"status": "present", "exists": True,
                           "metadata": {"type": "socket", "uid": 0, "gid": 1000,
-                                       "mode": "0o660", "inode": 2482964, "nlink": 1}})
+                                       "mode": "0o660", "inode": 2482964, "nlink": 1,
+                                       "dev": 28, "ctime_ns": 1795293187100973755,
+                                       "mtime_ns": 1795293187100973755}})
         paths.append(value)
     return {
         "schema": "merlin-browser-state-inspection/1",
