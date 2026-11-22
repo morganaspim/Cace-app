@@ -69,6 +69,7 @@ def assess(receipt, *, expected_run_id, expected_workflow_commit):
             "workflow source identity differs")
     require(execution.get("repository") == "morganaspim/Cace-app"
             and execution.get("runner") == "cace-oci-a1"
+            and type(execution.get("run_attempt")) is int
             and execution.get("run_attempt") == 1,
             "expected runner identity differs")
 
@@ -100,12 +101,12 @@ def assess(receipt, *, expected_run_id, expected_workflow_commit):
             require(item.get("status") == "present" and item.get("exists") is True
                     and isinstance(metadata, dict), "socket inode not observed")
             if isinstance(metadata, dict):
-                require(metadata.get("type") == "socket" and metadata.get("uid") == 0
-                        and metadata.get("gid") == 1000
+                require(metadata.get("type") == "socket"
+                        and type(metadata.get("uid")) is int and metadata["uid"] == 0
+                        and type(metadata.get("gid")) is int and metadata["gid"] == 1000
                         and metadata.get("mode") == "0o660"
-                        and type(metadata.get("inode")) is int
-                        and metadata["inode"] > 0
-                        and metadata.get("nlink") == 1,
+                        and type(metadata.get("inode")) is int and metadata["inode"] > 0
+                        and type(metadata.get("nlink")) is int and metadata["nlink"] == 1,
                         "socket inode metadata unexpected")
     require(receipt.get("all_six_absent_snapshot") is False,
             "observed snapshot shape unexpectedly changed")
@@ -130,7 +131,7 @@ def assess(receipt, *, expected_run_id, expected_workflow_commit):
     sockets = receipt.get("unix_socket_table")
     require(isinstance(sockets, dict) and sockets.get("status") == "observed"
             and sockets.get("matching_path") == SOCKET
-            and sockets.get("matches") == 0
+            and type(sockets.get("matches")) is int and sockets["matches"] == 0
             and sockets.get("rows") == [],
             "socket has a listener or table observation is incomplete")
 
