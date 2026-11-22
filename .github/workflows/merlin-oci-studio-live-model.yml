@@ -159,8 +159,8 @@ jobs:
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
                  'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
                  'portable/merlin_studio/model.py':{'bytes':11321,'blob':'85730efc0e3f576f0c66faa9bf95e46287fbce20'},
-                 'portable/merlin_studio/engine.py':{'bytes':16111,'blob':'e0ef33ca018a3906d9fc05ca33702f2cdaf4775d'},
-                 'portable/merlin_studio/web/index.html':{'bytes':73569,'blob':'b06113c60978f66846490b635f680dec4e82bbc2'}}
+                 'portable/merlin_studio/engine.py':{'bytes':16121,'blob':'e0ef33ca018a3906d9fc05ca33702f2cdaf4775d'},
+                 'portable/merlin_studio/web/index.html':{'bytes':73615,'blob':'b06113c60978f66846490b635f680dec4e82bbc2'}}
               for path,pin in overlays.items():
                   updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
                   if path.endswith('.py'):
