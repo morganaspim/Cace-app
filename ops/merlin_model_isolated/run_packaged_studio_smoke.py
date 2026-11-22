@@ -25,6 +25,7 @@ import time
 
 PORT = 18793
 SCHEMA = "merlin-packaged-studio-ui-restart/1"
+REFERENCE_PROMPT = "What is 6 multiplied by 7? Respond using only the integer."
 ENV = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
        "PYTHONDONTWRITEBYTECODE": "1"}
 
@@ -86,21 +87,57 @@ def enable_private_loopback():
                         struct.pack("16sH14s", b"lo", flags | 1, padding))
 
 
-def build_bootstrap(source,data):
-    """Render only string path literals inside packaged isolated Python -c.
-
-    pathlib.Path.__repr__ emits PosixPath(...) which is undefined in this
-    minimal interpreter unless pathlib is imported explicitly.
-    """
+def build_bootstrap(source,data,*,start_bundled=False):
+    """Only explicit trusted opt-in starts the extracted private GGUF server."""
     require(isinstance(source,Path) and isinstance(data,Path),
             "trusted extracted paths required")
+    require(type(start_bundled) is bool, "model startup must be a Boolean")
+    setup = ("'network_enabled':False,'python_enabled':False,"
+             "'desktop_enabled':False,'browser_enabled':False")
+    if start_bundled:
+        setup += ",'model_timeout_seconds':120,'max_steps':2"
     return ("import sys;sys.path.insert(0,%r);"
             "from server import create_server;"
-            "s=create_server(port=%d,data_dir=%r,start_bundled=False);"
-            "s.app.save_settings({'network_enabled':False,'python_enabled':False,"
-            "'desktop_enabled':False,'browser_enabled':False});"
+            "s=create_server(port=%d,data_dir=%r,start_bundled=%r);"
+            "s.app.save_settings({%s});"
             "s.serve_forever(poll_interval=0.2)"
-            % (str(source),PORT,str(data)))
+            % (str(source),PORT,str(data),start_bundled,setup))
+
+
+def assess_chat_evidence(payload, run_id, conversation_id):
+    """Check actual durable Studio run evidence, not a synthetic model claim."""
+    if not isinstance(payload,dict):
+        raise ValueError("Studio chat evidence must be an object")
+    run=payload.get("run")
+    conversation=payload.get("conversation")
+    if (not isinstance(run,dict) or not isinstance(conversation,dict)
+            or run.get("id")!=run_id
+            or run.get("conversation_id")!=conversation_id
+            or conversation.get("id")!=conversation_id
+            or run.get("status")!="completed"
+            or run.get("error") is not None):
+        raise ValueError("Studio chat run identity or completion differs")
+    events=run.get("events")
+    if (not isinstance(events,list)
+            or not any(isinstance(item,dict)
+                       and item.get("type")=="model_request" for item in events)):
+        raise ValueError("No actual Studio model request was recorded")
+    messages=conversation.get("messages")
+    if (not isinstance(messages,list) or len(messages)!=2
+            or not isinstance(messages[0],dict)
+            or messages[0].get("role")!="user"
+            or messages[0].get("content")!=REFERENCE_PROMPT
+            or not isinstance(messages[1],dict)
+            or messages[1].get("role")!="assistant"
+            or not isinstance(messages[1].get("content"),str)
+            or not messages[1]["content"].strip()):
+        raise ValueError("Expected persisted user/assistant chat pair is missing")
+    answer=messages[1]["content"]
+    return {"model_chat_model_request_seen":True,
+            "model_chat_answer_exact_42":answer.strip()=="42",
+            "model_chat_response_sha256":hashlib.sha256(answer.encode()).hexdigest(),
+            "model_chat_response_chars":len(answer),
+            "production_qualified":False}
 
 
 def limits():
@@ -113,9 +150,11 @@ def limits():
 
 def request(method, path, payload=None, token=None):
     allowed = {( "GET", "/api/health"), ("GET", "/api/status"),
-               ("GET", "/studio/"), ("POST", "/api/conversations")}
+               ("GET", "/studio/"), ("POST", "/api/conversations"),
+               ("POST", "/api/chat")}
     if (method, path) not in allowed and not (
-            method == "GET" and re.fullmatch(r"/api/conversations/[0-9a-f]{32}", path)):
+            method == "GET" and (re.fullmatch(r"/api/conversations/[0-9a-f]{32}", path)
+                                     or re.fullmatch(r"/api/runs/[0-9a-f]{32}", path))):
         raise ValueError("unapproved offline Studio endpoint")
     raw = None if payload is None else json.dumps(
         payload, ensure_ascii=False, allow_nan=False).encode()
