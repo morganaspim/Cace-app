@@ -369,9 +369,9 @@ def assemble(root, evidence, archive, details):
     # substitute for a real GGUF inference result below.
     ui_path = Path(__file__).resolve().parent / "run_packaged_studio_smoke.py"
     require(ui_path.is_file() and not ui_path.is_symlink()
-            and ui_path.stat().st_size == 15654
+            and ui_path.stat().st_size == 15802
             and hashlib.sha256(ui_path.read_bytes()).hexdigest()
-            == "30947150c12c6ade4ed3ce9fc399490bc90ef24828119aa445bf354e823fb897",
+            == "691a1ac622bd12e67484a11a9dc19e94c4e39d1080c1cd4e50f0684cae14ca6e",
             "packaged Studio UI/restart helper source pin differs")
     sys.path.insert(0, str(ui_path.parent))
     import run_packaged_studio_smoke as studio_smoke
@@ -413,9 +413,9 @@ def assemble(root, evidence, archive, details):
     # No untrusted archive text may substitute the test program.
     module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
     require(module_path.is_file() and not module_path.is_symlink()
-            and module_path.stat().st_size == 20107
+            and module_path.stat().st_size == 20608
             and hashlib.sha256(module_path.read_bytes()).hexdigest()
-            == "be91e19b13b13f68586e404f01dd91446bfc653133bfe762f05f945e896f257b",
+            == "6c4bc8d48a4a2567a919962d4e5f5324408868836ed3970f40685001cf7be3fb",
             "packaged model isolated inference source pin differs")
     sys.path.insert(0, str(module_path.parent))
     from run_packaged_model_from_zip import invoke
