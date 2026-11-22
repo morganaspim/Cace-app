@@ -86,6 +86,21 @@ def enable_private_loopback():
                         struct.pack("16sH14s", b"lo", flags | 1, padding))
 
 
+def build_bootstrap(source,data):
+    """Render only string path literals inside packaged isolated Python -c.
+
+    pathlib.Path.__repr__ emits PosixPath(...) which is undefined in this
+    minimal interpreter unless pathlib is imported explicitly.
+    """
+    require(isinstance(source,Path) and isinstance(data,Path),
+            "trusted extracted paths required")
+    return ("import sys;sys.path.insert(0,%r);"
+            "from server import create_server;"
+            "s=create_server(port=%d,data_dir=%r,start_bundled=False);"
+            "s.serve_forever(poll_interval=0.2)"
+            % (str(source),PORT,str(data)))
+
+
 def limits():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_NOFILE, (128, 128))
@@ -169,11 +184,7 @@ def run(root, scratch, evidence, parent):
     data.mkdir(mode=0o700,exist_ok=False)
     env={**ENV,"HOME":str(home),"TMPDIR":str(home),
          "XDG_CACHE_HOME":str(home),"XDG_CONFIG_HOME":str(home)}
-    bootstrap=("import sys;sys.path.insert(0,%r);"
-               "from server import create_server;"
-               "s=create_server(port=%d,data_dir=%r,start_bundled=False);"
-               "s.serve_forever(poll_interval=0.2)"
-               % (str(source), PORT, data))
+    bootstrap=build_bootstrap(source,data)
     cmd=[str(py),"-I","-B","-S","-c",bootstrap]
     report={"schema":SCHEMA,"status":"blocked","production_qualified":False,
             "model_inference_executed":False,"host_mutations":0,
