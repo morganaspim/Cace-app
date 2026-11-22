@@ -244,6 +244,82 @@ class PackagedStudioUIContracts(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 studio.query_packaged_model("invalid response control")
 
+    def test_context_probe_pairs_real_conditions_without_claiming_merlin_routing(self):
+        calls=[]
+        correct={x[1]:x[2] for x in studio.CONTEXT_CASES}
+        def model(prompt,*,with_usage=False):
+            self.assertTrue(with_usage)
+            self.assertIn("\nEVIDENCE PACKET:\n",prompt)
+            self.assertIn("\nQUESTION: ",prompt)
+            question=prompt.split("\nQUESTION: ",1)[1]
+            self.assertIn(question,correct)
+            is_full="[noise0]" in prompt
+            calls.append((question,"full" if is_full else "selected"))
+            return {"answer":correct[question],
+                    "prompt_tokens":620 if is_full else 70,
+                    "latency_seconds":1.5 if is_full else .5}
+        receipt=studio.context_ablation_probe(model)
+        self.assertEqual(receipt["task_count"],4)
+        self.assertEqual(receipt["model_calls"],8)
+        self.assertEqual(receipt["full_correct"],4)
+        self.assertEqual(receipt["selected_correct"],4)
+        self.assertEqual(receipt["regressed_count"],0)
+        self.assertTrue(receipt["pilot_gate_met"])
+        self.assertLess(receipt["selected_prompt_bytes"],receipt["full_prompt_bytes"])
+        self.assertGreater(receipt["prompt_token_savings_fraction"],.2)
+        self.assertFalse(receipt["registry_router_integration_tested"])
+        self.assertFalse(receipt["production_qualified"])
+        self.assertFalse(receipt["model_quality_improvement_established"])
+        self.assertEqual([z[1] for z in calls],
+                         ["full","selected","selected","full",
+                          "full","selected","selected","full"])
+
+    def test_context_selection_regression_must_fail_pilot_gate(self):
+        calls=[]
+        expected={x[1]:x[2] for x in studio.CONTEXT_CASES}
+        def model(prompt,*,with_usage=False):
+            question=prompt.split("\nQUESTION: ",1)[1]
+            selected="[noise0]" not in prompt
+            answer=("wrong" if selected and question==studio.CONTEXT_CASES[1][1]
+                    else expected[question])
+            calls.append(prompt)
+            return {"answer":answer,"prompt_tokens":62 if selected else 650,
+                    "latency_seconds":.04}
+        receipt=studio.context_ablation_probe(model)
+        self.assertEqual(receipt["regressed_count"],1)
+        self.assertEqual(receipt["full_correct"],4)
+        self.assertEqual(receipt["selected_correct"],3)
+        self.assertFalse(receipt["pilot_gate_met"])
+        self.assertEqual(len(calls),8)
+
+    def test_context_usage_transport_requires_int_tokens_and_bounded_answers(self):
+        def invalid_usage(prompt,*,with_usage=False):
+            return {"answer":"42","prompt_tokens":True,"latency_seconds":.02}
+        with self.assertRaises(RuntimeError):
+            studio.context_ablation_probe(invalid_usage)
+        def no_usage(prompt,*,with_usage=False):
+            return {"answer":"42","prompt_tokens":None,"latency_seconds":.02}
+        report=studio.context_ablation_probe(no_usage)
+        self.assertIsNone(report["prompt_token_savings_fraction"])
+        self.assertFalse(report["pilot_gate_met"])
+        with self.assertRaises(RuntimeError):
+            studio.context_ablation_probe(lambda prompt,**kw:{"answer":"",
+                "prompt_tokens":1,"latency_seconds":.05})
+
+    def test_local_model_usage_receipt_is_from_response_not_mock_metric(self):
+        reply=FakeConnection(200,b'{"choices":[{"message":{"content":"16"}}],"usage":{"prompt_tokens":102,"completion_tokens":5}}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=reply):
+            result=studio.query_packaged_model("Test a model usage response",with_usage=True)
+        self.assertEqual(result["answer"],"16")
+        self.assertEqual(result["prompt_tokens"],102)
+        self.assertGreaterEqual(result["latency_seconds"],0)
+        no_stats=FakeConnection(200,b'{"choices":[{"message":{"content":"16"}}]}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=no_stats):
+            result=studio.query_packaged_model("Test missing usage",with_usage=True)
+        self.assertIsNone(result["prompt_tokens"])
+        with self.assertRaises(RuntimeError):
+            studio.query_packaged_model("Test",with_usage="yes")
+
     def test_report_identity_never_claims_production(self):
         self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
         self.assertEqual(studio.PORT,18793)
