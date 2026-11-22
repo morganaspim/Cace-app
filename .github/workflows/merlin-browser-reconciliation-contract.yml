@@ -1,0 +1,57 @@
+name: Merlin browser reconciliation contract (non-deploying)
+
+"on":
+  push:
+    branches:
+      - fix/merlin-browser-reconciliation-preflight-20261122
+    paths:
+      - ops/merlin_browser/reconcile_orphan_socket.py
+      - ops/merlin_browser/test_reconcile_orphan_socket.py
+      - .github/workflows/merlin-browser-reconciliation-contract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-browser-reconciliation-contract-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  read-only-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Read source at exact triggering commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          clean: true
+          fetch-depth: 1
+      - name: Check no-hardware, no-privilege contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version | tee runtime-version.txt
+          git rev-parse HEAD | tee source-commit.txt
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B -m compileall -q \
+            ops/merlin_browser/reconcile_orphan_socket.py \
+            ops/merlin_browser/test_reconcile_orphan_socket.py
+          python3 -B -m unittest discover -s ops/merlin_browser \
+            -p 'test_reconcile_orphan_socket.py' -v 2>&1 | tee contract-tests.log
+          sha256sum ops/merlin_browser/reconcile_orphan_socket.py \
+            ops/merlin_browser/test_reconcile_orphan_socket.py \
+            > source-digests.txt
+      - name: Preserve exact test and source evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-browser-reconcile-${{ github.run_id }}
+          path: |
+            runtime-version.txt
+            source-commit.txt
+            contract-tests.log
+            source-digests.txt
+          retention-days: 14
+          if-no-files-found: warn
