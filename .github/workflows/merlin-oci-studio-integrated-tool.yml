@@ -167,13 +167,13 @@ jobs:
               members=namespace['validate_bundle'](pins,zip_bytes)
               require(len(members)==36,'native Studio source-member count differs')
               namespace['extract_bundle'](members,product)
-              overlay_commit='612e7a51b615bd59c85f56c8837b69ad9f1c73e3'
+              overlay_commit='c4d84841e6b48f1872acdd2f61a403726b534b11'
               overlays={
                  'portable/merlin_studio/tools.py':{'bytes':16271,'blob':'c4da3b66b54c5903be6ddd96c49eea419641497a'},
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
                  'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
                  'portable/merlin_studio/model.py':{'bytes':15458,'blob':'f71d8cc044e54ce06fd81b8d8660f574ce7f0eb7'},
-                 'portable/merlin_studio/engine.py':{'bytes':21105,'blob':'327eb0bcf04dd8d78b458f1f6b4179607eed400f'},
+                 'portable/merlin_studio/engine.py':{'bytes':21291,'blob':'94a62ed208a61be7745b3d8f960eef2dc87cd2bc'},
                  'portable/merlin_studio/web/index.html':{'bytes':75508,'blob':'960e61939b5cd91c8f388251d0c9656a86677441'},
                  'portable/merlin_studio/browser_bridge.py':{'bytes':14311,'blob':'8cccfc2063c38300fef834eeae9ed10436ce1dd6'}}
               for path,pin in overlays.items():
