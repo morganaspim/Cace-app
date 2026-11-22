@@ -35,13 +35,16 @@ jobs:
           python3 -I -B - <<'PY'
           import json
           with open("private-route-result.json") as f: d=json.load(f)
-          assert d["schema"]=="merlin-oci-private-route-probe/1"
-          assert d["host_mutations"]==0 and d["no_network_access"] is True
-          assert d["namespace_separate"] is True
-          assert len(d["observations"])==2
-          assert all(x["only_loopback_interfaces"] is True
-                     and x["inside_private_uid1000"] is True
-                     and x["nonlo_rows"] == 0 for x in d["observations"])
+          assert d["schema"]=="merlin-oci-private-route-mapping-comparison/1"
+          assert d["status"]=="observed_unqualified"
+          assert d["host_mutations"]==0 and d["production_qualified"] is False
+          assert {m["mapping"] for m in d["modes"]} == {"same-uid","namespace-root"}
+          assert all(x["private_netns"] is True
+                     and x["uid_map_is_host_uid1000"] is True
+                     and x["only_loopback_interfaces"] is True
+                     and x["nonlo_rows"] == 0
+                     and x["no_host_route_values_collected"] is True
+                     for x in d["observations"])
           PY
       - name: Retain metadata only, never host route addresses
         if: always()
