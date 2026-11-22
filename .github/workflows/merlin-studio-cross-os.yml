@@ -58,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [macos-latest]  # Windows already accepted at run 45040585932; investigate Mac only
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -83,9 +83,9 @@ jobs:
           set -euo pipefail
           git clone --no-checkout https://github.com/Mannyspiro/expert-robot.git merlin-cross-smoke
           cd merlin-cross-smoke
-          git fetch origin 205a3354e073380dca8d2261debbcf972db06d90
-          git checkout --detach 205a3354e073380dca8d2261debbcf972db06d90
-          test "$(git rev-parse HEAD)" = "205a3354e073380dca8d2261debbcf972db06d90"
+          git fetch origin 57fe435e7806b01c177c4d50ed3b1182dacb9fe0
+          git checkout --detach 57fe435e7806b01c177c4d50ed3b1182dacb9fe0
+          test "$(git rev-parse HEAD)" = "57fe435e7806b01c177c4d50ed3b1182dacb9fe0"
           python -B scripts/merlin_portable_cross_os_smoke.py --package "$MERLIN_PACKAGE" --source-sha c5b029956ded7594485bcbe1772294676cbb1322 --output "$MERLIN_REPORT"
       - name: Retain typed result and negative evidence for each native OS
         if: always()
