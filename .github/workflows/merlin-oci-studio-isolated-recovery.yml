@@ -161,7 +161,8 @@ jobs:
                   cwd='/',env=env,capture_output=True,text=True,timeout=25)
               (ev/'netns-interface-regression-tests.txt').write_text(
                   case.stdout+case.stderr)
-              require(case.returncode==0,'six namespace-interface regressions failed')
+              if case.returncode!=0:
+                  raise RuntimeError('six namespace-interface regressions failed')
               # Three exact reviewed product deltas. The original 36-file
               # bundle remains intact until validated against its old pins.
               overlay=root/'product-overlays';overlay.mkdir(mode=0o700)
