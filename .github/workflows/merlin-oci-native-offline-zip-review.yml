@@ -53,16 +53,16 @@ jobs:
               return raw
           controller=fetch_exact(
               'ops/merlin_model_isolated/run_offline_native_bundle.py',
-              '06ab70a3845f8993fe029e8d39fdcb8bb7d8caba',
-              '9af917cb7d0d8fea42be8c64e19682c08febfbcb',27761)
+              'f99e300d8bae02301de376a4ad84aeca148633d8',
+              'd7c86b6ee4ea36f726275f8abf3b31bea833f092',28876)
           model_smoke=fetch_exact(
               'ops/merlin_model_isolated/run_packaged_model_from_zip.py',
               '579ea12703c588944f2dfe3bc1eeb04cf6956422',
               'fe5df839b8cab1d8ecdcc05f7b311f2cb575186b',20608)
           ui_smoke=fetch_exact(
               'ops/merlin_model_isolated/run_packaged_studio_smoke.py',
-              '9c1fa0f03b6a4d3118d08475399ad77a60b683f8',
-              '049d5707cc5c635835acb176278a91414a9138fc',15802)
+              '77a34aed4e92a807d2019d3fff5ae365441569e3',
+              'dfff7feaccfe329565e5f8d185e53696e031ba2d',24056)
           folder=pathlib.Path(os.environ['RUNNER_TEMP'])/(
               'merlin-private-zip-code-'+os.environ['GITHUB_RUN_ID'])
           folder.mkdir(mode=0o700,exist_ok=False)
