@@ -98,6 +98,7 @@ class PackagedModelContract(unittest.TestCase):
                     packaged.assess_model_reply(malformed)
 
     def test_no_default_route_and_loopback_only(self):
+        self.assertTrue(packaged.no_default_route("Iface Destination Gateway\n"))
         self.assertTrue(packaged.no_default_route("Iface Destination Gateway\nlo 00000000 00000000\n"))
         self.assertFalse(packaged.no_default_route("Iface Destination Gateway\neth0 00000000 01020304\n"))
         self.assertFalse(packaged.no_default_route(""))
