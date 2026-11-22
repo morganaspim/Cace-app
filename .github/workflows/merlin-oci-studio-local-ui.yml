@@ -127,8 +127,8 @@ jobs:
                   raise RuntimeError('browser controller encoding differs')
               runner_source=base64.b64decode(
                   ''.join(runner_item['content'].split()),validate=True)
-              runner_blob='5aa908a65619f0b8eaca753b3b4797f88f63638c'
-              if not (len(runner_source)==12024 and blob(runner_source)==runner_blob
+              runner_blob='44ce244f7de7d335053813a02b1b0e5da98331f1'
+              if not (len(runner_source)==12315 and blob(runner_source)==runner_blob
                       and runner_item.get('sha')==runner_blob):
                   raise RuntimeError('browser controller source identity differs')
               ast.parse(runner_source,feature_version=(3,9))
