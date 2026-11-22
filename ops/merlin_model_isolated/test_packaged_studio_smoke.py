@@ -83,6 +83,27 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertEqual(code,403)
         self.assertIn("error",response)
 
+    def test_private_setup_can_observe_empty_preloopback_routes_only(self):
+        self.assertFalse(studio.no_external_route(""))
+        self.assertTrue(studio.no_external_route("", before_loopback=True))
+        self.assertFalse(studio.no_external_route("", before_loopback=1))
+        self.assertFalse(studio.no_external_route(
+            "Iface Destination Gateway\\neth0 00000000 01010101\\n",
+            before_loopback=True))
+
+    def test_studio_mapping_root_is_only_host_uid1000(self):
+        self.assertTrue(studio.rootless_uid_mapping(0,["0","1000","1"]))
+        for uid,mapping in ((1000,["1000","1000","1"]),
+                            (0,["0","0","1"]),
+                            (0,["0","1000","2"]),
+                            (True,["0","1000","1"])):
+            with self.subTest(uid=uid,mapping=mapping):
+                self.assertFalse(studio.rootless_uid_mapping(uid,mapping))
+        cmd=studio.namespace_argv("/trusted/runner","/private/extract",
+                                  "/private/scratch","/private/evidence",123)
+        self.assertEqual(cmd[:4],["/usr/bin/unshare","--user","--map-root-user","--net"])
+        self.assertNotIn("--map-current-user",cmd)
+
     def test_ui_html_still_requires_actual_html_content_type(self):
         good=FakeConnection(200,b"<html>"+b"Merlin"*300+b"</html>","text/html")
         with patch.object(studio.http.client,"HTTPConnection",return_value=good):
