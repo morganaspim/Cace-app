@@ -226,11 +226,20 @@ def assemble(root, evidence, archive, details):
     llama_url = "https://raw.githubusercontent.com/ggml-org/llama.cpp/" + revision + "/LICENSE"
     llama_notice.write_bytes(public_license(
         llama_url, "raw.githubusercontent.com", "MIT License"))
-    original_python_license = root_python / "LICENSE.txt"
-    require(original_python_license.is_file() and not original_python_license.is_symlink()
-            and 150 <= original_python_license.stat().st_size <= 131072,
-            "standalone Python license receipt unavailable")
+    # python-build-standalone places the CPython license inside lib/python3.11
+    # in the pinned extraction, rather than at the extracted runtime root.
+    # Reject missing, symlinked, duplicate, or out-of-root notices.
+    candidates = (root_python / "LICENSE.txt",
+                  root_python / "lib/python3.11/LICENSE.txt")
+    eligible = [path for path in candidates
+                if path.is_file() and not path.is_symlink()
+                and path.resolve(strict=True).is_relative_to(root_python.resolve(strict=True))
+                and 150 <= path.stat().st_size <= 131072]
+    require(len(eligible) == 1,
+            "expected exactly one safe standalone Python license receipt")
+    original_python_license = eligible[0]
     shutil.copyfile(original_python_license, py_notice)
+    details["python_license_path_in_runtime"] = original_python_license.relative_to(root_python).as_posix()
     details["license_receipts"] = {
         "model": {"source": qwen_url, "sha256": hashlib.sha256(qwen_notice.read_bytes()).hexdigest()},
         "inference": {"source": llama_url, "sha256": hashlib.sha256(llama_notice.read_bytes()).hexdigest()},
