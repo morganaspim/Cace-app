@@ -75,6 +75,20 @@ def content_from_repo(owner, path, commit, size, blob, digest):
     return body
 
 
+def streaming_sha256(path, *, maximum=16 * 1024**3):
+    n = 0
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        while True:
+            block = stream.read(4 * 1024 * 1024)
+            if not block:
+                break
+            n += len(block)
+            require(n <= maximum, "archive digest exceeded configured byte budget")
+            digest.update(block)
+    return digest.hexdigest(), n
+
+
 def local_hash(path, size, sha):
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_uid == 0
@@ -246,8 +260,8 @@ def assemble(root, evidence, archive, details):
             and verification["target_platform"] == "linux-aarch64"
             and verification["production_qualified"] is False,
             "complete native package integrity differs")
-    details["complete_package_sha256"] = hashlib.sha256(bundle.read_bytes()).hexdigest()
-    details["complete_package_size"] = bundle.stat().st_size
+    details["complete_package_sha256"], details["complete_package_size"] = (
+        streaming_sha256(bundle))
     details["manifest_files_verified"] = verification["files_checked"]
     details["package_integrity_passed"] = True
     # Use the separately verified safe extractor to preserve all POSIX links.
