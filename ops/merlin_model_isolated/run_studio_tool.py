@@ -140,11 +140,13 @@ def test(ev, product, scratch, parent, python):
                     "model_id": base.ALIAS, "network_enabled": False,
                     "python_enabled": False, "desktop_enabled": False,
                     "max_steps": 3, "max_output_tokens": OUTPUT_TOKENS,
-                    "model_timeout_seconds": MODEL_TIMEOUT}
+                    "model_timeout_seconds": MODEL_TIMEOUT,
+                    "tool_compatibility": "read_only_json"}
         code, saved = studio_api.request("POST", "/api/settings", token, settings)
         base.require(code == 200 and saved.get("settings", {}).get("max_steps") == 3
                      and saved["settings"].get("max_output_tokens") == OUTPUT_TOKENS
-                     and saved["settings"].get("model_timeout_seconds") == MODEL_TIMEOUT,
+                     and saved["settings"].get("model_timeout_seconds") == MODEL_TIMEOUT
+                     and saved["settings"].get("tool_compatibility") == "read_only_json",
                      "bounded local tool inference settings differed")
         code, stable = studio_api.request("GET", "/api/status")
         base.require(code == 200 and all(
@@ -184,6 +186,12 @@ def test(ev, product, scratch, parent, python):
         if run is not None:
             result["last_run_status"] = str(run.get("status", ""))[:40]
             result["last_run_error"] = str(run.get("error", ""))[:180]
+            result["compatibility_adapter_events"] = [
+                {"type": event.get("type"), "tool": event.get("tool"),
+                 "mode": event.get("mode")}
+                for event in run.get("events", [])
+                if isinstance(event, dict) and event.get("type") == "model_tool_adapter"
+            ][:3]
             result["model_request_events"] = sum(
                 event.get("type") == "model_request"
                 for event in run.get("events", []) if isinstance(event, dict))
@@ -205,6 +213,9 @@ def test(ev, product, scratch, parent, python):
         # Failure diagnosis only: preserve a bounded, marker-redacted model
         # excerpt without publishing scratch workspace data or auth tokens.
         result["assistant_preview_redacted"] = answer.replace(marker, "[marker-redacted]")[:180]
+        # The adapter event is an audit receipt, not a substituted tool execution.
+        # The independent verifier still requires real tool_started/tool_result
+        # events bound to the file digest and returned private marker.
         proof = assess(run.get("events", []), expected_path=NAME,
                        fixture_sha256=digest, marker=marker, answer=answer)
         base.require(fixture.is_file() and not fixture.is_symlink()
