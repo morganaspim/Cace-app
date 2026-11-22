@@ -189,6 +189,9 @@ def test(ev, product, scratch, parent, python):
                     actual=messages[-1] if messages else None
                     break
                 time.sleep(.25)
+            if run is not None:
+                result["last_run_status"] = str(run.get("status", ""))[:40]
+                result["last_run_error"] = str(run.get("error", ""))[:180]
             base.require(run is not None and run.get("status")=="completed",
                          "Studio real model generation did not complete")
             base.require(actual and actual.get("role")=="assistant"
