@@ -121,6 +121,10 @@ jobs:
                   (validation/name).chmod(0o600)
               # Both namespace setup and application test are exact pinned scripts.
               ns_scripts={
+                # Exact original module is retained for the six unchanged
+                # regression tests; the GUI derivative has its own pin.
+                'connected_browser_offline_recovery_isolated.py':{
+                    'bytes':21310,'blob':'a461e52fb5a0032278a9589aa1589d0eba6e137a'},
                 'connected_browser_offline_recovery_gui.py':{
                     'bytes':24312,'blob':'9c742fc510494f69a936b3d369ea83b8b63d7d29'},
                 'studio_cdp_gui.py':{
