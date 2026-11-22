@@ -42,6 +42,22 @@ class PackagedModelContract(unittest.TestCase):
         params.update(kwargs)
         return packaged.verify_packaged_assets(**params)
 
+    def test_child_diagnostic_accepts_only_typed_bounded_failure(self):
+        import json
+        event={"status":"blocked","error_type":"RuntimeError",
+               "reason":"new network namespace UID mapping differs",
+               "production_qualified":False}
+        raw=(json.dumps(event)+"\\n").encode()
+        text=packaged.failure_diagnostic(raw)
+        self.assertIn("RuntimeError",text)
+        self.assertIn("UID mapping",text)
+        for invalid in (b"",b"secret token text",b"x"*4200,
+                        b'{"status":"passed","reason":"ok"}',
+                        b'{"status":"blocked","error_type":"ValueError","reason":"a","reason":"b","production_qualified":false}'):
+            with self.subTest(invalid=invalid[:35]):
+                self.assertEqual(packaged.failure_diagnostic(invalid),
+                                 "no typed child failure evidence")
+
     def test_exact_packed_binary_and_model_members(self):
         report = self.check()
         self.assertEqual(report["binary"]["sha256"],self.binary_sha)
