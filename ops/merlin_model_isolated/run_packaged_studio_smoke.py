@@ -344,7 +344,9 @@ def context_ablation_probe(transport):
         "selected_prompt_bytes":sum(row["selected"]["prompt_bytes"] for row in results),
         "full_wall_seconds":round(sum(row["full"]["latency_seconds"] for row in results),3),
         "selected_wall_seconds":round(sum(row["selected"]["latency_seconds"] for row in results),3),
-        "pilot_gate_met":(regressions==0 and token_saving is not None
+        "pilot_gate_met":(regressions==0
+                          and revised_correct==len(CONTEXT_CASES)
+                          and token_saving is not None
                           and token_saving>=.20),
         "production_qualified":False,"model_weights_updated":False,
         "model_quality_improvement_established":False,
