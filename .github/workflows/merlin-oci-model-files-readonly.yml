@@ -1,0 +1,179 @@
+name: Merlin OCI read-only nonroot model file feasibility
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-model-files-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  inspect-candidate:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 4
+    steps:
+      - name: Observe existing model file access under UID1000 without reading model bytes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,datetime,hashlib,json,os,platform,re,stat,urllib.request,uuid
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app'
+              or os.environ.get('GITHUB_REF')!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run_id<=0 or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed nonroot host identity unavailable')
+          dest=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-model-files-%d-%d'%(run_id,attempt))
+          dest.mkdir(mode=0o700,exist_ok=False)
+          def require(ok,why):
+              if not ok: raise RuntimeError(why)
+          def unique(pairs):
+              d={}
+              for k,v in pairs:
+                  if k in d: raise ValueError('duplicate JSON key')
+                  d[k]=v
+              return d
+          def api(part):
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+part,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                         'Accept':'application/vnd.github+json',
+                         'User-Agent':'Merlin-fixed-readonly-model-visibility'})
+              with urllib.request.urlopen(request,timeout=15) as response:
+                  b=response.read(1024*1024+1)
+              require(len(b)<=1024*1024,'bounded GitHub response exceeded')
+              return json.loads(b,object_pairs_hook=unique)
+          def git_blob(data):
+              return hashlib.sha1(('blob %d\0'%len(data)).encode()+data).hexdigest()
+          def report_file(path,limit):
+              observed={'visible':False,'regular':False,'openable':False,
+                        'owned_by_host_root':False,'writable_by_others':False,
+                        'size_bytes':None,'errno':None}
+              try:
+                  info=os.lstat(path)
+                  observed.update(visible=True,regular=stat.S_ISREG(info.st_mode),
+                     owned_by_host_root=(info.st_uid==0),
+                     writable_by_others=bool(stat.S_IMODE(info.st_mode)&0o022),
+                     size_bytes=info.st_size)
+                  if (not stat.S_ISREG(info.st_mode) or info.st_size<0
+                      or info.st_size>limit or info.st_uid!=0):
+                      return observed
+                  try:
+                      fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|getattr(os,'O_NONBLOCK',0))
+                      try:
+                          fresh=os.fstat(fd)
+                          observed['openable']=(stat.S_ISREG(fresh.st_mode)
+                              and fresh.st_dev==info.st_dev and fresh.st_ino==info.st_ino
+                              and fresh.st_size==info.st_size)
+                      finally:
+                          os.close(fd)
+                  except OSError as e: observed['errno']=e.errno
+              except OSError as e: observed['errno']=e.errno
+              return observed
+          result={'schema':'merlin-oci-nonroot-model-visibility/1',
+              'status':'blocked','unprivileged_uid':os.geteuid(),
+              'model_inference_calls':0,'root_execution':False,
+              'model_binary_executed':False,'model_bytes_read':0,
+              'file_permissions_modified':False,'services_modified':False,
+              'packages_installed':False,'production_qualified':False}
+          try:
+              changed=api('commits/'+commit).get('files',[])
+              require(len(changed)==1 and changed[0].get('status')=='added',
+                      'one additive request required')
+              path=changed[0].get('filename','')
+              require(re.fullmatch(r'merlin/oci-model-files-requests/[0-9a-f-]{36}\.json',path),
+                      'request namespace differs')
+              item=api('contents/'+path+'?ref='+commit)
+              require(item.get('encoding')=='base64','fixed request encoding differs')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)<=4096 and item.get('sha')==git_blob(raw),
+                      'request bytes differ from Git blob')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                  and request['schema']=='merlin-oci-model-files-request/1'
+                  and request['operation']=='inspect-nonroot-model-files-only'
+                  and path=='merlin/oci-model-files-requests/'+request['request_id']+'.json'
+                  and str(uuid.UUID(request['request_id']))==request['request_id'],
+                  'invalid typed visibility request')
+              (dest/'request.json').write_bytes(raw)
+              manifest_path='/etc/merlin-model-provider/manifest.json'
+              m=report_file(manifest_path,16384)
+              result['manifest_metadata']=m
+              if not m['openable'] or m['writable_by_others']:
+                  result['status']='blocked_manifest_access'
+              else:
+                  # The installed root-owned manifest is small public model
+                  # metadata, not a provider process attestation or secret.
+                  fd=os.open(manifest_path,os.O_RDONLY|os.O_NOFOLLOW)
+                  try: raw_manifest=os.read(fd,16385)
+                  finally: os.close(fd)
+                  require(len(raw_manifest)<=16384,'manifest byte limit')
+                  data=json.loads(raw_manifest,object_pairs_hook=unique)
+                  model=data.get('model_artifact',{})
+                  runtime=data.get('runtime',{})
+                  expected=(data.get('schema')=='merlin-local-model-provider/1'
+                    and data.get('status')=='ready'
+                    and data.get('model')=='merlin-qwen-coder-1.5b-q4'
+                    and model.get('sha256')=='cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046'
+                    and model.get('size_bytes')==1117320768
+                    and model.get('repository_revision')=='f86cb2c1fa58255f8052cc32aeede1b7482d4361'
+                    and runtime.get('source_commit')=='2a4daf0e08d6a9b6993ee0d4a9a3cfc35a6f405c'
+                    and data.get('qualification') is False)
+                  result['manifest_expected_source_pins']=bool(expected)
+                  result['manifest_sha256']=hashlib.sha256(raw_manifest).hexdigest()
+                  root='/opt/merlin-model-provider/releases/'
+                  model_path=model.get('path')
+                  binary_path=runtime.get('binary_path')
+                  valid_paths=(isinstance(model_path,str) and isinstance(binary_path,str)
+                    and model_path.startswith(root) and binary_path.startswith(root)
+                    and model_path.endswith('/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf')
+                    and binary_path.endswith('/llama-server')
+                    and Path(binary_path).parent==Path(model_path).parent
+                    and re.fullmatch(r'[0-9a-f]{64}',Path(model_path).parent.name))
+                  result['release_path_identity_valid']=bool(valid_paths)
+                  if expected and valid_paths:
+                      binary=report_file(binary_path,256*1024*1024)
+                      model_info=report_file(model_path,1117320768)
+                      result['binary_metadata']=binary
+                      result['model_metadata']=model_info
+                      candidate=(binary['regular'] and binary['openable']
+                        and not binary['writable_by_others']
+                        and model_info['regular'] and model_info['openable']
+                        and model_info['size_bytes']==1117320768
+                        and not model_info['writable_by_others']
+                        and os.access(binary_path,os.X_OK))
+                      result['candidate_readable_unprivileged']=bool(candidate)
+                      result['status']='candidate_readable_not_hashed_or_launched' if candidate else 'blocked_file_access'
+                  else: result['status']='blocked_manifest_identity'
+          except BaseException as exc:
+              result['status']='blocked_or_invalid_source'
+              result['error_type']=type(exc).__name__
+              (dest/'error.json').write_text(json.dumps({'error_type':type(exc).__name__,
+                  'message':str(exc)[:250]},sort_keys=True))
+              raise
+          finally:
+              (dest/'visibility-result.json').write_text(json.dumps(result,sort_keys=True,indent=2))
+              print(json.dumps({'schema':result['schema'],'status':result['status'],
+                'candidate_readable_unprivileged':result.get('candidate_readable_unprivileged',False),
+                'model_inference_calls':0,'model_bytes_read':0,
+                'root_execution':False,'production_qualified':False},sort_keys=True))
+          PY
+      - name: Retain bounded read-only model file visibility
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-model-files-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-model-files-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn
