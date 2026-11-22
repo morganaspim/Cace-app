@@ -88,7 +88,7 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertTrue(studio.no_external_route("", before_loopback=True))
         self.assertFalse(studio.no_external_route("", before_loopback=1))
         self.assertFalse(studio.no_external_route(
-            "Iface Destination Gateway\\neth0 00000000 01010101\\n",
+            "Iface Destination Gateway\neth0 00000000 01010101\n",
             before_loopback=True))
 
     def test_studio_mapping_root_is_only_host_uid1000(self):
