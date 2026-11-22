@@ -47,7 +47,7 @@ class PackagedModelContract(unittest.TestCase):
         event={"status":"blocked","error_type":"RuntimeError",
                "reason":"new network namespace UID mapping differs",
                "production_qualified":False}
-        raw=(json.dumps(event)+"\\n").encode()
+        raw=(json.dumps(event)+"\n").encode()
         text=packaged.failure_diagnostic(raw)
         self.assertIn("RuntimeError",text)
         self.assertIn("UID mapping",text)
