@@ -26,7 +26,7 @@ import run_studio_model as studio_api
 from studio_tool_contract import assess, ToolEvidenceError
 
 NAME = "field_notes.txt"
-OUTPUT_TOKENS = 192
+OUTPUT_TOKENS = 96
 MODEL_TIMEOUT = 120
 PROMPT = (
     "You must use the read_file function/tool with argument path=field_notes.txt "
