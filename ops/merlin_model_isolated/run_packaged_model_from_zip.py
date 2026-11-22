@@ -194,6 +194,14 @@ def assess_model_reply(message):
     }
 
 
+def require_reference_correct(report):
+    """A transport success alone cannot pass the independent 6*7 reference."""
+    if not isinstance(report, dict) or report.get("model_inference_executed") is not True:
+        raise ValueError("independent arithmetic reference: real model output not observed")
+    if report.get("answer_exact_42") is not True:
+        raise ValueError("independent arithmetic reference: model answer not exact 42")
+    return True
+
 def _request(method, path, body=None, *, seconds):
     if (method,path) not in {
         ("GET","/health"),("GET","/v1/models"),
@@ -338,6 +346,7 @@ def _run(root, scratch, parent):
         answer=_request("POST","/v1/chat/completions",body,seconds=95)
         measured=assess_model_reply(answer)
         state.update(measured)
+        require_reference_correct(measured)
         state.update(status="private_extracted_model_transport_passed",
                      packaged_model_ready=True,
                      model_provider_independent=True,
