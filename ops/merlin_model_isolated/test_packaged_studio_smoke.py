@@ -124,6 +124,10 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertIn("data_dir='/tmp/isolated-state'",script)
         self.assertNotIn("PosixPath(",script)
         self.assertNotIn("WindowsPath(",script)
+        self.assertIn("network_enabled':False",script)
+        self.assertIn("python_enabled':False",script)
+        self.assertIn("desktop_enabled':False",script)
+        self.assertIn("browser_enabled':False",script)
         compile(script,"<packaged-studio-bootstrap>","exec")
 
     def test_report_identity_never_claims_production(self):
