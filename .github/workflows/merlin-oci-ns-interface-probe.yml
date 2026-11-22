@@ -1,0 +1,94 @@
+name: Merlin OCI rootless namespace interface-state diagnostic
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-ns-interface-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 4
+    steps:
+      - name: Probe disposable net namespace, loopback and capability drop
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,datetime,hashlib,json,os,platform,re,subprocess,urllib.request,uuid
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          assert repo=='morganaspim/Cace-app' and os.environ['GITHUB_REF']=='refs/heads/merlin/browser-operations-20261121'
+          assert os.geteuid()==1000 and platform.machine()=='aarch64'
+          assert os.environ.get('RUNNER_NAME')=='cace-oci-a1' and int(os.environ['GITHUB_RUN_ATTEMPT'])==1
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-ns-interface-probe-'+os.environ['GITHUB_RUN_ID'])
+          root.mkdir(mode=0o700,exist_ok=False)
+          def api(suffix):
+           req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+suffix,headers={
+            'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json'})
+           with urllib.request.urlopen(req,timeout=15) as f:raw=f.read(2*1024*1024+1)
+           if len(raw)>2*1024*1024:raise RuntimeError('API response ceiling')
+           return json.loads(raw)
+          changed=api('commits/'+commit)['files']
+          if len(changed)!=1 or changed[0]['status']!='added':raise RuntimeError('single additive probe request required')
+          path=changed[0]['filename']
+          match=re.fullmatch(r'merlin/oci-ns-interface-requests/([0-9a-f-]{36})\.json',path)
+          if not match:raise RuntimeError('wrong namespace request path')
+          item=api('contents/'+path+'?ref='+commit)
+          raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+          request=json.loads(raw)
+          if len(raw)>4096 or set(request)!={'schema','request_id','operation','created_at'}:
+           raise RuntimeError('request identity differs')
+          if request['schema']!='merlin-oci-ns-interface-request/1' or request['operation']!='probe-rootless-netns-interface-states':
+           raise RuntimeError('unexpected request scope')
+          if request['request_id']!=match.group(1) or str(uuid.UUID(request['request_id']))!=request['request_id']:
+           raise RuntimeError('request id differs')
+          (out,err)=subprocess.run(['/usr/bin/unshare','--help'],capture_output=True,timeout=5).stdout,None
+          supports=b'--keep-caps' in out
+          parent_inode=os.stat('/proc/self/ns/net').st_ino
+          data={'schema':'merlin-oci-ns-interface-probe/1','parent_euid':os.geteuid(),
+           'parent_netns_inode':parent_inode,'unshare_keep_caps_supported':supports,
+           'kernel_network_isolation_qualified':False,'model_calls':0,'system_installation':False,
+           'host_network_mutations':False}
+          if supports:
+           child="import fcntl,json,os,socket,stat,struct,subprocess\nfrom pathlib import Path\nout={'phase':'rootless_user_net_namespace','uid':os.geteuid(),'net_namespace_inode':os.stat('/proc/self/ns/net').st_ino,\n'uid_map':Path('/proc/self/uid_map').read_text().strip(),'host_network_mutation':False,'model_calls':0}\nhost_inode=int(os.environ['MERLIN_PARENT_NETNS_INODE'])\nout['netns_distinct']=out['net_namespace_inode']!=host_inode\nout['interfaces']=sorted(os.listdir('/sys/class/net'))\nout['interface_state']={}\nwith socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as read_sock:\n for iface in out['interfaces']:\n  req=struct.pack('16sH14s',iface.encode(),0,b'')\n  name,flagsp,pad=struct.unpack('16sH14s',fcntl.ioctl(read_sock.fileno(),0x8913,req))\n  out['interface_state'][iface]={'up':bool(flagsp&1),'flags':flagsp}\nstatus=Path('/proc/self/status').read_text()\nout['initial_cap_effective_hex']=next((x.split(':',1)[1].strip() for x in status.splitlines() if x.startswith('CapEff:')),'unknown')\nif not out['netns_distinct'] or os.geteuid()!=1000:\n out['status']='namespace_identity_rejected'\nelse:\n try:\n  with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sk:\n   request=struct.pack('16sH14s',b'lo',0,b'')\n   name,flags,pad=struct.unpack('16sH14s',fcntl.ioctl(sk.fileno(),0x8913,request))\n   if name.rstrip(b'\\0')!=b'lo':raise RuntimeError('unexpected loopback interface')\n   if not flags&1:fcntl.ioctl(sk.fileno(),0x8914,struct.pack('16sH14s',b'lo',flags|1,pad))\n   _,after,_=struct.unpack('16sH14s',fcntl.ioctl(sk.fileno(),0x8913,request))\n  out['loopback_up']=bool(after&1)\n  if not out['loopback_up']:raise RuntimeError('loopback not UP')\n  with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as srv:\n   srv.bind(('127.0.0.1',0));srv.listen(1);srv.settimeout(2)\n   with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as cli:\n    cli.settimeout(2);cli.connect(srv.getsockname());cli.sendall(b'K')\n    a,_=srv.accept()\n    with a:out['capable_loopback_roundtrip']=a.recv(1)==b'K'\n  if not out.get('capable_loopback_roundtrip'):raise RuntimeError('socket check failed')\n  out['setpriv_exists']=os.path.isfile('/usr/bin/setpriv')\n  if out['setpriv_exists']:\n   follow=\"import json,os,socket\\ns=open('/proc/self/status').read()\\ncaps=next((x.split(':',1)[1].strip() for x in s.splitlines() if x.startswith('CapEff:')),'unknown')\\nout={'uid':os.geteuid(),'cap_effective_hex':caps,'no_effective_capabilities':caps=='0000000000000000'}\\ntry:\\n with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as srv:\\n  srv.bind(('127.0.0.1',0));srv.listen(1);srv.settimeout(2)\\n  with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as cli:\\n   cli.settimeout(2);cli.connect(srv.getsockname())\\n   cli.sendall(b'R');a,_=srv.accept()\\n   with a:out['loopback_roundtrip']=(a.recv(1)==b'R')\\nexcept OSError as e:\\n out.update(loopback_roundtrip=False,errno=e.errno)\\nprint(json.dumps(out,sort_keys=True))\\n\"\n   args=['/usr/bin/setpriv','--no-new-privs','--bounding-set=-all',\n         '--inh-caps=-all','/usr/bin/python3','-I','-B','-c',follow]\n   done=subprocess.run(args,capture_output=True,timeout=8,env={\n    'PATH':'/usr/bin:/bin','LANG':'C','HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'})\n   out['dropped_child_rc']=done.returncode\n   out['dropped_child_stderr_type']='nonempty' if done.stderr else 'empty'\n   if done.returncode==0 and len(done.stdout)<4096:\n    out['dropped_child']=json.loads(done.stdout)\n  out['status']='namespace_private_loopback_measured'\n except Exception as e:\n  out['status']='namespace_private_loopback_blocked'\n  out['error_type']=type(e).__name__\n  out['errno']=getattr(e,'errno',None)\nprint(json.dumps(out,sort_keys=True))\n"
+           env={'MERLIN_PARENT_NETNS_INODE':str(parent_inode),'PATH':'/usr/bin:/bin',
+                'LANG':'C','HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'}
+           command=['/usr/bin/unshare','--user','--map-current-user','--net',
+                    '--fork','--keep-caps','/usr/bin/python3','-I','-B','-c',child]
+           run=subprocess.run(command,capture_output=True,timeout=25,env=env)
+           data['child_rc']=run.returncode
+           data['child_stdout_bytes']=len(run.stdout)
+           data['child_stderr_bytes']=len(run.stderr)
+           if run.returncode==0 and len(run.stdout)<8192:
+            data['measurement']=json.loads(run.stdout)
+           else:
+            data['child_failure']='nonzero or overlong output'
+           (root/'child-stderr.txt').write_bytes(run.stderr[:8192])
+           data['constrained_browser_eligible']=bool(data.get('measurement',{}).get('loopback_up') and
+             data['measurement'].get('capable_loopback_roundtrip') and
+             data['measurement'].get('dropped_child',{}).get('no_effective_capabilities') and
+             data['measurement'].get('dropped_child',{}).get('loopback_roundtrip'))
+          else:
+           data['child_failure']='unshare version lacks --keep-caps'
+          (root/'result.json').write_text(json.dumps(data,sort_keys=True,indent=2))
+          print(json.dumps(data,sort_keys=True))
+          
+          PY
+      - name: Preserve attempted and rejected measurements
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-ns-interface-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-ns-interface-probe-${{ github.run_id }}/
+          retention-days: 30
+          if-no-files-found: warn
