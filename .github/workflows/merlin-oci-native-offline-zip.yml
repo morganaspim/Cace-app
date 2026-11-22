@@ -1,0 +1,91 @@
+name: Merlin OCI private complete ARM64 ZIP technical acceptance (no model artifact)
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-native-offline-bundle-requests/**"]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  offline-zip-technical-only:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 25
+    steps:
+      - name: Retrieve verified CPython archive without host installation
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14748604091
+          run-id: 45009078432
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/merlin-native-offline-python-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Admit exact source-pinned private model ZIP controller and run
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,hashlib,json,os,pathlib,subprocess,sys,urllib.request
+          repo='morganaspim/Cace-app'
+          sha='a00ad92d487eea3e928a0c21c9531785fbdb3cac'
+          expected_blob='34db4b89d28f0580a39dc57074e9f17a7a299d4a'
+          expected_bytes=14752
+          relative='ops/merlin_model_isolated/run_offline_native_bundle.py'
+          req=urllib.request.Request(
+             'https://api.github.com/repos/'+repo+'/contents/'+relative+'?ref='+sha,
+             headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                      'User-Agent':'Merlin-offline-bundle-fixed-controller',
+                      'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(req,timeout=25) as reply:
+              payload=reply.read(131072)
+          source=json.loads(payload)
+          if source.get('encoding')!='base64':
+              raise SystemExit('controller encoding invalid')
+          raw=base64.b64decode(''.join(source['content'].split()),validate=True)
+          gitblob=hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          if len(raw)!=expected_bytes or gitblob!=expected_blob or source['sha']!=expected_blob:
+              raise SystemExit('controller bytes not exact source pins')
+          dst=pathlib.Path(os.environ['RUNNER_TEMP'])/(
+              'merlin-private-zip-controller-'+os.environ['GITHUB_RUN_ID']+'.py')
+          with dst.open('xb') as stream:
+              stream.write(raw)
+          try:
+              result=subprocess.run(
+                  ['/usr/bin/python3','-I','-B',str(dst)],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':os.environ['RUNNER_TEMP'],
+                               'RUNNER_TEMP':os.environ['RUNNER_TEMP'],
+                               'GITHUB_TOKEN':os.environ['GITHUB_TOKEN'],
+                               'GITHUB_SHA':os.environ['GITHUB_SHA'],
+                               'GITHUB_REPOSITORY':os.environ['GITHUB_REPOSITORY'],
+                               'GITHUB_REF':os.environ['GITHUB_REF'],
+                               'GITHUB_RUN_ID':os.environ['GITHUB_RUN_ID'],
+                               'GITHUB_RUN_ATTEMPT':os.environ['GITHUB_RUN_ATTEMPT'],
+                               'RUNNER_NAME':os.environ.get('RUNNER_NAME',''),
+                               'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=1350)
+              if len(result.stdout)>16384 or len(result.stderr)>16384:
+                  raise SystemExit('controller output bound exceeded')
+              sys.stdout.buffer.write(result.stdout)
+              sys.stderr.buffer.write(result.stderr)
+              if result.returncode:
+                  raise SystemExit(result.returncode)
+          finally:
+              dst.unlink(missing_ok=True)
+          PY
+      - name: Preserve only technical receipt, never model ZIP or original weights
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-private-offline-zip-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-native-offline-bundle-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          if-no-files-found: warn
+          retention-days: 10
