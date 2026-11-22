@@ -58,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]  # Windows already accepted at run 45040585932; investigate Mac only
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -69,8 +69,8 @@ jobs:
       - name: Retrieve previously reviewed exact ZIP by immutable artifact ID
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          artifact-ids: 14760704858
-          run-id: 45040029316
+          artifact-ids: 14760869330
+          run-id: 45041160946
           merge-multiple: true
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/merlin-universal-source
@@ -83,10 +83,10 @@ jobs:
           set -euo pipefail
           git clone --no-checkout https://github.com/Mannyspiro/expert-robot.git merlin-cross-smoke
           cd merlin-cross-smoke
-          git fetch origin 0d46fd71a1c1e22061d9a9e957b2ad197ec11582
-          git checkout --detach 0d46fd71a1c1e22061d9a9e957b2ad197ec11582
-          test "$(git rev-parse HEAD)" = "0d46fd71a1c1e22061d9a9e957b2ad197ec11582"
-          python -B scripts/merlin_portable_cross_os_smoke.py --package "$MERLIN_PACKAGE" --source-sha c5b029956ded7594485bcbe1772294676cbb1322 --output "$MERLIN_REPORT"
+          git fetch origin bc9da779dcdcd76bcffdd73e9f51cbb605233b9e
+          git checkout --detach bc9da779dcdcd76bcffdd73e9f51cbb605233b9e
+          test "$(git rev-parse HEAD)" = "bc9da779dcdcd76bcffdd73e9f51cbb605233b9e"
+          python -B scripts/merlin_portable_cross_os_smoke.py --package "$MERLIN_PACKAGE" --source-sha 2ff6d9fdcde7019ac670882c45f50faa7de392ce --output "$MERLIN_REPORT"
       - name: Retain typed result and negative evidence for each native OS
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
