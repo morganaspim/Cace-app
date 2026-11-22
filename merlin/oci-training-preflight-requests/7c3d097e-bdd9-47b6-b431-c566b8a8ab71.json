@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-training-readonly-request/1",
+  "request_id": "7c3d097e-bdd9-47b6-b431-c566b8a8ab71",
+  "operation": "read-only-qlora-prerequisite-inventory",
+  "created_at": "2026-11-22"
+}
