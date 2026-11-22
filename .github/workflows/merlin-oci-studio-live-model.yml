@@ -1,0 +1,205 @@
+name: Merlin OCI real local model via Studio backend and restart
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-studio-live-model-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  real-studio-model:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 11
+    steps:
+      - name: Admit exact source, run real Studio/model in zero-cap private loopback, retain outcomes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import ast,base64,datetime,hashlib,json,os,platform,re,shutil,signal,subprocess,sys,time,urllib.request,uuid
+          from pathlib import Path
+          repo='morganaspim/Cace-app';commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (os.environ['GITHUB_REPOSITORY']!=repo
+              or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run_id<=0 or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed OCI nonroot execution identity differs')
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-studio-model-%d-%d'%(run_id,attempt))
+          root.mkdir(mode=0o700,exist_ok=False)
+          ev=root/'evidence';ev.mkdir(mode=0o700)
+          source=root/'controller';source.mkdir(mode=0o700)
+          scratch=root/'scratch';scratch.mkdir(mode=0o700)
+          product=root/'product'
+          state='blocked';reason=None
+          def require(ok,why):
+              if not ok:raise RuntimeError(why)
+          def unique(items):
+              obj={}
+              for k,v in items:
+                  if k in obj:raise ValueError('duplicate JSON field')
+                  obj[k]=v
+              return obj
+          def git_blob(data):
+              return hashlib.sha1(('blob %d\0'%len(data)).encode()+data).hexdigest()
+          def api(owner,path):
+              req=urllib.request.Request('https://api.github.com/repos/'+owner+'/'+path,
+                 headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                          'Accept':'application/vnd.github+json',
+                          'User-Agent':'Merlin-fixed-real-Studio-OCI'})
+              with urllib.request.urlopen(req,timeout=20) as response:
+                  raw=response.read(1024*1024+1)
+              require(len(raw)<=1024*1024,'GitHub response exceeds bound')
+              return json.loads(raw,object_pairs_hook=unique)
+          def read_file(owner,path,revision,pin):
+              item=api(owner,'contents/'+path+'?ref='+revision)
+              require(item.get('encoding')=='base64','unexpected source encoding')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)==pin['bytes'] and
+                  git_blob(raw)==item.get('sha')==pin['blob'],
+                  'source blob identity changed: '+path)
+              if pin.get('sha256'):
+                  require(hashlib.sha256(raw).hexdigest()==pin['sha256'],
+                          'SHA256 changed: '+path)
+              return raw
+          try:
+              changes=api(repo,'commits/'+commit).get('files',[])
+              require(len(changes)==1 and changes[0].get('status')=='added',
+                      'exact one additive typed request required')
+              path=changes[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-studio-live-model-requests/([0-9a-f-]{36})\.json',path)
+              require(match is not None,'wrong request namespace')
+              req_item=api(repo,'contents/'+path+'?ref='+commit)
+              require(req_item.get('encoding')=='base64','request encoding changed')
+              raw=base64.b64decode(''.join(req_item['content'].split()),validate=True)
+              require(len(raw)<4096 and req_item['sha']==git_blob(raw),
+                      'request bytes changed')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                and request['schema']=='merlin-oci-studio-live-model-request/1'
+                and request['operation']=='two-real-studio-model-turns-and-restart'
+                and request['request_id']==match.group(1)
+                and str(uuid.UUID(request['request_id']))==request['request_id']
+                and datetime.datetime.strptime(request['created_at'],
+                   '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%dT%H:%M:%SZ')==
+                   request['created_at'],'typed request invalid')
+              (ev/'request.json').write_bytes(raw)
+              scripts={
+                  'run_private_model.py':{'bytes':16616,'blob':'65b0659425d6759dc291967c1d17e60f8c29c06e'},
+                  'run_studio_model.py':{'bytes':15553,'blob':'247c9dabe7e126e8b49e6c3ea9f0e31bcd85b976'}}
+              sources={}
+              for name,pin in scripts.items():
+                  body=read_file(repo,'ops/merlin_model_isolated/'+name,commit,pin)
+                  ast.parse(body,feature_version=(3,9))
+                  (source/name).write_bytes(body)
+                  (source/name).chmod(0o400)
+                  sources[name]={'git_blob':git_blob(body),'sha256':hashlib.sha256(body).hexdigest()}
+              validator=read_file(repo,'ops/merlin_studio_validation/validate.py',commit,{
+                  'bytes':37082,'blob':'d950f862e4025db559c4c1a99cdba4aec9bae6c7',
+                  'sha256':'39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee'})
+              ast.parse(validator,feature_version=(3,9))
+              namespace={'__name__':'pinned_merlin_studio_bundle_reader'}
+              exec(compile(validator,'pinned-source-reader','exec'),namespace)
+              pin_bytes=read_file(repo,'ops/merlin_studio_validation/source-pins.json',commit,{
+                 'bytes':8350,'blob':'bba11aced1eeb2d31c264f749408653fa618c879'})
+              zip_bytes=read_file(repo,'ops/merlin_studio_validation/product-source.zip',commit,{
+                  'bytes':104129,'blob':'09d10789ab63c776cf47b8226cd0507e8cce1e49',
+                  'sha256':'99964ba99ea41a3b3580b85574533e5aaa8a2e72cca111b1b2233c948bb1cf8b'})
+              pins=namespace['parse_json'](pin_bytes)
+              members=namespace['validate_bundle'](pins,zip_bytes)
+              require(len(members)==36,'native Studio source-member count differs')
+              namespace['extract_bundle'](members,product)
+              overlay_commit='d2c53ebce82e918ac5a246c8ef9416abc47032a1'
+              overlays={
+                 'portable/merlin_studio/tools.py':{'bytes':13986,'blob':'772b08c3f10b0732c99a13f5268ee18e30292344'},
+                 'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
+                 'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'}}
+              for path,pin in overlays.items():
+                  updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
+                  ast.parse(updated,feature_version=(3,9))
+                  (product/path).write_bytes(updated)
+              # The control and exact 36-file bundle are fully fixed and
+              # no repo data or network is available after unshare.
+              (ev/'source-identity.json').write_text(json.dumps({
+                 'schema':'merlin-studio-real-model-source/1','request_commit':commit,
+                 'model_controller':sources,'product_source_commit':
+                    '8497597f297bba83189afef2026c27f9244537ce',
+                 'product_overlay_commit':overlay_commit,
+                 'model_source_members':36,'pinned_overlays':overlays,
+                 'source_zip_sha256':hashlib.sha256(zip_bytes).hexdigest(),
+                 'model_generation_budget':2,'production_qualified':False},sort_keys=True,indent=2))
+              argv=['/usr/bin/unshare','--user','--map-current-user','--net','--fork',
+                '--keep-caps','/usr/bin/python3','-I','-B',
+                str(source/'run_studio_model.py'),'setup',str(ev),str(product),
+                str(scratch),str(os.stat('/proc/self/ns/net').st_ino)]
+              clean={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                     'LC_ALL':'C.UTF-8','HOME':str(scratch),
+                     'TMPDIR':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'}
+              child=subprocess.Popen(argv,cwd='/',env=clean,
+                   stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                   stderr=subprocess.PIPE,start_new_session=True)
+              expired=False
+              try:out,err=child.communicate(timeout=455)
+              except subprocess.TimeoutExpired:
+                  expired=True
+                  try:os.killpg(child.pid,signal.SIGKILL)
+                  except ProcessLookupError:pass
+                  out,err=child.communicate(timeout=10)
+              (ev/'isolation-entry.stdout').write_bytes(out[:65536])
+              (ev/'isolation-entry.stderr').write_bytes(err[:65536])
+              require(not expired and child.returncode==0
+                  and len(out)<=65536 and len(err)<=65536,
+                  'Studio/model child failed, timed out or exceeded evidence budget')
+              result=json.loads((ev/'studio-model-result.json').read_text())
+              require(result.get('status')=='passed'
+                 and result.get('correct_answers')==2
+                 and result.get('model_generation_calls')==2
+                 and result.get('persisted_messages')==4
+                 and result.get('restart_restored') is True
+                 and result.get('stale_token_rejected') is True
+                 and result.get('model_process_terminated') is True
+                 and result.get('studio_process_terminated') is True
+                 and result.get('existing_provider_mutated') is False
+                 and result.get('production_qualified') is False,
+                 'two live Merlin Studio responses not accepted')
+              state='passed'
+          except BaseException as exc:
+              reason=type(exc).__name__+': '+str(exc)[:220]
+              (ev/'blocked.json').write_text(json.dumps({
+                'status':'blocked','reason':reason,'production_qualified':False}))
+              raise
+          finally:
+              # Clean only fresh private staging; retain receipts and
+              # bounded stderr, never upload model weights or generated state.
+              for name in ('product','scratch','controller'):
+                  p=root/name
+                  if p.exists() and p.is_dir() and not p.is_symlink():
+                      shutil.rmtree(p)
+              (ev/'cleanup.json').write_text(json.dumps({
+                'staging_removed':all(not (root/n).exists()
+                   for n in ('product','scratch','controller')),
+                'host_installation':False,'production_qualified':False},
+                sort_keys=True))
+              print(json.dumps({'status':state,'reason':reason,
+                'staging_removed':all(not (root/n).exists()
+                   for n in ('product','scratch','controller')),
+                'production_qualified':False},sort_keys=True))
+          PY
+      - name: Retain real Merlin chat, model identities, restart, and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-studio-model-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-studio-model-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          retention-days: 30
+          include-hidden-files: true
+          if-no-files-found: warn
