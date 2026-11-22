@@ -34,9 +34,18 @@ def require(ok, why):
         raise RuntimeError(why)
 
 
-def no_external_route(raw):
-    if not isinstance(raw, str):
+def rootless_uid_mapping(euid, mapping):
+    return type(euid) is int and euid == 0 and mapping == ["0", "1000", "1"]
+
+
+def no_external_route(raw, *, before_loopback=False):
+    if not isinstance(raw,str) or type(before_loopback) is not bool:
         return False
+    # OCI procfs has zero bytes for a new private netns before lo starts.
+    # This exception is restricted to setup and guarded by exact namespace
+    # and local UID0 -> host UID1000 identity.
+    if raw == "":
+        return before_loopback
     rows = raw.splitlines()
     if not rows or rows[0].split()[:3] != ["Iface", "Destination", "Gateway"]:
         return False
@@ -47,15 +56,22 @@ def no_external_route(raw):
     return True
 
 
-def namespace(parent):
-    require(os.geteuid() == 1000, "expected unprivileged UID1000")
-    require(Path("/proc/self/uid_map").read_text().split() == ["1000", "1000", "1"],
-            "user namespace mapping differs")
+def namespace_argv(script,root,scratch,evidence,parent):
+    return ["/usr/bin/unshare","--user","--map-root-user","--net","--fork",
+            "/usr/bin/python3","-I","-B",str(script),"setup",
+            str(root),str(scratch),str(evidence),str(parent)]
+
+
+def namespace(parent, *, before_loopback=False):
+    require(rootless_uid_mapping(os.geteuid(),
+            Path("/proc/self/uid_map").read_text().split()),
+            "private Studio UID0 must map only to unprivileged host UID1000")
     require(os.stat("/proc/self/ns/net").st_ino != parent, "host network namespace exposed")
     require(sorted(n for _, n in socket.if_nameindex()) == ["lo"],
             "private namespace has another network interface")
-    require(no_external_route(Path("/proc/net/route").read_text()),
-            "external routing was observed")
+    require(no_external_route(Path("/proc/net/route").read_text(),
+                              before_loopback=before_loopback),
+            "external routing or uninitialized private route table")
     return os.stat("/proc/self/ns/net").st_ino
 
 
@@ -161,6 +177,8 @@ def run(root, scratch, evidence, parent):
     cmd=[str(py),"-I","-B","-S","-c",bootstrap]
     report={"schema":SCHEMA,"status":"blocked","production_qualified":False,
             "model_inference_executed":False,"host_mutations":0,
+            "namespace_root_maps_to_host_uid1000":True,
+            "studio_capabilities_dropped_before_exec":True,
             "external_network_available":False,"packaged_python_started":False,
             "studio_ui_served":False,"conversation_restored":False,
             "stale_token_rejected":False,"studio_workers_terminated":False}
@@ -245,8 +263,16 @@ def run(root, scratch, evidence, parent):
 
 
 def setup(root,scratch,evidence,parent):
-    namespace(parent)
+    namespace(parent,before_loopback=True)
+    # Only this transient private setup process has CAP_NET_ADMIN in its
+    # child user namespace; it has no host-root permissions.
+    row=next((x.split(":",1)[1].strip() for x in
+             Path("/proc/self/status").read_text().splitlines()
+             if x.startswith("CapEff:")),"")
+    require(bool(row) and bool(int(row,16)&(1<<12)),
+            "private namespace lacks loopback setup capability")
     enable_private_loopback()
+    namespace(parent)
     args=["/usr/bin/setpriv","--no-new-privs","--bounding-set=-all",
           "--inh-caps=-all","/usr/bin/python3","-I","-B",
           str(Path(__file__).resolve(strict=True)),"run",
@@ -268,11 +294,10 @@ def invoke(root,scratch):
             "isolated packaged UI inputs unavailable")
     evidence=scratch/"ui-evidence"
     evidence.mkdir(mode=0o700,exist_ok=False)
+    require(os.geteuid()==1000,
+            "outer packaged Studio parent must remain unprivileged host UID1000")
     parent=os.stat("/proc/self/ns/net").st_ino
-    args=["/usr/bin/unshare","--user","--map-current-user","--net",
-          "--fork","/usr/bin/python3","-I","-B",
-          str(Path(__file__).resolve(strict=True)),"setup",
-          str(root),str(scratch),str(evidence),str(parent)]
+    args=namespace_argv(Path(__file__).resolve(strict=True),root,scratch,evidence,parent)
     proc=subprocess.run(args,cwd="/",env={**ENV,"HOME":str(scratch)},
                         stdin=subprocess.DEVNULL,capture_output=True,timeout=150)
     require(len(proc.stdout)<=8192 and len(proc.stderr)<=8192,
