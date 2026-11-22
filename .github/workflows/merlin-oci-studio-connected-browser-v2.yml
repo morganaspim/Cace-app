@@ -80,7 +80,7 @@ jobs:
               if len(raw)>4096 or blob(raw)!=item['sha']: raise RuntimeError('request bytes differ')
               request=json.loads(raw,object_pairs_hook=unique)
               if (set(request)!={'schema','request_id','operation','created_at'}
-                  or request['schema']!='merlin-oci-studio-browser-v2-v2-request/1'
+                  or request['schema']!='merlin-oci-studio-browser-v2-request/1'
                   or request['operation']!='run-merlin-studio-browser-v2-and-112'
                   or request['request_id']!=match.group(1)
                   or str(uuid.UUID(request['request_id']))!=request['request_id']
