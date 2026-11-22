@@ -18,7 +18,7 @@ jobs:
     runs-on: [self-hosted, cace, oci, aarch64]
     timeout-minutes: 12
     steps:
-      - name: Admit exact request, verify source and tests, no execution of archive
+      - name: Admit pinned source and one-request runtime-startup scope
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -123,25 +123,33 @@ jobs:
           merge-multiple: true
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/merlin-oci-private-python-startup-${{ github.run_id }}-${{ github.run_attempt }}/input
-      - name: Execute exact old-Python fixture tests and temporary stage, then restore
+      - name: Start pinned staged Python once, check standard library and restore
         shell: bash
         run: |
           set -euo pipefail
           /usr/bin/python3 -I -B - <<'PY'
-          import hashlib,json,os,platform,re,shutil,signal,stat,subprocess,sys,time
+          import hashlib,json,os,platform,re,resource,shutil,signal,stat,subprocess,sys,time
           from pathlib import Path
           root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-private-python-startup-%s-%s'%(os.environ['GITHUB_RUN_ID'],os.environ['GITHUB_RUN_ATTEMPT']))
           ev=root/'evidence';parent=root/'stage-parent';download=root/'input'
           source=root/'source';script=source/'scripts/merlin_python_private_stage.py'
           archive=download/'archive.data'
           status='blocked';error=None;stage_leaf=None;cleaned=False
+          launch_attempted=False;startup_verified=False
           def require(v,why):
               if not v: raise RuntimeError(why)
-          def proc(argv,seconds,log):
+          def proc(argv,seconds,log,*,candidate=False):
               clean={'PATH':'/usr/bin:/bin','LANG':'C','LC_ALL':'C','HOME':'/var/empty',
                      'PYTHONDONTWRITEBYTECODE':'1','TMPDIR':'/tmp'}
+              def set_limits():
+                  resource.setrlimit(resource.RLIMIT_CPU,(12,12))
+                  resource.setrlimit(resource.RLIMIT_AS,(768*1024*1024,768*1024*1024))
+                  resource.setrlimit(resource.RLIMIT_FSIZE,(1024*1024,1024*1024))
+                  resource.setrlimit(resource.RLIMIT_NOFILE,(64,64))
+                  os.umask(0o077)
               p=subprocess.Popen(argv,cwd='/',env=clean,stdin=subprocess.DEVNULL,
-                     stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
+                     stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True,
+                     preexec_fn=set_limits if candidate else None)
               try: raw,_=p.communicate(timeout=seconds)
               except subprocess.TimeoutExpired:
                   try: os.killpg(p.pid,signal.SIGKILL)
@@ -198,7 +206,34 @@ jobs:
                       h.update(block)
               require(h.hexdigest()==receipt['entrypoint_sha256'],'staged interpreter SHA differs')
               (ev/'stage-receipt.json').write_text(json.dumps(receipt,sort_keys=True,indent=2))
-              status='stage_verified_cleanup_pending'
+              # This is the only invocation of the staged interpreter:
+              # fixed standard-library introspection, no installs or model calls.
+              candidate_code=("import json,os,platform,sqlite3,ssl,sys;"
+                  "print(json.dumps({'version':list(sys.version_info[:3]),"
+                  "'machine':platform.machine(),'uid':os.geteuid(),"
+                  "'prefix':sys.prefix,'executable':sys.executable,"
+                  "'sqlite_version':sqlite3.sqlite_version,"
+                  "'openssl_version':ssl.OPENSSL_VERSION,"
+                  "'isolated':sys.flags.isolated,'no_site':sys.flags.no_site},sort_keys=True))")
+              launch_attempted=True
+              output=proc([str(entry),'-I','-B','-S','-c',candidate_code],
+                          22,ev/'python311-startup.stdout',candidate=True)
+              runtime=json.loads(output)
+              require(runtime['version']==[3,11,18] and runtime['machine']=='aarch64'
+                      and runtime['uid']==1000 and runtime['isolated']==1 and runtime['no_site']==1
+                      and runtime['prefix']==str(stage_leaf/'python')
+                      and runtime['executable']==str(entry)
+                      and isinstance(runtime['sqlite_version'],str)
+                      and isinstance(runtime['openssl_version'],str),
+                      'version_arch_prefix_isolation_or_stdlib_check_failed')
+              startup_verified=True
+              (ev/'python311-startup.json').write_text(json.dumps({
+                  'schema':'merlin-oci-python311-startup/1','runtime':runtime,
+                  'source_stage_sha256':receipt['archive_sha256'],
+                  'verified_entrypoint_sha256':receipt['entrypoint_sha256'],
+                  'startup_verified':True,'model_calls':0,'host_system_installation':False,
+                  'production_qualified':False},sort_keys=True,indent=2))
+              status='startup_verified_cleanup_pending'
           except BaseException as exc:
               error=type(exc).__name__
           finally:
@@ -218,13 +253,14 @@ jobs:
                   error=error or type(exc).__name__
                   cleaned=False
               (ev/'result.json').write_text(json.dumps({
-                  'schema':'merlin-oci-private-python-startup-result/1','status':'passed' if status=='stage_verified_cleanup_pending' and cleaned and not error else 'blocked',
+                  'schema':'merlin-oci-private-python-startup-result/1','status':'passed' if status=='startup_verified_cleanup_pending' and startup_verified and cleaned and not error else 'blocked',
                   'error_type':error,'native_tests_expected':14,'archive_members_expected':4949,
                   'cleanup_verified':cleaned,'interpreter_installed':False,
-                  'native_interpreter_executed':False,'model_calls':0,
-                  'studio_product_tests_run':0,'production_qualified':False},sort_keys=True,indent=2))
+                  'interpreter_launch_attempted':launch_attempted,
+                  'native_interpreter_executed_and_verified':startup_verified,
+                  'model_calls':0,'studio_product_tests_run':0,'production_qualified':False},sort_keys=True,indent=2))
               print((ev/'result.json').read_text())
-          if status!='stage_verified_cleanup_pending' or not cleaned or error:
+          if status!='startup_verified_cleanup_pending' or not startup_verified or not cleaned or error:
               raise SystemExit(2)
           PY
       - name: Retain native evidence, including negative outcomes
