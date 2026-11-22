@@ -20,6 +20,26 @@ def require(value, reason):
     if not value:
         raise RuntimeError(reason)
 
+def isolated_interfaces():
+    """Enumerate links in the CURRENT network namespace, not host-mounted sysfs.
+
+    A rootless user+net namespace may keep a sysfs mount from the parent
+    mount namespace. /sys/class/net can therefore show HOST interfaces even
+    while socket/netlink calls correctly report only the child's loopback.
+    """
+    entries = socket.if_nameindex()
+    require(isinstance(entries, list) and len(entries) > 0,
+            "network interface enumeration unavailable")
+    indexes = [index for index, name in entries]
+    names = [name for index, name in entries]
+    require(all(type(index) is int and index > 0 for index in indexes)
+            and all(isinstance(name, str) and name for name in names)
+            and len(indexes) == len(set(indexes))
+            and len(names) == len(set(names)),
+            "network link identities are ambiguous")
+    return sorted(names)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     require(len(argv) == 6, "require parent netns + 5 exact source/result paths")
@@ -36,7 +56,11 @@ def main(argv=None):
         require(mapping == ["1000", "1000", "1"], "UID mapping must be current-user")
         child_inum = os.stat("/proc/self/ns/net").st_ino
         require(child_inum != parent_inum, "new network namespace required")
-        interfaces = sorted(os.listdir("/sys/class/net"))
+        # socket.if_nameindex is a namespace-aware kernel link query.
+        # Never use /sys/class/net here: sysfs can be inherited from the host.
+        interfaces = isolated_interfaces()
+        result["namespace_interfaces"] = interfaces
+        result["interface_source"] = "socket.if_nameindex/current_netns"
         require(interfaces == ["lo"], "new namespace has unexpected network interface")
         # Scoped CAP_NET_ADMIN exists only during this setup and only for the
         # private network namespace. No external network interfaces are added.
