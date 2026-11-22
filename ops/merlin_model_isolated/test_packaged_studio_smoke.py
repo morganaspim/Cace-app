@@ -50,7 +50,7 @@ class PackagedStudioUIContracts(unittest.TestCase):
     def test_only_fixed_offline_api_endpoints(self):
         for method,path in (("GET","http://external.example"),
                             ("POST","/api/tool"),
-                            ("POST","/api/chat"),
+                            ("POST","/api/unapproved"),
                             ("GET","/api/settings"),
                             ("GET","/api/conversations/../../etc/passwd")):
             with self.subTest(path=path):
@@ -129,6 +129,75 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertIn("desktop_enabled':False",script)
         self.assertIn("browser_enabled':False",script)
         compile(script,"<packaged-studio-bootstrap>","exec")
+
+    def test_model_chat_endpoint_enforces_token_and_run_id(self):
+        con=FakeConnection(202,b'{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+            code,result=studio.request("POST","/api/chat",
+                {"conversation_id":"b"*32,"message":studio.REFERENCE_PROMPT},"t"*40)
+        self.assertEqual(code,202)
+        self.assertEqual(result["run_id"],"a"*32)
+        self.assertEqual(con.arguments[0][1]["headers"]["X-Merlin-Token"],"t"*40)
+        with self.assertRaises(RuntimeError):
+            studio.request("POST","/api/chat",{"message":"6*7"})
+        get=FakeConnection(200,b'{"run":{"status":"running"}}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=get):
+            code,result=studio.request("GET","/api/runs/"+"a"*32)
+        self.assertEqual(code,200)
+        self.assertEqual(result["run"]["status"],"running")
+        with self.assertRaises(ValueError):
+            studio.request("GET","/api/runs/../secret")
+
+    def test_chat_evidence_requires_model_request_and_durable_answer(self):
+        from hashlib import sha256
+        import copy
+        run_id="a"*32
+        cid="b"*32
+        reply={"run":{"id":run_id,"conversation_id":cid,"status":"completed",
+                      "error":None,"events":[
+                          {"type":"started"},{"type":"model_request","step":1},
+                          {"type":"completed"}]},
+               "conversation":{"id":cid,"messages":[
+                   {"role":"user","content":studio.REFERENCE_PROMPT},
+                   {"role":"assistant","content":"42"}]}}
+        verdict=studio.assess_chat_evidence(reply,run_id,cid)
+        self.assertTrue(verdict["model_chat_model_request_seen"])
+        self.assertTrue(verdict["model_chat_answer_exact_42"])
+        self.assertEqual(verdict["model_chat_response_sha256"],sha256(b"42").hexdigest())
+        self.assertNotIn("content",verdict)
+        for corrupt in (
+            lambda d: d["run"].update(status="failed"),
+            lambda d: d["run"].update(error="unreported failure"),
+            lambda d: d["run"].update(id="c"*32),
+            lambda d: d["run"].update(events=[{"type":"started"}]),
+            lambda d: d["conversation"].update(id="c"*32),
+            lambda d: d["conversation"]["messages"].pop(),
+            lambda d: d["conversation"]["messages"][0].update(content="other"),
+            lambda d: d["conversation"]["messages"][1].update(content=""),
+        ):
+            wrong=copy.deepcopy(reply)
+            corrupt(wrong)
+            with self.subTest(corrupt=repr(corrupt)):
+                with self.assertRaises((ValueError,RuntimeError)):
+                    studio.assess_chat_evidence(wrong,run_id,cid)
+        verbose=copy.deepcopy(reply)
+        verbose["conversation"]["messages"][1]["content"]="The answer is 42"
+        self.assertFalse(studio.assess_chat_evidence(verbose,run_id,cid)["model_chat_answer_exact_42"])
+
+    def test_bootstrap_model_start_is_explicit_bounded_opt_in(self):
+        source=Path("/tmp/verified/Merlin_Studio")
+        state=Path("/tmp/private-state")
+        original=studio.build_bootstrap(source,state)
+        self.assertIn("start_bundled=False",original)
+        enabled=studio.build_bootstrap(source,state,start_bundled=True)
+        self.assertIn("start_bundled=True",enabled)
+        self.assertIn("network_enabled':False",enabled)
+        self.assertIn("browser_enabled':False",enabled)
+        self.assertIn("model_timeout_seconds':120",enabled)
+        self.assertNotIn("PosixPath(",enabled)
+        compile(enabled,"<packaged-real-chat-bootstrap>","exec")
+        with self.assertRaises((ValueError,RuntimeError)):
+            studio.build_bootstrap(source,state,start_bundled="yes")
 
     def test_report_identity_never_claims_production(self):
         self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
