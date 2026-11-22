@@ -6,6 +6,7 @@ separate host-root model provider; no host network, credentials or service
 mutations. Two held-out integer questions establish only this scoped model use.
 """
 from __future__ import annotations
+import ctypes
 import hashlib
 import http.client
 import json
@@ -273,7 +274,16 @@ def run(py, manifest_arg, scratch, evidence):
               "--offline","--no-webui"]
         require(not any(any(flag in arg for flag in ("0.0.0.0","--public","--no-sandbox"))
                         for arg in argv), "nonlocal/insecure model argument")
+        episode_parent_pid=os.getpid()
         def limits():
+            # The model runs in its own process group for bounded cleanup.
+            # Kernel PR_SET_PDEATHSIG prevents orphan model processes if the
+            # parent is killed by the absolute wrapper deadline.
+            libc=ctypes.CDLL(None, use_errno=True)
+            if libc.prctl(1,signal.SIGKILL,0,0,0)!=0:
+                os._exit(127)
+            if os.getppid()!=episode_parent_pid:
+                os._exit(127)
             resource.setrlimit(resource.RLIMIT_CPU,(210,210))
             resource.setrlimit(resource.RLIMIT_FSIZE,(1024*1024,1024*1024))
             resource.setrlimit(resource.RLIMIT_NOFILE,(128,128))
