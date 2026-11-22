@@ -4,11 +4,13 @@ name: Merlin private GGUF context ablation contracts
     branches: ["fix/merlin-native-offline-zip-source-20261122"]
     paths:
       - ops/merlin_model_isolated/run_packaged_studio_smoke.py
+      - ops/merlin_model_isolated/run_offline_native_bundle.py
       - ops/merlin_model_isolated/test_packaged_studio_smoke.py
       - .github/workflows/merlin-private-context-ablation-contract.yml
   pull_request:
     paths:
       - ops/merlin_model_isolated/run_packaged_studio_smoke.py
+      - ops/merlin_model_isolated/run_offline_native_bundle.py
       - ops/merlin_model_isolated/test_packaged_studio_smoke.py
       - .github/workflows/merlin-private-context-ablation-contract.yml
 
@@ -27,10 +29,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -B -m py_compile ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/test_packaged_studio_smoke.py
+          python3 -B -m py_compile ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/test_packaged_studio_smoke.py ops/merlin_model_isolated/run_offline_native_bundle.py
           python3 -B -m unittest discover -s ops/merlin_model_isolated -p 'test_packaged_studio_smoke.py' -v 2>&1 | tee merlin-context-contract-tests.log
-          sha256sum ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/test_packaged_studio_smoke.py | tee merlin-context-source-sha256.txt
-          wc -c ops/merlin_model_isolated/run_packaged_studio_smoke.py | tee merlin-context-source-size.txt
+          sha256sum ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/test_packaged_studio_smoke.py ops/merlin_model_isolated/run_offline_native_bundle.py | tee merlin-context-source-sha256.txt
+          wc -c ops/merlin_model_isolated/run_packaged_studio_smoke.py ops/merlin_model_isolated/run_offline_native_bundle.py | tee merlin-context-source-size.txt
       - name: Retain no model or transcript bytes
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
