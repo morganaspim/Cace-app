@@ -178,8 +178,8 @@ class CDP:
                   topButtonId:at?.closest('button')?.id??null};})()""")
         # Save a bounded coordinate/hit-test record even when blocked.
         # It contains no DOM text, storage, cookies, credentials or model data.
-        safe = {k: target.get(k) for k in ("x", "y", "w", "h", "topButtonId")}
-        if isinstance(target, dict) else {"missing_target": True}
+        safe = ({k: target.get(k) for k in ("x", "y", "w", "h", "topButtonId")}
+                if isinstance(target, dict) else {"missing_target": True})
         Path(observation_path).write_text(json.dumps(safe, sort_keys=True, indent=2))
         require(isinstance(target, dict)
                 and target.get("topButtonId") == selector.lstrip("#")
