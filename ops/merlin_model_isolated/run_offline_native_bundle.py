@@ -42,6 +42,12 @@ STAGE_COMMIT = "71e6405a3475eb449d150b961915922edd3e9fb0"
 MODEL_ORIGIN = "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF"
 LLAMA_ORIGIN = "https://github.com/ggml-org/llama.cpp"
 PY_ORIGIN = "https://github.com/astral-sh/python-build-standalone"
+LICENSE_PINS = {
+    "qwen": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+    "llama": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+    "python": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+}
+LLAMA_SOURCE_COMMIT = "56eea9e4b0f5d125da16b75b551440b170aa8b1f"
 
 
 def require(ok, message):
@@ -158,7 +164,10 @@ def source_tree(root, evidence):
     return target
 
 
-def public_license(url, expected_host, expected_text):
+def public_license(url, expected_host, expected_text, *, expected_sha256):
+    require(isinstance(expected_sha256, str)
+            and re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is not None,
+            "explicit pinned license digest required")
     parsed = urllib.parse.urlsplit(url)
     require(parsed.scheme == "https" and parsed.hostname == expected_host
             and parsed.username is None and parsed.password is None
@@ -174,6 +183,8 @@ def public_license(url, expected_host, expected_text):
     require(150 <= len(body) <= 131072
             and expected_text.lower() in body.decode("utf-8").lower(),
             "official license text differs from expected marker")
+    require(hashlib.sha256(body).hexdigest() == expected_sha256,
+            "upstream license receipt digest differs")
     return body
 
 
@@ -217,15 +228,14 @@ def assemble(root, evidence, archive, details):
     py_notice = notices / "PYTHON_LICENSE"
     qwen_url = MODEL_ORIGIN + "/raw/main/LICENSE"
     qwen_notice.write_bytes(public_license(
-        qwen_url, "huggingface.co", "Apache License"))
-    # Pin an immutable upstream source revision rather than raw/main.
-    head = gh_api("ggml-org/llama.cpp", "branches/master")
-    revision = head.get("commit", {}).get("sha")
-    require(isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}", revision),
-            "llama.cpp source revision missing")
-    llama_url = "https://raw.githubusercontent.com/ggml-org/llama.cpp/" + revision + "/LICENSE"
+        qwen_url, "huggingface.co", "Apache License",
+        expected_sha256=LICENSE_PINS["qwen"]))
+    # Exact upstream llama.cpp commit, not a moving master branch.
+    llama_url = ("https://raw.githubusercontent.com/ggml-org/llama.cpp/"
+                 + LLAMA_SOURCE_COMMIT + "/LICENSE")
     llama_notice.write_bytes(public_license(
-        llama_url, "raw.githubusercontent.com", "MIT License"))
+        llama_url, "raw.githubusercontent.com", "MIT License",
+        expected_sha256=LICENSE_PINS["llama"]))
     # python-build-standalone places the CPython license inside lib/python3.11
     # in the pinned extraction, rather than at the extracted runtime root.
     # Reject missing, symlinked, duplicate, or out-of-root notices.
@@ -238,6 +248,8 @@ def assemble(root, evidence, archive, details):
     require(len(eligible) == 1,
             "expected exactly one safe standalone Python license receipt")
     original_python_license = eligible[0]
+    require(hashlib.sha256(original_python_license.read_bytes()).hexdigest()
+            == LICENSE_PINS["python"], "pinned standalone Python license digest differs")
     shutil.copyfile(original_python_license, py_notice)
     details["python_license_path_in_runtime"] = original_python_license.relative_to(root_python).as_posix()
     details["license_receipts"] = {
