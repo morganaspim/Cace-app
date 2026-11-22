@@ -115,6 +115,17 @@ class PackagedStudioUIContracts(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 studio.request("GET","/studio/")
 
+    def test_isolated_bootstrap_contains_plain_path_literals_not_posixpath_repr(self):
+        # A Path substituted with %r produces PosixPath(...) which is not
+        # defined in the standalone -I -S Python process.
+        source=Path("/tmp/verified/Merlin_Studio")
+        state=Path("/tmp/isolated-state")
+        script=studio.build_bootstrap(source,state)
+        self.assertIn("data_dir='/tmp/isolated-state'",script)
+        self.assertNotIn("PosixPath(",script)
+        self.assertNotIn("WindowsPath(",script)
+        compile(script,"<packaged-studio-bootstrap>","exec")
+
     def test_report_identity_never_claims_production(self):
         self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
         self.assertEqual(studio.PORT,18793)
