@@ -112,7 +112,7 @@ jobs:
                   'test_studio_id_contract.py':{'bytes':2532,'blob':'46ff2b527a8a7d7a8412a59babc599fb2cccd203'},
                    'studio_tool_contract.py':{'bytes':4454,'blob':'6e27aaa4f007964e9f7e6fd60c5be8c93adf11a1'},
                    'test_studio_tool_contract.py':{'bytes':4858,'blob':'bb03fc33cc840ae6b2c244aa771afdacefe8a5df'},
-                   'run_studio_tool.py':{'bytes':16588,'blob':'f374fec579969b08706cae888292b94f54051c75'}}
+                   'run_studio_tool.py':{'bytes':16984,'blob':'9482dc6fdb500ce0e043507bff09ee5a40761218'}}
               sources={}
               for name,pin in scripts.items():
                   body=read_file(repo,'ops/merlin_model_isolated/'+name,commit,pin)
