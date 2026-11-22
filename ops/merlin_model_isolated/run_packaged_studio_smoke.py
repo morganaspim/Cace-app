@@ -97,6 +97,8 @@ def build_bootstrap(source,data):
     return ("import sys;sys.path.insert(0,%r);"
             "from server import create_server;"
             "s=create_server(port=%d,data_dir=%r,start_bundled=False);"
+            "s.app.save_settings({'network_enabled':False,'python_enabled':False,"
+            "'desktop_enabled':False,'browser_enabled':False});"
             "s.serve_forever(poll_interval=0.2)"
             % (str(source),PORT,str(data)))
 
