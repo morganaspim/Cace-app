@@ -8,6 +8,8 @@ opens an external page, contacts a model provider or installs software.
 """
 from __future__ import annotations
 import base64
+import binascii
+import zlib
 import hashlib
 import http.client
 import json
@@ -33,6 +35,111 @@ MAX_FRAME = 4 * 1024 * 1024
 def require(value, why):
     if not value:
         raise RuntimeError(why)
+
+
+
+def mobile_png_sample(data, coordinates):
+    """Read RGB pixels from the exact 390x844 CDP screenshot, no Pillow/network.
+
+    Enforce PNG CRC, geometry, 8-bit RGB(A), no interlace, decompression limits,
+    all five PNG row filters, and bounded pixel positions before evaluating
+    a raster-contrast acceptance gate. This is visual evidence, not DOM text.
+    """
+    require(type(data) is bytes and len(data) <= 3 * 1024 * 1024
+            and data[:8] == b"\x89PNG\r\n\x1a\n", "invalid mobile PNG bytes")
+    require(type(coordinates) is tuple and 1 <= len(coordinates) <= 8,
+            "invalid raster sample count")
+    pos, head, chunks, ended, count = 8, None, [], False, 0
+    while pos < len(data):
+        require(pos + 12 <= len(data), "truncated PNG chunk header")
+        n = struct.unpack(">I", data[pos:pos + 4])[0]
+        tag = data[pos + 4:pos + 8]
+        require(n <= 3 * 1024 * 1024 and pos + 12 + n <= len(data),
+                "PNG chunk size rejected")
+        blob = data[pos + 8:pos + 8 + n]
+        crc = struct.unpack(">I", data[pos + 8 + n:pos + 12 + n])[0]
+        require(binascii.crc32(tag + blob) & 0xffffffff == crc,
+                "PNG CRC rejected")
+        pos += 12 + n
+        count += 1
+        require(count <= 128, "PNG chunk count exceeded")
+        if tag == b"IHDR":
+            require(head is None and len(blob) == 13, "duplicate PNG IHDR")
+            width, height, bits, color, comp, flt, interlace = struct.unpack(
+                ">IIBBBBB", blob)
+            require((width, height) == (390, 844) and bits == 8
+                    and color in (2, 6) and comp == 0 and flt == 0
+                    and interlace == 0, "unsupported mobile raster")
+            head = (width, height, 3 if color == 2 else 4)
+        elif tag == b"IDAT":
+            require(head is not None, "PNG IDAT before IHDR")
+            chunks.append(blob)
+        elif tag == b"IEND":
+            require(not ended and not blob and pos == len(data),
+                    "invalid PNG IEND")
+            ended = True
+        else:
+            require(tag and tag[0] & 32 != 0, "unexpected critical PNG chunk")
+    require(ended and head is not None and chunks, "PNG not complete")
+    width, height, bpp = head
+    require(all(type(x) is int and type(y) is int and
+                0 <= x < width and 0 <= y < height for x, y in coordinates),
+            "raster coordinate outside screenshot")
+    stride = width * bpp
+    target_size = (stride + 1) * height
+    inflate = zlib.decompressobj()
+    raw = inflate.decompress(b"".join(chunks), target_size + 1)
+    require(len(raw) == target_size and inflate.eof
+            and not inflate.unused_data and not inflate.unconsumed_tail,
+            "PNG decompression rejected")
+    prev = bytearray(stride)
+    picked = {}
+    max_y = max(y for _, y in coordinates)
+    for row in range(max_y + 1):
+        offset = row * (stride + 1)
+        mode = raw[offset]
+        current = bytearray(raw[offset + 1:offset + 1 + stride])
+        require(mode in (0, 1, 2, 3, 4), "PNG row filter rejected")
+        if mode:
+            for k in range(stride):
+                left = current[k - bpp] if k >= bpp else 0
+                above = prev[k]
+                upperleft = prev[k - bpp] if k >= bpp else 0
+                if mode == 1: predictor = left
+                elif mode == 2: predictor = above
+                elif mode == 3: predictor = (left + above) // 2
+                else:
+                    p = left + above - upperleft
+                    da, db, dc = abs(p - left), abs(p - above), abs(p - upperleft)
+                    predictor = (left if da <= db and da <= dc
+                                 else (above if db <= dc else upperleft))
+                current[k] = (current[k] + predictor) & 255
+        for x, y in coordinates:
+            if y == row:
+                picked[(x, y)] = tuple(current[x * bpp:x * bpp + 3])
+        prev = current
+    return picked
+
+
+def mobile_sidebar_raster_invariant(data):
+    """Real visible sidebar should be brighter than its dimmed backdrop."""
+    points = ((60, 430), (300, 430), (60, 600), (300, 600))
+    samples = mobile_png_sample(data, points)
+    contrast = [
+        sum(samples[(60, row)]) - sum(samples[(300, row)])
+        for row in (430, 600)
+    ]
+    # Exact pinned Studio CSS: sidebar #141612 stays undimmed; scrim #0008
+    # darkens the page outside x=256. Earlier falsely green screenshot had
+    # two negative values, while correctly rendered screenshot had +24 each.
+    require(min(contrast) >= 15,
+            "mobile screenshot lacks visible undimmed sidebar contrast")
+    return {"schema": "merlin-oci-mobile-sidebar-raster/1",
+            "samples": [{"x": x, "y": y, "rgb": list(samples[(x, y)])}
+                        for x, y in points],
+            "rgb_sum_contrast_by_row": contrast,
+            "minimum_required_contrast": 15,
+            "visible_sidebar_raster_passed": True}
 
 
 def read_exact(sock, amount):
@@ -383,6 +490,11 @@ def run(profile_parent, evidence):
                 and painted.get("result", {}).get("value") is True,
                 "mobile sidebar did not complete two compositor frame ticks")
         mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
+        raster = mobile_sidebar_raster_invariant(
+            (evidence / "studio-gui-mobile.png").read_bytes())
+        raster["screenshot_sha256"] = mobile["sha256"]
+        (evidence / "studio-mobile-raster-proof.json").write_text(
+            json.dumps(raster, sort_keys=True, indent=2))
         result = {"schema": "merlin-oci-studio-cdp-gui/1",
                   "status": "passed", "source_page": STUDIO,
                   "real_chromium_cdp": True, "cdp_loopback_only": True,
@@ -395,6 +507,7 @@ def run(profile_parent, evidence):
                   "workspace_dialog_open_close": True,
                   "mobile_sidebar_opened": True,
                   "mobile_sidebar_visual_settled": True,
+                  "mobile_sidebar_raster_verified": True,
                   "mobile_input_method": "CDP Input.dispatchTouchEvent",
                   "desktop_screenshot": desktop, "mobile_screenshot": mobile,
                   "token_in_evidence": False, "model_generation_calls": 0,
