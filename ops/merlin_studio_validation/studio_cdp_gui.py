@@ -373,6 +373,15 @@ def run(profile_parent, evidence):
           return e.classList.contains('open') && Math.abs(r.left)<1
                  && r.width>=250 && hit?.closest('aside')?.id==='sidebar';
         })()""", 5, "mobile sidebar visually settled and hit-testable")
+        # The DOM can report the settled CSS transform before the
+        # headless renderer has composited a new frame. Await two actual
+        # animation frames before capturing the user-visible screenshot.
+        painted = client.call("Runtime.evaluate", {
+            "expression": "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
+            "awaitPromise": True, "returnByValue": True}, seconds=8)
+        require("exceptionDetails" not in painted
+                and painted.get("result", {}).get("value") is True,
+                "mobile sidebar did not complete two compositor frame ticks")
         mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
         result = {"schema": "merlin-oci-studio-cdp-gui/1",
                   "status": "passed", "source_page": STUDIO,
