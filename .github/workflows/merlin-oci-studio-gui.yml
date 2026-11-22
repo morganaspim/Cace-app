@@ -128,7 +128,7 @@ jobs:
                 'connected_browser_offline_recovery_gui.py':{
                     'bytes':24312,'blob':'9c742fc510494f69a936b3d369ea83b8b63d7d29'},
                 'studio_cdp_gui.py':{
-                    'bytes':18456,'blob':'915dc4bf357c7a023529cdf42161141e7edc6db3'},
+                    'bytes':20139,'blob':'6f5121efec23feb6ef407f74760c2c212561582f'},
                 'test_studio_cdp_gui.py':{
                     'bytes':3436,'blob':'80da8d16a4c0129a2f77f98b332a1425a6cd3bb8'},
                 'prepare_isolated_loopback.py':{
