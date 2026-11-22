@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-model-transport-request/1",
+  "request_id": "88fd3b85-209a-42a2-be78-a86fbfc6b69b",
+  "operation": "check-local-model-transport-without-generation",
+  "created_at": "2026-11-22T10:45:07Z"
+}
