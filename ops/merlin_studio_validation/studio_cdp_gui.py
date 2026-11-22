@@ -201,14 +201,16 @@ def list_page():
         connection.close()
 
 
-def wait_for(client, expression, seconds=16):
+def wait_for(client, expression, seconds=16, stage="unspecified"):
     end = time.monotonic() + seconds
+    last_result = None
     while time.monotonic() < end:
-        result = client.evaluate(expression)
-        if result is True:
+        last_result = client.evaluate(expression)
+        if last_result is True:
             return
         time.sleep(0.25)
-    raise RuntimeError("browser did not reach expected DOM state")
+    raise RuntimeError("browser did not reach expected DOM state: " + stage
+                       + "; last_boolean=" + str(last_result is True))
 
 
 def run(profile_parent, evidence):
@@ -303,10 +305,22 @@ def run(profile_parent, evidence):
         desktop = client.screenshot(evidence / "studio-gui-desktop.png", (1200, 800))
         client.call("Emulation.setDeviceMetricsOverride",
                     {"width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": True})
+        # Record only public CSS/viewport facts, not tokens or workspace data.
+        metrics = client.evaluate("""(function(){const e=document.getElementById('menu-toggle');
+          return {innerWidth:window.innerWidth,outerWidth:window.outerWidth,
+            devicePixelRatio:window.devicePixelRatio,
+            visualWidth:window.visualViewport?.width??null,
+            screenWidth:screen.width,
+            computedDisplay:getComputedStyle(e).display,
+            cssMobileMatch:matchMedia('(max-width:760px)').matches};})()""")
+        (evidence / "studio-mobile-viewport-metrics.json").write_text(
+            json.dumps(metrics, sort_keys=True, indent=2))
         wait_for(client, """(function(){const e=document.getElementById('menu-toggle');
-          return getComputedStyle(e).display!=='none' && window.innerWidth===390;})()""", 5)
+          return getComputedStyle(e).display!=='none' && window.innerWidth===390;})()""",
+          5, "emulated 390px CSS viewport")
         client.click("#menu-toggle")
-        wait_for(client, "document.getElementById('sidebar').classList.contains('open')", 5)
+        wait_for(client, "document.getElementById('sidebar').classList.contains('open')",
+                 5, "mobile hamburger expanded")
         mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
         result = {"schema": "merlin-oci-studio-cdp-gui/1",
                   "status": "passed", "source_page": STUDIO,
