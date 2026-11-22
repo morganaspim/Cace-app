@@ -1,0 +1,201 @@
+name: Merlin OCI offline model, Python runtime and license readiness audit
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-offline-profile-preflight-requests/**"]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  inspect-offline-assets:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 9
+    steps:
+      - name: Retrieve exact previously inspected private CPython archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14748604091
+          run-id: 45009078432
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/merlin-offline-asset-python-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Inspect pinned GGUF, llama-server, Python and disk; no host mutations
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,datetime,hashlib,json,os,platform,re,shutil,stat,struct,subprocess,time,urllib.request,uuid
+          from pathlib import Path
+          repo='morganaspim/Cace-app';commit=os.environ['GITHUB_SHA']
+          run=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (os.environ['GITHUB_REPOSITORY']!=repo
+              or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run<=0 or re.fullmatch(r'[0-9a-f]{40}',commit) is None):
+              raise RuntimeError('fixed OCI nonroot execution identity differs')
+          folder=Path(os.environ['RUNNER_TEMP'])/('merlin-offline-assets-%d-%d'%(run,attempt))
+          folder.mkdir(mode=0o700,exist_ok=False)
+          evidence=folder/'evidence';evidence.mkdir(mode=0o700)
+          stage=folder/'private-python';stage.mkdir(mode=0o700)
+          status={'schema':'merlin-oci-offline-model-asset-readiness/1','status':'blocked',
+                  'source_commit':commit,'provider_changed':False,'system_python_installed':False,
+                  'model_executed':False,'model_weights_exported':False,'bundle_created':False,
+                  'license_review_complete':False,'production_qualified':False}
+          def require(ok,why):
+              if not ok:raise RuntimeError(why)
+          def git_blob(raw):
+              return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          def api(owner,path):
+              request=urllib.request.Request('https://api.github.com/repos/'+owner+'/'+path,
+                  headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                           'Accept':'application/vnd.github+json',
+                           'User-Agent':'Merlin-fixed-offline-asset-audit'})
+              with urllib.request.urlopen(request,timeout=20) as res:
+                  body=res.read(1048577)
+              require(len(body)<=1048576,'GitHub API response limit exceeded')
+              return json.loads(body)
+          def asset(path,size,sha):
+              p=Path(path)
+              info=p.lstat()
+              require(stat.S_ISREG(info.st_mode) and info.st_uid==65534
+                      and not stat.S_IMODE(info.st_mode)&0o022
+                      and info.st_size==size,'pinned model asset metadata changed')
+              h=hashlib.sha256();n=0;started=time.monotonic()
+              fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+              try:
+                  before=os.fstat(fd)
+                  while True:
+                      require(time.monotonic()-started<95,'asset hashing exceeded 95 seconds')
+                      block=os.read(fd,4194304)
+                      if not block:break
+                      h.update(block);n+=len(block)
+                      require(n<=size,'pinned byte count exceeded')
+                  after=os.fstat(fd)
+              finally:os.close(fd)
+              require(n==size and h.hexdigest()==sha
+                      and (before.st_dev,before.st_ino,before.st_size)==
+                          (after.st_dev,after.st_ino,after.st_size),
+                      'asset changed during digest verification')
+              return {'sha256':h.hexdigest(),'bytes':n,'owner_uid':info.st_uid}
+          try:
+              changes=api(repo,'commits/'+commit).get('files',[])
+              require(len(changes)==1 and changes[0].get('status')=='added',
+                      'one additive typed request required')
+              path=changes[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-offline-profile-preflight-requests/([0-9a-f-]{36})\.json',path)
+              require(match is not None,'typed request namespace mismatch')
+              item=api(repo,'contents/'+path+'?ref='+commit)
+              require(item.get('encoding')=='base64','unexpected request encoding')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)<=4096 and item['sha']==git_blob(raw),'request identity mismatch')
+              request=json.loads(raw)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                      and request['schema']=='merlin-oci-offline-profile-preflight-request/1'
+                      and request['operation']=='inspect-pinned-assets-for-offline-profile'
+                      and request['request_id']==match.group(1)
+                      and str(uuid.UUID(request['request_id']))==request['request_id']
+                      and datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ')
+                          .strftime('%Y-%m-%dT%H:%M:%SZ')==request['created_at'],
+                      'typed request content differs')
+              status['request_id']=request['request_id']
+              model_root=Path('/opt/merlin-model-provider/releases/3f432dc172cf06f1af75974dbc4ec2b9135a8a82bd1fa2bfc35c0e53fe69f33e')
+              server=model_root/'llama-server'
+              gguf=model_root/'qwen2.5-coder-1.5b-instruct-q4_k_m.gguf'
+              status['inference']=asset(server,14614984,
+                 'af4c10f1f4a1e7f0878dc9b3896bb742f65170861276ef04ddecdf2a9be3cd82')
+              status['model']=asset(gguf,1117320768,
+                 'cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046')
+              with server.open('rb') as handle: head=handle.read(20)
+              with gguf.open('rb') as handle: magic=handle.read(4)
+              require(len(head)==20 and head[:6]==b'\x7fELF\x02\x01'
+                      and struct.unpack('<H',head[18:20])[0]==183 and magic==b'GGUF',
+                      'ELF architecture/GGUF file differs')
+              downloaded=Path(os.environ['RUNNER_TEMP'])/(
+                   'merlin-offline-asset-python-%d-%d'%(run,attempt))/'archive.data'
+              require(downloaded.is_file() and not downloaded.is_symlink()
+                      and downloaded.stat().st_size==49469868,
+                      'approved Python archive unavailable')
+              source=api('Mannyspiro/expert-robot',
+                  'contents/scripts/merlin_python_private_stage.py?ref=71e6405a3475eb449d150b961915922edd3e9fb0')
+              require(source.get('encoding')=='base64','pinned stage encoding differs')
+              body=base64.b64decode(''.join(source['content'].split()),validate=True)
+              require(len(body)==13722
+                      and git_blob(body)=='b78089d302c9dced6cf4ecc9d4a5ccb9cc54bc6b'
+                      and hashlib.sha256(body).hexdigest()=='2aaf1375f8969006c57e5523e91fd2a5b157990f069503b29764ec38c097ee82',
+                      'pinned Python stage source differs')
+              stage_script=folder/'stage.py';stage_script.write_bytes(body)
+              child=subprocess.run(['/usr/bin/python3','-I','-B',str(stage_script),
+                     '--archive',str(downloaded),'--parent',str(stage),'--stage'],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':str(folder),'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=150)
+              require(child.returncode==0 and len(child.stdout)<=32768
+                      and len(child.stderr)<=32768,'private Python extraction failed')
+              result=json.loads(child.stdout)
+              require(result.get('schema')=='merlin-private-cpython-stage/1'
+                      and result.get('staged_files')==3900
+                      and result.get('symlink_entries')==1049
+                      and result.get('entrypoint_sha256')==
+                          '6cfad927461ace659b09716fad2efa828c6a4b084b7be8181c3982a9f36f464c'
+                      and result.get('host_system_installation') is False
+                      and result.get('native_interpreter_executed') is False,
+                      'private Python receipt differs')
+              python_dir=Path(result['staging_path'])/'python'
+              exe=python_dir/'bin'/'python3.11'
+              require(python_dir.is_dir() and not python_dir.is_symlink()
+                      and exe.is_file() and not exe.is_symlink() and exe.stat().st_size==56723673,
+                      'extracted standalone Python layout differs')
+              with exe.open('rb') as stream: header=stream.read(20)
+              require(header[:6]==b'\x7fELF\x02\x01'
+                      and struct.unpack('<H',header[18:20])[0]==183,'Python ELF CPU mismatch')
+              status['python']={'entrypoint_sha256':result['entrypoint_sha256'],
+                  'staged_files':3900,'safe_symlinks':1049,
+                  'python3_alias_present':(python_dir/'bin'/'python3').is_file()}
+              candidates={
+                  'model':[model_root/'LICENSE',model_root/'LICENSE.txt',model_root/'license.md'],
+                  'inference':[model_root/'llama-LICENSE',model_root/'llama-LICENSE.txt'],
+                  'python':[python_dir/'LICENSE',python_dir/'LICENSE.txt',
+                            python_dir/'lib'/'python3.11'/'LICENSE.txt']}
+              license_state={}
+              for label,paths in candidates.items():
+                  found=[p.name for p in paths if p.is_file() and not p.is_symlink()
+                         and 0<p.stat().st_size<=131072]
+                  license_state[label]={'notice_file_count':len(found),'notice_basenames':found[:5]}
+              status['license_candidates']=license_state
+              free=shutil.disk_usage(folder).free
+              status['available_disk_bytes']=free
+              status['min_planned_build_space_bytes']=6*1024**3
+              status['space_sufficient_for_bundle']=free>=6*1024**3
+              status['status']='inspection_complete'
+          except BaseException as exc:
+              status['failure_type']=type(exc).__name__
+              status['failure_reason']=str(exc)[:240]
+          finally:
+              (evidence/'readiness.json').write_text(json.dumps(status,sort_keys=True,indent=2))
+              print(json.dumps({'status':status['status'],
+                     'license_candidates':status.get('license_candidates',{}),
+                     'space_sufficient_for_bundle':status.get('space_sufficient_for_bundle'),
+                     'production_qualified':False},sort_keys=True))
+              if stage.exists() and stage.is_dir() and not stage.is_symlink():
+                  shutil.rmtree(stage)
+              script=folder/'stage.py'
+              if script.is_file() and not script.is_symlink():script.unlink()
+          PY
+      - name: Retain source and storage readiness without model bytes or Python archive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-offline-assets-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-offline-assets-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          if-no-files-found: warn
+          retention-days: 10
