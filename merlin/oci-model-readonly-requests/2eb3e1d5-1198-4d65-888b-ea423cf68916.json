@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-model-readonly-preflight-request/1",
+  "request_id": "2eb3e1d5-1198-4d65-888b-ea423cf68916",
+  "operation": "inspect-existing-local-provider-without-generation",
+  "created_at": "2026-11-22T10:43:42Z"
+}
