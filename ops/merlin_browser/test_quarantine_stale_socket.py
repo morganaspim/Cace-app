@@ -181,5 +181,42 @@ class StaleSocketQuarantineTests(unittest.TestCase):
         self.assertTrue(self.path.exists())
 
 
+    def test_receipt_failure_rolls_back_quarantine_before_reporting_success(self):
+        fd = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        def broken_writer(_):
+            raise RuntimeError("read-only disk receipt failure")
+        try:
+            with self.assertRaisesRegex(RuntimeError, "receipt failure"):
+                quarantine_same_inode(fd, "browser.sock",
+                    "browser.sock.quarantine-test", self.expected,
+                    precheck=lambda: self.gate(), postcheck=lambda: SERVICE,
+                    record_receipt=broken_writer)
+        finally:
+            os.close(fd)
+        self.assertEqual(self.path.lstat().st_ino, self.live.st_ino)
+        self.assertFalse((self.root / "browser.sock.quarantine-test").exists())
+
+    def test_destination_created_after_absence_check_cannot_be_overwritten(self):
+        from unittest.mock import patch
+        import quarantine_stale_socket as source
+        fd = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            real = source._atomic_rename_no_replace
+            def race(dfd, old, new):
+                (self.root / new).write_text("must remain")
+                return real(dfd, old, new)
+            with patch.object(source, "_atomic_rename_no_replace", side_effect=race):
+                with self.assertRaises(FileExistsError):
+                    quarantine_same_inode(fd, "browser.sock",
+                        "browser.sock.quarantine-test", self.expected,
+                        precheck=lambda: self.gate(), postcheck=lambda: SERVICE)
+        finally:
+            os.close(fd)
+        self.assertEqual((self.root / "browser.sock.quarantine-test").read_text(),
+                         "must remain")
+        self.assertEqual(self.path.lstat().st_ino, self.live.st_ino)
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
