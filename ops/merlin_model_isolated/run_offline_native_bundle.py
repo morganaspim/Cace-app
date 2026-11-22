@@ -369,9 +369,9 @@ def assemble(root, evidence, archive, details):
     # substitute for a real GGUF inference result below.
     ui_path = Path(__file__).resolve().parent / "run_packaged_studio_smoke.py"
     require(ui_path.is_file() and not ui_path.is_symlink()
-            and ui_path.stat().st_size == 15802
+            and ui_path.stat().st_size == 24056
             and hashlib.sha256(ui_path.read_bytes()).hexdigest()
-            == "691a1ac622bd12e67484a11a9dc19e94c4e39d1080c1cd4e50f0684cae14ca6e",
+            == "08f313f66d21daffac37f294e1fbe075511d9bdd07e7c2f6c0305302ec723dbc",
             "packaged Studio UI/restart helper source pin differs")
     sys.path.insert(0, str(ui_path.parent))
     import run_packaged_studio_smoke as studio_smoke
@@ -392,23 +392,39 @@ def assemble(root, evidence, archive, details):
                          "conversation_restored", "stale_token_rejected",
                          "studio_workers_terminated", "elapsed_seconds",
                          "ui_sha256", "conversation_sha256",
+                         "model_chat_model_request_seen",
+                         "model_chat_answer_exact_42",
+                         "model_chat_response_sha256",
+                         "model_chat_response_chars",
+                         "model_chat_restored_after_restart",
+                         "model_chat_stale_token_rejected",
+                         "model_chat_conversation_sha256",
+                         "bundled_model_healthy", "bundled_model_terminated",
                          "error_type", "error_reason")
             safe = {k: raw[k] for k in safe_keys if k in raw}
             (evidence / "packaged-studio-ui.json").write_text(
                 json.dumps(safe, sort_keys=True, indent=2) + "\n")
-    require(ui_report["status"] == "packaged_ui_and_restart_passed"
+    require(ui_report["status"] == "packaged_ui_model_chat_and_restart_passed"
             and ui_report["studio_ui_served"] is True
             and ui_report["conversation_restored"] is True
             and ui_report["stale_token_rejected"] is True
             and ui_report["studio_workers_terminated"] is True
-            and ui_report["model_inference_executed"] is False
+            and ui_report["model_inference_executed"] is True
+            and ui_report["model_chat_model_request_seen"] is True
+            and ui_report["model_chat_answer_exact_42"] is True
+            and ui_report["model_chat_restored_after_restart"] is True
+            and ui_report["model_chat_stale_token_rejected"] is True
+            and ui_report["bundled_model_terminated"] is True
             and ui_report["host_mutations"] == 0
             and ui_report["production_qualified"] is False,
-            "private packaged Studio application restart unqualified")
+            "private packaged Studio-to-bundled-GGUF chat unqualified")
     details["packaged_studio_ui_started"] = True
     details["packaged_studio_conversation_restored"] = True
     details["packaged_studio_stale_token_rejected"] = True
     details["packaged_studio_ui_sha256"] = ui_report["ui_sha256"]
+    details["packaged_studio_model_chat_exact"] = ui_report["model_chat_answer_exact_42"]
+    details["packaged_studio_model_chat_restored"] = ui_report["model_chat_restored_after_restart"]
+    details["packaged_studio_model_chat_response_sha256"] = ui_report["model_chat_response_sha256"]
     # The isolated GGUF test helper is a distinct exact-pinned Git source.
     # No untrusted archive text may substitute the test program.
     module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
