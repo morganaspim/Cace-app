@@ -83,9 +83,9 @@ jobs:
           set -euo pipefail
           git clone --no-checkout https://github.com/Mannyspiro/expert-robot.git merlin-cross-smoke
           cd merlin-cross-smoke
-          git fetch origin 57fe435e7806b01c177c4d50ed3b1182dacb9fe0
-          git checkout --detach 57fe435e7806b01c177c4d50ed3b1182dacb9fe0
-          test "$(git rev-parse HEAD)" = "57fe435e7806b01c177c4d50ed3b1182dacb9fe0"
+          git fetch origin 0d46fd71a1c1e22061d9a9e957b2ad197ec11582
+          git checkout --detach 0d46fd71a1c1e22061d9a9e957b2ad197ec11582
+          test "$(git rev-parse HEAD)" = "0d46fd71a1c1e22061d9a9e957b2ad197ec11582"
           python -B scripts/merlin_portable_cross_os_smoke.py --package "$MERLIN_PACKAGE" --source-sha c5b029956ded7594485bcbe1772294676cbb1322 --output "$MERLIN_REPORT"
       - name: Retain typed result and negative evidence for each native OS
         if: always()
