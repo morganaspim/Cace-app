@@ -237,7 +237,7 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertEqual(args[1],"/v1/chat/completions")
         body=json.loads(kwargs["body"])
         self.assertEqual(body["stream"],False)
-        self.assertEqual(body["max_tokens"],64)
+        self.assertEqual(body["max_tokens"],24)
         self.assertNotIn("tools",body)
         malformed=FakeConnection(200,b'{"choices":[]}')
         with patch.object(studio.http.client,"HTTPConnection",return_value=malformed):
@@ -331,6 +331,56 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertIsNone(result["prompt_tokens"])
         with self.assertRaises(RuntimeError):
             studio.query_packaged_model("Test",with_usage="yes")
+
+    def test_bootstrap_closes_model_both_on_return_and_exception(self):
+        import types
+        class FakeServer:
+            def __init__(self,raises):
+                self.raises=raises
+                self.closed=False
+                self.app=types.SimpleNamespace(save_settings=lambda settings:None)
+            def serve_forever(self,poll_interval):
+                if self.raises:
+                    raise RuntimeError("synthetic serve_forever failed")
+            def server_close(self):
+                self.closed=True
+            def shutdown(self):
+                pass
+        for raises in (False,True):
+            server=FakeServer(raises)
+            stub=types.ModuleType("server")
+            stub.create_server=lambda **kwargs:server
+            code=studio.build_bootstrap(
+                Path("/private/fake-studio"),Path("/private/fake-state"),
+                start_bundled=True)
+            self.assertIn("finally:",code)
+            self.assertIn("s.server_close()",code)
+            self.assertIn("signal.signal(signal.SIGTERM,_stop_server)",code)
+            with patch.dict(sys.modules,{"server":stub}):
+                with patch.object(studio.signal,"signal"):
+                    if raises:
+                        with self.assertRaises(RuntimeError):
+                            exec(compile(code,"<private-bootstrap>","exec"),{})
+                    else:
+                        exec(compile(code,"<private-bootstrap>","exec"),{})
+            self.assertTrue(server.closed)
+
+    def test_stop_graceful_then_bounded_child_process_group_cleanup(self):
+        class FakeProc:
+            pid=90123
+            def __init__(self):
+                self.terminated=False
+            def poll(self):
+                return 0 if self.terminated else None
+            def wait(self,timeout):
+                self.terminated=True
+                return 0
+        proc=FakeProc()
+        with patch.object(studio.os,"kill") as direct,patch.object(
+            studio.os,"killpg") as group:
+            self.assertTrue(studio.stop(proc))
+        direct.assert_called_once_with(proc.pid,studio.signal.SIGTERM)
+        group.assert_called_once_with(proc.pid,studio.signal.SIGKILL)
 
     def test_report_identity_never_claims_production(self):
         self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
