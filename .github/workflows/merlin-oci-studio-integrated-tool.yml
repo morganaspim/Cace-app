@@ -1,0 +1,321 @@
+name: Merlin OCI integrated Studio real model-selected read-file tool and restart
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-studio-integrated-tool-requests/**"]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  real-studio-model:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 11
+    steps:
+      - name: Retrieve exact previously inspected private Python 3.11 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14748604091
+          run-id: 45009078432
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/merlin-integrated-tool-python311-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Admit exact source, run native model selected-tool in zero-cap private loopback
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import ast,base64,datetime,hashlib,json,os,platform,re,shutil,signal,subprocess,sys,time,urllib.request,uuid
+          from pathlib import Path
+          repo='morganaspim/Cace-app';commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (os.environ['GITHUB_REPOSITORY']!=repo
+              or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run_id<=0 or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed OCI nonroot execution identity differs')
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-integrated-tool-%d-%d'%(run_id,attempt))
+          root.mkdir(mode=0o700,exist_ok=False)
+          ev=root/'evidence';ev.mkdir(mode=0o700)
+          source=root/'controller';source.mkdir(mode=0o700)
+          scratch=root/'scratch';scratch.mkdir(mode=0o700)
+          py_parent=root/'private-python';py_parent.mkdir(mode=0o700)
+          archive_parent=Path(os.environ['RUNNER_TEMP'])/(
+              'merlin-integrated-tool-python311-%d-%d'%(run_id,attempt))
+          archive=archive_parent/'archive.data'
+          product=root/'product'
+          state='blocked';reason=None
+          def require(ok,why):
+              if not ok:raise RuntimeError(why)
+          def unique(items):
+              obj={}
+              for k,v in items:
+                  if k in obj:raise ValueError('duplicate JSON field')
+                  obj[k]=v
+              return obj
+          def git_blob(data):
+              return hashlib.sha1(('blob %d\0'%len(data)).encode()+data).hexdigest()
+          def api(owner,path):
+              req=urllib.request.Request('https://api.github.com/repos/'+owner+'/'+path,
+                 headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                          'Accept':'application/vnd.github+json',
+                          'User-Agent':'Merlin-fixed-real-Studio-OCI'})
+              with urllib.request.urlopen(req,timeout=20) as response:
+                  raw=response.read(1024*1024+1)
+              require(len(raw)<=1024*1024,'GitHub response exceeds bound')
+              return json.loads(raw,object_pairs_hook=unique)
+          def read_file(owner,path,revision,pin):
+              item=api(owner,'contents/'+path+'?ref='+revision)
+              require(item.get('encoding')=='base64','unexpected source encoding')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)==pin['bytes'] and
+                  git_blob(raw)==item.get('sha')==pin['blob'],
+                  'source blob identity changed: '+path)
+              if pin.get('sha256'):
+                  require(hashlib.sha256(raw).hexdigest()==pin['sha256'],
+                          'SHA256 changed: '+path)
+              return raw
+          try:
+              changes=api(repo,'commits/'+commit).get('files',[])
+              require(len(changes)==1 and changes[0].get('status')=='added',
+                      'exact one additive typed request required')
+              path=changes[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-studio-integrated-tool-requests/([0-9a-f-]{36})\.json',path)
+              require(match is not None,'wrong request namespace')
+              req_item=api(repo,'contents/'+path+'?ref='+commit)
+              require(req_item.get('encoding')=='base64','request encoding changed')
+              raw=base64.b64decode(''.join(req_item['content'].split()),validate=True)
+              require(len(raw)<4096 and req_item['sha']==git_blob(raw),
+                      'request bytes changed')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                and request['schema']=='merlin-oci-studio-integrated-tool-request/1'
+                and request['operation']=='integrated-real-model-read-file-and-restart'
+                and request['request_id']==match.group(1)
+                and str(uuid.UUID(request['request_id']))==request['request_id']
+                and datetime.datetime.strptime(request['created_at'],
+                   '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%dT%H:%M:%SZ')==
+                   request['created_at'],'typed request invalid')
+              (ev/'request.json').write_bytes(raw)
+              scripts={
+                  'run_private_model.py':{'bytes':16616,'blob':'65b0659425d6759dc291967c1d17e60f8c29c06e'},
+                  'run_studio_model.py':{'bytes':16371,'blob':'23364a3e26280273411c5aa6e59010d215afaaf6'},
+                  'test_studio_id_contract.py':{'bytes':2532,'blob':'46ff2b527a8a7d7a8412a59babc599fb2cccd203'},
+                   'studio_tool_contract.py':{'bytes':4456,'blob':'80e4f13390d32b0da370d87befea5cd82612d64d'},
+                   'test_studio_tool_contract.py':{'bytes':5248,'blob':'88fa4468c82a819b5b986ef4f8bc0269b3ce22e3'},
+                   'run_studio_tool.py':{'bytes':17695,'blob':'f89808f338cc4eebbd79160ef787100fc297f2ae'}}
+              sources={}
+              for name,pin in scripts.items():
+                  body=read_file(repo,'ops/merlin_model_isolated/'+name,commit,pin)
+                  ast.parse(body,feature_version=(3,9))
+                  (source/name).write_bytes(body)
+                  (source/name).chmod(0o400)
+                  sources[name]={'git_blob':git_blob(body),'sha256':hashlib.sha256(body).hexdigest()}
+              # Fail quickly on controller/product ID-shape drift before staging
+              # the large Python archive or starting the local GGUF model.
+              guard=subprocess.run(
+                  ['/usr/bin/python3','-I','-B',str(source/'test_studio_id_contract.py')],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=25)
+              guard_log=(guard.stdout+guard.stderr)[:32768]
+              (ev/'id-contract-tests.log').write_bytes(guard_log)
+              require(guard.returncode==0 and b'Ran 3 tests' in guard_log
+                      and b'OK' in guard_log and b'FAILED' not in guard_log,
+                      'Studio controller ID contract regression')
+              tool_guard=subprocess.run(
+                  ['/usr/bin/python3','-I','-B',str(source/'test_studio_tool_contract.py')],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=25)
+              tool_guard_log=(tool_guard.stdout+tool_guard.stderr)[:32768]
+              (ev/'tool-contract-tests.log').write_bytes(tool_guard_log)
+              require(tool_guard.returncode==0
+                      and b'Ran 11 tests' in tool_guard_log and b'OK' in tool_guard_log
+                      and b'FAILED' not in tool_guard_log and b'ERROR' not in tool_guard_log,
+                      'Studio model tool evidence contract regressions failed')
+              stage_body=read_file('Mannyspiro/expert-robot',
+                  'scripts/merlin_python_private_stage.py',
+                  '71e6405a3475eb449d150b961915922edd3e9fb0',
+                  {'bytes':13722,'blob':'b78089d302c9dced6cf4ecc9d4a5ccb9cc54bc6b',
+                   'sha256':'2aaf1375f8969006c57e5523e91fd2a5b157990f069503b29764ec38c097ee82'})
+              ast.parse(stage_body,feature_version=(3,9))
+              stage_script=source/'merlin_python_private_stage.py'
+              stage_script.write_bytes(stage_body)
+              stage_script.chmod(0o400)
+              validator=read_file(repo,'ops/merlin_studio_validation/validate.py',commit,{
+                  'bytes':37082,'blob':'d950f862e4025db559c4c1a99cdba4aec9bae6c7',
+                  'sha256':'39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee'})
+              ast.parse(validator,feature_version=(3,9))
+              namespace={'__name__':'pinned_merlin_studio_bundle_reader'}
+              exec(compile(validator,'pinned-source-reader','exec'),namespace)
+              pin_bytes=read_file(repo,'ops/merlin_studio_validation/source-pins.json',commit,{
+                 'bytes':8350,'blob':'bba11aced1eeb2d31c264f749408653fa618c879'})
+              zip_bytes=read_file(repo,'ops/merlin_studio_validation/product-source.zip',commit,{
+                  'bytes':104129,'blob':'09d10789ab63c776cf47b8226cd0507e8cce1e49',
+                  'sha256':'99964ba99ea41a3b3580b85574533e5aaa8a2e72cca111b1b2233c948bb1cf8b'})
+              pins=namespace['parse_json'](pin_bytes)
+              members=namespace['validate_bundle'](pins,zip_bytes)
+              require(len(members)==36,'native Studio source-member count differs')
+              namespace['extract_bundle'](members,product)
+              overlay_commit='612e7a51b615bd59c85f56c8837b69ad9f1c73e3'
+              overlays={
+                 'portable/merlin_studio/tools.py':{'bytes':16271,'blob':'c4da3b66b54c5903be6ddd96c49eea419641497a'},
+                 'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
+                 'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
+                 'portable/merlin_studio/model.py':{'bytes':15458,'blob':'f71d8cc044e54ce06fd81b8d8660f574ce7f0eb7'},
+                 'portable/merlin_studio/engine.py':{'bytes':21105,'blob':'327eb0bcf04dd8d78b458f1f6b4179607eed400f'},
+                 'portable/merlin_studio/web/index.html':{'bytes':75508,'blob':'960e61939b5cd91c8f388251d0c9656a86677441'},
+                 'portable/merlin_studio/browser_bridge.py':{'bytes':14311,'blob':'8cccfc2063c38300fef834eeae9ed10436ce1dd6'}}
+              for path,pin in overlays.items():
+                  updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
+                  if path.endswith('.py'):
+                      ast.parse(updated,feature_version=(3,9))
+                  (product/path).write_bytes(updated)
+              # Reject connected browser on this unprivileged runner.
+              browser_guard=subprocess.run(
+                 ['/usr/bin/python3','-I','-B','-c',
+                  'import os,sys;sys.path.insert(0,sys.argv[1]);from browser_bridge import BrowserBridge;assert os.geteuid()==1000;assert not BrowserBridge().available();print("connected_browser_not_authorized")',
+                  str(product/'portable/merlin_studio')],
+                 cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                              'HOME':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'},
+                 stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
+              (ev/'browser-not-authorized.log').write_bytes((browser_guard.stdout+browser_guard.stderr)[:32768])
+              require(browser_guard.returncode==0
+                     and b'connected_browser_not_authorized' in browser_guard.stdout,
+                      'unapproved browser appeared on the private-model runner')
+              # The control and exact 36-file bundle are fully fixed and
+              # no repo data or network is available after unshare.
+              (ev/'source-identity.json').write_text(json.dumps({
+                 'schema':'merlin-studio-real-model-source/1','request_commit':commit,
+                 'model_controller':sources,'product_source_commit':
+                    '8497597f297bba83189afef2026c27f9244537ce',
+                 'product_overlay_commit':overlay_commit,
+                 'model_source_members':36,'pinned_overlays':overlays,
+                 'source_zip_sha256':hashlib.sha256(zip_bytes).hexdigest(),
+                 'model_request_budget':3,'production_qualified':False},sort_keys=True,indent=2))
+              # Stage only the approved exact archive as UID1000 in a private 0700
+              # directory; never install or replace the host's system Python.
+              require(archive_parent.is_dir() and not archive_parent.is_symlink()
+                  and archive.is_file() and not archive.is_symlink()
+                  and archive.stat().st_size==49469868,
+                  'approved CPython archive missing or altered')
+              child_stage=subprocess.run(
+                  ['/usr/bin/python3','-I','-B',str(stage_script),
+                   '--archive',str(archive),'--parent',str(py_parent),'--stage'],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=145)
+              require(child_stage.returncode==0 and len(child_stage.stdout)<=32768
+                      and len(child_stage.stderr)<=32768,
+                      'private CPython verification and staging failed')
+              stage_receipt=json.loads(child_stage.stdout)
+              require(stage_receipt.get('schema')=='merlin-private-cpython-stage/1'
+                      and stage_receipt.get('archive_members')==4949
+                      and stage_receipt.get('staged_files')==3900
+                      and stage_receipt.get('symlink_entries')==1049
+                      and stage_receipt.get('entrypoint_sha256')==
+                          '6cfad927461ace659b09716fad2efa828c6a4b084b7be8181c3982a9f36f464c'
+                      and stage_receipt.get('host_system_installation') is False
+                      and stage_receipt.get('native_interpreter_executed') is False,
+                      'exact private Python stage receipt differs')
+              leaf=Path(stage_receipt['staging_path'])
+              require(leaf.parent==py_parent and leaf.name.startswith('merlin-cpython-stage-')
+                      and leaf.is_dir() and not leaf.is_symlink(),
+                      'private interpreter location escaped staging parent')
+              python_path=leaf/'python/bin/python3.11'
+              require(python_path.is_file() and not python_path.is_symlink()
+                      and python_path.stat().st_size==56723673,
+                      'staged Python3.11 executable identity differs')
+              digest=hashlib.sha256()
+              with python_path.open('rb') as stream:
+                  for block in iter(lambda:stream.read(1024*1024),b''):
+                      digest.update(block)
+              require(digest.hexdigest()==
+                  '6cfad927461ace659b09716fad2efa828c6a4b084b7be8181c3982a9f36f464c',
+                  'staged interpreter SHA-256 differs')
+              (ev/'private-python-identity.json').write_text(json.dumps({
+                  'staging_schema':stage_receipt['schema'],
+                  'interpreter_sha256':digest.hexdigest(),'python_version':'3.11.18',
+                  'host_installed':False,'production_qualified':False
+              },sort_keys=True))
+              argv=['/usr/bin/unshare','--user','--map-current-user','--net','--fork',
+                '--keep-caps','/usr/bin/python3','-I','-B',
+                str(source/'run_studio_tool.py'),'setup',str(ev),str(product),
+                str(scratch),str(os.stat('/proc/self/ns/net').st_ino),
+                str(python_path)]
+              clean={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                     'LC_ALL':'C.UTF-8','HOME':str(scratch),
+                     'TMPDIR':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'}
+              child=subprocess.Popen(argv,cwd='/',env=clean,
+                   stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                   stderr=subprocess.PIPE,start_new_session=True)
+              expired=False
+              try:out,err=child.communicate(timeout=455)
+              except subprocess.TimeoutExpired:
+                  expired=True
+                  try:os.killpg(child.pid,signal.SIGKILL)
+                  except ProcessLookupError:pass
+                  out,err=child.communicate(timeout=10)
+              (ev/'isolation-entry.stdout').write_bytes(out[:65536])
+              (ev/'isolation-entry.stderr').write_bytes(err[:65536])
+              require(not expired and child.returncode==0
+                  and len(out)<=65536 and len(err)<=65536,
+                  'Studio/tool child failed, timed out or exceeded evidence budget')
+              result=json.loads((ev/'studio-tool-result.json').read_text())
+              require(result.get('status')=='passed'
+                  and result.get('verified_read_file') is True
+                  and result.get('model_request_events') in (2,3)
+                  and result.get('tool_started_events') in (1,2)
+                  and result.get('unsafe_tools_selected')==0
+                  and result.get('persisted_messages')==2
+                  and result.get('restart_restored') is True
+                  and result.get('stale_token_rejected') is True
+                  and result.get('model_process_terminated') is True
+                  and result.get('studio_process_terminated') is True
+                  and result.get('existing_provider_mutated') is False
+                  and result.get('production_qualified') is False,
+                  'native model-selected read-file reference not accepted')
+              state='passed'
+          except BaseException as exc:
+              reason=type(exc).__name__+': '+str(exc)[:220]
+              (ev/'blocked.json').write_text(json.dumps({
+                'status':'blocked','reason':reason,'production_qualified':False}))
+              raise
+          finally:
+              # Clean only fresh private staging; retain receipts and
+              # bounded stderr, never upload model weights or generated state.
+              for name in ('product','scratch','controller','private-python'):
+                  p=root/name
+                  if p.exists() and p.is_dir() and not p.is_symlink():
+                      shutil.rmtree(p)
+              if archive_parent.is_dir() and not archive_parent.is_symlink():
+                  shutil.rmtree(archive_parent)
+              (ev/'cleanup.json').write_text(json.dumps({
+                'staging_removed':all(not (root/n).exists()
+                   for n in ('product','scratch','controller','private-python')),
+                'host_installation':False,'production_qualified':False},
+                sort_keys=True))
+              print(json.dumps({'status':state,'reason':reason,
+                'staging_removed':all(not (root/n).exists()
+                   for n in ('product','scratch','controller','private-python')),
+                'production_qualified':False},sort_keys=True))
+          PY
+      - name: Retain model-selected tool events, source identities, recovery and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-integrated-tool-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-integrated-tool-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          retention-days: 30
+          include-hidden-files: true
+          if-no-files-found: warn
