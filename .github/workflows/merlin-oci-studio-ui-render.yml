@@ -120,7 +120,7 @@ jobs:
                   '/usr/bin/true'],clean,8,evidence/'network-namespace.txt')
               # Fetch exact real Studio UI from the engineering product commit.
               # Treat fetched source as data and execute only inside no-network Chromium.
-              studio_commit='00d31a5d4a357888cae32ec23f8b567eb6696642'
+              studio_commit='bca28b68819d09568bf4ff6709708979c15cd3ab'
               source_path='portable/merlin_studio/web/index.html'
               source_url=('https://api.github.com/repos/Mannyspiro/expert-robot/contents/'
                           +source_path+'?ref='+studio_commit)
@@ -135,15 +135,16 @@ jobs:
               require(source_item.get('encoding')=='base64','Studio source encoding mismatch')
               source=base64.b64decode(''.join(source_item['content'].split()),validate=True)
               source_sha256=hashlib.sha256(source).hexdigest()
-              require(len(source)==74200
-                  and source_sha256=='eb59215ec2eac701bd498de0d736b949a17fb3888f110a3160b8deb1eea4dbb2'
-                  and git_blob(source)=='4769eccf4a59b326aa96b6d3cc087fb7ee0642bf'
-                  and source_item.get('sha')=='4769eccf4a59b326aa96b6d3cc087fb7ee0642bf',
+              require(len(source)==74884
+                  and source_sha256=='bdf93bf82d737c53cf2fd0e0f9cbbc71badaa09d6f329a15db1b8b10736d5618'
+                  and git_blob(source)=='c9d4d5729476e04390a62584d13f4d2a2b2edc5b'
+                  and source_item.get('sha')=='c9d4d5729476e04390a62584d13f4d2a2b2edc5b',
                   'Studio UI source bytes/pins differ')
               require(b'<title>Merlin Studio</title>' in source and b'id="welcome-title"' in source
                       and b'id="composer"' in source
                       and b'id="max-output-tokens"' in source
-                      and b'id="model-timeout-seconds"' in source,
+                      and b'id="model-timeout-seconds"' in source
+                      and b'id="tool-compatibility"' in source,
                       'Studio UI structural source changed')
               html=temp/'merlin-studio.html'
               html.write_bytes(source)
@@ -151,7 +152,7 @@ jobs:
                   'source_repository':'Mannyspiro/expert-robot',
                   'source_commit':studio_commit,'source_path':source_path,
                   'source_sha256':source_sha256,
-                  'source_git_blob':'4769eccf4a59b326aa96b6d3cc087fb7ee0642bf',
+                  'source_git_blob':'c9d4d5729476e04390a62584d13f4d2a2b2edc5b',
                   'source_bytes':len(source),'file_unmodified':True,
                   'server_backend_connected':False,'production_qualified':False
               },sort_keys=True,indent=2))
@@ -174,7 +175,7 @@ jobs:
                   def __init__(self):
                       super().__init__();self.heading=False;self.composer=False
                       self.textarea=False;self.shortcut=False;self.capture=False
-                      self.response_budget=False;self.response_timeout=False
+                      self.response_budget=False;self.response_timeout=False;self.compatibility_selector=False;self.native_default=False;self.readonly_option=False
                   def handle_starttag(self,tag,attrs):
                       values=dict(attrs)
                       if tag=='h1' and values.get('id')=='welcome-title': self.heading=True
@@ -184,6 +185,12 @@ jobs:
                           self.response_budget=(values.get('min')=='16' and values.get('max')=='2048')
                       if tag=='input' and values.get('id')=='model-timeout-seconds':
                           self.response_timeout=(values.get('min')=='10' and values.get('max')=='120')
+                      if tag=='select' and values.get('id')=='tool-compatibility':
+                          self.compatibility_selector=True
+                      if tag=='option' and values.get('value')=='native':
+                          self.native_default=True
+                      if tag=='option' and values.get('value')=='read_only_json':
+                          self.readonly_option=True
                       if tag=='span' and 'new-shortcut' in values.get('class','').split():
                           self.capture=True
                   def handle_endtag(self,tag):
@@ -193,7 +200,9 @@ jobs:
               observer=DOMObserver()
               observer.feed(dom.decode('utf-8','strict'))
               require(observer.heading and observer.composer and observer.textarea
-                      and observer.response_budget and observer.response_timeout,
+                      and observer.response_budget and observer.response_timeout
+                      and observer.compatibility_selector
+                      and observer.native_default and observer.readonly_option,
                   'pinned Studio interface did not render required UI controls')
               require(observer.shortcut,
                   'Studio client JavaScript did not execute its Linux shortcut update')
@@ -215,6 +224,7 @@ jobs:
                   'sandbox_disable_flag_used':False,'headless_browser_executed':True,
                   'javascript_observed':True,'studio_javascript_shortcut_observed':True,
                   'budget_settings_dom_verified':True,'timeout_settings_dom_verified':True,
+                  'readonly_compatibility_selector_verified':True,
                   'ui_source_sha256':source_sha256,'ui_source_commit':studio_commit,
                   'server_backend_connected':False,'screenshot_png':True,
                   'screenshot_width':width,'screenshot_height':height,
