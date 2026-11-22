@@ -113,6 +113,18 @@ class PackagedModelContract(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     packaged.assess_model_reply(malformed)
 
+    def test_reference_answer_required_for_technical_pass(self):
+        for answer in ("41", "The answer is 42", "42\\nextra", "forty-two"):
+            with self.subTest(answer=answer):
+                report = packaged.assess_model_reply(
+                    {"choices": [{"message": {"content": answer}}]})
+                self.assertFalse(report["answer_exact_42"])
+                with self.assertRaisesRegex(ValueError, "independent arithmetic reference"):
+                    packaged.require_reference_correct(report)
+        report = packaged.assess_model_reply(
+            {"choices": [{"message": {"content": "42"}}]})
+        self.assertTrue(packaged.require_reference_correct(report))
+
     def test_namespace_root_maps_only_to_unprivileged_host_uid(self):
         self.assertTrue(packaged.rootless_uid_mapping(0, ["0", "1000", "1"]))
         for uid, mapping in ((1000, ["1000", "1000", "1"]),
