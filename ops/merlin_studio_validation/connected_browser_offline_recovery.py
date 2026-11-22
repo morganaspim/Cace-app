@@ -178,7 +178,7 @@ def run(py, product, root, ev):
         help_run = command("/help")
         require("Merlin Studio is ready" in json.dumps(help_run["conversation"]),
                 "offline /help reply missing")
-        write_run = command("/write notes/progress.txt\\n" + reference)
+        write_run = command("/write notes/progress.txt\n" + reference)
         read_run = command("/read notes/progress.txt")
         require(reference in json.dumps(read_run["conversation"]),
                 "offline read did not return the written file")
