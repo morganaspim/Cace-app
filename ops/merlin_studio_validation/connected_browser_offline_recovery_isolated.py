@@ -83,6 +83,21 @@ def post(path, value, token):
     finally:
         connection.close()
 
+def isolated_interfaces():
+    """Query live interfaces in this network namespace, never inherited sysfs."""
+    entries = socket.if_nameindex()
+    require(isinstance(entries, list) and len(entries) > 0,
+            "network interface enumeration unavailable")
+    indexes = [index for index, name in entries]
+    names = [name for index, name in entries]
+    require(all(type(index) is int and index > 0 for index in indexes)
+            and all(isinstance(name, str) and name for name in names)
+            and len(indexes) == len(set(indexes))
+            and len(names) == len(set(names)),
+            "network link identities are ambiguous")
+    return sorted(names)
+
+
 def require_private_network_namespace(ev):
     # Never attempt to bring up interfaces here. Only the earlier rootless
     # setup process has CAP_NET_ADMIN, and only in this fresh network ns.
@@ -101,7 +116,8 @@ def require_private_network_namespace(ev):
             "browser controller still has effective capabilities")
     require(flags.get("NoNewPrivs") == "1",
             "browser controller does not have no-new-privileges")
-    interfaces = sorted(os.listdir("/sys/class/net"))
+    # sysfs may have been mounted in the parent network namespace.
+    interfaces = isolated_interfaces()
     require(interfaces == ["lo"], "network namespace has unexpected interface")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         data = struct.pack("16sH14s", b"lo", 0, b"")
@@ -118,7 +134,9 @@ def require_private_network_namespace(ev):
         "parent_netns_inode": external, "child_netns_inode": current,
         "distinct_netns": True, "uid_mapping": mapping,
         "effective_capabilities_zero": True, "no_new_privs": True,
-        "interfaces": interfaces, "only_loopback_up": True,
+        "interfaces": interfaces,
+        "interface_source": "socket.if_nameindex/current_netns",
+        "only_loopback_up": True,
         "no_default_route": True, "host_network_mutation": False,
         "model_calls": 0, "production_qualified": False}
     (ev / "network-namespace-proof.json").write_text(
