@@ -29,9 +29,11 @@ NAME = "receipt.txt"
 OUTPUT_TOKENS = 192
 MODEL_TIMEOUT = 120
 PROMPT = (
-    "Use the read_file tool to open receipt.txt. Read its verification marker "
-    "and reply with ONLY that exact marker, without explanation. The marker "
-    "is not present in this request. Do not create, delete, or edit files."
+    "You must use the read_file function/tool with argument path=receipt.txt "
+    "before answering. Submit an actual tool call, not a textual explanation. "
+    "Once the tool returns, copy the exact MERLIN_TOOL_ marker in the file "
+    "as your entire final reply. Do not guess the marker, because it is not "
+    "given in this message. Do not create, delete, or edit files."
 )
 
 
@@ -200,6 +202,9 @@ def test(ev, product, scratch, parent, python):
                      and messages[1].get("role") == "assistant",
                      "tool result or assistant reply not persisted correctly")
         answer = messages[1]["content"]
+        # Failure diagnosis only: preserve a bounded, marker-redacted model
+        # excerpt without publishing scratch workspace data or auth tokens.
+        result["assistant_preview_redacted"] = answer.replace(marker, "[marker-redacted]")[:180]
         proof = assess(run.get("events", []), expected_path=NAME,
                        fixture_sha256=digest, marker=marker, answer=answer)
         base.require(fixture.is_file() and not fixture.is_symlink()
