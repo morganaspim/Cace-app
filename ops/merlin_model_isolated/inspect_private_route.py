@@ -90,7 +90,7 @@ def main():
                 "child_stderr_sha256":hashlib.sha256(stderr).hexdigest(),
                 "observations":partial,"host_mutations":0,
                 "model_inference_executed":False,"production_qualified":False}
-        Path("private-route-result.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+        Path("private-route-result.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
         raise RuntimeError("bounded private namespace probe failed: "+category)
     results=[json.loads(x) for x in child_result.stdout.decode("utf-8").splitlines()]
     if len(results)!=2 or any(x.get("nonlo_rows")!=0
