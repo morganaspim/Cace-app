@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "9ad43183-169e-499b-aab5-b3df6722b562",
+  "operation": "inventory_snapshot",
+  "reason": "Refresh bounded runner, free-disk and local MCP service inventory before continuing Merlin dot validation.",
+  "created_at": "2026-11-17T17:13:35.750Z"
+}
