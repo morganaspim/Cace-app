@@ -12,6 +12,7 @@ name: Merlin browser reconciliation contract (non-deploying)
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: merlin-browser-reconciliation-contract-${{ github.ref }}
@@ -28,6 +29,14 @@ jobs:
           persist-credentials: false
           clean: true
           fetch-depth: 1
+      - name: Retrieve fixed prior read-only host evidence (no OCI access)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14763396209
+          run-id: 45045149558
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: browser-inspection-source
       - name: Check no-hardware, no-privilege contracts
         shell: bash
         run: |
@@ -43,6 +52,29 @@ jobs:
           sha256sum ops/merlin_browser/reconcile_orphan_socket.py \
             ops/merlin_browser/test_reconcile_orphan_socket.py \
             > source-digests.txt
+      - name: Bind and classify exact observed browser-host receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=browser-inspection-source/root-evidence/state-inspection.json
+          test -f "$file" && test ! -L "$file"
+          test "$(sha256sum "$file" | cut -d ' ' -f 1)" = \
+            "0a5079914b4e0586dc8feabd0f5e76fadf0f7a5bda440f7cd59173f6b638934f"
+          python3 -B ops/merlin_browser/reconcile_orphan_socket.py \
+            --input "$file" --output reconciliation-plan.json \
+            --expected-run-id 45045149558 \
+            --expected-workflow-commit f4f7a4799c8a309a277b879f38209b3568d87c6c
+          python3 -B - <<'PY'
+          import json
+          from pathlib import Path
+          result=json.loads(Path("reconciliation-plan.json").read_text())
+          assert result["status"]=="candidate_for_separate_locked_reinspection"
+          assert result["authority_granted"] is False
+          assert result["may_unlink_socket"] is False
+          assert result["host_mutations"] == 0
+          assert result["native_browser_qualified"] is False
+          print(json.dumps({"status":result["status"],"source_receipt_sha256":result["source_receipt_sha256"],"authority_granted":False},sort_keys=True))
+          PY
       - name: Preserve exact test and source evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -53,5 +85,6 @@ jobs:
             source-commit.txt
             contract-tests.log
             source-digests.txt
+            reconciliation-plan.json
           retention-days: 14
           if-no-files-found: warn
