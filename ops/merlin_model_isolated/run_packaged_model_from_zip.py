@@ -111,22 +111,34 @@ def model_argv(root):
             "--threads-http","2","--n-gpu-layers","0","--offline","--no-webui"]
 
 
-def no_default_route(raw):
-    if not isinstance(raw,str):
+def rootless_uid_mapping(euid, uid_map):
+    """Namespace-local UID0 is mapped ONLY to unprivileged host UID1000."""
+    return type(euid) is int and euid == 0 and uid_map == ["0", "1000", "1"]
+
+
+def no_default_route(raw, *, before_loopback=False):
+    if not isinstance(raw,str) or type(before_loopback) is not bool:
         return False
+    # OCI kernel returns an empty /proc/net/route until lo is brought up.
+    # This exception is admissible ONLY during initial setup after exact
+    # user/net namespace and interface identity are independently checked.
+    if raw == "":
+        return before_loopback
     lines = raw.splitlines()
-    if not lines or not lines[0].lstrip().startswith("Iface"):
+    if not lines or lines[0].split()[:3] != ["Iface","Destination","Gateway"]:
         return False
-    # A fresh unshare --net namespace has no routes before lo is enabled.
-    if len(lines) == 1:
-        return True
     for line in lines[1:]:
         columns = line.split()
-        if len(columns) < 2:
-            return False
-        if columns[1] == "00000000" and columns[0] != "lo":
+        if len(columns) < 3 or columns[0] != "lo":
             return False
     return True
+
+
+def namespace_argv(script, root, scratch, parent):
+    """Host UID1000 is mapped to local UID0 ONLY for private lo setup."""
+    return ["/usr/bin/unshare", "--user", "--map-root-user", "--net", "--fork",
+            "/usr/bin/python3", "-I", "-B", str(script), "setup",
+            str(root), str(scratch), str(parent)]
 
 
 def _unique_json(pairs):
@@ -205,17 +217,17 @@ def _request(method, path, body=None, *, seconds):
         conn.close()
 
 
-def _namespace(parent):
-    if os.geteuid() != 1000:
-        raise RuntimeError("isolated package inference UID must be 1000")
+def _namespace(parent, *, before_loopback=False):
+    if not rootless_uid_mapping(
+            os.geteuid(), Path("/proc/self/uid_map").read_text().split()):
+        raise RuntimeError("private namespace root is not mapped to host UID1000")
     if os.stat("/proc/self/ns/net").st_ino == parent:
         raise RuntimeError("model retained host network namespace")
-    if Path("/proc/self/uid_map").read_text().split() != ["1000","1000","1"]:
-        raise RuntimeError("private user namespace mapping differs")
     if sorted(name for _,name in socket.if_nameindex()) != ["lo"]:
         raise RuntimeError("non-loopback network interface in private model namespace")
-    if not no_default_route(Path("/proc/net/route").read_text()):
-        raise RuntimeError("model namespace exposes default route")
+    if not no_default_route(Path("/proc/net/route").read_text(),
+                            before_loopback=before_loopback):
+        raise RuntimeError("model namespace route table failed strict isolation")
     return os.stat("/proc/self/ns/net").st_ino
 
 
@@ -282,6 +294,8 @@ def _run(root, scratch, parent):
         "external_network_allowed":False,"host_mutations":0,
         "model_weights_exported":False,"production_qualified":False,
         "source_pins_verified":True,
+        "namespace_root_maps_to_host_uid1000":True,
+        "model_capabilities_dropped_before_exec":True,
     }
     process=None
     try:
@@ -351,8 +365,15 @@ def _run(root, scratch, parent):
 
 
 def _setup(root,scratch,parent):
-    _namespace(parent)
+    # In this short setup phase CAP_NET_ADMIN exists ONLY in the newly
+    # created user/net namespace. It is never held over the model exec.
+    _namespace(parent, before_loopback=True)
+    setup_caps=_status(os.getpid()).get("CapEff", "")
+    if not setup_caps or not int(setup_caps,16) & (1 << 12):
+        raise RuntimeError("no namespace-local capability to enable private lo")
     _enable_private_loopback()
+    # No empty route-table exception after the private interface is enabled.
+    _namespace(parent)
     self_script=Path(__file__).resolve(strict=True)
     argv=["/usr/bin/setpriv","--no-new-privs","--bounding-set=-all",
           "--inh-caps=-all","/usr/bin/python3","-I","-B",
@@ -382,9 +403,9 @@ def invoke(root,scratch):
     parent_ns=os.stat("/proc/self/ns/net").st_ino
     env=dict(SAFE_ENV)
     env["HOME"]=str(scratch)
-    command=["/usr/bin/unshare","--user","--map-current-user","--net",
-             "--fork","/usr/bin/python3","-I","-B",
-             str(script),"setup",str(root),str(scratch),str(parent_ns)]
+    if os.geteuid()!=1000:
+        raise RuntimeError("outer OCI model parent must be unprivileged host UID1000")
+    command=namespace_argv(script,root,scratch,parent_ns)
     proc=subprocess.run(command,cwd="/",env=env,stdin=subprocess.DEVNULL,
                         capture_output=True,timeout=370)
     if len(proc.stdout)>32768 or len(proc.stderr)>32768:
