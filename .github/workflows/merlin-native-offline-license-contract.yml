@@ -1,4 +1,4 @@
-name: Merlin offline license and packed executable contracts (no downloads)
+name: Merlin offline ZIP license, native executable and model contract (no downloads)
 
 "on":
   push:
@@ -7,6 +7,8 @@ name: Merlin offline license and packed executable contracts (no downloads)
       - ops/merlin_model_isolated/run_offline_native_bundle.py
       - ops/merlin_model_isolated/test_offline_license_receipts.py
       - ops/merlin_model_isolated/test_packaged_llama_runtime.py
+      - ops/merlin_model_isolated/run_packaged_model_from_zip.py
+      - ops/merlin_model_isolated/test_packaged_model_inference.py
       - .github/workflows/merlin-native-offline-license-contract.yml
 
 permissions:
@@ -32,9 +34,13 @@ jobs:
             -p 'test_offline_license_receipts.py' -v 2>&1 | tee license-tests.log
           python3 -B -m unittest discover -s ops/merlin_model_isolated \
             -p 'test_packaged_llama_runtime.py' -v 2>&1 | tee native-executable-tests.log
+          python3 -B -m unittest discover -s ops/merlin_model_isolated \
+            -p 'test_packaged_model_inference.py' -v 2>&1 | tee packaged-model-tests.log
           sha256sum ops/merlin_model_isolated/run_offline_native_bundle.py \
             ops/merlin_model_isolated/test_offline_license_receipts.py \
-            ops/merlin_model_isolated/test_packaged_llama_runtime.py > source-digests.txt
+            ops/merlin_model_isolated/test_packaged_llama_runtime.py \
+            ops/merlin_model_isolated/run_packaged_model_from_zip.py \
+            ops/merlin_model_isolated/test_packaged_model_inference.py > source-digests.txt
       - name: Preserve only test evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -44,6 +50,7 @@ jobs:
             source-commit.txt
             license-tests.log
             native-executable-tests.log
+            packaged-model-tests.log
             source-digests.txt
           retention-days: 14
           if-no-files-found: warn
