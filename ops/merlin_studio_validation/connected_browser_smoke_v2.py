@@ -94,7 +94,7 @@ def dropped_private_identity():
         request = struct.pack("16sH14s", b"lo", 0, b"")
         name, flags, tail = struct.unpack(
             "16sH14s", fcntl.ioctl(sock.fileno(), 0x8913, request))
-        require(name.rstrip(b"\\0") == b"lo" and (flags & 1) == 1,
+        require(name.rstrip(b"\0") == b"lo" and (flags & 1) == 1,
                 "private loopback interface is not up")
 
 
