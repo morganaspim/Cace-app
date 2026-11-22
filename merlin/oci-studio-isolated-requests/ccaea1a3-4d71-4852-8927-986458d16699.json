@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-studio-isolated-request/1",
+  "request_id": "ccaea1a3-4d71-4852-8927-986458d16699",
+  "operation": "run-merlin-studio-isolated-offline-restart",
+  "created_at": "2026-11-22T11:38:24Z"
+}
