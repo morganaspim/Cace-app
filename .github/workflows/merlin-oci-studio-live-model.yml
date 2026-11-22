@@ -108,7 +108,7 @@ jobs:
               (ev/'request.json').write_bytes(raw)
               scripts={
                   'run_private_model.py':{'bytes':16616,'blob':'65b0659425d6759dc291967c1d17e60f8c29c06e'},
-                  'run_studio_model.py':{'bytes':16058,'blob':'25a7714406069ac17cce3e43257885668edab78f'},
+                  'run_studio_model.py':{'bytes':16308,'blob':'bd8eda8ef777ed8db3418fcac2509d0c9419dfa2'},
                   'test_studio_id_contract.py':{'bytes':2532,'blob':'46ff2b527a8a7d7a8412a59babc599fb2cccd203'}}
               sources={}
               for name,pin in scripts.items():
@@ -153,14 +153,18 @@ jobs:
               members=namespace['validate_bundle'](pins,zip_bytes)
               require(len(members)==36,'native Studio source-member count differs')
               namespace['extract_bundle'](members,product)
-              overlay_commit='d2c53ebce82e918ac5a246c8ef9416abc47032a1'
+              overlay_commit='f148a42e6ca4afd559aa400515f3f5d4fc5d87cd'
               overlays={
                  'portable/merlin_studio/tools.py':{'bytes':13986,'blob':'772b08c3f10b0732c99a13f5268ee18e30292344'},
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
-                 'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'}}
+                 'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
+                 'portable/merlin_studio/model.py':{'bytes':11321,'blob':'85730efc0e3f576f0c66faa9bf95e46287fbce20'},
+                 'portable/merlin_studio/engine.py':{'bytes':16111,'blob':'e0ef33ca018a3906d9fc05ca33702f2cdaf4775d'},
+                 'portable/merlin_studio/web/index.html':{'bytes':73569,'blob':'b06113c60978f66846490b635f680dec4e82bbc2'}}
               for path,pin in overlays.items():
                   updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
-                  ast.parse(updated,feature_version=(3,9))
+                  if path.endswith('.py'):
+                      ast.parse(updated,feature_version=(3,9))
                   (product/path).write_bytes(updated)
               # The control and exact 36-file bundle are fully fixed and
               # no repo data or network is available after unshare.
