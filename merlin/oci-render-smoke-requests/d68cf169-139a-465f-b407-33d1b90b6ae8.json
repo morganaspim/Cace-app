@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-render-smoke-request/1",
+  "request_id": "d68cf169-139a-465f-b407-33d1b90b6ae8",
+  "operation": "offline-render-no-network",
+  "created_at": "2026-11-22T11:01:30Z"
+}
