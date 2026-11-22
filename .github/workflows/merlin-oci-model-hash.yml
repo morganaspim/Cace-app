@@ -1,0 +1,182 @@
+name: Merlin OCI read-only pinned model and binary SHA-256 verification
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-model-hash-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  verify-model-bytes:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 6
+    steps:
+      - name: Validate request, hash fixed local files as UID1000, retain no model bytes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,datetime,hashlib,json,os,platform,re,stat,time,urllib.request,uuid
+          from pathlib import Path
+
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app'
+              or os.environ.get('GITHUB_REF')!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run_id<=0
+              or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed unprivileged OCI identity required')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-model-hash-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          start=time.monotonic();stage='request';details={}
+          result={'schema':'merlin-oci-model-disk-integrity/1','status':'blocked',
+              'model_generation_calls':0,'model_binary_executed':False,
+              'root_or_sudo_used':False,'host_installation':False,
+              'service_mutations':False,'production_qualified':False,
+              'process_bound_to_files':False,'uid':os.geteuid(),
+              'run_id':run_id,'source_commit':commit}
+          def require(ok,why):
+              if not ok: raise RuntimeError(why)
+          def unique(pairs):
+              d={}
+              for k,v in pairs:
+                  if k in d: raise ValueError('duplicate JSON key')
+                  d[k]=v
+              return d
+          def api(part):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+part,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                         'Accept':'application/vnd.github+json',
+                         'User-Agent':'Merlin-readonly-SHA256-custody'})
+              with urllib.request.urlopen(req,timeout=18) as response:
+                  data=response.read(1024*1024+1)
+              require(len(data)<=1024*1024,'GitHub response too large')
+              return json.loads(data,object_pairs_hook=unique)
+          def git_blob(raw):
+              return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          ROOT='/opt/merlin-model-provider/releases/3f432dc172cf06f1af75974dbc4ec2b9135a8a82bd1fa2bfc35c0e53fe69f33e'
+          FILES={
+             'model':(ROOT+'/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf',
+                      1117320768,'cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046'),
+             'binary':(ROOT+'/llama-server',
+                       14614984,'af4c10f1f4a1e7f0878dc9b3896bb742f65170861276ef04ddecdf2a9be3cd82')}
+          def open_verified(path,size):
+              info=os.lstat(path)
+              require(stat.S_ISREG(info.st_mode) and info.st_uid==0
+                  and not (stat.S_IMODE(info.st_mode)&0o022)
+                  and info.st_size==size,'untrusted prehash file metadata')
+              fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+              after=os.fstat(fd)
+              require(stat.S_ISREG(after.st_mode) and after.st_dev==info.st_dev
+                      and after.st_ino==info.st_ino and after.st_size==size,
+                      'file identity changed during open')
+              return fd,info
+          def hash_fixed(label,path,size,expected_sha):
+              fd,info=open_verified(path,size)
+              measured=hashlib.sha256();total=0;deadline=time.monotonic()+145
+              try:
+                  while True:
+                      require(time.monotonic()<deadline,'file hashing deadline')
+                      buf=os.read(fd,4*1024*1024)
+                      if not buf: break
+                      total+=len(buf)
+                      require(total<=size,'file grew during hash')
+                      measured.update(buf)
+                  end=os.fstat(fd)
+                  current=os.lstat(path)
+                  require((end.st_dev,end.st_ino,end.st_size)==
+                          (info.st_dev,info.st_ino,info.st_size)
+                          and (current.st_dev,current.st_ino,current.st_size)==
+                          (info.st_dev,info.st_ino,info.st_size)
+                          and total==size,'file identity changed during hash')
+              finally: os.close(fd)
+              actual=measured.hexdigest()
+              require(actual==expected_sha,'pinned '+label+' SHA256 mismatch')
+              return {'bytes_hashed':total,'sha256':actual,
+                      'expected_sha256':expected_sha,'passed':True,
+                      'file_identity_held_stable':True}
+          try:
+              changed=api('commits/'+commit).get('files',[])
+              require(len(changed)==1 and changed[0].get('status')=='added',
+                      'only one additive request allowed')
+              path=changed[0].get('filename','')
+              m=re.fullmatch(r'merlin/oci-model-hash-requests/([0-9a-f-]{36})\.json',path)
+              require(m is not None,'unexpected hash request path')
+              item=api('contents/'+path+'?ref='+commit)
+              require(item.get('encoding')=='base64','GitHub request encoding')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)<4096 and item.get('sha')==git_blob(raw),
+                      'request blob mismatch')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                  and request['schema']=='merlin-oci-model-hash-request/1'
+                  and request['operation']=='verify-installed-model-and-server-by-sha256'
+                  and request['request_id']==m.group(1)
+                  and str(uuid.UUID(request['request_id']))==request['request_id']
+                  and datetime.datetime.strptime(request['created_at'],
+                       '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%dT%H:%M:%SZ')==
+                       request['created_at'], 'request schema mismatch')
+              (out/'request.json').write_bytes(raw)
+              stage='manifest'
+              manifest_path='/etc/merlin-model-provider/manifest.json'
+              fd,meta=open_verified(manifest_path,3192)
+              try: manifest_raw=os.read(fd,16385)
+              finally: os.close(fd)
+              require(len(manifest_raw)==3192 and hashlib.sha256(manifest_raw).hexdigest()==
+                  '35cf7ea56185126587e7dc10bb400ec53df51057407f9920d0ab03aff4299203',
+                  'installed model manifest bytes changed')
+              manifest=json.loads(manifest_raw,object_pairs_hook=unique)
+              require(manifest.get('schema')=='merlin-local-model-provider/1'
+                  and manifest.get('status')=='ready'
+                  and manifest.get('model')=='merlin-qwen-coder-1.5b-q4'
+                  and manifest.get('qualification') is False
+                  and manifest.get('model_artifact',{}).get('path')==FILES['model'][0]
+                  and manifest.get('model_artifact',{}).get('sha256')==FILES['model'][2]
+                  and manifest.get('model_artifact',{}).get('size_bytes')==FILES['model'][1]
+                  and manifest.get('model_artifact',{}).get('repository_revision')==
+                      'f86cb2c1fa58255f8052cc32aeede1b7482d4361'
+                  and manifest.get('runtime',{}).get('binary_path')==FILES['binary'][0]
+                  and manifest.get('runtime',{}).get('source_commit')==
+                      '2a4daf0e08d6a9b6993ee0d4a9a3cfc35a6f405c',
+                  'installed model manifest provenance differs')
+              result['manifest_sha256']=hashlib.sha256(manifest_raw).hexdigest()
+              stage='binary'
+              details['binary']=hash_fixed('binary',*FILES['binary'])
+              stage='model'
+              details['model']=hash_fixed('model',*FILES['model'])
+              stage='complete'
+              result['status']='verified_files_only_no_process_binding'
+              result['files']=details
+              result['model_and_binary_verified']=True
+          except BaseException as exc:
+              result['error_type']=type(exc).__name__
+              result['stage']=stage
+              result['reason']=str(exc)[:180]
+              raise
+          finally:
+              result['elapsed_seconds']=round(time.monotonic()-start,3)
+              (out/'result.json').write_text(json.dumps(result,indent=2,sort_keys=True))
+              print(json.dumps({'status':result['status'],'stage':stage,
+                'model_and_binary_verified':result.get('model_and_binary_verified',False),
+                'model_generation_calls':0,'service_mutations':False,
+                'production_qualified':False},sort_keys=True))
+          PY
+      - name: Preserve bounded file custody results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-model-hash-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-model-hash-${{ github.run_id }}-${{ github.run_attempt }}/
+          retention-days: 30
+          include-hidden-files: true
+          if-no-files-found: warn
