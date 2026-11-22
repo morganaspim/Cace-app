@@ -295,7 +295,6 @@ def test(out, parent):
 
 
 def setup(out, parent):
-    namespace_identity(parent) if False else None
     require(os.geteuid() == 1000, "setup must be UID1000")
     require(Path("/proc/self/uid_map").read_text().split() == ["1000", "1000", "1"],
             "model setup userns identity mismatch")
