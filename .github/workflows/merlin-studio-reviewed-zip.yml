@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
-      MERLIN_SOURCE_SHA: "c5b029956ded7594485bcbe1772294676cbb1322"
+      MERLIN_SOURCE_SHA: "2ff6d9fdcde7019ac670882c45f50faa7de392ce"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Verify one new typed request without workflow checkout
