@@ -113,6 +113,37 @@ class PackagedModelContract(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     packaged.assess_model_reply(malformed)
 
+    def test_namespace_root_maps_only_to_unprivileged_host_uid(self):
+        self.assertTrue(packaged.rootless_uid_mapping(0, ["0", "1000", "1"]))
+        for uid, mapping in ((1000, ["1000", "1000", "1"]),
+                             (0, ["0", "0", "1"]),
+                             (0, ["0", "1000", "2"]),
+                             (True, ["0", "1000", "1"]),
+                             (0, ["0", "1000", "1", "2"])):
+            with self.subTest(uid=uid, mapping=mapping):
+                self.assertFalse(packaged.rootless_uid_mapping(uid, mapping))
+
+    def test_new_namespace_before_private_lo_can_have_empty_route_table(self):
+        self.assertFalse(packaged.no_default_route(""))
+        self.assertTrue(packaged.no_default_route("", before_loopback=True))
+        self.assertFalse(packaged.no_default_route("", before_loopback=1))
+        self.assertFalse(packaged.no_default_route("not a route table",
+                                                 before_loopback=True))
+        self.assertFalse(packaged.no_default_route(
+            "Iface Destination Gateway\\neth0 00000000 00000000\\n",
+            before_loopback=True))
+
+    def test_model_launcher_uses_root_mapping_only_for_loopback_setup(self):
+        cmd = packaged.namespace_argv(
+            "/reviewed/runner.py", "/verified/Merlin_Studio",
+            "/isolated/scratch", 12345)
+        self.assertEqual(cmd[:4],
+                         ["/usr/bin/unshare", "--user", "--map-root-user", "--net"])
+        self.assertNotIn("--map-current-user", cmd)
+        self.assertIn("--fork", cmd)
+        self.assertIn("-I", cmd)
+        self.assertIn("-B", cmd)
+
     def test_no_default_route_and_loopback_only(self):
         self.assertTrue(packaged.no_default_route("Iface Destination Gateway\n"))
         self.assertTrue(packaged.no_default_route("Iface Destination Gateway\nlo 00000000 00000000\n"))
