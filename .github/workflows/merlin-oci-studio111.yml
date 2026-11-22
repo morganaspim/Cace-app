@@ -155,6 +155,7 @@ jobs:
           archive=download/'archive.data'
           status='blocked';error=None;stage_leaf=None;cleaned=False
           launch_attempted=False;startup_verified=False;studio_passed=False;studio_count=0
+          readonly_roots=[];pyc_before=0;pyc_after=None
           def require(v,why):
               if not v: raise RuntimeError(why)
           def proc(argv,seconds,log,*,candidate=False):
@@ -262,6 +263,30 @@ jobs:
               require(len(members)==36,'reviewed studio member count changed')
               product=root/'exact-product-source'
               ns['extract_bundle'](members,product)
+              # The previous run retained five Python subprocess failures,
+              # including one malformed bytecode cache. Freeze source/code
+              # locations against generated pyc writes without weakening tests.
+              readonly_roots=[stage_leaf/'python/lib',
+                  product/'portable',product/'python',product/'tests',
+                  product/'scripts',product/'cpp']
+              for base in readonly_roots:
+                  require(base.is_dir() and not base.is_symlink(),
+                          'fixed readonly source directory required')
+                  for current,dirs,files in os.walk(base,topdown=False,followlinks=False):
+                      for name in files:
+                          path=Path(current)/name
+                          if not path.is_symlink():
+                              mode=stat.S_IMODE(os.lstat(path).st_mode)
+                              path.chmod(mode & ~0o222)
+                      os.chmod(current,stat.S_IMODE(os.lstat(current).st_mode)&~0o222)
+              pyc_before=sum(1 for base in readonly_roots
+                  for file in base.rglob('*.pyc') if file.is_file())
+              (ev/'source-permission-boundary.json').write_text(json.dumps({
+                  'schema':'merlin-studio-source-readonly/1',
+                  'protected_code_roots':len(readonly_roots),
+                  'preexisting_bytecode_files':pyc_before,
+                  'effect':'prevent generated pyc files in native code source roots',
+                  'host_system_changed':False,'production_qualified':False},sort_keys=True,indent=2))
               check_temp=root/'controller-temporary';check_temp.mkdir(mode=0o700)
               env=ns['child_env'](check_temp)
               selection={'passed':True,'selected':{
@@ -272,6 +297,12 @@ jobs:
               (ev/'studio111-results.json').write_text(json.dumps(
                   suite,sort_keys=True,indent=2))
               studio_count=suite.get('tests',0)
+              pyc_after=sum(1 for base in readonly_roots
+                  for file in base.rglob('*.pyc') if file.is_file())
+              (ev/'source-permission-after-tests.json').write_text(json.dumps({
+                  'preexisting_bytecode_files':pyc_before,'after_bytecode_files':pyc_after,
+                  'no_new_bytecode_cache':pyc_after==pyc_before},sort_keys=True,indent=2))
+              require(pyc_after==pyc_before,'bytecode_cache_added_during_validation')
               require(suite.get('passed') is True and suite.get('status')=='passed'
                       and studio_count==111 and suite.get('skipped')==0
                       and suite.get('native_protocol_tests')==3
@@ -284,6 +315,16 @@ jobs:
               error=type(exc).__name__
           finally:
               try:
+                  # The same UID restores directory write access only for
+                  # deleting private scratch files; no host or system paths.
+                  for base in readonly_roots:
+                      if base.exists() and base.is_dir() and not base.is_symlink():
+                          for current,dirs,_ in os.walk(base,topdown=True,followlinks=False):
+                              os.chmod(current,0o700)
+                              for name in dirs:
+                                  path=Path(current)/name
+                                  if path.is_dir() and not path.is_symlink():
+                                      os.chmod(path,0o700)
                   if stage_leaf is not None and stage_leaf.parent==parent and stage_leaf.exists():
                       shutil.rmtree(stage_leaf)
                   # A failed stage can leave a child before its JSON receipt.
