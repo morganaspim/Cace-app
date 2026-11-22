@@ -1,0 +1,91 @@
+name: Merlin OCI rootless network namespace loopback diagnostic
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-netns-loopback-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 3
+    steps:
+      - name: Test rootless network namespace loopback without interface mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,hashlib,json,os,platform,re,subprocess,uuid,urllib.request
+          from pathlib import Path
+          if (os.environ['GITHUB_REPOSITORY']!='morganaspim/Cace-app'
+              or os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or int(os.environ['GITHUB_RUN_ATTEMPT'])!=1):
+              raise RuntimeError('fixed OCI identity required')
+          commit=os.environ['GITHUB_SHA'];repo=os.environ['GITHUB_REPOSITORY']
+          # This diagnostic has no untrusted path arguments; exact additive request.
+          req=urllib.request.Request('https://api.github.com/repos/'+repo+'/commits/'+commit,
+              headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GITHUB_TOKEN']})
+          with urllib.request.urlopen(req,timeout=12) as f:
+              body=f.read(2*1024*1024+1)
+          if len(body)>2*1024*1024:raise RuntimeError('commit API response ceiling')
+          changes=json.loads(body).get('files',[])
+          if (len(changes)!=1 or changes[0].get('status')!='added'
+              or not re.fullmatch(r'merlin/oci-netns-loopback-requests/[0-9a-f-]{36}\.json',
+                  changes[0].get('filename',''))):
+              raise RuntimeError('fixed one-file diagnostic request missing')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-netns-loopback-'+os.environ['GITHUB_RUN_ID'])
+          out.mkdir(mode=0o700,exist_ok=False)
+          source='''import json,os,socket,threading
+result={"uid":os.geteuid(),"namespace_network_isolated":True,"lo_untouched":True}
+try:
+    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as server:
+        server.bind(("127.0.0.1",0));server.listen(1);server.settimeout(2)
+        port=server.getsockname()[1]
+        with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as client:
+            client.settimeout(2);client.connect(("127.0.0.1",port))
+            client.sendall(b"x");accepted,_=server.accept()
+            with accepted: result["loopback_works_without_admin"]=(accepted.recv(1)==b"x")
+except OSError as error:
+    result["loopback_works_without_admin"]=False
+    result["socket_error_type"]=type(error).__name__
+    result["socket_errno"]=error.errno
+print(json.dumps(result,sort_keys=True))
+'''
+          cmd=['/usr/bin/unshare','--user','--map-current-user','--net','--fork',
+               '/usr/bin/python3','-I','-B','-c',source]
+          completed=subprocess.run(cmd,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,timeout=10,check=False,env={
+              'PATH':'/usr/bin:/bin','LANG':'C','HOME':'/var/empty',
+              'PYTHONDONTWRITEBYTECODE':'1'})
+          if len(completed.stdout)>4096 or len(completed.stderr)>4096:
+              raise RuntimeError('diagnostic output ceiling')
+          (out/'stdout.json').write_bytes(completed.stdout)
+          (out/'stderr.txt').write_bytes(completed.stderr)
+          result={"schema":"merlin-oci-loopback-diagnostic/1",
+              "child_exit":completed.returncode,"stdout_sha256":hashlib.sha256(completed.stdout).hexdigest(),
+              "host_installation":False,"network_interface_modified":False,
+              "model_calls":0,"production_qualified":False}
+          if completed.returncode==0:
+              result["test"]=json.loads(completed.stdout)
+          (out/'result.json').write_text(json.dumps(result,sort_keys=True,indent=2))
+          print(json.dumps(result,sort_keys=True))
+          PY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Preserve both success and failure observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-netns-loopback-${{ github.run_id }}
+          path: ${{ runner.temp }}/merlin-netns-loopback-${{ github.run_id }}/
+          retention-days: 30
+          if-no-files-found: warn
