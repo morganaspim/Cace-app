@@ -1,0 +1,79 @@
+name: Merlin OCI read-only privileged executable metadata
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-sudo-metadata-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  metadata-only:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 3
+    steps:
+      - name: Inspect mode and ownership without privilege or invocation
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import json,os,platform,stat
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];branch=os.environ['GITHUB_REF']
+          if (repo!='morganaspim/Cace-app' or branch!='refs/heads/merlin/browser-operations-20261121'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or int(os.environ['GITHUB_RUN_ATTEMPT'])!=1):
+              raise RuntimeError('fixed host identity required')
+          run_id=int(os.environ['GITHUB_RUN_ID'])
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-sudo-metadata-%d'%run_id)
+          out.mkdir(mode=0o700,exist_ok=False)
+          # Only stat/lstat and an ordinary non-root O_RDONLY test may occur.
+          # Never invoke sudo, read sudoers, call a model or change permissions.
+          def examine(path):
+              v={'path':path}
+              try:
+                  p=Path(path);li=os.lstat(p)
+                  v.update(lstat_mode=oct(stat.S_IMODE(li.st_mode)),
+                      lstat_type=stat.S_IFMT(li.st_mode),
+                      lstat_uid=li.st_uid,lstat_gid=li.st_gid,
+                      lstat_size=li.st_size,lstat_dev=li.st_dev,
+                      lstat_ino=li.st_ino,symlink=stat.S_ISLNK(li.st_mode))
+                  s=os.stat(p)
+                  v.update(mode=oct(stat.S_IMODE(s.st_mode)),uid=s.st_uid,gid=s.st_gid,
+                    size=s.st_size,device=s.st_dev,inode=s.st_ino,
+                    regular=stat.S_ISREG(s.st_mode),
+                    readable=os.access(p,os.R_OK),executable=os.access(p,os.X_OK))
+                  if stat.S_ISREG(s.st_mode):
+                      try:
+                          fd=os.open(p,os.O_RDONLY|getattr(os,'O_NOFOLLOW',0))
+                          os.close(fd);v['readonly_open']='passed'
+                      except OSError as e:
+                          v['readonly_open']='denied_or_unavailable'
+                          v['readonly_errno']=e.errno
+              except OSError as e:
+                  v['inspection']='unavailable';v['errno']=e.errno
+              return v
+          values=[examine(p) for p in ('/usr','/usr/bin','/usr/bin/sudo','/usr/bin/python3',
+                   '/proc','/proc/self','/proc/self/exe')]
+          result={'schema':'merlin-oci-sudo-metadata/1','status':'metadata_collected',
+              'host_arch':platform.machine(),'uid':os.geteuid(),'gid':os.getegid(),
+              'paths':values,'sudo_executed':False,'sudoers_read':False,
+              'model_calls':0,'service_mutations':False,'package_installation':False,
+              'root_identity_verified':False,'production_qualified':False}
+          (out/'metadata.json').write_text(json.dumps(result,indent=2,sort_keys=True))
+          print(json.dumps(result,sort_keys=True))
+          PY
+      - name: Retain read-only metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-sudo-metadata-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-sudo-metadata-${{ github.run_id }}/metadata.json
+          retention-days: 30
+          if-no-files-found: warn
