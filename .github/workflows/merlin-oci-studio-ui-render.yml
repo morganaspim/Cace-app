@@ -1,0 +1,238 @@
+name: Merlin OCI pinned Studio UI rendered-browser smoke
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-studio-ui-render-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  offline-render:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 4
+    steps:
+      - name: Validate exact Studio HTML and render its client JavaScript in isolated Chromium
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,datetime,hashlib,json,os,platform,re,shutil,signal,stat,struct,subprocess,time,urllib.request,uuid
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app' or
+              os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000
+              or platform.machine()!='aarch64' or attempt!=1
+              or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('unexpected fixed host identity')
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-studio-ui-render-%d-%d'%(run_id,attempt))
+          root.mkdir(mode=0o700,exist_ok=False)
+          evidence=root/'evidence';evidence.mkdir(mode=0o700)
+          temp=root/'scratch';temp.mkdir(mode=0o700)
+          status='blocked';reason=None;launched=False
+          def require(ok,why):
+              if not ok: raise RuntimeError(why)
+          def unique(pairs):
+              d={}
+              for k,v in pairs:
+                  if k in d: raise ValueError('duplicate JSON key')
+                  d[k]=v
+              return d
+          def api(suffix):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+suffix,
+                  headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                           'Accept':'application/vnd.github+json',
+                           'User-Agent':'Merlin-one-shot-browser-smoke'})
+              with urllib.request.urlopen(req,timeout=15) as f:
+                  raw=f.read(2*1024*1024+1)
+              require(len(raw)<=2*1024*1024,'API response too large')
+              return json.loads(raw,object_pairs_hook=unique)
+          def git_blob(data):
+              return hashlib.sha1(('blob %d\0'%len(data)).encode()+data).hexdigest()
+          def run(argv,env,seconds,log):
+              p=subprocess.Popen(argv,cwd=str(temp),env=env,stdin=subprocess.DEVNULL,
+                  stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+              expired=False
+              try: raw,err=p.communicate(timeout=seconds)
+              except subprocess.TimeoutExpired:
+                  expired=True
+                  try: os.killpg(p.pid,signal.SIGKILL)
+                  except ProcessLookupError: pass
+                  raw,err=p.communicate(timeout=5)
+              log.write_bytes(raw[:256*1024])
+              (log.parent/(log.name+'.stderr.txt')).write_bytes(err[:256*1024])
+              require(not expired,'browser child deadline exceeded')
+              require(len(raw)<=256*1024 and len(err)<=256*1024,'browser output ceiling')
+              require(p.returncode==0,'browser child exited %s'%p.returncode)
+              return raw
+          try:
+              changed=api('commits/'+commit).get('files',[])
+              require(len(changed)==1 and changed[0].get('status')=='added',
+                      'exact one additive request required')
+              path=changed[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-studio-ui-render-requests/([0-9a-f-]{36})\.json',path)
+              require(bool(match),'request path unexpected')
+              item=api('contents/'+path+'?ref='+commit)
+              require(item['encoding']=='base64','request encoding unexpected')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(len(raw)<4096 and item['sha']==git_blob(raw),'request bytes differ')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                      and request['schema']=='merlin-oci-studio-ui-render-request/1'
+                      and request['operation']=='render-pinned-studio-ui-offline'
+                      and request['request_id']==match.group(1)
+                      and str(uuid.UUID(request['request_id']))==request['request_id']
+                      and datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%dT%H:%M:%SZ')==request['created_at'],'invalid typed request')
+              (evidence/'request.json').write_bytes(raw)
+              executable=Path('/usr/lib64/chromium-browser/headless_shell')
+              meta=executable.stat()
+              require(executable.is_file() and not executable.is_symlink()
+                      and meta.st_uid==0 and stat.S_IMODE(meta.st_mode)==0o755
+                      and meta.st_size==221959928,'fixed system browser identity differs')
+              h=hashlib.sha256()
+              with executable.open('rb') as f:
+                  for block in iter(lambda:f.read(1024*1024),b''):h.update(block)
+              version=run([str(executable),'--version'],
+                  {'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':str(temp)},8,
+                  evidence/'browser-version.txt').decode().strip()
+              require(version=='Chromium 156.0.8078.79','browser version differs')
+              (evidence/'binary-identity.json').write_text(json.dumps({
+                  'path':str(executable),'mode':'0o755','uid':0,'size':meta.st_size,
+                  'sha256':h.hexdigest(),'version':version,
+                  'production_attested':False},sort_keys=True,indent=2))
+              clean={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
+                  'HOME':str(temp),'XDG_CACHE_HOME':str(temp),'XDG_CONFIG_HOME':str(temp),
+                  'XDG_DATA_HOME':str(temp),'TMPDIR':str(temp),
+                  'PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD':'1'}
+              network_probe=run(['/usr/bin/unshare','--user','--map-current-user','--net',
+                  '/usr/bin/true'],clean,8,evidence/'network-namespace.txt')
+              # Fetch exact real Studio UI from the engineering product commit.
+              # Treat fetched source as data and execute only inside no-network Chromium.
+              studio_commit='d2c53ebce82e918ac5a246c8ef9416abc47032a1'
+              source_path='portable/merlin_studio/web/index.html'
+              source_url=('https://api.github.com/repos/Mannyspiro/expert-robot/contents/'
+                          +source_path+'?ref='+studio_commit)
+              source_request=urllib.request.Request(source_url,headers={
+                  'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                  'Accept':'application/vnd.github+json',
+                  'User-Agent':'Merlin-exact-Studio-render-acceptance'})
+              with urllib.request.urlopen(source_request,timeout=18) as response:
+                  raw_json=response.read(256*1024+1)
+              require(len(raw_json)<=256*1024,'Studio API source response ceiling')
+              source_item=json.loads(raw_json,object_pairs_hook=unique)
+              require(source_item.get('encoding')=='base64','Studio source encoding mismatch')
+              source=base64.b64decode(''.join(source_item['content'].split()),validate=True)
+              source_sha256=hashlib.sha256(source).hexdigest()
+              require(len(source)==73060
+                  and source_sha256=='c8139e25334f5924b48f460f60b5b0ec3934bd0ab293f60c91e6a70b2e210134'
+                  and git_blob(source)=='a8831fc99fc488eaad4a360fa4cdc30aa0123c15'
+                  and source_item.get('sha')=='a8831fc99fc488eaad4a360fa4cdc30aa0123c15',
+                  'Studio UI source bytes/pins differ')
+              require(b'<title>Merlin Studio</title>' in source and b'id="welcome-title"' in source
+                      and b'id="composer"' in source,'Studio UI structural source changed')
+              html=temp/'merlin-studio.html'
+              html.write_bytes(source)
+              (evidence/'studio-source.json').write_text(json.dumps({
+                  'source_repository':'Mannyspiro/expert-robot',
+                  'source_commit':studio_commit,'source_path':source_path,
+                  'source_sha256':source_sha256,
+                  'source_git_blob':'a8831fc99fc488eaad4a360fa4cdc30aa0123c15',
+                  'source_bytes':len(source),'file_unmodified':True,
+                  'server_backend_connected':False,'production_qualified':False
+              },sort_keys=True,indent=2))
+              profile=temp/'chromium-profile';profile.mkdir(mode=0o700)
+              screenshot=evidence/'rendered.png'
+              # No --no-sandbox. Network namespace is detached by unshare; no URL user input.
+              argv=['/usr/bin/unshare','--user','--map-current-user','--net','--fork',
+                  str(executable),'--headless','--disable-gpu','--disable-extensions',
+                  '--no-first-run','--no-default-browser-check','--disable-background-networking',
+                  '--disable-sync','--disable-component-update','--disable-dev-shm-usage',
+                  '--hide-scrollbars','--window-size=1200,800',
+                  '--virtual-time-budget=4500',
+                  '--user-data-dir='+str(profile),'--screenshot='+str(screenshot),
+                  '--dump-dom',html.as_uri()]
+              launched=True
+              dom=run(argv,clean,35,evidence/'chromium-output.txt')
+              require(dom.lstrip().lower().startswith((b'<!doctype html',b'<html')),
+                  'renderer emitted diagnostics instead of HTML')
+              class DOMObserver(HTMLParser):
+                  def __init__(self):
+                      super().__init__();self.heading=False;self.composer=False
+                      self.textarea=False;self.shortcut=False;self.capture=False
+                  def handle_starttag(self,tag,attrs):
+                      values=dict(attrs)
+                      if tag=='h1' and values.get('id')=='welcome-title': self.heading=True
+                      if tag=='form' and values.get('id')=='composer': self.composer=True
+                      if tag=='textarea' and values.get('id')=='message-input': self.textarea=True
+                      if tag=='span' and 'new-shortcut' in values.get('class','').split():
+                          self.capture=True
+                  def handle_endtag(self,tag):
+                      if tag=='span': self.capture=False
+                  def handle_data(self,value):
+                      if self.capture and 'Ctrl K' in value: self.shortcut=True
+              observer=DOMObserver()
+              observer.feed(dom.decode('utf-8','strict'))
+              require(observer.heading and observer.composer and observer.textarea,
+                  'pinned Studio interface did not render required UI controls')
+              require(observer.shortcut,
+                  'Studio client JavaScript did not execute its Linux shortcut update')
+              require(b'Merlin Studio' in dom and b'What are we' in dom,
+                  'Studio page rendered content differs')
+              require(screenshot.is_file() and screenshot.stat().st_size>1000,
+                  'no renderer screenshot')
+              with screenshot.open('rb') as f: header=f.read(24)
+              require(header[:8]==b'\x89PNG\r\n\x1a\n' and header[12:16]==b'IHDR',
+                  'screenshot not PNG')
+              width,height=struct.unpack('>II',header[16:24])
+              require(1000<=width<=1400 and 700<=height<=1000,'unexpected screenshot dimensions')
+              (evidence/'rendered-dom.html').write_bytes(dom)
+              status='studio_ui_rendered_offline'
+              (evidence/'render-result.json').write_text(json.dumps({
+                  'schema':'merlin-oci-studio-ui-render-result/1','status':status,
+                  'chromium_version':version,'binary_sha256':h.hexdigest(),
+                  'network_namespaced':True,'external_network_allowed':False,
+                  'sandbox_disable_flag_used':False,'headless_browser_executed':True,
+                  'javascript_observed':True,'studio_javascript_shortcut_observed':True,
+                  'ui_source_sha256':source_sha256,'ui_source_commit':studio_commit,
+                  'server_backend_connected':False,'screenshot_png':True,
+                  'screenshot_width':width,'screenshot_height':height,
+                  'screenshot_sha256':hashlib.sha256(screenshot.read_bytes()).hexdigest(),
+                  'model_calls':0,'host_installation':False,'production_qualified':False,
+                  'browser_general_web_qualified':False,
+                  'studio_live_model_qualified':False},sort_keys=True,indent=2))
+          except BaseException as exc:
+              reason=type(exc).__name__+': '+str(exc)[:180]
+              (evidence/'render-failure.json').write_text(json.dumps({
+                  'status':'blocked','type':type(exc).__name__,'reason':reason,
+                  'browser_launch_attempted':launched,'model_calls':0,
+                  'host_installation':False,'production_qualified':False},sort_keys=True,indent=2))
+              raise
+          finally:
+              if temp.exists() and temp.is_dir() and not temp.is_symlink():
+                  shutil.rmtree(temp)
+              (evidence/'cleanup.json').write_text(json.dumps({
+                  'scratch_removed':not temp.exists(),'model_calls':0,
+                  'host_installation':False,'production_qualified':False},sort_keys=True))
+              print(json.dumps({'status':status,'reason':reason,
+                  'scratch_removed':not temp.exists(),'model_calls':0},sort_keys=True))
+          PY
+      - name: Preserve Studio DOM, rendered screenshot and isolation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-studio-ui-render-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-studio-ui-render-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          retention-days: 30
+          if-no-files-found: warn
