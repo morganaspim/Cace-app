@@ -112,7 +112,8 @@ def test(ev, product, scratch, parent, python):
          "PYTHONDONTWRITEBYTECODE":"1","OMP_NUM_THREADS":"2",
          "OPENBLAS_NUM_THREADS":"2","GGML_N_THREADS":"2"}
     result={"schema":"merlin-oci-studio-real-model/1","status":"blocked",
-      "model_generation_calls":0,"output_token_budget":64,"source_pinned":True,"host_installed":False,
+      "model_generation_calls":0,"output_token_budget":64,
+      "model_timeout_seconds":120,"source_pinned":True,"host_installed":False,
       "root_used":False,"existing_provider_mutated":False,
       "network_namespace_only_loopback":True,"production_qualified":False}
     model=None;studio=None;start=time.monotonic()
@@ -156,7 +157,7 @@ def test(ev, product, scratch, parent, python):
         settings={"model_url":studio_env["MERLIN_MODEL_URL"],
                   "model_id":base.ALIAS,"network_enabled":False,
                   "python_enabled":False,"desktop_enabled":False,"max_steps":1,
-                  "max_output_tokens":64}
+                  "max_output_tokens":64,"model_timeout_seconds":120}
         code,saved=request("POST","/api/settings",token,settings,timeout=5)
         base.require(code==200,"Studio restricted model settings refused")
         code,stable=request("GET","/api/status")
@@ -179,7 +180,7 @@ def test(ev, product, scratch, parent, python):
                          re.fullmatch(r"[0-9a-f]{32}",reply.get("run_id","")),
                          "real Studio model run submission failed")
             run_id=reply["run_id"]
-            cutoff=time.monotonic()+100
+            cutoff=time.monotonic()+134
             run=None;actual=None
             while time.monotonic()<cutoff:
                 code,info=request("GET","/api/runs/"+run_id)
