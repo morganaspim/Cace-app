@@ -1,0 +1,45 @@
+name: Merlin packaged model rootless namespace contract (no inference)
+
+"on":
+  push:
+    branches: ["fix/merlin-native-offline-zip-source-20261122"]
+    paths:
+      - ops/merlin_model_isolated/run_packaged_model_from_zip.py
+      - ops/merlin_model_isolated/test_packaged_model_inference.py
+      - .github/workflows/merlin-packaged-model-namespace-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  rootless-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          clean: true
+          fetch-depth: 1
+      - name: Verify pinned source and model sandbox boundary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee source-commit.txt
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B -m unittest discover -s ops/merlin_model_isolated \
+            -p 'test_packaged_model_inference.py' -v 2>&1 | tee model-namespace-tests.log
+          sha256sum ops/merlin_model_isolated/run_packaged_model_from_zip.py \
+            ops/merlin_model_isolated/test_packaged_model_inference.py \
+            > source-digests.txt
+      - name: Keep source-anchored synthetic proof (no model artifacts)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-packaged-model-namespace-${{ github.run_id }}
+          path: |
+            source-commit.txt
+            model-namespace-tests.log
+            source-digests.txt
+          retention-days: 14
+          if-no-files-found: warn
