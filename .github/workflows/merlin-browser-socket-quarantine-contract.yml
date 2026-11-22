@@ -1,0 +1,46 @@
+name: Merlin browser socket quarantine contract (review only)
+
+"on":
+  push:
+    branches:
+      - fix/merlin-browser-socket-quarantine-20261122
+    paths:
+      - ops/merlin_browser/quarantine_stale_socket.py
+      - ops/merlin_browser/test_quarantine_stale_socket.py
+      - .github/workflows/merlin-browser-socket-quarantine-contract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-transaction-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          clean: true
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Reproduce and prevent orphan socket recovery failure classes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee source-commit.txt
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B -m unittest discover -s ops/merlin_browser \
+            -p 'test_quarantine_stale_socket.py' -v 2>&1 | tee transaction-tests.txt
+          sha256sum ops/merlin_browser/quarantine_stale_socket.py \
+            ops/merlin_browser/test_quarantine_stale_socket.py > source-digests.txt
+      - name: Retain bounded model-independent recovery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-socket-quarantine-${{ github.run_id }}
+          path: |
+            source-commit.txt
+            transaction-tests.txt
+            source-digests.txt
+          retention-days: 14
+          if-no-files-found: warn
