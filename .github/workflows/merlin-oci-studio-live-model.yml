@@ -108,7 +108,7 @@ jobs:
               (ev/'request.json').write_bytes(raw)
               scripts={
                   'run_private_model.py':{'bytes':16616,'blob':'65b0659425d6759dc291967c1d17e60f8c29c06e'},
-                  'run_studio_model.py':{'bytes':16308,'blob':'bd8eda8ef777ed8db3418fcac2509d0c9419dfa2'},
+                  'run_studio_model.py':{'bytes':16371,'blob':'23364a3e26280273411c5aa6e59010d215afaaf6'},
                   'test_studio_id_contract.py':{'bytes':2532,'blob':'46ff2b527a8a7d7a8412a59babc599fb2cccd203'}}
               sources={}
               for name,pin in scripts.items():
@@ -153,14 +153,14 @@ jobs:
               members=namespace['validate_bundle'](pins,zip_bytes)
               require(len(members)==36,'native Studio source-member count differs')
               namespace['extract_bundle'](members,product)
-              overlay_commit='f148a42e6ca4afd559aa400515f3f5d4fc5d87cd'
+              overlay_commit='00d31a5d4a357888cae32ec23f8b567eb6696642'
               overlays={
                  'portable/merlin_studio/tools.py':{'bytes':13986,'blob':'772b08c3f10b0732c99a13f5268ee18e30292344'},
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
                  'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
-                 'portable/merlin_studio/model.py':{'bytes':11321,'blob':'85730efc0e3f576f0c66faa9bf95e46287fbce20'},
-                 'portable/merlin_studio/engine.py':{'bytes':16121,'blob':'e0ef33ca018a3906d9fc05ca33702f2cdaf4775d'},
-                 'portable/merlin_studio/web/index.html':{'bytes':73615,'blob':'b06113c60978f66846490b635f680dec4e82bbc2'}}
+                 'portable/merlin_studio/model.py':{'bytes':11583,'blob':'94438bc93f9fc2a73db9fbf33bafd8838748ddf5'},
+                 'portable/merlin_studio/engine.py':{'bytes':16430,'blob':'895619d1d02eadea0a88667b9c78626a4403a3d4'},
+                 'portable/merlin_studio/web/index.html':{'bytes':74200,'blob':'4769eccf4a59b326aa96b6d3cc087fb7ee0642bf'}}
               for path,pin in overlays.items():
                   updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
                   if path.endswith('.py'):
