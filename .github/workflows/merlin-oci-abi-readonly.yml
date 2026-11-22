@@ -1,0 +1,151 @@
+name: Merlin OCI read-only ARM64 ABI evidence
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-abi-inventory-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  read-only-abi:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 6
+    steps:
+      - name: Pin source and inspect allowlisted host libraries only
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCODE'
+          import ast,base64,datetime,hashlib,json,os,re,signal,subprocess,sys,urllib.request,uuid
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY']
+          commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID'])
+          attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app' or
+              os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121' or
+              os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000 or
+              os.uname().machine!='aarch64' or sys.version_info[:2]!=(3,9) or
+              not re.fullmatch('[0-9a-f]{40}',commit) or attempt!=1):
+              raise RuntimeError('fixed runner identity mismatch')
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-abi-inventory-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          stage='request_validation'
+          def unique(pairs):
+              result={}
+              for key,value in pairs:
+                  if key in result: raise ValueError('duplicate JSON member')
+                  result[key]=value
+              return result
+          def blob(raw): return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          def api(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+path,
+                  headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                           'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=15) as response:
+                  raw=response.read(1024*1024+1)
+              if len(raw)>1024*1024: raise RuntimeError('GitHub response size exceeded')
+              return json.loads(raw,object_pairs_hook=unique)
+          def fetch(repository,path,revision):
+              item=api(repository+'/contents/'+path+'?ref='+revision)
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if len(raw)>64*1024 or blob(raw)!=item['sha']:
+                  raise RuntimeError('source content identity changed')
+              return raw,item['sha']
+          try:
+              changed=api(repo+'/commits/'+commit).get('files',[])
+              if len(changed)!=1 or changed[0].get('status')!='added':
+                  raise RuntimeError('exactly one new ABI request required')
+              path=changed[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-abi-inventory-requests/([0-9a-f-]{36})\.json',path)
+              if not match: raise RuntimeError('request path outside ABI namespace')
+              raw,_=fetch(repo,path,commit)
+              request=json.loads(raw,object_pairs_hook=unique)
+              if (not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}
+                  or request['schema']!='merlin-oci-abi-inventory-request/1'
+                  or request['operation']!='inspect-cpython-3.11.18-arm64-host-libraries'
+                  or request['request_id']!=match.group(1)
+                  or str(uuid.UUID(request['request_id']))!=request['request_id']
+                  or datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ').strftime(
+                       '%Y-%m-%dT%H:%M:%SZ')!=request['created_at']):
+                  raise RuntimeError('invalid fixed read-only request')
+              (out/'request.json').write_bytes(raw)
+              stage='source_verification'
+              source_commit='c539f777a08f8bbe783fd31c227b94cfaf62bd8c'
+              source,git_sha=fetch('Mannyspiro/expert-robot',
+                  'scripts/merlin_oci_host_abi_probe.py',source_commit)
+              if (len(source)!=9192 or git_sha!='fce032693996f6d778d8980de79d982aa3c55f6d'
+                  or hashlib.sha256(source).hexdigest()!=
+                  '36a0cf42daf2783f2b61fd85fd35db74bb6cc4b59e5ccf8a1d2e1fef04542806'):
+                  raise RuntimeError('ABI source bytes differ from fixed review')
+              ast.parse(source,feature_version=(3,9))
+              (out/'source.json').write_text(json.dumps({
+                  'commit':source_commit,'sha256':hashlib.sha256(source).hexdigest(),
+                  'git_blob':git_sha,'bytes':len(source),'native_interpreter_executed':False,
+                  'installation_allowed':False},indent=2))
+              stage='bounded_read_only_host_probe'
+              clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C','LC_ALL':'C',
+                     'HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'}
+              process=subprocess.Popen(['/usr/bin/python3','-I','-B','-c',
+                                         source.decode('utf-8')],cwd='/',env=clean,
+                                         stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE,start_new_session=True)
+              try:
+                  stdout,stderr=process.communicate(timeout=110)
+              except subprocess.TimeoutExpired:
+                  try: os.killpg(process.pid,signal.SIGKILL)
+                  except ProcessLookupError: pass
+                  process.communicate(timeout=5)
+                  raise RuntimeError('read-only ABI subprocess exceeded deadline')
+              if process.returncode or len(stdout)>1024*1024 or len(stderr)>64*1024:
+                  raise RuntimeError('bounded ABI probe failed')
+              record=json.loads(stdout,object_pairs_hook=unique)
+              if (record.get('schema')!='merlin-oci-native-host-abi-inventory/1' or
+                  record.get('archive_sha256')!=
+                  '623a370be4489d8c35c7a274be02f3007a030618cda29025780beb416c6c8861' or
+                  record.get('entrypoint_sha256')!=
+                  '6cfad927461ace659b09716fad2efa828c6a4b084b7be8181c3982a9f36f464c' or
+                  record.get('host',{}).get('machine')!='aarch64' or
+                  record.get('native_interpreter_executed') is not False or
+                  record.get('interpreter_installed') is not False or
+                  record.get('model_inference_performed') is not False or
+                  record.get('production_qualified') is not False or
+                  record.get('provisioning_authority') is not False):
+                  raise RuntimeError('ABI result identity or authority boundary invalid')
+              (out/'abi-inventory.json').write_bytes(stdout)
+              (out/'receipt.json').write_text(json.dumps({
+                  'schema':'merlin-oci-host-abi-receipt/1','run_id':run_id,
+                  'request_commit':commit,'source_commit':source_commit,
+                  'result_sha256':hashlib.sha256(stdout).hexdigest(),
+                  'core_static_libraries_observed':record['core_static_libraries_observed'],
+                  'installation_allowed':False,'model_calls':0,
+                  'production_qualified':False},sort_keys=True,indent=2))
+              print(json.dumps({'status':'read_only_inventory_complete',
+                  'core_static_libraries_observed':record['core_static_libraries_observed'],
+                  'installations':0,'model_calls':0,'production_qualified':False}))
+          except BaseException as exc:
+              (out/'failure.json').write_text(json.dumps({
+                  'schema':'merlin-oci-host-abi-failure/1','stage':stage,
+                  'error_type':type(exc).__name__,'run_id':run_id,
+                  'installations':0,'model_calls':0},sort_keys=True,indent=2))
+              print(json.dumps({'status':'blocked','stage':stage,
+                                'error_type':type(exc).__name__}))
+              raise
+          PYCODE
+      - name: Retain ABI evidence and negative outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-abi-inventory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-abi-inventory-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn
