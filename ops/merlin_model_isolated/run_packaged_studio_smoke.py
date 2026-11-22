@@ -3,7 +3,7 @@
 
 Runs in a rootless user+network namespace with loopback only. Tests the actual
 Python interpreter and application restored from a verified model-containing ZIP.
-Does not access external networks, start GGUF inference, modify host services, or
+Does not access external networks, modify host services, export weights, or
 grant production status.
 """
 from __future__ import annotations
@@ -144,8 +144,8 @@ def limits():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_NOFILE, (128, 128))
     resource.setrlimit(resource.RLIMIT_FSIZE, (8*1024*1024, 8*1024*1024))
-    resource.setrlimit(resource.RLIMIT_CPU, (80, 80))
-    resource.setrlimit(resource.RLIMIT_AS, (3*1024**3, 3*1024**3))
+    resource.setrlimit(resource.RLIMIT_CPU, (210, 210))
+    resource.setrlimit(resource.RLIMIT_AS, (8*1024**3, 8*1024**3))
 
 
 def request(method, path, payload=None, token=None):
@@ -225,8 +225,6 @@ def run(root, scratch, evidence, parent):
     data.mkdir(mode=0o700,exist_ok=False)
     env={**ENV,"HOME":str(home),"TMPDIR":str(home),
          "XDG_CACHE_HOME":str(home),"XDG_CONFIG_HOME":str(home)}
-    bootstrap=build_bootstrap(source,data)
-    cmd=[str(py),"-I","-B","-S","-c",bootstrap]
     report={"schema":SCHEMA,"status":"blocked","production_qualified":False,
             "model_inference_executed":False,"host_mutations":0,
             "namespace_root_maps_to_host_uid1000":True,
@@ -237,7 +235,9 @@ def run(root, scratch, evidence, parent):
     worker=None
     start=time.monotonic()
 
-    def launch(n):
+    def launch(n,*,start_bundled=False):
+        bootstrap=build_bootstrap(source,data,start_bundled=start_bundled)
+        cmd=[str(py),"-I","-B","-S","-c",bootstrap]
         out=evidence/("studio-%d.stdout"%n)
         err=evidence/("studio-%d.stderr"%n)
         with out.open("wb") as stdout,err.open("wb") as stderr:
@@ -297,7 +297,110 @@ def run(root, scratch, evidence, parent):
         require(code==403,"stale mutation token accepted after restart")
         report["stale_token_rejected"]=True
         report["conversation_sha256"]=hashlib.sha256(cid.encode()).hexdigest()
-        report["status"]="packaged_ui_and_restart_passed"
+        # Actual model end-to-end acceptance: bundled GGUF is started only
+        # inside this existing unprivileged, loopback-only namespace.
+        require(stop(worker),"offline UI restart process did not stop")
+        worker=None
+        worker=launch(3,start_bundled=True)
+        code,live_status=request("GET","/api/status")
+        model_status=live_status.get("model",{})
+        require(code==200 and isinstance(model_status,dict)
+                and model_status.get("configured") is True
+                and model_status.get("endpoint")==
+                    "http://127.0.0.1:8772/v1/chat/completions",
+                "packaged app did not configure its local bundled model")
+        live_token=live_status.get("session_token")
+        require(isinstance(live_token,str) and len(live_token)>=32,
+                "new model-capable Studio session token unavailable")
+        require(all(live_status.get("capabilities",{}).get(name) is False
+                    for name in ("network","python","desktop","browser")),
+                "isolated chat capabilities unexpectedly enabled")
+        wait_until=time.monotonic()+155
+        ready=False
+        while time.monotonic()<wait_until:
+            require(worker.poll() is None,"bundled Studio exited before model became ready")
+            conn=http.client.HTTPConnection("127.0.0.1",8772,timeout=2)
+            try:
+                conn.request("GET","/health")
+                reply=conn.getresponse()
+                payload=reply.read(2049)
+                if reply.status==200 and len(payload)<=2048:
+                    info=json.loads(payload)
+                    ready=isinstance(info,dict) and info.get("status")=="ok"
+            except (OSError,ValueError,RuntimeError,http.client.HTTPException):
+                pass
+            finally:
+                conn.close()
+            if ready:
+                break
+            time.sleep(.35)
+        require(ready,"bundled GGUF did not become healthy within model budget")
+        report["bundled_model_healthy"]=True
+        code,created=request("POST","/api/conversations",
+                             {"title":"OCI real model integration smoke"},live_token)
+        require(code==201 and isinstance(created.get("conversation"),dict),
+                "bundled Studio did not create model chat conversation")
+        chat_cid=created["conversation"].get("id")
+        require(isinstance(chat_cid,str)
+                and re.fullmatch(r"[0-9a-f]{32}",chat_cid),
+                "model chat conversation identity differs")
+        code,started=request("POST","/api/chat",
+                             {"conversation_id":chat_cid,
+                              "message":REFERENCE_PROMPT},live_token)
+        run_id=started.get("run_id") if isinstance(started,dict) else None
+        require(code==202 and isinstance(run_id,str)
+                and re.fullmatch(r"[0-9a-f]{32}",run_id),
+                "packaged model chat request did not start")
+        finish_by=time.monotonic()+140
+        detail=None
+        while time.monotonic()<finish_by:
+            require(worker.poll() is None,"model chat Studio process exited")
+            code,detail=request("GET","/api/runs/"+run_id)
+            require(code==200 and isinstance(detail,dict)
+                    and isinstance(detail.get("run"),dict),
+                    "model chat run evidence malformed")
+            state=detail["run"].get("status")
+            if state in ("completed","failed","cancelled","interrupted","waiting_approval"):
+                break
+            require(state=="running","model chat run status unknown")
+            time.sleep(.4)
+        require(detail is not None and detail["run"].get("status")=="completed",
+                "model selected chat did not complete within its budget")
+        checked=assess_chat_evidence(detail,run_id,chat_cid)
+        report.update(checked)
+        report["model_inference_executed"]=True
+        require(checked["model_chat_answer_exact_42"] is True,
+                "independent 6 times 7 model-chat reference was not exact")
+        report["model_chat_conversation_sha256"]=hashlib.sha256(
+            chat_cid.encode()).hexdigest()
+        require(stop(worker),"packaged model-capable Studio did not terminate")
+        worker=None
+        # The model must not remain listening after its process group stopped.
+        probe=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        probe.settimeout(1)
+        try:
+            require(probe.connect_ex(("127.0.0.1",8772))!=0,
+                    "packaged model remained reachable after Studio shutdown")
+        finally:
+            probe.close()
+        report["bundled_model_terminated"]=True
+        # Final reboot checks the answer comes from durable Studio state.
+        worker=launch(4,start_bundled=False)
+        code,after_chat=request("GET","/api/conversations/"+chat_cid)
+        require(code==200 and isinstance(after_chat.get("conversation"),dict),
+                "saved model chat conversation was not restored")
+        stored=after_chat["conversation"].get("messages")
+        require(isinstance(stored,list) and len(stored)==2
+                and stored[0].get("content")==REFERENCE_PROMPT
+                and stored[1].get("content")=="42",
+                "real model answer changed or disappeared after restart")
+        report["model_chat_restored_after_restart"]=True
+        code,denied=request("POST","/api/chat",
+                            {"conversation_id":chat_cid,
+                             "message":"stale token must fail"},live_token)
+        require(code==403,"chat mutation accepted stale pre-restart token")
+        report["model_chat_stale_token_rejected"]=True
+        report["status"]="packaged_ui_model_chat_and_restart_passed"
         return True
     except BaseException as exc:
         report["error_type"]=type(exc).__name__
@@ -330,7 +433,7 @@ def setup(root,scratch,evidence,parent):
           str(Path(__file__).resolve(strict=True)),"run",
           str(root),str(scratch),str(evidence),str(parent)]
     child=subprocess.run(args,cwd="/",env={**ENV,"HOME":str(scratch)},
-                         stdin=subprocess.DEVNULL,capture_output=True,timeout=130)
+                         stdin=subprocess.DEVNULL,capture_output=True,timeout=475)
     (evidence/"studio-wrapper.stdout").write_bytes(child.stdout[:8192])
     (evidence/"studio-wrapper.stderr").write_bytes(child.stderr[:8192])
     require(len(child.stdout)<=8192 and len(child.stderr)<=8192,
@@ -351,7 +454,7 @@ def invoke(root,scratch):
     parent=os.stat("/proc/self/ns/net").st_ino
     args=namespace_argv(Path(__file__).resolve(strict=True),root,scratch,evidence,parent)
     proc=subprocess.run(args,cwd="/",env={**ENV,"HOME":str(scratch)},
-                        stdin=subprocess.DEVNULL,capture_output=True,timeout=150)
+                        stdin=subprocess.DEVNULL,capture_output=True,timeout=500)
     require(len(proc.stdout)<=8192 and len(proc.stderr)<=8192,
             "packaged UI subprocess output over budget")
     report=evidence/"packaged-studio-ui.json"
@@ -359,11 +462,16 @@ def invoke(root,scratch):
             and report.stat().st_size<=8192,
             "packaged Studio UI proof missing")
     result=json.loads(report.read_text())
-    require(proc.returncode==0 and result.get("status")=="packaged_ui_and_restart_passed"
+    require(proc.returncode==0 and result.get("status")=="packaged_ui_model_chat_and_restart_passed"
             and result.get("studio_ui_served") is True
             and result.get("conversation_restored") is True
             and result.get("stale_token_rejected") is True
             and result.get("studio_workers_terminated") is True
+            and result.get("model_inference_executed") is True
+            and result.get("model_chat_answer_exact_42") is True
+            and result.get("model_chat_restored_after_restart") is True
+            and result.get("model_chat_stale_token_rejected") is True
+            and result.get("bundled_model_terminated") is True
             and result.get("production_qualified") is False,
             "packaged Studio UI/restart acceptance failed")
     return result
