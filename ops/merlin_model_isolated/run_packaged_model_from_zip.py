@@ -115,8 +115,11 @@ def no_default_route(raw):
     if not isinstance(raw,str):
         return False
     lines = raw.splitlines()
-    if len(lines) < 2 or not lines[0].lstrip().startswith("Iface"):
+    if not lines or not lines[0].lstrip().startswith("Iface"):
         return False
+    # A fresh unshare --net namespace has no routes before lo is enabled.
+    if len(lines) == 1:
+        return True
     for line in lines[1:]:
         columns = line.split()
         if len(columns) < 2:
