@@ -1,0 +1,13 @@
+{
+  "schema": "merlin-lightweight-research-trigger/1",
+  "request_id": "lightweight-study-20261119-02",
+  "source_commit": "214b529d77a60563980614cd6314ad753e76a240",
+  "workflow_definition_commit": "0b67165d4f1549b9289502c7f71c608146a4b5de",
+  "scope": "unchanged study; explicit 16384 KiB Lean thread stacks; positive and negative infrastructure controls",
+  "predecessor_failed_run": 44591194275,
+  "resource_caps_unchanged": true,
+  "model_downloads": false,
+  "production_service_mutation": false,
+  "avrea": false,
+  "promotion_authority": false
+}

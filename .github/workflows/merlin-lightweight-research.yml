@@ -1,0 +1,115 @@
+name: Merlin lightweight architecture research
+on:
+  push:
+    branches: ['merlin/dot-ops/lightweight-research-20261119']
+    paths: ['research/lightweight-merlin/dispatch.json']
+permissions:
+  contents: read
+concurrency:
+  group: cace-canonical-qualification-oci
+  cancel-in-progress: false
+jobs:
+  bounded-research:
+    if: github.repository == 'morganaspim/Cace-app'
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 8
+    steps:
+      - name: Replay reviewed analytical study and check available pinned Lean cache
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, json, os, pathlib, platform, re, resource, signal, subprocess, sys, time, urllib.request
+          repo = 'morganaspim/Cace-app'
+          source = '214b529d77a60563980614cd6314ad753e76a240'
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / ('merlin-architecture-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          root.mkdir(exist_ok=False)
+          def fetch(path, ref, expected_sha256=None, expected_blob=None):
+              url = 'https://api.github.com/repos/'+repo+'/contents/'+path+'?ref='+ref
+              q = urllib.request.Request(url, headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'], 'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(q, timeout=20) as response:
+                  body = response.read(512*1024+1)
+              if len(body)>512*1024: raise RuntimeError('response bound exceeded')
+              p = json.loads(body)
+              if p.get('encoding')!='base64': raise RuntimeError('unexpected source encoding')
+              raw = base64.b64decode(''.join(p['content'].split()), validate=True)
+              actual_blob = hashlib.sha1(('blob '+str(len(raw))+'\0').encode()+raw).hexdigest()
+              if actual_blob != p['sha']: raise RuntimeError('source blob mismatch')
+              if expected_blob and actual_blob != expected_blob: raise RuntimeError('source pin mismatch')
+              if expected_sha256 and hashlib.sha256(raw).hexdigest()!=expected_sha256: raise RuntimeError('source digest mismatch')
+              return raw
+          pins = {'study.py':'a4e0d8895fb152c438fad274f84f2020c8d746cba01014ff52a0379908998024', 'test_study.py':'e6193eb83e972c5037356fc17d02c6c5457c15d532bd59415080ddf611e54411'}
+          for name, pin in pins.items():
+              (root/name).write_bytes(fetch('research/lightweight-merlin/'+name, source, expected_sha256=pin))
+          env = {'PATH':'/usr/bin:/bin','HOME':str(root),'LANG':'C.UTF-8','PYTHONDONTWRITEBYTECODE':'1'}
+          def limits():
+              resource.setrlimit(resource.RLIMIT_CPU,(120,120))
+              resource.setrlimit(resource.RLIMIT_AS,(3*1024**3,3*1024**3))
+              resource.setrlimit(resource.RLIMIT_FSIZE,(8*1024**2,8*1024**2))
+              resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+          def run(command, name, extra=None, seconds=150):
+              e=dict(env);e.update(extra or {})
+              pth=root/(name+'.txt');start=time.monotonic();timed=False
+              with pth.open('wb') as f:
+                  p=subprocess.Popen(command,cwd=str(root),env=e,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True,preexec_fn=limits)
+                  try: rc=p.wait(timeout=seconds)
+                  except subprocess.TimeoutExpired:
+                      timed=True;os.killpg(p.pid,signal.SIGKILL);rc=p.wait()
+              b=pth.read_bytes()
+              return {'exit_code':rc,'timed_out':timed,'elapsed_seconds':time.monotonic()-start,'log_sha256':hashlib.sha256(b).hexdigest(),'log':pth.name}, b.decode('utf-8',errors='replace')
+          script = "import sys,unittest,json;from pathlib import Path;sys.path.insert(0,sys.argv[1]);import study;s=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_study.py');r=unittest.TextTestRunner(verbosity=2).run(s);p={'count':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)};Path('tests.json').write_text(json.dumps(p,sort_keys=True));a=study.run_sweep();Path('analysis.json').write_text(json.dumps(a,sort_keys=True));ok=r.wasSuccessful() and r.testsRun==36 and not r.skipped and a['case_count']==288 and a['case_digest']=='a5a3b4c1568deb16cd6d35b3b3b7323ca5a603649382d241c9ab86f3a38cc34b';sys.exit(0 if ok else 1)"
+          tested, log = run([sys.executable,'-I','-B','-c',script,str(root)],'tests',seconds=60)
+          receipt = {'schema':'merlin-cloud-architecture-research/1','source_commit':source,'source_sha256':pins,'workflow_commit':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'attempt':os.environ['GITHUB_RUN_ATTEMPT'],'runner':os.environ.get('RUNNER_NAME'),'architecture':platform.machine(),'python':platform.python_version(),'study_process':tested,'tests':json.loads((root/'tests.json').read_text()) if (root/'tests.json').exists() else None,'inference_executed':False,'production_mutation':False,'avrea_used':False,'qualification':False,'promotion_authority':False,'independent_verification':'not_established'}
+          (root/'receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True))
+          if tested['exit_code']!=0: raise SystemExit('study failed; retained evidence')
+          lean=pathlib.Path('/var/lib/cace-cache/elan/toolchains/leanprover--lean4---v4.32.1/bin/lean')
+          packages=pathlib.Path('/var/lib/cace-cache/mathlib/v4.32.1-520045ab14e26149ee970e2e617ca04b09bde5d6/packages')
+          formal={'status':'not_run_missing_cache','qualification':False,'promotion_authority':False,'toolchain_expected':'4.32.1','mathlib_expected':'520045ab14e26149ee970e2e617ca04b09bde5d6','thread_stack_kib':16384,'virtual_memory_limit_bytes':3*1024**3}
+          try:
+              if lean.is_file() and (packages/'mathlib/.lake/build/lib/lean/Mathlib.olean').is_file():
+                  check=subprocess.run(['/usr/bin/git','-C',str(packages/'mathlib'),'rev-parse','HEAD'],capture_output=True,text=True,env=env,timeout=10,check=True)
+                  if check.stdout.strip()!=formal['mathlib_expected']: raise RuntimeError('mathlib pin mismatch')
+                  version=subprocess.run([str(lean),'--version'],capture_output=True,text=True,env=env,timeout=10,check=True).stdout.strip()
+                  formal['toolchain_observed']=version
+                  if not re.search(r'\b4\.32\.1\b',version): raise RuntimeError('Lean pin mismatch')
+                  raw=fetch('research/xenomath-lean/XenoCore.lean','19b75dbd06c376ef54fd28bfce783e837015f971',expected_blob='2228cca94e59ce226fbf3a35c518fef0dfeb98c6')
+                  text=raw.decode('utf-8')
+                  if re.search(r'\b(sorry|admit|unsafe|run_cmd|native_decide|initialize)\b',text): raise RuntimeError('source gate')
+                  names=re.findall(r'^#print axioms ([A-Za-z_][A-Za-z_0-9.]*)\s*$',text,re.M)
+                  if len(names)!=18 or len(set(names))!=18: raise RuntimeError('audit count')
+                  (root/'XenoCore.lean').write_bytes(raw)
+                  lp=':'.join(str(p/'.lake/build/lib/lean') for p in sorted(packages.iterdir()) if (p/'.lake/build/lib/lean').is_dir())
+                  le={'LEAN_PATH':lp,'LEAN_STACK_SIZE_KB':'16384'}
+                  command=[str(lean),'-j','1','-s','16384','-M','2048']
+                  (root/'TrueControl.lean').write_text('theorem true_control : (0 : Nat) = 0 := rfl\n')
+                  canary,_=run(command+['TrueControl.lean'],'lean-positive',le,30)
+                  formal['positive_control']=canary
+                  if canary['exit_code']!=0: raise RuntimeError('Lean infrastructure canary failed')
+                  process,log=run(command+['XenoCore.lean'],'lean',le)
+                  matches=re.findall(r"'([^']+)' (?:depends on axioms:\s*\[([^\]]*)\]|does not depend on any axioms)",log,re.S)
+                  audits={n:[a.strip() for a in aa.split(',') if a.strip()] for n,aa in matches}
+                  allowed={'propext','Classical.choice','Quot.sound'}
+                  passed=(process['exit_code']==0 and len(matches)==18 and set(audits)==set(names) and all(set(a)<=allowed for a in audits.values()))
+                  (root/'FalseControl.lean').write_text('import Mathlib\ntheorem false_control : (0 : Nat) = 1 := by norm_num\n')
+                  negative,neglog=run(command+['FalseControl.lean'],'lean-negative',le,60)
+                  logical_rejection=(negative['exit_code']!=0 and not negative['timed_out'] and 'unsolved goals' in neglog and 'failed to create thread' not in neglog)
+                  passed=passed and logical_rejection
+                  formal.update({'status':'compiled_and_audited' if passed else 'failed','source_sha256':hashlib.sha256(raw).hexdigest(),'source_commit':'19b75dbd06c376ef54fd28bfce783e837015f971','process':process,'axioms':audits,'negative_control':negative,'negative_logical_rejection':logical_rejection,'theorem_count':len(names)})
+          except Exception as e:
+              formal.update({'status':'blocked_or_failed','error_class':type(e).__name__,'error':str(e)[:180]})
+          receipt['lean']=formal
+          receipt['status']='study_passed_lean_'+formal['status']
+          (root/'receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True))
+          print(json.dumps(receipt,indent=2,sort_keys=True))
+          if formal['status'] in {'failed','blocked_or_failed'}: raise SystemExit('Lean result needs review')
+          PY
+      - name: Preserve exact-source research artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-architecture-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-architecture-${{ github.run_id }}-${{ github.run_attempt }}/
+          retention-days: 30
+          if-no-files-found: warn
