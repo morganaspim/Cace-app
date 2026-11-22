@@ -258,6 +258,26 @@ class StaleSocketQuarantineTests(unittest.TestCase):
         self.assertEqual(self.path.lstat().st_ino, self.live.st_ino)
 
 
+    def test_root_evidence_gate_rejects_missing_or_unpinned_receipts(self):
+        from unittest.mock import patch
+        import quarantine_stale_socket as source
+        with patch.object(source, "_trusted_regular", side_effect=FileNotFoundError):
+            with self.assertRaises(FileNotFoundError):
+                source._trusted_historical_pair()
+        with patch.object(source, "_trusted_regular", return_value=b"{}"):
+            with self.assertRaisesRegex(ValueError, "pinned OCI inspection receipt changed"):
+                source._trusted_historical_pair()
+
+    def test_receipt_paths_and_source_revisions_are_fixed(self):
+        import quarantine_stale_socket as source
+        self.assertEqual(tuple(x[1] for x in source.REVIEWED_RECEIPTS),
+                         (45045149558, 45050760629))
+        self.assertTrue(all(x[0].parent == source.STATE_DIRECTORY
+                            and x[0].name.startswith("read-only-inspection-")
+                            for x in source.REVIEWED_RECEIPTS))
+        self.assertEqual(len(set(x[2] for x in source.REVIEWED_RECEIPTS)), 2)
+
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
