@@ -65,7 +65,33 @@ def main():
                     capture_output=True,timeout=25,
                     env={"PATH":"/usr/bin:/bin","LANG":"C.UTF-8"})
     if child_result.returncode:
-        raise RuntimeError("bounded private namespace probe failed")
+        import hashlib
+        stderr = child_result.stderr[:16384]
+        stdout = child_result.stdout[:16384]
+        markers = [
+            ("permission_denied", b"Operation not permitted"),
+            ("missing_path", b"No such file or directory"),
+            ("module_missing", b"ModuleNotFoundError"),
+            ("capability_io_error", b"PermissionError"),
+            ("unexpected_interface", b"loopback ioctl"),
+            ("route_exception", b"route"),
+        ]
+        category = next((name for name,part in markers if part in stderr), "unknown_child_failure")
+        partial=[]
+        for line in stdout.decode("utf-8","replace").splitlines()[:3]:
+            try:
+                item=json.loads(line)
+                if item.get("schema") == "merlin-oci-rootless-route-sample/1":
+                    partial.append(item)
+            except (ValueError,AttributeError):
+                pass
+        report={"schema":"merlin-oci-private-route-probe/1","status":"blocked",
+                "failure_category":category,"child_returncode":child_result.returncode,
+                "child_stderr_sha256":hashlib.sha256(stderr).hexdigest(),
+                "observations":partial,"host_mutations":0,
+                "model_inference_executed":False,"production_qualified":False}
+        Path("private-route-result.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\\n")
+        raise RuntimeError("bounded private namespace probe failed: "+category)
     results=[json.loads(x) for x in child_result.stdout.decode("utf-8").splitlines()]
     if len(results)!=2 or any(x.get("nonlo_rows")!=0
                             or x.get("only_loopback_interfaces") is not True
