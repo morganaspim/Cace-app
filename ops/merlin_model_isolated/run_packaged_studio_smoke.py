@@ -197,6 +197,57 @@ def practice_probe(transport):
             "production_qualified":False,"cases":results}
 
 
+def read_framed_model_body(response, channel, *, deadline):
+    """Read a small model response by HTTP framing, not a fixed 32-KiB read.
+
+    This mirrors the packaged ModelClient's read1/deadline pattern. Waiting
+    for 32769 bytes can stall on small keep-alive responses. Content-Length,
+    chunking, or EOF must delimit the response; there is no partial success.
+    """
+    require(type(deadline) in (int,float) and deadline>0,
+            "model response absolute deadline required")
+    headers=response.getheaders()
+    require(isinstance(headers,list)
+            and sum(len(a)+len(b) for a,b in headers)<=8192,
+            "bounded model response headers required")
+    lengths=[v.strip() for k,v in headers if k.lower()=="content-length"]
+    transfers=[v.strip().lower() for k,v in headers if k.lower()=="transfer-encoding"]
+    encodings=[v.strip().lower() for k,v in headers if k.lower()=="content-encoding"]
+    require(len(lengths)<=1 and len(transfers)<=1
+            and not (lengths and transfers)
+            and (not transfers or transfers==["chunked"])
+            and (not encodings or encodings==["identity"]),
+            "ambiguous or unsupported model response framing")
+    declared=None
+    if lengths:
+        require(lengths[0].isascii() and lengths[0].isdecimal()
+                and len(lengths[0])<=8,
+                "nondecimal model response Content-Length")
+        declared=int(lengths[0])
+        require(0<declared<=32768,"model response declared body outside bound")
+    blocks=[]
+    count=0
+    while True:
+        remain=deadline-time.monotonic()
+        require(remain>0,"local model response exceeded total deadline")
+        if response.isclosed():
+            break
+        if channel is not None:
+            channel.settimeout(remain)
+        part=response.read1(min(8192,32769-count))
+        require(isinstance(part,bytes),"model response chunk is not bytes")
+        if not part:
+            break
+        blocks.append(part)
+        count+=len(part)
+        require(count<=32768,"local model evaluation exceeded byte bound")
+        if declared is not None and count==declared:
+            break
+    require(count>0 and (declared is None or count==declared),
+            "model response framing or length incomplete")
+    return b"".join(blocks)
+
+
 def query_packaged_model(prompt, *, with_usage=False):
     """Send one bounded request to the already launched local model, no tools."""
     require(isinstance(prompt,str) and 0<len(prompt)<=4096,
@@ -205,15 +256,18 @@ def query_packaged_model(prompt, *, with_usage=False):
     start_query=time.monotonic()
     request_body={"model":"local","messages":[{"role":"user","content":prompt}],
                   "max_tokens":24,"stream":False,"temperature":0.0}
+    deadline=start_query+80
     con=http.client.HTTPConnection("127.0.0.1",8772,timeout=80)
     try:
         con.request("POST","/v1/chat/completions",
                     body=json.dumps(request_body,allow_nan=False).encode(),
                     headers={"Content-Type":"application/json","Connection":"close"})
+        channel=con.sock
+        if channel is not None:
+            channel.settimeout(max(.01,deadline-time.monotonic()))
         res=con.getresponse()
         require(res.status==200,"local model evaluation returned non-success HTTP")
-        raw=res.read(32769)
-        require(0<len(raw)<=32768,"local model evaluation exceeded byte bound")
+        raw=read_framed_model_body(res,channel,deadline=deadline)
         body=json.loads(raw)
         choices=body.get("choices") if isinstance(body,dict) else None
         require(isinstance(choices,list) and len(choices)==1,
