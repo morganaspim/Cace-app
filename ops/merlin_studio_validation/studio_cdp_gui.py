@@ -228,8 +228,14 @@ def run(profile_parent, evidence):
     require(sorted(name for _, name in socket.if_nameindex()) == ["lo"],
             "browser has an unexpected current-namespace network interface")
     meta = CHROME.stat()
+    # UID 1000 is mapped 1:1; host UID 0 is unmapped and appears as
+    # overflowuid 65534 inside this rootless user namespace. Do not assert
+    # host ownership against the remapped st_uid, or relax byte identity.
+    uid_map = Path("/proc/self/uid_map").read_text().split()
+    require(uid_map == ["1000", "1000", "1"],
+            "unexpected Chromium user namespace owner mapping")
     require(CHROME.is_file() and not CHROME.is_symlink()
-            and meta.st_uid == 0 and stat.S_IMODE(meta.st_mode) == 0o755
+            and meta.st_uid == 65534 and stat.S_IMODE(meta.st_mode) == 0o755
             and meta.st_size == 221959928, "fixed Chromium executable identity differs")
     h = hashlib.sha256()
     with CHROME.open("rb") as f:
