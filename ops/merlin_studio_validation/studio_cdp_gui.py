@@ -350,7 +350,17 @@ def run(profile_parent, evidence):
         wait_for(client, """(function(){const e=document.getElementById('menu-toggle');
           return getComputedStyle(e).display!=='none' && window.innerWidth===390;})()""",
           5, "emulated 390px CSS viewport")
-        # Preserve a pre-input visual for diagnosing covered elements.
+        # Desktop->mobile CSS applies a 180ms slide-out transition to the
+        # sidebar. Even with the 390px media query active, this temporary
+        # sidebar overlay can intercept a real mouse/touch event. Wait for a
+        # DOM hit-test, not a fragile fixed sleep or synthetic JS click.
+        wait_for(client, """(function(){
+          const e=document.getElementById('menu-toggle');
+          const r=e.getBoundingClientRect();
+          const top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return top?.closest('button')?.id==='menu-toggle' &&
+                 !document.getElementById('sidebar').classList.contains('open');
+        })()""", 5, "desktop-to-mobile sidebar transform completed")
         client.screenshot(evidence / "studio-gui-mobile-precheck.png", (390, 844))
         tapped = client.tap("#menu-toggle", evidence / "studio-mobile-tap-target.json")
         wait_for(client, "document.getElementById('sidebar').classList.contains('open')",
