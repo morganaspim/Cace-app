@@ -37,6 +37,14 @@ jobs:
           merge-multiple: true
           github-token: ${{ github.token }}
           path: browser-inspection-source
+      - name: Retrieve independent second OCI inspection (no host access)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14765351602
+          run-id: 45050760629
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: browser-inspection-confirmation
       - name: Check no-hardware, no-privilege contracts
         shell: bash
         run: |
@@ -75,6 +83,35 @@ jobs:
           assert result["native_browser_qualified"] is False
           print(json.dumps({"status":result["status"],"source_receipt_sha256":result["source_receipt_sha256"],"authority_granted":False},sort_keys=True))
           PY
+      - name: Compare exact independent read-only OCI observations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import hashlib, json, sys
+          from pathlib import Path
+          sys.path.insert(0, "ops/merlin_browser")
+          from reconcile_orphan_socket import assess_observation_pair
+          a = Path("browser-inspection-source/root-evidence/state-inspection.json")
+          b = Path("browser-inspection-confirmation/root-evidence/state-inspection.json")
+          assert a.is_file() and not a.is_symlink() and b.is_file() and not b.is_symlink()
+          raw_a, raw_b = a.read_bytes(), b.read_bytes()
+          ha = "0a5079914b4e0586dc8feabd0f5e76fadf0f7a5bda440f7cd59173f6b638934f"
+          hb = "506e72c9fe7444004d69503df104585894c5838275c98ba7ab022b9b390bed7c"
+          result = assess_observation_pair(
+              raw_a, raw_b,
+              expected_first=(45045149558, "f4f7a4799c8a309a277b879f38209b3568d87c6c"),
+              expected_second=(45050760629, "0344e0a5d69850b400454dd085330788e4acc68e"),
+              first_sha256=ha, second_sha256=hb)
+          assert result["status"] == "stable_candidate_for_locked_reinspection", result
+          assert result["authority_granted"] is False
+          assert result["may_unlink_socket"] is False
+          assert result["host_mutations"] == 0
+          assert result["native_browser_qualified"] is False
+          Path("reconciliation-pair.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+          print(json.dumps({"status":result["status"],"source_run_ids":[45045149558,45050760629],
+                            "host_mutations":0,"authority_granted":False},sort_keys=True))
+          PY
       - name: Preserve exact test and source evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -86,5 +123,6 @@ jobs:
             contract-tests.log
             source-digests.txt
             reconciliation-plan.json
+            reconciliation-pair.json
           retention-days: 14
           if-no-files-found: warn
