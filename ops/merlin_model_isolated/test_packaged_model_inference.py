@@ -130,7 +130,7 @@ class PackagedModelContract(unittest.TestCase):
         self.assertFalse(packaged.no_default_route("not a route table",
                                                  before_loopback=True))
         self.assertFalse(packaged.no_default_route(
-            "Iface Destination Gateway\\neth0 00000000 00000000\\n",
+            "Iface Destination Gateway\neth0 00000000 00000000\n",
             before_loopback=True))
 
     def test_model_launcher_uses_root_mapping_only_for_loopback_setup(self):
