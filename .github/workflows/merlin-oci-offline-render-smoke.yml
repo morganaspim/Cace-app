@@ -25,6 +25,7 @@ jobs:
           set -euo pipefail
           /usr/bin/python3 -I -B - <<'PY'
           import base64,datetime,hashlib,json,os,platform,re,shutil,signal,stat,struct,subprocess,time,urllib.request,uuid
+          from html.parser import HTMLParser
           from pathlib import Path
 
           repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
@@ -61,16 +62,18 @@ jobs:
               return hashlib.sha1(('blob %d\0'%len(data)).encode()+data).hexdigest()
           def run(argv,env,seconds,log):
               p=subprocess.Popen(argv,cwd=str(temp),env=env,stdin=subprocess.DEVNULL,
-                  stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
-              try: raw,_=p.communicate(timeout=seconds)
+                  stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+              expired=False
+              try: raw,err=p.communicate(timeout=seconds)
               except subprocess.TimeoutExpired:
+                  expired=True
                   try: os.killpg(p.pid,signal.SIGKILL)
                   except ProcessLookupError: pass
-                  raw,_=p.communicate(timeout=5)
-                  log.write_bytes(raw[:256*1024])
-                  raise RuntimeError('browser child deadline exceeded')
+                  raw,err=p.communicate(timeout=5)
               log.write_bytes(raw[:256*1024])
-              require(len(raw)<=256*1024,'browser output ceiling')
+              (log.parent/(log.name+'.stderr.txt')).write_bytes(err[:256*1024])
+              require(not expired,'browser child deadline exceeded')
+              require(len(raw)<=256*1024 and len(err)<=256*1024,'browser output ceiling')
               require(p.returncode==0,'browser child exited %s'%p.returncode)
               return raw
           try:
@@ -129,8 +132,21 @@ jobs:
                   '--dump-dom',html.as_uri()]
               launched=True
               dom=run(argv,clean,35,evidence/'chromium-output.txt')
-              require(b'Merlin offline renderer' in dom and b'data-js-result="42"' in dom,
-                  'renderer did not execute expected local JavaScript')
+              require(dom.lstrip().lower().startswith((b'<!doctype html',b'<html')),
+                  'renderer emitted diagnostics instead of HTML')
+              class DOMObserver(HTMLParser):
+                  def __init__(self):
+                      super().__init__();self.executed=False;self.heading=False
+                  def handle_starttag(self,tag,attrs):
+                      values=dict(attrs)
+                      if tag=='body' and values.get('data-js-result')=='42':
+                          self.executed=True
+                      if tag=='h1' and values.get('id')=='merlin-probe':
+                          self.heading=True
+              observer=DOMObserver()
+              observer.feed(dom.decode('utf-8','strict'))
+              require(observer.executed and observer.heading and b'Merlin offline renderer' in dom,
+                  'renderer did not execute local JavaScript or produce target DOM')
               require(screenshot.is_file() and screenshot.stat().st_size>1000,
                   'no renderer screenshot')
               with screenshot.open('rb') as f: header=f.read(24)
