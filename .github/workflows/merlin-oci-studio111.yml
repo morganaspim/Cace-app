@@ -16,7 +16,7 @@ concurrency:
 jobs:
   private-stage:
     runs-on: [self-hosted, cace, oci, aarch64]
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - name: Admit pinned source and one-request runtime-startup scope
         shell: bash
@@ -142,7 +142,7 @@ jobs:
           merge-multiple: true
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/merlin-oci-studio111-${{ github.run_id }}-${{ github.run_attempt }}/input
-      - name: Start pinned staged Python once, check standard library and restore
+      - name: Run pinned 111 native product tests, package source and restore
         shell: bash
         run: |
           set -euo pipefail
@@ -154,7 +154,7 @@ jobs:
           source=root/'source';script=source/'scripts/merlin_python_private_stage.py'
           archive=download/'archive.data'
           status='blocked';error=None;stage_leaf=None;cleaned=False
-          launch_attempted=False;startup_verified=False
+          launch_attempted=False;startup_verified=False;studio_passed=False;studio_count=0
           def require(v,why):
               if not v: raise RuntimeError(why)
           def proc(argv,seconds,log,*,candidate=False):
@@ -252,7 +252,34 @@ jobs:
                   'verified_entrypoint_sha256':receipt['entrypoint_sha256'],
                   'startup_verified':True,'model_calls':0,'host_system_installation':False,
                   'production_qualified':False},sort_keys=True,indent=2))
-              status='startup_verified_cleanup_pending'
+              # Reuse reviewed native test definitions and immutable source pins.
+              stage='studio_source_custody'
+              validation=root/'validation'
+              ns={'__name__':'pinned_studio111_controller'}
+              exec(compile((validation/'validate.py').read_bytes(),'pinned-validation','exec'),ns)
+              pins=ns['parse_json']((validation/'source-pins.json').read_bytes())
+              members=ns['validate_bundle'](pins,(validation/'product-source.zip').read_bytes())
+              require(len(members)==36,'reviewed studio member count changed')
+              product=root/'exact-product-source'
+              ns['extract_bundle'](members,product)
+              check_temp=root/'controller-temporary';check_temp.mkdir(mode=0o700)
+              env=ns['child_env'](check_temp)
+              selection={'passed':True,'selected':{
+                  'version':[3,11,18],'executable':str(entry),
+                  'source':'hash_verified_private_startup_45012077301'}}
+              stage='studio_111_test_and_package'
+              suite=ns['run_source_tests'](product,ev,selection,env,pins)
+              (ev/'studio111-results.json').write_text(json.dumps(
+                  suite,sort_keys=True,indent=2))
+              studio_count=suite.get('tests',0)
+              require(suite.get('passed') is True and suite.get('status')=='passed'
+                      and studio_count==111 and suite.get('skipped')==0
+                      and suite.get('native_protocol_tests')==3
+                      and suite.get('build-source-package',{}).get('passed') is True
+                      and suite.get('verify-source-package',{}).get('passed') is True,
+                      'reviewed exact-count Studio 111 acceptance failed')
+              studio_passed=True
+              status='studio111_verified_cleanup_pending'
           except BaseException as exc:
               error=type(exc).__name__
           finally:
@@ -267,19 +294,27 @@ jobs:
                   if download.exists() and download.is_dir() and not download.is_symlink():
                       shutil.rmtree(download)
                   require(not download.exists(),'residual_archive')
+                  for dest in (root/'exact-product-source',root/'validation',root/'controller-temporary'):
+                      if dest.exists() and dest.is_dir() and not dest.is_symlink():
+                          shutil.rmtree(dest)
+                  require(not any((root/x).exists() for x in
+                          ('exact-product-source','validation','controller-temporary')),
+                          'residual_temporary_product_sources')
                   cleaned=True
               except BaseException as exc:
                   error=error or type(exc).__name__
                   cleaned=False
               (ev/'result.json').write_text(json.dumps({
-                  'schema':'merlin-oci-studio111-result/1','status':'passed' if status=='startup_verified_cleanup_pending' and startup_verified and cleaned and not error else 'blocked',
+                  'schema':'merlin-oci-studio111-result/1','status':'passed' if status=='studio111_verified_cleanup_pending' and studio_passed and cleaned and not error else 'blocked',
                   'error_type':error,'native_tests_expected':14,'archive_members_expected':4949,
                   'cleanup_verified':cleaned,'interpreter_installed':False,
                   'interpreter_launch_attempted':launch_attempted,
                   'native_interpreter_executed_and_verified':startup_verified,
-                  'model_calls':0,'studio_product_tests_run':0,'production_qualified':False},sort_keys=True,indent=2))
+                  'model_calls':0,'studio_product_tests_run':studio_count,
+                  'studio_111_case_gate_passed':studio_passed,
+                  'production_qualified':False},sort_keys=True,indent=2))
               print((ev/'result.json').read_text())
-          if status!='startup_verified_cleanup_pending' or not startup_verified or not cleaned or error:
+          if status!='studio111_verified_cleanup_pending' or not studio_passed or not cleaned or error:
               raise SystemExit(2)
           PY
       - name: Retain native evidence, including negative outcomes
