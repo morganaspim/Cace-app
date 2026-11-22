@@ -67,9 +67,13 @@ jobs:
           def asset(path,size,sha):
               p=Path(path)
               info=p.lstat()
-              require(stat.S_ISREG(info.st_mode) and info.st_uid==65534
+              # In the host's user namespace these verified assets are
+              # root-owned (UID0). The separate isolated model user namespace
+              # deliberately maps the same unmapped UID to 65534 ("nobody").
+              # Never compare host UID0 to the namespace UID65534 directly.
+              require(stat.S_ISREG(info.st_mode) and info.st_uid==0
                       and not stat.S_IMODE(info.st_mode)&0o022
-                      and info.st_size==size,'pinned model asset metadata changed')
+                      and info.st_size==size,'pinned host asset metadata changed')
               h=hashlib.sha256();n=0;started=time.monotonic()
               fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
               try:
@@ -127,6 +131,11 @@ jobs:
                   'inference':snapshot(server),
                   'gguf':snapshot(gguf),
                   'release_directory':snapshot(model_root)}
+              status['namespace_owner_interpretation']={
+                  'host_uid_expected':0,
+                  'prior_unprivileged_model_namespace_unmapped_uid':65534,
+                  'same_inode_uid_changes':False,
+                  'source_kind':'measured host metadata + previously verified isolated run'}
               status['inference']=asset(server,14614984,
                  'af4c10f1f4a1e7f0878dc9b3896bb742f65170861276ef04ddecdf2a9be3cd82')
               status['model']=asset(gguf,1117320768,
