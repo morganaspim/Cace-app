@@ -369,9 +369,9 @@ def assemble(root, evidence, archive, details):
     # substitute for a real GGUF inference result below.
     ui_path = Path(__file__).resolve().parent / "run_packaged_studio_smoke.py"
     require(ui_path.is_file() and not ui_path.is_symlink()
-            and ui_path.stat().st_size == 24056
+            and ui_path.stat().st_size == 28597
             and hashlib.sha256(ui_path.read_bytes()).hexdigest()
-            == "08f313f66d21daffac37f294e1fbe075511d9bdd07e7c2f6c0305302ec723dbc",
+            == "ba38b3feb9813b1b64676a5a42dc8f5d9040725414310acae02b316d340c56a5",
             "packaged Studio UI/restart helper source pin differs")
     sys.path.insert(0, str(ui_path.parent))
     import run_packaged_studio_smoke as studio_smoke
@@ -400,6 +400,7 @@ def assemble(root, evidence, archive, details):
                          "model_chat_stale_token_rejected",
                          "model_chat_conversation_sha256",
                          "bundled_model_healthy", "bundled_model_terminated",
+                         "in_context_practice",
                          "error_type", "error_reason")
             safe = {k: raw[k] for k in safe_keys if k in raw}
             (evidence / "packaged-studio-ui.json").write_text(
@@ -425,6 +426,8 @@ def assemble(root, evidence, archive, details):
     details["packaged_studio_model_chat_exact"] = ui_report["model_chat_answer_exact_42"]
     details["packaged_studio_model_chat_restored"] = ui_report["model_chat_restored_after_restart"]
     details["packaged_studio_model_chat_response_sha256"] = ui_report["model_chat_response_sha256"]
+    details["in_context_practice"] = ui_report.get("in_context_practice", {
+        "status":"not_run","model_weights_updated":False,"production_qualified":False})
     # The isolated GGUF test helper is a distinct exact-pinned Git source.
     # No untrusted archive text may substitute the test program.
     module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
