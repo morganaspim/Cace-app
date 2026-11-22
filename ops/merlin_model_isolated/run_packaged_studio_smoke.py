@@ -140,6 +140,81 @@ def assess_chat_evidence(payload, run_id, conversation_id):
             "production_qualified":False}
 
 
+# Frozen practice/holdout prompts are a diagnostic subsample of expert-robot's
+# synthetic learner bank. Scores are NOT training, mastery or security evidence.
+PRACTICE_CASES = (
+    ("arith.holdout.1", "Compute 7 times 13. Answer with a number only.",
+     "91", "Compute 8 times 9. Answer with a number only.", "72"),
+    ("bytes.holdout.1", "1536 elements at 8 bytes each. Total bytes? Number only.",
+     "12288", "1024 elements at 4 bytes each. Total bytes? Number only.", "4096"),
+    ("titan.holdout.1",
+     "Do placeholder ciphertext test vectors establish authenticated encryption security? Reply yes or no.",
+     "no", "Can a structural envelope schema test prove that encryption is secure? Reply yes or no.", "no"),
+)
+
+
+def practice_probe(transport):
+    """Six observed model calls, heldout references kept outside prompts."""
+    require(callable(transport), "inference transport required")
+    results=[]
+    for item_id, question, expected, example, example_answer in PRACTICE_CASES:
+        baseline=transport(question)
+        guided=transport("Practice: "+example+"\nReference answer: "+
+                         example_answer+"\nNew question: "+question)
+        require(all(isinstance(x,str) and 0<len(x)<=4096
+                    for x in (baseline,guided)),
+                "real practice evaluation response malformed")
+        clean=lambda x: x.strip().lower().replace(" ","")
+        results.append({
+            "task_id":item_id,
+            "baseline_correct":clean(baseline)==clean(expected),
+            "guided_correct":clean(guided)==clean(expected),
+            "baseline_sha256":hashlib.sha256(baseline.encode()).hexdigest(),
+            "guided_sha256":hashlib.sha256(guided.encode()).hexdigest(),
+        })
+    before=sum(x["baseline_correct"] for x in results)
+    after=sum(x["guided_correct"] for x in results)
+    return {"schema":"merlin-private-in-context-practice/1",
+            "status":"observed", "model_calls":2*len(results),
+            "baseline_correct":before,"guided_correct":after,
+            "delta_correct":after-before,
+            "improved_count":sum(not x["baseline_correct"] and x["guided_correct"]
+                                 for x in results),
+            "regressed_count":sum(x["baseline_correct"] and not x["guided_correct"]
+                                  for x in results),
+            "model_weights_updated":False,"mastery_qualified":False,
+            "production_qualified":False,"cases":results}
+
+
+def query_packaged_model(prompt):
+    """Send one bounded request to the already launched local model, no tools."""
+    require(isinstance(prompt,str) and 0<len(prompt)<=4096,
+            "bounded model prompt required")
+    request_body={"model":"local","messages":[{"role":"user","content":prompt}],
+                  "max_tokens":64,"stream":False,"temperature":0.0}
+    con=http.client.HTTPConnection("127.0.0.1",8772,timeout=70)
+    try:
+        con.request("POST","/v1/chat/completions",
+                    body=json.dumps(request_body,allow_nan=False).encode(),
+                    headers={"Content-Type":"application/json","Connection":"close"})
+        res=con.getresponse()
+        require(res.status==200,"local model evaluation returned non-success HTTP")
+        raw=res.read(32769)
+        require(0<len(raw)<=32768,"local model evaluation exceeded byte bound")
+        body=json.loads(raw)
+        choices=body.get("choices") if isinstance(body,dict) else None
+        require(isinstance(choices,list) and len(choices)==1,
+                "local model evaluation response shape differs")
+        message=choices[0].get("message") if isinstance(choices[0],dict) else None
+        content=message.get("content") if isinstance(message,dict) else None
+        require(isinstance(content,str) and 0<len(content)<=4096,
+                "local model evaluation answer missing")
+        return content
+    finally:
+        con.close()
+
+
+
 def limits():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_NOFILE, (128, 128))
@@ -373,6 +448,16 @@ def run(root, scratch, evidence, parent):
                 "independent 6 times 7 model-chat reference was not exact")
         report["model_chat_conversation_sha256"]=hashlib.sha256(
             chat_cid.encode()).hexdigest()
+        # Experimental measurement only. The six extra local model requests
+        # cannot affect the already verified chat/restart acceptance result.
+        try:
+            report["in_context_practice"]=practice_probe(query_packaged_model)
+        except (OSError,ValueError,RuntimeError,TimeoutError,
+                http.client.HTTPException) as exc:
+            report["in_context_practice"]={
+                "schema":"merlin-private-in-context-practice/1",
+                "status":"blocked","error_type":type(exc).__name__,
+                "model_weights_updated":False,"production_qualified":False}
         require(stop(worker),"packaged model-capable Studio did not terminate")
         worker=None
         # The model must not remain listening after its process group stopped.
@@ -433,7 +518,7 @@ def setup(root,scratch,evidence,parent):
           str(Path(__file__).resolve(strict=True)),"run",
           str(root),str(scratch),str(evidence),str(parent)]
     child=subprocess.run(args,cwd="/",env={**ENV,"HOME":str(scratch)},
-                         stdin=subprocess.DEVNULL,capture_output=True,timeout=475)
+                         stdin=subprocess.DEVNULL,capture_output=True,timeout=850)
     (evidence/"studio-wrapper.stdout").write_bytes(child.stdout[:8192])
     (evidence/"studio-wrapper.stderr").write_bytes(child.stderr[:8192])
     require(len(child.stdout)<=8192 and len(child.stderr)<=8192,
@@ -454,7 +539,7 @@ def invoke(root,scratch):
     parent=os.stat("/proc/self/ns/net").st_ino
     args=namespace_argv(Path(__file__).resolve(strict=True),root,scratch,evidence,parent)
     proc=subprocess.run(args,cwd="/",env={**ENV,"HOME":str(scratch)},
-                        stdin=subprocess.DEVNULL,capture_output=True,timeout=500)
+                        stdin=subprocess.DEVNULL,capture_output=True,timeout=875)
     require(len(proc.stdout)<=8192 and len(proc.stderr)<=8192,
             "packaged UI subprocess output over budget")
     report=evidence/"packaged-studio-ui.json"
