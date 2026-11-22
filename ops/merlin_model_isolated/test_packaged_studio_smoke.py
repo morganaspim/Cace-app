@@ -199,6 +199,51 @@ class PackagedStudioUIContracts(unittest.TestCase):
         with self.assertRaises((ValueError,RuntimeError)):
             studio.build_bootstrap(source,state,start_bundled="yes")
 
+    def test_private_practice_probe_detects_actual_gain_and_regression(self):
+        expected=[
+            ("arith.holdout.1","91"),
+            ("bytes.holdout.1","12288"),
+            ("titan.holdout.1","no"),
+        ]
+        calls=[]
+        def model(text):
+            calls.append(text)
+            idx=(len(calls)-1)//2
+            self.assertNotIn("Reference answer: "+expected[idx][1]+"\\nNew question:",text)
+            return "wrong" if len(calls)%2 else expected[idx][1]
+        evidence=studio.practice_probe(model)
+        self.assertEqual(evidence["model_calls"],6)
+        self.assertEqual(evidence["baseline_correct"],0)
+        self.assertEqual(evidence["guided_correct"],3)
+        self.assertEqual(evidence["improved_count"],3)
+        self.assertEqual(evidence["regressed_count"],0)
+        self.assertFalse(evidence["model_weights_updated"])
+        self.assertFalse(evidence["production_qualified"])
+        bad=studio.practice_probe(lambda text:"wrong")
+        self.assertEqual(bad["delta_correct"],0)
+        self.assertEqual(bad["improved_count"],0)
+        self.assertEqual(bad["regressed_count"],0)
+        with self.assertRaises(RuntimeError):
+            studio.practice_probe(lambda text:"")
+
+    def test_private_practice_inference_uses_fixed_localhost_without_tools(self):
+        reply=FakeConnection(200,b'{"choices":[{"message":{"content":"91"}}]}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=reply) as conn:
+            answer=studio.query_packaged_model("Compute 7 times 13")
+        self.assertEqual(answer,"91")
+        self.assertEqual(conn.call_args.args[:2],("127.0.0.1",8772))
+        args,kwargs=reply.arguments[0]
+        self.assertEqual(args[0],"POST")
+        self.assertEqual(args[1],"/v1/chat/completions")
+        body=json.loads(kwargs["body"])
+        self.assertEqual(body["stream"],False)
+        self.assertEqual(body["max_tokens"],64)
+        self.assertNotIn("tools",body)
+        malformed=FakeConnection(200,b'{"choices":[]}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=malformed):
+            with self.assertRaises(RuntimeError):
+                studio.query_packaged_model("invalid response control")
+
     def test_report_identity_never_claims_production(self):
         self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
         self.assertEqual(studio.PORT,18793)
