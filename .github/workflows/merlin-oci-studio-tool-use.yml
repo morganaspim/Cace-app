@@ -110,8 +110,8 @@ jobs:
                   'run_private_model.py':{'bytes':16616,'blob':'65b0659425d6759dc291967c1d17e60f8c29c06e'},
                   'run_studio_model.py':{'bytes':16371,'blob':'23364a3e26280273411c5aa6e59010d215afaaf6'},
                   'test_studio_id_contract.py':{'bytes':2532,'blob':'46ff2b527a8a7d7a8412a59babc599fb2cccd203'},
-                   'studio_tool_contract.py':{'bytes':4454,'blob':'6e27aaa4f007964e9f7e6fd60c5be8c93adf11a1'},
-                   'test_studio_tool_contract.py':{'bytes':4858,'blob':'bb03fc33cc840ae6b2c244aa771afdacefe8a5df'},
+                   'studio_tool_contract.py':{'bytes':4456,'blob':'80e4f13390d32b0da370d87befea5cd82612d64d'},
+                   'test_studio_tool_contract.py':{'bytes':5248,'blob':'88fa4468c82a819b5b986ef4f8bc0269b3ce22e3'},
                    'run_studio_tool.py':{'bytes':17695,'blob':'f89808f338cc4eebbd79160ef787100fc297f2ae'}}
               sources={}
               for name,pin in scripts.items():
@@ -140,7 +140,7 @@ jobs:
               tool_guard_log=(tool_guard.stdout+tool_guard.stderr)[:32768]
               (ev/'tool-contract-tests.log').write_bytes(tool_guard_log)
               require(tool_guard.returncode==0
-                      and b'Ran 10 tests' in tool_guard_log and b'OK' in tool_guard_log
+                      and b'Ran 11 tests' in tool_guard_log and b'OK' in tool_guard_log
                       and b'FAILED' not in tool_guard_log and b'ERROR' not in tool_guard_log,
                       'Studio model tool evidence contract regressions failed')
               stage_body=read_file('Mannyspiro/expert-robot',
