@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-ns-cap-request/1",
+  "request_id": "334f05a7-5540-436c-a800-7142e6a4a2d9",
+  "operation": "probe-rootless-netns-loopback-keep-caps",
+  "created_at": "2026-11-22T11:28:47Z"
+}
