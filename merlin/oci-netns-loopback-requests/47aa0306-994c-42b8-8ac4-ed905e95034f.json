@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-netns-loopback-request/1",
+  "request_id": "47aa0306-994c-42b8-8ac4-ed905e95034f",
+  "operation": "diagnose-readonly-namespace-loopback",
+  "created_at": "2026-11-22T11:12:44Z"
+}
