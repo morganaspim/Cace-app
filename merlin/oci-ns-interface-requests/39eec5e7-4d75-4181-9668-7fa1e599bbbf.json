@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-ns-interface-request/1",
+  "request_id": "39eec5e7-4d75-4181-9668-7fa1e599bbbf",
+  "operation": "probe-rootless-netns-interface-states",
+  "created_at": "2026-11-22T11:35:23Z"
+}
