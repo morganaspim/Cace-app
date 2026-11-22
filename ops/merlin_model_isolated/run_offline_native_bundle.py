@@ -368,9 +368,9 @@ def assemble(root, evidence, archive, details):
     # No untrusted archive text may substitute the test program.
     module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
     require(module_path.is_file() and not module_path.is_symlink()
-            and module_path.stat().st_size == 17647
+            and module_path.stat().st_size == 18832
             and hashlib.sha256(module_path.read_bytes()).hexdigest()
-            == "b816d6226ead05adff578a54fcc67482a05c255f0042a2d318b57b107c2f8d03",
+            == "25eeb9758f9f4aaf20390452f48ef8ec3beafc456fb667a7d440b62f468afd46",
             "packaged model isolated inference source pin differs")
     sys.path.insert(0, str(module_path.parent))
     from run_packaged_model_from_zip import invoke
