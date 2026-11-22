@@ -167,13 +167,13 @@ jobs:
               members=namespace['validate_bundle'](pins,zip_bytes)
               require(len(members)==36,'native Studio source-member count differs')
               namespace['extract_bundle'](members,product)
-              overlay_commit='3b84c6a514ee2c82d0ceeeef2634bbaa177225a3'
+              overlay_commit='4f77046562097a6a429ae235d46c010d6153c548'
               overlays={
                  'portable/merlin_studio/tools.py':{'bytes':13986,'blob':'772b08c3f10b0732c99a13f5268ee18e30292344'},
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
                  'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
                  'portable/merlin_studio/model.py':{'bytes':14443,'blob':'4fd59c98ac4819b3034e4c63743c72bd5c8b7586'},
-                 'portable/merlin_studio/engine.py':{'bytes':18848,'blob':'b3e79b0b6e8b3bf8a68185d1680aab55c766e09c'},
+                 'portable/merlin_studio/engine.py':{'bytes':19575,'blob':'e077cdb45c156763a5915c754e4aff11cf2c236c'},
                  'portable/merlin_studio/web/index.html':{'bytes':74884,'blob':'c9d4d5729476e04390a62584d13f4d2a2b2edc5b'}}
               for path,pin in overlays.items():
                   updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
