@@ -168,16 +168,18 @@ jobs:
               require(len(members)==36,'native Studio source-member count differs')
               namespace['extract_bundle'](members,product)
               overlay_commit='c4d84841e6b48f1872acdd2f61a403726b534b11'
+              engine_overlay_commit='18329515bcdf1e77a98defeef19adb0ade8b5420'
               overlays={
                  'portable/merlin_studio/tools.py':{'bytes':16271,'blob':'c4da3b66b54c5903be6ddd96c49eea419641497a'},
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
                  'portable/merlin_studio/tests/test_studio.py':{'bytes':34608,'blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'},
                  'portable/merlin_studio/model.py':{'bytes':15458,'blob':'f71d8cc044e54ce06fd81b8d8660f574ce7f0eb7'},
-                 'portable/merlin_studio/engine.py':{'bytes':21291,'blob':'94a62ed208a61be7745b3d8f960eef2dc87cd2bc'},
+                 'portable/merlin_studio/engine.py':{'bytes':22858,'blob':'e659fd94bbcced3aa1cfc90c16a825eaedef1f53'},
                  'portable/merlin_studio/web/index.html':{'bytes':75508,'blob':'960e61939b5cd91c8f388251d0c9656a86677441'},
                  'portable/merlin_studio/browser_bridge.py':{'bytes':14311,'blob':'8cccfc2063c38300fef834eeae9ed10436ce1dd6'}}
               for path,pin in overlays.items():
-                  updated=read_file('Mannyspiro/expert-robot',path,overlay_commit,pin)
+                  source_revision=(engine_overlay_commit if path=='portable/merlin_studio/engine.py' else overlay_commit)
+                  updated=read_file('Mannyspiro/expert-robot',path,source_revision,pin)
                   if path.endswith('.py'):
                       ast.parse(updated,feature_version=(3,9))
                   (product/path).write_bytes(updated)
@@ -200,6 +202,7 @@ jobs:
                  'model_controller':sources,'product_source_commit':
                     '8497597f297bba83189afef2026c27f9244537ce',
                  'product_overlay_commit':overlay_commit,
+                 'model_continuation_engine_commit':engine_overlay_commit,
                  'model_source_members':36,'pinned_overlays':overlays,
                  'source_zip_sha256':hashlib.sha256(zip_bytes).hexdigest(),
                  'model_request_budget':3,'production_qualified':False},sort_keys=True,indent=2))
