@@ -1,0 +1,362 @@
+#!/usr/bin/env python3
+"""Bounded CDP user-input test of real Merlin Studio on offline private loopback.
+
+Only for a reviewed, already-running /studio/ service in a separate netns.
+Chromium is network confined to lo with zero Linux effective capabilities.
+The script never reads or emits the Studio session token, authorizes a tool,
+opens an external page, contacts a model provider or installs software.
+"""
+from __future__ import annotations
+import base64
+import hashlib
+import http.client
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import socket
+import stat
+import struct
+import subprocess
+import sys
+import time
+
+CHROME = Path("/usr/lib64/chromium-browser/headless_shell")
+CHROME_SHA = "22870374b6f2acfa00ac7c54a09eb30aacb1cdac932aba97e654e3dff458318f"
+STUDIO = "http://127.0.0.1:18771/studio/"
+PORT = 18779
+GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+MAX_FRAME = 4 * 1024 * 1024
+
+
+def require(value, why):
+    if not value:
+        raise RuntimeError(why)
+
+
+def read_exact(sock, amount):
+    require(0 <= amount <= MAX_FRAME, "invalid CDP read limit")
+    chunks = bytearray()
+    while len(chunks) < amount:
+        more = sock.recv(amount - len(chunks))
+        require(more, "CDP channel closed before complete message")
+        chunks.extend(more)
+    return bytes(chunks)
+
+
+def masked_frame(payload, opcode=1):
+    require(type(payload) is bytes and len(payload) <= 64 * 1024,
+            "outgoing CDP payload exceeds limit")
+    header = bytearray([0x80 | opcode])
+    if len(payload) < 126:
+        header.append(0x80 | len(payload))
+    else:
+        header.append(0x80 | 126)
+        header.extend(struct.pack("!H", len(payload)))
+    mask = os.urandom(4)
+    return bytes(header) + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+
+
+class CDP:
+    def __init__(self, sock):
+        self.sock = sock
+        self.next_id = 0
+        self.notifications = 0
+
+    @classmethod
+    def connect(cls, ws_url):
+        prefix = "ws://127.0.0.1:%d/devtools/page/" % PORT
+        require(isinstance(ws_url, str) and ws_url.startswith(prefix)
+                and re.fullmatch(r"[a-zA-Z0-9-]{8,128}", ws_url[len(prefix):]),
+                "CDP advertised a nonlocal or unsupported endpoint")
+        sock = socket.create_connection(("127.0.0.1", PORT), timeout=3)
+        try:
+            key = base64.b64encode(os.urandom(16)).decode("ascii")
+            request = ("GET " + ws_url[len("ws://127.0.0.1:%d" % PORT):]
+                       + " HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n" % PORT
+                       + "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                       + "Sec-WebSocket-Key: " + key + "\r\nSec-WebSocket-Version: 13\r\n"
+                       + "Origin: http://127.0.0.1:%d\r\n\r\n" % PORT)
+            sock.sendall(request.encode("ascii"))
+            header = bytearray()
+            while b"\r\n\r\n" not in header and len(header) < 8192:
+                data = sock.recv(2048)
+                require(data, "CDP WebSocket upgrade closed")
+                header.extend(data)
+            require(b"\r\n\r\n" in header and len(header) < 8192,
+                    "CDP upgrade response incomplete")
+            lines = bytes(header).split(b"\r\n")
+            require(lines[0].startswith(b"HTTP/1.1 101 "), "CDP WebSocket upgrade denied")
+            fields = {}
+            for line in lines[1:]:
+                if b":" in line:
+                    name, val = line.split(b":", 1)
+                    fields[name.lower().strip()] = val.strip()
+            expected = base64.b64encode(hashlib.sha1((key + GUID).encode("ascii")).digest())
+            require(fields.get(b"sec-websocket-accept") == expected,
+                    "CDP WebSocket accept proof failed")
+            require(bytes(header).endswith(b"\r\n\r\n"), "unexpected extra upgrade response")
+            return cls(sock)
+        except BaseException:
+            sock.close()
+            raise
+
+    def recv_message(self):
+        while True:
+            first, second = read_exact(self.sock, 2)
+            opcode = first & 0x0f
+            require((first & 0x80) and not (first & 0x70),
+                    "fragmented or reserved WebSocket frame rejected")
+            size = second & 0x7f
+            if size == 126:
+                size = struct.unpack("!H", read_exact(self.sock, 2))[0]
+            elif size == 127:
+                size = struct.unpack("!Q", read_exact(self.sock, 8))[0]
+            require(size <= MAX_FRAME and not (second & 0x80),
+                    "invalid masked or oversized server WebSocket frame")
+            body = read_exact(self.sock, size)
+            if opcode == 9:
+                self.sock.sendall(masked_frame(body, opcode=10))
+                continue
+            require(opcode == 1, "unsupported CDP server WebSocket frame")
+            return json.loads(body.decode("utf-8"))
+
+    def call(self, method, params=None, seconds=7):
+        require(isinstance(method, str) and method in {
+            "Page.enable", "Runtime.enable", "Runtime.evaluate",
+            "Input.dispatchMouseEvent", "Input.insertText",
+            "Emulation.setDeviceMetricsOverride", "Page.captureScreenshot",
+        }, "CDP method not allowlisted")
+        self.next_id += 1
+        ident = self.next_id
+        command = json.dumps({"id": ident, "method": method, "params": params or {}},
+                             separators=(",", ":")).encode("utf-8")
+        self.sock.sendall(masked_frame(command))
+        deadline = time.monotonic() + seconds
+        for _ in range(200):
+            remaining = deadline - time.monotonic()
+            require(remaining > 0, "CDP command expired")
+            self.sock.settimeout(remaining)
+            reply = self.recv_message()
+            if reply.get("id") != ident:
+                self.notifications += 1
+                continue
+            require("error" not in reply, "CDP command rejected: " + method)
+            return reply.get("result", {})
+        raise RuntimeError("CDP notification ceiling exceeded")
+
+    def evaluate(self, expression):
+        out = self.call("Runtime.evaluate", {"expression": expression,
+                                             "returnByValue": True}, seconds=7)
+        require("exceptionDetails" not in out, "browser JavaScript evaluation failed")
+        return out.get("result", {}).get("value")
+
+    def click(self, selector):
+        js = "(function(){const e=document.querySelector(" + json.dumps(selector) + ");" \
+             "if(!e)return null;const r=e.getBoundingClientRect();" \
+             "return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height," \
+             "hidden:getComputedStyle(e).display==='none'};})()"
+        p = self.evaluate(js)
+        require(isinstance(p, dict) and p["w"] > 2 and p["h"] > 2
+                and not p["hidden"] and 0 <= p["x"] < 1250 and 0 <= p["y"] < 950,
+                "CDP click target not visible: " + selector)
+        for action in ("mousePressed", "mouseReleased"):
+            self.call("Input.dispatchMouseEvent", {"type": action, "x": p["x"],
+                    "y": p["y"], "button": "left", "clickCount": 1})
+
+    def screenshot(self, path, expected_size):
+        response = self.call("Page.captureScreenshot",
+                             {"format": "png", "captureBeyondViewport": False}, seconds=12)
+        data = base64.b64decode(response["data"], validate=True)
+        require(1000 < len(data) <= 3 * 1024 * 1024
+                and data[:8] == b"\x89PNG\r\n\x1a\n"
+                and data[12:16] == b"IHDR", "invalid CDP screenshot")
+        width, height = struct.unpack(">II", data[16:24])
+        require((width, height) == expected_size,
+                "actual Chromium screenshot dimensions differ")
+        path.write_bytes(data)
+        return {"bytes": len(data), "width": width, "height": height,
+                "sha256": hashlib.sha256(data).hexdigest()}
+
+    def close(self):
+        self.sock.close()
+
+
+def list_page():
+    connection = http.client.HTTPConnection("127.0.0.1", PORT, timeout=2)
+    try:
+        connection.request("GET", "/json/list", headers={"Host": "127.0.0.1:%d" % PORT})
+        resp = connection.getresponse()
+        body = resp.read(64 * 1024 + 1)
+        require(resp.status == 200 and len(body) <= 64 * 1024,
+                "CDP loopback discovery rejected")
+        tabs = json.loads(body)
+        require(isinstance(tabs, list) and len(tabs) < 10, "invalid CDP tab list")
+        matches = [tab for tab in tabs if tab.get("type") == "page"
+                   and tab.get("url") == STUDIO]
+        require(len(matches) == 1, "exact local Merlin Studio page not found")
+        return matches[0]["webSocketDebuggerUrl"]
+    finally:
+        connection.close()
+
+
+def wait_for(client, expression, seconds=16):
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        result = client.evaluate(expression)
+        if result is True:
+            return
+        time.sleep(0.25)
+    raise RuntimeError("browser did not reach expected DOM state")
+
+
+def run(profile_parent, evidence):
+    profile_parent, evidence = Path(profile_parent), Path(evidence)
+    require(profile_parent.is_dir() and evidence.is_dir()
+            and not profile_parent.is_symlink() and not evidence.is_symlink(),
+            "fixed scratch and evidence folders required")
+    require(os.geteuid() == 1000, "browser must be unprivileged UID 1000")
+    parent_inum = int(os.environ["MERLIN_PARENT_NETNS_INODE"])
+    require(os.stat("/proc/self/ns/net").st_ino != parent_inum,
+            "browser must be inside distinct private network namespace")
+    caps = dict(line.split(":", 1) for line in Path("/proc/self/status").read_text().splitlines()
+                if ":" in line)
+    require(caps.get("CapEff", "").strip() == "0000000000000000"
+            and caps.get("NoNewPrivs", "").strip() == "1",
+            "browser must have zero effective capabilities and no-new-privs")
+    require(sorted(name for _, name in socket.if_nameindex()) == ["lo"],
+            "browser has an unexpected current-namespace network interface")
+    meta = CHROME.stat()
+    require(CHROME.is_file() and not CHROME.is_symlink()
+            and meta.st_uid == 0 and stat.S_IMODE(meta.st_mode) == 0o755
+            and meta.st_size == 221959928, "fixed Chromium executable identity differs")
+    h = hashlib.sha256()
+    with CHROME.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    require(h.hexdigest() == CHROME_SHA, "Chromium executable SHA-256 changed")
+    profile = profile_parent / "cdp-profile"
+    profile.mkdir(mode=0o700, exist_ok=False)
+    env = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
+           "HOME": str(profile), "XDG_CACHE_HOME": str(profile),
+           "XDG_CONFIG_HOME": str(profile), "XDG_DATA_HOME": str(profile),
+           "TMPDIR": str(profile), "PYTHONDONTWRITEBYTECODE": "1"}
+    args = [str(CHROME), "--headless", "--disable-gpu", "--disable-extensions",
+            "--no-first-run", "--no-default-browser-check",
+            "--disable-background-networking", "--disable-sync",
+            "--disable-component-update", "--disable-dev-shm-usage",
+            "--hide-scrollbars", "--window-size=1200,800",
+            "--remote-debugging-address=127.0.0.1",
+            "--remote-debugging-port=%d" % PORT,
+            "--remote-allow-origins=http://127.0.0.1:%d" % PORT,
+            "--user-data-dir=" + str(profile), STUDIO]
+    require(not any("--no-sandbox" in a or "--disable-web-security" in a for a in args),
+            "sandbox weakening forbidden")
+    stderr_file = evidence / "chromium-cdp.stderr.txt"
+    with stderr_file.open("wb") as stderr:
+        child = subprocess.Popen(args, cwd="/", env=env, stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=stderr,
+                                 start_new_session=True)
+    client = None
+    try:
+        ws = None
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            require(child.poll() is None, "CDP Chromium process exited before connecting")
+            try:
+                ws = list_page()
+                break
+            except (OSError, ValueError, RuntimeError, KeyError):
+                time.sleep(0.2)
+        require(ws is not None, "CDP Chromium loopback endpoint unavailable")
+        client = CDP.connect(ws)
+        client.call("Page.enable")
+        client.call("Runtime.enable")
+        ready = """document.getElementById('server-label')?.textContent.includes('Studio 0.2.0')===true &&
+          document.getElementById('connection-banner')?.hidden===true &&
+          document.getElementById('message-input')!==null"""
+        wait_for(client, ready)
+        client.click("#new-chat")
+        client.click("#message-input")
+        client.call("Input.insertText", {"text": "/help"})
+        wait_for(client, "document.getElementById('message-input').value==='/help' && !document.getElementById('send-button').disabled", 5)
+        client.click("#send-button")
+        wait_for(client, """(function(){const m=document.getElementById('messages');
+             return !!m && m.textContent.includes('/help') &&
+               m.textContent.includes('Merlin Studio is ready');})()""", 18)
+        # Mouse-click settings and workspace controls, not direct DOM mutations.
+        client.click("#settings-nav")
+        wait_for(client, "document.getElementById('settings-backdrop').hidden===false", 6)
+        client.click("[data-close='settings']")
+        wait_for(client, "document.getElementById('settings-backdrop').hidden===true", 5)
+        client.click("#workspace-nav")
+        wait_for(client, "document.getElementById('workspace-backdrop').hidden===false", 6)
+        client.click("[data-close='workspace']")
+        wait_for(client, "document.getElementById('workspace-backdrop').hidden===true", 5)
+        desktop = client.screenshot(evidence / "studio-gui-desktop.png", (1200, 800))
+        client.call("Emulation.setDeviceMetricsOverride",
+                    {"width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": True})
+        wait_for(client, """(function(){const e=document.getElementById('menu-toggle');
+          return getComputedStyle(e).display!=='none' && window.innerWidth===390;})()""", 5)
+        client.click("#menu-toggle")
+        wait_for(client, "document.getElementById('sidebar').classList.contains('open')", 5)
+        mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
+        result = {"schema": "merlin-oci-studio-cdp-gui/1",
+                  "status": "passed", "source_page": STUDIO,
+                  "real_chromium_cdp": True, "cdp_loopback_only": True,
+                  "network_namespace_only_loopback": True,
+                  "effective_capabilities_zero": True, "no_new_privs": True,
+                  "real_client_input_text": "/help",
+                  "input_method": "CDP Input.insertText, mousePressed/mouseReleased",
+                  "offline_help_visible_after_submission": True,
+                  "settings_dialog_open_close": True,
+                  "workspace_dialog_open_close": True,
+                  "mobile_sidebar_opened": True,
+                  "desktop_screenshot": desktop, "mobile_screenshot": mobile,
+                  "token_in_evidence": False, "model_generation_calls": 0,
+                  "system_installation": False, "production_qualified": False}
+        (evidence / "studio-cdp-gui-result.json").write_text(
+            json.dumps(result, indent=2, sort_keys=True))
+        print(json.dumps({"status": result["status"],
+                          "offline_help_from_gui": True, "screenshots": 2,
+                          "model_calls": 0}, sort_keys=True))
+    finally:
+        if client is not None:
+            client.close()
+        if child.poll() is None:
+            try:
+                os.killpg(child.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(child.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            child.wait(timeout=5)
+        require(child.poll() is not None, "CDP browser survived cleanup")
+
+
+def main():
+    if len(sys.argv) != 3:
+        raise SystemExit("exact parent profile and evidence path required")
+    try:
+        run(sys.argv[1], sys.argv[2])
+    except BaseException as exc:
+        ev = Path(sys.argv[2])
+        if ev.is_dir() and not ev.is_symlink():
+            (ev / "studio-cdp-gui-failure.json").write_text(json.dumps({
+                "schema": "merlin-oci-studio-cdp-gui-failure/1", "status": "blocked",
+                "error_type": type(exc).__name__, "message": str(exc)[:350],
+                "model_calls": 0, "production_qualified": False}, sort_keys=True))
+        print("studio CDP GUI blocked: " + type(exc).__name__ + ": " + str(exc),
+              file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
