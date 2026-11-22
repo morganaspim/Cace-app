@@ -128,9 +128,9 @@ jobs:
                 'connected_browser_offline_recovery_gui.py':{
                     'bytes':24312,'blob':'9c742fc510494f69a936b3d369ea83b8b63d7d29'},
                 'studio_cdp_gui.py':{
-                    'bytes':22477,'blob':'8c90e22674fc016a2b298e4f9b88a6bd65a01ed4'},
+                    'bytes':27808,'blob':'e11c9fb34d180172de70cdc8a01c43f5b4b14e6e'},
                 'test_studio_cdp_gui.py':{
-                    'bytes':3436,'blob':'80da8d16a4c0129a2f77f98b332a1425a6cd3bb8'},
+                    'bytes':5136,'blob':'422d10ae60c2d81dd860cdf27cd9144ebe82d800'},
                 'prepare_isolated_loopback.py':{
                     'bytes':6198,'blob':'28c3eff3e2e65c75e2ca66a0bb908b8102626cbe'},
                 'test_isolated_network_inventory.py':{
@@ -181,13 +181,13 @@ jobs:
                 "print(json.dumps({'tests':res.testsRun,'errors':len(res.errors),"
                 "'failures':len(res.failures),'skipped':len(res.skipped)}));"
                 "sys.exit(0 if res.wasSuccessful() and not res.skipped "
-                "and res.testsRun==8 else 1)")
+                "and res.testsRun==12 else 1)")
               cdp_tests=subprocess.run(['/usr/bin/python3','-I','-B','-c',cdp_code,str(validation)],
                   cwd='/',env=env,capture_output=True,text=True,timeout=25)
               (ev/'cdp-protocol-regression-tests.txt').write_text(
                   cdp_tests.stdout+cdp_tests.stderr)
               if cdp_tests.returncode!=0:
-                  raise RuntimeError('eight bounded CDP protocol regressions failed')
+                  raise RuntimeError('twelve CDP and mobile PNG raster regressions failed')
               # Three exact reviewed product deltas. The original 36-file
               # bundle remains intact until validated against its old pins.
               overlay=root/'product-overlays';overlay.mkdir(mode=0o700)
@@ -499,6 +499,14 @@ jobs:
                   and ui_receipt.get('browser_gui_submit_persisted') is True
                   and ui_receipt.get('gui_extra_messages')==2,
                   'CDP GUI input/backing persistence acceptance differs')
+              raster=json.loads((ev/'studio-mobile-raster-proof.json').read_text())
+              require(cdp.get('mobile_sidebar_raster_verified') is True
+                  and raster.get('visible_sidebar_raster_passed') is True
+                  and raster.get('minimum_required_contrast')==15
+                  and raster.get('screenshot_sha256')==
+                        cdp.get('mobile_screenshot',{}).get('sha256')
+                  and min(raster.get('rgb_sum_contrast_by_row',[-999]))>=15,
+                  'mobile screenshot actual PNG pixel evidence failed')
               require((ev/'studio-gui-desktop.png').is_file()
                   and (ev/'studio-gui-mobile.png').is_file(),
                   'native CDP screenshots not retained')
