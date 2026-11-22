@@ -363,8 +363,16 @@ def run(profile_parent, evidence):
         })()""", 5, "desktop-to-mobile sidebar transform completed")
         client.screenshot(evidence / "studio-gui-mobile-precheck.png", (390, 844))
         tapped = client.tap("#menu-toggle", evidence / "studio-mobile-tap-target.json")
-        wait_for(client, "document.getElementById('sidebar').classList.contains('open')",
-                 5, "mobile touch hamburger expanded")
+        # After touch, the backdrop appears immediately but the sidebar
+        # slides in for 180ms. Wait for its *visual* bounding box, not only
+        # the 'open' class, before publishing the mobile screenshot.
+        wait_for(client, """(function(){
+          const e=document.getElementById('sidebar');
+          const r=e.getBoundingClientRect();
+          const hit=document.elementFromPoint(50,100);
+          return e.classList.contains('open') && Math.abs(r.left)<1
+                 && r.width>=250 && hit?.closest('aside')?.id==='sidebar';
+        })()""", 5, "mobile sidebar visually settled and hit-testable")
         mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
         result = {"schema": "merlin-oci-studio-cdp-gui/1",
                   "status": "passed", "source_page": STUDIO,
@@ -377,6 +385,7 @@ def run(profile_parent, evidence):
                   "settings_dialog_open_close": True,
                   "workspace_dialog_open_close": True,
                   "mobile_sidebar_opened": True,
+                  "mobile_sidebar_visual_settled": True,
                   "mobile_input_method": "CDP Input.dispatchTouchEvent",
                   "desktop_screenshot": desktop, "mobile_screenshot": mobile,
                   "token_in_evidence": False, "model_generation_calls": 0,
