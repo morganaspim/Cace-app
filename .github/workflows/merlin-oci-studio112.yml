@@ -119,10 +119,34 @@ jobs:
                   if name.endswith('.py'): ast.parse(body,feature_version=(3,9))
                   (validation/name).write_bytes(body)
                   (validation/name).chmod(0o600)
+              # Three exact reviewed product deltas. The original 36-file
+              # bundle remains intact until validated against its old pins.
+              overlay=root/'product-overlays';overlay.mkdir(mode=0o700)
+              overlay_commit='d2c53ebce82e918ac5a246c8ef9416abc47032a1'
+              overlay_pins={
+                'portable/merlin_studio/tools.py':{
+                  'bytes':13986,'sha256':'ffd00db993240f64c06e83c11bc3515fa575ddd02246e43be2d77180f588e12e',
+                  'git_blob':'772b08c3f10b0732c99a13f5268ee18e30292344'},
+                'portable/merlin_studio/worker.py':{
+                  'bytes':777,'sha256':'b096b434bbfb8c503bcce1d1d33dbe95e18779d0cd764001d3240fdb4fae72cd',
+                  'git_blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
+                'portable/merlin_studio/tests/test_studio.py':{
+                  'bytes':34608,'sha256':'cf93b0eabbb057ef965985fd2396f80d937df5622af394df84cb7f22f1698c0c',
+                  'git_blob':'ea8335c1d3a6771cafa544efe0cdd1a68f4019aa'}}
+              for name,pin in overlay_pins.items():
+                  raw=fetch('Mannyspiro/expert-robot',name,overlay_commit,pin)
+                  ast.parse(raw,feature_version=(3,9))
+                  (overlay/name.rsplit('/',1)[-1]).write_bytes(raw)
+              (ev/'overlay-source-identities.json').write_text(json.dumps({
+                  'original_product_commit':'8497597f297bba83189afef2026c27f9244537ce',
+                  'overlay_commit':overlay_commit,'verified_updated_files':overlay_pins,
+                  'total_changed_files':3,'studio_suite_cases':36,'total_suite_cases':112,
+                  'production_qualified':False},sort_keys=True,indent=2))
               (ev/'admission.json').write_text(json.dumps({
                   'schema':'merlin-oci-studio112-admission/1','request_commit':commit,
                   'source_commit':source_commit,'pins':pins,'studio_source_pins':studio_pins,
                   'studio_product_commit':'8497597f297bba83189afef2026c27f9244537ce',
+                  'product_overlay_commit':'d2c53ebce82e918ac5a246c8ef9416abc47032a1',
                   'archive_artifact_id':14748604091,
                   'interpreter_installed':False,'native_interpreter_executed':False,
                   'model_calls':0,'production_qualified':False},sort_keys=True,indent=2))
