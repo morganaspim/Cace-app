@@ -89,8 +89,13 @@ def run(py, product, root, ev):
            "XDG_CACHE_HOME": str(profile), "XDG_DATA_HOME": str(profile),
            "TMPDIR": str(root), "PYTHONDONTWRITEBYTECODE": "1",
            "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"}
+    # -I deliberately omits the script directory from sys.path; explicitly
+    # bind the verified Studio package root rather than dropping isolation.
+    studio_dir = product / "portable/merlin_studio"
+    bootstrap = ("import sys;sys.path.insert(0,%r);"
+                 "from server import main;main()" % str(studio_dir))
     server = subprocess.Popen(
-        [str(py), "-I", "-B", str(product / "portable/merlin_studio/server.py"),
+        [str(py), "-I", "-B", "-c", bootstrap,
          "--port", "8771", "--data-dir", str(state)],
         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         env=env, cwd="/", start_new_session=True)
