@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-studio-tool-adversarial-request/1",
+  "request_id": "60e086c0-4614-4695-9f32-a5d955993be1",
+  "operation": "one-adversarial-read-only-tool-and-restart",
+  "created_at": "2026-11-22T14:04:18Z"
+}
