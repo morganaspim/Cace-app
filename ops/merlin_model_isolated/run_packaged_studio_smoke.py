@@ -96,11 +96,22 @@ def build_bootstrap(source,data,*,start_bundled=False):
              "'desktop_enabled':False,'browser_enabled':False")
     if start_bundled:
         setup += ",'model_timeout_seconds':120,'max_steps':2"
-    return ("import sys;sys.path.insert(0,%r);"
-            "from server import create_server;"
-            "s=create_server(port=%d,data_dir=%r,start_bundled=%r);"
-            "s.app.save_settings({%s});"
-            "s.serve_forever(poll_interval=0.2)"
+    # Mirror the packaged Studio entrypoint: TERM triggers shutdown on a
+    # different thread; finally invokes server_close -> app.close -> model.close.
+    # Merely killing the Python parent skips that bundled model cleanup.
+    return (("import sys, signal, threading\n"
+             "sys.path.insert(0,%r)\n"
+             "from server import create_server\n"
+             "s=create_server(port=%d,data_dir=%r,start_bundled=%r)\n"
+             "s.app.save_settings({%s})\n"
+             "def _stop_server(*_):\n"
+             "    threading.Thread(target=s.shutdown,daemon=True).start()\n"
+             "signal.signal(signal.SIGTERM,_stop_server)\n"
+             "signal.signal(signal.SIGINT,_stop_server)\n"
+             "try:\n"
+             "    s.serve_forever(poll_interval=0.2)\n"
+             "finally:\n"
+             "    s.server_close()\n")
             % (str(source),PORT,str(data),start_bundled,setup))
 
 
@@ -193,8 +204,8 @@ def query_packaged_model(prompt, *, with_usage=False):
     require(type(with_usage) is bool,"usage flag must be a Boolean")
     start_query=time.monotonic()
     request_body={"model":"local","messages":[{"role":"user","content":prompt}],
-                  "max_tokens":64,"stream":False,"temperature":0.0}
-    con=http.client.HTTPConnection("127.0.0.1",8772,timeout=70)
+                  "max_tokens":24,"stream":False,"temperature":0.0}
+    con=http.client.HTTPConnection("127.0.0.1",8772,timeout=80)
     try:
         con.request("POST","/v1/chat/completions",
                     body=json.dumps(request_body,allow_nan=False).encode(),
@@ -398,19 +409,27 @@ def request(method, path, payload=None, token=None):
 def stop(proc):
     if proc is None:
         return True
+    # First allow Studio's controlled shutdown to close its own model.
+    # Only the verified new-session group may be escalated afterward.
     if proc.poll() is None:
         try:
-            os.killpg(proc.pid, signal.SIGTERM)
+            os.kill(proc.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
     try:
-        proc.wait(timeout=6)
+        proc.wait(timeout=12)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(proc.pid,signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        pass
+    # A process-group child may outlive its parent after an interrupted
+    # inference. Kill only this test's new-session group as final cleanup.
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    try:
         proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        return False
     return proc.poll() is not None
 
 
@@ -587,18 +606,16 @@ def run(root, scratch, evidence, parent):
                 "independent 6 times 7 model-chat reference was not exact")
         report["model_chat_conversation_sha256"]=hashlib.sha256(
             chat_cid.encode()).hexdigest()
-        # Experimental measurement only. The six extra local model requests
-        # cannot affect the already verified chat/restart acceptance result.
-        try:
-            report["in_context_practice"]=practice_probe(query_packaged_model)
-        except (OSError,ValueError,RuntimeError,TimeoutError,
-                http.client.HTTPException) as exc:
-            report["in_context_practice"]={
-                "schema":"merlin-private-in-context-practice/1",
-                "status":"blocked","error_type":type(exc).__name__,
-                "model_weights_updated":False,"production_qualified":False}
-        # Small preregistered source-selection analogue; unlike the above
-        # toy tests, real inference and prompt token usage are observed.
+        # Previous separately observed practice comparison: OCI 45074201432.
+        # Do NOT repeat six unnecessary CPU inference calls while measuring
+        # a different variable; this prevents overloading the local model.
+        report["in_context_practice"]={
+            "schema":"merlin-private-in-context-practice/1",
+            "status":"not_repeated_prior_observation",
+            "previous_private_run_id":45074201432,
+            "model_weights_updated":False,"production_qualified":False}
+        # Small preregistered source-selection analogue. Real inference and
+        # prompt token usage, when provided, are observed independently.
         try:
             report["evidence_context_ablation"]=context_ablation_probe(query_packaged_model)
         except (OSError,ValueError,RuntimeError,TimeoutError,
