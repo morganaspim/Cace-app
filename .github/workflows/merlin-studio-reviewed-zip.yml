@@ -1,0 +1,97 @@
+name: Merlin Studio reviewed Linux ZIP (non-deploying)
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/studio-reviewed-zip-requests/**"]
+permissions:
+  contents: read
+concurrency:
+  group: merlin-reviewed-zip-${{ github.run_id }}
+  cancel-in-progress: false
+jobs:
+  reviewed-portable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      MERLIN_SOURCE_SHA: "c5b029956ded7594485bcbe1772294676cbb1322"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Verify one new typed request without workflow checkout
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -I -B - <<'PY'
+          import base64,datetime,hashlib,json,os,re,urllib.request,uuid
+          repo=os.environ["GITHUB_REPOSITORY"]
+          sha=os.environ["GITHUB_SHA"]
+          if repo!="morganaspim/Cace-app" or os.environ.get("GITHUB_REF")!="refs/heads/merlin/browser-operations-20261121":
+              raise RuntimeError("unexpected source repository or request branch")
+          def api(path):
+              url="https://api.github.com/repos/"+repo+"/"+path
+              req=urllib.request.Request(url,headers={"Accept":"application/vnd.github+json",
+                  "Authorization":"Bearer "+os.environ["GITHUB_TOKEN"],"User-Agent":"Merlin-reviewed-ZIP"})
+              with urllib.request.urlopen(req,timeout=20) as response:
+                  data=response.read(500000)
+              return json.loads(data)
+          changes=api("commits/"+sha).get("files",[])
+          if len(changes)!=1 or changes[0].get("status")!="added":
+              raise RuntimeError("one added request file required")
+          path=changes[0].get("filename","")
+          matched=re.fullmatch(r"merlin/studio-reviewed-zip-requests/([0-9a-f-]{36})\.json",path)
+          if not matched:
+              raise RuntimeError("wrong ZIP request namespace")
+          member=api("contents/"+path+"?ref="+sha)
+          if member.get("encoding")!="base64":
+              raise RuntimeError("request byte encoding differs")
+          raw=base64.b64decode("".join(member["content"].split()),validate=True)
+          if len(raw)>4096 or hashlib.sha1(("blob %d\0"%len(raw)).encode()+raw).hexdigest()!=member["sha"]:
+              raise RuntimeError("request blob identity mismatch")
+          data=json.loads(raw)
+          if (not isinstance(data,dict)
+              or set(data)!={"schema","request_id","operation","created_at"}
+              or data["schema"]!="merlin-reviewed-zip-request/1"
+              or data["operation"]!="build-reviewed-source-only-portable-linux-x86_64"
+              or data["request_id"]!=matched.group(1)
+              or str(uuid.UUID(data["request_id"]))!=data["request_id"]
+              or datetime.datetime.strptime(data["created_at"],"%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")!=data["created_at"]):
+              raise RuntimeError("typed review request differs")
+          print(json.dumps({"status":"request_admitted","request_sha256":hashlib.sha256(raw).hexdigest(),
+                            "source_commit":os.environ["MERLIN_SOURCE_SHA"],"deployment":False}))
+          PY
+      - name: Rebuild exact source and independently check package, restart and reproducibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          g++ --version | head -n 1
+          git clone --no-checkout https://github.com/Mannyspiro/expert-robot.git merlin
+          cd merlin
+          git fetch origin "$MERLIN_SOURCE_SHA"
+          git checkout --detach "$MERLIN_SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$MERLIN_SOURCE_SHA"
+          export PYTHONPATH="$PWD/python:$PWD/portable"
+          mkdir -p "$GITHUB_WORKSPACE/output"
+          python3 -B -m unittest discover -s portable/merlin_studio/tests -p test_studio.py -v > "$GITHUB_WORKSPACE/output/studio-tests.log" 2>&1 || {
+            tail -n 90 "$GITHUB_WORKSPACE/output/studio-tests.log"; exit 1;
+          }
+          python3 -B portable/build_portable.py --output "$GITHUB_WORKSPACE/output/Merlin-Studio-linux-x86_64.zip" --include-native > "$GITHUB_WORKSPACE/output/build.json"
+          python3 -B scripts/verify_portable.py "$GITHUB_WORKSPACE/output/Merlin-Studio-linux-x86_64.zip" > "$GITHUB_WORKSPACE/output/verify.json"
+          python3 -B portable/build_portable.py --output "$GITHUB_WORKSPACE/output/repro-check.zip" --include-native > "$GITHUB_WORKSPACE/output/repro-build.json"
+          cmp "$GITHUB_WORKSPACE/output/Merlin-Studio-linux-x86_64.zip" "$GITHUB_WORKSPACE/output/repro-check.zip"
+          rm "$GITHUB_WORKSPACE/output/repro-check.zip"
+          python3 -B scripts/merlin_portable_zip_smoke.py --package "$GITHUB_WORKSPACE/output/Merlin-Studio-linux-x86_64.zip" --source-sha "$MERLIN_SOURCE_SHA" --output "$GITHUB_WORKSPACE/output/loopback-restart.json"
+          cd "$GITHUB_WORKSPACE/output"
+          sha256sum Merlin-Studio-linux-x86_64.zip > SHA256SUMS
+          printf '%s\n' "$MERLIN_SOURCE_SHA" > SOURCE_COMMIT
+          printf '%s\n' 'Source-only Studio with included protocol health binary. Requires separately supplied local GGUF and inference runtime for AI replies. Not production approved.' > RELEASE_SCOPE.txt
+          tail -n 6 studio-tests.log
+      - name: Retain reviewed ZIP, source pin and negative or positive evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Merlin-Studio-reviewed-linux-${{ github.run_id }}
+          path: output/
+          if-no-files-found: warn
+          retention-days: 30
