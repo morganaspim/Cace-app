@@ -1,0 +1,231 @@
+name: Merlin OCI two real local Qwen turns in rootless private network
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-model-inference-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  rootless-two-turns:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 9
+    steps:
+      - name: Run fixed 22 controls, digest assets, generate two isolated local replies
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import ast,base64,datetime,hashlib,json,os,platform,re,shutil,signal,subprocess,urllib.request,uuid
+          from pathlib import Path
+
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app'
+              or os.environ.get('GITHUB_REF')!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or attempt!=1 or run_id<=0 or not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed OCI rootless host identity required')
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-model-inference-%d-%d'%(run_id,attempt))
+          root.mkdir(mode=0o700,exist_ok=False)
+          evidence=root/'evidence';evidence.mkdir(mode=0o700)
+          controls=root/'sources';controls.mkdir(mode=0o700)
+          pins={
+            'nonroot_model_integrity.py':{'bytes':11394,'blob':'39fc189268cf564e67899a5057cecab3128f7467'},
+            'test_nonroot_model_integrity.py':{'bytes':5132,'blob':'00e2330772e0accba81e81bed3e589b074a00f45'},
+            'nonroot_model_episode.py':{'bytes':18999,'blob':'6e3c7aab43dae6eaa39b0a396eeb5fe9735b37d5'},
+            'test_nonroot_model_episode.py':{'bytes':3473,'blob':'99f8931bea5a8a0673b156bb7b192159d2d31464'},
+            'prepare_nonroot_model_loopback.py':{'bytes':6994,'blob':'b40e50e36fc6fe5cd50387c0c979f69660ba50bd'},
+          }
+          def require(v,why):
+              if not v: raise RuntimeError(why)
+          def unique(pairs):
+              d={}
+              for k,v in pairs:
+                  require(k not in d,'duplicate JSON key')
+                  d[k]=v
+              return d
+          def api(suffix):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+suffix,
+                headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                         'Accept':'application/vnd.github+json','User-Agent':'Merlin-rootless-integrity'})
+              with urllib.request.urlopen(req,timeout=15) as r:
+                  raw=r.read(2*1024*1024+1)
+              require(len(raw)<=2*1024*1024,'API response byte ceiling')
+              return json.loads(raw,object_pairs_hook=unique)
+          def git_blob(raw):
+              return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          def fetch(path):
+              item=api('contents/'+path+'?ref='+commit)
+              require(item.get('encoding')=='base64','GitHub source encoding differs')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              require(item.get('sha')==git_blob(raw),'GitHub source blob differs')
+              return raw
+          def fixed(argv,filename,seconds):
+              env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
+                   'HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'}
+              proc=subprocess.Popen(argv,cwd='/',env=env,stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+              expired=False
+              try: stdout,stderr=proc.communicate(timeout=seconds)
+              except subprocess.TimeoutExpired:
+                  expired=True
+                  try: os.killpg(proc.pid,signal.SIGKILL)
+                  except ProcessLookupError: pass
+                  stdout,stderr=proc.communicate(timeout=5)
+              (evidence/(filename+'.stdout')).write_bytes(stdout[:128*1024])
+              (evidence/(filename+'.stderr')).write_bytes(stderr[:128*1024])
+              require(not expired,'bounded '+filename+' deadline')
+              require(len(stdout)<=128*1024 and len(stderr)<=128*1024,
+                      'bounded '+filename+' output ceiling')
+              require(proc.returncode==0, filename+' returned '+str(proc.returncode))
+              return stdout
+          step='admission'
+          try:
+              changed=api('commits/'+commit).get('files',[])
+              require(len(changed)==1 and changed[0].get('status')=='added',
+                      'exact one new request file required')
+              path=changed[0]['filename']
+              m=re.fullmatch(r'merlin/oci-model-inference-requests/([0-9a-f-]{36})\.json',path)
+              require(bool(m),'fixed request namespace required')
+              raw=fetch(path)
+              require(len(raw)<=4096,'bounded request byte limit')
+              request=json.loads(raw,object_pairs_hook=unique)
+              require(set(request)=={'schema','request_id','operation','created_at'}
+                 and request['schema']=='merlin-oci-model-inference-request/1'
+                 and request['operation']=='two-fixed-rootless-model-turns'
+                 and request['request_id']==m.group(1)
+                 and str(uuid.UUID(request['request_id']))==request['request_id']
+                 and datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ').strftime(
+                    '%Y-%m-%dT%H:%M:%SZ')==request['created_at'],
+                 'exact immutable request identity differs')
+              (evidence/'request.json').write_bytes(raw)
+              step='pinned-sources'
+              actual={}
+              for name,pin in pins.items():
+                  body=fetch('ops/merlin_studio_validation/'+name)
+                  require(len(body)==pin['bytes'] and git_blob(body)==pin['blob'],
+                          'exact source pin mismatch')
+                  ast.parse(body,feature_version=(3,9))
+                  (controls/name).write_bytes(body)
+                  actual[name]={'git_blob':pin['blob'],'bytes':len(body),
+                                'sha256':hashlib.sha256(body).hexdigest()}
+              (evidence/'source-identity.json').write_text(json.dumps({
+                  'schema':'merlin-oci-model-inference-source/1',
+                  'workflow_commit':commit,'sources':actual,
+                  'model_generation_calls':0,'production_qualified':False},
+                  sort_keys=True,indent=2))
+              step='negative-controls'
+              code=("import json,sys,unittest;"
+                "suite=unittest.defaultTestLoader.discover(sys.argv[1],"
+                "pattern='test_nonroot_model_integrity.py');"
+                "result=unittest.TextTestRunner(verbosity=2).run(suite);"
+                "print(json.dumps({'tests':result.testsRun,'failures':len(result.failures),"
+                "'errors':len(result.errors),'skips':len(result.skipped)}));"
+                "sys.exit(0 if result.wasSuccessful() and not result.skipped "
+                "and result.testsRun==12 else 2)")
+              fixed(['/usr/bin/python3','-I','-B','-c',code,str(controls)],
+                    'negative-controls',30)
+              code2=("import json,sys,unittest;"
+                "suite=unittest.defaultTestLoader.discover(sys.argv[1],"
+                "pattern='test_nonroot_model_episode.py');"
+                "r=unittest.TextTestRunner(verbosity=2).run(suite);"
+                "print(json.dumps({'tests':r.testsRun,'failures':len(r.failures),"
+                "'errors':len(r.errors),'skips':len(r.skipped)}));"
+                "sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==10 else 2)")
+              fixed(['/usr/bin/python3','-I','-B','-c',code2,str(controls)],
+                    'episode-negative-controls',30)
+              step='hash-and-version'
+              stdout=fixed(['/usr/bin/python3','-I','-B',
+                 str(controls/'nonroot_model_integrity.py'),str(evidence)],
+                 'model-integrity-run',215)
+              receipt=json.loads((evidence/'model-integrity-result.json').read_text())
+              require(receipt.get('status')=='hashes_verified_version_passed_no_inference'
+                      and receipt.get('binary',{}).get('sha256')
+                      and receipt.get('model',{}).get('sha256')
+                        =='cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046'
+                      and receipt.get('version',{}).get('exit_code')==0
+                      and receipt.get('model_generation_calls')==0
+                      and receipt.get('service_mutations') is False,
+                      'rootless model integrity preflight differs')
+              require(receipt.get('eligible_for_separate_inference_trial') is True,
+                      'two GiB model memory headroom is unavailable')
+              step='private-model-inference'
+              scratch=root/'scratch';scratch.mkdir(mode=0o700,exist_ok=False)
+              parent_netns=os.stat('/proc/self/ns/net').st_ino
+              fixed(['/usr/bin/unshare','--user','--map-current-user',
+                     '--net','--fork','--keep-caps','/usr/bin/python3','-I','-B',
+                     str(controls/'prepare_nonroot_model_loopback.py'),
+                     str(parent_netns),str(controls/'nonroot_model_episode.py'),
+                     '/usr/bin/python3','/etc/merlin-model-provider/manifest.json',
+                     str(scratch),str(evidence)],
+                    'isolated-model-two-turns',305)
+              result=json.loads((evidence/'model-episode-result.json').read_text())
+              setup=json.loads((evidence/'isolated-setup-result.json').read_text())
+              require(result.get('status')=='two_live_local_model_turns_verified_in_private_netns'
+                      and result.get('generation_calls')==2
+                      and result.get('two_reference_checks_passed') is True
+                      and result.get('owned_process_stopped') is True
+                      and result.get('private_endpoint_removed_with_process') is True
+                      and result.get('root_execution') is False
+                      and result.get('host_service_mutations') is False
+                      and result.get('system_installation') is False
+                      and result.get('production_qualified') is False,
+                      'actual model generations failed fixed references')
+              require(setup.get('status')=='private_loopback_two_local_model_turns_passed'
+                      and setup.get('separate_network_namespace') is True
+                      and setup.get('zero_capability_verified_by_child') is True
+                      and setup.get('host_network_changed') is False
+                      and setup.get('model_generation_calls')==2,
+                      'private network namespace/zero-capability evidence differs')
+              (evidence/'acceptance-result.json').write_text(json.dumps({
+                  'schema':'merlin-oci-model-inference-acceptance/1',
+                  'status':'passed','native_model_turns':2,
+                  'local_model_reference_checks':2,
+                  'model_sha256':result['model_identity']['sha256'],
+                  'binary_sha256':result['binary_identity']['sha256'],
+                  'owned_process_bound_to_executable':True,
+                  'root_owned_provider_qualified':False,
+                  'network_namespace_only_loopback':True,
+                  'zero_capabilities_after_setup':True,
+                  'model_quality_generalized':False,
+                  'production_qualified':False},sort_keys=True,indent=2))
+              print(json.dumps({'status':'two_private_real_model_turns_passed',
+                  'generation_calls':2,'external_cost_usd':0,
+                  'production_qualified':False},sort_keys=True))
+          except BaseException as exc:
+              (evidence/'operation-error.json').write_text(json.dumps({
+                 'status':'blocked','stage':step,'error_type':type(exc).__name__,
+                 'message':str(exc)[:350],
+                 'production_qualified':False},sort_keys=True,indent=2))
+              raise
+          finally:
+              scratch=root/'scratch'
+              if scratch.exists():
+                  require(scratch.is_dir() and not scratch.is_symlink()
+                          and scratch.parent==root,'unsafe scratch cleanup target')
+                  shutil.rmtree(scratch)
+              (evidence/'cleanup.json').write_text(json.dumps({
+                  'scratch_removed':not scratch.exists(),
+                  'existing_host_service_mutated':False,
+                  'system_installation':False,
+                  'production_qualified':False},sort_keys=True,indent=2))
+          PY
+      - name: Retain two local model turns or exact failure and cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-model-inference-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-model-inference-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn
