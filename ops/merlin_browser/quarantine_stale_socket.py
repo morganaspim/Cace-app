@@ -26,6 +26,13 @@ SOCKET_PATH = str(RUNTIME_DIRECTORY / SOCKET_NAME)
 LOCK_FILE = Path("/var/lib/merlin-browser-bootstrap/operation.lock")
 STATE_DIRECTORY = LOCK_FILE.parent
 SERVICE_UNIT = "merlin-public-browser.service"
+REVIEWED_RECEIPTS = (
+    (STATE_DIRECTORY / "read-only-inspection-45045149558.json", 45045149558,
+     "f4f7a4799c8a309a277b879f38209b3568d87c6c"),
+    (STATE_DIRECTORY / "read-only-inspection-45050760629.json", 45050760629,
+     "0344e0a5d69850b400454dd085330788e4acc68e"),
+)
+
 EXPECTED_OLD_SOCKET = {
     "dev": 28, "inode": 2482964, "uid": 0, "gid": 1000,
     "mode": "0o660", "nlink": 1,
@@ -274,6 +281,32 @@ def _listeners():
     return _parse_listeners(raw)
 
 
+def _trusted_historical_pair():
+    """Revalidate two protected raw OCI receipts, not just a typed confirmation.
+
+    Both files must be deliberately staged under the existing root-only state
+    directory by a separately reviewed workflow. Missing evidence blocks.
+    """
+    from reconcile_orphan_socket import assess_observation_pair
+    raw = []
+    for path, run_id, revision in REVIEWED_RECEIPTS:
+        evidence = _trusted_regular(path, 256 * 1024, owner=0)
+        expected = EXPECTED_PRIOR_INSPECTIONS[run_id]
+        if hashlib.sha256(evidence).hexdigest() != expected:
+            raise ValueError("pinned OCI inspection receipt changed: " + str(run_id))
+        raw.append(evidence)
+    result = assess_observation_pair(
+        raw[0], raw[1],
+        expected_first=(REVIEWED_RECEIPTS[0][1], REVIEWED_RECEIPTS[0][2]),
+        expected_second=(REVIEWED_RECEIPTS[1][1], REVIEWED_RECEIPTS[1][2]),
+        first_sha256=EXPECTED_PRIOR_INSPECTIONS[REVIEWED_RECEIPTS[0][1]],
+        second_sha256=EXPECTED_PRIOR_INSPECTIONS[REVIEWED_RECEIPTS[1][1]],
+    )
+    if result["status"] != "stable_candidate_for_locked_reinspection":
+        raise ValueError("independent OCI history not eligible for locked reinspection")
+    return result
+
+
 def _host_precheck():
     # Retain the published previous config and release; no automatic upgrades.
     for path, expected_hash in PINNED_CONFIGS.items():
@@ -333,12 +366,18 @@ def perform_root_quarantine():
         result_file = STATE_DIRECTORY / (receipt_basename + ".result.json")
         if intent.exists() or intent.is_symlink() or result_file.exists() or result_file.is_symlink():
             raise RuntimeError("existing operation intent/result requires explicit reconciliation")
+        # Archived independent observations are a second required precondition.
+        # A hard-coded "pair_accepted=True" without the actual receipts is insufficient.
+        historical_pair = _trusted_historical_pair()
+        if historical_pair["authority_granted"] is not False:
+            raise ValueError("historical evidence unexpectedly grants authority")
         parent_fd, gate = _host_precheck()
         try:
             _write_unique_receipt(intent, {
                 "schema":"merlin-browser-socket-quarantine-intent/1",
                 "source_run_ids":sorted(EXPECTED_PRIOR_INSPECTIONS),
                 "observed_socket_inode": EXPECTED_OLD_SOCKET["inode"],
+                "historical_pair_sha256": [EXPECTED_PRIOR_INSPECTIONS[run] for run in sorted(EXPECTED_PRIOR_INSPECTIONS)],
                 "status":"accepted_root_preflight", "automatic_retry":False,
             })
             record = quarantine_same_inode(
