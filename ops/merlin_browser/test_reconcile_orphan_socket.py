@@ -183,7 +183,7 @@ class ReconciliationPreflightTests(unittest.TestCase):
                                    "--expected-workflow-commit", COMMIT]), 0)
             result = json.loads(out.read_text())
             self.assertFalse(result["authority_granted"])
-            self.assertEqual([p.name for p in root.iterdir()], ["source.json", "result.json"])
+            self.assertEqual(sorted(p.name for p in root.iterdir()), ["result.json", "source.json"])
 
 
 if __name__ == "__main__":
