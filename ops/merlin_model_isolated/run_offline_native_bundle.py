@@ -364,6 +364,51 @@ def assemble(root, evidence, archive, details):
         archive_root=destination / "Merlin_Studio",
         expected_sha256=LLAMA_SHA, expected_bytes=14614984,
         runner=_run_packaged_version))
+    # Separate non-model gate: exercise the ACTUAL restored Studio UI and
+    # durable conversation state under the packaged interpreter. It cannot
+    # substitute for a real GGUF inference result below.
+    ui_path = Path(__file__).resolve().parent / "run_packaged_studio_smoke.py"
+    require(ui_path.is_file() and not ui_path.is_symlink()
+            and ui_path.stat().st_size == 13931
+            and hashlib.sha256(ui_path.read_bytes()).hexdigest()
+            == "2d5fc653704e046eceb873b7abdf99d331a983a8139b06a6a6012e42c2ccb2e4",
+            "packaged Studio UI/restart helper source pin differs")
+    sys.path.insert(0, str(ui_path.parent))
+    import run_packaged_studio_smoke as studio_smoke
+    ui_scratch = root / "isolated-studio-ui"
+    ui_scratch.mkdir(mode=0o700, exist_ok=False)
+    try:
+        ui_report = studio_smoke.invoke(destination, ui_scratch)
+    finally:
+        # Save only bounded, typed nonsecret result; temporary backend state,
+        # source and local conversation contents will be deleted on cleanup.
+        ui_evidence = ui_scratch / "ui-evidence" / "packaged-studio-ui.json"
+        if (ui_evidence.is_file() and not ui_evidence.is_symlink()
+                and 0 < ui_evidence.stat().st_size <= 8192):
+            raw = json.loads(ui_evidence.read_text())
+            safe_keys = ("schema", "status", "production_qualified",
+                         "model_inference_executed", "host_mutations",
+                         "packaged_python_started", "studio_ui_served",
+                         "conversation_restored", "stale_token_rejected",
+                         "studio_workers_terminated", "elapsed_seconds",
+                         "ui_sha256", "conversation_sha256",
+                         "error_type", "error_reason")
+            safe = {k: raw[k] for k in safe_keys if k in raw}
+            (evidence / "packaged-studio-ui.json").write_text(
+                json.dumps(safe, sort_keys=True, indent=2) + "\n")
+    require(ui_report["status"] == "packaged_ui_and_restart_passed"
+            and ui_report["studio_ui_served"] is True
+            and ui_report["conversation_restored"] is True
+            and ui_report["stale_token_rejected"] is True
+            and ui_report["studio_workers_terminated"] is True
+            and ui_report["model_inference_executed"] is False
+            and ui_report["host_mutations"] == 0
+            and ui_report["production_qualified"] is False,
+            "private packaged Studio application restart unqualified")
+    details["packaged_studio_ui_started"] = True
+    details["packaged_studio_conversation_restored"] = True
+    details["packaged_studio_stale_token_rejected"] = True
+    details["packaged_studio_ui_sha256"] = ui_report["ui_sha256"]
     # The isolated GGUF test helper is a distinct exact-pinned Git source.
     # No untrusted archive text may substitute the test program.
     module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
@@ -448,6 +493,9 @@ def main():
         prepared = assemble(scratch, evidence, py_archive, result)
         require(prepared["package_integrity_passed"]
                 and prepared["actual_packaged_python_executed"]
+                and prepared["packaged_studio_ui_started"] is True
+                and prepared["packaged_studio_conversation_restored"] is True
+                and prepared["packaged_studio_stale_token_rejected"] is True
                 and prepared["native_llama_binary_started"]
                 and prepared["model_inference_executed"] is True
                 and prepared["model_process_terminated"] is True,
