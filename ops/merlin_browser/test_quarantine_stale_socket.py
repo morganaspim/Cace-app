@@ -218,5 +218,46 @@ class StaleSocketQuarantineTests(unittest.TestCase):
 
 
 
+    def test_receipt_writer_handles_short_writes_and_preserves_exact_bytes(self):
+        from unittest.mock import patch
+        import quarantine_stale_socket as source
+        output = self.root / "receipt.json"
+        body = {"status": "quarantined", "source": "browser.sock", "automatic_retry": False}
+        original = os.write
+        def short_write(fd, data):
+            return original(fd, data[:max(1, len(data) // 3)])
+        with patch.object(source.os, "write", side_effect=short_write):
+            source._write_unique_receipt(output, body)
+        import json
+        self.assertEqual(json.loads(output.read_text()), body)
+        with self.assertRaises(FileExistsError):
+            source._write_unique_receipt(output, body)
+
+    def test_listener_parser_rejects_malformed_matching_and_duplicate_rows(self):
+        import quarantine_stale_socket as source
+        empty = b"Num RefCount Protocol Flags Type St Inode Path\n"
+        self.assertEqual(source._parse_listeners(empty), 0)
+        valid = empty + b"00000000: 00000002 00000000 00010000 0001 01 123 /run/merlin-public-browser/browser.sock\n"
+        self.assertEqual(source._parse_listeners(valid), 1)
+        with self.assertRaises(ValueError):
+            source._parse_listeners(empty + b"/run/merlin-public-browser/browser.sock\n")
+        with self.assertRaises(ValueError):
+            source._parse_listeners(valid + valid.splitlines()[-1] + b"\n")
+
+    def test_cli_dry_run_does_not_touch_workspace_socket(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        import json
+        from quarantine_stale_socket import main
+        out = StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(main(["--dry-run"]), 0)
+        report = json.loads(out.getvalue())
+        self.assertEqual(report["host_mutations"], 0)
+        self.assertFalse(report["authority_granted"])
+        self.assertEqual(self.path.lstat().st_ino, self.live.st_ino)
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
