@@ -1,0 +1,369 @@
+name: Merlin OCI Studio 112-case Python 3.11 native acceptance
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-studio112-requests/**"]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  private-stage:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 15
+    steps:
+      - name: Admit pinned source and one-request runtime-startup scope
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import ast,base64,datetime,hashlib,json,os,platform,re,stat,sys,urllib.request,uuid
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app' or
+              os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1'
+              or os.geteuid()!=1000 or platform.machine()!='aarch64'
+              or sys.version_info[:2]!=(3,9) or attempt!=1 or
+              not re.fullmatch(r'[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed unprivileged ARM64 runner required')
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-studio112-%d-%d'%(run_id,attempt))
+          root.mkdir(mode=0o700,exist_ok=False)
+          ev=root/'evidence';ev.mkdir(mode=0o700)
+          src=root/'source'
+          (src/'scripts').mkdir(mode=0o700,parents=True)
+          (src/'tests').mkdir(mode=0o700)
+          (root/'stage-parent').mkdir(mode=0o700)
+          def unique(pairs):
+              d={}
+              for k,v in pairs:
+                  if k in d: raise ValueError('duplicate JSON key')
+                  d[k]=v
+              return d
+          def api(repository,path):
+              url='https://api.github.com/repos/'+repository+'/'+path
+              req=urllib.request.Request(url,headers={
+                  'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GITHUB_TOKEN']})
+              with urllib.request.urlopen(req,timeout=16) as response:
+                  data=response.read(2*1024*1024+1)
+              if len(data)>2*1024*1024: raise RuntimeError('API byte ceiling')
+              return json.loads(data,object_pairs_hook=unique)
+          def blob(data):
+              return hashlib.sha1(('blob %d\0'%len(data)).encode()+data).hexdigest()
+          def fetch(repository,path,ref,pin):
+              item=api(repository,'contents/'+path+'?ref='+ref)
+              if item.get('encoding')!='base64': raise RuntimeError('unexpected Git content encoding')
+              data=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if (len(data)!=pin['bytes'] or hashlib.sha256(data).hexdigest()!=pin['sha256']
+                  or blob(data)!=pin['git_blob'] or item['sha']!=pin['git_blob']):
+                  raise RuntimeError('exact source identity mismatch')
+              return data
+          stage='request_admission'
+          try:
+              changes=api(repo,'commits/'+commit).get('files',[])
+              if len(changes)!=1 or changes[0].get('status')!='added':
+                  raise RuntimeError('one new stage request file required')
+              path=changes[0].get('filename','')
+              match=re.fullmatch(r'merlin/oci-studio112-requests/([0-9a-f-]{36})\.json',path)
+              if not match: raise RuntimeError('wrong request namespace')
+              item=api(repo,'contents/'+path+'?ref='+commit)
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if len(raw)>4096 or blob(raw)!=item['sha']: raise RuntimeError('request bytes differ')
+              request=json.loads(raw,object_pairs_hook=unique)
+              if (set(request)!={'schema','request_id','operation','created_at'}
+                  or request['schema']!='merlin-oci-studio112-request/1'
+                  or request['operation']!='run-merlin-studio-112-on-private-python311'
+                  or request['request_id']!=match.group(1)
+                  or str(uuid.UUID(request['request_id']))!=request['request_id']
+                  or datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%dT%H:%M:%SZ')!=request['created_at']):
+                  raise RuntimeError('invalid fixed stage request')
+              (ev/'request.json').write_bytes(raw)
+              stage='source_admission'
+              source_commit='71e6405a3475eb449d150b961915922edd3e9fb0'
+              pins={
+                'scripts/merlin_python_private_stage.py':{
+                  'bytes':13722,'sha256':'2aaf1375f8969006c57e5523e91fd2a5b157990f069503b29764ec38c097ee82',
+                  'git_blob':'b78089d302c9dced6cf4ecc9d4a5ccb9cc54bc6b'},
+                'tests/test_merlin_python_private_stage.py':{
+                  'bytes':9756,'sha256':'7536f2e43ac280e3140b5153b3e49dc48932dd52c7fd29a2960b3ad7d543efd1',
+                  'git_blob':'2cdc4160097492eed755c528ae2c40f3696ccee4'}}
+              for path,pin in pins.items():
+                  source=fetch('Mannyspiro/expert-robot',path,source_commit,pin)
+                  ast.parse(source,feature_version=(3,9))
+                  (src/path).write_bytes(source)
+                  (src/path).chmod(0o600)
+              # Use the already reviewed 36-file Studio source custody controller.
+              studio_pins={
+                'validate.py':{'bytes':37082,
+                  'sha256':'39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee',
+                  'git_blob':'d950f862e4025db559c4c1a99cdba4aec9bae6c7'},
+                'source-pins.json':{'bytes':8350,
+                  'sha256':'4f0a420a6067c6e8ce51dd3110539e5a47b8a372fb216c540c39ba7ff41e8429',
+                  'git_blob':'bba11aced1eeb2d31c264f749408653fa618c879'},
+                'product-source.zip':{'bytes':104129,
+                  'sha256':'99964ba99ea41a3b3580b85574533e5aaa8a2e72cca111b1b2233c948bb1cf8b',
+                  'git_blob':'09d10789ab63c776cf47b8226cd0507e8cce1e49'}}
+              validation=root/'validation';validation.mkdir(mode=0o700)
+              for name,pin in studio_pins.items():
+                  body=fetch(repo,'ops/merlin_studio_validation/'+name,commit,pin)
+                  if name.endswith('.py'): ast.parse(body,feature_version=(3,9))
+                  (validation/name).write_bytes(body)
+                  (validation/name).chmod(0o600)
+              (ev/'admission.json').write_text(json.dumps({
+                  'schema':'merlin-oci-studio112-admission/1','request_commit':commit,
+                  'source_commit':source_commit,'pins':pins,'studio_source_pins':studio_pins,
+                  'studio_product_commit':'8497597f297bba83189afef2026c27f9244537ce',
+                  'archive_artifact_id':14748604091,
+                  'interpreter_installed':False,'native_interpreter_executed':False,
+                  'model_calls':0,'production_qualified':False},sort_keys=True,indent=2))
+              print(json.dumps({'status':'stage_source_admitted','source_commit':source_commit,
+                                'host_installation':False,'native_interpreter_executed':False}))
+          except BaseException as exc:
+              (ev/'failure.json').write_text(json.dumps({
+                  'status':'blocked','stage':stage,'error_type':type(exc).__name__,
+                  'native_interpreter_executed':False,'production_qualified':False},sort_keys=True))
+              raise
+          PY
+      - name: Download the already reviewed, hash-bound archive evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14748604091
+          run-id: 45009078432
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/merlin-oci-studio112-${{ github.run_id }}-${{ github.run_attempt }}/input
+      - name: Run pinned 111 native product tests, package source and restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import hashlib,json,os,platform,re,resource,shutil,signal,stat,subprocess,sys,time
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-studio112-%s-%s'%(os.environ['GITHUB_RUN_ID'],os.environ['GITHUB_RUN_ATTEMPT']))
+          ev=root/'evidence';parent=root/'stage-parent';download=root/'input'
+          source=root/'source';script=source/'scripts/merlin_python_private_stage.py'
+          archive=download/'archive.data'
+          status='blocked';error=None;stage_leaf=None;cleaned=False
+          launch_attempted=False;startup_verified=False;studio_passed=False;studio_count=0
+          readonly_roots=[];pyc_before=0;pyc_after=None
+          def require(v,why):
+              if not v: raise RuntimeError(why)
+          def proc(argv,seconds,log,*,candidate=False):
+              clean={'PATH':'/usr/bin:/bin','LANG':'C','LC_ALL':'C','HOME':'/var/empty',
+                     'PYTHONDONTWRITEBYTECODE':'1','TMPDIR':'/tmp'}
+              def set_limits():
+                  resource.setrlimit(resource.RLIMIT_CPU,(12,12))
+                  resource.setrlimit(resource.RLIMIT_AS,(768*1024*1024,768*1024*1024))
+                  resource.setrlimit(resource.RLIMIT_FSIZE,(1024*1024,1024*1024))
+                  resource.setrlimit(resource.RLIMIT_NOFILE,(64,64))
+                  os.umask(0o077)
+              p=subprocess.Popen(argv,cwd='/',env=clean,stdin=subprocess.DEVNULL,
+                     stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True,
+                     preexec_fn=set_limits if candidate else None)
+              try: raw,_=p.communicate(timeout=seconds)
+              except subprocess.TimeoutExpired:
+                  try: os.killpg(p.pid,signal.SIGKILL)
+                  except ProcessLookupError: pass
+                  p.communicate(timeout=5)
+                  raise RuntimeError('bounded child deadline exceeded')
+              require(len(raw)<=128*1024,'bounded child output ceiling')
+              log.write_bytes(raw)
+              require(p.returncode==0,'child returned nonzero')
+              return raw
+          try:
+              require(os.geteuid()==1000 and platform.machine()=='aarch64' and sys.version_info[:2]==(3,9),
+                      'fixed host identity changed')
+              require(stat.S_IMODE(os.lstat(root).st_mode)==0o700 and
+                      stat.S_IMODE(os.lstat(parent).st_mode)==0o700,
+                      'private directory changed')
+              require(archive.is_file() and not archive.is_symlink() and archive.stat().st_size==49469868,
+                      'expected pinned archive data missing')
+              h=hashlib.sha256()
+              with archive.open('rb') as f:
+                  while True:
+                      block=f.read(1024*1024)
+                      if not block: break
+                      h.update(block)
+              require(h.hexdigest()=='623a370be4489d8c35c7a274be02f3007a030618cda29025780beb416c6c8861',
+                      'archive hash mismatch')
+              test_log=ev/'private-stage-tests.log'
+              observed=proc(['/usr/bin/python3','-I','-B','-m','unittest','discover',
+                         '-s',str(source/'tests'),'-p','test_merlin_python_private_stage.py','-v'],55,test_log)
+              require(b'Ran 14 tests' in observed and b'OK' in observed
+                      and b'skipped=' not in observed and b'FAILED' not in observed,
+                      '14 native nonroot tests not all accepted')
+              result=proc(['/usr/bin/python3','-I','-B',str(script),'--archive',str(archive),
+                           '--parent',str(parent),'--stage'],180,ev/'private-stage.stdout')
+              receipt=json.loads(result)
+              stage_leaf=Path(receipt['staging_path'])
+              require(stage_leaf.parent==parent and not stage_leaf.is_symlink() and
+                      stat.S_IMODE(os.lstat(stage_leaf).st_mode)==0o700,
+                      'stage leaf identity changed')
+              require(receipt['archive_members']==4949 and receipt['staged_files']==3900 and
+                      receipt['symlink_entries']==1049 and receipt['staged_total_file_bytes']==153418201 and
+                      receipt['entrypoint_sha256']=='6cfad927461ace659b09716fad2efa828c6a4b084b7be8181c3982a9f36f464c'
+                      and receipt['native_interpreter_executed'] is False and
+                      receipt['host_system_installation'] is False and
+                      receipt['production_qualified'] is False and receipt['python_startup_verified'] is False,
+                      'stage acceptance receipt mismatch')
+              entry=stage_leaf/'python/bin/python3.11'
+              require(entry.is_file() and entry.stat().st_size==56723673,'staged interpreter identity mismatch')
+              h=hashlib.sha256()
+              with entry.open('rb') as f:
+                  while True:
+                      block=f.read(1024*1024)
+                      if not block: break
+                      h.update(block)
+              require(h.hexdigest()==receipt['entrypoint_sha256'],'staged interpreter SHA differs')
+              (ev/'stage-receipt.json').write_text(json.dumps(receipt,sort_keys=True,indent=2))
+              # This is the only invocation of the staged interpreter:
+              # fixed standard-library introspection, no installs or model calls.
+              candidate_code=("import json,os,platform,sqlite3,ssl,sys;"
+                  "print(json.dumps({'version':list(sys.version_info[:3]),"
+                  "'machine':platform.machine(),'uid':os.geteuid(),"
+                  "'prefix':sys.prefix,'executable':sys.executable,"
+                  "'sqlite_version':sqlite3.sqlite_version,"
+                  "'openssl_version':ssl.OPENSSL_VERSION,"
+                  "'isolated':sys.flags.isolated,'no_site':sys.flags.no_site},sort_keys=True))")
+              launch_attempted=True
+              output=proc([str(entry),'-I','-B','-S','-c',candidate_code],
+                          22,ev/'python311-startup.stdout',candidate=True)
+              runtime=json.loads(output)
+              require(runtime['version']==[3,11,18] and runtime['machine']=='aarch64'
+                      and runtime['uid']==1000 and runtime['isolated']==1 and runtime['no_site']==1
+                      and runtime['prefix']==str(stage_leaf/'python')
+                      and runtime['executable']==str(entry)
+                      and isinstance(runtime['sqlite_version'],str)
+                      and isinstance(runtime['openssl_version'],str),
+                      'version_arch_prefix_isolation_or_stdlib_check_failed')
+              startup_verified=True
+              (ev/'python311-startup.json').write_text(json.dumps({
+                  'schema':'merlin-oci-python311-startup/1','runtime':runtime,
+                  'source_stage_sha256':receipt['archive_sha256'],
+                  'verified_entrypoint_sha256':receipt['entrypoint_sha256'],
+                  'startup_verified':True,'model_calls':0,'host_system_installation':False,
+                  'production_qualified':False},sort_keys=True,indent=2))
+              # Reuse reviewed native test definitions and immutable source pins.
+              stage='studio_source_custody'
+              validation=root/'validation'
+              ns={'__name__':'pinned_studio112_controller'}
+              exec(compile((validation/'validate.py').read_bytes(),'pinned-validation','exec'),ns)
+              pins=ns['parse_json']((validation/'source-pins.json').read_bytes())
+              members=ns['validate_bundle'](pins,(validation/'product-source.zip').read_bytes())
+              require(len(members)==36,'reviewed studio member count changed')
+              product=root/'exact-product-source'
+              ns['extract_bundle'](members,product)
+              # The previous run retained five Python subprocess failures,
+              # including one malformed bytecode cache. Freeze source/code
+              # locations against generated pyc writes without weakening tests.
+              readonly_roots=[stage_leaf/'python/lib',
+                  product/'portable',product/'python',product/'tests',
+                  product/'scripts',product/'cpp']
+              for base in readonly_roots:
+                  require(base.is_dir() and not base.is_symlink(),
+                          'fixed readonly source directory required')
+                  for current,dirs,files in os.walk(base,topdown=False,followlinks=False):
+                      for name in files:
+                          path=Path(current)/name
+                          if not path.is_symlink():
+                              mode=stat.S_IMODE(os.lstat(path).st_mode)
+                              path.chmod(mode & ~0o222)
+                      os.chmod(current,stat.S_IMODE(os.lstat(current).st_mode)&~0o222)
+              pyc_before=sum(1 for base in readonly_roots
+                  for file in base.rglob('*.pyc') if file.is_file())
+              (ev/'source-permission-boundary.json').write_text(json.dumps({
+                  'schema':'merlin-studio-source-readonly/1',
+                  'protected_code_roots':len(readonly_roots),
+                  'preexisting_bytecode_files':pyc_before,
+                  'effect':'prevent generated pyc files in native code source roots',
+                  'host_system_changed':False,'production_qualified':False},sort_keys=True,indent=2))
+              check_temp=root/'controller-temporary';check_temp.mkdir(mode=0o700)
+              env=ns['child_env'](check_temp)
+              selection={'passed':True,'selected':{
+                  'version':[3,11,18],'executable':str(entry),
+                  'source':'hash_verified_private_startup_45012077301'}}
+              stage='studio_111_test_and_package'
+              suite=ns['run_source_tests'](product,ev,selection,env,pins)
+              (ev/'studio112-results.json').write_text(json.dumps(
+                  suite,sort_keys=True,indent=2))
+              studio_count=suite.get('tests',0)
+              pyc_after=sum(1 for base in readonly_roots
+                  for file in base.rglob('*.pyc') if file.is_file())
+              (ev/'source-permission-after-tests.json').write_text(json.dumps({
+                  'preexisting_bytecode_files':pyc_before,'after_bytecode_files':pyc_after,
+                  'no_new_bytecode_cache':pyc_after==pyc_before},sort_keys=True,indent=2))
+              require(pyc_after==pyc_before,'bytecode_cache_added_during_validation')
+              require(suite.get('passed') is True and suite.get('status')=='passed'
+                      and studio_count==112 and suite.get('skipped')==0
+                      and suite.get('native_protocol_tests')==3
+                      and suite.get('build-source-package',{}).get('passed') is True
+                      and suite.get('verify-source-package',{}).get('passed') is True,
+                      'reviewed exact-count Studio 111 acceptance failed')
+              studio_passed=True
+              status='studio112_verified_cleanup_pending'
+          except BaseException as exc:
+              error=type(exc).__name__
+          finally:
+              try:
+                  # The same UID restores directory write access only for
+                  # deleting private scratch files; no host or system paths.
+                  for base in readonly_roots:
+                      if base.exists() and base.is_dir() and not base.is_symlink():
+                          for current,dirs,_ in os.walk(base,topdown=True,followlinks=False):
+                              os.chmod(current,0o700)
+                              for name in dirs:
+                                  path=Path(current)/name
+                                  if path.is_dir() and not path.is_symlink():
+                                      os.chmod(path,0o700)
+                  if stage_leaf is not None and stage_leaf.parent==parent and stage_leaf.exists():
+                      shutil.rmtree(stage_leaf)
+                  # A failed stage can leave a child before its JSON receipt.
+                  for item in parent.iterdir():
+                      if item.name.startswith('merlin-cpython-stage-') and item.is_dir() and not item.is_symlink():
+                          shutil.rmtree(item)
+                  require(not list(parent.iterdir()),'residual_stage_leaf')
+                  if download.exists() and download.is_dir() and not download.is_symlink():
+                      shutil.rmtree(download)
+                  require(not download.exists(),'residual_archive')
+                  for dest in (root/'exact-product-source',root/'validation',root/'controller-temporary'):
+                      if dest.exists() and dest.is_dir() and not dest.is_symlink():
+                          shutil.rmtree(dest)
+                  require(not any((root/x).exists() for x in
+                          ('exact-product-source','validation','controller-temporary')),
+                          'residual_temporary_product_sources')
+                  cleaned=True
+              except BaseException as exc:
+                  error=error or type(exc).__name__
+                  cleaned=False
+              (ev/'result.json').write_text(json.dumps({
+                  'schema':'merlin-oci-studio112-result/1','status':'passed' if status=='studio112_verified_cleanup_pending' and studio_passed and cleaned and not error else 'blocked',
+                  'error_type':error,'native_tests_expected':14,'archive_members_expected':4949,
+                  'cleanup_verified':cleaned,'interpreter_installed':False,
+                  'interpreter_launch_attempted':launch_attempted,
+                  'native_interpreter_executed_and_verified':startup_verified,
+                  'model_calls':0,'studio_product_tests_run':studio_count,
+                  'studio_112_case_gate_passed':studio_passed,
+                  'production_qualified':False},sort_keys=True,indent=2))
+              print((ev/'result.json').read_text())
+          if status!='studio112_verified_cleanup_pending' or not studio_passed or not cleaned or error:
+              raise SystemExit(2)
+          PY
+      - name: Retain native evidence, including negative outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-studio112-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-studio112-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn
