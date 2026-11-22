@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-offline-profile-preflight-request/1",
+  "request_id": "4ec8fe01-9e9c-48bf-99c7-a77f9ba70f83",
+  "operation": "inspect-pinned-assets-for-offline-profile",
+  "created_at": "2026-11-22T17:55:00Z"
+}
