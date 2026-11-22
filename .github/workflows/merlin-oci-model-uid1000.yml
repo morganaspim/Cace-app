@@ -1,0 +1,121 @@
+name: Merlin OCI existing provider unprivileged read-only identity diagnostic
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-model-uid1000-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  read-only-provider:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 7
+    steps:
+      - name: Read pinned model, binary, unit, service and process evidence without sudo or generation
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import ast,base64,datetime,hashlib,json,os,platform,re,stat,urllib.request,uuid
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          if (repo!='morganaspim/Cace-app' or
+              os.environ['GITHUB_REF']!='refs/heads/merlin/browser-operations-20261121' or
+              os.environ.get('RUNNER_NAME')!='cace-oci-a1' or
+              os.geteuid()!=1000 or platform.machine()!='aarch64' or
+              int(os.environ['GITHUB_RUN_ATTEMPT'])!=1):
+              raise RuntimeError('fixed nonroot OCI identity required')
+          root=Path(os.environ['RUNNER_TEMP'])/('merlin-provider-uid1000-'+os.environ['GITHUB_RUN_ID'])
+          root.mkdir(mode=0o700,exist_ok=False)
+          ev=root/'evidence';ev.mkdir(mode=0o700)
+          def unique(pairs):
+              d={}
+              for k,v in pairs:
+                  if k in d:raise ValueError('duplicate JSON key')
+                  d[k]=v
+              return d
+          def api(path):
+              req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,
+                  headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                           'Accept':'application/vnd.github+json',
+                           'User-Agent':'Merlin-readonly-UID1000-provider'})
+              with urllib.request.urlopen(req,timeout=16) as f:
+                  raw=f.read(2*1024*1024+1)
+              if len(raw)>2*1024*1024:raise RuntimeError('GitHub API byte ceiling')
+              return json.loads(raw,object_pairs_hook=unique)
+          def blob(raw):
+              return hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+          scope='merlin/oci-model-uid1000-requests/'
+          changes=api('commits/'+commit)['files']
+          if len(changes)!=1 or changes[0].get('status')!='added':
+              raise RuntimeError('exact additive request required')
+          path=changes[0].get('filename','')
+          match=re.fullmatch(r'merlin/oci-model-uid1000-requests/([0-9a-f-]{36})\.json',path)
+          if not match:raise RuntimeError('unexpected request path')
+          item=api('contents/'+path+'?ref='+commit)
+          raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+          if len(raw)>4096 or item.get('sha')!=blob(raw):
+              raise RuntimeError('request integrity mismatch')
+          request=json.loads(raw,object_pairs_hook=unique)
+          if (set(request)!={'schema','request_id','operation','created_at'}
+              or request['schema']!='merlin-oci-model-uid1000-request/1'
+              or request['operation']!='inspect-fixed-model-provider-without-root-or-inference'
+              or request['request_id']!=match.group(1)
+              or str(uuid.UUID(request['request_id']))!=request['request_id']
+              or datetime.datetime.strptime(request['created_at'],'%Y-%m-%dT%H:%M:%SZ').strftime(
+                  '%Y-%m-%dT%H:%M:%SZ')!=request['created_at']):
+              raise RuntimeError('provider request schema differs')
+          source_path='ops/merlin_studio_validation/validate.py'
+          source_item=api('contents/'+source_path+'?ref='+commit)
+          source=base64.b64decode(''.join(source_item['content'].split()),validate=True)
+          source_hash=hashlib.sha256(source).hexdigest()
+          if (len(source)!=37082 or
+              source_hash!='39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee'
+              or source_item.get('sha')!='d950f862e4025db559c4c1a99cdba4aec9bae6c7'
+              or blob(source)!='d950f862e4025db559c4c1a99cdba4aec9bae6c7'):
+              raise RuntimeError('previously reviewed provider reader identity changed')
+          ast.parse(source,feature_version=(3,9))
+          namespace={'__name__':'merlin_oci_uid1000_readonly_provider'}
+          exec(compile(source,'pinned-provider-reader','exec'),namespace)
+          out={'schema':'merlin-oci-uid1000-provider-observation/1',
+               'source_sha256':source_hash,'source_commit':commit,
+               'service_mutations':False,'model_generation_calls':0,
+               'root_privilege_attempted':False,'system_installed':False,
+               'production_qualified':False}
+          try:
+              measurement=namespace['inspect_provider'](ev,namespace['child_env'](root),
+                                                         tokenize=False)
+              (ev/'provider-details.json').write_text(
+                  json.dumps(measurement,sort_keys=True,indent=2))
+              out['provider_files']=list(measurement.get('files',{}))
+              out['file_ids_passed']={k:bool(v.get('passed')) for k,v in
+                                      measurement.get('files',{}).items()}
+              out['observed_service_active']=measurement.get('service',{}).get('ActiveState')=='active'
+              out['process_binding_passed']=measurement.get('process_binding',{}).get('passed') is True
+              out['unprivileged_identity_matched']=measurement.get('passed') is True
+              out['status']='passed_unprivileged_observation' if measurement.get('passed') else 'blocked_unprivileged_observation'
+              out['errors']=[str(e)[:160] for e in measurement.get('errors',[])[:8]]
+          except BaseException as exc:
+              out['status']='reader_failed'
+              out['error_type']=type(exc).__name__
+              out['error']=str(exc)[:160]
+          (ev/'result.json').write_text(json.dumps(out,sort_keys=True,indent=2))
+          print(json.dumps(out,sort_keys=True))
+          
+          PY
+      - name: Preserve exact partial observations and blocked status
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-provider-uid1000-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-provider-uid1000-${{ github.run_id }}/evidence/
+          retention-days: 30
+          if-no-files-found: warn
