@@ -138,6 +138,29 @@ def _unique_json(pairs):
     return row
 
 
+def failure_diagnostic(stderr):
+    """Keep only a typed, bounded, no-secret child failure receipt."""
+    if not isinstance(stderr,bytes) or not 0 < len(stderr) <= 4096:
+        return "no typed child failure evidence"
+    try:
+        raw=stderr.decode("utf-8","strict").strip().splitlines()
+        if len(raw)!=1:
+            return "no typed child failure evidence"
+        obj=json.loads(raw[0],object_pairs_hook=_unique_json)
+        if (not isinstance(obj,dict) or set(obj)!={
+                "status","error_type","reason","production_qualified"}
+                or obj.get("status")!="blocked"
+                or obj.get("production_qualified") is not False
+                or not isinstance(obj.get("error_type"),str)
+                or re.fullmatch(r"[A-Za-z]{1,40}",obj["error_type"]) is None
+                or not isinstance(obj.get("reason"),str)
+                or not 0 < len(obj["reason"]) <= 200):
+            return "no typed child failure evidence"
+        return obj["error_type"]+":"+obj["reason"]
+    except (UnicodeError,ValueError,TypeError):
+        return "no typed child failure evidence"
+
+
 def assess_model_reply(message):
     if not isinstance(message,dict):
         raise ValueError("model JSON response not an object")
@@ -341,7 +364,8 @@ def _setup(root,scratch,parent):
     if len(child.stdout)>32768 or len(child.stderr)>32768:
         raise RuntimeError("packaged model child output exceeded limit")
     if child.returncode:
-        raise RuntimeError("isolated packaged model child exit "+str(child.returncode))
+        raise RuntimeError("isolated packaged model child exit "+str(child.returncode)
+                           +": "+failure_diagnostic(child.stderr))
     print(child.stdout.decode("utf-8",errors="strict").strip())
     return 0
 
@@ -366,10 +390,10 @@ def invoke(root,scratch):
     if len(proc.stdout)>32768 or len(proc.stderr)>32768:
         raise RuntimeError("isolated private packaged model output exceeded bound")
     if proc.returncode != 0:
-        # Only a typed, bounded status from our source-pinned child is retained;
-        # never print model logs, API bodies or raw file contents into CI.
+        # Only a typed, bounded status from the source-pinned child is retained.
+        # Never print its model process logs or API response body into CI.
         report_path=scratch/"packaged-model-smoke.json"
-        reason="no typed child failure evidence"
+        reason=failure_diagnostic(proc.stderr)
         if report_path.is_file() and not report_path.is_symlink() and report_path.stat().st_size <= 16384:
             try:
                 diagnostic=json.loads(report_path.read_text(),object_pairs_hook=_unique_json)
