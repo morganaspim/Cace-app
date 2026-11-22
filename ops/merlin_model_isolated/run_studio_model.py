@@ -35,8 +35,8 @@ TESTS = (
 def request(method, path, token=None, body=None, timeout=5):
     if method == "GET":
         base.require(path in ("/api/health","/api/status","/api/conversations")
-                     or re.fullmatch(r"/api/conversations/[0-9a-f-]{36}",path)
-                     or re.fullmatch(r"/api/runs/[0-9a-f-]{36}",path),
+                     or re.fullmatch(r"/api/conversations/[0-9a-f]{32}",path)
+                     or re.fullmatch(r"/api/runs/[0-9a-f]{32}",path),
                      "Studio GET not allowlisted")
     else:
         base.require((method,path) in {("POST","/api/settings"),
@@ -168,12 +168,14 @@ def test(ev, product, scratch, parent, python):
         base.require(code==201 and isinstance(created.get("conversation"),dict),
                      "real Studio conversation create failed")
         cid=created["conversation"]["id"]
+        base.require(re.fullmatch(r"[0-9a-f]{32}",cid) is not None,
+                     "Studio storage identity must be a 32-character lowercase hex ID")
         turns=[]
         for question,expected in TESTS:
             code,reply=request("POST","/api/chat",token,
                                {"conversation_id":cid,"message":question})
             base.require(code==202 and
-                         re.fullmatch("[0-9a-f-]{36}",reply.get("run_id","")),
+                         re.fullmatch(r"[0-9a-f]{32}",reply.get("run_id","")),
                          "real Studio model run submission failed")
             run_id=reply["run_id"]
             cutoff=time.monotonic()+100
