@@ -33,7 +33,7 @@ jobs:
               raise RuntimeError('unexpected unprivileged static-inspection identity')
           run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
           if run_id<=44955762960 or attempt!=1: raise RuntimeError('new first static-inspection attempt required')
-          pins={'acquire_inspect.py': {'bytes': 34102, 'sha256': '68723992f07d1259c011cc6632dd4656a87569ee7e84c1dc26abf50cf4c58daf', 'git_blob': '74596d32ff5de8d6689a9a06d9054df36a5bed48'}, 'test_acquire_inspect.py': {'bytes': 26021, 'sha256': '173f55021c4d31bdc52160b4e40a9bb8b8ea6839354066ad642d90983712e358', 'git_blob': 'c9dc8a35c18f01bf66e29f308645303c860141f1'}}
+          pins={'acquire_inspect.py': {'bytes': 35199, 'sha256': 'c3a5bd263d22a50a4872648e1a0934782c5f2cbb87d153b91adf84c67ce25ba2', 'git_blob': '893c863f6d7dcff42c2ae735f955a8d8a31d0ae7'}, 'test_acquire_inspect.py': {'bytes': 31860, 'sha256': '30f1a819dbb526622130b14a5579d203ede018300f8ed7d91c552b8df8d1ef3e', 'git_blob': '99f15d858c05a2cc477de89583135ad3b8c8b11c'}}
           clean={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LANG':'C.UTF-8','LC_ALL':'C.UTF-8',
                  'HOME':'/var/empty','XDG_CONFIG_HOME':'/var/empty','XDG_CACHE_HOME':'/var/empty',
                  'XDG_DATA_HOME':'/var/empty','PYTHONDONTWRITEBYTECODE':'1'}
@@ -130,7 +130,7 @@ jobs:
                   'controller_sha256':pins['acquire_inspect.py']['sha256'],'python':sys.version}
               (out/'identity.json').write_text(json.dumps(execution,sort_keys=True,indent=2))
               stage='local_fixture_controls'
-              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_acquire_inspect.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==23 else 1)"
+              code="import sys,unittest,json;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.discover(sys.argv[1],pattern='test_acquire_inspect.py');r=unittest.TextTestRunner(verbosity=2).run(suite);print(json.dumps({'tests':r.testsRun,'errors':len(r.errors),'failures':len(r.failures),'skipped':len(r.skipped)}));sys.exit(0 if r.wasSuccessful() and not r.skipped and r.testsRun==35 else 1)"
               fixed(['/usr/bin/python3','-I','-B','-c',code,str(out)],'static-inspection-controls.txt',60)
               for name,pin in pins.items(): check((out/name).read_bytes(),pin)
               stage='bounded_unprivileged_acquisition_and_inspection'
