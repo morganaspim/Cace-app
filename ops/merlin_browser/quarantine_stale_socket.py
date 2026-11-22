@@ -8,6 +8,7 @@ socket inode for audit and potential rollback instead of unlinking it.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import fcntl
 import hashlib
 import json
@@ -108,8 +109,30 @@ def _same_inode(a, b):
                 == (b.st_dev, b.st_ino, b.st_uid, b.st_gid, stat.S_IMODE(b.st_mode)))
 
 
+
+def _atomic_rename_no_replace(dirfd, old, new):
+    """Linux renameat2(RENAME_NOREPLACE); never overwrite a raced target.
+
+    The caller must already hold the root-owned operation lock and a pinned
+    no-follow directory FD. Avoid fallback to os.rename on unsupported systems.
+    """
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        renameat2 = libc.renameat2
+    except (AttributeError, OSError) as exc:
+        raise RuntimeError("no-replace atomic rename unavailable") from exc
+    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int,
+                          ctypes.c_char_p, ctypes.c_uint]
+    renameat2.restype = ctypes.c_int
+    code = renameat2(dirfd, old.encode("ascii"), dirfd, new.encode("ascii"), 1)
+    if code != 0:
+        number = ctypes.get_errno()
+        raise OSError(number, os.strerror(number), new)
+
+
+
 def quarantine_same_inode(dirfd, source, destination, expected, *, precheck,
-                          postcheck):
+                          postcheck, record_receipt=None):
     """Atomic same-directory rename with immediate rollback on postcheck drift.
 
     The supplied directory FD must be opened O_NOFOLLOW by the trusted caller.
@@ -143,9 +166,11 @@ def quarantine_same_inode(dirfd, source, destination, expected, *, precheck,
     if (not _same_inode(before, before_again)
             or _identity(before_again) != expected):
         raise ValueError("socket inode changed between gate and rename")
+    if record_receipt is not None and not callable(record_receipt):
+        raise ValueError("trusted receipt writer must be callable")
     moved = False
     try:
-        os.rename(source, destination, src_dir_fd=dirfd, dst_dir_fd=dirfd)
+        _atomic_rename_no_replace(dirfd, source, destination)
         moved = True
         quarantined = os.stat(destination, dir_fd=dirfd, follow_symlinks=False)
         if not _same_inode(before, quarantined):
@@ -159,27 +184,28 @@ def quarantine_same_inode(dirfd, source, destination, expected, *, precheck,
         result = postcheck()
         if not _service_safe(result):
             raise RuntimeError("postcheck browser supervisor changed during quarantine")
+        receipt = {
+            "schema": "merlin-browser-socket-quarantine/1", "status": "quarantined",
+            "source": SOCKET_PATH,
+            "quarantine_name": destination, "socket_inode": before.st_ino,
+            "socket_dev": before.st_dev, "socket_identity_rechecked": True,
+            "postcheck_supervisor_inactive": True,
+            "production_qualified": False, "browser_service_started": False,
+            "automatic_retry": False,
+        }
+        if record_receipt is not None:
+            record_receipt(receipt)
     except BaseException:
         if moved:
             try:
-                # Never overwrite an unexpectedly recreated source socket.
+                # Do not clobber a newly bound source even while rolling back.
                 os.stat(source, dir_fd=dirfd, follow_symlinks=False)
             except FileNotFoundError:
                 dest = os.stat(destination, dir_fd=dirfd, follow_symlinks=False)
                 if _same_inode(before, dest):
-                    os.rename(destination, source, src_dir_fd=dirfd,
-                              dst_dir_fd=dirfd)
+                    _atomic_rename_no_replace(dirfd, destination, source)
         raise
-    return {
-        "schema": "merlin-browser-socket-quarantine/1", "status": "quarantined",
-        "source": SOCKET_PATH,
-        "quarantine_name": destination, "socket_inode": before.st_ino,
-        "socket_dev": before.st_dev, "socket_identity_rechecked": True,
-        "postcheck_supervisor_inactive": True,
-        "production_qualified": False, "browser_service_started": False,
-        "automatic_retry": False,
-    }
-
+    return receipt
 
 def _trusted_regular(path, limit, owner=0):
     fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
@@ -302,8 +328,8 @@ def perform_root_quarantine():
                     os.stat(SOCKET_NAME, dir_fd=parent_fd, follow_symlinks=False),
                     EXPECTED_OLD_SOCKET, _systemd(), _listeners(),
                     pair_accepted=True),
-                postcheck=lambda: _systemd() if _listeners() == 0 else {})
-            _write_unique_receipt(result_file, record)
+                postcheck=lambda: _systemd() if _listeners() == 0 else {},
+                record_receipt=lambda item: _write_unique_receipt(result_file, item))
         finally:
             os.close(parent_fd)
         return record
