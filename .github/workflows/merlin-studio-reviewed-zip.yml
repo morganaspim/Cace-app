@@ -82,10 +82,16 @@ jobs:
           cmp "$GITHUB_WORKSPACE/output/Merlin-Studio-linux-x86_64.zip" "$GITHUB_WORKSPACE/output/repro-check.zip"
           rm "$GITHUB_WORKSPACE/output/repro-check.zip"
           python3 -B scripts/merlin_portable_zip_smoke.py --package "$GITHUB_WORKSPACE/output/Merlin-Studio-linux-x86_64.zip" --source-sha "$MERLIN_SOURCE_SHA" --output "$GITHUB_WORKSPACE/output/loopback-restart.json"
+          python3 -B portable/build_portable.py --output "$GITHUB_WORKSPACE/output/Merlin-Studio-universal-source.zip" > "$GITHUB_WORKSPACE/output/source-build.json"
+          python3 -B scripts/verify_portable.py "$GITHUB_WORKSPACE/output/Merlin-Studio-universal-source.zip" > "$GITHUB_WORKSPACE/output/source-verify.json"
+          python3 -B portable/build_portable.py --output "$GITHUB_WORKSPACE/output/source-repro-check.zip" > "$GITHUB_WORKSPACE/output/source-repro-build.json"
+          cmp "$GITHUB_WORKSPACE/output/Merlin-Studio-universal-source.zip" "$GITHUB_WORKSPACE/output/source-repro-check.zip"
+          rm "$GITHUB_WORKSPACE/output/source-repro-check.zip"
+          python3 -B scripts/merlin_portable_zip_smoke.py --package "$GITHUB_WORKSPACE/output/Merlin-Studio-universal-source.zip" --source-sha "$MERLIN_SOURCE_SHA" --output "$GITHUB_WORKSPACE/output/source-loopback-restart.json"
           cd "$GITHUB_WORKSPACE/output"
-          sha256sum Merlin-Studio-linux-x86_64.zip > SHA256SUMS
+          sha256sum Merlin-Studio-linux-x86_64.zip Merlin-Studio-universal-source.zip > SHA256SUMS
           printf '%s\n' "$MERLIN_SOURCE_SHA" > SOURCE_COMMIT
-          printf '%s\n' 'Source-only Studio with included protocol health binary. Requires separately supplied local GGUF and inference runtime for AI replies. Not production approved.' > RELEASE_SCOPE.txt
+          printf '%s\n' 'Two independently verified source-only Studio variants: Linux x86_64 with compiled C++ protocol health binary, and universal-source with no native binary. System Python 3.10+ and separately supplied local GGUF and inference runtime are required for AI replies. Only Linux runner startup and restart were tested. Not production approved.' > RELEASE_SCOPE.txt
           tail -n 6 studio-tests.log
       - name: Retain reviewed ZIP, source pin and negative or positive evidence
         if: always()
