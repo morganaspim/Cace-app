@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           /usr/bin/python3 -I -B - <<'PY'
-          import ast,base64,datetime,hashlib,json,os,platform,re,stat,sys,urllib.request,uuid
+          import ast,base64,datetime,hashlib,json,os,platform,re,stat,subprocess,sys,urllib.request,uuid
           from pathlib import Path
           repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
           run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
@@ -122,9 +122,11 @@ jobs:
               # Both namespace setup and application test are exact pinned scripts.
               ns_scripts={
                 'connected_browser_offline_recovery_isolated.py':{
-                    'bytes':20510,'blob':'af7ddbdd2732d4b335db9c428daf060ad1380f2e'},
+                    'bytes':21310,'blob':'a461e52fb5a0032278a9589aa1589d0eba6e137a'},
                 'prepare_isolated_loopback.py':{
-                    'bytes':5032,'blob':'a2643c9d80201d53361ad4a0a6a2936c800ab625'}}
+                    'bytes':6198,'blob':'28c3eff3e2e65c75e2ca66a0bb908b8102626cbe'},
+                'test_isolated_network_inventory.py':{
+                    'bytes':3464,'blob':'51fafc30685560ecc231e90b1b6cea6932fef02a'}}
               for script_name,identity in ns_scripts.items():
                   source_path='ops/merlin_studio_validation/'+script_name
                   item=api(repo,'contents/'+source_path+'?ref='+commit)
@@ -143,6 +145,23 @@ jobs:
                   'source_request_commit':commit,'scripts':ns_scripts,
                   'model_calls':0,'host_system_installation':False,
                   'production_qualified':False},sort_keys=True,indent=2))
+              # Six fail-closed netns link controls prevent false sysfs
+              # observations and still reject extra network interfaces.
+              code=("import json,sys,unittest;"
+                "suite=unittest.defaultTestLoader.discover(sys.argv[1],"
+                "pattern='test_isolated_network_inventory.py');"
+                "res=unittest.TextTestRunner(verbosity=2).run(suite);"
+                "print(json.dumps({'tests':res.testsRun,'errors':len(res.errors),"
+                "'failures':len(res.failures),'skipped':len(res.skipped)}));"
+                "sys.exit(0 if res.wasSuccessful() and not res.skipped "
+                "and res.testsRun==6 else 1)")
+              env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8','HOME':'/var/empty',
+                   'PYTHONDONTWRITEBYTECODE':'1'}
+              case=subprocess.run(['/usr/bin/python3','-I','-B','-c',code,str(validation)],
+                  cwd='/',env=env,capture_output=True,text=True,timeout=25)
+              (ev/'netns-interface-regression-tests.txt').write_text(
+                  case.stdout+case.stderr)
+              require(case.returncode==0,'six namespace-interface regressions failed')
               # Three exact reviewed product deltas. The original 36-file
               # bundle remains intact until validated against its old pins.
               overlay=root/'product-overlays';overlay.mkdir(mode=0o700)
