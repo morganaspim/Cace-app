@@ -24,7 +24,14 @@ class FakeReply:
         self.status=status
         self.body=body
         self.kind=kind
+        self._readpos=0
     def read(self,n):return self.body[:n]
+    def read1(self,n):
+        part=self.body[self._readpos:self._readpos+min(13,n)]
+        self._readpos+=len(part)
+        return part
+    def isclosed(self):return self._readpos>=len(self.body)
+    def getheaders(self):return [("Content-Length",str(len(self.body)))]
     def getheader(self,name,default=""):
         return self.kind if name=="Content-Type" else default
 
@@ -32,6 +39,7 @@ class FakeReply:
 class FakeConnection:
     def __init__(self,status=200,body=b'{"ready":true}',kind="application/json"):
         self.arguments=[]
+        self.sock=None
         self.reply=FakeReply(status,body,kind)
     def request(self,*args,**kwargs):
         self.arguments.append((args,kwargs))
@@ -321,6 +329,39 @@ class PackagedStudioUIContracts(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             studio.context_ablation_probe(lambda prompt,**kw:{"answer":"",
                 "prompt_tokens":1,"latency_seconds":.05})
+
+    def test_small_unframed_keepalive_reply_does_not_require_fixed_size_read(self):
+        packet=b'{"choices":[{"message":{"content":"BC_203"}}]}'
+        connection=FakeConnection(200,packet)
+        reply=connection.reply
+        reply.getheaders=lambda:[]
+        def forbidden_fixed_read(n):
+            raise AssertionError("fixed-length read would stall on keepalive")
+        reply.read=forbidden_fixed_read
+        with patch.object(studio.http.client,"HTTPConnection",return_value=connection):
+            answer=studio.query_packaged_model("What is calibration batch?")
+        self.assertEqual(answer,"BC_203")
+        self.assertEqual(reply._readpos,len(packet))
+
+    def test_model_http_framing_rejects_ambiguous_and_truncated_bodies(self):
+        for headers in (
+            [("Content-Length","5"),("Transfer-Encoding","chunked")],
+            [("Content-Length","40000")],
+            [("Transfer-Encoding","gzip")],
+            [("Content-Encoding","gzip")],
+            [("Content-Length","abc")],
+        ):
+            con=FakeConnection(200,b'{"choices":[{"message":{"content":"42"}}]}')
+            con.reply.getheaders=lambda h=headers:h
+            with self.subTest(headers=headers):
+                with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+                    with self.assertRaises(RuntimeError):
+                        studio.query_packaged_model("test frame")
+        con=FakeConnection(200,b'{"choices":[{"message":{"content":"42"}}]}')
+        con.reply.getheaders=lambda:[("Content-Length","150")]
+        with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+            with self.assertRaises(RuntimeError):
+                studio.query_packaged_model("test truncated frame")
 
     def test_local_model_usage_receipt_is_from_response_not_mock_metric(self):
         reply=FakeConnection(200,b'{"choices":[{"message":{"content":"16"}}],"usage":{"prompt_tokens":102,"completion_tokens":5}}')
