@@ -128,7 +128,7 @@ jobs:
                 'connected_browser_offline_recovery_gui.py':{
                     'bytes':24312,'blob':'9c742fc510494f69a936b3d369ea83b8b63d7d29'},
                 'studio_cdp_gui.py':{
-                    'bytes':21290,'blob':'3cb2824b21091a439cc7cb1de18111eea9473419'},
+                    'bytes':21829,'blob':'7149ae8c8e62d8d3035ba9670e13e179104415d8'},
                 'test_studio_cdp_gui.py':{
                     'bytes':3436,'blob':'80da8d16a4c0129a2f77f98b332a1425a6cd3bb8'},
                 'prepare_isolated_loopback.py':{
@@ -493,6 +493,7 @@ jobs:
                   and cdp.get('settings_dialog_open_close') is True
                   and cdp.get('workspace_dialog_open_close') is True
                   and cdp.get('mobile_sidebar_opened') is True
+                  and cdp.get('mobile_sidebar_visual_settled') is True
                   and cdp.get('model_generation_calls')==0
                   and ui_receipt.get('native_cdp_real_input_gate_passed') is True
                   and ui_receipt.get('browser_gui_submit_persisted') is True
