@@ -202,16 +202,14 @@ def preflight(evidence):
                "full_model_quality_qualified": False}
     stage = "manifest"
     try:
-        raw = MANIFEST.read_bytes()
-        require(len(raw) <= 16384 and hashlib.sha256(raw).hexdigest() == MANIFEST_SHA,
-                "root manifest exact digest differs")
         fd, _ = regular(MANIFEST, 16384)
         try:
-            stable = os.read(fd, 16385)
+            raw = os.read(fd, 16385)
         finally:
             os.close(fd)
-        require(stable == raw, "manifest changed during read")
-        manifest = json.loads(stable, object_pairs_hook=unique)
+        require(len(raw) <= 16384 and hashlib.sha256(raw).hexdigest() == MANIFEST_SHA,
+                "root manifest exact digest differs")
+        manifest = json.loads(raw, object_pairs_hook=unique)
         binary, weights, binary_hash = validated_release_paths(manifest)
         receipt["manifest_sha256"] = MANIFEST_SHA
         stage = "binary_sha256"
