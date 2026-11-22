@@ -35,9 +35,9 @@ jobs:
           /usr/bin/python3 -I -B - <<'PY'
           import base64,hashlib,json,os,pathlib,subprocess,sys,urllib.request
           repo='morganaspim/Cace-app'
-          sha='a00ad92d487eea3e928a0c21c9531785fbdb3cac'
-          expected_blob='34db4b89d28f0580a39dc57074e9f17a7a299d4a'
-          expected_bytes=14752
+          sha='35d3ef01ddaed30621be828cf4a695e79d51bf78'
+          expected_blob='6ffb303797a28b55c4e329a47c938ff8ca6ebdfe'
+          expected_bytes=18812
           relative='ops/merlin_model_isolated/run_offline_native_bundle.py'
           req=urllib.request.Request(
              'https://api.github.com/repos/'+repo+'/contents/'+relative+'?ref='+sha,
