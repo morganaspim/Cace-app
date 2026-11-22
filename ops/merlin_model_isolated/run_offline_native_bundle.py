@@ -27,7 +27,7 @@ import uuid
 REPO = "morganaspim/Cace-app"
 BRANCH = "fix/merlin-native-offline-zip-source-20261122"
 SOURCE_REPO = "Mannyspiro/expert-robot"
-SOURCE_SHA = "99f6b5e6d52a2c2a8c3553c62dce5c1198f2cad2"
+SOURCE_SHA = "4c4d39dd4d198ab603801c39e25ab094460795b6"
 MODEL_DIR = Path("/opt/merlin-model-provider/releases/"
     "3f432dc172cf06f1af75974dbc4ec2b9135a8a82bd1fa2bfc35c0e53fe69f33e")
 LLAMA = MODEL_DIR / "llama-server"
