@@ -25,9 +25,9 @@ import urllib.request
 import uuid
 
 REPO = "morganaspim/Cace-app"
-BRANCH = "merlin/browser-operations-20261121"
+BRANCH = "fix/merlin-native-offline-zip-source-20261122"
 SOURCE_REPO = "Mannyspiro/expert-robot"
-SOURCE_SHA = "624f739fe9a905f4218762a91473dcb61edecf76"
+SOURCE_SHA = "99f6b5e6d52a2c2a8c3553c62dce5c1198f2cad2"
 MODEL_DIR = Path("/opt/merlin-model-provider/releases/"
     "3f432dc172cf06f1af75974dbc4ec2b9135a8a82bd1fa2bfc35c0e53fe69f33e")
 LLAMA = MODEL_DIR / "llama-server"
@@ -149,7 +149,7 @@ def source_tree(root, evidence):
             "checked-out product source differs")
     require(command(["status", "--porcelain", "--untracked-files=no"]) == b"",
             "source tree is dirty")
-    for path in ("AGENTS.md", "portable/build_portable.py",
+    for path in ("README.md", "portable/build_portable.py",
                  "portable/build_offline_profile.py",
                  "scripts/verify_offline_profile.py",
                  "scripts/extract_offline_profile.py"):
