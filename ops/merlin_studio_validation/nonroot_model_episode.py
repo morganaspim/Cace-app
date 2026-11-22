@@ -86,11 +86,7 @@ def file_digest(path, size, expected, uid=65534):
 
 
 def bound_source():
-    raw = MANIFEST.read_bytes()
-    require(len(raw) <= 16384 and hashlib.sha256(raw).hexdigest() == MANIFEST_SHA,
-            "manifest digest differs")
-    # Reopen with no-follow. The host root file was validated before entering
-    # this user namespace; no manifest bytes are sent to the model.
+    # Open through O_NOFOLLOW before reading any root-owned metadata bytes.
     meta = os.lstat(MANIFEST)
     require(stat.S_ISREG(meta.st_mode) and meta.st_uid == 65534
             and not (stat.S_IMODE(meta.st_mode) & 0o022),
@@ -101,9 +97,11 @@ def bound_source():
         post = os.fstat(fd)
     finally:
         os.close(fd)
-    require(current == raw and post.st_size == meta.st_size
-            and post.st_ino == meta.st_ino and post.st_dev == meta.st_dev,
-            "root manifest replaced during read")
+    require(len(current) <= 16384
+            and hashlib.sha256(current).hexdigest() == MANIFEST_SHA
+            and post.st_size == meta.st_size and post.st_ino == meta.st_ino
+            and post.st_dev == meta.st_dev,
+            "root manifest digest or identity changed during read")
     manifest = json.loads(current, object_pairs_hook=pairs_unique)
     model = manifest.get("model_artifact", {})
     runtime = manifest.get("runtime", {})
@@ -248,7 +246,9 @@ def run(py, manifest_arg, scratch, evidence):
              "generation_calls":0,"requested_generation_calls":2,
              "external_model_spend_usd":0,"host_service_mutations":False,
              "root_execution":False,"system_installation":False,
-             "production_qualified":False,"model_quality_generalized":False}
+             "production_qualified":False,"model_quality_generalized":False,
+             "mount_namespace_isolated":False,
+             "system_sandbox_qualified":False}
     stage="network-identity"
     child=None
     log_path=scratch/"owned-llama-server.log"
@@ -353,7 +353,22 @@ def run(py, manifest_arg, scratch, evidence):
                 raw=f.read(128*1024)
             (evidence/"owned-llama-server-log-prefix.txt").write_bytes(raw)
             receipt["log_prefix_bytes"]=len(raw)
-        receipt["private_endpoint_removed_with_process"]=bool(receipt["owned_process_stopped"])
+        # Independently confirm the child netns has no surviving listener.
+        # Existing host-root provider remains on a DIFFERENT network namespace.
+        port_closed=False
+        if receipt["owned_process_stopped"]:
+            try:
+                sock=socket.create_connection(("127.0.0.1",PORT),timeout=1)
+                sock.close()
+            except ConnectionRefusedError:
+                port_closed=True
+            except OSError:
+                port_closed=False
+        receipt["private_endpoint_removed_with_process"]=port_closed
+        if receipt["status"]=="two_live_local_model_turns_verified_in_private_netns":
+            if not port_closed:
+                receipt["status"]="blocked_post_cleanup_listener"
+                receipt["blocked_stage"]="process-cleanup"
         (evidence/"model-episode-result.json").write_text(json.dumps(receipt,sort_keys=True,indent=2))
         print(json.dumps({"status":receipt["status"],
             "generation_calls":receipt["generation_calls"],
