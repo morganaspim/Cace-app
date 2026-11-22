@@ -25,9 +25,9 @@ import urllib.request
 import uuid
 
 REPO = "morganaspim/Cace-app"
-BRANCH = "merlin/browser-operations-20261121"
+BRANCH = "fix/merlin-native-offline-zip-source-20261122"
 SOURCE_REPO = "Mannyspiro/expert-robot"
-SOURCE_SHA = "624f739fe9a905f4218762a91473dcb61edecf76"
+SOURCE_SHA = "94644a0a4c86177748c3924b8dca1b523b826a27"
 MODEL_DIR = Path("/opt/merlin-model-provider/releases/"
     "3f432dc172cf06f1af75974dbc4ec2b9135a8a82bd1fa2bfc35c0e53fe69f33e")
 LLAMA = MODEL_DIR / "llama-server"
@@ -42,6 +42,12 @@ STAGE_COMMIT = "71e6405a3475eb449d150b961915922edd3e9fb0"
 MODEL_ORIGIN = "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF"
 LLAMA_ORIGIN = "https://github.com/ggml-org/llama.cpp"
 PY_ORIGIN = "https://github.com/astral-sh/python-build-standalone"
+LICENSE_PINS = {
+    "qwen": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+    "llama": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+    "python": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+}
+LLAMA_SOURCE_COMMIT = "56eea9e4b0f5d125da16b75b551440b170aa8b1f"
 
 
 def require(ok, message):
@@ -129,6 +135,57 @@ def run(cmd, *, cwd, timeout=150, env=None):
     return child.stdout
 
 
+def _run_packaged_version(cmd, *, cwd, timeout, env):
+    """Run only an exact reviewed ELF's --version with no inherited credentials."""
+    child = subprocess.run(cmd, cwd=str(cwd), env=env,
+                           stdin=subprocess.DEVNULL,
+                           capture_output=True, timeout=timeout)
+    output = child.stdout + child.stderr
+    require(child.returncode == 0 and 0 < len(output) <= 8192,
+            "packaged inference executable version check failed")
+    return output
+
+
+def probe_packaged_llama(*, archive_root, expected_sha256, expected_bytes, runner):
+    """A native ELF startup probe, not yet a GGUF inference acceptance test."""
+    root = Path(archive_root)
+    if (root.name != "Merlin_Studio" or not root.is_dir() or root.is_symlink()
+            or not isinstance(expected_sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is None
+            or type(expected_bytes) is not int
+            or not 64 <= expected_bytes <= 512 * 1024 * 1024
+            or not callable(runner)):
+        raise ValueError("exact bounded extracted inference release required")
+    executable = root / "bin" / "llama-server"
+    try:
+        st = executable.lstat()
+    except FileNotFoundError as exc:
+        raise ValueError("packaged inference executable absent") from exc
+    if (not stat.S_ISREG(st.st_mode) or st.st_size != expected_bytes
+            or stat.S_IMODE(st.st_mode) != 0o755
+            or st.st_nlink != 1):
+        raise ValueError("packaged inference ELF metadata differs")
+    digest, size = streaming_sha256(executable, maximum=512 * 1024 * 1024)
+    if digest != expected_sha256 or size != expected_bytes:
+        raise ValueError("packaged inference ELF digest differs")
+    with executable.open("rb") as stream:
+        header = stream.read(20)
+    if (len(header) != 20 or header[:6] != b"\x7fELF\x02\x01"
+            or struct.unpack("<H", header[18:20])[0] != 183):
+        raise ValueError("packaged inference executable is not Linux aarch64 ELF")
+    output = runner([str(executable), "--version"], cwd=root, timeout=20,
+                    env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8",
+                         "HOME": str(root), "PYTHONDONTWRITEBYTECODE": "1"})
+    if not isinstance(output, bytes) or not 0 < len(output) <= 8192:
+        raise ValueError("packaged executable returned no bounded version output")
+    return {"native_llama_binary_started": True,
+            "model_inference_executed": False,
+            "llama_sha256": expected_sha256,
+            "llama_version_output_sha256": hashlib.sha256(output).hexdigest(),
+            "llama_version_excerpt": output.decode("utf-8", "replace").strip()[:120],
+            "production_qualified": False}
+
+
 def source_tree(root, evidence):
     target = root / "source"
     target.mkdir(mode=0o700)
@@ -149,7 +206,7 @@ def source_tree(root, evidence):
             "checked-out product source differs")
     require(command(["status", "--porcelain", "--untracked-files=no"]) == b"",
             "source tree is dirty")
-    for path in ("AGENTS.md", "portable/build_portable.py",
+    for path in ("README.md", "portable/build_portable.py",
                  "portable/build_offline_profile.py",
                  "scripts/verify_offline_profile.py",
                  "scripts/extract_offline_profile.py"):
@@ -158,7 +215,10 @@ def source_tree(root, evidence):
     return target
 
 
-def public_license(url, expected_host, expected_text):
+def public_license(url, expected_host, expected_text, *, expected_sha256):
+    require(isinstance(expected_sha256, str)
+            and re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is not None,
+            "explicit pinned license digest required")
     parsed = urllib.parse.urlsplit(url)
     require(parsed.scheme == "https" and parsed.hostname == expected_host
             and parsed.username is None and parsed.password is None
@@ -174,6 +234,8 @@ def public_license(url, expected_host, expected_text):
     require(150 <= len(body) <= 131072
             and expected_text.lower() in body.decode("utf-8").lower(),
             "official license text differs from expected marker")
+    require(hashlib.sha256(body).hexdigest() == expected_sha256,
+            "upstream license receipt digest differs")
     return body
 
 
@@ -217,20 +279,30 @@ def assemble(root, evidence, archive, details):
     py_notice = notices / "PYTHON_LICENSE"
     qwen_url = MODEL_ORIGIN + "/raw/main/LICENSE"
     qwen_notice.write_bytes(public_license(
-        qwen_url, "huggingface.co", "Apache License"))
-    # Pin an immutable upstream source revision rather than raw/main.
-    head = gh_api("ggml-org/llama.cpp", "branches/master")
-    revision = head.get("commit", {}).get("sha")
-    require(isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}", revision),
-            "llama.cpp source revision missing")
-    llama_url = "https://raw.githubusercontent.com/ggml-org/llama.cpp/" + revision + "/LICENSE"
+        qwen_url, "huggingface.co", "Apache License",
+        expected_sha256=LICENSE_PINS["qwen"]))
+    # Exact upstream llama.cpp commit, not a moving master branch.
+    llama_url = ("https://raw.githubusercontent.com/ggml-org/llama.cpp/"
+                 + LLAMA_SOURCE_COMMIT + "/LICENSE")
     llama_notice.write_bytes(public_license(
-        llama_url, "raw.githubusercontent.com", "MIT License"))
-    original_python_license = root_python / "LICENSE.txt"
-    require(original_python_license.is_file() and not original_python_license.is_symlink()
-            and 150 <= original_python_license.stat().st_size <= 131072,
-            "standalone Python license receipt unavailable")
+        llama_url, "raw.githubusercontent.com", "MIT License",
+        expected_sha256=LICENSE_PINS["llama"]))
+    # python-build-standalone places the CPython license inside lib/python3.11
+    # in the pinned extraction, rather than at the extracted runtime root.
+    # Reject missing, symlinked, duplicate, or out-of-root notices.
+    candidates = (root_python / "LICENSE.txt",
+                  root_python / "lib/python3.11/LICENSE.txt")
+    eligible = [path for path in candidates
+                if path.is_file() and not path.is_symlink()
+                and path.resolve(strict=True).is_relative_to(root_python.resolve(strict=True))
+                and 150 <= path.stat().st_size <= 131072]
+    require(len(eligible) == 1,
+            "expected exactly one safe standalone Python license receipt")
+    original_python_license = eligible[0]
+    require(hashlib.sha256(original_python_license.read_bytes()).hexdigest()
+            == LICENSE_PINS["python"], "pinned standalone Python license digest differs")
     shutil.copyfile(original_python_license, py_notice)
+    details["python_license_path_in_runtime"] = original_python_license.relative_to(root_python).as_posix()
     details["license_receipts"] = {
         "model": {"source": qwen_url, "sha256": hashlib.sha256(qwen_notice.read_bytes()).hexdigest()},
         "inference": {"source": llama_url, "sha256": hashlib.sha256(llama_notice.read_bytes()).hexdigest()},
@@ -288,8 +360,110 @@ def assemble(root, evidence, archive, details):
     require(version.startswith("3.11."), "real packaged Python 3.11 did not execute")
     details["packaged_python_version"] = version
     details["actual_packaged_python_executed"] = True
-    details["model_inference_executed"] = False
-    details["native_llama_binary_started"] = False
+    details.update(probe_packaged_llama(
+        archive_root=destination / "Merlin_Studio",
+        expected_sha256=LLAMA_SHA, expected_bytes=14614984,
+        runner=_run_packaged_version))
+    # Separate non-model gate: exercise the ACTUAL restored Studio UI and
+    # durable conversation state under the packaged interpreter. It cannot
+    # substitute for a real GGUF inference result below.
+    ui_path = Path(__file__).resolve().parent / "run_packaged_studio_smoke.py"
+    require(ui_path.is_file() and not ui_path.is_symlink()
+            and ui_path.stat().st_size == 40222
+            and hashlib.sha256(ui_path.read_bytes()).hexdigest()
+            == "d461a6fd4004c5abbf834def79698e43806db9147ce02f9536853ee4968b60e5",
+            "packaged Studio UI/restart helper source pin differs")
+    sys.path.insert(0, str(ui_path.parent))
+    import run_packaged_studio_smoke as studio_smoke
+    ui_scratch = root / "isolated-studio-ui"
+    ui_scratch.mkdir(mode=0o700, exist_ok=False)
+    try:
+        ui_report = studio_smoke.invoke(destination, ui_scratch)
+    finally:
+        # Save only bounded, typed nonsecret result; temporary backend state,
+        # source and local conversation contents will be deleted on cleanup.
+        ui_evidence = ui_scratch / "ui-evidence" / "packaged-studio-ui.json"
+        if (ui_evidence.is_file() and not ui_evidence.is_symlink()
+                and 0 < ui_evidence.stat().st_size <= 8192):
+            raw = json.loads(ui_evidence.read_text())
+            safe_keys = ("schema", "status", "production_qualified",
+                         "model_inference_executed", "host_mutations",
+                         "packaged_python_started", "studio_ui_served",
+                         "conversation_restored", "stale_token_rejected",
+                         "studio_workers_terminated", "elapsed_seconds",
+                         "ui_sha256", "conversation_sha256",
+                         "model_chat_model_request_seen",
+                         "model_chat_answer_exact_42",
+                         "model_chat_response_sha256",
+                         "model_chat_response_chars",
+                         "model_chat_restored_after_restart",
+                         "model_chat_stale_token_rejected",
+                         "model_chat_conversation_sha256",
+                         "bundled_model_healthy", "bundled_model_terminated",
+                         "in_context_practice", "evidence_context_ablation",
+                         "error_type", "error_reason")
+            safe = {k: raw[k] for k in safe_keys if k in raw}
+            (evidence / "packaged-studio-ui.json").write_text(
+                json.dumps(safe, sort_keys=True, indent=2) + "\n")
+    require(ui_report["status"] == "packaged_ui_model_chat_and_restart_passed"
+            and ui_report["studio_ui_served"] is True
+            and ui_report["conversation_restored"] is True
+            and ui_report["stale_token_rejected"] is True
+            and ui_report["studio_workers_terminated"] is True
+            and ui_report["model_inference_executed"] is True
+            and ui_report["model_chat_model_request_seen"] is True
+            and ui_report["model_chat_answer_exact_42"] is True
+            and ui_report["model_chat_restored_after_restart"] is True
+            and ui_report["model_chat_stale_token_rejected"] is True
+            and ui_report["bundled_model_terminated"] is True
+            and ui_report["host_mutations"] == 0
+            and ui_report["production_qualified"] is False,
+            "private packaged Studio-to-bundled-GGUF chat unqualified")
+    details["packaged_studio_ui_started"] = True
+    details["packaged_studio_conversation_restored"] = True
+    details["packaged_studio_stale_token_rejected"] = True
+    details["packaged_studio_ui_sha256"] = ui_report["ui_sha256"]
+    details["packaged_studio_model_chat_exact"] = ui_report["model_chat_answer_exact_42"]
+    details["packaged_studio_model_chat_restored"] = ui_report["model_chat_restored_after_restart"]
+    details["packaged_studio_model_chat_response_sha256"] = ui_report["model_chat_response_sha256"]
+    details["in_context_practice"] = ui_report.get("in_context_practice", {
+        "status":"not_run","model_weights_updated":False,"production_qualified":False})
+    # Independent research receipt, not a release admission condition.
+    context_probe = ui_report.get("evidence_context_ablation",{
+        "schema":"merlin-private-context-ablation/1",
+        "status":"not_run","pilot_gate_met":False,
+        "production_qualified":False})
+    require(isinstance(context_probe,dict)
+            and context_probe.get("schema")=="merlin-private-context-ablation/1"
+            and context_probe.get("production_qualified") is False,
+            "invalid experimental context receipt")
+    details["evidence_context_ablation"] = context_probe
+    # The isolated GGUF test helper is a distinct exact-pinned Git source.
+    # No untrusted archive text may substitute the test program.
+    module_path = Path(__file__).resolve().parent / "run_packaged_model_from_zip.py"
+    require(module_path.is_file() and not module_path.is_symlink()
+            and module_path.stat().st_size == 20608
+            and hashlib.sha256(module_path.read_bytes()).hexdigest()
+            == "6c4bc8d48a4a2567a919962d4e5f5324408868836ed3970f40685001cf7be3fb",
+            "packaged model isolated inference source pin differs")
+    sys.path.insert(0, str(module_path.parent))
+    from run_packaged_model_from_zip import invoke
+    model_scratch = root / "isolated-model-smoke"
+    model_scratch.mkdir(mode=0o700, exist_ok=False)
+    model_probe = invoke(destination / "Merlin_Studio", model_scratch)
+    require(model_probe["model_inference_executed"] is True
+            and model_probe["model_process_terminated"] is True
+            and model_probe["namespace_root_maps_to_host_uid1000"] is True
+            and model_probe["model_capabilities_dropped_before_exec"] is True
+            and model_probe["host_mutations"] == 0
+            and model_probe["external_network_allowed"] is False,
+            "private bundled model did not complete verified generation")
+    details["private_model_smoke_status"] = model_probe["status"]
+    details["model_inference_executed"] = True
+    details["packaged_model_answer_exact_42"] = model_probe["answer_exact_42"]
+    details["packaged_model_response_sha256"] = model_probe["answer_sha256"]
+    details["model_process_terminated"] = True
+    details["private_network_loopback_only"] = True
     return details
 
 
@@ -349,9 +523,15 @@ def main():
                 "insufficient scratch storage for private ZIP and extract")
         prepared = assemble(scratch, evidence, py_archive, result)
         require(prepared["package_integrity_passed"]
-                and prepared["actual_packaged_python_executed"],
+                and prepared["actual_packaged_python_executed"]
+                and prepared["packaged_studio_ui_started"] is True
+                and prepared["packaged_studio_conversation_restored"] is True
+                and prepared["packaged_studio_stale_token_rejected"] is True
+                and prepared["native_llama_binary_started"]
+                and prepared["model_inference_executed"] is True
+                and prepared["model_process_terminated"] is True,
                 "private bundle acceptance incomplete")
-        result["status"] = "private_package_and_python_passed"
+        result["status"] = "private_package_python_llama_and_gguf_smoke_passed"
         success = True
     except BaseException as exc:
         result["failure_type"] = type(exc).__name__

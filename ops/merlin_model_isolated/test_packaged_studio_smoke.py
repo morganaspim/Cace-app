@@ -1,0 +1,496 @@
+"""Synthetic negative/positive contracts for isolated packaged Studio UI acceptance.
+
+No model, download, namespace or host service is started by these tests.
+"""
+from __future__ import annotations
+
+import io
+import json
+from pathlib import Path
+import sys
+import os
+import subprocess
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+import run_packaged_studio_smoke as studio
+
+
+class FakeReply:
+    def __init__(self,status,body,kind="application/json"):
+        self.status=status
+        self.body=body
+        self.kind=kind
+        self._readpos=0
+    def read(self,n):return self.body[:n]
+    def read1(self,n):
+        part=self.body[self._readpos:self._readpos+min(13,n)]
+        self._readpos+=len(part)
+        return part
+    def isclosed(self):return self._readpos>=len(self.body)
+    def getheaders(self):return [("Content-Length",str(len(self.body)))]
+    def getheader(self,name,default=""):
+        return self.kind if name=="Content-Type" else default
+
+
+class FakeConnection:
+    def __init__(self,status=200,body=b'{"ready":true}',kind="application/json"):
+        self.arguments=[]
+        self.sock=None
+        self.reply=FakeReply(status,body,kind)
+    def request(self,*args,**kwargs):
+        self.arguments.append((args,kwargs))
+    def getresponse(self):return self.reply
+    def close(self):pass
+
+
+class PackagedStudioUIContracts(unittest.TestCase):
+    def test_private_route_table_requires_only_loopback(self):
+        for text in ("Iface Destination Gateway\n",
+                     "Iface\tDestination\tGateway\tFlags\nlo 00000000 00000000 0001\n"):
+            self.assertTrue(studio.no_external_route(text))
+        for text in ("", "not a route table", "Iface Destination\n",
+                     "Iface Destination Gateway\neth0 00000000 01010101\n",
+                     "Iface Destination Gateway\nlo 00000000 00000000\neth0 00000000 0\n",
+                     "Iface Destination Gateway\nlo\n"):
+            with self.subTest(text=text):
+                self.assertFalse(studio.no_external_route(text))
+
+    def test_only_fixed_offline_api_endpoints(self):
+        for method,path in (("GET","http://external.example"),
+                            ("POST","/api/tool"),
+                            ("POST","/api/unapproved"),
+                            ("GET","/api/settings"),
+                            ("GET","/api/conversations/../../etc/passwd")):
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError):
+                    studio.request(method,path)
+
+    def test_post_requires_explicit_private_session_token(self):
+        with self.assertRaises(RuntimeError):
+            studio.request("POST","/api/conversations",{"title":"test"})
+        with self.assertRaises(RuntimeError):
+            studio.request("POST","/api/conversations",{"title":"test"},"short")
+
+    def test_private_host_only_and_bounded_body(self):
+        connection=FakeConnection()
+        with patch.object(studio.http.client,"HTTPConnection",return_value=connection) as mocked:
+            code,body=studio.request("GET","/api/health")
+            self.assertEqual(code,200)
+            self.assertEqual(body,{"ready":True})
+            self.assertEqual(mocked.call_args.args[:2],("127.0.0.1",studio.PORT))
+            self.assertEqual(connection.arguments[0][1]["headers"]["Host"],
+                             f"127.0.0.1:{studio.PORT}")
+        with self.assertRaises(RuntimeError):
+            studio.request("POST","/api/conversations",{"title":"X"*3000},"x"*35)
+
+    def test_stale_token_http_403_is_preserved(self):
+        con=FakeConnection(403,b'{"error":"Reload Studio"}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+            code,response=studio.request("POST","/api/conversations",
+                {"title":"must fail"},"z"*35)
+        self.assertEqual(code,403)
+        self.assertIn("error",response)
+
+    def test_private_setup_can_observe_empty_preloopback_routes_only(self):
+        self.assertFalse(studio.no_external_route(""))
+        self.assertTrue(studio.no_external_route("", before_loopback=True))
+        self.assertFalse(studio.no_external_route("", before_loopback=1))
+        self.assertFalse(studio.no_external_route(
+            "Iface Destination Gateway\neth0 00000000 01010101\n",
+            before_loopback=True))
+
+    def test_studio_mapping_root_is_only_host_uid1000(self):
+        self.assertTrue(studio.rootless_uid_mapping(0,["0","1000","1"]))
+        for uid,mapping in ((1000,["1000","1000","1"]),
+                            (0,["0","0","1"]),
+                            (0,["0","1000","2"]),
+                            (True,["0","1000","1"])):
+            with self.subTest(uid=uid,mapping=mapping):
+                self.assertFalse(studio.rootless_uid_mapping(uid,mapping))
+        cmd=studio.namespace_argv("/trusted/runner","/private/extract",
+                                  "/private/scratch","/private/evidence",123)
+        self.assertEqual(cmd[:4],["/usr/bin/unshare","--user","--map-root-user","--net"])
+        self.assertNotIn("--map-current-user",cmd)
+
+    def test_ui_html_still_requires_actual_html_content_type(self):
+        good=FakeConnection(200,b"<html>"+b"Merlin"*300+b"</html>","text/html")
+        with patch.object(studio.http.client,"HTTPConnection",return_value=good):
+            code,html=studio.request("GET","/studio/")
+        self.assertEqual(code,200)
+        self.assertIn(b"Merlin",html)
+        wrong=FakeConnection(200,b"Merlin","application/json")
+        with patch.object(studio.http.client,"HTTPConnection",return_value=wrong):
+            with self.assertRaises(RuntimeError):
+                studio.request("GET","/studio/")
+
+    def test_isolated_bootstrap_contains_plain_path_literals_not_posixpath_repr(self):
+        # A Path substituted with %r produces PosixPath(...) which is not
+        # defined in the standalone -I -S Python process.
+        source=Path("/tmp/verified/Merlin_Studio")
+        state=Path("/tmp/isolated-state")
+        script=studio.build_bootstrap(source,state)
+        self.assertIn("data_dir='/tmp/isolated-state'",script)
+        self.assertNotIn("PosixPath(",script)
+        self.assertNotIn("WindowsPath(",script)
+        self.assertIn("network_enabled':False",script)
+        self.assertIn("python_enabled':False",script)
+        self.assertIn("desktop_enabled':False",script)
+        self.assertIn("browser_enabled':False",script)
+        compile(script,"<packaged-studio-bootstrap>","exec")
+
+    def test_model_chat_endpoint_enforces_token_and_run_id(self):
+        con=FakeConnection(202,b'{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+            code,result=studio.request("POST","/api/chat",
+                {"conversation_id":"b"*32,"message":studio.REFERENCE_PROMPT},"t"*40)
+        self.assertEqual(code,202)
+        self.assertEqual(result["run_id"],"a"*32)
+        self.assertEqual(con.arguments[0][1]["headers"]["X-Merlin-Token"],"t"*40)
+        with self.assertRaises(RuntimeError):
+            studio.request("POST","/api/chat",{"message":"6*7"})
+        get=FakeConnection(200,b'{"run":{"status":"running"}}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=get):
+            code,result=studio.request("GET","/api/runs/"+"a"*32)
+        self.assertEqual(code,200)
+        self.assertEqual(result["run"]["status"],"running")
+        with self.assertRaises(ValueError):
+            studio.request("GET","/api/runs/../secret")
+
+    def test_chat_evidence_requires_model_request_and_durable_answer(self):
+        from hashlib import sha256
+        import copy
+        run_id="a"*32
+        cid="b"*32
+        reply={"run":{"id":run_id,"conversation_id":cid,"status":"completed",
+                      "error":None,"events":[
+                          {"type":"started"},{"type":"model_request","step":1},
+                          {"type":"completed"}]},
+               "conversation":{"id":cid,"messages":[
+                   {"role":"user","content":studio.REFERENCE_PROMPT},
+                   {"role":"assistant","content":"42"}]}}
+        verdict=studio.assess_chat_evidence(reply,run_id,cid)
+        self.assertTrue(verdict["model_chat_model_request_seen"])
+        self.assertTrue(verdict["model_chat_answer_exact_42"])
+        self.assertEqual(verdict["model_chat_response_sha256"],sha256(b"42").hexdigest())
+        self.assertNotIn("content",verdict)
+        for corrupt in (
+            lambda d: d["run"].update(status="failed"),
+            lambda d: d["run"].update(error="unreported failure"),
+            lambda d: d["run"].update(id="c"*32),
+            lambda d: d["run"].update(events=[{"type":"started"}]),
+            lambda d: d["conversation"].update(id="c"*32),
+            lambda d: d["conversation"]["messages"].pop(),
+            lambda d: d["conversation"]["messages"][0].update(content="other"),
+            lambda d: d["conversation"]["messages"][1].update(content=""),
+        ):
+            wrong=copy.deepcopy(reply)
+            corrupt(wrong)
+            with self.subTest(corrupt=repr(corrupt)):
+                with self.assertRaises((ValueError,RuntimeError)):
+                    studio.assess_chat_evidence(wrong,run_id,cid)
+        verbose=copy.deepcopy(reply)
+        verbose["conversation"]["messages"][1]["content"]="The answer is 42"
+        self.assertFalse(studio.assess_chat_evidence(verbose,run_id,cid)["model_chat_answer_exact_42"])
+
+    def test_bootstrap_model_start_is_explicit_bounded_opt_in(self):
+        source=Path("/tmp/verified/Merlin_Studio")
+        state=Path("/tmp/private-state")
+        original=studio.build_bootstrap(source,state)
+        self.assertIn("start_bundled=False",original)
+        enabled=studio.build_bootstrap(source,state,start_bundled=True)
+        self.assertIn("start_bundled=True",enabled)
+        self.assertIn("network_enabled':False",enabled)
+        self.assertIn("browser_enabled':False",enabled)
+        self.assertIn("model_timeout_seconds':120",enabled)
+        self.assertNotIn("PosixPath(",enabled)
+        compile(enabled,"<packaged-real-chat-bootstrap>","exec")
+        with self.assertRaises((ValueError,RuntimeError)):
+            studio.build_bootstrap(source,state,start_bundled="yes")
+
+    def test_private_practice_probe_detects_actual_gain_and_regression(self):
+        expected=[
+            ("arith.holdout.1","91"),
+            ("bytes.holdout.1","12288"),
+            ("titan.holdout.1","no"),
+        ]
+        calls=[]
+        def model(text):
+            calls.append(text)
+            idx=(len(calls)-1)//2
+            self.assertIn("New question: ",text) if len(calls)%2==0 else self.assertNotIn("Reference answer:",text)
+            return "wrong" if len(calls)%2 else expected[idx][1]
+        evidence=studio.practice_probe(model)
+        self.assertEqual(evidence["model_calls"],6)
+        self.assertEqual(evidence["baseline_correct"],0)
+        self.assertEqual(evidence["guided_correct"],3)
+        self.assertEqual(evidence["improved_count"],3)
+        self.assertEqual(evidence["regressed_count"],0)
+        self.assertFalse(evidence["model_weights_updated"])
+        self.assertFalse(evidence["production_qualified"])
+        bad=studio.practice_probe(lambda text:"wrong")
+        self.assertEqual(bad["delta_correct"],0)
+        self.assertEqual(bad["improved_count"],0)
+        self.assertEqual(bad["regressed_count"],0)
+        with self.assertRaises(RuntimeError):
+            studio.practice_probe(lambda text:"")
+
+    def test_private_practice_inference_uses_fixed_localhost_without_tools(self):
+        reply=FakeConnection(200,b'{"choices":[{"message":{"content":"91"}}]}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=reply) as conn:
+            answer=studio.query_packaged_model("Compute 7 times 13")
+        self.assertEqual(answer,"91")
+        self.assertEqual(conn.call_args.args[:2],("127.0.0.1",8772))
+        args,kwargs=reply.arguments[0]
+        self.assertEqual(args[0],"POST")
+        self.assertEqual(args[1],"/v1/chat/completions")
+        body=json.loads(kwargs["body"])
+        self.assertEqual(body["stream"],False)
+        self.assertEqual(body["max_tokens"],24)
+        self.assertNotIn("tools",body)
+        malformed=FakeConnection(200,b'{"choices":[]}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=malformed):
+            with self.assertRaises(RuntimeError):
+                studio.query_packaged_model("invalid response control")
+
+    def test_context_probe_pairs_real_conditions_without_claiming_merlin_routing(self):
+        calls=[]
+        correct={x[1]:x[2] for x in studio.CONTEXT_CASES}
+        def model(prompt,*,with_usage=False):
+            self.assertTrue(with_usage)
+            self.assertIn("\nEVIDENCE PACKET:\n",prompt)
+            self.assertIn("\nQUESTION: ",prompt)
+            question=prompt.split("\nQUESTION: ",1)[1]
+            self.assertIn(question,correct)
+            is_full="[noise0]" in prompt
+            calls.append((question,"full" if is_full else "selected"))
+            return {"answer":correct[question],
+                    "prompt_tokens":620 if is_full else 70,
+                    "latency_seconds":1.5 if is_full else .5}
+        receipt=studio.context_ablation_probe(model)
+        self.assertEqual(receipt["task_count"],4)
+        self.assertEqual(receipt["model_calls"],8)
+        self.assertEqual(receipt["full_correct"],4)
+        self.assertEqual(receipt["selected_correct"],4)
+        self.assertEqual(receipt["regressed_count"],0)
+        self.assertTrue(receipt["pilot_gate_met"])
+        self.assertLess(receipt["selected_prompt_bytes"],receipt["full_prompt_bytes"])
+        self.assertGreater(receipt["prompt_token_savings_fraction"],.2)
+        self.assertFalse(receipt["registry_router_integration_tested"])
+        self.assertFalse(receipt["production_qualified"])
+        self.assertFalse(receipt["model_quality_improvement_established"])
+        self.assertEqual([z[1] for z in calls],
+                         ["full","selected","selected","full",
+                          "full","selected","selected","full"])
+
+    def test_context_selection_regression_must_fail_pilot_gate(self):
+        calls=[]
+        expected={x[1]:x[2] for x in studio.CONTEXT_CASES}
+        def model(prompt,*,with_usage=False):
+            question=prompt.split("\nQUESTION: ",1)[1]
+            selected="[noise0]" not in prompt
+            answer=("wrong" if selected and question==studio.CONTEXT_CASES[1][1]
+                    else expected[question])
+            calls.append(prompt)
+            return {"answer":answer,"prompt_tokens":62 if selected else 650,
+                    "latency_seconds":.04}
+        receipt=studio.context_ablation_probe(model)
+        self.assertEqual(receipt["regressed_count"],1)
+        self.assertEqual(receipt["full_correct"],4)
+        self.assertEqual(receipt["selected_correct"],3)
+        self.assertFalse(receipt["pilot_gate_met"])
+        self.assertEqual(len(calls),8)
+
+    def test_token_reduction_with_all_wrong_answers_cannot_pass(self):
+        def wrong(prompt,*,with_usage=False):
+            return {"answer":"definitely wrong",
+                    "prompt_tokens":800 if "[noise0]" in prompt else 60,
+                    "latency_seconds":.05}
+        result=studio.context_ablation_probe(wrong)
+        self.assertEqual(result["full_correct"],0)
+        self.assertEqual(result["selected_correct"],0)
+        self.assertEqual(result["regressed_count"],0)
+        self.assertGreater(result["prompt_token_savings_fraction"],.2)
+        self.assertFalse(result["pilot_gate_met"])
+
+    def test_context_usage_transport_requires_int_tokens_and_bounded_answers(self):
+        def invalid_usage(prompt,*,with_usage=False):
+            return {"answer":"42","prompt_tokens":True,"latency_seconds":.02}
+        with self.assertRaises(RuntimeError):
+            studio.context_ablation_probe(invalid_usage)
+        def no_usage(prompt,*,with_usage=False):
+            return {"answer":"42","prompt_tokens":None,"latency_seconds":.02}
+        report=studio.context_ablation_probe(no_usage)
+        self.assertIsNone(report["prompt_token_savings_fraction"])
+        self.assertFalse(report["pilot_gate_met"])
+        with self.assertRaises(RuntimeError):
+            studio.context_ablation_probe(lambda prompt,**kw:{"answer":"",
+                "prompt_tokens":1,"latency_seconds":.05})
+
+    def test_small_unframed_keepalive_reply_does_not_require_fixed_size_read(self):
+        packet=b'{"choices":[{"message":{"content":"BC_203"}}]}'
+        connection=FakeConnection(200,packet)
+        reply=connection.reply
+        reply.getheaders=lambda:[]
+        def forbidden_fixed_read(n):
+            raise AssertionError("fixed-length read would stall on keepalive")
+        reply.read=forbidden_fixed_read
+        with patch.object(studio.http.client,"HTTPConnection",return_value=connection):
+            answer=studio.query_packaged_model("What is calibration batch?")
+        self.assertEqual(answer,"BC_203")
+        self.assertEqual(reply._readpos,len(packet))
+
+    def test_model_http_framing_rejects_ambiguous_and_truncated_bodies(self):
+        for headers in (
+            [("Content-Length","5"),("Transfer-Encoding","chunked")],
+            [("Content-Length","40000")],
+            [("Transfer-Encoding","gzip")],
+            [("Content-Encoding","gzip")],
+            [("Content-Length","abc")],
+        ):
+            con=FakeConnection(200,b'{"choices":[{"message":{"content":"42"}}]}')
+            con.reply.getheaders=lambda h=headers:h
+            with self.subTest(headers=headers):
+                with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+                    with self.assertRaises(RuntimeError):
+                        studio.query_packaged_model("test frame")
+        con=FakeConnection(200,b'{"choices":[{"message":{"content":"42"}}]}')
+        con.reply.getheaders=lambda:[("Content-Length","150")]
+        with patch.object(studio.http.client,"HTTPConnection",return_value=con):
+            with self.assertRaises(RuntimeError):
+                studio.query_packaged_model("test truncated frame")
+
+    def test_local_model_usage_receipt_is_from_response_not_mock_metric(self):
+        reply=FakeConnection(200,b'{"choices":[{"message":{"content":"16"}}],"usage":{"prompt_tokens":102,"completion_tokens":5}}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=reply):
+            result=studio.query_packaged_model("Test a model usage response",with_usage=True)
+        self.assertEqual(result["answer"],"16")
+        self.assertEqual(result["prompt_tokens"],102)
+        self.assertGreaterEqual(result["latency_seconds"],0)
+        no_stats=FakeConnection(200,b'{"choices":[{"message":{"content":"16"}}]}')
+        with patch.object(studio.http.client,"HTTPConnection",return_value=no_stats):
+            result=studio.query_packaged_model("Test missing usage",with_usage=True)
+        self.assertIsNone(result["prompt_tokens"])
+        with self.assertRaises(RuntimeError):
+            studio.query_packaged_model("Test",with_usage="yes")
+
+    def test_bootstrap_closes_model_both_on_return_and_exception(self):
+        import types
+        class FakeServer:
+            def __init__(self,raises):
+                self.raises=raises
+                self.closed=False
+                self.app=types.SimpleNamespace(save_settings=lambda settings:None)
+            def serve_forever(self,poll_interval):
+                if self.raises:
+                    raise RuntimeError("synthetic serve_forever failed")
+            def server_close(self):
+                self.closed=True
+            def shutdown(self):
+                pass
+        for raises in (False,True):
+            server=FakeServer(raises)
+            stub=types.ModuleType("server")
+            stub.create_server=lambda **kwargs:server
+            code=studio.build_bootstrap(
+                Path("/private/fake-studio"),Path("/private/fake-state"),
+                start_bundled=True)
+            self.assertIn("finally:",code)
+            self.assertIn("s.server_close()",code)
+            self.assertIn("signal.signal(signal.SIGTERM,_stop_server)",code)
+            with patch.dict(sys.modules,{"server":stub}):
+                with patch.object(studio.signal,"signal"):
+                    if raises:
+                        with self.assertRaises(RuntimeError):
+                            exec(compile(code,"<private-bootstrap>","exec"),{})
+                    else:
+                        exec(compile(code,"<private-bootstrap>","exec"),{})
+            self.assertTrue(server.closed)
+
+    def test_stop_graceful_then_bounded_child_process_group_cleanup(self):
+        class FakeProc:
+            pid=90123
+            def __init__(self):
+                self.terminated=False
+            def poll(self):
+                return 0 if self.terminated else None
+            def wait(self,timeout):
+                self.terminated=True
+                return 0
+        proc=FakeProc()
+        with patch.object(studio.os,"kill") as direct,patch.object(
+            studio.os,"killpg") as group:
+            self.assertTrue(studio.stop(proc))
+        direct.assert_called_once_with(proc.pid,studio.signal.SIGTERM)
+        group.assert_called_once_with(proc.pid,studio.signal.SIGKILL)
+
+    def test_real_subprocess_shutdown_calls_close_and_reaps_child(self):
+        # Synthetic server only: no listener, model, namespace or network.
+        # The subprocess really receives SIGTERM and exits through finally.
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)/"stub-source"
+            state=Path(temp)/"state"
+            source.mkdir()
+            state.mkdir()
+            fake_server = (
+                "import pathlib, subprocess, sys, threading\n"
+                "class FakeApp:\n"
+                "    def save_settings(self, settings):\n"
+                "        assert settings['network_enabled'] is False\n"
+                "class FakeServer:\n"
+                "    def __init__(self, directory):\n"
+                "        self.directory=pathlib.Path(directory)\n"
+                "        self.done=threading.Event()\n"
+                "        self.app=FakeApp()\n"
+                "        self.child=None\n"
+                "    def serve_forever(self, poll_interval):\n"
+                "        self.child=subprocess.Popen([sys.executable,'-I','-B','-c',\n"
+                "            'import time; time.sleep(30)'],stdin=subprocess.DEVNULL)\n"
+                "        (self.directory/'child.pid').write_text(str(self.child.pid))\n"
+                "        self.done.wait(15)\n"
+                "    def shutdown(self):\n"
+                "        self.done.set()\n"
+                "    def server_close(self):\n"
+                "        if self.child is not None:\n"
+                "            self.child.terminate()\n"
+                "            self.child.wait(timeout=4)\n"
+                "        (self.directory/'closed.txt').write_text('yes')\n"
+                "def create_server(port, data_dir, start_bundled):\n"
+                "    assert port==18793 and start_bundled is True\n"
+                "    return FakeServer(data_dir)\n"
+            )
+            (source/"server.py").write_text(fake_server)
+            bootstrap=studio.build_bootstrap(source,state,start_bundled=True)
+            proc=subprocess.Popen(
+                [sys.executable,"-I","-B","-S","-c",bootstrap],
+                stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,start_new_session=True)
+            try:
+                deadline=time.monotonic()+4
+                while not (state/"child.pid").exists() and time.monotonic()<deadline:
+                    if proc.poll() is not None:
+                        self.fail("synthetic Studio exited before child started")
+                    time.sleep(.025)
+                self.assertTrue((state/"child.pid").exists())
+                child_pid=int((state/"child.pid").read_text())
+                self.assertTrue(studio.stop(proc))
+                self.assertEqual((state/"closed.txt").read_text(),"yes")
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(child_pid,0)
+            finally:
+                studio.stop(proc)
+                if proc.stderr:
+                    proc.stderr.close()
+
+    def test_report_identity_never_claims_production(self):
+        self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
+        self.assertEqual(studio.PORT,18793)
+        self.assertNotIn("GITHUB_TOKEN",studio.ENV)
+        self.assertNotIn("PYTHONPATH",studio.ENV)
+
+
+if __name__=="__main__":
+    unittest.main(verbosity=2)

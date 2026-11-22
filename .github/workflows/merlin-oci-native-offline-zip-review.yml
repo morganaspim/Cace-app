@@ -1,0 +1,106 @@
+name: Merlin OCI ARM64 technical ZIP review (no model export)
+
+"on":
+  push:
+    branches: ["fix/merlin-native-offline-zip-source-20261122"]
+    paths: ["merlin/oci-native-offline-bundle-requests/**"]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  offline-zip-technical-only:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 25
+    steps:
+      - name: Retrieve verified CPython archive without host installation
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 14748604091
+          run-id: 45009078432
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/merlin-native-offline-python-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Admit exact source-pinned private model ZIP controller and run
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import base64,hashlib,json,os,pathlib,shutil,subprocess,sys,urllib.request
+          repo='morganaspim/Cace-app'
+          def fetch_exact(path, revision, expected_blob, expected_bytes):
+              request=urllib.request.Request(
+                  'https://api.github.com/repos/'+repo+'/contents/'+path+'?ref='+revision,
+                  headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                           'User-Agent':'Merlin-private-offline-exact-source',
+                           'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=25) as reply:
+                  payload=reply.read(131073)
+              if len(payload)>131072:raise SystemExit('controller GitHub metadata oversized')
+              obj=json.loads(payload)
+              if obj.get('encoding')!='base64':raise SystemExit('source encoding differs')
+              raw=base64.b64decode(''.join(obj['content'].split()),validate=True)
+              blob=hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()
+              if len(raw)!=expected_bytes or blob!=expected_blob or obj.get('sha')!=expected_blob:
+                  raise SystemExit('exact controller or packaged GGUF smoke source differs')
+              return raw
+          controller=fetch_exact(
+              'ops/merlin_model_isolated/run_offline_native_bundle.py',
+              '626538c7fc4fd6cbf29d6881a8e97a8187c38003',
+              '98638f6eeef1fe24b73a514a2befd50db79a75c6',29697)
+          model_smoke=fetch_exact(
+              'ops/merlin_model_isolated/run_packaged_model_from_zip.py',
+              '579ea12703c588944f2dfe3bc1eeb04cf6956422',
+              'fe5df839b8cab1d8ecdcc05f7b311f2cb575186b',20608)
+          ui_smoke=fetch_exact(
+              'ops/merlin_model_isolated/run_packaged_studio_smoke.py',
+              '818d9b208d087c93115e54408f6578e4a3e51d9b',
+              '8561328f453efb8a8e1250e7c70386b100d502f7',40222)
+          folder=pathlib.Path(os.environ['RUNNER_TEMP'])/(
+              'merlin-private-zip-code-'+os.environ['GITHUB_RUN_ID'])
+          folder.mkdir(mode=0o700,exist_ok=False)
+          script=folder/'run_offline_native_bundle.py'
+          companion=folder/'run_packaged_model_from_zip.py'
+          ui=folder/'run_packaged_studio_smoke.py'
+          try:
+              with script.open('xb') as out:out.write(controller)
+              with companion.open('xb') as out:out.write(model_smoke)
+              with ui.open('xb') as out:out.write(ui_smoke)
+              result=subprocess.run(
+                  ['/usr/bin/python3','-I','-B',str(script)],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':os.environ['RUNNER_TEMP'],
+                               'RUNNER_TEMP':os.environ['RUNNER_TEMP'],
+                               'GITHUB_TOKEN':os.environ['GITHUB_TOKEN'],
+                               'GITHUB_SHA':os.environ['GITHUB_SHA'],
+                               'GITHUB_REPOSITORY':os.environ['GITHUB_REPOSITORY'],
+                               'GITHUB_REF':os.environ['GITHUB_REF'],
+                               'GITHUB_RUN_ID':os.environ['GITHUB_RUN_ID'],
+                               'GITHUB_RUN_ATTEMPT':os.environ['GITHUB_RUN_ATTEMPT'],
+                               'RUNNER_NAME':os.environ.get('RUNNER_NAME',''),
+                               'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=1350)
+              if len(result.stdout)>16384 or len(result.stderr)>16384:
+                  raise SystemExit('controller output bound exceeded')
+              sys.stdout.buffer.write(result.stdout)
+              sys.stderr.buffer.write(result.stderr)
+              if result.returncode:
+                  raise SystemExit(result.returncode)
+          finally:
+              shutil.rmtree(folder)
+          PY
+      - name: Preserve only technical receipt, never model ZIP or original weights
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-private-offline-zip-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-native-offline-bundle-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          if-no-files-found: warn
+          retention-days: 10

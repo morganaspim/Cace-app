@@ -1,0 +1,56 @@
+name: Merlin OCI trainable-model read-only preflight
+"on":
+  push:
+    branches: ["fix/merlin-native-offline-zip-source-20261122"]
+    paths: ["merlin/oci-training-preflight-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  check-training-prerequisites:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect read-only training runtime; do not download or train
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PY'
+          import importlib.util,json,platform,os
+          # Inventory only documented host training prerequisites; no
+          # subprocess, network, writes, filesystem scanning or model loading.
+          packages={name:importlib.util.find_spec(name) is not None
+                    for name in ("torch","transformers","peft",
+                                 "accelerate","bitsandbytes","safetensors")}
+          gpu={"cuda_available":False,"device_count":0,"free_gib":0.0,
+               "measurement":"no torch CUDA runtime"}
+          if packages["torch"]:
+              try:
+                  import torch
+                  available=bool(torch.cuda.is_available())
+                  gpu["cuda_available"]=available
+                  gpu["device_count"]=int(torch.cuda.device_count()) if available else 0
+                  gpu["measurement"]="torch CUDA"
+                  if available:
+                      free,total=torch.cuda.mem_get_info(0)
+                      gpu["free_gib"]=round(free/(1024**3),2)
+              except Exception as exc:
+                  gpu["measurement"]="torch inspection failed: "+type(exc).__name__
+          result={"schema":"merlin-oci-trainability-inventory/1",
+                  "host":"existing OCI ARM64 runner",
+                  "arch":platform.machine(),"python":platform.python_version(),
+                  "packages_installed":packages,
+                  "gpu":gpu,
+                  "compatible_qlora_runtime_present":all(packages.values())
+                       and gpu["cuda_available"] and gpu["free_gib"]>=8.0,
+                  "model_checkpoint_present_verified":False,
+                  "model_weights_changed":False,
+                  "host_mutations":0,
+                  "production_qualified":False}
+          print(json.dumps(result,sort_keys=True))
+          PY

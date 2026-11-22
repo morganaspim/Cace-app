@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-native-offline-bundle-request/1",
+  "request_id": "20cf4777-3e2b-4bed-8492-580cbe36d60e",
+  "operation": "assemble-private-arm64-zip-and-run-python",
+  "created_at": "2026-11-22T19:08:00Z"
+}

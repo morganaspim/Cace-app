@@ -1,0 +1,56 @@
+name: Merlin offline ZIP license, native executable and model contract (no downloads)
+
+"on":
+  push:
+    branches: ["fix/merlin-native-offline-zip-source-20261122"]
+    paths:
+      - ops/merlin_model_isolated/run_offline_native_bundle.py
+      - ops/merlin_model_isolated/test_offline_license_receipts.py
+      - ops/merlin_model_isolated/test_packaged_llama_runtime.py
+      - ops/merlin_model_isolated/run_packaged_model_from_zip.py
+      - ops/merlin_model_isolated/test_packaged_model_inference.py
+      - .github/workflows/merlin-native-offline-license-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  offline-license-receipts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          clean: true
+          fetch-depth: 1
+      - name: Verify exact source and synthetic fail-closed license controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee source-commit.txt
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B -m unittest discover -s ops/merlin_model_isolated \
+            -p 'test_offline_license_receipts.py' -v 2>&1 | tee license-tests.log
+          python3 -B -m unittest discover -s ops/merlin_model_isolated \
+            -p 'test_packaged_llama_runtime.py' -v 2>&1 | tee native-executable-tests.log
+          python3 -B -m unittest discover -s ops/merlin_model_isolated \
+            -p 'test_packaged_model_inference.py' -v 2>&1 | tee packaged-model-tests.log
+          sha256sum ops/merlin_model_isolated/run_offline_native_bundle.py \
+            ops/merlin_model_isolated/test_offline_license_receipts.py \
+            ops/merlin_model_isolated/test_packaged_llama_runtime.py \
+            ops/merlin_model_isolated/run_packaged_model_from_zip.py \
+            ops/merlin_model_isolated/test_packaged_model_inference.py > source-digests.txt
+      - name: Preserve only test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-immutable-license-${{ github.run_id }}
+          path: |
+            source-commit.txt
+            license-tests.log
+            native-executable-tests.log
+            packaged-model-tests.log
+            source-digests.txt
+          retention-days: 14
+          if-no-files-found: warn

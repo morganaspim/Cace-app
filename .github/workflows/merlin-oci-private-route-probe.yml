@@ -1,0 +1,59 @@
+name: Merlin OCI private route metadata probe (non-deploying)
+"on":
+  push:
+    branches: ["fix/merlin-native-offline-zip-source-20261122"]
+    paths:
+      - ops/merlin_model_isolated/inspect_private_route.py
+      - .github/workflows/merlin-oci-private-route-probe.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  private-route-metadata:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          clean: true
+          fetch-depth: 1
+      - name: Inspect sanitized rootless route metadata, never host routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee source-commit.txt
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -I -B ops/merlin_model_isolated/inspect_private_route.py \
+            2>&1 | tee private-route-stdout.txt
+          test -f private-route-result.json
+          python3 -I -B - <<'PY'
+          import json
+          with open("private-route-result.json") as f: d=json.load(f)
+          assert d["schema"]=="merlin-oci-private-route-mapping-comparison/1"
+          assert d["status"]=="observed_unqualified"
+          assert d["host_mutations"]==0 and d["production_qualified"] is False
+          assert {m["mapping"] for m in d["modes"]} == {"same-uid","namespace-root"}
+          assert all(x["private_netns"] is True
+                     and x["uid_map_is_host_uid1000"] is True
+                     and x["only_loopback_interfaces"] is True
+                     and x["nonlo_rows"] == 0
+                     and x["no_host_route_values_collected"] is True
+                     for x in d["observations"])
+          PY
+      - name: Retain metadata only, never host route addresses
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-private-route-probe-${{ github.run_id }}
+          path: |
+            source-commit.txt
+            private-route-stdout.txt
+            private-route-result.json
+          if-no-files-found: warn
+          retention-days: 10
