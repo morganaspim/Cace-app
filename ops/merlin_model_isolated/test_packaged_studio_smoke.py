@@ -292,6 +292,18 @@ class PackagedStudioUIContracts(unittest.TestCase):
         self.assertFalse(receipt["pilot_gate_met"])
         self.assertEqual(len(calls),8)
 
+    def test_token_reduction_with_all_wrong_answers_cannot_pass(self):
+        def wrong(prompt,*,with_usage=False):
+            return {"answer":"definitely wrong",
+                    "prompt_tokens":800 if "[noise0]" in prompt else 60,
+                    "latency_seconds":.05}
+        result=studio.context_ablation_probe(wrong)
+        self.assertEqual(result["full_correct"],0)
+        self.assertEqual(result["selected_correct"],0)
+        self.assertEqual(result["regressed_count"],0)
+        self.assertGreater(result["prompt_token_savings_fraction"],.2)
+        self.assertFalse(result["pilot_gate_met"])
+
     def test_context_usage_transport_requires_int_tokens_and_bounded_answers(self):
         def invalid_usage(prompt,*,with_usage=False):
             return {"answer":"42","prompt_tokens":True,"latency_seconds":.02}
