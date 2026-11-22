@@ -123,13 +123,14 @@ jobs:
               # branch and pinned by immutable Git blob + exact file length.
               runner_path='ops/merlin_studio_validation/connected_browser_smoke.py'
               runner_item=api(repo,'contents/'+runner_path+'?ref='+commit)
-              require(runner_item.get('encoding')=='base64','browser controller encoding differs')
+              if runner_item.get('encoding')!='base64':
+                  raise RuntimeError('browser controller encoding differs')
               runner_source=base64.b64decode(
                   ''.join(runner_item['content'].split()),validate=True)
               runner_blob='526c5ff5791fae755a0344cf2b71e72ec26fe229'
-              require(len(runner_source)==10065 and blob(runner_source)==runner_blob
-                      and runner_item.get('sha')==runner_blob,
-                      'browser controller source identity differs')
+              if not (len(runner_source)==10065 and blob(runner_source)==runner_blob
+                      and runner_item.get('sha')==runner_blob):
+                  raise RuntimeError('browser controller source identity differs')
               ast.parse(runner_source,feature_version=(3,9))
               (validation/'connected_browser_smoke.py').write_bytes(runner_source)
               (validation/'connected_browser_smoke.py').chmod(0o600)
