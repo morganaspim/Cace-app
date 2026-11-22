@@ -88,7 +88,7 @@ def terminate(process, label,ev):
     base.require(process.poll() is not None,label+" process survived cleanup")
 
 
-def test(ev, product, scratch, parent):
+def test(ev, product, scratch, parent, python):
     base.namespace_identity(parent)
     flags=base.status(os.getpid())
     base.require(flags.get("CapEff")=="0000000000000000"
@@ -96,6 +96,10 @@ def test(ev, product, scratch, parent):
                  "Studio/model controller still has effective capabilities")
     base.require(product.is_dir() and not product.is_symlink(),
                  "pinned product source unavailable")
+    base.require(python.is_file() and not python.is_symlink()
+                 and python.stat().st_size==56723673
+                 and python.name=="python3.11" and python.parent.name=="bin",
+                 "privately staged CPython3.11 identity missing")
     studio_dir=product/"portable/merlin_studio"
     for name in ("server.py","engine.py","model.py","storage.py","tools.py","worker.py"):
         base.require((studio_dir/name).is_file() and not (studio_dir/name).is_symlink(),
@@ -132,7 +136,7 @@ def test(ev, product, scratch, parent):
         bootstrap=("import sys;sys.path.insert(0,%r);sys.path.insert(0,%r);"
                    "from server import main;main()"%
                    (str(studio_dir),str(product/"python")))
-        argv=["/usr/bin/python3.11","-I","-B","-c",bootstrap,
+        argv=[str(python),"-I","-B","-S","-c",bootstrap,
               "--port",str(STUDIO_PORT),"--data-dir",str(data)]
         def launch_studio():
             return subprocess.Popen(argv,cwd="/",env=studio_env,
@@ -249,7 +253,7 @@ def test(ev, product, scratch, parent):
                           "production_qualified":False},sort_keys=True))
 
 
-def setup(ev,product,scratch,parent):
+def setup(ev,product,scratch,parent,python):
     base.require(os.geteuid()==1000 and
        os.stat("/proc/self/ns/net").st_ino!=parent and
        Path("/proc/self/uid_map").read_text().split()==["1000","1000","1"],
@@ -267,7 +271,7 @@ def setup(ev,product,scratch,parent):
     args=["/usr/bin/setpriv","--no-new-privs","--bounding-set=-all",
           "--inh-caps=-all","/usr/bin/python3","-I","-B",
           str(Path(__file__).resolve()),"test",str(ev),
-          str(product),str(scratch),str(parent)]
+          str(product),str(scratch),str(parent),str(python)]
     child=subprocess.run(args,env={"PATH":"/usr/bin:/bin","LANG":"C.UTF-8",
        "HOME":str(scratch),"PYTHONDONTWRITEBYTECODE":"1"},
        cwd="/",stdin=subprocess.DEVNULL,capture_output=True,timeout=340)
@@ -279,15 +283,16 @@ def setup(ev,product,scratch,parent):
 
 
 def main():
-    if len(sys.argv)!=6 or sys.argv[1] not in ("setup","test"):
-        raise SystemExit("fixed mode, evidence, product, scratch, parent")
-    phase,ev,p,scratch,par=sys.argv[1:]
-    ev,product,scratch,parent=Path(ev),Path(p),Path(scratch),int(par)
+    if len(sys.argv)!=7 or sys.argv[1] not in ("setup","test"):
+        raise SystemExit("fixed mode, evidence, product, scratch, parent, private interpreter")
+    phase,ev,p,scratch,par,py=sys.argv[1:]
+    ev,product,scratch,parent,python=Path(ev),Path(p),Path(scratch),int(par),Path(py)
     try:
         base.require(all(x.is_dir() and not x.is_symlink()
                          for x in (ev,product,scratch)),
                      "fixed private folders missing")
-        good=setup(ev,product,scratch,parent) if phase=="setup" else test(ev,product,scratch,parent)
+        good=(setup(ev,product,scratch,parent,python) if phase=="setup"
+              else test(ev,product,scratch,parent,python))
         return 0 if good else 2
     except BaseException as exc:
         (ev/"studio-model-error.json").write_text(
