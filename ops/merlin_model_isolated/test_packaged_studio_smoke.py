@@ -209,7 +209,7 @@ class PackagedStudioUIContracts(unittest.TestCase):
         def model(text):
             calls.append(text)
             idx=(len(calls)-1)//2
-            self.assertNotIn("Reference answer: "+expected[idx][1]+"\\nNew question:",text)
+            self.assertIn("New question: ",text) if len(calls)%2==0 else self.assertNotIn("Reference answer:",text)
             return "wrong" if len(calls)%2 else expected[idx][1]
         evidence=studio.practice_probe(model)
         self.assertEqual(evidence["model_calls"],6)
