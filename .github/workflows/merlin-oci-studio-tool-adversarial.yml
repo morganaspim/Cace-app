@@ -113,7 +113,7 @@ jobs:
                    'studio_tool_contract.py':{'bytes':4456,'blob':'80e4f13390d32b0da370d87befea5cd82612d64d'},
                    'test_studio_tool_contract.py':{'bytes':5248,'blob':'88fa4468c82a819b5b986ef4f8bc0269b3ce22e3'},
                    'run_studio_tool.py':{'bytes':17695,'blob':'f89808f338cc4eebbd79160ef787100fc297f2ae'},
-                   'run_studio_tool_adversarial.py':{'bytes':18124,'blob':'1bf0f3c7a7aaf8c3db70d7077f2042dcaf4eaf90'},
+                   'run_studio_tool_adversarial.py':{'bytes':18123,'blob':'fc2063a60310765d9d0fd244e6a5bb0ec209a0f2'},
                    'test_studio_tool_adversarial.py':{'bytes':2583,'blob':'191d09e2fa3fc37c9547134856ad8468c802a0bb'}}
               sources={}
               for name,pin in scripts.items():
