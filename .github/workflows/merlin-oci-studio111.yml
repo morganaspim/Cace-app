@@ -102,9 +102,28 @@ jobs:
                   ast.parse(source,feature_version=(3,9))
                   (src/path).write_bytes(source)
                   (src/path).chmod(0o600)
+              # Use the already reviewed 36-file Studio source custody controller.
+              studio_pins={
+                'validate.py':{'bytes':37082,
+                  'sha256':'39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee',
+                  'git_blob':'d950f862e4025db559c4c1a99cdba4aec9bae6c7'},
+                'source-pins.json':{'bytes':8350,
+                  'sha256':'4f0a420a6067c6e8ce51dd3110539e5a47b8a372fb216c540c39ba7ff41e8429',
+                  'git_blob':'bba11aced1eeb2d31c264f749408653fa618c879'},
+                'product-source.zip':{'bytes':104129,
+                  'sha256':'99964ba99ea41a3b3580b85574533e5aaa8a2e72cca111b1b2233c948bb1cf8b',
+                  'git_blob':'09d10789ab63c776cf47b8226cd0507e8cce1e49'}}
+              validation=root/'validation';validation.mkdir(mode=0o700)
+              for name,pin in studio_pins.items():
+                  body=fetch(repo,'ops/merlin_studio_validation/'+name,commit,pin)
+                  if name.endswith('.py'): ast.parse(body,feature_version=(3,9))
+                  (validation/name).write_bytes(body)
+                  (validation/name).chmod(0o600)
               (ev/'admission.json').write_text(json.dumps({
-                  'schema':'merlin-oci-cpython-startup-admission/1','request_commit':commit,
-                  'source_commit':source_commit,'pins':pins,'archive_artifact_id':14748604091,
+                  'schema':'merlin-oci-studio111-admission/1','request_commit':commit,
+                  'source_commit':source_commit,'pins':pins,'studio_source_pins':studio_pins,
+                  'studio_product_commit':'8497597f297bba83189afef2026c27f9244537ce',
+                  'archive_artifact_id':14748604091,
                   'interpreter_installed':False,'native_interpreter_executed':False,
                   'model_calls':0,'production_qualified':False},sort_keys=True,indent=2))
               print(json.dumps({'status':'stage_source_admitted','source_commit':source_commit,
