@@ -155,6 +155,76 @@ class ReconciliationPreflightTests(unittest.TestCase):
                 self.assertEqual(check(candidate)["status"], "blocked")
         self.assertEqual(check({"schema": "wrong"})["status"], "blocked")
 
+    def test_pair_accepts_only_stable_read_only_evidence(self):
+        from reconcile_orphan_socket import assess_observation_pair
+        first = observed()
+        first["observed_at"] = "2026-11-22T16:40:38Z"
+        second = copy.deepcopy(first)
+        second["execution"]["run_id"] = 45050760629
+        second["execution"]["workflow_commit"] = "0344e0a5d69850b400454dd085330788e4acc68e"
+        second["observed_at"] = "2026-11-22T17:40:33Z"
+        first_raw = json.dumps(first, sort_keys=True).encode()
+        second_raw = json.dumps(second, sort_keys=True).encode()
+        result = assess_observation_pair(first_raw, second_raw,
+            expected_first=(RUN_ID, COMMIT), expected_second=(
+                45050760629, "0344e0a5d69850b400454dd085330788e4acc68e"),
+            first_sha256=hashlib.sha256(first_raw).hexdigest(),
+            second_sha256=hashlib.sha256(second_raw).hexdigest())
+        self.assertEqual(result["status"], "stable_candidate_for_locked_reinspection")
+        self.assertEqual(result["consistent_observations"], True)
+        self.assertFalse(result["authority_granted"])
+        self.assertFalse(result["may_unlink_socket"])
+        self.assertEqual(result["host_mutations"], 0)
+
+    def test_pair_rejects_socket_replacement_and_service_drift(self):
+        from reconcile_orphan_socket import assess_observation_pair
+        first = observed()
+        first["observed_at"] = "2026-11-22T16:40:38Z"
+        second = copy.deepcopy(first)
+        second["execution"]["run_id"] = 45050760629
+        second["execution"]["workflow_commit"] = "0344e0a5d69850b400454dd085330788e4acc68e"
+        second["observed_at"] = "2026-11-22T17:40:33Z"
+        def run_pair(candidate):
+            a = json.dumps(first, sort_keys=True).encode()
+            b = json.dumps(candidate, sort_keys=True).encode()
+            return assess_observation_pair(a, b, expected_first=(RUN_ID, COMMIT),
+                expected_second=(45050760629, "0344e0a5d69850b400454dd085330788e4acc68e"),
+                first_sha256=hashlib.sha256(a).hexdigest(),
+                second_sha256=hashlib.sha256(b).hexdigest())
+        for key in ("inode", "dev", "ctime_ns", "mtime_ns"):
+            with self.subTest(key=key):
+                c = copy.deepcopy(second)
+                next(p for p in c["paths"] if p["path"] == SOCKET)["metadata"][key] = (
+                    42 if key != "dev" else 29)
+                self.assertEqual(run_pair(c)["status"], "blocked")
+        c = copy.deepcopy(second)
+        c["supervisor"]["properties"]["Result"] = "failed"
+        self.assertEqual(run_pair(c)["status"], "blocked")
+        c = copy.deepcopy(second)
+        c["observed_at"] = "2026-11-22T15:40:00Z"
+        self.assertEqual(run_pair(c)["status"], "blocked")
+
+    def test_pair_refuses_checksum_ambiguity_and_reused_run(self):
+        from reconcile_orphan_socket import assess_observation_pair
+        first = observed()
+        first["observed_at"] = "2026-11-22T16:40:38Z"
+        raw = json.dumps(first).encode()
+        def call(**changes):
+            kw={"expected_first":(RUN_ID, COMMIT),
+                "expected_second":(RUN_ID, COMMIT),
+                "first_sha256":hashlib.sha256(raw).hexdigest(),
+                "second_sha256":hashlib.sha256(raw).hexdigest()}
+            kw.update(changes)
+            return assess_observation_pair(raw, raw, **kw)
+        self.assertEqual(call()["status"], "blocked")
+        with self.assertRaises(ValueError):
+            call(first_sha256="0" * 64)
+        with self.assertRaises(ValueError):
+            assess_observation_pair(raw + b" " * (256 * 1024), raw,
+                expected_first=(RUN_ID, COMMIT), expected_second=(RUN_ID, COMMIT),
+                first_sha256=hashlib.sha256(raw).hexdigest(),
+                second_sha256=hashlib.sha256(raw).hexdigest())
+
     def test_json_bytes_bound_and_duplicate_keys_rejected(self):
         source = json.dumps(observed(), sort_keys=True).encode()
         result = from_json_bytes(source, expected_run_id=RUN_ID,
