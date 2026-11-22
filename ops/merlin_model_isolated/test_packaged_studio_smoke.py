@@ -8,6 +8,10 @@ import io
 import json
 from pathlib import Path
 import sys
+import os
+import subprocess
+import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -381,6 +385,64 @@ class PackagedStudioUIContracts(unittest.TestCase):
             self.assertTrue(studio.stop(proc))
         direct.assert_called_once_with(proc.pid,studio.signal.SIGTERM)
         group.assert_called_once_with(proc.pid,studio.signal.SIGKILL)
+
+    def test_real_subprocess_shutdown_calls_close_and_reaps_child(self):
+        # Synthetic server only: no listener, model, namespace or network.
+        # The subprocess really receives SIGTERM and exits through finally.
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)/"stub-source"
+            state=Path(temp)/"state"
+            source.mkdir()
+            state.mkdir()
+            fake_server = (
+                "import pathlib, subprocess, sys, threading\n"
+                "class FakeApp:\n"
+                "    def save_settings(self, settings):\n"
+                "        assert settings['network_enabled'] is False\n"
+                "class FakeServer:\n"
+                "    def __init__(self, directory):\n"
+                "        self.directory=pathlib.Path(directory)\n"
+                "        self.done=threading.Event()\n"
+                "        self.app=FakeApp()\n"
+                "        self.child=None\n"
+                "    def serve_forever(self, poll_interval):\n"
+                "        self.child=subprocess.Popen([sys.executable,'-I','-B','-c',\n"
+                "            'import time; time.sleep(30)'],stdin=subprocess.DEVNULL)\n"
+                "        (self.directory/'child.pid').write_text(str(self.child.pid))\n"
+                "        self.done.wait(15)\n"
+                "    def shutdown(self):\n"
+                "        self.done.set()\n"
+                "    def server_close(self):\n"
+                "        if self.child is not None:\n"
+                "            self.child.terminate()\n"
+                "            self.child.wait(timeout=4)\n"
+                "        (self.directory/'closed.txt').write_text('yes')\n"
+                "def create_server(port, data_dir, start_bundled):\n"
+                "    assert port==18793 and start_bundled is True\n"
+                "    return FakeServer(data_dir)\n"
+            )
+            (source/"server.py").write_text(fake_server)
+            bootstrap=studio.build_bootstrap(source,state,start_bundled=True)
+            proc=subprocess.Popen(
+                [sys.executable,"-I","-B","-S","-c",bootstrap],
+                stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,start_new_session=True)
+            try:
+                deadline=time.monotonic()+4
+                while not (state/"child.pid").exists() and time.monotonic()<deadline:
+                    if proc.poll() is not None:
+                        self.fail("synthetic Studio exited before child started")
+                    time.sleep(.025)
+                self.assertTrue((state/"child.pid").exists())
+                child_pid=int((state/"child.pid").read_text())
+                self.assertTrue(studio.stop(proc))
+                self.assertEqual((state/"closed.txt").read_text(),"yes")
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(child_pid,0)
+            finally:
+                studio.stop(proc)
+                if proc.stderr:
+                    proc.stderr.close()
 
     def test_report_identity_never_claims_production(self):
         self.assertEqual(studio.SCHEMA,"merlin-packaged-studio-ui-restart/1")
