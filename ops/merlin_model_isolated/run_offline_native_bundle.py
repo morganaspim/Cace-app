@@ -369,9 +369,9 @@ def assemble(root, evidence, archive, details):
     # substitute for a real GGUF inference result below.
     ui_path = Path(__file__).resolve().parent / "run_packaged_studio_smoke.py"
     require(ui_path.is_file() and not ui_path.is_symlink()
-            and ui_path.stat().st_size == 15254
+            and ui_path.stat().st_size == 15654
             and hashlib.sha256(ui_path.read_bytes()).hexdigest()
-            == "1cdd193832a9ddc5f9f15b3f0df564bf538023c6debed942344b3f50dfe61442",
+            == "30947150c12c6ade4ed3ce9fc399490bc90ef24828119aa445bf354e823fb897",
             "packaged Studio UI/restart helper source pin differs")
     sys.path.insert(0, str(ui_path.parent))
     import run_packaged_studio_smoke as studio_smoke
