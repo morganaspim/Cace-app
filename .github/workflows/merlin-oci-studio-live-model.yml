@@ -108,7 +108,8 @@ jobs:
               (ev/'request.json').write_bytes(raw)
               scripts={
                   'run_private_model.py':{'bytes':16616,'blob':'65b0659425d6759dc291967c1d17e60f8c29c06e'},
-                  'run_studio_model.py':{'bytes':15904,'blob':'f9ccc809d45e34e03bfdcdb2cc8cbe51654f173c'}}
+                  'run_studio_model.py':{'bytes':16058,'blob':'25a7714406069ac17cce3e43257885668edab78f'},
+                  'test_studio_id_contract.py':{'bytes':2532,'blob':'46ff2b527a8a7d7a8412a59babc599fb2cccd203'}}
               sources={}
               for name,pin in scripts.items():
                   body=read_file(repo,'ops/merlin_model_isolated/'+name,commit,pin)
@@ -116,6 +117,18 @@ jobs:
                   (source/name).write_bytes(body)
                   (source/name).chmod(0o400)
                   sources[name]={'git_blob':git_blob(body),'sha256':hashlib.sha256(body).hexdigest()}
+              # Fail quickly on controller/product ID-shape drift before staging
+              # the large Python archive or starting the local GGUF model.
+              guard=subprocess.run(
+                  ['/usr/bin/python3','-I','-B',str(source/'test_studio_id_contract.py')],
+                  cwd='/',env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8',
+                               'HOME':str(scratch),'PYTHONDONTWRITEBYTECODE':'1'},
+                  stdin=subprocess.DEVNULL,capture_output=True,timeout=25)
+              guard_log=(guard.stdout+guard.stderr)[:32768]
+              (ev/'id-contract-tests.log').write_bytes(guard_log)
+              require(guard.returncode==0 and b'Ran 3 tests' in guard_log
+                      and b'OK' in guard_log and b'FAILED' not in guard_log,
+                      'Studio controller ID contract regression')
               stage_body=read_file('Mannyspiro/expert-robot',
                   'scripts/merlin_python_private_stage.py',
                   '71e6405a3475eb449d150b961915922edd3e9fb0',
