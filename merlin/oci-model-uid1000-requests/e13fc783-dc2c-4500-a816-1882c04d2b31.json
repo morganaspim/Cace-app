@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-model-uid1000-request/1",
+  "request_id": "e13fc783-dc2c-4500-a816-1882c04d2b31",
+  "operation": "inspect-fixed-model-provider-without-root-or-inference",
+  "created_at": "2026-11-22T11:32:03Z"
+}
