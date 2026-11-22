@@ -1,0 +1,6 @@
+{
+  "schema": "merlin-oci-private-python-startup-request/1",
+  "request_id": "19e25076-9bc6-4ee2-9ff4-e35fe0fd7e71",
+  "operation": "startup-cpython-3.11.18-aarch64-once",
+  "created_at": "2026-11-22T10:21:51Z"
+}
