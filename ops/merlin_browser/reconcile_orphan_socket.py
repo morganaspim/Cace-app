@@ -8,6 +8,7 @@ not a reconciliation or deployment certificate.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -161,6 +162,99 @@ def from_json_bytes(raw, *, expected_run_id, expected_workflow_commit):
                     expected_workflow_commit=expected_workflow_commit)
     result["source_receipt_sha256"] = hashlib.sha256(raw).hexdigest()
     return result
+
+
+
+def assess_observation_pair(first_raw, second_raw, *, expected_first, expected_second,
+                            first_sha256, second_sha256):
+    """Compare independently captured read-only observations; grant no authority.
+
+    This is historical consistency, not an atomic root lock or permission to
+    delete a host socket. Parse and classify each bounded source separately.
+    """
+    def bound(raw, expected_digest, label):
+        if not isinstance(raw, bytes) or not 0 < len(raw) <= MAX_RECEIPT_BYTES:
+            raise ValueError(label + " raw evidence length outside bound")
+        if not isinstance(expected_digest, str) or len(expected_digest) != 64 or any(
+                c not in "0123456789abcdef" for c in expected_digest):
+            raise ValueError(label + " expected digest malformed")
+        if hashlib.sha256(raw).hexdigest() != expected_digest:
+            raise ValueError(label + " evidence digest mismatch")
+        return json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_keys)
+
+    if (not isinstance(expected_first, tuple) or len(expected_first) != 2
+            or not isinstance(expected_second, tuple) or len(expected_second) != 2):
+        raise ValueError("two exact run identity tuples required")
+    original = bound(first_raw, first_sha256, "first")
+    repeated = bound(second_raw, second_sha256, "second")
+    prior = assess(original, expected_run_id=expected_first[0],
+                   expected_workflow_commit=expected_first[1])
+    after = assess(repeated, expected_run_id=expected_second[0],
+                   expected_workflow_commit=expected_second[1])
+    reasons = prior["reasons"] + after["reasons"]
+    if (type(expected_first[0]) is not int or type(expected_second[0]) is not int
+            or expected_second[0] <= expected_first[0]
+            or expected_first[1] == expected_second[1]):
+        reasons.append("independent ordered run identity absent")
+    try:
+        def parsed(value):
+            if not isinstance(value, str) or not value.endswith("Z"):
+                raise ValueError()
+            result = datetime.fromisoformat(value[:-1] + "+00:00")
+            if result.tzinfo is None:
+                raise ValueError()
+            return result
+        first_time = parsed(original.get("observed_at"))
+        second_time = parsed(repeated.get("observed_at"))
+        if not (60 <= (second_time - first_time).total_seconds() <= 24 * 3600):
+            reasons.append("independent observation interval outside declared range")
+    except (ValueError, OverflowError, TypeError):
+        reasons.append("observation timestamp invalid")
+
+    # Compare exact observed state, not only matching report labels.
+    if original.get("paths") != repeated.get("paths"):
+        reasons.append("fixed path or socket inode state changed across observations")
+    first_unit = original.get("supervisor")
+    next_unit = repeated.get("supervisor")
+    if (not isinstance(first_unit, dict) or not isinstance(next_unit, dict)
+            or first_unit.get("properties") != next_unit.get("properties")):
+        reasons.append("supervisor fields changed across observations")
+    original_net = original.get("unix_socket_table")
+    repeated_net = repeated.get("unix_socket_table")
+    if (not isinstance(original_net, dict) or not isinstance(repeated_net, dict)
+            or original_net.get("matching_path") != repeated_net.get("matching_path")
+            or original_net.get("matches") != repeated_net.get("matches")
+            or original_net.get("rows") != repeated_net.get("rows")):
+        reasons.append("Unix socket listener evidence changed")
+    if original.get("successor_marker") != repeated.get("successor_marker"):
+        reasons.append("successor marker status changed")
+
+    # Require complete stable inode metadata, including the device and birth-
+    # independent ctime/mtime, to detect path replacement and unchanged-name ABA.
+    for evidence in (original, repeated):
+        paths = evidence.get("paths")
+        socket_rows = [p for p in paths if isinstance(p, dict) and p.get("path") == SOCKET] if isinstance(paths, list) else []
+        metadata = socket_rows[0].get("metadata") if len(socket_rows) == 1 else None
+        if not isinstance(metadata, dict) or any(type(metadata.get(key)) is not int or metadata[key] <= 0
+                 for key in ("dev", "inode", "ctime_ns", "mtime_ns")):
+            reasons.append("complete socket device/inode/time identity missing")
+    return {
+        "schema": "merlin-browser-two-inspection-reconciliation/1",
+        "status": "stable_candidate_for_locked_reinspection" if not reasons else "blocked",
+        "consistent_observations": not reasons,
+        "reasons": sorted(set(reasons)),
+        "sources": [
+            {"run_id": expected_first[0], "workflow_commit": expected_first[1],
+             "receipt_sha256": first_sha256},
+            {"run_id": expected_second[0], "workflow_commit": expected_second[1],
+             "receipt_sha256": second_sha256},
+        ],
+        "authority_granted": False,
+        "may_unlink_socket": False,
+        "host_mutations": 0,
+        "native_browser_qualified": False,
+        "next_gate": "Root-owned locked, fresh same-inode and listener recheck before any separate recovery authorization",
+    }
 
 
 def main(argv=None):
