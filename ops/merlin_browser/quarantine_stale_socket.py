@@ -250,14 +250,28 @@ def _systemd():
     return properties
 
 
+def _parse_listeners(raw):
+    if not isinstance(raw, bytes) or not 0 < len(raw) <= 131072:
+        raise ValueError("Unix socket table response invalid")
+    table = raw.decode("ascii", "strict").splitlines()
+    if not table or not table[0].lstrip().startswith("Num"):
+        raise ValueError("Unix socket table header invalid")
+    count = 0
+    for row in table[1:]:
+        fields = row.split()
+        if SOCKET_PATH not in row:
+            continue
+        if len(fields) != 8 or not fields[0].endswith(":") or fields[7] != SOCKET_PATH:
+            raise ValueError("malformed matching browser socket row")
+        count += 1
+        if count > 1:
+            raise ValueError("multiple matching browser socket rows")
+    return count
+
+
 def _listeners():
     raw = _trusted_regular("/proc/net/unix", 131072, owner=0)
-    matches = 0
-    for row in raw.decode("ascii", "replace").splitlines()[1:]:
-        cols = row.split()
-        if len(cols) >= 8 and cols[-1] == SOCKET_PATH:
-            matches += 1
-    return matches
+    return _parse_listeners(raw)
 
 
 def _host_precheck():
@@ -290,7 +304,12 @@ def _write_unique_receipt(path, data):
         raise ValueError("unexpectedly large fixed socket receipt")
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     try:
-        os.write(fd, raw)
+        offset = 0
+        while offset < len(raw):
+            count = os.write(fd, raw[offset:])
+            if not isinstance(count, int) or count <= 0:
+                raise OSError("operation receipt write made no progress")
+            offset += count
         os.fsync(fd)
     finally:
         os.close(fd)
