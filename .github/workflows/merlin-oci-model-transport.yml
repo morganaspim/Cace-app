@@ -95,7 +95,7 @@ jobs:
                   if identity(body)!=pin: raise RuntimeError('reviewed controller/source pin differs: '+name)
                   if name.endswith('.py'): ast.parse(body,feature_version=(3,9))
                   (controls/name).write_bytes(body);sources[name]=body
-              workflow=fetch('.github/workflows/merlin-oci-model-readonly.yml')
+              workflow=fetch('.github/workflows/merlin-oci-model-transport.yml')
               (out/'workflow-definition.yml').write_bytes(workflow)
               (out/'workflow-identities.json').write_text(json.dumps({
                 'reviewed_operations_baseline':'c8b61b30dfff6c1e3c7889595276d27adca7b5be',
@@ -108,7 +108,7 @@ jobs:
                 'uid':os.geteuid(),'machine':platform.machine(),'system':platform.system(),
                 'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt}
               if (not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}
-                  or request['schema']!='merlin-oci-model-transport-preflight-request/1'
+                  or request['schema']!='merlin-oci-model-transport-request/1'
                   or request['operation']!='check-local-model-transport-without-generation'):
                   raise RuntimeError('read-only provider request must be exact and bounded')
               # Preserve original controller identity validation without its
