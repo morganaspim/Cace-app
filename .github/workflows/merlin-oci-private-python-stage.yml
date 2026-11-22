@@ -120,6 +120,7 @@ jobs:
         with:
           artifact-ids: 14748604091
           run-id: 45009078432
+          merge-multiple: true
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/merlin-oci-private-python-stage-${{ github.run_id }}-${{ github.run_attempt }}/input
       - name: Execute exact old-Python fixture tests and temporary stage, then restore
