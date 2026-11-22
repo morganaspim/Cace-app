@@ -1,0 +1,159 @@
+name: Merlin OCI read-only model provider preflight
+
+"on":
+  push:
+    branches: ["merlin/browser-operations-20261121"]
+    paths: ["merlin/oci-model-readonly-requests/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merlin-dot-oci-operations
+  cancel-in-progress: false
+
+jobs:
+  provider-readonly-preflight:
+    runs-on: [self-hosted, cace, oci, aarch64]
+    timeout-minutes: 10
+    steps:
+      - name: Verify fixed provider identity and input-token readiness without generation
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -I -B - <<'PYCODE'
+          import ast,base64,hashlib,http.client,json,os,platform,re,socket,sys,threading,time
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY'];commit=os.environ['GITHUB_SHA']
+          run_id=int(os.environ['GITHUB_RUN_ID']);attempt=int(os.environ['GITHUB_RUN_ATTEMPT'])
+          if (repo!='morganaspim/Cace-app' or os.environ.get('GITHUB_REF')!='refs/heads/merlin/browser-operations-20261121'
+              or os.environ.get('RUNNER_NAME')!='cace-oci-a1' or os.geteuid()!=1000
+              or platform.system()!='Linux' or platform.machine()!='aarch64'
+              or run_id<=0 or attempt!=1 or not re.fullmatch('[0-9a-f]{40}',commit)):
+              raise RuntimeError('fixed first-attempt OCI identity required')
+          pins={'accept.py': {'bytes': 16727, 'sha256': '1b519fd0d31a9bfc6d6af13822391c2457d7e86cb9e8174eefebef021ff91ae2', 'git_blob': '71d62a0376cad28bc9563ee0d933b4e0f9b37da7'}, 'test_accept.py': {'bytes': 10909, 'sha256': '46236485530daac7db2950c816f73d9c00883148d232bdf92fab78ed41dcd624', 'git_blob': 'b9a0bbf1384b26222260ba26f709b6b4e8989a2c'}, 'expected-studio-source.json': {'bytes': 1683, 'sha256': '321550afea765a8e5ab85bd54462c4b0621d61c1a08a04eee12d6574341d3816', 'git_blob': '95bd02518caa9a4c2422fae7e1611034cf02f73c'}, 'frozen_provider_inspector.py': {'bytes': 57177, 'sha256': 'f47637659c5d71e5d75cdb7198a0e07092a69f1b7857d45c92fa19be40bd8fa5', 'git_blob': '67c699c2f27c1acfdc202eeed5b0468cb12ae029'}, 'initial-model-request.json': {'bytes': 2394, 'sha256': '07545d5ef91771730f35054d290e721dadfd0efe401b1948e15ea8a4f816a4de', 'git_blob': '0ee7e0e99447b2126b2a7141d317150ae5e1427d'}, 'inspect_provider_readonly.py': {'bytes': 6115, 'sha256': 'd950903a2f72d8c528f87baa5f772b2e1e028c4ef8819d865ee8028539e448e7', 'git_blob': '341561b8c9fff42e566c9657f42f6f67e75ba03b'}, 'product-source.zip': {'bytes': 104129, 'sha256': '99964ba99ea41a3b3580b85574533e5aaa8a2e72cca111b1b2233c948bb1cf8b', 'git_blob': '09d10789ab63c776cf47b8226cd0507e8cce1e49'}, 'run_studio_acceptance.py': {'bytes': 27038, 'sha256': '80d30cdfd9ff99531fe65e71a136cbdb3352ed4455e750ab634d7540e6543add', 'git_blob': 'c15feff08ad833277a90be2ddfb9c4881eb74885'}, 'source-pins.json': {'bytes': 8350, 'sha256': '4f0a420a6067c6e8ce51dd3110539e5a47b8a372fb216c540c39ba7ff41e8429', 'git_blob': 'bba11aced1eeb2d31c264f749408653fa618c879'}, 'validation_support.py': {'bytes': 37082, 'sha256': '39d82d37caa78a7f4a01cddb90821f1c4727f75472ca903b7054d840049447ee', 'git_blob': 'd950f862e4025db559c4c1a99cdba4aec9bae6c7'}}
+          out=Path(os.environ['RUNNER_TEMP'])/('merlin-oci-model-readonly-%d-%d'%(run_id,attempt))
+          out.mkdir(mode=0o700,exist_ok=False)
+          def unique(items):
+              value={}
+              for key,item in items:
+                  if key in value: raise ValueError('duplicate JSON field')
+                  value[key]=item
+              return value
+          def parse(raw): return json.loads(raw,object_pairs_hook=unique)
+          def identity(raw):
+              return {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),
+                      'git_blob':hashlib.sha1(('blob %d\0'%len(raw)).encode()+raw).hexdigest()}
+          def api(path):
+              # Fixed GitHub origin, verified HTTPS, no proxy or redirect, no retry.
+              connection=http.client.HTTPSConnection('api.github.com',443,timeout=12)
+              timer=None;deadline=time.monotonic()+20
+              try:
+                  connection.connect();channel=connection.sock
+                  def expire():
+                      try: channel.shutdown(socket.SHUT_RDWR)
+                      except OSError: pass
+                      channel.close()
+                  timer=threading.Timer(max(.001,deadline-time.monotonic()),expire);timer.daemon=True;timer.start()
+                  connection.request('GET','/repos/'+repo+'/'+path,headers={
+                    'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],'Accept':'application/vnd.github+json',
+                    'User-Agent':'Merlin-fixed-Studio-validation','Connection':'close'})
+                  response=connection.getresponse()
+                  if response.status!=200: raise RuntimeError('fixed GitHub read returned '+str(response.status))
+                  raw=response.read(4*1024*1024+1)
+                  if len(raw)>4*1024*1024 or time.monotonic()>=deadline: raise RuntimeError('GitHub read limit')
+                  return parse(raw)
+              finally:
+                  if timer is not None: timer.cancel()
+                  connection.close()
+          def fetch(path):
+              item=api('contents/'+path+'?ref='+commit)
+              if item.get('encoding')!='base64' or not isinstance(item.get('content'),str):
+                  raise RuntimeError('exact GitHub content encoding required')
+              raw=base64.b64decode(''.join(item['content'].split()),validate=True)
+              if identity(raw)['git_blob']!=item.get('sha'): raise RuntimeError('Git blob identity differs')
+              return raw
+          try:
+              changed=api('commits/'+commit).get('files',[])
+              if len(changed)!=1 or changed[0].get('status')!='added':
+                  raise RuntimeError('one new request file in a separate trigger commit required')
+              path=changed[0].get('filename','')
+              if not re.fullmatch(r'merlin/oci-model-readonly-requests/[0-9a-f-]{36}\.json',path):
+                  raise RuntimeError('fixed Studio validation request path required')
+              raw=fetch(path)
+              if len(raw)>4096: raise RuntimeError('request byte ceiling')
+              request=parse(raw)
+              if path!='merlin/oci-model-readonly-requests/'+request.get('request_id','')+'.json':
+                  raise RuntimeError('request path and identity differ')
+              (out/'request.json').write_bytes(raw)
+              controls=out/'controller';controls.mkdir(mode=0o700)
+              sources={}
+              for name,pin in pins.items():
+                  body=fetch('ops/merlin_studio_model_acceptance/'+name)
+                  if identity(body)!=pin: raise RuntimeError('reviewed controller/source pin differs: '+name)
+                  if name.endswith('.py'): ast.parse(body,feature_version=(3,9))
+                  (controls/name).write_bytes(body);sources[name]=body
+              workflow=fetch('.github/workflows/merlin-oci-model-readonly.yml')
+              (out/'workflow-definition.yml').write_bytes(workflow)
+              (out/'workflow-identities.json').write_text(json.dumps({
+                'reviewed_operations_baseline':'c8b61b30dfff6c1e3c7889595276d27adca7b5be',
+                'operations_baseline_tree':'4e33b01fdf11039448560919b67379cfd6656844',
+                'source_commit':'8497597f297bba83189afef2026c27f9244537ce',
+                'workflow_commit':commit,'workflow':identity(workflow),'pins':pins},sort_keys=True,indent=2))
+              namespace={'__name__':'pinned_studio_model_acceptance'}
+              exec(compile(sources['accept.py'],'pinned_studio_model_acceptance','exec'),namespace)
+              execution={'repository':repo,'ref':os.environ['GITHUB_REF'],'runner':os.environ['RUNNER_NAME'],
+                'uid':os.geteuid(),'machine':platform.machine(),'system':platform.system(),
+                'workflow_commit':commit,'run_id':run_id,'run_attempt':attempt}
+              if (not isinstance(request,dict) or set(request)!={'schema','request_id','operation','created_at'}
+                  or request['schema']!='merlin-oci-model-readonly-preflight-request/1'
+                  or request['operation']!='inspect-existing-local-provider-without-generation'):
+                  raise RuntimeError('read-only provider request must be exact and bounded')
+              # Preserve original controller identity validation without its
+              # generation-enabled run() entrypoint.
+              internal_request={'schema':'merlin-studio-model-acceptance-request/1',
+                  'request_id':request['request_id'],'operation':namespace['OPERATION'],
+                  'created_at':request['created_at']}
+              namespace['validate_request'](internal_request,execution)
+              temporary=out/'controller-temporary';temporary.mkdir(mode=0o700)
+              support,_=namespace['load_assets'](controls)
+              env=support['child_env'](temporary)
+              result=support['run_process']([
+                '/usr/bin/python3','-I','-B','-c',support['TEST_CODE'],str(controls),'.',
+                'test_accept.py','11',str(out/'controller-controls.json')],
+                cwd='/',env=env,log=out/'controller-controls.txt',seconds=60)
+              if not result['passed']: raise RuntimeError('fixed controller controls failed')
+              # Only frozen read-only inspector plus zero-generation token check.
+              # Two snapshots must bind to the same provider process and model.
+              before=namespace['inspect_provider'](support,controls,out/'provider-before',env)
+              transport=namespace['inspect_transport'](support,sources['initial-model-request.json'])
+              (out/'token-preflight.json').write_text(json.dumps(transport,sort_keys=True,indent=2))
+              after=namespace['inspect_provider'](support,controls,out/'provider-after',env)
+              matched=namespace['matching_after'](before,after)
+              verdict={'schema':'merlin-oci-model-readonly-preflight-result/1',
+                'status':'passed' if matched and transport['passed'] else 'blocked',
+                'original_fixed_controller_sha256':pins['accept.py']['sha256'],
+                'model_generation_calls':0,'service_mutations':False,'software_installation':False,
+                'input_token_calls':1,'provider_identity_unchanged':matched,
+                'provider_ready':bool(matched and transport['passed']),
+                'production_qualified':False,'model_quality_qualified':False}
+              (out/'preflight-result.json').write_text(json.dumps(verdict,sort_keys=True,indent=2))
+              print(json.dumps(verdict,sort_keys=True))
+              if verdict['status']!='passed': raise SystemExit(2)
+          except BaseException as exc:
+              (out/'operation-error.json').write_text(json.dumps({'status':'failed_or_blocked',
+                'type':type(exc).__name__,'message':str(exc)[:2000],'run_id':run_id,
+                'run_attempt':attempt,'workflow_commit':commit},sort_keys=True,indent=2))
+              raise
+          PYCODE
+      - name: Preserve all bounded observations, source identities and partial results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: merlin-oci-model-readonly-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/merlin-oci-model-readonly-${{ github.run_id }}-${{ github.run_attempt }}/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: warn
