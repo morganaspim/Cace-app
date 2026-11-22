@@ -190,6 +190,8 @@ jobs:
                   shutil.rmtree(stage)
               script=folder/'stage.py'
               if script.is_file() and not script.is_symlink():script.unlink()
+          if status['status']!='inspection_complete':
+              raise SystemExit(2)
           PY
       - name: Retain source and storage readiness without model bytes or Python archive
         if: always()
