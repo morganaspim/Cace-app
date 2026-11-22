@@ -129,6 +129,8 @@ jobs:
                     'bytes':24312,'blob':'9c742fc510494f69a936b3d369ea83b8b63d7d29'},
                 'studio_cdp_gui.py':{
                     'bytes':17174,'blob':'68a0759187748f1e9c24738661cd5911092cdee6'},
+                'test_studio_cdp_gui.py':{
+                    'bytes':3436,'blob':'80da8d16a4c0129a2f77f98b332a1425a6cd3bb8'},
                 'prepare_isolated_loopback.py':{
                     'bytes':6198,'blob':'28c3eff3e2e65c75e2ca66a0bb908b8102626cbe'},
                 'test_isolated_network_inventory.py':{
@@ -169,6 +171,23 @@ jobs:
                   case.stdout+case.stderr)
               if case.returncode!=0:
                   raise RuntimeError('six namespace-interface regressions failed')
+              # Independently assert the bounded CDP frame parser does not
+              # accept masked server frames, oversized results, external
+              # debugging hosts or arbitrary Chromium methods.
+              cdp_code=("import json,sys,unittest;"
+                "suite=unittest.defaultTestLoader.discover(sys.argv[1],"
+                "pattern='test_studio_cdp_gui.py');"
+                "res=unittest.TextTestRunner(verbosity=2).run(suite);"
+                "print(json.dumps({'tests':res.testsRun,'errors':len(res.errors),"
+                "'failures':len(res.failures),'skipped':len(res.skipped)}));"
+                "sys.exit(0 if res.wasSuccessful() and not res.skipped "
+                "and res.testsRun==8 else 1)")
+              cdp_tests=subprocess.run(['/usr/bin/python3','-I','-B','-c',cdp_code,str(validation)],
+                  cwd='/',env=env,capture_output=True,text=True,timeout=25)
+              (ev/'cdp-protocol-regression-tests.txt').write_text(
+                  cdp_tests.stdout+cdp_tests.stderr)
+              if cdp_tests.returncode!=0:
+                  raise RuntimeError('eight bounded CDP protocol regressions failed')
               # Three exact reviewed product deltas. The original 36-file
               # bundle remains intact until validated against its old pins.
               overlay=root/'product-overlays';overlay.mkdir(mode=0o700)
