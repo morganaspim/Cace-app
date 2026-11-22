@@ -166,7 +166,7 @@ class CDP:
             self.call("Input.dispatchMouseEvent", {"type": action, "x": p["x"],
                     "y": p["y"], "button": "left", "clickCount": 1})
 
-    def tap(self, selector):
+    def tap(self, selector, observation_path):
         # Mobile emulation is not a physical mouse: emit a real CDP
         # touchscreen press/release at a previously hit-tested DOM control.
         target = self.evaluate("""(function(){const e=document.querySelector(""" +
@@ -176,6 +176,11 @@ class CDP:
           const at=document.elementFromPoint(x,y);
           return {x,y,w:r.width,h:r.height,
                   topButtonId:at?.closest('button')?.id??null};})()""")
+        # Save a bounded coordinate/hit-test record even when blocked.
+        # It contains no DOM text, storage, cookies, credentials or model data.
+        safe = {k: target.get(k) for k in ("x", "y", "w", "h", "topButtonId")}
+        if isinstance(target, dict) else {"missing_target": True}
+        Path(observation_path).write_text(json.dumps(safe, sort_keys=True, indent=2))
         require(isinstance(target, dict)
                 and target.get("topButtonId") == selector.lstrip("#")
                 and target.get("w", 0) > 2 and target.get("h", 0) > 2
@@ -345,9 +350,9 @@ def run(profile_parent, evidence):
         wait_for(client, """(function(){const e=document.getElementById('menu-toggle');
           return getComputedStyle(e).display!=='none' && window.innerWidth===390;})()""",
           5, "emulated 390px CSS viewport")
-        tapped = client.tap("#menu-toggle")
-        (evidence / "studio-mobile-tap-target.json").write_text(
-            json.dumps(tapped, sort_keys=True, indent=2))
+        # Preserve a pre-input visual for diagnosing covered elements.
+        client.screenshot(evidence / "studio-gui-mobile-precheck.png", (390, 844))
+        tapped = client.tap("#menu-toggle", evidence / "studio-mobile-tap-target.json")
         wait_for(client, "document.getElementById('sidebar').classList.contains('open')",
                  5, "mobile touch hamburger expanded")
         mobile = client.screenshot(evidence / "studio-gui-mobile.png", (390, 844))
