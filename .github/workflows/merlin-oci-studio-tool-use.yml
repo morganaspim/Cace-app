@@ -167,7 +167,7 @@ jobs:
               members=namespace['validate_bundle'](pins,zip_bytes)
               require(len(members)==36,'native Studio source-member count differs')
               namespace['extract_bundle'](members,product)
-              overlay_commit='226cc3d55e656b9142616ae9175cee40f630e799'
+              overlay_commit='e958b74bc66e5b394ec9e6cb4a311694da5e0f56'
               overlays={
                  'portable/merlin_studio/tools.py':{'bytes':13986,'blob':'772b08c3f10b0732c99a13f5268ee18e30292344'},
                  'portable/merlin_studio/worker.py':{'bytes':777,'blob':'f87fa6fd6c6b4d1b80afaec781841318211e8345'},
