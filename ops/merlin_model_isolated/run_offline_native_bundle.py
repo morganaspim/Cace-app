@@ -135,6 +135,57 @@ def run(cmd, *, cwd, timeout=150, env=None):
     return child.stdout
 
 
+def _run_packaged_version(cmd, *, cwd, timeout, env):
+    """Run only an exact reviewed ELF's --version with no inherited credentials."""
+    child = subprocess.run(cmd, cwd=str(cwd), env=env,
+                           stdin=subprocess.DEVNULL,
+                           capture_output=True, timeout=timeout)
+    output = child.stdout + child.stderr
+    require(child.returncode == 0 and 0 < len(output) <= 8192,
+            "packaged inference executable version check failed")
+    return output
+
+
+def probe_packaged_llama(*, archive_root, expected_sha256, expected_bytes, runner):
+    """A native ELF startup probe, not yet a GGUF inference acceptance test."""
+    root = Path(archive_root)
+    if (root.name != "Merlin_Studio" or not root.is_dir() or root.is_symlink()
+            or not isinstance(expected_sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is None
+            or type(expected_bytes) is not int
+            or not 64 <= expected_bytes <= 512 * 1024 * 1024
+            or not callable(runner)):
+        raise ValueError("exact bounded extracted inference release required")
+    executable = root / "bin" / "llama-server"
+    try:
+        st = executable.lstat()
+    except FileNotFoundError as exc:
+        raise ValueError("packaged inference executable absent") from exc
+    if (not stat.S_ISREG(st.st_mode) or st.st_size != expected_bytes
+            or stat.S_IMODE(st.st_mode) != 0o755
+            or st.st_nlink != 1):
+        raise ValueError("packaged inference ELF metadata differs")
+    digest, size = streaming_sha256(executable, maximum=512 * 1024 * 1024)
+    if digest != expected_sha256 or size != expected_bytes:
+        raise ValueError("packaged inference ELF digest differs")
+    with executable.open("rb") as stream:
+        header = stream.read(20)
+    if (len(header) != 20 or header[:6] != b"\x7fELF\x02\x01"
+            or struct.unpack("<H", header[18:20])[0] != 183):
+        raise ValueError("packaged inference executable is not Linux aarch64 ELF")
+    output = runner([str(executable), "--version"], cwd=root, timeout=20,
+                    env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8",
+                         "HOME": str(root), "PYTHONDONTWRITEBYTECODE": "1"})
+    if not isinstance(output, bytes) or not 0 < len(output) <= 8192:
+        raise ValueError("packaged executable returned no bounded version output")
+    return {"native_llama_binary_started": True,
+            "model_inference_executed": False,
+            "llama_sha256": expected_sha256,
+            "llama_version_output_sha256": hashlib.sha256(output).hexdigest(),
+            "llama_version_excerpt": output.decode("utf-8", "replace").strip()[:120],
+            "production_qualified": False}
+
+
 def source_tree(root, evidence):
     target = root / "source"
     target.mkdir(mode=0o700)
@@ -309,8 +360,10 @@ def assemble(root, evidence, archive, details):
     require(version.startswith("3.11."), "real packaged Python 3.11 did not execute")
     details["packaged_python_version"] = version
     details["actual_packaged_python_executed"] = True
-    details["model_inference_executed"] = False
-    details["native_llama_binary_started"] = False
+    details.update(probe_packaged_llama(
+        archive_root=destination / "Merlin_Studio",
+        expected_sha256=LLAMA_SHA, expected_bytes=14614984,
+        runner=_run_packaged_version))
     return details
 
 
@@ -370,9 +423,10 @@ def main():
                 "insufficient scratch storage for private ZIP and extract")
         prepared = assemble(scratch, evidence, py_archive, result)
         require(prepared["package_integrity_passed"]
-                and prepared["actual_packaged_python_executed"],
+                and prepared["actual_packaged_python_executed"]
+                and prepared["native_llama_binary_started"],
                 "private bundle acceptance incomplete")
-        result["status"] = "private_package_and_python_passed"
+        result["status"] = "private_package_python_and_llama_executable_passed"
         success = True
     except BaseException as exc:
         result["failure_type"] = type(exc).__name__
