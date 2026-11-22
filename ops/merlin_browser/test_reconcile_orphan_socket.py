@@ -95,6 +95,23 @@ class ReconciliationPreflightTests(unittest.TestCase):
                 next(p for p in candidate["paths"] if p["path"] == SOCKET)["metadata"][key] = bad
                 self.assertEqual(check(candidate)["status"], "blocked")
 
+    def test_boolean_integer_substitution_rejected_at_all_identity_boundaries(self):
+        for value in (True, False):
+            c = observed()
+            c["unix_socket_table"]["matches"] = value
+            self.assertEqual(check(c)["status"], "blocked")
+            c = observed()
+            c["execution"]["run_attempt"] = value
+            self.assertEqual(check(c)["status"], "blocked")
+            for member in ("uid", "gid", "inode", "nlink"):
+                c = observed()
+                item = next(p for p in c["paths"] if p["path"] == SOCKET)
+                item["metadata"][member] = value
+                self.assertEqual(check(c)["status"], "blocked")
+            c = observed()
+            c["execution"]["run_id"] = value
+            self.assertEqual(check(c)["status"], "blocked")
+
     def test_no_path_substitution_duplicate_or_symlink(self):
         for damage in ("path_substitution", "duplicate", "follow_symlink", "missing"):
             with self.subTest(damage=damage):
