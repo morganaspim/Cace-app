@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "237481ed-0fca-4c66-9492-86bf8533037a",
+  "operation": "inventory_snapshot",
+  "reason": "Read-only OCI runner availability inventory for Merlin production readiness; no workload, dependency installation, credential inspection or service changes.",
+  "created_at": "2026-11-24T12:19:11Z"
+}
