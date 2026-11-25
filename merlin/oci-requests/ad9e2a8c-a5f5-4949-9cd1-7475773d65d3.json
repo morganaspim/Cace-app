@@ -1,0 +1,7 @@
+{
+  "schema": "merlin-oci-job-request-v1",
+  "request_id": "ad9e2a8c-a5f5-4949-9cd1-7475773d65d3",
+  "operation": "inventory_snapshot",
+  "reason": "Refresh the fixed read-only OCI runner inventory before preparing the combined Merlin Studio and research webapp service; no host, network, credential, or deployment changes.",
+  "created_at": "2026-11-25T15:09:38.627483+00:00"
+}
